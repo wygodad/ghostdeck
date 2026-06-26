@@ -197,17 +197,17 @@ Dodatkowe adresy EC (do okna Status w aplikacji): temp CPU `0x68`, temp GPU `0x8
 
 ## 9. Finalne rozwiązanie — pliki i użycie
 
-Folder **`D:\temp\Claude\MSI-Silent\`**:
+Skrypty standalone (w repo: **`scripts/`**):
 
 | Plik | Rola |
 |---|---|
 | `Silent.cmd` | dwuklik → UAC → ustawia **Silent** |
 | `Balanced.cmd` | dwuklik → UAC → ustawia **Balanced** |
 | `Silent.ps1` / `Balanced.ps1` | logika (zapis EC przez MSI WMI, self-elevacja, readback) |
-| `msi_ec_snapshot.ps1` | pomiar 4 adresów w każdym trybie (do re-weryfikacji) |
-| `msi_ec_fulldump.ps1` | pełny zrzut 256 B EC w każdym trybie (do diffa) |
-| `msi_silent_TEST.ps1` | test fazowy z auto-revertem (do ponownej walidacji) |
-| `DOKUMENTACJA.md` | ten dokument |
+| `Set-MsiProfile.ps1` | `-Mode Silent\|Balanced\|Extreme\|SuperBattery` (z linii poleceń) |
+| `diagnostics/msi_ec_snapshot.ps1` | pomiar 4 adresów w każdym trybie (do re-weryfikacji) |
+| `diagnostics/msi_ec_fulldump.ps1` | pełny zrzut 256 B EC w każdym trybie (do diffa) |
+| `diagnostics/msi_silent_TEST.ps1` | test fazowy z auto-revertem (do ponownej walidacji) |
 
 **Użycie:** dwuklik `Silent.cmd` → „Tak" w UAC → okno mignie, pokaże zapisane bajty i się zamknie. Profil ustawiony, **niezależnie od wersji MSI Center**.
 
@@ -239,7 +239,7 @@ WriteEC 0xD2 0xC1; WriteEC 0x34 0x00; WriteEC 0xEB 0x00; WriteEC 0xD4 0x1D
 ## 11. Procedura odtworzenia po aktualizacji BIOS
 
 1. Zainstaluj MSI Center z działającym Silent (lub użyj 2.0.48) — potrzebny żywy wzorzec.
-2. `pwsh -ExecutionPolicy Bypass -File msi_ec_fulldump.ps1` → przełączaj scenariusze (Silent/Balanced/Extreme/Super Battery).
+2. `pwsh -ExecutionPolicy Bypass -File scripts/diagnostics/msi_ec_fulldump.ps1` → przełączaj scenariusze (Silent/Balanced/Extreme/Super Battery).
 3. Porównaj `[SILENT]` vs `[BALANCED]`, odsiej szum czujników → nowe wartości `0x34/0x89/0x91/0xD4` (i ewentualnie nowe adresy z aktualnego msi-ec).
 4. Wstaw nowe wartości do `Silent.ps1` / `Balanced.ps1`.
 
@@ -316,7 +316,7 @@ Lewy klik ikony w zasobniku = cykl; prawy klik = menu wyboru + „Zamknij".
 
 Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumentacja).
 
-**Lokalizacja:** `D:\temp\Claude\MSIProfileSwitcher\release\MSIProfileSwitcher.exe` (single-file self-contained, ~154 MB, skrót na pulpicie). Źródła obok w folderze projektu; build: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`.
+**Pobranie:** najnowszy `MSIProfileSwitcher.exe` z zakładki **[Releases](../../releases)** repo. Pojedynczy plik, self-contained (~154 MB), bez instalacji i bez .NET. Build ze źródeł: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`.
 
 **Funkcje:**
 - Ikona w zasobniku (kolor = aktywny profil), menu z 4 profilami, lewy klik = cykl.
