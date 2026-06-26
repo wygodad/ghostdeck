@@ -2,6 +2,7 @@ namespace MSIProfileSwitcher;
 
 public sealed record StatusInfo(
     ProfileId Profile, bool Active, bool Known, string Device,
+    string TierText, Color TierColor,
     int Switches, TimeSpan InProfile, bool Autostart, string AppVersion);
 
 public sealed class StatusForm : Form
@@ -14,6 +15,7 @@ public sealed class StatusForm : Form
 
     private readonly Panel _header = new();
     private readonly Label _hProfile = new();
+    private readonly Label _badge = new();
     private readonly Dictionary<string, Label> _vals = new();
 
     private static readonly (string locKey, string id)[] Rows =
@@ -52,6 +54,15 @@ public sealed class StatusForm : Form
         _hProfile.ForeColor = Color.White;
         _hProfile.BackColor = Color.Transparent;
         _header.Controls.Add(_hProfile);
+
+        _badge.AutoSize = true;
+        _badge.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+        _badge.ForeColor = Color.White;
+        _badge.Padding = new Padding(7, 3, 7, 3);
+        _badge.TextAlign = ContentAlignment.MiddleCenter;
+        _header.Controls.Add(_badge);
+        _badge.BringToFront();
+
         Controls.Add(_header);
 
         int y = 80;
@@ -119,6 +130,9 @@ public sealed class StatusForm : Form
 
         _vals["model"].Text = info.Device;
         _tip.SetToolTip(_vals["model"], info.Device);
+        _badge.Text = info.TierText.ToUpperInvariant();
+        _badge.BackColor = info.TierColor;
+        _badge.Location = new Point(_header.Width - _badge.Width - 16, (_header.Height - _badge.Height) / 2);
         _vals["cpu_temp"].Text = hw.CpuTemp is > 0 and < 130 ? $"{hw.CpuTemp} °C" : "—";
         _vals["gpu_temp"].Text = hw.GpuTemp is > 0 and < 130 ? $"{hw.GpuTemp} °C" : "—";
         _vals["cpu_fan"].Text = info.Known ? $"{hw.CpuFan} %" : "—";

@@ -71,6 +71,19 @@ Full reverse-engineering write-up, register map, measurements and the diagnostic
 
 EC register map credit: [**BeardOverflow/msi-ec**](https://github.com/BeardOverflow/msi-ec).
 
+## Testing the model gate (developer)
+
+To preview the **experimental** / **unsupported** UI on any machine, set the `MSIPS_FORCE_FIRMWARE` environment variable to a firmware string before launching. The app then **simulates** that firmware and performs **no EC writes** (UI preview only):
+
+```powershell
+$env:MSIPS_FORCE_FIRMWARE = "16V1EMS1.100"   # an experimental model
+# or "ZZZZ" for an unsupported firmware
+.\MSIProfileSwitcher.exe
+# (close it, clear the variable, and relaunch to return to normal)
+```
+
+The Status window / tray show a `(test)` marker while simulating.
+
 ## License
 
 [MIT](LICENSE) © 2026 wygodad

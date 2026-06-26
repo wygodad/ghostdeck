@@ -10,6 +10,7 @@ public sealed class TrayContext : ApplicationContext
     private AppSettings _settings;
     private readonly DeviceProfile? _device;
     private readonly string _firmware;
+    private readonly bool _simulate;   // MSIPS_FORCE_FIRMWARE set -> UI preview, no EC writes
     private ProfileId _current;
     private Icon? _currentIcon;
     private DateTime _profileSince = DateTime.Now;
@@ -26,7 +27,9 @@ public sealed class TrayContext : ApplicationContext
         _settings.Autostart = Autostart.IsEnabled();
         Lang.Set(_settings.Language);
 
-        _firmware = Ec.ReadFirmware();
+        var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
+        _simulate = !string.IsNullOrEmpty(forced);
+        _firmware = _simulate ? forced! : Ec.ReadFirmware();
         _device = Devices.Detect(_firmware);
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
 
@@ -46,13 +49,23 @@ public sealed class TrayContext : ApplicationContext
         ShowState();
     }
 
+    private string DeviceName() => Known ? _device!.Name : Lang.T("unsupported_title");
+
+    private (string text, Color color) TierBadge()
+    {
+        if (!Known) return (Lang.T("tier_unsupported"), Color.FromArgb(0xB0, 0x4A, 0x3A));
+        return _device!.Tier == Tier.Tested
+            ? (Lang.T("tier_tested"),       Color.FromArgb(0x2E, 0xA0, 0x43))
+            : (Lang.T("tier_experimental"), Color.FromArgb(0xCC, 0x7A, 0x12));
+    }
+
     private string DeviceDescriptor()
     {
-        if (!Known) return Lang.T("unsupported_title");
+        if (!Known) return Lang.T("unsupported_title") + (_simulate ? "  (test)" : "");
         string tier = _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
                     : Writable ? Lang.T("tier_experimental")
                     : Lang.T("experimental_locked");
-        return _device.Name + "  ·  " + tier;
+        return _device.Name + "  ·  " + tier + (_simulate ? "  (test)" : "");
     }
 
     private void ShowState()
@@ -123,7 +136,7 @@ public sealed class TrayContext : ApplicationContext
         if (!Writable) { ShowState(); return; }
         try
         {
-            Ec.Apply(_device!.Recipes[id]);
+            if (!_simulate) Ec.Apply(_device!.Recipes[id]);
             if (id != _current && count) _switches++;
             _current = id;
             _profileSince = DateTime.Now;
@@ -218,8 +231,12 @@ public sealed class TrayContext : ApplicationContext
             return;
         }
         _statusForm = new StatusForm(
-            () => new StatusInfo(_current, Writable, Known, DeviceDescriptor(),
-                                 _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion()),
+            () =>
+            {
+                var (tier, color) = TierBadge();
+                return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
+                                      _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion());
+            },
             () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
             id => _settings.ColorFor(id),
             _settings.StatusOnTop,
@@ -235,7 +252,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (Writable && _settings.ChargeLimit is 60 or 80 or 100)
+        if (Writable && !_simulate && _settings.ChargeLimit is 60 or 80 or 100)
         {
             try { Ec.SetChargeLimit(_device!, _settings.ChargeLimit); } catch { }
         }
