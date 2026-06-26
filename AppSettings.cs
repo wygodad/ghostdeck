@@ -29,6 +29,7 @@ public sealed class AppSettings
 
     public int ChargeLimit { get; set; } = 0;                          // 0 = nie zmieniaj; inaczej 60/80/100
     public bool StatusOnTop { get; set; } = false;                     // okno Status "zawsze na wierzchu"
+    public bool ExperimentalEnabled { get; set; } = false;             // pozwol na zapis dla modeli Experimental
 
     [JsonIgnore]
     public static string Dir => Path.Combine(
@@ -100,6 +101,7 @@ public sealed class AppSettings
             ProfileOnBattery = ProfileOnBattery,
             ChargeLimit = ChargeLimit,
             StatusOnTop = StatusOnTop,
+            ExperimentalEnabled = ExperimentalEnabled,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();
         foreach (var (k, v) in Colors) c.Colors[k] = v;

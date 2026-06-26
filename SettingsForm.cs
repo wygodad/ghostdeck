@@ -3,6 +3,7 @@ namespace MSIProfileSwitcher;
 public sealed class SettingsForm : Form
 {
     private readonly Action<AppSettings> _onSave;
+    private readonly AppSettings _incoming;
 
     private readonly ComboBox _cmbLang = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
     private readonly TabControl _tabs = new();
@@ -28,6 +29,7 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _cmbAc = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly Label _lblOnBattery = new() { AutoSize = true };
     private readonly ComboBox _cmbBattery = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
+    private readonly CheckBox _chkExperimental = new() { AutoSize = true };
 
     private readonly Label _status = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
     private readonly Button _btnDefault = new();
@@ -40,6 +42,7 @@ public sealed class SettingsForm : Form
     public SettingsForm(AppSettings current, Action<AppSettings> onSave)
     {
         _onSave = onSave;
+        _incoming = current;
 
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
@@ -206,6 +209,10 @@ public sealed class SettingsForm : Form
         _tabPower.Controls.Add(_lblOnBattery);
         _tabPower.Controls.Add(_cmbBattery);
 
+        _chkExperimental.Location = new Point(14, 196);
+        _chkExperimental.Checked = current.ExperimentalEnabled;
+        _tabPower.Controls.Add(_chkExperimental);
+
         // wartosci charge combo wypelnia Localize()
         _cmbCharge.Tag = current.ChargeLimit;
     }
@@ -233,6 +240,7 @@ public sealed class SettingsForm : Form
         _chkAutoSwitch.Text = Lang.T("set_autoswitch");
         _lblOnAc.Text = Lang.T("on_ac") + ":";
         _lblOnBattery.Text = Lang.T("on_battery") + ":";
+        _chkExperimental.Text = Lang.T("experimental_enable");
         _btnDefault.Text = Lang.T("set_default");
         _btnSave.Text = Lang.T("set_save");
         _btnClose.Text = Lang.T("set_close");
@@ -272,6 +280,8 @@ public sealed class SettingsForm : Form
             ProfileOnAC = Profiles.Get(Profiles.Order[Math.Max(0, _cmbAc.SelectedIndex)]).Key,
             ProfileOnBattery = Profiles.Get(Profiles.Order[Math.Max(0, _cmbBattery.SelectedIndex)]).Key,
             ChargeLimit = ChargeValues[Math.Max(0, _cmbCharge.SelectedIndex)],
+            ExperimentalEnabled = _chkExperimental.Checked,
+            StatusOnTop = _incoming.StatusOnTop,
         };
         foreach (var (key, box) in _boxes) s.Hotkeys[key] = box.Value.Clone();
         foreach (var (k, hex) in _selColors) s.Colors[k] = hex;

@@ -35,13 +35,22 @@ It's a single, self-contained file — no install, no .NET runtime needed. Run i
 
 ## Supported models
 
-The app only enables profile switching on **known-good EC firmwares**. On an unrecognized firmware it runs in **read-only mode** — the Status window works, but profile writes are disabled — so it never writes wrong EC registers on an untested machine.
+Each model is **✅ tested** (verified on real hardware) or **⚗️ experimental** (built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps but not yet verified — the "Silent" power-cap behaviour is unconfirmed). On an **unrecognized firmware** the app runs **read-only** (Status works, writes disabled), so it never writes wrong registers on an untested machine.
+
+Experimental models are **opt-in**: enable them in *Settings → Power → "Enable experimental models"*. They write only documented MSI shift/fan registers (low risk), but switching may not give the same low-power "Silent" until an owner confirms it.
 
 | Model | EC firmware | Status |
 |---|---|---|
-| MSI Raider GE78HX 13V | `17S1IMS1.*` | ✅ tested |
+| MSI Raider GE78HX / Vector GP78HX 13V | `17S1IMS1.*` | ✅ tested |
+| MSI Raider GE68HX 13V | `15M2IMS1.*` | ⚗️ experimental |
+| MSI GS66 Stealth | `16V1EMS1.*` | ⚗️ experimental |
+| MSI GS65 Stealth | `16Q4EMS1.*` | ⚗️ experimental |
+| MSI Katana GF66 | `1582EMS1.*` | ⚗️ experimental |
+| MSI Katana GF76 | `17L1EMS1.*` | ⚗️ experimental |
+| MSI GE66 Raider / GP66 Leopard | `1543EMS1.*` | ⚗️ experimental |
+| MSI GF65 Thin | `16W2EMS1.*` | ⚗️ experimental |
 
-**Got a different MSI?** Help add it — open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is described in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
+**Got a different MSI — or own an experimental one and can confirm it works?** Open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
 
 ## Build from source
 

@@ -1,7 +1,7 @@
 namespace MSIProfileSwitcher;
 
 public sealed record StatusInfo(
-    ProfileId Profile, bool Supported, string Device,
+    ProfileId Profile, bool Active, bool Known, string Device,
     int Switches, TimeSpan InProfile, bool Autostart, string AppVersion);
 
 public sealed class StatusForm : Form
@@ -35,15 +35,16 @@ public sealed class StatusForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
-        ClientSize = new Size(430, 500);
+        ClientSize = new Size(440, 500);
         Font = new Font("Segoe UI", 9.5f);
         BackColor = Color.White;
         TopMost = onTop;
         Text = Lang.T("status_title");
         Icon = TrayIconFactory.Create(colorOf(provider().Profile));
 
-        _header.SetBounds(0, 0, 430, 58);
+        _header.SetBounds(0, 0, 440, 58);
         _hProfile.AutoSize = true;
+        _hProfile.MaximumSize = new Size(410, 0);
         _hProfile.Location = new Point(20, 14);
         _hProfile.Font = new Font("Segoe UI", 15, FontStyle.Bold);
         _hProfile.ForeColor = Color.White;
@@ -65,7 +66,7 @@ public sealed class StatusForm : Form
             {
                 Location = new Point(200, y),
                 AutoSize = true,
-                MaximumSize = new Size(210, 0),
+                MaximumSize = new Size(218, 0),
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Text = "—",
             };
@@ -89,7 +90,7 @@ public sealed class StatusForm : Form
         Controls.Add(chkOnTop);
 
         var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, y + 38) };
-        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(316, y + 38) };
+        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(326, y + 38) };
         btnRefresh.Click += (_, _) => Refresh2();
         btnClose.Click += (_, _) => Close();
         Controls.Add(btnRefresh);
@@ -103,10 +104,10 @@ public sealed class StatusForm : Form
     private void Refresh2()
     {
         var info = _provider();
-        _header.BackColor = info.Supported ? _colorOf(info.Profile) : Color.Gray;
-        _hProfile.Text = info.Supported
+        _header.BackColor = info.Active ? _colorOf(info.Profile) : Color.Gray;
+        _hProfile.Text = info.Active
             ? "MSI  ·  " + Profiles.Get(info.Profile).Label
-            : "MSI  ·  " + Lang.T("unsupported_title");
+            : "MSI  ·  " + info.Device;
 
         HwSnapshot hw;
         try { hw = _hw(); } catch { hw = default; }
@@ -114,8 +115,8 @@ public sealed class StatusForm : Form
         _vals["model"].Text = info.Device;
         _vals["cpu_temp"].Text = hw.CpuTemp is > 0 and < 130 ? $"{hw.CpuTemp} °C" : "—";
         _vals["gpu_temp"].Text = hw.GpuTemp is > 0 and < 130 ? $"{hw.GpuTemp} °C" : "—";
-        _vals["cpu_fan"].Text = info.Supported ? $"{hw.CpuFan} %" : "—";
-        _vals["gpu_fan"].Text = info.Supported ? $"{hw.GpuFan} %" : "—";
+        _vals["cpu_fan"].Text = info.Known ? $"{hw.CpuFan} %" : "—";
+        _vals["gpu_fan"].Text = info.Known ? $"{hw.GpuFan} %" : "—";
         _vals["charge"].Text = hw.ChargeLimit is >= 10 and <= 100 ? $"{hw.ChargeLimit} %" : "—";
         _vals["fw"].Text = string.IsNullOrEmpty(hw.Firmware) ? "—" : hw.Firmware;
         _vals["sw"].Text = info.Switches.ToString();

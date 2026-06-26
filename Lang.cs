@@ -65,6 +65,9 @@ public static class Lang
         ["st_model"]       = new[] { "Model", "Model", "Modell", "Modèle", "Modelo", "型号", "Modelo", "Модель" },
         ["unsupported_title"] = new[] { "Unsupported model", "Niewspierany model", "Nicht unterstütztes Modell", "Modèle non pris en charge", "Modelo no compatible", "不支持的型号", "Modelo não suportado", "Модель не поддерживается" },
         ["unsupported_sub"]   = new[] { "read-only — contribute on GitHub", "tylko odczyt — zgłoś model na GitHub", "schreibgeschützt — auf GitHub beitragen", "lecture seule — contribuez sur GitHub", "solo lectura — contribuye en GitHub", "只读 — 在 GitHub 上贡献", "somente leitura — contribua no GitHub", "только чтение — добавьте на GitHub" },
+        ["experimental_enable"] = new[] { "Enable experimental models (unverified)", "Włącz modele eksperymentalne (niezweryfikowane)", "Experimentelle Modelle aktivieren (ungeprüft)", "Activer les modèles expérimentaux (non vérifiés)", "Activar modelos experimentales (no verificados)", "启用实验性型号（未验证）", "Ativar modelos experimentais (não verificados)", "Включить экспериментальные модели (непроверенные)" },
+        ["experimental_locked"] = new[] { "experimental — enable in Settings", "eksperymentalny — włącz w Ustawieniach", "experimentell — in Einstellungen aktivieren", "expérimental — activez dans Paramètres", "experimental — actívalo en Ajustes", "实验性 — 在设置中启用", "experimental — ative nas Configurações", "экспериментально — включите в настройках" },
+        ["tier_experimental"]   = new[] { "experimental", "eksperymentalny", "experimentell", "expérimental", "experimental", "实验性", "experimental", "экспериментальный" },
 
         ["yes"]            = new[] { "Yes", "Tak", "Ja", "Oui", "Sí", "是", "Sim", "Да" },
         ["no"]             = new[] { "No", "Nie", "Nein", "Non", "No", "否", "Não", "Нет" },

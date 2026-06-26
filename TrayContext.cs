@@ -17,7 +17,8 @@ public sealed class TrayContext : ApplicationContext
     private PowerLineStatus? _lastPower;
     private StatusForm? _statusForm;
 
-    private bool Supported => _device != null;
+    private bool Known => _device != null;
+    private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
 
     public TrayContext()
     {
@@ -27,9 +28,9 @@ public sealed class TrayContext : ApplicationContext
 
         _firmware = Ec.ReadFirmware();
         _device = Devices.Detect(_firmware);
-        _current = Supported ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
+        _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
 
-        if (Supported) TryApplyChargeLimit();
+        if (Writable) TryApplyChargeLimit();
 
         BuildMenu();
         UpdateUi(_current);
@@ -37,13 +38,29 @@ public sealed class TrayContext : ApplicationContext
         ApplyHotkeys();
 
         _lastPower = SystemInformation.PowerStatus.PowerLineStatus;
-        if (Supported && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
+        if (Writable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
 
         _poll.Tick += (_, _) => Poll();
         _poll.Start();
 
-        if (Supported) ShowOsd(_current);
-        else ShowUnsupportedOsd();
+        ShowState();
+    }
+
+    private string DeviceDescriptor()
+    {
+        if (!Known) return Lang.T("unsupported_title");
+        if (_device!.Tier == Tier.Experimental)
+            return _device.Name + " (" + (Writable ? Lang.T("tier_experimental") : Lang.T("experimental_locked")) + ")";
+        return _device.Name;
+    }
+
+    private void ShowState()
+    {
+        if (Writable) ShowOsd(_current);
+        else if (Known) _osd.ShowProfile("MSI  ·  " + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
+        else _osd.ShowProfile("MSI  ·  " + Lang.T("unsupported_title"),
+                              string.IsNullOrEmpty(_firmware) ? Lang.T("unsupported_sub") : _firmware + " · " + Lang.T("unsupported_sub"),
+                              Color.Gray);
     }
 
     // ---------------- menu ----------------
@@ -55,7 +72,7 @@ public sealed class TrayContext : ApplicationContext
 
         foreach (var id in Profiles.Order)
         {
-            var item = new ToolStripMenuItem(Profiles.Get(id).Label) { Tag = id, Enabled = Supported };
+            var item = new ToolStripMenuItem(Profiles.Get(id).Label) { Tag = id, Enabled = Writable };
             item.Click += (_, _) => SetProfile((ProfileId)item.Tag!, osd: true);
             menu.Items.Add(item);
         }
@@ -94,14 +111,14 @@ public sealed class TrayContext : ApplicationContext
     private void TrayClick(object? s, MouseEventArgs e)
     {
         if (e.Button != MouseButtons.Left) return;
-        if (Supported) Cycle();
-        else ShowUnsupportedOsd();
+        if (Writable) Cycle();
+        else ShowState();
     }
 
     // ---------------- profile ----------------
     private void SetProfile(ProfileId id, bool osd, bool count = true)
     {
-        if (!Supported) { ShowUnsupportedOsd(); return; }
+        if (!Writable) { ShowState(); return; }
         try
         {
             Ec.Apply(_device!.Recipes[id]);
@@ -129,32 +146,26 @@ public sealed class TrayContext : ApplicationContext
         _osd.ShowProfile("MSI  ·  " + def.Label, Lang.T(def.SubKey), _settings.ColorFor(id));
     }
 
-    private void ShowUnsupportedOsd()
-    {
-        var sub = string.IsNullOrEmpty(_firmware) ? Lang.T("unsupported_sub") : _firmware + " · " + Lang.T("unsupported_sub");
-        _osd.ShowProfile("MSI  ·  " + Lang.T("unsupported_title"), sub, Color.Gray);
-    }
-
     private void UpdateUi(ProfileId id)
     {
-        var color = Supported ? _settings.ColorFor(id) : Color.Gray;
+        var color = Writable ? _settings.ColorFor(id) : Color.Gray;
         var newIcon = TrayIconFactory.Create(color);
         _tray.Icon = newIcon;
         _currentIcon?.Dispose();
         _currentIcon = newIcon;
-        _tray.Text = Supported ? "MSI Profile: " + Profiles.Get(id).Label : "MSI · " + Lang.T("unsupported_title");
+        _tray.Text = Writable ? "MSI Profile: " + Profiles.Get(id).Label : "MSI · " + DeviceDescriptor();
 
         if (_tray.ContextMenuStrip is { } menu)
             foreach (var it in menu.Items)
                 if (it is ToolStripMenuItem mi && mi.Tag is ProfileId pid)
-                    mi.Checked = Supported && pid == id;
+                    mi.Checked = Writable && pid == id;
     }
 
     // ---------------- hotkeys ----------------
     private void ApplyHotkeys()
     {
         _hotkeys.UnregisterAll();
-        if (!Supported) return;
+        if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true));
         Reg("Extreme", () => SetProfile(ProfileId.Extreme, true));
@@ -176,10 +187,11 @@ public sealed class TrayContext : ApplicationContext
             _settings = saved;
             Lang.Set(saved.Language);
             _settings.Save();
+            if (Known) _current = Ec.GetCurrent(_device!);
             ApplyHotkeys();
             BuildMenu();
             UpdateUi(_current);
-            if (Supported) TryApplyChargeLimit();
+            if (Writable) TryApplyChargeLimit();
             try { Autostart.Set(_settings.Autostart); } catch { }
         });
         form.ShowDialog();
@@ -204,9 +216,9 @@ public sealed class TrayContext : ApplicationContext
             return;
         }
         _statusForm = new StatusForm(
-            () => new StatusInfo(_current, Supported, _device?.Name ?? Lang.T("unsupported_title"),
+            () => new StatusInfo(_current, Writable, Known, DeviceDescriptor(),
                                  _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion()),
-            () => Supported ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
+            () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
             id => _settings.ColorFor(id),
             _settings.StatusOnTop,
             v => { _settings.StatusOnTop = v; _settings.Save(); });
@@ -221,7 +233,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (Supported && _settings.ChargeLimit is 60 or 80 or 100)
+        if (Writable && _settings.ChargeLimit is 60 or 80 or 100)
         {
             try { Ec.SetChargeLimit(_device!, _settings.ChargeLimit); } catch { }
         }
@@ -230,7 +242,7 @@ public sealed class TrayContext : ApplicationContext
     // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
-        if (!Supported) return;
+        if (!Writable) return;
 
         var power = SystemInformation.PowerStatus.PowerLineStatus;
         if (power != PowerLineStatus.Unknown && power != _lastPower)
