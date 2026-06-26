@@ -34,8 +34,11 @@ body:
     attributes:
       label: EC snapshot per scenario
       description: |
-        Run `scripts/diagnostics/msi_ec_snapshot.ps1` in an **admin PowerShell**, switching the
-        MSI Center scenario (Silent / Balanced / Extreme / Super Battery) at each prompt. Paste the result.
+        1. Get the script: download the repo (green **Code → Download ZIP**) or just the file `scripts/diagnostics/msi_ec_snapshot.ps1`.
+        2. Open **PowerShell as Administrator** in that folder.
+        3. Run: `pwsh -ExecutionPolicy Bypass -File msi_ec_snapshot.ps1` (use `powershell` instead of `pwsh` if needed).
+        4. At each prompt, set the MSI Center scenario (Silent / Balanced / Extreme / Super Battery) and press Enter.
+        5. Paste the result here (it is also saved as `msi_ec_snapshot_results.txt`).
       render: text
     validations:
       required: true
@@ -45,8 +48,9 @@ body:
     attributes:
       label: Full EC dump per scenario (optional, very helpful)
       description: |
-        Run `scripts/diagnostics/msi_ec_fulldump.ps1` the same way and paste/attach the output.
-        This lets us diff the scenarios and find the exact registers for your model.
+        Same steps, but run `scripts/diagnostics/msi_ec_fulldump.ps1` instead. It dumps all 256 EC
+        bytes per scenario, which lets us find the exact registers for your model. Paste or attach
+        `msi_ec_fulldump_results.txt`. **This is the most useful file** — please include it if you can.
       render: text
 
   - type: checkboxes

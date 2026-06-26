@@ -49,9 +49,10 @@ public sealed class TrayContext : ApplicationContext
     private string DeviceDescriptor()
     {
         if (!Known) return Lang.T("unsupported_title");
-        if (_device!.Tier == Tier.Experimental)
-            return _device.Name + " (" + (Writable ? Lang.T("tier_experimental") : Lang.T("experimental_locked")) + ")";
-        return _device.Name;
+        string tier = _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
+                    : Writable ? Lang.T("tier_experimental")
+                    : Lang.T("experimental_locked");
+        return _device.Name + "  ·  " + tier;
     }
 
     private void ShowState()
@@ -68,6 +69,7 @@ public sealed class TrayContext : ApplicationContext
     {
         var menu = new ContextMenuStrip();
         menu.Items.Add(new ToolStripLabel("MSI Profile Switcher") { Font = new Font("Segoe UI", 9, FontStyle.Bold) });
+        menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
         menu.Items.Add(new ToolStripSeparator());
 
         foreach (var id in Profiles.Order)

@@ -10,6 +10,7 @@ public sealed class StatusForm : Form
     private readonly Func<HwSnapshot> _hw;
     private readonly Func<ProfileId, Color> _colorOf;
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1500 };
+    private readonly ToolTip _tip = new();
 
     private readonly Panel _header = new();
     private readonly Label _hProfile = new();
@@ -35,17 +36,18 @@ public sealed class StatusForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
-        ClientSize = new Size(440, 500);
+        ClientSize = new Size(470, 500);
         Font = new Font("Segoe UI", 9.5f);
         BackColor = Color.White;
         TopMost = onTop;
         Text = Lang.T("status_title");
         Icon = TrayIconFactory.Create(colorOf(provider().Profile));
 
-        _header.SetBounds(0, 0, 440, 58);
-        _hProfile.AutoSize = true;
-        _hProfile.MaximumSize = new Size(410, 0);
-        _hProfile.Location = new Point(20, 14);
+        _header.SetBounds(0, 0, 470, 58);
+        _hProfile.AutoSize = false;
+        _hProfile.SetBounds(20, 10, 440, 38);
+        _hProfile.AutoEllipsis = true;
+        _hProfile.TextAlign = ContentAlignment.MiddleLeft;
         _hProfile.Font = new Font("Segoe UI", 15, FontStyle.Bold);
         _hProfile.ForeColor = Color.White;
         _hProfile.BackColor = Color.Transparent;
@@ -58,15 +60,17 @@ public sealed class StatusForm : Form
             Controls.Add(new Label
             {
                 Text = Lang.T(locKey) + ":",
-                Location = new Point(22, y),
+                Location = new Point(22, y + 2),
                 AutoSize = true,
                 ForeColor = Color.DimGray,
             });
             var v = new Label
             {
-                Location = new Point(200, y),
-                AutoSize = true,
-                MaximumSize = new Size(218, 0),
+                Location = new Point(188, y),
+                Size = new Size(262, 22),
+                AutoSize = false,
+                AutoEllipsis = true,
+                TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Text = "—",
             };
@@ -90,7 +94,7 @@ public sealed class StatusForm : Form
         Controls.Add(chkOnTop);
 
         var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, y + 38) };
-        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(326, y + 38) };
+        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(356, y + 38) };
         btnRefresh.Click += (_, _) => Refresh2();
         btnClose.Click += (_, _) => Close();
         Controls.Add(btnRefresh);
@@ -107,12 +111,14 @@ public sealed class StatusForm : Form
         _header.BackColor = info.Active ? _colorOf(info.Profile) : Color.Gray;
         _hProfile.Text = info.Active
             ? "MSI  ·  " + Profiles.Get(info.Profile).Label
-            : "MSI  ·  " + info.Device;
+            : info.Known ? "MSI  ·  " + Lang.T("tier_experimental")
+            : "MSI  ·  " + Lang.T("unsupported_title");
 
         HwSnapshot hw;
         try { hw = _hw(); } catch { hw = default; }
 
         _vals["model"].Text = info.Device;
+        _tip.SetToolTip(_vals["model"], info.Device);
         _vals["cpu_temp"].Text = hw.CpuTemp is > 0 and < 130 ? $"{hw.CpuTemp} °C" : "—";
         _vals["gpu_temp"].Text = hw.GpuTemp is > 0 and < 130 ? $"{hw.GpuTemp} °C" : "—";
         _vals["cpu_fan"].Text = info.Known ? $"{hw.CpuFan} %" : "—";
@@ -130,5 +136,11 @@ public sealed class StatusForm : Form
         if (t.TotalHours >= 1) return $"{(int)t.TotalHours} h {t.Minutes} min";
         if (t.TotalMinutes >= 1) return $"{t.Minutes} min";
         return $"{t.Seconds} s";
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) { _timer.Dispose(); _tip.Dispose(); }
+        base.Dispose(disposing);
     }
 }

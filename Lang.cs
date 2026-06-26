@@ -68,6 +68,7 @@ public static class Lang
         ["experimental_enable"] = new[] { "Enable experimental models (unverified)", "Włącz modele eksperymentalne (niezweryfikowane)", "Experimentelle Modelle aktivieren (ungeprüft)", "Activer les modèles expérimentaux (non vérifiés)", "Activar modelos experimentales (no verificados)", "启用实验性型号（未验证）", "Ativar modelos experimentais (não verificados)", "Включить экспериментальные модели (непроверенные)" },
         ["experimental_locked"] = new[] { "experimental — enable in Settings", "eksperymentalny — włącz w Ustawieniach", "experimentell — in Einstellungen aktivieren", "expérimental — activez dans Paramètres", "experimental — actívalo en Ajustes", "实验性 — 在设置中启用", "experimental — ative nas Configurações", "экспериментально — включите в настройках" },
         ["tier_experimental"]   = new[] { "experimental", "eksperymentalny", "experimentell", "expérimental", "experimental", "实验性", "experimental", "экспериментальный" },
+        ["tier_tested"]         = new[] { "tested", "zweryfikowany", "getestet", "testé", "probado", "已测试", "testado", "проверено" },
 
         ["yes"]            = new[] { "Yes", "Tak", "Ja", "Oui", "Sí", "是", "Sim", "Да" },
         ["no"]             = new[] { "No", "Nie", "Nein", "Non", "No", "否", "Não", "Нет" },

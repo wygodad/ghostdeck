@@ -61,7 +61,7 @@ public static class Devices
         // ---------- TESTED ----------
         new()
         {
-            Name = "MSI Raider GE78HX / Vector GP78HX 13V",
+            Name = "MSI Raider GE78HX 13V",          // 17S1IMS1 also covers Vector GP78HX 13V (same board)
             FirmwarePrefixes = new[] { "17S1IMS1" },
             Tier = Tier.Tested,
             Recipes = new()
