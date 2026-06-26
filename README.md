@@ -33,6 +33,16 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 Grab the latest **`MSIProfileSwitcher.exe`** from the [**Releases**](../../releases) page.
 It's a single, self-contained file — no install, no .NET runtime needed. Run it and approve the UAC prompt (EC access requires administrator).
 
+## Supported models
+
+The app only enables profile switching on **known-good EC firmwares**. On an unrecognized firmware it runs in **read-only mode** — the Status window works, but profile writes are disabled — so it never writes wrong EC registers on an untested machine.
+
+| Model | EC firmware | Status |
+|---|---|---|
+| MSI Raider GE78HX 13V | `17S1IMS1.*` | ✅ tested |
+
+**Got a different MSI?** Help add it — open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is described in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
+
 ## Build from source
 
 Requires the **.NET 8 SDK**.

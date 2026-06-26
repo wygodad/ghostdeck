@@ -1,0 +1,60 @@
+name: Model support request
+description: Help add support for your MSI laptop model
+title: "[Model] <your model> (<EC firmware>)"
+labels: ["model-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping extend **MSI Profile Switcher** to more models!
+
+        The app only enables profile switching on **known-good EC firmwares**. To add yours,
+        we need a few EC dumps. Everything requested below is **read-only** — no writes to your EC.
+
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      description: Exact model, e.g. "MSI Raider GE78HX 13VH" (sticker on the bottom, or MSI Center).
+      placeholder: MSI ...
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: EC firmware
+      description: From the app → **Status** window → "EC firmware" (e.g. 17S1IMS1.114).
+      placeholder: 17S1IMS1.xxx
+    validations:
+      required: true
+
+  - type: textarea
+    id: snapshot
+    attributes:
+      label: EC snapshot per scenario
+      description: |
+        Run `scripts/diagnostics/msi_ec_snapshot.ps1` in an **admin PowerShell**, switching the
+        MSI Center scenario (Silent / Balanced / Extreme / Super Battery) at each prompt. Paste the result.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: fulldump
+    attributes:
+      label: Full EC dump per scenario (optional, very helpful)
+      description: |
+        Run `scripts/diagnostics/msi_ec_fulldump.ps1` the same way and paste/attach the output.
+        This lets us diff the scenarios and find the exact registers for your model.
+      render: text
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I understand this is experimental and EC writes are at my own risk.
+          required: true
+        - label: I'm willing to test a proposed recipe on my machine and report back.
+          required: true

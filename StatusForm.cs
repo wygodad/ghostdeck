@@ -1,10 +1,13 @@
 namespace MSIProfileSwitcher;
 
-public sealed record StatusInfo(ProfileId Profile, int Switches, TimeSpan InProfile, bool Autostart, string AppVersion);
+public sealed record StatusInfo(
+    ProfileId Profile, bool Supported, string Device,
+    int Switches, TimeSpan InProfile, bool Autostart, string AppVersion);
 
 public sealed class StatusForm : Form
 {
     private readonly Func<StatusInfo> _provider;
+    private readonly Func<HwSnapshot> _hw;
     private readonly Func<ProfileId, Color> _colorOf;
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1500 };
 
@@ -14,6 +17,7 @@ public sealed class StatusForm : Form
 
     private static readonly (string locKey, string id)[] Rows =
     {
+        ("st_model", "model"),
         ("st_cpu_temp", "cpu_temp"), ("st_gpu_temp", "gpu_temp"),
         ("st_cpu_fan", "cpu_fan"),   ("st_gpu_fan", "gpu_fan"),
         ("st_charge", "charge"),     ("st_firmware", "fw"),
@@ -21,15 +25,17 @@ public sealed class StatusForm : Form
         ("st_autostart", "auto"),    ("st_app_ver", "ver"),
     };
 
-    public StatusForm(Func<StatusInfo> provider, Func<ProfileId, Color> colorOf, bool onTop, Action<bool> onToggleOnTop)
+    public StatusForm(Func<StatusInfo> provider, Func<HwSnapshot> hw, Func<ProfileId, Color> colorOf,
+                      bool onTop, Action<bool> onToggleOnTop)
     {
         _provider = provider;
+        _hw = hw;
         _colorOf = colorOf;
 
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
-        ClientSize = new Size(430, 472);
+        ClientSize = new Size(430, 500);
         Font = new Font("Segoe UI", 9.5f);
         BackColor = Color.White;
         TopMost = onTop;
@@ -59,6 +65,7 @@ public sealed class StatusForm : Form
             {
                 Location = new Point(200, y),
                 AutoSize = true,
+                MaximumSize = new Size(210, 0),
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Text = "—",
             };
@@ -71,7 +78,7 @@ public sealed class StatusForm : Form
         {
             Text = Lang.T("always_on_top"),
             AutoSize = true,
-            Location = new Point(22, 394),
+            Location = new Point(22, y + 6),
             Checked = onTop,
         };
         chkOnTop.CheckedChanged += (_, _) =>
@@ -81,8 +88,8 @@ public sealed class StatusForm : Form
         };
         Controls.Add(chkOnTop);
 
-        var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, 430) };
-        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(316, 430) };
+        var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, y + 38) };
+        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(316, y + 38) };
         btnRefresh.Click += (_, _) => Refresh2();
         btnClose.Click += (_, _) => Close();
         Controls.Add(btnRefresh);
@@ -96,16 +103,19 @@ public sealed class StatusForm : Form
     private void Refresh2()
     {
         var info = _provider();
-        _header.BackColor = _colorOf(info.Profile);
-        _hProfile.Text = "MSI  ·  " + Profiles.Get(info.Profile).Label;
+        _header.BackColor = info.Supported ? _colorOf(info.Profile) : Color.Gray;
+        _hProfile.Text = info.Supported
+            ? "MSI  ·  " + Profiles.Get(info.Profile).Label
+            : "MSI  ·  " + Lang.T("unsupported_title");
 
         HwSnapshot hw;
-        try { hw = Ec.ReadHw(); } catch { hw = default; }
+        try { hw = _hw(); } catch { hw = default; }
 
+        _vals["model"].Text = info.Device;
         _vals["cpu_temp"].Text = hw.CpuTemp is > 0 and < 130 ? $"{hw.CpuTemp} °C" : "—";
         _vals["gpu_temp"].Text = hw.GpuTemp is > 0 and < 130 ? $"{hw.GpuTemp} °C" : "—";
-        _vals["cpu_fan"].Text = $"{hw.CpuFan} %";
-        _vals["gpu_fan"].Text = $"{hw.GpuFan} %";
+        _vals["cpu_fan"].Text = info.Supported ? $"{hw.CpuFan} %" : "—";
+        _vals["gpu_fan"].Text = info.Supported ? $"{hw.GpuFan} %" : "—";
         _vals["charge"].Text = hw.ChargeLimit is >= 10 and <= 100 ? $"{hw.ChargeLimit} %" : "—";
         _vals["fw"].Text = string.IsNullOrEmpty(hw.Firmware) ? "—" : hw.Firmware;
         _vals["sw"].Text = info.Switches.ToString();

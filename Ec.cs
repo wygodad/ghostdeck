@@ -7,18 +7,11 @@ public readonly record struct HwSnapshot(
     int CpuTemp, int GpuTemp, int CpuFan, int GpuFan, int ChargeLimit, string Firmware);
 
 /// <summary>
-/// Dostep do EC przez MSI WMI (root\wmi MSI_ACPI): Get_Data / Set_Data, bufor Package_32.
-/// Bytes[0]=adres; zapis Bytes[1]=wartosc; odczyt -> wynik w Bytes[1]. Wymaga admina.
+/// EC access via MSI WMI (root\wmi MSI_ACPI): Get_Data / Set_Data, Package_32 buffer.
+/// Bytes[0]=address; write Bytes[1]=value; read -> result in Bytes[1]. Requires admin.
 /// </summary>
 public static class Ec
 {
-    // adresy EC (msi-ec CONF_G2_10, firmware 17S1IMS1.114)
-    private const byte ADDR_CPU_TEMP = 0x68;
-    private const byte ADDR_GPU_TEMP = 0x80;
-    private const byte ADDR_CPU_FAN  = 0x71;
-    private const byte ADDR_GPU_FAN  = 0x89;
-    private const byte ADDR_CHARGE   = 0xD7;
-
     private static string? _firmwareCache;
 
     private static ManagementObject GetInstance()
@@ -26,7 +19,7 @@ public static class Ec
         using var searcher = new ManagementObjectSearcher(@"root\wmi", "SELECT * FROM MSI_ACPI");
         foreach (ManagementObject mo in searcher.Get())
             return mo;
-        throw new InvalidOperationException("Interfejs MSI_ACPI WMI nie zostal znaleziony.");
+        throw new InvalidOperationException("MSI_ACPI WMI interface not found.");
     }
 
     private static void WriteWith(ManagementObject inst, ManagementClass pkg, byte addr, byte val)
@@ -54,49 +47,14 @@ public static class Ec
         return ((byte[])outPkg["Bytes"])[1];
     }
 
-    public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
-    {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        foreach (var (addr, val) in recipe)
-            WriteWith(inst, pkg, addr, val);
-    }
-
-    public static ProfileId GetCurrent()
+    public static string ReadFirmware()
     {
         try
         {
             using var inst = GetInstance();
-            using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-            if (ReadWith(inst, pkg, 0xD4) == 0x1D) return ProfileId.Silent;
-            return ReadWith(inst, pkg, 0xD2) switch
-            {
-                0xC4 => ProfileId.Extreme,
-                0xC2 => ProfileId.SuperBattery,
-                _    => ProfileId.Balanced,
-            };
+            return ReadFirmware(inst);
         }
-        catch { return ProfileId.Balanced; }
-    }
-
-    public static void SetChargeLimit(int percent)
-    {
-        if (percent < 10 || percent > 100) return;
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        WriteWith(inst, pkg, ADDR_CHARGE, (byte)(0x80 | percent));
-    }
-
-    public static HwSnapshot ReadHw()
-    {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        int cpuT = ReadWith(inst, pkg, ADDR_CPU_TEMP);
-        int gpuT = ReadWith(inst, pkg, ADDR_GPU_TEMP);
-        int cpuF = ReadWith(inst, pkg, ADDR_CPU_FAN);
-        int gpuF = ReadWith(inst, pkg, ADDR_GPU_FAN);
-        int chg  = ReadWith(inst, pkg, ADDR_CHARGE) & 0x7F;
-        return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, ReadFirmware(inst));
+        catch { return ""; }
     }
 
     private static string ReadFirmware(ManagementObject inst)
@@ -113,7 +71,50 @@ public static class Ec
             var s = sb.ToString();
             _firmwareCache = s.Length >= 12 ? s[..12] : s;
         }
-        catch { _firmwareCache = "—"; }
+        catch { _firmwareCache = ""; }
         return _firmwareCache;
+    }
+
+    public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        foreach (var (addr, val) in recipe)
+            WriteWith(inst, pkg, addr, val);
+    }
+
+    public static void SetChargeLimit(DeviceProfile dev, int percent)
+    {
+        if (percent < 10 || percent > 100) return;
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        WriteWith(inst, pkg, dev.ChargeCtrl, (byte)(0x80 | percent));
+    }
+
+    public static ProfileId GetCurrent(DeviceProfile dev)
+    {
+        try
+        {
+            using var inst = GetInstance();
+            using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+            if (ReadWith(inst, pkg, dev.FanMode) == dev.FanSilentValue) return ProfileId.Silent;
+            var shift = ReadWith(inst, pkg, dev.ShiftMode);
+            if (shift == dev.ShiftTurboValue) return ProfileId.Extreme;
+            if (shift == dev.ShiftEcoValue) return ProfileId.SuperBattery;
+            return ProfileId.Balanced;
+        }
+        catch { return ProfileId.Balanced; }
+    }
+
+    public static HwSnapshot ReadHw(DeviceProfile dev)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        int cpuT = ReadWith(inst, pkg, dev.CpuTemp);
+        int gpuT = ReadWith(inst, pkg, dev.GpuTemp);
+        int cpuF = ReadWith(inst, pkg, dev.CpuFan);
+        int gpuF = ReadWith(inst, pkg, dev.GpuFan);
+        int chg = ReadWith(inst, pkg, dev.ChargeCtrl) & 0x7F;
+        return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, ReadFirmware(inst));
     }
 }

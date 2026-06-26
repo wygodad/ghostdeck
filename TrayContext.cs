@@ -8,6 +8,8 @@ public sealed class TrayContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
 
     private AppSettings _settings;
+    private readonly DeviceProfile? _device;
+    private readonly string _firmware;
     private ProfileId _current;
     private Icon? _currentIcon;
     private DateTime _profileSince = DateTime.Now;
@@ -15,28 +17,33 @@ public sealed class TrayContext : ApplicationContext
     private PowerLineStatus? _lastPower;
     private StatusForm? _statusForm;
 
+    private bool Supported => _device != null;
+
     public TrayContext()
     {
         _settings = AppSettings.Load();
         _settings.Autostart = Autostart.IsEnabled();
         Lang.Set(_settings.Language);
 
-        _current = Ec.GetCurrent();
-        TryApplyChargeLimit();
+        _firmware = Ec.ReadFirmware();
+        _device = Devices.Detect(_firmware);
+        _current = Supported ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
+
+        if (Supported) TryApplyChargeLimit();
 
         BuildMenu();
         UpdateUi(_current);
         _tray.Visible = true;
         ApplyHotkeys();
 
-        // auto-switch: ustaw profil pod aktualne zasilanie (jesli wlaczone)
         _lastPower = SystemInformation.PowerStatus.PowerLineStatus;
-        if (_settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
+        if (Supported && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
 
         _poll.Tick += (_, _) => Poll();
         _poll.Start();
 
-        ShowOsd(_current);
+        if (Supported) ShowOsd(_current);
+        else ShowUnsupportedOsd();
     }
 
     // ---------------- menu ----------------
@@ -48,7 +55,7 @@ public sealed class TrayContext : ApplicationContext
 
         foreach (var id in Profiles.Order)
         {
-            var item = new ToolStripMenuItem(Profiles.Get(id).Label) { Tag = id, Checked = id == _current };
+            var item = new ToolStripMenuItem(Profiles.Get(id).Label) { Tag = id, Enabled = Supported };
             item.Click += (_, _) => SetProfile((ProfileId)item.Tag!, osd: true);
             menu.Items.Add(item);
         }
@@ -86,15 +93,18 @@ public sealed class TrayContext : ApplicationContext
 
     private void TrayClick(object? s, MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left) Cycle();
+        if (e.Button != MouseButtons.Left) return;
+        if (Supported) Cycle();
+        else ShowUnsupportedOsd();
     }
 
     // ---------------- profile ----------------
     private void SetProfile(ProfileId id, bool osd, bool count = true)
     {
+        if (!Supported) { ShowUnsupportedOsd(); return; }
         try
         {
-            Ec.Apply(Profiles.Get(id).Recipe);
+            Ec.Apply(_device!.Recipes[id]);
             if (id != _current && count) _switches++;
             _current = id;
             _profileSince = DateTime.Now;
@@ -119,24 +129,32 @@ public sealed class TrayContext : ApplicationContext
         _osd.ShowProfile("MSI  ·  " + def.Label, Lang.T(def.SubKey), _settings.ColorFor(id));
     }
 
+    private void ShowUnsupportedOsd()
+    {
+        var sub = string.IsNullOrEmpty(_firmware) ? Lang.T("unsupported_sub") : _firmware + " · " + Lang.T("unsupported_sub");
+        _osd.ShowProfile("MSI  ·  " + Lang.T("unsupported_title"), sub, Color.Gray);
+    }
+
     private void UpdateUi(ProfileId id)
     {
-        var newIcon = TrayIconFactory.Create(_settings.ColorFor(id));
+        var color = Supported ? _settings.ColorFor(id) : Color.Gray;
+        var newIcon = TrayIconFactory.Create(color);
         _tray.Icon = newIcon;
         _currentIcon?.Dispose();
         _currentIcon = newIcon;
-        _tray.Text = "MSI Profile: " + Profiles.Get(id).Label;
+        _tray.Text = Supported ? "MSI Profile: " + Profiles.Get(id).Label : "MSI · " + Lang.T("unsupported_title");
 
         if (_tray.ContextMenuStrip is { } menu)
             foreach (var it in menu.Items)
                 if (it is ToolStripMenuItem mi && mi.Tag is ProfileId pid)
-                    mi.Checked = pid == id;
+                    mi.Checked = Supported && pid == id;
     }
 
     // ---------------- hotkeys ----------------
     private void ApplyHotkeys()
     {
         _hotkeys.UnregisterAll();
+        if (!Supported) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true));
         Reg("Extreme", () => SetProfile(ProfileId.Extreme, true));
@@ -161,7 +179,7 @@ public sealed class TrayContext : ApplicationContext
             ApplyHotkeys();
             BuildMenu();
             UpdateUi(_current);
-            TryApplyChargeLimit();
+            if (Supported) TryApplyChargeLimit();
             try { Autostart.Set(_settings.Autostart); } catch { }
         });
         form.ShowDialog();
@@ -186,8 +204,9 @@ public sealed class TrayContext : ApplicationContext
             return;
         }
         _statusForm = new StatusForm(
-            () => new StatusInfo(_current, _switches, DateTime.Now - _profileSince,
-                                 Autostart.IsEnabled(), AppVersion()),
+            () => new StatusInfo(_current, Supported, _device?.Name ?? Lang.T("unsupported_title"),
+                                 _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion()),
+            () => Supported ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
             id => _settings.ColorFor(id),
             _settings.StatusOnTop,
             v => { _settings.StatusOnTop = v; _settings.Save(); });
@@ -202,15 +221,17 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (_settings.ChargeLimit is 60 or 80 or 100)
+        if (Supported && _settings.ChargeLimit is 60 or 80 or 100)
         {
-            try { Ec.SetChargeLimit(_settings.ChargeLimit); } catch { }
+            try { Ec.SetChargeLimit(_device!, _settings.ChargeLimit); } catch { }
         }
     }
 
-    // ---------------- poll: auto-switch + sync zewnetrzny ----------------
+    // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
+        if (!Supported) return;
+
         var power = SystemInformation.PowerStatus.PowerLineStatus;
         if (power != PowerLineStatus.Unknown && power != _lastPower)
         {
@@ -220,12 +241,12 @@ public sealed class TrayContext : ApplicationContext
 
         try
         {
-            var actual = Ec.GetCurrent();
+            var actual = Ec.GetCurrent(_device!);
             if (actual != _current)
             {
                 _current = actual;
                 _profileSince = DateTime.Now;
-                UpdateUi(actual);   // cicho — odzwierciedl zmiane z zewnatrz (np. MSI Center)
+                UpdateUi(actual);
             }
         }
         catch { }

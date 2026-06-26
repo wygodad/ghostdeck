@@ -62,6 +62,9 @@ public static class Lang
         ["st_app_ver"]     = new[] { "App version", "Wersja aplikacji", "App-Version", "Version de l'app", "Versión de la app", "应用版本", "Versão do app", "Версия приложения" },
         ["st_refresh"]     = new[] { "Refresh", "Odśwież", "Aktualisieren", "Actualiser", "Actualizar", "刷新", "Atualizar", "Обновить" },
         ["always_on_top"]  = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au-dessus", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон" },
+        ["st_model"]       = new[] { "Model", "Model", "Modell", "Modèle", "Modelo", "型号", "Modelo", "Модель" },
+        ["unsupported_title"] = new[] { "Unsupported model", "Niewspierany model", "Nicht unterstütztes Modell", "Modèle non pris en charge", "Modelo no compatible", "不支持的型号", "Modelo não suportado", "Модель не поддерживается" },
+        ["unsupported_sub"]   = new[] { "read-only — contribute on GitHub", "tylko odczyt — zgłoś model na GitHub", "schreibgeschützt — auf GitHub beitragen", "lecture seule — contribuez sur GitHub", "solo lectura — contribuye en GitHub", "只读 — 在 GitHub 上贡献", "somente leitura — contribua no GitHub", "только чтение — добавьте на GitHub" },
 
         ["yes"]            = new[] { "Yes", "Tak", "Ja", "Oui", "Sí", "是", "Sim", "Да" },
         ["no"]             = new[] { "No", "Nie", "Nein", "Non", "No", "否", "Não", "Нет" },
