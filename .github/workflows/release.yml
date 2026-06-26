@@ -42,10 +42,23 @@ jobs:
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none `
             -p:Version=${{ steps.ver.outputs.version }} -o publish
 
+      - name: Extract release notes from CHANGELOG
+        shell: pwsh
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          $body = "Release $v"
+          if (Test-Path CHANGELOG.md) {
+            $cl = Get-Content CHANGELOG.md -Raw
+            $m = [regex]::Match($cl, "(?ms)^##\s*\[?$([regex]::Escape($v))\]?.*?(?=^##\s|\z)")
+            if ($m.Success) { $body = $m.Value.Trim() }
+          }
+          $body | Out-File release_notes.md -Encoding utf8
+
       - name: Utworz Release i dolacz exe
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: MSI Profile Switcher v${{ steps.ver.outputs.version }}
+          body_path: release_notes.md
           generate_release_notes: true
           files: publish/MSIProfileSwitcher.exe

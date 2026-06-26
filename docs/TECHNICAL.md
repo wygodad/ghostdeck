@@ -303,8 +303,10 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 
 **Screenshots:**
 
-| Tray menu | Keyboard shortcuts |
+| Tray menu | Status / Diagnostics |
 |:---:|:---:|
-| ![Tray menu](images/tray-menu.png) | ![Shortcuts](images/settings-hotkeys.png) |
-| Profile colors | Power |
-| ![Colors](images/settings-colors.png) | ![Power](images/settings-power.png) |
+| ![Tray menu](images/tray-menu.png) | ![Status](images/status.png) |
+| Keyboard shortcuts | Profile colors |
+| ![Shortcuts](images/settings-hotkeys.png) | ![Colors](images/settings-colors.png) |
+| Power | |
+| ![Power](images/settings-power.png) | |

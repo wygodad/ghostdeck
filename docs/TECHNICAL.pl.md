@@ -335,8 +335,10 @@ Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumen
 
 **Zrzuty ekranu:**
 
-| Menu w trayu | Skróty klawiszowe |
+| Menu w trayu | Status / Diagnostyka |
 |:---:|:---:|
-| ![Menu tray](images/tray-menu.png) | ![Skróty](images/settings-hotkeys.png) |
-| Kolory profili | Zasilanie |
-| ![Kolory](images/settings-colors.png) | ![Zasilanie](images/settings-power.png) |
+| ![Menu tray](images/tray-menu.png) | ![Status](images/status.png) |
+| Skróty klawiszowe | Kolory profili |
+| ![Skróty](images/settings-hotkeys.png) | ![Kolory](images/settings-colors.png) |
+| Zasilanie | |
+| ![Zasilanie](images/settings-power.png) | |
