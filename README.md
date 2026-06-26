@@ -52,15 +52,6 @@ Full reverse-engineering write-up, register map, measurements and the diagnostic
 
 EC register map credit: [**BeardOverflow/msi-ec**](https://github.com/BeardOverflow/msi-ec).
 
-## Build automation
-
-This repo's own GitHub Actions workflows (`.github/workflows/`) run **only on the maintainer's pushes** — nothing is added to the project automatically by anyone else:
-
-- **CI** — every push to `main` compiles the code to check it builds (it only verifies, changes nothing).
-- **Release** — when the maintainer pushes a version tag `vX.Y.Z`, the self-contained `.exe` is built and attached to a GitHub [Release](../../releases).
-
-Outside contributors can open issues or pull requests, but those require the maintainer's review and merge.
-
 ## License
 
 [MIT](LICENSE) © 2026 wygodad
