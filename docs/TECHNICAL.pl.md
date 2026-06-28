@@ -341,13 +341,13 @@ Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumen
 
 **Zrzuty ekranu:**
 
-| Menu w trayu | Status / Diagnostyka |
+| Menu w trayu | Scenariusze |
 |:---:|:---:|
-| ![Menu tray](images/tray-menu.png) | ![Status](images/status.png) |
-| Skróty klawiszowe | Kolory profili |
-| ![Skróty](images/settings-hotkeys.png) | ![Kolory](images/settings-colors.png) |
-| Zasilanie | Zgłoś mój model |
-| ![Zasilanie](images/settings-power.png) | ![Zgłoś mój model](images/report_my_model.png) |
+| ![Menu tray](images/tray-menu.png) | ![Scenariusze](images/scenarios.png) |
+| Status | Ustawienia |
+| ![Status](images/status.png) | ![Ustawienia](images/settings.png) |
+| Zgłoś mój model | Aktualizacje |
+| ![Zgłoś mój model](images/report_my_model.png) | ![Aktualizacje](images/updates.png) |
 
 ## 17. Ukryte narzędzia testowe / diagnostyczne (Ctrl+Shift+T)
 

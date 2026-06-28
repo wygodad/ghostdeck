@@ -308,13 +308,13 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 
 **Screenshots:**
 
-| Tray menu | Status / Diagnostics |
+| Tray menu | Scenarios |
 |:---:|:---:|
-| ![Tray menu](images/tray-menu.png) | ![Status](images/status.png) |
-| Keyboard shortcuts | Profile colors |
-| ![Shortcuts](images/settings-hotkeys.png) | ![Colors](images/settings-colors.png) |
-| Power | Report my model |
-| ![Power](images/settings-power.png) | ![Report my model](images/report_my_model.png) |
+| ![Tray menu](images/tray-menu.png) | ![Scenarios](images/scenarios.png) |
+| Status | Settings |
+| ![Status](images/status.png) | ![Settings](images/settings.png) |
+| Report my model | Updates |
+| ![Report my model](images/report_my_model.png) | ![Updates](images/updates.png) |
 
 ## 16. Hidden test / discovery tools (Ctrl+Shift+T)
 
