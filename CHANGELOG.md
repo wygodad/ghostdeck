@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.0] - 2026-06-28
+### Added
+- **New tabbed main window** styled after MSI Center: top tabs for **Scenarios**, **Status**, **Settings**, **Report model**, and **Updates** — opening Status or Report from the tray now shows that content inside the same window.
+- **Scenarios** tab with large clickable profile tiles (icon + name + hint), plus inline **charge limit** and **AC/battery auto-switch** controls.
+- **Status** tab with CPU/GPU temperature and CPU/GPU fan ring gauges plus a details table.
+- **Settings** tab fully inline and grouped into cards (appearance, power, startup, updates, hotkeys) with a **restore default hotkeys** button — no more separate dialog.
+- **Updates** tab: installed version, "check now" with last-checked time, and the last 5 releases with changelog highlights.
+- **Light / dark theme** toggle (persisted), and the main window remembers its size and position.
+
 ## [1.4.1] - 2026-06-28
 ### Added
 - Experimental support for **MSI Crosshair A16 HX (D7W/D8W)** (firmware `15PLIMS1`), added from a community EC snapshot ([#2](https://github.com/wygodad/msi-profile-switcher/issues/2)). Shift/fan registers match the G2 recipe exactly; uses no super-battery register and leaves a secondary fan bit untouched pending hardware verification.

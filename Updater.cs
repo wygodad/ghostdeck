@@ -13,9 +13,39 @@ namespace MSIProfileSwitcher;
 public static class Updater
 {
     private const string LatestApi   = "https://api.github.com/repos/wygodad/msi-profile-switcher/releases/latest";
+    private const string ListApi     = "https://api.github.com/repos/wygodad/msi-profile-switcher/releases?per_page=";
     public  const string ReleasesUrl = "https://github.com/wygodad/msi-profile-switcher/releases/latest";
 
     public readonly record struct Result(Version Version, string Tag, string Url);
+    public readonly record struct ReleaseInfo(string Tag, string Name, string Body, string Url, DateTime? Published);
+
+    /// <summary>Last <paramref name="count"/> published releases (newest first), for the changelog list.</summary>
+    public static async Task<List<ReleaseInfo>> RecentAsync(int count)
+    {
+        var list = new List<ReleaseInfo>();
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("MSIProfileSwitcher-UpdateCheck");
+            http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+
+            string json = await http.GetStringAsync(ListApi + count).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(json);
+            foreach (var r in doc.RootElement.EnumerateArray())
+            {
+                if (r.TryGetProperty("draft", out var d) && d.GetBoolean()) continue;
+                string tag  = r.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
+                string name = r.TryGetProperty("name", out var n) ? n.GetString() ?? tag : tag;
+                string body = r.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
+                string url  = r.TryGetProperty("html_url", out var h) ? h.GetString() ?? ReleasesUrl : ReleasesUrl;
+                DateTime? pub = r.TryGetProperty("published_at", out var pa) && pa.TryGetDateTime(out var dt) ? dt : null;
+                list.Add(new ReleaseInfo(tag, name, body, url, pub));
+                if (list.Count >= count) break;
+            }
+        }
+        catch { }
+        return list;
+    }
 
     public static async Task<Result?> CheckAsync(Version current)
     {

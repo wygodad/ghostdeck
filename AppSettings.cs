@@ -34,6 +34,15 @@ public sealed class AppSettings
     public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
 
+    public bool DarkMode { get; set; } = false;                        // ciemny motyw nowego okna z zakladkami
+
+    // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
+    public int WinX { get; set; }
+    public int WinY { get; set; }
+    public int WinW { get; set; }
+    public int WinH { get; set; }
+    public bool WinMaximized { get; set; }
+
     [JsonIgnore]
     public static string Dir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MSIProfileSwitcher");
@@ -107,6 +116,8 @@ public sealed class AppSettings
             ExperimentalEnabled = ExperimentalEnabled,
             UpdateCheckEnabled = UpdateCheckEnabled,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
+            DarkMode = DarkMode,
+            WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();
         foreach (var (k, v) in Colors) c.Colors[k] = v;

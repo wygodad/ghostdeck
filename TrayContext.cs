@@ -19,7 +19,7 @@ public sealed class TrayContext : ApplicationContext
     private DateTime _profileSince = DateTime.Now;
     private int _switches;
     private PowerLineStatus? _lastPower;
-    private StatusForm? _statusForm;
+    private MainForm? _main;
     private readonly List<Image> _menuSwatches = new();
     private SynchronizationContext? _ui;
     private string? _updateUrl;
@@ -32,6 +32,7 @@ public sealed class TrayContext : ApplicationContext
         _settings = AppSettings.Load();
         _settings.Autostart = Autostart.IsEnabled();
         Lang.Set(_settings.Language);
+        Theme.Set(_settings.DarkMode);
 
         var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
         _simulate = !string.IsNullOrEmpty(forced);
@@ -127,12 +128,16 @@ public sealed class TrayContext : ApplicationContext
 
         menu.Items.Add(new ToolStripSeparator());
 
+        var panel = new ToolStripMenuItem(Lang.T("menu_panel"));
+        panel.Click += (_, _) => OpenMain(MainTab.Scenarios);
+        menu.Items.Add(panel);
+
         var status = new ToolStripMenuItem(Lang.T("menu_status"));
-        status.Click += (_, _) => OpenStatus();
+        status.Click += (_, _) => OpenMain(MainTab.Status);
         menu.Items.Add(status);
 
         var report = new ToolStripMenuItem(Lang.T("menu_report"));
-        report.Click += (_, _) => OpenReport();
+        report.Click += (_, _) => OpenMain(MainTab.Report);
         menu.Items.Add(report);
 
         var langMenu = new ToolStripMenuItem(Lang.T("menu_language"));
@@ -146,7 +151,7 @@ public sealed class TrayContext : ApplicationContext
         menu.Items.Add(langMenu);
 
         var settings = new ToolStripMenuItem(Lang.T("menu_settings"));
-        settings.Click += (_, _) => OpenSettings();
+        settings.Click += (_, _) => OpenMain(MainTab.Settings);
         menu.Items.Add(settings);
 
         menu.Items.Add(new ToolStripSeparator());
@@ -231,6 +236,8 @@ public sealed class TrayContext : ApplicationContext
             foreach (var it in menu.Items)
                 if (it is ToolStripMenuItem mi && mi.Tag is ProfileId pid)
                     mi.Checked = Writable && pid == id;
+
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
     // ---------------- hotkeys ----------------
@@ -278,45 +285,61 @@ public sealed class TrayContext : ApplicationContext
         UpdateUi(_current);
     }
 
-    private void OpenStatus()
+    private MainDeps BuildDeps() => new()
     {
-        if (_statusForm is { IsDisposed: false })
+        Settings = _settings,
+        Status = () =>
         {
-            _statusForm.WindowState = FormWindowState.Normal;
-            _statusForm.BringToFront();
-            _statusForm.Activate();
+            var (tier, color) = TierBadge();
+            return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
+                                  _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion());
+        },
+        Hw = () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
+        Current = () => _current,
+        SetProfile = id => SetProfile(id, osd: true),
+        Writable = () => Writable,
+        ColorOf = id => _settings.ColorFor(id),
+        Firmware = _firmware,
+        AppVersion = AppVersion,
+        SaveSettings = () => _settings.Save(),
+        SettingsChanged = () => { ApplyHotkeys(); BuildMenu(); UpdateUi(_current); },
+        OpenLegacySettings = OpenSettings,
+        StartReportWizard = OpenReport,
+        SetChargeLimit = limit =>
+        {
+            _settings.ChargeLimit = limit;
+            _settings.Save();
+            TryApplyChargeLimit();
+        },
+        SetAutoSwitch = on =>
+        {
+            _settings.AutoSwitchEnabled = on;
+            _settings.Save();
+            if (on && Writable) ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
+        },
+    };
+
+    private void OpenMain(MainTab tab)
+    {
+        if (_main is { IsDisposed: false })
+        {
+            _main.WindowState = FormWindowState.Normal;
+            _main.ShowTab(tab);
+            _main.BringToFront();
+            _main.Activate();
             return;
         }
-        _statusForm = new StatusForm(
-            () =>
-            {
-                var (tier, color) = TierBadge();
-                return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
-                                      _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion());
-            },
-            () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
-            id => _settings.ColorFor(id),
-            _settings.StatusOnTop,
-            v => { _settings.StatusOnTop = v; _settings.Save(); },
-            OpenReport);
-        _statusForm.Show();
+        _main = new MainForm(BuildDeps());
+        _main.FormClosed += (_, _) => _main = null;
+        _main.Show();
+        _main.ShowTab(tab);
     }
 
     private void OpenReport()
     {
         using var form = new ReportForm(_firmware, Known ? _device!.Name : "", AppVersion());
-        var st = _statusForm;
-        bool wasTop = st is { IsDisposed: false } && st.TopMost;
-        if (wasTop) st!.TopMost = false;   // otherwise an always-on-top Status covers the modal dialog
-        try
-        {
-            if (st is { IsDisposed: false }) form.ShowDialog(st);
-            else form.ShowDialog();
-        }
-        finally
-        {
-            if (wasTop && st is { IsDisposed: false }) st.TopMost = true;
-        }
+        if (_main is { IsDisposed: false }) form.ShowDialog(_main);
+        else form.ShowDialog();
     }
 
     // ---------------- update check ----------------
@@ -404,7 +427,7 @@ public sealed class TrayContext : ApplicationContext
         _poll.Stop();
         _tray.Visible = false;
         _hotkeys.Dispose();
-        _statusForm?.Close();
+        _main?.Close();
         _osd.Dispose();
         _tray.Dispose();
         _currentIcon?.Dispose();
