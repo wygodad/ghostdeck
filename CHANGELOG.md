@@ -3,6 +3,26 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.8.0] - 2026-06-29
+### Added
+- **Bulk model import** (~126 new MSI laptops, all **Experimental** / opt-in) generated from the
+  [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and cross-checked against
+  [MControlCenter](https://github.com/dmitry-s93/MControlCenter): the full **G2 family** (Raider /
+  Vector / Titan / Stealth 16-18 / Sword / Pulse / Crosshair / Katana / Cyborg / Bravo / Modern /
+  Prestige / Summit) on shift `0xD2` / fan `0xD4` / super-batt `0xEB`, and the **G1 family** (older
+  GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator) on shift `0xF2` / fan `0xF4` / charge `0xEF`.
+- **Read-only fan-curve preview on the whole G2 family**: the curve tables use the fixed modern layout
+  (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter reads/writes across this family, so the
+  addresses are practice-confirmed rather than guessed. The preview stays unverified
+  (`FanCurveSpec.Verified=false`) until the user compares it with MSI Center on their own model; G1
+  models get profiles only (their EC layout differs and the curve addresses are not confirmed).
+- Models whose msi-ec config documents **no Silent fan value** (some GF75 Thin, GP65/GL65 & GP75/GL75
+  Leopard, GS75 Stealth, GE63, GT72) were intentionally left out — Silent is this app's core function
+  and writing an unconfirmed value would be a guess.
+### Fixed
+- **GS66 Stealth (`16V1EMS1`)** was using G2 EC registers (`0xD2`/`0xD4`) on what is actually a G1
+  board; corrected to `0xF2`/`0xF4` per the msi-ec `CONF_G1_3` map.
+
 ## [1.7.0] - 2026-06-29
 ### Added
 - **Fan curve editor** (new tab + tray entry): drag CPU (Fan 1) and GPU (Fan 2) speed points; a single **Custom fan curve** checkbox writes the curve as an Advanced fan overlay on the *current* power mode (e.g. a custom curve in Silent, which MSI Center does not allow), with an **MSI default** preset and a live **fan-mode** indicator. Unchecking hands the fans back to the active profile.
