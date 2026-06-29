@@ -47,11 +47,11 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 
 **~134 models** are recognised, grouped into two EC families taken from the [msi-ec](https://github.com/BeardOverflow/msi-ec) maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter):
 
-| Group | EC registers | Models (examples) | Fan curve |
+| Tier | Models | EC firmware / registers | Fan curve |
 |---|---|---|---|
-| ✅ **Tested** — Raider GE78HX / Vector GP78HX 13V (`17S1IMS1.*`) | shift `0xD2` / fan `0xD4` | the development machine | ✅ editable |
-| ⚗️ **G2 family** (~101) | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | 👁️ read-only preview |
-| ⚗️ **G1 family** (~33) | shift `0xF2` / fan `0xF4` / charge `0xEF` | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | — profiles only |
+| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V** | `17S1IMS1.*` — shift `0xD2` / fan `0xD4` | ✅ editable |
+| ⚗️ **G2 family** (~101) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | 👁️ read-only preview |
+| ⚗️ **G1 family** (~33) | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | shift `0xF2` / fan `0xF4` / charge `0xEF` | — profiles only |
 
 The G2 read-only fan-curve preview uses the fixed table addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; previews stay read-only until you compare them with MSI Center on your own model. The **full per-firmware list** lives in [`Devices.cs`](Devices.cs). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function — guessing it would be unsafe).
 
