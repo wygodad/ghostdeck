@@ -466,8 +466,7 @@ public sealed class StatusPage : ThemedPage
         {
             if (r < order.Length) return c == 0 ? ControlPaint.Dark(D.ColorOf(order[r]), 0.05f) : Theme.Text;
             if (c == 0) return Theme.Accent;                                   // "Now" label
-            if (c == 4 && _live.Length > 3 && _live[3] == 0x8D) return Theme.Accent;   // custom curve active
-            if (active >= 0 && rows[r][c] != rows[active][c]) return Theme.Accent;     // live differs from active default (0x34 note below)
+            if (c == 4 && _live.Length > 3 && _live[3] == 0x8D) return Theme.Accent;   // custom curve active (fan byte)
             return Theme.Text;
         }
         return DrawGrid(g, top, avail, Lang.T("st_matrix"), headers, lefts, rows, mono, Tint, Cell, active, headerLines: 2);
@@ -484,7 +483,7 @@ public sealed class StatusPage : ThemedPage
         var rows = new List<string[]>
         {
             new[] { $"0x{shiftA:X2}", Lang.T("st_b_power"), $"C1 ({C}) · C4 ({T}) · C2 ({E})" },
-            new[] { "0x34",          Lang.T("st_b_cap"),   $"00 ({On}) · 01 ({Off})" },
+            new[] { "0x34",          Lang.T("st_b_cap"),   $"00 (Extreme) · 01 ({Lang.T("st_b_others")})" },
             new[] { "0xEB",          Lang.T("st_b_batt"),  $"00 ({Off}) · 0F ({On})" },
             new[] { $"0x{fanA:X2}",  Lang.T("st_b_fan"),   $"1D ({Si}) · 0D ({Au}) · 8D ({Cu})" },
         };

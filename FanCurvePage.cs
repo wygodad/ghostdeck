@@ -207,10 +207,23 @@ public sealed class FanCurvePage : ThemedPage
             return;
         }
 
+        // In Silent the power policy lives in the SAME byte as the fan curve (0xD4): 1D = Silent,
+        // 8D = curve. So a curve in Silent necessarily drops the Silent power cap -> the machine
+        // becomes Balanced + custom fans. Warn once and switch the profile to Balanced explicitly.
+        bool fromSilent = D.Current() == ProfileId.Silent;
+        if (fromSilent &&
+            MessageBox.Show(FindForm(), Lang.T("fc_silent_warn"), Lang.T("fc_title"),
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            _suppress = true; _enable.Checked = false; _suppress = false;
+            return;
+        }
+
+        if (fromSilent) D.SetProfile(ProfileId.Balanced);        // leave Silent (power cap shares the fan byte)
         D.WithEcWrite(dev =>
         {
             Ec.WriteFanCurve(dev, _cpuT, _cpuS, _gpuT, _gpuS);    // our curve tables
-            Ec.SetFanMode(dev, fc.AdvancedModeValue);             // advanced fan (0x8D) on the current mode
+            Ec.SetFanMode(dev, fc.AdvancedModeValue);             // advanced fan (0x8D)
         });
         RefreshMode();
     }

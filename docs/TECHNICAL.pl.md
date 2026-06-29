@@ -378,20 +378,20 @@ Aplikacja pokazuje to wszystko na żywo: zakładka Status ma macierz bajtów pro
 | Bajt | Nazwa | Co robi |
 |------|-------|---------|
 | `0xD2` | **Tryb mocy** (shift) | Główny stan wydajności. `0xC1` = comfort, `0xC4` = turbo (maks), `0xC2` = eco. |
-| `0x34` | **Power-cap** (flaga dodatkowa) | Razem z trybem mocy ustawia limit poboru CPU w watach. `0x00` = mocny limit (realny spadek Silent ~100 W → ~30 W); `0x01` = bez limitu/luźny. |
+| `0x34` | **Odblokowanie mocy Extreme** | `0x00` **tylko** w Extreme (pozwala turbo czerpać pełną moc); `0x01` w każdym innym profilu. To NIE jest znacznik Silent/Balanced (w obu jest identyczny). |
 | `0xEB` | **Flaga super-bateria** | `0x0F` = najgłębszy throttle na baterii (najniższa wydajność, najdłuższy czas pracy); `0x00` = wyłączone. To nie jest o podświetleniu — to dławienie wydajności/mocy. |
-| `0xD4` | **Tryb wentylatora** | Które zachowanie wentylatora uruchamia firmware (patrz 18.2). |
+| `0xD4` | **Tryb wentylatora / scenariusz** | Które zachowanie wentylatora uruchamia firmware (patrz 18.2). Na tym firmie niesie też **politykę mocy Silenta** — patrz 18.4. |
 
-Każdy profil to po prostu konkretna kombinacja:
+Każdy profil to konkretna kombinacja (zweryfikowane diffem pełnych zrzutów EC wszystkich czterech scenariuszy MSI Center 2.0.48):
 
-| Profil | `0xD2` tryb mocy | `0x34` power-cap | `0xEB` super-bat | `0xD4` wentylator |
+| Profil | `0xD2` tryb mocy | `0x34` Extreme-unlock | `0xEB` super-bat | `0xD4` wentylator |
 |--------|------------------|------------------|------------------|-------------------|
-| **Silent** | `0xC1` comfort | `0x00` limit | `0x00` | `0x1D` cicho |
-| **Balanced** | `0xC1` comfort | `0x01` luźny | `0x00` | `0x0D` auto |
-| **Extreme** | `0xC4` turbo | `0x01` luźny | `0x00` | `0x0D` auto |
-| **Super Battery** | `0xC2` eco | `0x01` luźny | `0x0F` wł. | `0x0D` auto |
+| **Silent** | `0xC1` comfort | `0x01` | `0x00` | `0x1D` cicho |
+| **Balanced** | `0xC1` comfort | `0x01` | `0x00` | `0x0D` auto |
+| **Extreme** | `0xC4` turbo | `0x00` | `0x00` | `0x0D` auto |
+| **Super Battery** | `0xC2` eco | `0x01` | `0x0F` wł. | `0x0D` auto |
 
-Zwróć uwagę: **Silent i Balanced różnią się tylko `0x34` i `0xD4`** — ten sam shift `0xC1`. To jest kluczowe poniżej.
+Najważniejsze: **Silent i Balanced różnią się WYŁĄCZNIE bajtem `0xD4`** (`1D` vs `0D`). Każdy inny bajt, w tym `0x34`, jest w nich identyczny. To sedno historii o krzywej poniżej.
 
 ### 18.2 Wartości trybu wentylatora (`0xD4`)
 
@@ -416,31 +416,31 @@ Fabryczna krzywa MSI (zmierzona): CPU `0→0, 50→40, 57→48, 64→60, 70→75
 
 **Nie ma osobnych wartości krzywej per profil** — cztery profile używają wbudowanej logiki przez `0x1D`/`0x0D`, nie tablic.
 
-### 18.4 Napotkany problem (technicznie)
+### 18.4 Co pokazały zrzuty EC (technicznie)
 
-Cel: pozwolić użytkownikowi nałożyć własną krzywę **na dowolny profil** (np. cichą, ale precyzyjną krzywą w Silent, czego MSI Center zabrania — pozwala na krzywą tylko w Extreme).
+Zrobiliśmy pełne zrzuty 256 bajtów EC w czterech scenariuszach MSI Center 2.0.48 i porównaliśmy je, pomijając bajty czujników (temp. `0x68`/`0x80`, duty `0x71`/`0x89`/`0xF4`, RPM `0xC9`/`0xCB` itd.). Dwie rzeczy przesądziły projekt:
 
-Nałożenie krzywej oznacza wpisanie `0xD4=0x8D`. Ale apka wykrywa aktywny profil czytając EC, a **Silent i Balanced odróżnia tylko bajt wentylatora** (`0x1D` vs `0x0D`). Ustawienie `0x8D` kasuje ten jedyny znacznik, więc detekcja nie umie już odróżnić Silent od Balanced i wpada w **Balanced**.
+1. **`0x34` to flaga odblokowania mocy Extreme, nie cap Silenta.** Jest `0x00` tylko w Extreme i `0x01` w Silent, Balanced i Super Battery. Wcześniejsza próba rozróżniania Silent/Balanced po `0x34` była więc błędna, a nasze receptury miały go odwrotnie (Silent `0x00`, Extreme `0x01`) — poprawione na zgodne (Silent `0x01`, Extreme `0x00`).
 
-Spróbowaliśmy rezerwowego znacznika — bajtu power-cap `0x34` (`0x00`=Silent). Na tym egzemplarzu `0x34` **nie jest wiarygodnie `0x00` w żywym Silent**, więc rezerwa też zwracała Balanced. Gorzej: akcja „wyłącz krzywę / przywróć profil" czytała *już błędnie* wykryty profil (Balanced) i przywracała wentylatory Balanced (`0x0D`) zamiast Silent (`0x1D`) — maszyna zostawała na Balanced z wyjącymi wentylatorami (fabryczna krzywa żąda ~89% przy ~77°C).
+2. **Limit mocy Silenta siedzi w samym `0xD4`.** Silent i Balanced różnią się dokładnie jednym stabilnym bajtem — `0xD4` (`1D` vs `0D`). Skoro Silent mierzalnie tnie moc CPU (~100 W → ~30 W), a zmienia się tylko `0xD4`, to cap jest zaszyty w `0xD4=1D`. Ten bajt to nie tylko „ciche wentylatory" — to firmware'owy *scenariusz* Silent, łącznie z polityką mocy.
 
-### 18.5 Rozwiązanie — rozdzielenie profilu od wentylatorów
+Konsekwencja dla krzywej jest nieunikniona: krzywa potrzebuje `0xD4=0x8D`, ale cap Silenta *to* `0xD4=0x1D`. **Jeden bajt nie może być oboma.** Włączenie krzywej w Silent nadpisuje `1D`, zdejmując politykę mocy Silenta — maszyna realnie staje się „moc Balanced + Twoja krzywa". Czyli „cicha własna krzywa zachowująca cap Silenta" jest na tym EC fizycznie niemożliwa.
 
-Profil (stan mocy) i zachowanie wentylatora to osobne pojęcia i muszą być śledzone osobno:
+### 18.5 Wynikowy projekt
 
-1. Apka **zapamiętuje profil wybrany świadomie** przez użytkownika (klik w tacce/kafelku), zapisany w ustawieniach.
-2. Gdy bajt wentylatora to **Advanced (`0x8D`)**, poll w tle **nie wykrywa ponownie profilu z EC** i nie nadpisuje zapamiętanego wyboru — Silent zostaje Silent, mimo działającej krzywej.
-3. Wyłączenie krzywej przywraca wentylatory **zapamiętanego** profilu (`0x1D` dla Silent, `0x0D` dla reszty), nigdy zgadywanego.
-
-Efekt: krzywa jest czystą nakładką na wentylatory i nigdy nie zmienia profilu mocy.
+- **Detekcja profilu tylko po `0xD4`**: `0x1D` = Silent, cokolwiek innego (`0x0D` auto lub `0x8D` krzywa) = Balanced (a `0xD2` dalej wybiera Extreme `0xC4` / Super Battery `0xC2`). Bez heurystyki `0x34`. Gdy działa krzywa, apka poprawnie pokazuje Balanced — bo taka jest prawda.
+- **Receptury zgodne z MSI 2.0.48** (`0x34` = `0x00` w Extreme, `0x01` w reszcie), żeby Extreme faktycznie odblokowywał pełną moc.
+- **Krzywa jako ręczne sterowanie wentylatorem zastępujące firmware'owy scenariusz**, nie jako dodatek do profilu:
+  - W **Balanced / Extreme / Super Battery** krzywa zmienia tylko wentylatory; ich polityka mocy (shift / super-bateria) zostaje nietknięta, więc jest bezstratna.
+  - W **Silent** krzywa nieuchronnie opuszcza Silent. Apka ostrzega i jawnie przełącza profil na Balanced, żeby stan był uczciwy.
 
 ### 18.6 Prościej (dla laika)
 
-Wyobraź sobie profil jako dwa osobne pokrętła: **pokrętło mocy** (ile wydajności/ciepła laptop dopuszcza) i **pokrętło wentylatora** (jak mocno dmuchają). Na tym laptopie „Silent" i „Balanced" ustawiają pokrętło mocy prawie tak samo; najwyraźniejsza różnica, jaką apka widziała, była na pokrętle wentylatora.
+Profil to dwa pokrętła: **pokrętło mocy** (ile wydajności i ciepła laptop dopuszcza) i **pokrętło wentylatora** (jak mocno dmuchają). Haczyk na tym laptopie: **„Silent" trzyma swoje pokrętło mocy WEWNĄTRZ pokrętła wentylatora** — w tym samym jednym bajcie. Nie ma osobnego przełącznika mocy Silenta.
 
-Gdy włączasz własną krzywą, podmieniasz pokrętło wentylatora na swoje. Apka, która rozpoznawała „Silent" głównie po wentylatorze, nagle przestawała go widzieć i zakładała „Balanced". A potem wyłączenie krzywej korzystało z tego błędnego zgadywania i zostawiało wyjące wentylatory.
+Własna krzywa musi przejąć ten sam bajt. Więc w chwili, gdy ustawiasz krzywą, „Silent" znika — laptop jedzie na mocy Balanced z Twoimi wentylatorami. To nie błąd, tak jest zbudowany układ; jeden bajt nie pomieści naraz „mocy Silent" i „Twojej krzywej".
 
-Naprawa: apka **zapamiętuje, który profil wybrałeś** i przestaje zgadywać ze sprzętu, gdy Twoja krzywa działa. Krzywa rusza tylko wentylatory; profil zostaje dokładnie taki, jaki wybrałeś.
+Dlatego apka mówi to wprost: w Balanced, Extreme czy Super Battery krzywa zmienia tylko wentylatory i nic nie tracisz; w Silent ostrzega, że włączenie krzywej opuści Silent i przeniesie Cię na Balanced. Jeśli chcesz cicho *i* mało mocy — to dokładnie jest Silent, a krzywa tego nie przebije bez oddania capa.
 
 ---
 

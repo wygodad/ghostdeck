@@ -173,14 +173,11 @@ public static class Ec
             var shift = ReadWith(inst, pkg, dev.ShiftMode);
             if (shift == dev.ShiftTurboValue) return ProfileId.Extreme;
             if (shift == dev.ShiftEcoValue) return ProfileId.SuperBattery;
-            // comfort shift -> Silent vs Balanced. Normal case: the fan byte tells them apart.
-            var fan = ReadWith(inst, pkg, dev.FanMode);
-            if (fan == dev.FanSilentValue) return ProfileId.Silent;
-            // ONLY when a custom Advanced fan curve is active (0x8D) the fan byte can't tell them
-            // apart, so fall back to the power-cap byte. Never used in normal operation.
-            if (fan == 0x8D && dev.PowerCapAddr != 0)
-                return ReadWith(inst, pkg, dev.PowerCapAddr) == 0x00 ? ProfileId.Silent : ProfileId.Balanced;
-            return ProfileId.Balanced;
+            // comfort shift -> Silent vs Balanced is told apart ONLY by the fan byte (0x34 is the
+            // same in both). 0x1D = Silent; anything else (0x0D auto, or 0x8D custom curve) = Balanced.
+            // This is correct by design: a custom curve overwrites 0x1D, which really does drop the
+            // Silent power policy, so the machine genuinely becomes Balanced + custom fans.
+            return ReadWith(inst, pkg, dev.FanMode) == dev.FanSilentValue ? ProfileId.Silent : ProfileId.Balanced;
         }
         catch { return ProfileId.Balanced; }
     }

@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.8.1] - 2026-06-29
+### Fixed
+- **Profile detection** now relies solely on the fan byte `0xD4` (`1D` = Silent). Diffing full EC dumps of all four MSI Center 2.0.48 scenarios proved `0x34` is the **Extreme power-unlock** flag (`00` only in Extreme), not a Silent/Balanced marker — so it no longer affects detection.
+- **`0x34` in the profile recipes** corrected to match MSI exactly (`00` in Extreme, `01` elsewhere; previously reversed), so Extreme actually unlocks full power.
+### Changed
+- **Fan curve** is repositioned as manual fan control. On Balanced / Extreme / Super Battery it only changes the fans (lossless). On Silent it must leave Silent — because Silent's power cap lives in the *same byte* (`0xD4`) as the curve — so the app warns and switches to Balanced.
+- Status tab and TECHNICAL docs (PL/EN) updated to describe `0x34` correctly and the `0xD4` Silent-cap/curve overlap.
+
 ## [1.8.0] - 2026-06-29
 ### Added
 - **Bulk model import** (~126 new MSI laptops, all **Experimental** / opt-in) generated from the

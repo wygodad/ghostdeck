@@ -345,20 +345,20 @@ The app surfaces all of this live: the Status tab shows the profile-byte matrix,
 | Byte | Name | What it does |
 |------|------|--------------|
 | `0xD2` | **Shift mode** (performance level) | The main power/performance state. `0xC1` = comfort, `0xC4` = turbo (max), `0xC2` = eco. |
-| `0x34` | **Power cap** (co-flag) | Together with shift, sets the CPU package power limit in watts. `0x00` = capped hard (the real Silent power drop ~100 W → ~30 W); `0x01` = uncapped/loose. |
+| `0x34` | **Extreme power unlock** | `0x00` **only** in Extreme (lets turbo draw full power); `0x01` in every other profile. It is NOT a Silent/Balanced marker (it is identical in those two). |
 | `0xEB` | **Super-battery flag** | `0x0F` = deepest battery throttle (lowest performance, longest runtime); `0x00` = off. Not about lighting — it is a performance/power throttle. |
-| `0xD4` | **Fan mode** | Which fan behaviour the firmware runs (see 17.2). |
+| `0xD4` | **Fan mode / scenario** | Which fan behaviour the firmware runs (see 17.2). On this firmware it also carries the **Silent power policy** — see 17.4. |
 
-Each profile is just a specific combination:
+Each profile is just a specific combination (verified by diffing full EC dumps of all four MSI Center 2.0.48 scenarios):
 
-| Profile | `0xD2` shift | `0x34` power cap | `0xEB` super-batt | `0xD4` fan |
+| Profile | `0xD2` shift | `0x34` Extreme-unlock | `0xEB` super-batt | `0xD4` fan |
 |---------|-------------|------------------|-------------------|------------|
-| **Silent** | `0xC1` comfort | `0x00` capped | `0x00` | `0x1D` quiet |
-| **Balanced** | `0xC1` comfort | `0x01` loose | `0x00` | `0x0D` auto |
-| **Extreme** | `0xC4` turbo | `0x01` loose | `0x00` | `0x0D` auto |
-| **Super Battery** | `0xC2` eco | `0x01` loose | `0x0F` on | `0x0D` auto |
+| **Silent** | `0xC1` comfort | `0x01` | `0x00` | `0x1D` silent |
+| **Balanced** | `0xC1` comfort | `0x01` | `0x00` | `0x0D` auto |
+| **Extreme** | `0xC4` turbo | `0x00` | `0x00` | `0x0D` auto |
+| **Super Battery** | `0xC2` eco | `0x01` | `0x0F` on | `0x0D` auto |
 
-Note that **Silent and Balanced differ only in `0x34` and `0xD4`** — same shift `0xC1`. This becomes important below.
+The key fact: **Silent and Balanced differ in `0x34`? No — they differ ONLY in `0xD4`** (`1D` vs `0D`). Every other byte, `0x34` included, is identical between them. This is central to the fan-curve story below.
 
 ### 17.2 Fan mode values (`0xD4`)
 
@@ -383,31 +383,31 @@ MSI factory default curve (what we measured): CPU `0→0, 50→40, 57→48, 64�
 
 There are **no per-profile curve values** — the four profiles use the built-in fan logic via `0x1D`/`0x0D`, not the tables.
 
-### 17.4 The problem we hit (technical)
+### 17.4 What the EC dumps revealed (technical)
 
-Goal: let the user apply a custom fan curve **on top of any profile** (e.g. a quiet-but-precise curve in Silent, which MSI Center forbids — it allows curves only in Extreme).
+We captured full 256-byte EC dumps in all four MSI Center 2.0.48 scenarios and diffed them, ignoring sensor bytes (temps `0x68`/`0x80`, fan duty `0x71`/`0x89`/`0xF4`, tach RPM `0xC9`/`0xCB`, etc.). Two findings settled the design:
 
-Applying the curve means writing `0xD4=0x8D`. But the app detects the active profile by reading the EC, and **Silent vs Balanced are distinguished only by the fan byte** (`0x1D` vs `0x0D`). Setting `0x8D` erases that single distinguishing marker, so detection can no longer tell Silent from Balanced and falls back to **Balanced**.
+1. **`0x34` is the Extreme-unlock flag, not a Silent cap.** It reads `0x00` only in Extreme and `0x01` in Silent, Balanced and Super Battery. An earlier attempt to tell Silent from Balanced by `0x34` was therefore wrong, and our recipes had it backwards (Silent `0x00`, Extreme `0x01`) — now corrected to match (Silent `0x01`, Extreme `0x00`).
 
-We tried a backup discriminator, the power-cap byte `0x34` (`0x00`=Silent). On this unit `0x34` is **not reliably `0x00` in live Silent**, so the fallback also returned Balanced. Worse: the "turn curve off / restore profile" action read the *already-wrong* detected profile (Balanced) and restored Balanced fans (`0x0D`) instead of Silent (`0x1D`) — so the machine got stuck on Balanced with loud fans (the factory curve demands ~89% at ~77°C).
+2. **Silent's power cap lives in `0xD4` itself.** Silent and Balanced differ in exactly one stable byte — `0xD4` (`1D` vs `0D`). Since Silent measurably caps CPU package power (~100 W → ~30 W) and the only thing that changes is `0xD4`, the cap is bundled into `0xD4=1D`. That byte is not merely "quiet fans" — it is the firmware's Silent *scenario*, power policy included.
 
-### 17.5 The fix — decouple the profile from the fans
+The consequence for a custom curve is unavoidable: the curve needs `0xD4=0x8D`, but Silent's power cap *is* `0xD4=0x1D`. **One byte cannot be both.** Applying a curve in Silent necessarily overwrites `1D`, dropping the Silent power policy — the machine genuinely becomes Balanced power with your fan curve. So "a quiet custom curve that still keeps Silent's power cap" is physically impossible on this EC.
 
-The profile (power state) and the fan behaviour are separate concepts and must be tracked separately:
+### 17.5 The resulting design
 
-1. The app **remembers the profile the user explicitly selected** (the tray/tile click), persisted in settings.
-2. While the fan byte is **Advanced (`0x8D`)**, the background poll **does not re-detect the profile from the EC** and does not override the remembered selection — Silent stays Silent even though a curve is running.
-3. Turning the curve off restores the fans of the **remembered** profile (`0x1D` for Silent, `0x0D` otherwise), never the guessed one.
-
-Result: the custom curve is a pure fan overlay that never changes the power profile.
+- **Profile detection uses `0xD4` only**: `0x1D` = Silent, anything else (`0x0D` auto or `0x8D` curve) = Balanced (with `0xD2` still selecting Extreme `0xC4` / Super Battery `0xC2`). No `0x34` heuristic. When a curve runs, the app correctly shows Balanced — because that is the truth.
+- **Recipes match MSI 2.0.48** (`0x34` = `0x00` in Extreme, `0x01` elsewhere) so Extreme actually unlocks full power.
+- **The fan curve is positioned as manual fan control that replaces the firmware fan scenario**, not as an add-on to a profile:
+  - On **Balanced / Extreme / Super Battery** applying a curve only changes the fans; their power policy (shift / super-battery) is untouched, so it is lossless.
+  - On **Silent** applying a curve unavoidably leaves Silent. The app warns the user and switches the profile to Balanced explicitly, so the state stays honest.
 
 ### 17.6 In plain language
 
-Think of a profile as two separate dials: a **power dial** (how much performance/heat the laptop allows) and a **fan dial** (how hard the fans blow). On this laptop, "Silent" and "Balanced" set the power dial almost the same way; the clearest difference the app could see was the fan dial.
+A profile is two dials: a **power dial** (how much performance and heat the laptop allows) and a **fan dial** (how hard the fans blow). The catch on this laptop is that **"Silent" stores its power dial inside the fan dial** — the same single byte. There is no separate Silent power switch.
 
-When you turn on a custom fan curve, you replace the fan dial with your own. The app, which was recognising "Silent" mostly by its fan dial, suddenly couldn't see it any more and assumed "Balanced". Then turning the curve off used that wrong guess and left the fans blasting.
+A custom fan curve has to take over that same byte. So the moment you set your own curve, the "Silent" setting is gone — the laptop runs at Balanced power with your fans. That is not a bug, it is how the chip is wired; one byte can't hold both "Silent power" and "your curve" at once.
 
-The fix: the app now simply **remembers which profile you picked** and stops guessing from the hardware while your curve is active. Your curve only touches the fans; the profile stays exactly what you chose.
+So the app is honest about it: on Balanced, Extreme or Super Battery a curve just changes the fans and nothing is lost; on Silent it warns you that turning on a curve will leave Silent and move you to Balanced. If what you want is quiet *and* low power, that is exactly Silent already, and a curve can't beat it without giving up the cap.
 
 ---
 

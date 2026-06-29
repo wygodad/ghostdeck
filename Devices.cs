@@ -39,7 +39,6 @@ public sealed class DeviceProfile
     // Fan tachometer registers (0 = unknown -> RPM not shown). RPM = RpmConst / raw.
     public byte CpuRpmAddr { get; init; }
     public byte GpuRpmAddr { get; init; }
-    public byte PowerCapAddr { get; init; }   // 0 = unused; if set, Silent vs Balanced is told apart by this byte (0x00 = Silent)
     public FanCurveSpec? FanCurve { get; init; }
     public int RpmConst { get; init; } = 478000;
 
@@ -93,16 +92,16 @@ public static class Devices
             FirmwarePrefixes = new[] { "17S1IMS1" },
             Tier = Tier.Tested,
             CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
-            PowerCapAddr = 0x34,                     // Silent (0x00) vs Balanced (0x01) — independent of fan mode
 
             // Fan-curve tables located via the test tool; 6 points each (read-only preview for now).
             // First point is the 0°C→0% entry; tables verified 1:1 against MSI Center (6 points each).
             FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
             Recipes = new()
             {
-                [ProfileId.Silent]       = new (byte, byte)[] { (0xD2, 0xC1), (0x34, 0x00), (0xEB, 0x00), (0xD4, 0x1D) },
+                // 0x34 matches MSI Center 2.0.48 exactly: 0x00 ONLY in Extreme (unlocks turbo power), 0x01 elsewhere.
+                [ProfileId.Silent]       = new (byte, byte)[] { (0xD2, 0xC1), (0x34, 0x01), (0xEB, 0x00), (0xD4, 0x1D) },
                 [ProfileId.Balanced]     = new (byte, byte)[] { (0xD2, 0xC1), (0x34, 0x01), (0xEB, 0x00), (0xD4, 0x0D) },
-                [ProfileId.Extreme]      = new (byte, byte)[] { (0xD2, 0xC4), (0x34, 0x01), (0xEB, 0x00), (0xD4, 0x0D) },
+                [ProfileId.Extreme]      = new (byte, byte)[] { (0xD2, 0xC4), (0x34, 0x00), (0xEB, 0x00), (0xD4, 0x0D) },
                 [ProfileId.SuperBattery] = new (byte, byte)[] { (0xD2, 0xC2), (0x34, 0x01), (0xEB, 0x0F), (0xD4, 0x0D) },
             },
         },
