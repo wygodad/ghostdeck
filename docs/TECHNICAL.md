@@ -345,7 +345,7 @@ The app surfaces all of this live: the Status tab shows the profile-byte matrix,
 | Byte | Name | What it does |
 |------|------|--------------|
 | `0xD2` | **Shift mode** (performance level) | The main power/performance state. `0xC1` = comfort, `0xC4` = turbo (max), `0xC2` = eco. |
-| `0x34` | **Extreme power unlock** | `0x00` **only** in Extreme (lets turbo draw full power); `0x01` in every other profile. It is NOT a Silent/Balanced marker (it is identical in those two). |
+| `0x34` | **Extreme power unlock** | Written `0x00` in Extreme (lets turbo draw full power) and `0x01` elsewhere — but it reads **dynamically** and can momentarily show `00`/`01` in any comfort profile (e.g. Silent has been observed as both). It is NOT a Silent/Balanced marker and the app never uses it for detection. |
 | `0xEB` | **Super-battery flag** | `0x0F` = deepest battery throttle (lowest performance, longest runtime); `0x00` = off. Not about lighting — it is a performance/power throttle. |
 | `0xD4` | **Fan mode / scenario** | Which fan behaviour the firmware runs (see 17.2). On this firmware it also carries the **Silent power policy** — see 17.4. |
 

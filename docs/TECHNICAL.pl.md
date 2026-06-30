@@ -378,7 +378,7 @@ Aplikacja pokazuje to wszystko na żywo: zakładka Status ma macierz bajtów pro
 | Bajt | Nazwa | Co robi |
 |------|-------|---------|
 | `0xD2` | **Tryb mocy** (shift) | Główny stan wydajności. `0xC1` = comfort, `0xC4` = turbo (maks), `0xC2` = eco. |
-| `0x34` | **Odblokowanie mocy Extreme** | `0x00` **tylko** w Extreme (pozwala turbo czerpać pełną moc); `0x01` w każdym innym profilu. To NIE jest znacznik Silent/Balanced (w obu jest identyczny). |
+| `0x34` | **Odblokowanie mocy Extreme** | Zapisywane `0x00` w Extreme (pozwala turbo czerpać pełną moc) i `0x01` w pozostałych — ale odczytuje się **dynamicznie** i bywa `00`/`01` w każdym profilu komfort (np. Silent zaobserwowano jako oba). To NIE jest znacznik Silent/Balanced i apka nigdy nie używa go do detekcji. |
 | `0xEB` | **Flaga super-bateria** | `0x0F` = najgłębszy throttle na baterii (najniższa wydajność, najdłuższy czas pracy); `0x00` = wyłączone. To nie jest o podświetleniu — to dławienie wydajności/mocy. |
 | `0xD4` | **Tryb wentylatora / scenariusz** | Które zachowanie wentylatora uruchamia firmware (patrz 18.2). Na tym firmie niesie też **politykę mocy Silenta** — patrz 18.4. |
 
@@ -420,7 +420,7 @@ Fabryczna krzywa MSI (zmierzona): CPU `0→0, 50→40, 57→48, 64→60, 70→75
 
 Zrobiliśmy pełne zrzuty 256 bajtów EC w czterech scenariuszach MSI Center 2.0.48 i porównaliśmy je, pomijając bajty czujników (temp. `0x68`/`0x80`, duty `0x71`/`0x89`/`0xF4`, RPM `0xC9`/`0xCB` itd.). Dwie rzeczy przesądziły projekt:
 
-1. **`0x34` to flaga odblokowania mocy Extreme, nie cap Silenta.** Jest `0x00` tylko w Extreme i `0x01` w Silent, Balanced i Super Battery. Wcześniejsza próba rozróżniania Silent/Balanced po `0x34` była więc błędna, a nasze receptury miały go odwrotnie (Silent `0x00`, Extreme `0x01`) — poprawione na zgodne (Silent `0x01`, Extreme `0x00`).
+1. **`0x34` to flaga odblokowania mocy Extreme, nie cap Silenta.** Zapisywane `0x00` w Extreme i `0x01` w pozostałych, ale **odczyt jest dynamiczny** i bywa `00`/`01` także w Silent. Wcześniejsza próba rozróżniania Silent/Balanced po `0x34` była więc błędna, a nasze receptury miały go odwrotnie (Silent `0x00`, Extreme `0x01`) — poprawione na zgodne (Silent `0x01`, Extreme `0x00`).
 
 2. **Limit mocy Silenta siedzi w samym `0xD4`.** Silent i Balanced różnią się dokładnie jednym stabilnym bajtem — `0xD4` (`1D` vs `0D`). Skoro Silent mierzalnie tnie moc CPU (~100 W → ~30 W), a zmienia się tylko `0xD4`, to cap jest zaszyty w `0xD4=1D`. Ten bajt to nie tylko „ciche wentylatory" — to firmware'owy *scenariusz* Silent, łącznie z polityką mocy.
 
