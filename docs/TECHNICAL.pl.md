@@ -163,13 +163,15 @@ Stabilne (niesensorowe) różnice **Silent vs Balanced**:
 
 > Bajty czysto sensoryczne (zmienne same z siebie): m.in. `0x46/0x48/0x4A` (napięcia/liczniki), `0x68`, `0x80` (temp), `0xC9/0xCB` (RPM), `0xF4` (temp). Pominięte.
 
-### 6.3 Kompletne „przepisy" na scenariusze (po korekcie — patrz sekcja 8)
+### 6.3 Kompletne „przepisy" na scenariusze (po korekcie — patrz sekcja 8; `0x34` ujednolicone wg §20)
 | Scenariusz | 0xD2 | 0x34 | 0xEB | 0xD4 |
 |---|---|---|---|---|
-| **SILENT** | C1 | 00 | 00 | **1D** |
+| **SILENT** | C1 | 01 | 00 | **1D** |
 | **BALANCED** | C1 | 01 | 00 | 0D |
-| **EXTREME** | C4 | 01 | 00 | 0D |
+| **EXTREME** | C4 | 00 | 00 | 0D |
 | **SUPER BATTERY** | C2 | 01 | 0F | 0D |
+
+> `0x34` jest dynamiczny i nie to capuje Silenta (robi to `0xD4=0x1D`). Wartości to kanoniczna receptura (`00` tylko w Extreme); pierwotny pomiar 2.0.x złapał Silent na `00`. Patrz §20.1.
 
 ---
 
@@ -225,8 +227,8 @@ function WriteEC([byte]$a,[byte]$v){
   $pkg = New-CimInstance -Namespace root\wmi -ClassName Package_32 -ClientOnly -Property @{Bytes=$b}
   [void](Invoke-CimMethod -InputObject $inst -MethodName Set_Data -Arguments @{Data=$pkg})
 }
-# SILENT:
-WriteEC 0xD2 0xC1; WriteEC 0x34 0x00; WriteEC 0xEB 0x00; WriteEC 0xD4 0x1D
+# SILENT:  (0x34 dynamiczny; kanon to tu 0x01, 0x00 tylko w Extreme — patrz §20.1. To 0xD4=1D capuje moc)
+WriteEC 0xD2 0xC1; WriteEC 0x34 0x01; WriteEC 0xEB 0x00; WriteEC 0xD4 0x1D
 ```
 
 ---
