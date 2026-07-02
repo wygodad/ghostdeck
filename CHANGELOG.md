@@ -3,6 +3,35 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.13.0] - 2026-07-03
+### Added
+- **Per-pixel overlay rendering** (`UpdateLayeredWindow`, 32-bpp premultiplied ARGB) replacing the old
+  uniform window opacity + chroma-key. Enables **independent background vs content opacity** (two
+  sliders, each with preset chips), **smooth anti-aliased** text/icons on any game background, a
+  **readability drop-shadow**, perfect rounded corners and natural click-through. See TECHNICAL §20.4.
+- **Background opacity** control (`0/40/70/100 %` chips + free-drag slider), independent of content.
+- **Battery %, GPU load %, VRAM and approx. CPU clock** now shown in the **Status** tab as compact
+  counters (CPU clock next to the fan-RPM counters; battery/GPU%/VRAM in a matching row below).
+### Changed
+- Overlay **drag handle**: while unlocked the panel now forces a visible, grabbable surface (even with
+  the background off) plus a stronger accent frame and a 3×3 dot grip, so it's easy to find and move.
+  Locking restores the configured background and click-through.
+- Overlay frame is hidden when the background is off and the panel is locked (clean text-only HUD).
+### Fixed
+- **"Show overlay"** state is synced between the Scenarios brick and the Settings toggle.
+
+## [1.12.0] - 2026-07-02
+### Added
+- **Gaming-overlay extra metrics** read driver-free (no kernel driver, anti-cheat-safe): **GPU load %** and **VRAM used** via Windows PDH GPU counters, an **approximate CPU clock** (`% Processor Performance` × base MHz), and **current battery %** — all via `PdhAddEnglishCounter` so they resolve on localized (Polish) Windows, showing `—` on failure. Also surfaced in the **Status** tab. See TECHNICAL §20 for the full options/pros-cons analysis (why not WinRing0/LibreHardwareMonitor, and the FPS/frametime routes).
+- **Overlay settings redesign** (Settings → Gaming overlay): full-width DPI-aware card — metric checkbox grid, **preset chips *and* a free-drag slider** for opacity & size, **background on/off + colour picker**, corner position, **Restore defaults** button; options are toggle switches.
+- **Icons** on the Settings section headers.
+### Changed
+- Overlay show/hide and lock default hotkeys are now **`Ctrl+Shift+O`** / **`Ctrl+Shift+L`** (auto-migrated from earlier dev defaults).
+### Fixed
+- **Lock / click-through now actually locks**: window opacity capped at 0.99 so `WS_EX_LAYERED` stays on (needed for `WS_EX_TRANSPARENT`) + a hard drag guard. Previously at 100 % opacity the panel still caught the mouse.
+- **Settings no longer jump-scroll to the top** when toggling an option (`ScrollToControl` override).
+- Overlay settings + the Cooler Boost brick are DPI-correct at 125 %/150 % (no clipped labels/overlap).
+
 ## [1.10.0] - 2026-07-02
 ### Added
 - **Cooler Boost (max fans)** — force both fans to full speed independent of the profile, for a render

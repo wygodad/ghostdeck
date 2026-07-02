@@ -13,9 +13,10 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**
 - ⌨️ Global, **rebindable** hotkeys (default `Ctrl+Alt+F1–F4`, `Ctrl+Alt+P` = cycle)
 - 🔔 On-screen overlay (OSD) on every profile change
+- 🎮 **Detachable gaming overlay (HUD)** — a small always-on-top panel with temps / fan RPM / profile / load / GPU% / VRAM / clocks / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
 - 🌍 **8 languages** — EN / PL / DE / FR / ES / 中文 / PT-BR / RU
 - 🎨 Custom color per profile
-- 📊 **Status** — live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage, RAM, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values)
+- 📊 **Status** — live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH counters — no kernel driver, anti-cheat-safe)
 - 🌀 **Fan curve editor** — drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced — the app warns and switches for you
 - 🌪️ **Cooler Boost** — force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab
 - 📜 **Change-history log** — a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window — handy for model-support reports
@@ -40,6 +41,7 @@ MSI Profile Switcher is a small, focused tool — it deliberately does one thing
 | Global **rebindable** hotkeys | Limited² | ✅ |
 | Auto-switch profile on AC / battery | ❌ | ✅ |
 | On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
+| Detachable gaming HUD overlay | ❌ | ✅ *(temps / RPM / GPU% / VRAM / clocks / RAM / battery)* |
 | Live EC profile-byte view / transparency | ❌ | ✅ |
 | Change & EC-write history log | ❌ | ✅ |
 | Hardware monitoring | ✅ | Limited³ |
@@ -50,7 +52,7 @@ MSI Profile Switcher is a small, focused tool — it deliberately does one thing
 
 1. MSI Center only allows a custom fan curve in **Extreme**; this app runs one on **Balanced / Extreme / Super Battery**, fully reversible. **Silent** is a hardware exception: its power cap and the fan-curve mode share the same EC byte (`0xD4`), so enabling a curve in Silent necessarily switches the profile to Balanced (the app warns first).
 2. MSI Center's shortcuts are limited; here every hotkey is global and rebindable.
-3. Monitors CPU/GPU temperature, fan RPM, CPU and RAM usage via EC/WMI — not MSI Center's full telemetry.
+3. Monitors CPU/GPU temperature, fan RPM, CPU & RAM usage via EC/WMI, plus GPU load %, VRAM, an approximate CPU clock and battery % via driver-free Windows PDH counters — not MSI Center's full telemetry.
 4. MSI Center 2.0.x as the UWP app plus the files it installs to `C:\Program Files (x86)\MSI` on first launch.
 5. Self-contained single `.exe` — no installer, no background service, no separate .NET runtime.
 6. MSI Center shows an overlay for profile / Fn-key changes; this app shows one for **every** action it performs — profile switch **and** Cooler Boost (and future functions) — so you always get feedback on what changed.

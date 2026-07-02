@@ -515,3 +515,91 @@ action, and the whole point is to let the user re-verify against MSI Center. Ack
 first run with no stored firmware) records the current firmware and re-enables auto-writes. This is
 deliberately a *soft* guard (auto only), not a full lockout; do not widen it to block manual
 switching without discussing the trade-off.
+
+---
+
+## 20. Gaming overlay and extra hardware metrics
+
+### 20.1 The overlay
+
+A detachable, always-on-top HUD (Scenarios tab tile / hotkey `Ctrl+Shift+O`) for use while gaming: a
+compact **card** or horizontal **bar** showing live temps, fan RPM, fan %, active profile, Cooler
+Boost, CPU/GPU load, RAM/VRAM, battery, CPU clock and the charge limit. Fully configurable in
+Settings → **Gaming overlay**: which metrics to show, opacity and size (quick preset chips **and** a
+free-drag slider), layout (card/bar), corner position or free drag, background on/off + colour, and
+options (always-on-top, lock/click-through, accent = profile colour). All layout is DPI-aware
+(scaled by `DeviceDpi`) so it stays correct at 125 % / 150 % etc.
+
+- **Lock / click-through** (`Ctrl+Shift+L`): sets `WS_EX_TRANSPARENT` so the mouse passes to the game
+  and the panel can't be dragged. Note the window opacity is capped at `0.99` so WinForms keeps
+  `WS_EX_LAYERED` — without it, at 100 % opacity click-through is silently ignored.
+- **Background off** uses the form `TransparencyKey` (colour-key the fill) so only text/icons show.
+- **Position is remembered** (`OverlayX/Y`); drag or snap to a corner.
+
+### 20.2 Where each metric comes from (and the "no kernel driver" rule)
+
+This project's promise is **no kernel driver, no lowering of Windows security**. That constrains how
+we read extra metrics, and it matters doubly for a *gaming* overlay (anti-cheat).
+
+| Metric | Source | Notes |
+|--------|--------|-------|
+| CPU/GPU temp, fan RPM, fan % | MSI EC via WMI | already the app's core |
+| CPU load | `GetSystemTimes` | driver-free |
+| RAM used | `GlobalMemoryStatusEx` | driver-free |
+| Battery % / charging | `SystemInformation.PowerStatus` | driver-free |
+| **GPU load %** | PDH counter `\GPU Engine(*engtype_3D)\Utilization Percentage` (summed) | same source as Task Manager; driver-free |
+| **VRAM used** | PDH counter `\GPU Adapter Memory(*)\Dedicated Usage` (summed) | driver-free |
+| **CPU clock (approx.)** | PDH `\Processor Information(_Total)\% Processor Performance` × base MHz (registry `~MHz`) | estimate, not an MSR read; driver-free |
+
+All PDH counters are added via **`PdhAddEnglishCounter`** (see `Perf.cs`), so the paths resolve on a
+Polish (or any localized) Windows — the English counter names are locale-independent. Everything is
+guarded: on any failure the getter returns `-1` and the UI shows `—`. Values are throttled to ~700 ms.
+
+### 20.3 What we did NOT use, and why
+
+Options considered for the "full" set (GPU core clock, exact CPU per-core clock, FPS, frametime):
+
+- **Vendor SDKs (NVAPI / AMD ADLX)** — user-mode, no kernel driver; would give exact GPU core clock,
+  VRAM and load. **Deferred**, not rejected: two per-vendor native code paths for a marginal gain
+  over the PDH values we already show. Revisit if exact GPU clock is wanted.
+- **CPU per-core exact clock (MSR)** — requires a kernel driver (WinRing0). **Rejected**: violates
+  the no-driver rule and WinRing0 is flagged by some anti-cheat (Vanguard/EAC) → ban risk in games.
+  The PDH `% Processor Performance` estimate covers "is the CPU boosting / throttling?" without it.
+- **LibreHardwareMonitor** — one library with rich sensors, but it **loads the WinRing0 kernel
+  driver** for CPU/board sensors (same anti-cheat/no-driver conflict), is MPL-2.0 (file-level
+  copyleft), heavier, and **provides no FPS/frametime**. **Rejected** as the default path; PDH covers
+  GPU load/VRAM driver-free, and NVAPI/ADLX would be the cleaner route for clocks if needed.
+- **FPS / frametime** — there is no simple API for another process's FPS. Realistic routes: read
+  **RTSS shared memory** (needs the user to run RivaTuner/Afterburner) or **PresentMon/ETW**
+  (system-wide Present capture, admin only, no injection). Both are a separate, larger effort;
+  **not implemented**. Own Present-hooking is rejected (fragile, anti-cheat risk).
+
+**Implemented now:** GPU load %, VRAM used, CPU clock (approx.), battery — all driver-free (PDH +
+Windows APIs). **Planned/optional:** FPS+frametime (RTSS or PresentMon), exact GPU clock (NVAPI/ADLX).
+
+### 20.4 Per-pixel layered rendering (independent background vs content alpha)
+
+The overlay renders **per-pixel** via `UpdateLayeredWindow` onto a 32-bpp premultiplied-ARGB bitmap
+(`OverlayForm.RenderLayered`), not through the normal `OnPaint`. `WS_EX_LAYERED` is permanent (set in
+`CreateParams`); `Form.Opacity`/`TransparencyKey` are **not** used. This gives, in one design:
+
+- **Independent alpha for background vs content** — two separate sliders (`OverlayOpacity` = content,
+  `OverlayBgOpacity` = background), each with quick preset chips. The content is drawn opaque onto its
+  own layer, then composited at `contentAlpha`; the rounded background is filled at `bgAlpha`. So you
+  can have a barely-there background with fully readable text.
+- **Smooth anti-aliased edges** on any game background (grayscale AA on the content layer produces
+  correct per-pixel alpha — no chroma-key fringing).
+- **A soft drop-shadow** behind the content (the content layer re-drawn as a black silhouette at ~½
+  alpha, offset by ~1 px) so text stays legible even with the background off, on light or dark scenes.
+- **Perfect rounded corners** from the alpha shape (no `Region` clipping).
+- **Natural click-through** — fully transparent pixels pass the mouse to the game by themselves; the
+  lock (`WS_EX_TRANSPARENT`) additionally makes the whole window transparent to the mouse.
+
+Compositing order per frame: background (rounded, `bgAlpha`) → shadow → content (`contentAlpha`) →
+frame + drag grip. Layout is measured on a screen-DPI `Graphics` and the content/final bitmaps get
+`SetResolution(dpi, dpi)`, so point-size fonts render identically to the measured size at any scaling.
+
+**Move vs display mode:** while unlocked (draggable) the panel forces a visible, grabbable surface
+(minimum ~43 % fill regardless of the background setting) plus a stronger accent frame and a 3×3 dot
+grip, so it can be found and dragged even with the background off; locking restores the configured
+background and enables click-through.

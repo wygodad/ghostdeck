@@ -125,6 +125,8 @@ public sealed class ScenariosPage : ThemedPage
         {
             new FeatureBrick("cooler_boost_short", "❄", Color.FromArgb(0x17, 0xC0, 0xEB), "cooler_boost_hint",
                              () => D.Writable() && D.CoolerBoost(), v => D.SetCoolerBoost(v)),
+            new FeatureBrick("overlay_title", "▦", Color.FromArgb(0x8B, 0x5C, 0xF6), "overlay_hint",
+                             () => D.OverlayOn(), v => D.SetOverlay(v)),
         };
         foreach (var b in _bricks) Controls.Add(b);
 
@@ -140,6 +142,15 @@ public sealed class ScenariosPage : ThemedPage
         foreach (var b in _bricks) b.SyncState();
         Relayout();
         Invalidate();
+    }
+
+    // External state changed (profile/cooler/overlay) — refresh tiles + bricks without re-laying out.
+    public override void LiveRefresh()
+    {
+        _charge.Selected = ChargeIndex();
+        _auto.Checked = D.Settings.AutoSwitchEnabled;
+        foreach (var b in _bricks) b.SyncState();
+        Invalidate(true);
     }
 
     public override void ApplyTheme()
@@ -381,6 +392,14 @@ public sealed class StatusPage : ThemedPage
         ("st_app_ver",   (s, h) => s.AppVersion, false),
     };
 
+    private static string BatteryText()
+    {
+        var ps = SystemInformation.PowerStatus;
+        if (ps.BatteryLifePercent is >= 0f and <= 1f)
+            return $"{(int)Math.Round(ps.BatteryLifePercent * 100)} %" + (ps.PowerLineStatus == PowerLineStatus.Online ? " ⚡" : "");
+        return "—";
+    }
+
     private readonly Button _test = new();
     private readonly Button _logBtn = new();
     private readonly DeviceProfile? _dev;
@@ -412,6 +431,8 @@ public sealed class StatusPage : ThemedPage
     }
 
     private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { Relayout(); _canvas.Invalidate(); }); } catch { } } }
+
+    public override void LiveRefresh() { RefreshLive(); _canvas.Invalidate(); }
 
     private void RefreshLive()
     {
@@ -445,7 +466,8 @@ public sealed class StatusPage : ThemedPage
     private int ContentHeight(int width)
     {
         int ring = RingSize(width);
-        int cardTop = RingTop + ring + 68 + 54 + 40;
+        // rings + sub-row1 (54) + sub-row2 (14+54) + gap → card
+        int cardTop = RingTop + ring + 68 + 54 + 14 + 54 + 40;
         int afterCard = cardTop + RowH * Rows.Length + 14;
         int sec = afterCard + 34 + GridH(true, 5, 2) + NoteH;   // matrix (2-line headers) + 0x34 note
         sec += 8 + GridH(false, 4);                             // legend
@@ -503,20 +525,31 @@ public sealed class StatusPage : ThemedPage
             new Rectangle(ramX, subY, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
         DrawBar(g, new RectangleF(ramX + 20, subY + 36, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
 
-        // RPM as a framed counter under each fan ring
-        void RpmUnder(int i, int rpm, string label)
+        // Framed metric counter (shared by the RPM / clock / GPU / VRAM / battery boxes).
+        void MetricBox(RectangleF box, string text)
         {
-            var box = new RectangleF(X(i) + 14, subY, ring - 28, subH);
             Ui.FillCard(g, box);
-            string t = !info.Known ? $"{label}: —" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: — RPM";
-            TextRenderer.DrawText(g, t, new Font("Segoe UI", 11.5f, FontStyle.Bold),
-                Rectangle.Round(box), Theme.Text,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(g, text, new Font("Segoe UI", 11.5f, FontStyle.Bold),
+                Rectangle.Round(box), Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
+        void RpmUnder(int i, int rpm, string label)
+            => MetricBox(new RectangleF(X(i) + 14, subY, ring - 28, subH),
+                !info.Known ? $"{label}: —" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: — RPM");
         RpmUnder(2, hw.CpuRpm, "CPU");
         RpmUnder(3, hw.GpuRpm, "GPU");
+        // CPU clock (approx.) under the CPU-usage ring — same row as the RPM counters
+        MetricBox(new RectangleF(X(4) + 14, subY, ring - 28, subH),
+            Perf.CpuClockMhz() is int mhz and > 0 ? $"CPU: {mhz} MHz" : "CPU: — MHz");
 
-        int cardTop = subY + subH + 40;
+        // second sub-row: battery, GPU load %, VRAM used — same box width as the RPM counters, under rings 2/3/4
+        int subY2 = subY + subH + 14;
+        int gu = Perf.GpuUsage(), vm = Perf.VramUsedMb();
+        void Box2(int i, string text) => MetricBox(new RectangleF(X(i) + 14, subY2, ring - 28, subH), text);
+        Box2(2, $"{Lang.T("st_battery")}: {BatteryText()}");
+        Box2(3, $"{Lang.T("ov_m_gpuusage")}: " + (gu >= 0 ? $"{gu} %" : "—"));
+        Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
+
+        int cardTop = subY2 + subH + 40;
         int rowH = RowH;
         var card = new RectangleF(Pad, cardTop, avail, rowH * Rows.Length + 14);
         Ui.FillCard(g, card);
@@ -996,7 +1029,7 @@ public sealed class SettingsPage : ThemedPage
     {
         ("Silent", "Silent"), ("Balanced", "Balanced"),
         ("Extreme", "Extreme"), ("SuperBattery", "Super Battery"), ("Cycle", "Cycle"),
-        ("CoolerBoost", "Cooler Boost"),
+        ("CoolerBoost", "Cooler Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -1005,15 +1038,20 @@ public sealed class SettingsPage : ThemedPage
     private readonly List<CardSection> _right = new();
     private readonly Dictionary<string, HotkeyBox> _boxes = new();
     private readonly Dictionary<string, List<Panel>> _swatches = new();
+    private OverlaySettingsPanel? _overlayPanel;
 
     public SettingsPage(MainDeps d) : base(d) { BuildForm(); Resize += (_, _) => Layout2(); }
 
-    public override void OnEnter() { Layout2(); Invalidate(); }
+    public override void OnEnter() { _overlayPanel?.SyncFromSettings(); Layout2(); Invalidate(); }
+    // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
+    // no re-layout here, which would reset the scroll position mid-edit.
+    public override void LiveRefresh() { _overlayPanel?.SyncFromSettings(); }
 
     public override void ApplyTheme()
     {
         base.ApplyTheme();
         foreach (var c in _left.Concat(_right)) c.ApplyTheme();
+        _overlayPanel?.ApplyThemeColors();
         Invalidate();
     }
 
@@ -1027,21 +1065,31 @@ public sealed class SettingsPage : ThemedPage
     {
         if (_left.Count == 0) return;
         int colW = Math.Max(320, (ClientSize.Width - Pad * 2 - Gutter) / 2);
+        int fullW = colW * 2 + Gutter;
         int top = TitleTop + new Font("Segoe UI", 18f, FontStyle.Bold).Height + 18;
+
+        if (_overlayPanel != null)
+        {
+            _overlayPanel.Relayout(fullW);
+            _overlayPanel.Location = new Point(Pad, top);
+            top = _overlayPanel.Bottom + 18;
+        }
+
         int yL = top, yR = top;
         foreach (var c in _left) { c.Relayout(colW); c.Location = new Point(Pad, yL); yL += c.Height + 16; }
         foreach (var c in _right) { c.Relayout(colW); c.Location = new Point(Pad + colW + Gutter, yR); yR += c.Height + 16; }
-        AutoScrollMinSize = new Size(Pad * 2 + colW * 2 + Gutter, Math.Max(yL, yR) + 20);
+        AutoScrollMinSize = new Size(Pad * 2 + fullW, Math.Max(yL, yR) + 20);
     }
 
     // ---------------- build ----------------
     private void BuildForm()
     {
         foreach (var c in _left.Concat(_right)) Controls.Remove(c);
+        if (_overlayPanel != null) { Controls.Remove(_overlayPanel); _overlayPanel.Dispose(); _overlayPanel = null; }
         _left.Clear(); _right.Clear(); _boxes.Clear(); _swatches.Clear();
 
         // ---- left column ----
-        var look = new CardSection(Lang.T("set_grp_look"));
+        var look = new CardSection(Lang.T("set_grp_look"), "");
         var theme = new SegControl(new[] { Lang.T("set_theme_light"), Lang.T("set_theme_dark") }, Theme.Dark ? 1 : 0) { Size = new Size(220, 34) };
         theme.SelectedChanged += i => { Theme.Set(i == 1); D.Settings.DarkMode = Theme.Dark; D.SaveSettings(); };
         look.AddRow(Lang.T("set_theme"), theme);
@@ -1056,13 +1104,13 @@ public sealed class SettingsPage : ThemedPage
         foreach (var id in Profiles.Order) look.AddRow(Profiles.Get(id).Label, BuildSwatches(id));
         _left.Add(look);
 
-        var start = new CardSection(Lang.T("set_grp_start"));
+        var start = new CardSection(Lang.T("set_grp_start"), "");
         start.AddRow(Lang.T("set_autostart"), Toggle(D.Settings.Autostart, v => { D.Settings.Autostart = v; try { Autostart.Set(v); } catch { } D.SaveSettings(); }));
         start.AddRow(Lang.T("experimental_enable"), Toggle(D.Settings.ExperimentalEnabled, v => { D.Settings.ExperimentalEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
         _left.Add(start);
 
         // ---- right column ----
-        var power = new CardSection(Lang.T("set_grp_power"));
+        var power = new CardSection(Lang.T("set_grp_power"), "");
         var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" }, Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit))) { Size = new Size(280, 34) };
         charge.SelectedChanged += i => D.SetChargeLimit(ChargeVals[i]);
         power.AddRow(Lang.T("set_charge"), charge);
@@ -1075,11 +1123,11 @@ public sealed class SettingsPage : ThemedPage
         power.AddRow(Lang.T("on_battery"), bat);
         _right.Add(power);
 
-        var upd = new CardSection(Lang.T("set_grp_updates"));
+        var upd = new CardSection(Lang.T("set_grp_updates"), "");
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
         _right.Add(upd);
 
-        var hk = new CardSection(Lang.T("set_hotkeys"));
+        var hk = new CardSection(Lang.T("set_hotkeys"), "");
         foreach (var (key, label) in Acts)
         {
             var box = new HotkeyBox { Width = 220 };
@@ -1087,13 +1135,16 @@ public sealed class SettingsPage : ThemedPage
             string k = key;
             box.Leave += (_, _) => { D.Settings.Hotkeys[k] = box.Value.Clone(); D.SaveSettings(); D.SettingsChanged(); };
             _boxes[key] = box;
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : label, box);
+            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : label, box);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
         reset.Click += (_, _) => ResetHotkeys();
         hk.AddRow(null, reset);
         _right.Add(hk);
+
+        _overlayPanel = new OverlaySettingsPanel(D);
+        Controls.Add(_overlayPanel);
 
         foreach (var c in _left.Concat(_right)) Controls.Add(c);
         Layout2(); ApplyTheme();
@@ -1160,12 +1211,14 @@ public sealed class SettingsPage : ThemedPage
     private sealed class CardSection : Panel
     {
         private readonly Label _head;
+        private readonly string _glyph;
         private readonly List<(Label? label, Control ctl)> _rows = new();
 
-        public CardSection(string title)
+        public CardSection(string title, string glyph = "")
         {
             DoubleBuffered = true;
             BackColor = Theme.Card;
+            _glyph = glyph;
             _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
             Controls.Add(_head);
         }
@@ -1183,8 +1236,9 @@ public sealed class SettingsPage : ThemedPage
             Width = width;
             const int pad = 18;
             int y = 16;
-            _head.Location = new Point(pad, y);
-            y += _head.Height + 14;
+            int hx = pad + (string.IsNullOrEmpty(_glyph) ? 0 : Ceil(26 * DeviceDpi / 96f) + Ceil(10 * DeviceDpi / 96f));
+            _head.Location = new Point(hx, y + Ceil(4 * DeviceDpi / 96f));
+            y += Math.Max(_head.Height, Ceil(26 * DeviceDpi / 96f)) + 14;
             foreach (var (l, ctl) in _rows)
             {
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
@@ -1218,11 +1272,402 @@ public sealed class SettingsPage : ThemedPage
             using var pen = new Pen(Theme.Border);
             using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 10);
             g.DrawPath(pen, path);
+
+            if (!string.IsNullOrEmpty(_glyph))
+            {
+                float k = DeviceDpi / 96f;
+                int isz = Ceil(26 * k);
+                var iconR = new Rectangle(18, 14, isz, isz);
+                using (var ap = new Pen(Theme.Accent, 1.7f))
+                using (var ip = Theme.RoundRect(new RectangleF(iconR.X + 0.5f, iconR.Y + 0.5f, iconR.Width - 1, iconR.Height - 1), 6))
+                    g.DrawPath(ap, ip);
+                using var gf = new Font("Segoe MDL2 Assets", 10.5f);
+                Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, iconR);
+            }
         }
+
+        private static int Ceil(float v) => (int)Math.Ceiling(v);
     }
 }
 
 /// <summary>Small segmented control (themed).</summary>
+/// <summary>Small checkbox + label (blue box, white tick), matching the overlay-settings mockup.</summary>
+public sealed class CheckItem : Control
+{
+    private bool _on;
+    public event Action<bool>? Toggled;
+    public CheckItem(string text, bool on)
+    {
+        Text = text; _on = on; DoubleBuffered = true; Cursor = Cursors.Hand; Height = 26;
+        SetStyle(ControlStyles.Selectable, false);
+    }
+    public bool Checked { get => _on; set { _on = value; Invalidate(); } }
+    private static readonly Font F = new("Segoe UI", 10.5f);
+    private int Box => (int)Math.Ceiling(18 * DeviceDpi / 96f);   // DPI-aware box size
+    public int PreferredWidth => Box + 10 + TextRenderer.MeasureText(Text, F).Width + 6;
+    protected override void OnClick(EventArgs e) { base.OnClick(e); _on = !_on; Invalidate(); Toggled?.Invoke(_on); }
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Parent?.BackColor ?? Theme.Card);
+        int b = Box, y = (Height - b) / 2;
+        using var path = Theme.RoundRect(new RectangleF(0.5f, y + 0.5f, b - 1, b - 1), 4);
+        if (_on)
+        {
+            using (var br = new SolidBrush(Theme.Accent)) g.FillPath(br, path);
+            using var pen = new Pen(Color.White, 2f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+            g.DrawLines(pen, new[] { new PointF(b * 0.26f, y + b * 0.52f), new PointF(b * 0.44f, y + b * 0.70f), new PointF(b * 0.74f, y + b * 0.30f) });
+        }
+        else using (var pen = new Pen(Theme.BorderStrong, 1.4f)) g.DrawPath(pen, path);
+        TextRenderer.DrawText(g, Text, F, new Rectangle(b + 10, 0, Width - b - 10, Height), Theme.Text,
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+    }
+}
+
+/// <summary>
+/// Full-width gaming-overlay settings block laid out like the mockup: a "what to show" checkbox grid,
+/// opacity/size sliders, layout + position + hotkey, and an options group — in two responsive columns.
+/// </summary>
+public sealed class OverlaySettingsPanel : Panel
+{
+    private readonly MainDeps _d;
+    private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _bgToggle;
+    private readonly Slider _opacity, _scale, _bgOpacity;
+    private readonly SegControl _layout, _opacityPre, _scalePre, _bgOpacityPre;
+    private readonly ComboBox _position;
+    private readonly Button _bgColor, _restore;
+    private static readonly int[] OpacityPresets = { 60, 75, 90, 100 };
+    private static readonly int[] ScalePresets = { 90, 100, 120, 140 };
+    private static readonly int[] BgOpacityPresets = { 0, 40, 70, 100 };
+    private readonly List<(CheckItem item, OverlayMetric metric)> _metrics = new();
+    private readonly List<(string text, Rectangle rect, int kind)> _texts = new();
+    private readonly List<int> _dividers = new();
+    private int _w;
+
+    private static int Ceil(float v) => (int)Math.Ceiling(v);
+
+    public OverlaySettingsPanel(MainDeps d)
+    {
+        _d = d;
+        DoubleBuffered = true;
+        var s = d.Settings;
+
+        _enable = new ToggleSwitch { Checked = s.OverlayEnabled };
+        _enable.Toggled += v => d.SetOverlay(v);
+        Controls.Add(_enable);
+
+        void AddMetric(string key, OverlayMetric m)
+        {
+            var it = new CheckItem(Lang.T(key), s.HasMetric(m));
+            it.Toggled += v => { s.SetMetric(m, v); d.SaveSettings(); d.ApplyOverlaySettings(); };
+            _metrics.Add((it, m));
+            Controls.Add(it);
+        }
+        AddMetric("ov_m_temp", OverlayMetric.CpuTemp | OverlayMetric.GpuTemp);
+        AddMetric("ov_m_rpm", OverlayMetric.CpuRpm | OverlayMetric.GpuRpm);
+        AddMetric("ov_m_profile", OverlayMetric.Profile);
+        AddMetric("ov_m_fanpct", OverlayMetric.FanPct);
+        AddMetric("ov_m_load", OverlayMetric.CpuLoad);
+        AddMetric("ov_m_gpuusage", OverlayMetric.GpuUsage);
+        AddMetric("ov_m_cpuclock", OverlayMetric.CpuClock);
+        AddMetric("ov_m_ram", OverlayMetric.Ram);
+        AddMetric("ov_m_vram", OverlayMetric.Vram);
+        AddMetric("ov_m_cooler", OverlayMetric.CoolerBoost);
+        AddMetric("ov_m_battery", OverlayMetric.Battery);
+        AddMetric("ov_m_charge", OverlayMetric.ChargeLimit);
+
+        // Opacity & size each get BOTH quick preset chips and a free-drag slider.
+        void SetOpacity(int v) { s.OverlayOpacity = v; _opacityPre!.Selected = Array.IndexOf(OpacityPresets, v); d.SaveSettings(); d.ApplyOverlaySettings(); Relayout(_w); }
+        void SetScale(int v) { s.OverlayScale = v; _scalePre!.Selected = Array.IndexOf(ScalePresets, v); d.SaveSettings(); d.ApplyOverlaySettings(); Relayout(_w); }
+
+        _opacity = new Slider(40, 100, s.OverlayOpacity, 1, "%") { ShowValue = false };
+        _opacity.ValueChanged += SetOpacity;
+        Controls.Add(_opacity);
+        _opacityPre = new SegControl(OpacityPresets.Select(p => p + "%").ToArray(), Array.IndexOf(OpacityPresets, s.OverlayOpacity));
+        _opacityPre.SelectedChanged += i => { _opacity.Value = OpacityPresets[i]; SetOpacity(OpacityPresets[i]); };
+        Controls.Add(_opacityPre);
+
+        _scale = new Slider(80, 160, s.OverlayScale, 5, "%") { ShowValue = false };
+        _scale.ValueChanged += SetScale;
+        Controls.Add(_scale);
+        _scalePre = new SegControl(ScalePresets.Select(p => p + "%").ToArray(), Array.IndexOf(ScalePresets, s.OverlayScale));
+        _scalePre.SelectedChanged += i => { _scale.Value = ScalePresets[i]; SetScale(ScalePresets[i]); };
+        Controls.Add(_scalePre);
+
+        _layout = new SegControl(new[] { Lang.T("ov_layout_card"), Lang.T("ov_layout_bar") },
+            string.Equals(s.OverlayLayout, "Bar", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
+        _layout.SelectedChanged += i => { s.OverlayLayout = i == 1 ? "Bar" : "Card"; d.SaveSettings(); d.ApplyOverlaySettings(); };
+        Controls.Add(_layout);
+
+        _position = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+        _position.Items.AddRange(new object[] { Lang.T("ov_pos_pick"), Lang.T("ov_pos_tl"), Lang.T("ov_pos_tr"), Lang.T("ov_pos_bl"), Lang.T("ov_pos_br") });
+        _position.SelectedIndex = 0;
+        _position.SelectedIndexChanged += (_, _) => { if (_position.SelectedIndex > 0) { d.SnapOverlay(_position.SelectedIndex - 1); _position.SelectedIndex = 0; } };
+        Controls.Add(_position);
+
+        // Options use toggle switches (consistent with the rest of the app), not checkboxes.
+        ToggleSwitch OptToggle(bool on, Action<bool> onChange) { var t = new ToggleSwitch { Checked = on }; t.Toggled += v => onChange(v); Controls.Add(t); return t; }
+        _optTop = OptToggle(s.OverlayAlwaysTop, v => { s.OverlayAlwaysTop = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
+        _optClick = OptToggle(s.OverlayClickThrough, v => { s.OverlayClickThrough = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
+        _optAccent = OptToggle(s.OverlayAccentFromProfile, v => { s.OverlayAccentFromProfile = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
+
+        // Background: on/off toggle + colour swatch.
+        _bgToggle = new ToggleSwitch { Checked = s.OverlayBgEnabled };
+        _bgToggle.Toggled += v => { s.OverlayBgEnabled = v; d.SaveSettings(); d.ApplyOverlaySettings(); };
+        Controls.Add(_bgToggle);
+
+        void SetBgOpacity(int v) { s.OverlayBgOpacity = v; _bgOpacityPre!.Selected = Array.IndexOf(BgOpacityPresets, v); d.SaveSettings(); d.ApplyOverlaySettings(); Relayout(_w); }
+        _bgOpacity = new Slider(0, 100, s.OverlayBgOpacity, 1, "%") { ShowValue = false };
+        _bgOpacity.ValueChanged += SetBgOpacity;
+        Controls.Add(_bgOpacity);
+        _bgOpacityPre = new SegControl(BgOpacityPresets.Select(p => p + "%").ToArray(), Array.IndexOf(BgOpacityPresets, s.OverlayBgOpacity));
+        _bgOpacityPre.SelectedChanged += i => { _bgOpacity.Value = BgOpacityPresets[i]; SetBgOpacity(BgOpacityPresets[i]); };
+        Controls.Add(_bgOpacityPre);
+
+        _bgColor = new Button { FlatStyle = FlatStyle.Flat, Text = "", TabStop = false };
+        _bgColor.FlatAppearance.BorderSize = 1;
+        try { _bgColor.BackColor = ColorTranslator.FromHtml(s.OverlayBgColor); } catch { _bgColor.BackColor = Color.FromArgb(0x16, 0x18, 0x1D); }
+        _bgColor.Click += (_, _) =>
+        {
+            using var dlg = new ColorDialog { Color = _bgColor.BackColor, FullOpen = true };
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                _bgColor.BackColor = dlg.Color;
+                s.OverlayBgColor = ColorTranslator.ToHtml(dlg.Color);
+                d.SaveSettings(); d.ApplyOverlaySettings();
+            }
+        };
+        Controls.Add(_bgColor);
+
+        _restore = new Button { Text = Lang.T("ov_restore"), AutoSize = false };
+        Ui.StyleGhost(_restore);
+        _restore.Click += (_, _) => { s.RestoreOverlayDefaults(); d.SaveSettings(); d.ApplyOverlaySettings(); RefreshFromSettings(); Relayout(_w); };
+        Controls.Add(_restore);
+    }
+
+    // Reflect the current settings onto every control (after "restore defaults").
+    private void RefreshFromSettings()
+    {
+        var s = _d.Settings;
+        foreach (var (item, m) in _metrics) item.Checked = s.HasMetric(m);
+        _opacity.Value = s.OverlayOpacity; _opacityPre.Selected = Array.IndexOf(OpacityPresets, s.OverlayOpacity);
+        _scale.Value = s.OverlayScale; _scalePre.Selected = Array.IndexOf(ScalePresets, s.OverlayScale);
+        _layout.Selected = string.Equals(s.OverlayLayout, "Bar", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        _optTop.Checked = s.OverlayAlwaysTop; _optClick.Checked = s.OverlayClickThrough; _optAccent.Checked = s.OverlayAccentFromProfile;
+        _bgToggle.Checked = s.OverlayBgEnabled;
+        _bgOpacity.Value = s.OverlayBgOpacity; _bgOpacityPre.Selected = Array.IndexOf(BgOpacityPresets, s.OverlayBgOpacity);
+        try { _bgColor.BackColor = ColorTranslator.FromHtml(s.OverlayBgColor); } catch { }
+    }
+
+    // Fully DPI-aware: every offset is scaled by the current display scaling, and captions/labels are
+    // built into the draw list here so nothing overlaps at 100% / 125% / 150% etc.
+    public void Relayout(int width)
+    {
+        _w = width; Width = width;
+        _texts.Clear(); _dividers.Clear();
+        float k = DeviceDpi / 96f;
+        int pad = Ceil(22 * k), colGap = Ceil(40 * k), capH = Ceil(20 * k), gap = Ceil(24 * k), blockGap = Ceil(24 * k);
+        var s = _d.Settings;
+
+        // header
+        int hy = Ceil(22 * k);
+        _enable.Location = new Point(width - pad - _enable.Width, hy);
+        int headerH = Math.Max(_enable.Height, Ceil(30 * k));
+        _texts.Add((Lang.T("overlay_title"), new Rectangle(pad + Ceil(42 * k), hy - Ceil(2 * k), width - pad * 2 - Ceil(180 * k), headerH), 0));
+        _texts.Add((Lang.T("ov_show"), new Rectangle(_enable.Left - Ceil(150 * k), hy, Ceil(142 * k), headerH), 4));
+        int y = hy + headerH + Ceil(14 * k);
+        _dividers.Add(y); y += Ceil(18 * k);
+
+        // "what to show" checkbox grid
+        _texts.Add((Lang.T("ov_metrics"), new Rectangle(pad, y, Ceil(300 * k), capH), 1));
+        int gridTop = y + Ceil(28 * k);
+        int cols = Math.Max(1, (width - pad * 2) / Ceil(200 * k));
+        int cellW = (width - pad * 2) / cols;
+        int itemH = Ceil(30 * k), rowH = itemH + Ceil(6 * k);
+        for (int i = 0; i < _metrics.Count; i++)
+        {
+            int c = i % cols, r = i / cols;
+            _metrics[i].item.SetBounds(pad + c * cellW, gridTop + r * rowH, cellW - Ceil(14 * k), itemH);
+        }
+        int rows = (int)Math.Ceiling(_metrics.Count / (double)cols);
+        y = gridTop + rows * rowH + Ceil(12 * k);
+        _dividers.Add(y); y += Ceil(18 * k);
+
+        // two columns
+        int colW = (width - pad * 2 - colGap) / 2;
+        int leftX = pad, rightX = pad + colW + colGap;
+        int sliderH = Ceil(22 * k), segH = Ceil(34 * k);
+        int yL = y, yR = y;
+
+        int presetH = Ceil(30 * k), presetW = Ceil(210 * k), capGap = Ceil(6 * k);
+
+        // opacity (left) & size (right): caption + preset chips + free slider
+        _texts.Add(($"{Lang.T("ov_opacity")} — {s.OverlayOpacity}%", new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
+        _texts.Add(($"{Lang.T("ov_scale")} — {s.OverlayScale}%", new Rectangle(rightX, yR, colW, capH), 2)); yR += capH + capGap;
+        _opacityPre.SetBounds(leftX, yL, presetW, presetH); yL += presetH + Ceil(8 * k);
+        _scalePre.SetBounds(rightX, yR, presetW, presetH); yR += presetH + Ceil(8 * k);
+        _opacity.SetBounds(leftX, yL, colW, sliderH); yL += sliderH + blockGap;
+        _scale.SetBounds(rightX, yR, colW, sliderH); yR += sliderH + blockGap;
+
+        // layout (left) & position (right)
+        _texts.Add((Lang.T("ov_layout"), new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
+        _texts.Add((Lang.T("ov_position"), new Rectangle(rightX, yR, colW, capH), 2)); yR += capH + capGap;
+        _layout.SetBounds(leftX, yL, Ceil(210 * k), segH); yL += segH + blockGap;
+        _position.SetBounds(rightX, yR, Ceil(170 * k), _position.Height);
+        _texts.Add((Lang.T("ov_drag_hint"), new Rectangle(rightX + Ceil(184 * k), yR, colW - Ceil(184 * k), Math.Max(_position.Height, capH)), 3));
+        yR += Math.Max(_position.Height, Ceil(30 * k)) + blockGap;
+
+        // background (left): toggle + colour swatch + label
+        _texts.Add((Lang.T("ov_bg"), new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
+        int bgRowH = Math.Max(_bgToggle.Height, Ceil(28 * k)), swW = Ceil(52 * k), swH = Ceil(28 * k);
+        _bgToggle.Location = new Point(leftX, yL + (bgRowH - _bgToggle.Height) / 2);
+        _bgColor.SetBounds(leftX + _bgToggle.Width + Ceil(16 * k), yL + (bgRowH - swH) / 2, swW, swH);
+        _texts.Add((Lang.T("ov_bg_color"), new Rectangle(_bgColor.Right + Ceil(12 * k), yL, colW, bgRowH), 5));
+        yL += bgRowH + Ceil(12 * k);
+        // background opacity (independent of content) — preset chips + free-drag slider
+        _texts.Add(($"{Lang.T("ov_bg_opacity")} — {s.OverlayBgOpacity}%", new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
+        _bgOpacityPre.SetBounds(leftX, yL, presetW, presetH); yL += presetH + Ceil(8 * k);
+        _bgOpacity.SetBounds(leftX, yL, colW, sliderH); yL += sliderH + blockGap;
+
+        // options group (right) — toggle rows: label left, switch right
+        _texts.Add((Lang.T("ov_options"), new Rectangle(rightX, yR, colW, capH), 1)); yR += capH + capGap;
+        int oy = yR;
+        void OptRow(ToggleSwitch t, string label)
+        {
+            int rh = Math.Max(t.Height, capH);
+            t.Location = new Point(rightX + colW - t.Width, oy + (rh - t.Height) / 2);
+            _texts.Add((label, new Rectangle(rightX, oy, colW - t.Width - Ceil(10 * k), rh), 5));
+            oy += rh + Ceil(12 * k);
+        }
+        OptRow(_optTop, Lang.T("ov_ontop"));
+        OptRow(_optClick, Lang.T("ov_lock_row"));
+        OptRow(_optAccent, Lang.T("ov_accent"));
+        yR = oy;
+
+        // restore-defaults button, bottom-right
+        int by = Math.Max(yL, yR) + Ceil(4 * k);
+        _restore.SetBounds(width - pad - Ceil(190 * k), by, Ceil(190 * k), Ceil(34 * k));
+        Height = by + Ceil(34 * k) + pad;
+        Invalidate();
+    }
+
+    // Pull control states from settings so this panel stays in sync when the overlay is toggled
+    // elsewhere (Scenarios brick, tray menu, hotkey). Checked/value setters don't fire events.
+    public void SyncFromSettings()
+    {
+        var s = _d.Settings;
+        _enable.Checked = s.OverlayEnabled;
+        foreach (var (item, metric) in _metrics) item.Checked = s.HasMetric(metric);
+        _optTop.Checked = s.OverlayAlwaysTop;
+        _optClick.Checked = s.OverlayClickThrough;
+        _optAccent.Checked = s.OverlayAccentFromProfile;
+        Invalidate();
+    }
+
+    public void ApplyThemeColors()
+    {
+        BackColor = Theme.Card;
+        foreach (Control c in Controls)
+        {
+            if (c is ComboBox) { c.BackColor = Theme.Surface; c.ForeColor = Theme.Text; }
+            c.Invalidate();
+        }
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Theme.Card);
+        float k = DeviceDpi / 96f;
+        int pad = Ceil(22 * k);
+        using (var pen = new Pen(Theme.Border))
+        using (var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 12))
+            g.DrawPath(pen, path);
+
+        var acc = Color.FromArgb(0x8B, 0x5C, 0xF6);
+        int isz = Ceil(26 * k);
+        var iconR = new Rectangle(pad, Ceil(20 * k), isz, isz);
+        using (var pen = new Pen(acc, 1.7f))
+        using (var ip = Theme.RoundRect(new RectangleF(iconR.X + 0.5f, iconR.Y + 0.5f, iconR.Width - 1, iconR.Height - 1), 6))
+            g.DrawPath(pen, ip);
+        using (var gf = new Font("Segoe UI Symbol", 11f)) Ui.CenterGlyph(g, "▦", gf, acc, iconR);
+
+        foreach (var (text, rect, kind) in _texts)
+        {
+            var (font, color, flags) = kind switch
+            {
+                0 => (new Font("Segoe UI", 13.5f, FontStyle.Bold), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                1 => (new Font("Segoe UI", 9.5f, FontStyle.Bold), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                3 => (new Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                4 => (new Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Right),
+                5 => (new Font("Segoe UI", 10.5f), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis),
+                _ => (new Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+            };
+            TextRenderer.DrawText(g, text, font, rect, color, flags);
+            font.Dispose();
+        }
+
+        using var dp = new Pen(Theme.Border);
+        foreach (int dy in _dividers) g.DrawLine(dp, pad, dy, Width - pad, dy);
+    }
+}
+
+/// <summary>Themed horizontal slider: drag to set any value in [min,max]; shows the value + suffix.</summary>
+public sealed class Slider : Control
+{
+    private readonly int _min, _max, _step;
+    private readonly string _suffix;
+    private int _val;
+    private bool _drag;
+    public event Action<int>? ValueChanged;
+    public bool ShowValue { get; set; } = true;   // false = full-width track, caption drawn elsewhere
+
+    public Slider(int min, int max, int val, int step = 1, string suffix = "")
+    {
+        _min = min; _max = max; _step = Math.Max(1, step); _suffix = suffix;
+        _val = Clamp(val);
+        DoubleBuffered = true; ResizeRedraw = true; Height = 26; Width = 240; Cursor = Cursors.Hand;
+    }
+
+    public int Value { get => _val; set { _val = Clamp(value); Invalidate(); } }
+    private int Clamp(int v) => Math.Clamp(v, _min, _max);
+    private int ValueW => ShowValue ? 46 : 0;
+    private int X0 => 8;
+    private int X1 => Width - (ShowValue ? ValueW + 10 : 8);
+
+    protected override void OnMouseDown(MouseEventArgs e) { if (e.Button == MouseButtons.Left) { _drag = true; SetFromX(e.X); } }
+    protected override void OnMouseMove(MouseEventArgs e) { if (_drag) SetFromX(e.X); }
+    protected override void OnMouseUp(MouseEventArgs e) => _drag = false;
+
+    private void SetFromX(int x)
+    {
+        float t = Math.Clamp((x - X0) / (float)Math.Max(1, X1 - X0), 0f, 1f);
+        int raw = _min + (int)Math.Round(t * (_max - _min) / _step) * _step;
+        int nv = Clamp(raw);
+        if (nv != _val) { _val = nv; Invalidate(); ValueChanged?.Invoke(_val); }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Parent?.BackColor ?? Theme.Card);
+        int cy = Height / 2;
+        float t = (_val - _min) / (float)Math.Max(1, _max - _min);
+        int tx = X0 + (int)(t * (X1 - X0));
+        using (var b = new SolidBrush(Theme.Border)) g.FillRectangle(b, X0, cy - 2, X1 - X0, 4);
+        using (var b = new SolidBrush(Theme.Accent)) g.FillRectangle(b, X0, cy - 2, Math.Max(0, tx - X0), 4);
+        using (var b = new SolidBrush(Theme.Surface)) g.FillEllipse(b, tx - 8, cy - 8, 16, 16);
+        using (var p = new Pen(Theme.BorderStrong)) g.DrawEllipse(p, tx - 8, cy - 8, 16, 16);
+        if (ShowValue)
+            TextRenderer.DrawText(g, _val + _suffix, new Font("Segoe UI", 10f, FontStyle.Bold),
+                new Rectangle(X1 + 6, 0, ValueW, Height), Theme.Text, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+    }
+}
+
 public sealed class SegControl : Control
 {
     private readonly string[] _items;

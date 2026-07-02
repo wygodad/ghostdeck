@@ -27,6 +27,9 @@ public sealed class TrayContext : ApplicationContext
     private bool _coolerBoost;                 // Cooler Boost (max fans) currently on
     private byte? _fanBeforeBoost;             // fan-mode byte captured before boost, restored on off
     private ToolStripMenuItem? _coolerItem;
+    private OverlayForm? _overlay;             // gaming status overlay (lazy)
+    private ToolStripMenuItem? _overlayItem;
+    private ToolStripMenuItem? _overlayLockItem;
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
@@ -66,6 +69,7 @@ public sealed class TrayContext : ApplicationContext
 
         ShowState();
         if (_firmwareChanged) ShowFirmwareWarning();
+        if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
         _tray.BalloonTipClicked += (_, _) => { if (_updateUrl != null) OpenUrl(_updateUrl); };
@@ -199,6 +203,14 @@ public sealed class TrayContext : ApplicationContext
         };
         _coolerItem.Click += (_, _) => ToggleCoolerBoost();
         menu.Items.Add(_coolerItem);
+
+        _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { Checked = OverlayVisible, CheckOnClick = false };
+        _overlayItem.Click += (_, _) => ToggleOverlay();
+        menu.Items.Add(_overlayItem);
+
+        _overlayLockItem = new ToolStripMenuItem(Lang.T("ov_lock_menu")) { Checked = _settings.OverlayClickThrough, CheckOnClick = false };
+        _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
+        menu.Items.Add(_overlayLockItem);
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -382,6 +394,82 @@ public sealed class TrayContext : ApplicationContext
         if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
+    // ---------------- gaming overlay ----------------
+    private bool OverlayVisible => _overlay is { IsDisposed: false, Visible: true };
+
+    private void ToggleOverlay() => SetOverlay(!OverlayVisible, osd: true);
+
+    private void SetOverlay(bool on, bool osd)
+    {
+        if (on)
+        {
+            if (_overlay is not { IsDisposed: false })
+            {
+                _overlay = new OverlayForm(_settings, BuildOverlaySample);
+                _overlay.FormClosed += (_, _) => _overlay = null;
+            }
+            _overlay.ApplySettings();
+            if (!_overlay.Visible) _overlay.Show();
+        }
+        else _overlay?.Hide();
+
+        if (_settings.OverlayEnabled != on) { _settings.OverlayEnabled = on; _settings.Save(); }
+        UpdateOverlayMenu();
+        if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("overlay_title"),
+            Lang.T(on ? "st_on" : "st_off"), Color.FromArgb(0x17, 0xC0, 0xEB));
+    }
+
+    // Re-read overlay options after the user edits them in Settings.
+    private void ApplyOverlaySettings() { _overlay?.ApplySettings(); UpdateOverlayMenu(); }
+
+    // Snap the overlay to a screen corner (0=TL 1=TR 2=BL 3=BR); persists and re-applies.
+    private void SnapOverlayCorner(int corner)
+    {
+        var wa = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1600, 900);
+        const int m = 24;
+        int w = _overlay?.Width ?? 240, h = _overlay?.Height ?? 120;
+        int x = (corner is 1 or 3) ? wa.Right - w - m : wa.X + m;
+        int y = (corner is 2 or 3) ? wa.Bottom - h - m : wa.Y + m;
+        _settings.OverlayX = x; _settings.OverlayY = y;
+        _settings.Save();
+        _overlay?.ApplySettings();
+    }
+
+    // Lock = click-through (mouse passes to the game, panel can't be dragged); unlock to reposition.
+    private void ToggleOverlayLock()
+    {
+        _settings.OverlayClickThrough = !_settings.OverlayClickThrough;
+        _settings.Save();
+        _overlay?.ApplySettings();
+        UpdateOverlayMenu();
+        _osd.ShowProfile("MSI  ·  " + Lang.T("overlay_title"),
+            Lang.T(_settings.OverlayClickThrough ? "ov_locked" : "ov_unlocked"), Color.FromArgb(0x17, 0xC0, 0xEB));
+    }
+
+    private void UpdateOverlayMenu()
+    {
+        if (_overlayItem is { } it && !it.IsDisposed) it.Checked = OverlayVisible;
+        if (_overlayLockItem is { } lk && !lk.IsDisposed) lk.Checked = _settings.OverlayClickThrough;
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+    }
+
+    // Snapshot for the overlay: EC hardware + OS metrics + the active profile/cooler state.
+    private OverlaySample BuildOverlaySample()
+    {
+        var hw = Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware);
+        int load = SysInfo.CpuUsage();
+        var (ramPct, _, ramUsed) = SysInfo.Ram();
+        var ps = SystemInformation.PowerStatus;
+        int batt = ps.BatteryLifePercent is >= 0f and <= 1f ? (int)Math.Round(ps.BatteryLifePercent * 100) : -1;
+        bool charging = ps.PowerLineStatus == PowerLineStatus.Online && (ps.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) == 0;
+        return new OverlaySample(
+            Known, Writable,
+            Profiles.Get(_current).Label, _settings.ColorFor(_current), _coolerBoost,
+            hw.CpuTemp, hw.GpuTemp, hw.CpuRpm, hw.GpuRpm, hw.CpuFan, hw.GpuFan,
+            load, ramPct, ramUsed, hw.ChargeLimit, batt, charging,
+            Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz());
+    }
+
     private void ShowOsd(ProfileId id)
     {
         var def = Profiles.Get(id);
@@ -409,6 +497,8 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyHotkeys()
     {
         _hotkeys.UnregisterAll();
+        Reg("Overlay", ToggleOverlay);       // read-only, so both work even when EC writes are disabled
+        Reg("OverlayLock", ToggleOverlayLock);
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -485,6 +575,10 @@ public sealed class TrayContext : ApplicationContext
         },
         CoolerBoost = () => _coolerBoost,
         SetCoolerBoost = SetCoolerBoostState,
+        OverlayOn = () => OverlayVisible,
+        SetOverlay = on => SetOverlay(on, osd: false),
+        ApplyOverlaySettings = ApplyOverlaySettings,
+        SnapOverlay = SnapOverlayCorner,
         WithEcWrite = act =>
         {
             if (Writable && !_simulate && _device != null)
@@ -619,6 +713,7 @@ public sealed class TrayContext : ApplicationContext
         _tray.Visible = false;
         _hotkeys.Dispose();
         _main?.Close();
+        _overlay?.Close();
         _osd.Dispose();
         _tray.Dispose();
         _currentIcon?.Dispose();

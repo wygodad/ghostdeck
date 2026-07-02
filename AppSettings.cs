@@ -5,6 +5,18 @@ using System.Text.Json.Serialization;
 
 namespace MSIProfileSwitcher;
 
+/// <summary>Which metrics the gaming overlay shows (bit flags, persisted as an int).</summary>
+[Flags]
+public enum OverlayMetric
+{
+    None = 0,
+    CpuTemp = 1, GpuTemp = 2,
+    CpuRpm = 4, GpuRpm = 8,
+    Profile = 16, FanPct = 32, CoolerBoost = 64,
+    CpuLoad = 128, Ram = 256, ChargeLimit = 512, Battery = 1024,
+    GpuUsage = 2048, Vram = 4096, CpuClock = 8192,
+}
+
 public sealed class HotkeyDef
 {
     public uint Mods { get; set; }
@@ -37,6 +49,36 @@ public sealed class AppSettings
     public bool DarkMode { get; set; } = false;                        // ciemny motyw nowego okna z zakladkami
 
     public string LastFirmware { get; set; } = "";                     // ostatnio widziany firmware EC (ostrzezenie o zmianie)
+
+    // ---- Gaming overlay (odczepiany, always-on-top mini-panel) ----
+    public bool OverlayEnabled { get; set; } = false;                  // ostatni stan widocznosci (przywracany po starcie)
+    public string OverlayLayout { get; set; } = "Card";                // "Card" (pionowa karta) | "Bar" (poziomy pasek)
+    public int OverlayOpacity { get; set; } = 95;                      // przezroczystosc TRESCI (napisy+ikony) 40..100 %
+    public int OverlayBgOpacity { get; set; } = 82;                    // przezroczystosc TLA 0..100 % (niezalezna od tresci)
+    public int OverlayScale { get; set; } = 100;                       // 80..160 %
+    public bool OverlayClickThrough { get; set; } = false;             // true = mysz przechodzi do gry (nie mozna przeciagac)
+    public bool OverlayAlwaysTop { get; set; } = true;
+    public bool OverlayAccentFromProfile { get; set; } = true;         // akcent = kolor aktywnego profilu
+    public int OverlayX { get; set; } = -1;                            // -1 => domyslny rog
+    public int OverlayY { get; set; } = -1;
+    public bool OverlayBgEnabled { get; set; } = true;                 // false = tlo wylaczone (czysty HUD, tylko napisy/ikony)
+    public string OverlayBgColor { get; set; } = "#16181D";            // kolor tla nakladki
+    public int OverlayMetrics { get; set; } = (int)(OverlayMetric.CpuTemp | OverlayMetric.GpuTemp |
+        OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram);
+
+    // Reset just the Gaming-overlay settings to their defaults (leaves everything else untouched).
+    public void RestoreOverlayDefaults()
+    {
+        var d = new AppSettings();
+        OverlayLayout = d.OverlayLayout; OverlayOpacity = d.OverlayOpacity; OverlayBgOpacity = d.OverlayBgOpacity; OverlayScale = d.OverlayScale;
+        OverlayClickThrough = d.OverlayClickThrough; OverlayAlwaysTop = d.OverlayAlwaysTop;
+        OverlayAccentFromProfile = d.OverlayAccentFromProfile; OverlayX = d.OverlayX; OverlayY = d.OverlayY;
+        OverlayBgEnabled = d.OverlayBgEnabled; OverlayBgColor = d.OverlayBgColor; OverlayMetrics = d.OverlayMetrics;
+    }
+
+    [JsonIgnore] public OverlayMetric Metrics => (OverlayMetric)OverlayMetrics;
+    public bool HasMetric(OverlayMetric m) => (OverlayMetrics & (int)m) != 0;
+    public void SetMetric(OverlayMetric m, bool on) => OverlayMetrics = on ? OverlayMetrics | (int)m : OverlayMetrics & ~(int)m;
 
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
@@ -93,6 +135,19 @@ public sealed class AppSettings
         Def("SuperBattery", 0x73, "Ctrl+Alt+F4");
         Def("Cycle",        0x50, "Ctrl+Alt+P");
         Def("CoolerBoost",  0x74, "Ctrl+Alt+F5");
+        const uint CS = Hk.MOD_CONTROL | Hk.MOD_SHIFT, WA = Hk.MOD_WIN | Hk.MOD_ALT;
+        void DefM(string k, uint mods, uint vk, string disp) { if (!Hotkeys.ContainsKey(k)) Hotkeys[k] = new HotkeyDef { Mods = mods, Vk = vk, Display = disp }; }
+        DefM("Overlay",     CS, 0x4F, "Ctrl+Shift+O");   // 0x4F = 'O' — toggle gaming overlay
+        DefM("OverlayLock", CS, 0x4C, "Ctrl+Shift+L");   // 0x4C = 'L' — lock/unlock overlay (drag vs click-through)
+
+        // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
+        void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
+        {
+            if (Hotkeys.TryGetValue(k, out var h) && olds.Any(o => o.mods == h.Mods && o.vk == h.Vk))
+                Hotkeys[k] = new HotkeyDef { Mods = CS, Vk = vk, Display = disp };
+        }
+        MigrateTo("Overlay", 0x4F, "Ctrl+Shift+O", new[] { (CA, 0x4Fu), (CA, 0x47u), (WA, 0x47u) });
+        MigrateTo("OverlayLock", 0x4C, "Ctrl+Shift+L", new[] { (CA, 0x4Cu), (WA, 0x4Cu) });
     }
 
     public Color ColorFor(ProfileId id)
@@ -121,6 +176,16 @@ public sealed class AppSettings
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             DarkMode = DarkMode,
             LastFirmware = LastFirmware,
+            OverlayEnabled = OverlayEnabled,
+            OverlayLayout = OverlayLayout,
+            OverlayOpacity = OverlayOpacity,
+            OverlayBgOpacity = OverlayBgOpacity,
+            OverlayScale = OverlayScale,
+            OverlayClickThrough = OverlayClickThrough,
+            OverlayAlwaysTop = OverlayAlwaysTop,
+            OverlayAccentFromProfile = OverlayAccentFromProfile,
+            OverlayX = OverlayX, OverlayY = OverlayY, OverlayMetrics = OverlayMetrics,
+            OverlayBgEnabled = OverlayBgEnabled, OverlayBgColor = OverlayBgColor,
             WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();

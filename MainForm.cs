@@ -25,6 +25,10 @@ public sealed class MainDeps
     public required Func<bool> CoolerBoost { get; init; }          // current Cooler Boost (max fans) state
     public required Action<bool> SetCoolerBoost { get; init; }     // turn Cooler Boost on/off (gated on writable)
     public required Action<Action<DeviceProfile>> WithEcWrite { get; init; }  // runs only if writable + not simulating
+    public required Func<bool> OverlayOn { get; init; }
+    public required Action<bool> SetOverlay { get; init; }
+    public required Action ApplyOverlaySettings { get; init; }   // re-read overlay options after a settings edit
+    public required Action<int> SnapOverlay { get; init; }       // 0=TL 1=TR 2=BL 3=BR — snap overlay to a screen corner
 }
 
 /// <summary>Base for tab pages. Re-themes on demand; refreshes data on enter; supports scrolling.</summary>
@@ -42,6 +46,9 @@ public abstract class ThemedPage : UserControl
         Resize += (_, _) => Invalidate();
     }
     public virtual void OnEnter() { }
+    // Lightweight refresh after external state changes (profile/cooler/overlay). Unlike OnEnter it must
+    // NOT re-run layout — a re-layout on a scrolled page (Settings) yanks the scroll position to the top.
+    public virtual void LiveRefresh() { }
     public virtual void ApplyTheme() { BackColor = Theme.Surface; Invalidate(true); }
 
     /// <summary>Translate painting to honour the scroll offset (call at the top of OnPaint).</summary>
@@ -51,6 +58,10 @@ public abstract class ThemedPage : UserControl
     // Force a full repaint whenever the scroll position changes.
     protected override void OnScroll(ScrollEventArgs se) { base.OnScroll(se); Invalidate(); }
     protected override void OnMouseWheel(MouseEventArgs e) { base.OnMouseWheel(e); Invalidate(); }
+
+    // Stop WinForms from auto-scrolling the page when a child control gains focus (clicking a toggle
+    // deep in Settings otherwise yanked the scroll back to the top). Keep the current scroll position.
+    protected override Point ScrollToControl(Control activeControl) => AutoScrollPosition;
 }
 
 /// <summary>Single tabbed window. The tray menu opens it on a specific tab; tabs swap content in-place.</summary>
@@ -215,7 +226,7 @@ public sealed class MainForm : Form
 
     public void RefreshActive()
     {
-        if (_pages.TryGetValue(_active, out var p) && p.Visible) p.OnEnter();
+        if (_pages.TryGetValue(_active, out var p) && p.Visible) p.LiveRefresh();
     }
 
     private ThemedPage CreatePage(MainTab tab) => tab switch
