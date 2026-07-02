@@ -17,6 +17,7 @@ public sealed class TestDialog : Form
     private readonly Label _live = new();
     private readonly System.Windows.Forms.Timer _liveTimer = new() { Interval = 1000 };
     private byte[]? _dumpA;
+    private byte[]? _cbA;
 
     private static string Rpm(byte raw) => raw == 0 ? "—" : $"{478000 / raw} RPM";
 
@@ -78,10 +79,20 @@ public sealed class TestDialog : Form
         advOff.SetBounds(20, 548, 200, 36);
         advOff.Click += (_, _) => DoWrite(dev => Ec.Apply(dev.Recipes[ProfileId.Silent]));
 
+        // Cooler Boost register finder: snapshot, then toggle Cooler Boost with the MSI hardware
+        // hotkey (Fn+Up), then compare — the byte(s) that flip are the real Cooler Boost register.
+        var cbA = new Button { Text = "Cooler Boost: snapshot A", Width = 250, Height = 34 };
+        cbA.SetBounds(20, 596, 250, 34);
+        cbA.Click += (_, _) => { _cbA = SafeDump(); _rpm.Items.Clear(); _rpm.Items.Add(_cbA == null ? "ERROR" : "OK — now toggle Cooler Boost (Fn+Up), then click Compare B"); };
+
+        var cbB = new Button { Text = "Cooler Boost: compare B", Width = 250, Height = 34 };
+        cbB.SetBounds(290, 596, 250, 34);
+        cbB.Click += (_, _) => CompareCooler();
+
         var close = new Button { Text = Lang.T("set_close"), Width = 120, Height = 34, DialogResult = DialogResult.OK };
         close.SetBounds(440, 652, 120, 34);
 
-        Controls.AddRange(new Control[] { note, btnA, btnB, hint, _rpm, _live, dumpBtn, curveBtn, advOn, advOff, close });
+        Controls.AddRange(new Control[] { note, btnA, btnB, hint, _rpm, _live, dumpBtn, curveBtn, advOn, advOff, cbA, cbB, close });
 
         _liveTimer.Tick += (_, _) =>
         {
@@ -116,6 +127,28 @@ public sealed class TestDialog : Form
             }
         }
         if (shown == 0) _rpm.Items.Add("(no changed candidates — change fan speed more, then retry)");
+    }
+
+    // List every non-sensor EC byte that changed between snapshot A and now. Sensor / dynamic
+    // addresses (temps, fan duty, tach RPM, the floating 0x34) are excluded to cut the noise, so
+    // the Cooler Boost flag stands out. The current device's configured CoolerBoost addr is flagged.
+    private void CompareCooler()
+    {
+        _rpm.Items.Clear();
+        if (_cbA == null) { _rpm.Items.Add("(do 'snapshot A' first)"); return; }
+        var b = SafeDump();
+        if (b == null) return;
+        var dev = Dev();
+        var skip = new HashSet<int> { 0x68, 0x80, 0x71, 0x89, 0xF4, 0xC9, 0xCB, 0x34 };
+        int shown = 0;
+        for (int a = 0; a < 256; a++)
+        {
+            if (skip.Contains(a) || _cbA[a] == b[a]) continue;
+            string tag = dev != null && a == dev.CoolerBoost ? "   <= configured CoolerBoost addr" : "";
+            _rpm.Items.Add($"0x{a:X2}: {_cbA[a]:X2} -> {b[a]:X2}{tag}");
+            shown++;
+        }
+        if (shown == 0) _rpm.Items.Add("(no non-sensor byte changed — did Cooler Boost actually toggle?)");
     }
 
     private void SaveDump()

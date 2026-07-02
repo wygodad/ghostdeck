@@ -31,6 +31,46 @@ internal static class Ui
         b.Height = 40;
     }
 
+    // Pixel-centre a single glyph inside a rect by its measured ink box. Layout-rect centring
+    // (StringFormat/TextRenderer VerticalCenter) leaves glyphs looking off because it centres the
+    // font line box, not the glyph; measuring with GenericTypographic and offsetting fixes it.
+    public static void CenterGlyph(Graphics g, string glyph, Font font, Color color, RectangleF rect)
+    {
+        var oldHint = g.TextRenderingHint;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+        using var fmt = new StringFormat(StringFormat.GenericTypographic)
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap | StringFormatFlags.NoClip,
+        };
+        var sz = g.MeasureString(glyph, font, rect.Size, fmt);
+        var centred = new RectangleF(
+            rect.X + (rect.Width - sz.Width) / 2f,
+            rect.Y + (rect.Height - sz.Height) / 2f,
+            sz.Width, sz.Height);
+        using var br = new SolidBrush(color);
+        g.DrawString(glyph, font, br, centred, fmt);
+        g.TextRenderingHint = oldHint;
+    }
+
+    // Word-wrap plain text to at most maxChars per line (WinForms ToolTip does not wrap by itself,
+    // so a long hint would run off-screen). Breaks on spaces; overlong words are kept whole.
+    public static string Wrap(string text, int maxChars)
+    {
+        var words = text.Split(' ');
+        var sb = new System.Text.StringBuilder();
+        int lineLen = 0;
+        foreach (var w in words)
+        {
+            if (lineLen > 0 && lineLen + 1 + w.Length > maxChars) { sb.Append('\n'); lineLen = 0; }
+            else if (lineLen > 0) { sb.Append(' '); lineLen++; }
+            sb.Append(w);
+            lineLen += w.Length;
+        }
+        return sb.ToString();
+    }
+
     public static void FillCard(Graphics g, RectangleF r)
     {
         g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -64,7 +104,8 @@ public sealed class ScenariosPage : ThemedPage
     private readonly Tile[] _tiles;
     private readonly SegControl _charge;
     private readonly ToggleSwitch _auto;
-    private int _cardTop, _cardH, _headH, _subY;
+    private readonly FeatureBrick[] _bricks;
+    private int _cardTop, _cardH, _headH, _subY, _bricksTop;
 
     public ScenariosPage(MainDeps d) : base(d)
     {
@@ -79,6 +120,14 @@ public sealed class ScenariosPage : ThemedPage
         _auto.Toggled += v => D.SetAutoSwitch(v);
         Controls.Add(_auto);
 
+        // Functional "feature bricks" grid (à la MSI Center). Cooler Boost is the first; add more here later.
+        _bricks = new[]
+        {
+            new FeatureBrick("cooler_boost_short", "❄", Color.FromArgb(0x17, 0xC0, 0xEB), "cooler_boost_hint",
+                             () => D.Writable() && D.CoolerBoost(), v => D.SetCoolerBoost(v)),
+        };
+        foreach (var b in _bricks) Controls.Add(b);
+
         Resize += (_, _) => Relayout();
     }
 
@@ -88,6 +137,7 @@ public sealed class ScenariosPage : ThemedPage
     {
         _charge.Selected = ChargeIndex();
         _auto.Checked = D.Settings.AutoSwitchEnabled;
+        foreach (var b in _bricks) b.SyncState();
         Relayout();
         Invalidate();
     }
@@ -97,6 +147,7 @@ public sealed class ScenariosPage : ThemedPage
         base.ApplyTheme();
         foreach (var t in _tiles) t.Invalidate();
         _charge.Invalidate(); _auto.Invalidate();
+        foreach (var b in _bricks) b.ApplyTheme();
     }
 
     private void Relayout()
@@ -116,9 +167,24 @@ public sealed class ScenariosPage : ThemedPage
         int rowGap = 30, rowH = 40, cardPad = 22;
         _cardH = cardPad * 2 + rowH * 2 + rowGap;
         int segW = Math.Min(360, avail - 220);
-        _charge.SetBounds(Pad + avail - segW - cardPad, _cardTop + cardPad, segW, rowH);
-        _auto.SetBounds(Pad + avail - _auto.Width - cardPad, _cardTop + cardPad + rowH + rowGap + (rowH - _auto.Height) / 2, _auto.Width, _auto.Height);
-        AutoScrollMinSize = new Size(820, _cardTop + _cardH + 28);
+        int r1 = _cardTop + cardPad, r2 = r1 + rowH + rowGap;
+        _charge.SetBounds(Pad + avail - segW - cardPad, r1, segW, rowH);
+        _auto.SetBounds(Pad + avail - _auto.Width - cardPad, r2 + (rowH - _auto.Height) / 2, _auto.Width, _auto.Height);
+
+        // Feature bricks grid: same column width as the profile tiles above, but short cards.
+        int featHeadH = new Font("Segoe UI", 13f, FontStyle.Bold).Height;
+        _bricksTop = _cardTop + _cardH + 26 + featHeadH + 14;
+        const int cols = 4, brickH = 82;
+        int bw = (avail - Gap * (cols - 1)) / cols;
+        int rows = 0;
+        for (int i = 0; i < _bricks.Length; i++)
+        {
+            int r = i / cols, c = i % cols;
+            _bricks[i].SetBounds(Pad + c * (bw + Gap), _bricksTop + r * (brickH + Gap), bw, brickH);
+            rows = r + 1;
+        }
+        int bricksBottom = _bricksTop + rows * (brickH + Gap);
+        AutoScrollMinSize = new Size(820, bricksBottom + 12);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -146,6 +212,11 @@ public sealed class ScenariosPage : ThemedPage
             new Rectangle(Pad + cardPad, r2, 460, rowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         using (var pen = new Pen(Theme.Border))
             g.DrawLine(pen, Pad + cardPad, r1 + rowH + rowGap / 2, Pad + avail - cardPad, r1 + rowH + rowGap / 2);
+
+        // "Features" section heading above the bricks grid.
+        var fhf = new Font("Segoe UI", 13f, FontStyle.Bold);
+        TextRenderer.DrawText(g, Lang.T("scen_features"), fhf,
+            new Point(Pad, _bricksTop - fhf.Height - 12), Theme.Text);
     }
 
     private sealed class Tile : Control
@@ -202,6 +273,94 @@ public sealed class ScenariosPage : ThemedPage
             }
         }
     }
+
+    /// <summary>
+    /// Small reusable "feature card": rounded card with an icon box, a label and a right-side
+    /// toggle switch — styled after MSI Center's feature tiles. Cooler Boost is the first; more
+    /// on/off features (e.g. Windows key, display features) can be added to the grid the same way.
+    /// </summary>
+    private sealed class FeatureBrick : Control
+    {
+        private readonly string _labelKey;
+        private readonly string _glyph;
+        private readonly Color _accent;
+        private readonly Func<bool> _get;
+        private readonly ToggleSwitch _toggle;
+        private readonly HelpDot _help;
+        private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 15000, ReshowDelay = 100 };
+        private bool _hover;
+
+        public FeatureBrick(string labelKey, string glyph, Color accent, string tipKey, Func<bool> get, Action<bool> set)
+        {
+            _labelKey = labelKey; _glyph = glyph; _accent = accent; _get = get;
+            DoubleBuffered = true; ResizeRedraw = true;
+            BackColor = Theme.Card;                       // so the child controls blend with the card interior
+            _toggle = new ToggleSwitch { Checked = get() };
+            _toggle.Toggled += v => set(v);
+            _help = new HelpDot();
+            _tip.SetToolTip(_help, Ui.Wrap(Lang.T(tipKey), 46));
+            Controls.Add(_toggle);
+            Controls.Add(_help);
+            Resize += (_, _) => LayoutInner();
+        }
+
+        public void SyncState() => _toggle.Checked = _get();
+        public void ApplyTheme() { BackColor = Theme.Card; _toggle.Invalidate(); _help.Invalidate(); Invalidate(); }
+
+        private void LayoutInner()
+        {
+            _toggle.Location = new Point(Width - _toggle.Width - 18, (Height - _toggle.Height) / 2);
+            _help.Location = new Point(_toggle.Left - _help.Width - 14, (Height - _help.Height) / 2);
+        }
+
+        protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); }
+        protected override void OnMouseLeave(EventArgs e) { _hover = false; Invalidate(); }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Theme.Surface);
+            var outer = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
+            using (var path = Theme.RoundRect(outer, 6))
+            {
+                using var b = new SolidBrush(Theme.Card);
+                g.FillPath(b, path);
+                using var pen = new Pen(_hover ? Theme.BorderStrong : Theme.Border, 1f);
+                g.DrawPath(pen, path);
+            }
+            // icon box (outlined square + glyph, like the MSI Center feature cards)
+            int box = 32, bx = 18, by = (Height - box) / 2;
+            using (var pen = new Pen(_accent, 1.6f))
+            using (var ip = Theme.RoundRect(new RectangleF(bx + 0.5f, by + 0.5f, box - 1, box - 1), 6))
+                g.DrawPath(pen, ip);
+            using (var gf = new Font("Segoe UI Symbol", 12f))
+                Ui.CenterGlyph(g, _glyph, gf, _accent, new RectangleF(bx, by, box, box));
+            // label (stops before the help dot + toggle)
+            int lx = bx + box + 14, rightPad = _toggle.Width + 14 + _help.Width + 14 + 12;
+            TextRenderer.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
+                new Rectangle(lx, 0, Math.Max(20, Width - lx - rightPad), Height), Theme.Text,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+        }
+
+        protected override void Dispose(bool disposing) { if (disposing) _tip.Dispose(); base.Dispose(disposing); }
+    }
+
+    /// <summary>Circled "?" help marker; shows an explanatory tooltip on hover (used by feature bricks).</summary>
+    private sealed class HelpDot : Control
+    {
+        public HelpDot() { DoubleBuffered = true; ResizeRedraw = true; Size = new Size(22, 22); Cursor = Cursors.Help; }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Parent?.BackColor ?? Theme.Card);
+            using (var pen = new Pen(Theme.Muted, 1.4f))
+                g.DrawEllipse(pen, 1f, 1f, Width - 2f, Height - 2f);
+            using var f = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            Ui.CenterGlyph(g, "?", f, Theme.Muted, new RectangleF(0, 0, Width, Height));
+        }
+    }
 }
 
 // =====================================================================
@@ -223,6 +382,7 @@ public sealed class StatusPage : ThemedPage
     };
 
     private readonly Button _test = new();
+    private readonly Button _logBtn = new();
     private readonly DeviceProfile? _dev;
     private byte[] _live = Array.Empty<byte>();    // [shift, 0x34, 0xEB, fan]
     private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
@@ -235,13 +395,23 @@ public sealed class StatusPage : ThemedPage
         _canvas = new Canvas(this) { Location = new Point(0, 0) };
         Controls.Add(_canvas);
 
+        // "Full log…" button lives on the canvas so it scrolls with the recent-changes section.
+        _logBtn.Text = Lang.T("log_full");
+        _logBtn.AutoSize = false;
+        Ui.StyleGhost(_logBtn);
+        _logBtn.Click += (_, _) => LogForm.ShowSingleton();
+        _canvas.Controls.Add(_logBtn);
+
         _timer.Tick += (_, _) => { RefreshLive(); _canvas.Invalidate(); };
         VisibleChanged += (_, _) => { if (Visible) { Relayout(); RefreshLive(); _timer.Start(); } else _timer.Stop(); };
         ClientSizeChanged += (_, _) => Relayout();
+        ChangeLog.Changed += OnLogChanged;
 
         // Test/discovery tools are now hidden; opened via Ctrl+Shift+T (see MainForm / docs/TECHNICAL.md §12).
         _test.Visible = false;
     }
+
+    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { Relayout(); _canvas.Invalidate(); }); } catch { } } }
 
     private void RefreshLive()
     {
@@ -280,12 +450,15 @@ public sealed class StatusPage : ThemedPage
         int sec = afterCard + 34 + GridH(true, 5, 2) + NoteH;   // matrix (2-line headers) + 0x34 note
         sec += 8 + GridH(false, 4);                             // legend
         if (_dev?.FanCurve is { } fc) sec += 16 + GridH(true, fc.Points);
+        sec += 16 + GridH(true, RecentLogRows);                 // recent-changes log
         return sec + 40;
     }
 
-    public override void OnEnter() { Relayout(); RefreshLive(); _canvas.Invalidate(); }
-    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; _canvas.Invalidate(); } }
-    protected override void Dispose(bool disposing) { if (disposing) _timer.Dispose(); base.Dispose(disposing); }
+    private const int RecentLogRows = 6;
+
+    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); Relayout(); RefreshLive(); _canvas.Invalidate(); }
+    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _canvas.Invalidate(); } }
+    protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; } base.Dispose(disposing); }
 
     // The page is painted by an inner canvas sized to the full content height; WinForms scrolls that
     // child natively (no manual translate), which removes the ghosting the self-scrolled paint had.
@@ -372,6 +545,27 @@ public sealed class StatusPage : ThemedPage
         sec += NoteH;
         sec = DrawLegend(g, sec, avail);
         if (_dev?.FanCurve != null && _curve is { } cv) sec = DrawCurveLive(g, sec, avail, cv);
+        sec = DrawRecentLog(g, sec, avail);
+    }
+
+    private int DrawRecentLog(Graphics g, int top, int avail)
+    {
+        var headers = new[] { Lang.T("log_col_time"), Lang.T("log_col_source"), Lang.T("log_col_detail"), Lang.T("log_col_result") };
+        var lefts = new[] { 0f, .17f, .35f, .74f };
+        var rows = new List<string[]>();
+        foreach (var e in ChangeLog.Recent(RecentLogRows))
+            rows.Add(new[] { e.Time.ToString("MM-dd HH:mm:ss"), ChangeLog.SourceLabel(e.Source), e.Detail, e.Result });
+        if (rows.Count == 0) rows.Add(new[] { "—", "", Lang.T("log_empty"), "" });
+        bool[] mono = { true, false, false, true };
+        int titleY = top + 16;
+        int bottom = DrawGrid(g, titleY, avail, Lang.T("log_recent"), headers, lefts, rows, mono);
+
+        // Right-align the "Full log…" button on the section title row.
+        int btnW = 150, btnH = GTitle.Height + 6;
+        var b = new Rectangle(Pad + avail - btnW, titleY - 3, btnW, btnH);
+        if (_logBtn.Bounds != b) _logBtn.Bounds = b;
+        _logBtn.BringToFront();
+        return bottom;
     }
 
     private static int NoteH => GCell.Height + 12;
@@ -802,6 +996,7 @@ public sealed class SettingsPage : ThemedPage
     {
         ("Silent", "Silent"), ("Balanced", "Balanced"),
         ("Extreme", "Extreme"), ("SuperBattery", "Super Battery"), ("Cycle", "Cycle"),
+        ("CoolerBoost", "Cooler Boost"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -892,7 +1087,7 @@ public sealed class SettingsPage : ThemedPage
             string k = key;
             box.Leave += (_, _) => { D.Settings.Hotkeys[k] = box.Value.Clone(); D.SaveSettings(); D.SettingsChanged(); };
             _boxes[key] = box;
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : label, box);
+            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : label, box);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);

@@ -3,6 +3,31 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.10.0] - 2026-07-02
+### Added
+- **Cooler Boost (max fans)** — force both fans to full speed independent of the profile, for a render
+  or a long game. New checkable tray item, a global hotkey (default **Ctrl+Alt+F5**), an OSD toast and a
+  compact toggle **"brick"** on the Scenarios tab (with a hover-tooltip help "?"). One EC bit (`0x98`
+  bit 7, the msi-ec `cooler_boost` address, matching MSI Center); read-modify-write, fully reversible,
+  kept in sync by the background poll. **Hardware-confirmed on `17S1IMS1`** (GE78HX 13V) against MSI's
+  Fn+↑ toggle (`0x98`: `02`↔`82`); the CPU fan spins down gradually (~10–25 s) after off, as the tooltip
+  notes. See TECHNICAL §17.7.
+- **Change-history log** — a rolling record of the last profile / EC changes: time, **source** (hotkey,
+  tray, panel, auto AC/battery, fan curve, external sync, charge limit, cooler boost, firmware), the
+  **written bytes** and a **readback** of those addresses. Shown compactly on the **Status** tab with a
+  **"Full log…"** button that opens a dedicated window (copy / clear, live refresh); also reachable from
+  the tray ("Change log"). Persisted to `changelog.json` so it survives a restart and can be attached to
+  a model-support report. The readback is informational only (bytes are dynamic — see TECHNICAL §19.4/§19.7).
+- **Firmware-change guard** — the app remembers the last-seen EC firmware; if it differs on the next
+  start it **pauses automatic writes** (charge-limit-on-start, AC/battery auto-switch) and shows
+  *"EC firmware changed, verify model again"* with a red tray item to acknowledge. Manual switching stays
+  enabled. See TECHNICAL §19.8.
+### Docs
+- README: new **Comparison with MSI software** table (vs MSI Center 2.0); Features updated with Cooler
+  Boost, the change-history log and the firmware guard.
+- TECHNICAL (EN/PL) §17.7: Cooler Boost marked hardware-confirmed with the diagnostic (Fn+↑ vs the
+  `0x98`/bit 7 snapshot) and the gradual fan-down note; feature-brick UI documented.
+
 ## [1.9.1] - 2026-07-01
 ### Changed
 - Hidden test tools now route every EC write through the central write gate, so `MSIPS_FORCE_FIRMWARE` (simulate mode) also blocks them (no writes reach the real EC while pretending to be another model).

@@ -16,12 +16,46 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🌍 **8 languages** — EN / PL / DE / FR / ES / 中文 / PT-BR / RU
 - 🎨 Custom color per profile
 - 📊 **Status** — live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage, RAM, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values)
-- 🌀 **Fan curve editor** — drag a custom CPU/GPU curve and run it on *any* profile (e.g. a quiet-but-precise curve in Silent, which MSI Center only allows in Extreme); fully reversible
+- 🌀 **Fan curve editor** — drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced — the app warns and switches for you
+- 🌪️ **Cooler Boost** — force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab
+- 📜 **Change-history log** — a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window — handy for model-support reports
+- 🛡️ **Firmware-change guard** — after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task — no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
 - ⬇️ **Automatic update check** (once a day, can be disabled) — tray notification + one-click to the download page
+
+## Comparison with MSI software
+
+MSI Profile Switcher is a small, focused tool — it deliberately does one thing (power/fan profiles) well, rather than replacing MSI Center. The table shows where it helps most: the **Silent** profile MSI removed, a fan curve outside just Extreme, no background services, and full transparency of what it writes to the EC.
+
+| Feature | MSI Center 2.0 | MSI Profile Switcher |
+|---|:---:|:---:|
+| **Silent profile** | ❌ *(removed in 2.0)* | ✅ |
+| Balanced / Extreme / Super Battery modes | ✅ | ✅ |
+| Cooler Boost (max fans) | ✅ | ✅ |
+| Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
+| Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
+| Global **rebindable** hotkeys | Limited² | ✅ |
+| Auto-switch profile on AC / battery | ❌ | ✅ |
+| On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
+| Live EC profile-byte view / transparency | ❌ | ✅ |
+| Change & EC-write history log | ❌ | ✅ |
+| Hardware monitoring | ✅ | Limited³ |
+| Works with any / no MSI Center version | ❌ | ✅ |
+| Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |
+| RGB / keyboard / other MSI-Center features | ✅ | ❌ |
+| Open source | ❌ | ✅ |
+
+1. MSI Center only allows a custom fan curve in **Extreme**; this app runs one on **Balanced / Extreme / Super Battery**, fully reversible. **Silent** is a hardware exception: its power cap and the fan-curve mode share the same EC byte (`0xD4`), so enabling a curve in Silent necessarily switches the profile to Balanced (the app warns first).
+2. MSI Center's shortcuts are limited; here every hotkey is global and rebindable.
+3. Monitors CPU/GPU temperature, fan RPM, CPU and RAM usage via EC/WMI — not MSI Center's full telemetry.
+4. MSI Center 2.0.x as the UWP app plus the files it installs to `C:\Program Files (x86)\MSI` on first launch.
+5. Self-contained single `.exe` — no installer, no background service, no separate .NET runtime.
+6. MSI Center shows an overlay for profile / Fn-key changes; this app shows one for **every** action it performs — profile switch **and** Cooler Boost (and future functions) — so you always get feedback on what changed.
+
+> The comparison is against **MSI Center 2.0** (the version that dropped Silent). This app is **not** affiliated with or endorsed by MSI; "MSI", "MSI Center" and "Cooler Boost" are trademarks of Micro-Star International.
 
 ## Screenshots
 

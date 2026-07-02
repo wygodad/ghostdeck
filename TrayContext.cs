@@ -23,9 +23,15 @@ public sealed class TrayContext : ApplicationContext
     private readonly List<Image> _menuSwatches = new();
     private SynchronizationContext? _ui;
     private string? _updateUrl;
+    private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
+    private bool _coolerBoost;                 // Cooler Boost (max fans) currently on
+    private byte? _fanBeforeBoost;             // fan-mode byte captured before boost, restored on off
+    private ToolStripMenuItem? _coolerItem;
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
+    // Automatic (non user-initiated) writes are additionally blocked after a firmware change until acknowledged.
+    private bool AutoWritable => Writable && !_firmwareChanged;
 
     public TrayContext()
     {
@@ -34,13 +40,18 @@ public sealed class TrayContext : ApplicationContext
         Lang.Set(_settings.Language);
         Theme.Set(_settings.DarkMode);
 
+        ChangeLog.Load();
+
         var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
         _simulate = !string.IsNullOrEmpty(forced);
         _firmware = _simulate ? forced! : Ec.ReadFirmware();
         _device = Devices.Detect(_firmware);
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
 
-        if (Writable) TryApplyChargeLimit();
+        DetectFirmwareChange();
+        if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
+
+        if (AutoWritable) TryApplyChargeLimit();
 
         BuildMenu();
         UpdateUi(_current);
@@ -48,16 +59,55 @@ public sealed class TrayContext : ApplicationContext
         ApplyHotkeys();
 
         _lastPower = SystemInformation.PowerStatus.PowerLineStatus;
-        if (Writable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
+        if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
 
         _poll.Tick += (_, _) => Poll();
         _poll.Start();
 
         ShowState();
+        if (_firmwareChanged) ShowFirmwareWarning();
 
         _ui = SynchronizationContext.Current;
         _tray.BalloonTipClicked += (_, _) => { if (_updateUrl != null) OpenUrl(_updateUrl); };
         MaybeCheckForUpdates();
+    }
+
+    // ---------------- firmware-change guard ----------------
+    private void DetectFirmwareChange()
+    {
+        if (_simulate || string.IsNullOrEmpty(_firmware)) return;   // only judge on real hardware
+        if (!string.IsNullOrEmpty(_settings.LastFirmware) &&
+            !_settings.LastFirmware.Equals(_firmware, StringComparison.OrdinalIgnoreCase))
+        {
+            _firmwareChanged = true;
+            ChangeLog.Add(ChangeSource.Firmware,
+                string.Format(Lang.T("log_fw_changed"), _settings.LastFirmware, _firmware));
+        }
+        else if (string.IsNullOrEmpty(_settings.LastFirmware))
+        {
+            _settings.LastFirmware = _firmware;   // first run: remember silently
+            _settings.Save();
+        }
+    }
+
+    private void ShowFirmwareWarning()
+    {
+        _tray.BalloonTipTitle = Lang.T("fw_changed_title");
+        _tray.BalloonTipText = Lang.T("fw_changed_text");
+        _tray.ShowBalloonTip(9000);
+    }
+
+    private void AcknowledgeFirmware()
+    {
+        _settings.LastFirmware = _firmware;
+        _settings.Save();
+        _firmwareChanged = false;
+        ChangeLog.Add(ChangeSource.Firmware, Lang.T("log_fw_ack"), _firmware);
+        BuildMenu();
+        UpdateUi(_current);
+        if (AutoWritable) TryApplyChargeLimit();
+        if (AutoWritable && _settings.AutoSwitchEnabled)
+            ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
     }
 
     private string DeviceName() => Known ? _device!.Name : Lang.T("unsupported_title");
@@ -100,6 +150,19 @@ public sealed class TrayContext : ApplicationContext
         menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
         menu.Items.Add(new ToolStripSeparator());
 
+        if (_firmwareChanged)
+        {
+            var fw = new ToolStripMenuItem(Lang.T("menu_fw_ack"))
+            {
+                ForeColor = Color.FromArgb(0xB0, 0x4A, 0x3A),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                ToolTipText = Lang.T("fw_changed_text"),
+            };
+            fw.Click += (_, _) => AcknowledgeFirmware();
+            menu.Items.Add(fw);
+            menu.Items.Add(new ToolStripSeparator());
+        }
+
         if (_updateUrl is { } url)
         {
             var upd = new ToolStripMenuItem(Lang.T("menu_update"))
@@ -122,9 +185,20 @@ public sealed class TrayContext : ApplicationContext
                 Enabled = Writable,
                 ImageScaling = ToolStripItemImageScaling.None,
             };
-            item.Click += (_, _) => SetProfile((ProfileId)item.Tag!, osd: true);
+            item.Click += (_, _) => SetProfile((ProfileId)item.Tag!, osd: true, ChangeSource.Tray);
             menu.Items.Add(item);
         }
+
+        menu.Items.Add(new ToolStripSeparator());
+
+        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost"))
+        {
+            Enabled = Writable,
+            Checked = _coolerBoost,
+            CheckOnClick = false,
+        };
+        _coolerItem.Click += (_, _) => ToggleCoolerBoost();
+        menu.Items.Add(_coolerItem);
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -147,6 +221,10 @@ public sealed class TrayContext : ApplicationContext
         var report = new ToolStripMenuItem(Lang.T("menu_report"));
         report.Click += (_, _) => OpenMain(MainTab.Report);
         menu.Items.Add(report);
+
+        var log = new ToolStripMenuItem(Lang.T("menu_log"));
+        log.Click += (_, _) => LogForm.ShowSingleton();
+        menu.Items.Add(log);
 
         var langMenu = new ToolStripMenuItem(Lang.T("menu_language"));
         for (int i = 0; i < Lang.Names.Length; i++)
@@ -176,7 +254,7 @@ public sealed class TrayContext : ApplicationContext
     private void TrayClick(object? s, MouseEventArgs e)
     {
         if (e.Button != MouseButtons.Left) return;
-        if (Writable) Cycle();
+        if (Writable) Cycle(ChangeSource.Tray);
         else ShowState();
     }
 
@@ -201,12 +279,15 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // ---------------- profile ----------------
-    private void SetProfile(ProfileId id, bool osd, bool count = true)
+    private void SetProfile(ProfileId id, bool osd, ChangeSource source, bool count = true)
     {
         if (!Writable) { ShowState(); return; }
         try
         {
-            if (!_simulate) Ec.Apply(_device!.Recipes[id]);
+            if (_simulate)
+                ChangeLog.Add(source, $"{Profiles.Get(id).Label}  ·  {RecipeStr(id)}", "(simulate)");
+            else
+                ApplyRecipeLogged(id, source);
             if (id != _current && count) _switches++;
             _current = id;
             _profileSince = DateTime.Now;
@@ -215,14 +296,90 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            ChangeLog.Add(source, Profiles.Get(id).Label, Lang.T("log_err") + ": " + ex.Message);
             _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
-    private void Cycle()
+    private string RecipeStr(ProfileId id) =>
+        string.Join(" ", _device!.Recipes[id].Select(r => $"{r.addr:X2}={r.val:X2}"));
+
+    // Apply the recipe, then read the same addresses back (informational only, see TECHNICAL §19.4)
+    // and record both in the history log.
+    private void ApplyRecipeLogged(ProfileId id, ChangeSource source)
+    {
+        var recipe = _device!.Recipes[id];
+        Ec.Apply(recipe);
+        string read;
+        try
+        {
+            var addrs = recipe.Select(r => r.addr).ToArray();
+            var got = Ec.ReadMany(addrs);
+            read = string.Join(" ", addrs.Zip(got, (a, v) => $"{a:X2}={v:X2}"));
+        }
+        catch { read = Lang.T("log_read_fail"); }
+        ChangeLog.Add(source, $"{Profiles.Get(id).Label}  ·  {RecipeStr(id)}", read);
+    }
+
+    private void Cycle(ChangeSource source)
     {
         int i = Array.IndexOf(Profiles.Order, _current);
-        SetProfile(Profiles.Order[(i + 1) % Profiles.Order.Length], osd: true);
+        SetProfile(Profiles.Order[(i + 1) % Profiles.Order.Length], osd: true, source);
+    }
+
+    // ---------------- cooler boost (max fans) ----------------
+    private void ToggleCoolerBoost() => SetCoolerBoostState(!_coolerBoost);
+
+    private void SetCoolerBoostState(bool next)
+    {
+        if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
+        if (next == _coolerBoost) { UpdateCoolerBoostMenu(); return; }
+        try
+        {
+            string read = "(simulate)";
+            if (!_simulate)
+            {
+                if (next)
+                {
+                    // Remember the active fan mode (Silent 0x1D / auto 0x0D / curve 0x8D) so we can
+                    // restore it precisely when boost is turned off.
+                    try { _fanBeforeBoost = Ec.ReadByte(_device!.FanMode); } catch { _fanBeforeBoost = null; }
+                    Ec.SetCoolerBoost(_device!, true);
+                }
+                else
+                {
+                    Ec.SetCoolerBoost(_device!, false);
+                    // Clearing the boost bit alone does not always spin the fans back down on this EC —
+                    // the firmware keeps them at max until the fan mode is re-asserted. Re-write the fan
+                    // byte that was active before boost to hand control back to the profile / curve.
+                    byte fallback = 0x0D;   // auto fan, if the recipe somehow lacks the fan byte
+                    foreach (var (a, v) in _device!.Recipes[_current]) if (a == _device!.FanMode) { fallback = v; break; }
+                    byte restore = _fanBeforeBoost ?? fallback;
+                    try { Ec.SetFanMode(_device!, restore); } catch { }
+                    _fanBeforeBoost = null;
+                }
+                try { read = $"{_device!.CoolerBoost:X2}={Ec.ReadByte(_device!.CoolerBoost):X2} {_device!.FanMode:X2}={Ec.ReadByte(_device!.FanMode):X2}"; }
+                catch { read = Lang.T("log_read_fail"); }
+            }
+            _coolerBoost = next;
+            ChangeLog.Add(ChangeSource.CoolerBoost,
+                Lang.T("cooler_boost") + ": " + (next ? Lang.T("st_on") : Lang.T("st_off")),
+                read);
+            _osd.ShowProfile("MSI  ·  " + Lang.T("cooler_boost"),
+                Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
+                next ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
+            UpdateCoolerBoostMenu();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    private void UpdateCoolerBoostMenu()
+    {
+        if (_coolerItem is { } it && !it.IsDisposed) it.Checked = _coolerBoost;
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
     private void ShowOsd(ProfileId id)
@@ -253,11 +410,12 @@ public sealed class TrayContext : ApplicationContext
     {
         _hotkeys.UnregisterAll();
         if (!Writable) return;
-        Reg("Silent", () => SetProfile(ProfileId.Silent, true));
-        Reg("Balanced", () => SetProfile(ProfileId.Balanced, true));
-        Reg("Extreme", () => SetProfile(ProfileId.Extreme, true));
-        Reg("SuperBattery", () => SetProfile(ProfileId.SuperBattery, true));
-        Reg("Cycle", Cycle);
+        Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
+        Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
+        Reg("Extreme", () => SetProfile(ProfileId.Extreme, true, ChangeSource.Hotkey));
+        Reg("SuperBattery", () => SetProfile(ProfileId.SuperBattery, true, ChangeSource.Hotkey));
+        Reg("Cycle", () => Cycle(ChangeSource.Hotkey));
+        Reg("CoolerBoost", ToggleCoolerBoost);
     }
 
     private void Reg(string key, Action action)
@@ -304,7 +462,7 @@ public sealed class TrayContext : ApplicationContext
         },
         Hw = () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
         Current = () => _current,
-        SetProfile = id => SetProfile(id, osd: true),
+        SetProfile = id => SetProfile(id, osd: true, ChangeSource.Panel),
         Writable = () => Writable,
         ColorOf = id => _settings.ColorFor(id),
         Firmware = _firmware,
@@ -323,8 +481,10 @@ public sealed class TrayContext : ApplicationContext
         {
             _settings.AutoSwitchEnabled = on;
             _settings.Save();
-            if (on && Writable) ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
+            if (on && AutoWritable) ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
         },
+        CoolerBoost = () => _coolerBoost,
+        SetCoolerBoost = SetCoolerBoostState,
         WithEcWrite = act =>
         {
             if (Writable && !_simulate && _device != null)
@@ -399,9 +559,16 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (Writable && !_simulate && _settings.ChargeLimit is 60 or 80 or 100)
+        if (AutoWritable && !_simulate && _settings.ChargeLimit is 60 or 80 or 100)
         {
-            try { Ec.SetChargeLimit(_device!, _settings.ChargeLimit); } catch { }
+            try
+            {
+                Ec.SetChargeLimit(_device!, _settings.ChargeLimit);
+                ChangeLog.Add(ChangeSource.ChargeLimit,
+                    string.Format(Lang.T("log_charge"), _settings.ChargeLimit),
+                    $"{_device!.ChargeCtrl:X2}={(0x80 | _settings.ChargeLimit):X2}");
+            }
+            catch { }
         }
     }
 
@@ -413,18 +580,24 @@ public sealed class TrayContext : ApplicationContext
         var power = SystemInformation.PowerStatus.PowerLineStatus;
         if (power != PowerLineStatus.Unknown && power != _lastPower)
         {
-            if (_settings.AutoSwitchEnabled) ApplyForPower(power, osd: true);
+            if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(power, osd: true);
             _lastPower = power;
         }
 
         try
         {
+            // Cooler Boost may be toggled elsewhere (or cleared by the firmware) — keep the menu in sync.
+            bool cb = Ec.GetCoolerBoost(_device!);
+            if (cb != _coolerBoost) { _coolerBoost = cb; UpdateCoolerBoostMenu(); }
+
             // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
             // Silent from Balanced, so don't re-detect — keep the profile the user chose.
             if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
             var actual = Ec.GetCurrent(_device!);
             if (actual != _current)
             {
+                ChangeLog.Add(ChangeSource.ExternalSync,
+                    string.Format(Lang.T("log_external"), Profiles.Get(_current).Label, Profiles.Get(actual).Label));
                 _current = actual;
                 _profileSince = DateTime.Now;
                 UpdateUi(actual);
@@ -437,7 +610,7 @@ public sealed class TrayContext : ApplicationContext
     {
         var key = power == PowerLineStatus.Online ? _settings.ProfileOnAC : _settings.ProfileOnBattery;
         if (Enum.TryParse<ProfileId>(key, out var id))
-            SetProfile(id, osd);
+            SetProfile(id, osd, ChangeSource.AutoAc);
     }
 
     private void ExitApp()

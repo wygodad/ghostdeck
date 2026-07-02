@@ -417,6 +417,27 @@ So the app is honest about it: on Balanced, Extreme or Super Battery a curve jus
 
 ---
 
+### 17.7 Cooler Boost (max fans)
+
+Independent of the profile, MSI's **Cooler Boost** forces both fans to full speed for a burst of
+cooling (render, a long game). It is a single EC bit: **`0x98`, bit 7 (mask `0x80`)** — the address
+msi-ec documents (`cooler_boost`) across the whole G1/G2 range, matching MSI Center's Cooler Boost
+button. The app toggles it with a read-modify-write of that one bit (`DeviceProfile.CoolerBoost` /
+`CoolerBoostMask`), so no other byte is touched. It is fully reversible (toggle off, or a reboot
+resets the EC) and orthogonal to the power/fan profile bytes, so it layers on top of any profile.
+
+Exposed as a checkable tray item, a hotkey (`Cooler Boost`, default `Ctrl+Alt+F5`), an OSD toast and
+a small **feature "brick"** on the Scenarios tab (a compact toggle card, extensible for future
+per-function toggles). The background poll re-reads `0x98` so the tray checkmark stays in sync if the
+firmware or another tool clears it.
+
+**Hardware-confirmed on `17S1IMS1` (GE78HX 13V).** Diagnosed with the hidden test tool (Ctrl+Shift+T
+→ "Cooler Boost: snapshot A / compare B") against MSI's own hardware toggle **Fn+↑**: `0x98` reads
+`02` normally and `82` with Cooler Boost on (bit 7 set), returning to `02` when off — exactly the
+`0x80` mask the code uses. Note the CPU fan **spins down gradually** after switching off (≈10–25 s on
+this EC); the disable is immediate at the register, the mechanical wind-down is not. The app's
+tooltip warns about this.
+
 ## 18. Supported model families (bulk import)
 
 Beyond the tested GE78HX, the app recognises **~134 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:
@@ -470,3 +491,27 @@ On this hardware Silent and Balanced differ in **only one byte, `0xD4`** (`1D` v
 ### 19.6 Legacy PowerShell scripts
 
 `scripts/*.ps1` are historical / GE78HX-only diagnostics, kept for reference. They are **not** the backend — the C# app is. They have no firmware gate, so they must not be promoted for general use. Their recipes are kept in sync with `Devices.cs` for consistency only.
+
+### 19.7 The change-history log records a readback, but it is informational
+
+The history log (`ChangeLog`, surfaced in the Status tab and a full-log window) records, per change:
+time, source (hotkey / tray / panel / auto AC / fan curve / external sync / charge / cooler boost /
+firmware), the **written bytes**, and a **readback** of those same addresses. This readback does
+**not** contradict §19.4: it is displayed for diagnostics only and a mismatch is never treated as an
+error or retried. Several bytes are dynamic (`0x34` floats, the fan byte can already have moved), so
+the readback column is expected to differ sometimes; it exists to help triage model-support reports,
+not to verify the write. Do not turn it into a write-verification gate. The log is a bounded ring
+buffer persisted to `changelog.json` so it survives a restart and can be attached to a report.
+
+### 19.8 Firmware-change guard blocks only automatic writes
+
+The app stores the last-seen EC firmware (`AppSettings.LastFirmware`). If, on the next start, the EC
+firmware string differs, it sets a "firmware changed" state that **pauses automatic writes**
+(charge-limit-on-start and AC/battery auto-switch — everything gated by `AutoWritable`) and shows an
+"EC firmware changed, verify model again" warning plus a red tray item to acknowledge. Rationale: a
+BIOS/EC update can move registers, so silently re-applying auto policies to possibly-shifted
+addresses is the risk we avoid. **Manual** profile switches stay enabled — they are an explicit user
+action, and the whole point is to let the user re-verify against MSI Center. Acknowledging (or a
+first run with no stored firmware) records the current firmware and re-enables auto-writes. This is
+deliberately a *soft* guard (auto only), not a full lockout; do not widen it to block manual
+switching without discussing the trade-off.

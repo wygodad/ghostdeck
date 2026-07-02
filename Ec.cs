@@ -164,6 +164,23 @@ public static class Ec
         WriteWith(inst, pkg, dev.ChargeCtrl, (byte)(0x80 | percent));
     }
 
+    // Cooler Boost (max fans) — msi-ec bit 7 of 0x98. Read-modify-write so we touch only that bit.
+    public static bool GetCoolerBoost(DeviceProfile dev)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        return (ReadWith(inst, pkg, dev.CoolerBoost) & dev.CoolerBoostMask) != 0;
+    }
+
+    public static void SetCoolerBoost(DeviceProfile dev, bool on)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        byte cur = ReadWith(inst, pkg, dev.CoolerBoost);
+        byte next = on ? (byte)(cur | dev.CoolerBoostMask) : (byte)(cur & ~dev.CoolerBoostMask);
+        WriteWith(inst, pkg, dev.CoolerBoost, next);
+    }
+
     public static ProfileId GetCurrent(DeviceProfile dev)
     {
         try

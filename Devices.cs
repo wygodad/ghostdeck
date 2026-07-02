@@ -36,6 +36,12 @@ public sealed class DeviceProfile
     public byte GpuFan { get; init; } = 0x89;
     public byte ChargeCtrl { get; init; } = 0xD7;
 
+    // Cooler Boost (max fans) toggle. msi-ec documents this as address 0x98, bit 7 (mask 0x80)
+    // across the whole G1/G2 range (msi-ec.c cooler_boost), matching MSI Center's Cooler Boost
+    // button. Read-modify-write bit 7 only; fully reversible. See TECHNICAL §17.7.
+    public byte CoolerBoost { get; init; } = 0x98;
+    public byte CoolerBoostMask { get; init; } = 0x80;
+
     // Fan tachometer registers (0 = unknown -> RPM not shown). RPM = RpmConst / raw.
     public byte CpuRpmAddr { get; init; }
     public byte GpuRpmAddr { get; init; }

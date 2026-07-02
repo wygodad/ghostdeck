@@ -36,6 +36,8 @@ public sealed class AppSettings
 
     public bool DarkMode { get; set; } = false;                        // ciemny motyw nowego okna z zakladkami
 
+    public string LastFirmware { get; set; } = "";                     // ostatnio widziany firmware EC (ostrzezenie o zmianie)
+
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
     public int WinY { get; set; }
@@ -90,6 +92,7 @@ public sealed class AppSettings
         Def("Extreme",      0x72, "Ctrl+Alt+F3");
         Def("SuperBattery", 0x73, "Ctrl+Alt+F4");
         Def("Cycle",        0x50, "Ctrl+Alt+P");
+        Def("CoolerBoost",  0x74, "Ctrl+Alt+F5");
     }
 
     public Color ColorFor(ProfileId id)
@@ -117,6 +120,7 @@ public sealed class AppSettings
             UpdateCheckEnabled = UpdateCheckEnabled,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             DarkMode = DarkMode,
+            LastFirmware = LastFirmware,
             WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();

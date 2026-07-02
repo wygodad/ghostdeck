@@ -450,6 +450,28 @@ Dlatego apka mówi to wprost: w Balanced, Extreme czy Super Battery krzywa zmien
 
 ---
 
+### 18.7 Cooler Boost (maks. wentylatory)
+
+Niezależnie od profilu, **Cooler Boost** MSI wymusza pełne obroty obu wentylatorów na czas
+intensywnego chłodzenia (render, długa gra). To pojedynczy bit EC: **`0x98`, bit 7 (maska `0x80`)** —
+adres, który msi-ec dokumentuje (`cooler_boost`) dla całej rodziny G1/G2, zgodny z przyciskiem
+Cooler Boost w MSI Center. Aplikacja przełącza go metodą read-modify-write tylko tego bitu
+(`DeviceProfile.CoolerBoost` / `CoolerBoostMask`), więc żaden inny bajt nie jest ruszany. Jest w
+pełni odwracalny (wyłączenie albo reboot resetuje EC) i ortogonalny do bajtów mocy/wentylatora
+profilu, więc nakłada się na dowolny profil.
+
+Wystawiony jako zaznaczalna pozycja w zasobniku, hotkey (`Cooler Boost`, domyślnie `Ctrl+Alt+F5`),
+toast OSD oraz mała **„cegiełka" funkcji** na karcie Scenariusze (kompaktowy kafelek z przełącznikiem,
+rozszerzalny o kolejne przełączniki funkcji w przyszłości). Poll w tle odczytuje `0x98`, żeby ptaszek
+w menu był zsynchronizowany, gdyby firmware albo inne narzędzie skasowało bit.
+
+**Potwierdzone sprzętowo na `17S1IMS1` (GE78HX 13V).** Zdiagnozowane ukrytym narzędziem (Ctrl+Shift+T
+→ „Cooler Boost: snapshot A / compare B") względem sprzętowego przełącznika MSI **Fn+↑**: `0x98`
+czyta `02` normalnie i `82` przy włączonym Cooler Boost (bit 7 ustawiony), wracając do `02` po
+wyłączeniu — dokładnie maska `0x80`, której używa kod. Uwaga: wentylator CPU **zwalnia stopniowo** po
+wyłączeniu (≈10–25 s na tym EC); na poziomie rejestru wyłączenie jest natychmiastowe, mechaniczne
+wyhamowanie nie. Tooltip w aplikacji o tym uprzedza.
+
 ## 19. Obsługiwane rodziny modeli (import masowy)
 
 Poza testowanym GE78HX apka rozpoznaje **~134 modele MSI**, zaimportowane masowo z map rejestrów EC projektu [msi-ec](https://github.com/BeardOverflow/msi-ec) (`msi-ec.c`, bloki konfiguracyjne `CONF_*`) i skonfrontowane z [MControlCenter](https://github.com/dmitry-s93/MControlCenter) — działającą apką na Linux, która obsługuje ten sam interfejs EC. Dzielą się na dwie rodziny EC:
@@ -503,3 +525,27 @@ Na tym sprzęcie Silent i Balanced różnią się **tylko jednym bajtem, `0xD4`*
 ### 20.6 Skrypty PowerShell to legacy
 
 `scripts/*.ps1` to historyczne narzędzia diagnostyczne tylko dla GE78HX, trzymane referencyjnie. **Nie** są backendem — jest nim aplikacja C#. Nie mają bramki firmware, więc nie należy ich promować do ogólnego użytku. Ich recepty trzymamy zsynchronizowane z `Devices.cs` tylko dla spójności.
+
+### 20.7 Log historii zapisuje readback, ale to tylko informacja
+
+Log historii (`ChangeLog`, pokazany w zakładce Status i w osobnym oknie pełnego logu) zapisuje przy
+każdej zmianie: czas, źródło (hotkey / zasobnik / panel / auto AC / krzywa went. / sync zewn. /
+ładowanie / cooler boost / firmware), **zapisane bajty** oraz **readback** tych samych adresów. Ten
+readback **nie** przeczy §20.4: jest pokazywany wyłącznie diagnostycznie, a rozbieżność nigdy nie jest
+traktowana jako błąd ani ponawiana. Część bajtów jest dynamiczna (`0x34` pływa, bajt wentylatora mógł
+się już zmienić), więc kolumna readbacku bywa różna — służy triażowaniu zgłoszeń modeli, nie weryfikacji
+zapisu. Nie zamieniaj jej w bramkę weryfikacji zapisu. Log to ograniczony bufor pierścieniowy
+zapisywany do `changelog.json`, żeby przetrwał restart i dał się dołączyć do zgłoszenia.
+
+### 20.8 Bramka zmiany firmware blokuje tylko zapisy automatyczne
+
+Aplikacja zapamiętuje ostatnio widziany firmware EC (`AppSettings.LastFirmware`). Jeśli przy
+kolejnym starcie string firmware jest inny, ustawia stan „firmware zmieniony", który **wstrzymuje
+zapisy automatyczne** (limit ładowania przy starcie i auto-przełączanie AC/bateria — wszystko za
+`AutoWritable`) oraz pokazuje ostrzeżenie „EC firmware changed, verify model again" i czerwoną pozycję
+w zasobniku do potwierdzenia. Powód: aktualizacja BIOS/EC może przesunąć rejestry, więc ciche
+ponawianie polityk auto na potencjalnie przesuniętych adresach to ryzyko, którego unikamy. **Ręczne**
+przełączanie profilu zostaje włączone — to jawna akcja użytkownika, a cały sens to pozwolić mu
+zweryfikować model względem MSI Center. Potwierdzenie (albo pierwszy start bez zapisanego firmware)
+zapisuje bieżący firmware i przywraca zapisy auto. To celowo bramka *miękka* (tylko auto), nie pełny
+lockout; nie rozszerzaj jej na blokadę ręcznego przełączania bez omówienia kompromisu.

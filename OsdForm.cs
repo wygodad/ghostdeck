@@ -35,7 +35,7 @@ public sealed class OsdForm : Form
         TopMost = true;
         DoubleBuffered = true;
         BackColor = ColorTranslator.FromHtml("#16181D");
-        Size = new Size(440, 96);
+        Size = new Size(440, 104);
         Opacity = 0;
         _anim.Tick += Anim_Tick;
         Region = RoundedRegion(Width, Height, 18);
@@ -57,11 +57,14 @@ public sealed class OsdForm : Form
     {
         _title = title; _sub = sub; _accent = accent;
 
-        // dopasuj szerokosc do dlugosci tytulu (np. "SUPER BATTERY")
+        // dopasuj szerokosc do dluzszej z linii (tytul np. "SUPER BATTERY" albo dluzszy podtytul)
         using (var g = CreateGraphics())
         using (var tF = new Font("Segoe UI", 19f, FontStyle.Bold))
+        using (var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold))
         {
-            int textW = (int)Math.Ceiling(g.MeasureString(title, tF).Width);
+            int titleW = (int)Math.Ceiling(g.MeasureString(title, tF).Width);
+            int subW = (int)Math.Ceiling(g.MeasureString(sub, sF).Width);
+            int textW = Math.Max(titleW, subW);
             int w = Math.Max(440, textW + 64 + 34);
             if (w != Width)
             {
@@ -125,11 +128,11 @@ public sealed class OsdForm : Form
             g.FillEllipse(dot, 40, 39, 12, 12);
 
         using var tF = new Font("Segoe UI", 19f, FontStyle.Bold);
-        using var sF = new Font("Segoe UI", 9.5f, FontStyle.Regular);
+        using var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold);
         using var tB = new SolidBrush(Color.White);
-        using var sB = new SolidBrush(ColorTranslator.FromHtml("#9AA0AA"));
-        g.DrawString(_title, tF, tB, 64, 16);
-        g.DrawString(_sub, sF, sB, 66, 56);
+        using var sB = new SolidBrush(ColorTranslator.FromHtml("#C2C7D0"));
+        g.DrawString(_title, tF, tB, 64, 14);
+        g.DrawString(_sub, sF, sB, 66, 58);
     }
 
     protected override void Dispose(bool disposing)

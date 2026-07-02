@@ -22,6 +22,8 @@ public sealed class MainDeps
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100
     public required Action<bool> SetAutoSwitch { get; init; }
+    public required Func<bool> CoolerBoost { get; init; }          // current Cooler Boost (max fans) state
+    public required Action<bool> SetCoolerBoost { get; init; }     // turn Cooler Boost on/off (gated on writable)
     public required Action<Action<DeviceProfile>> WithEcWrite { get; init; }  // runs only if writable + not simulating
 }
 

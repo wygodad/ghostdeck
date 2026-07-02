@@ -124,6 +124,7 @@ public sealed class FanCurvePage : ThemedPage
         D.WithEcWrite(dev => Ec.SetFanMode(dev, ProfileFanByte()));
         _cpuS = (int[])DefCpuS.Clone(); _gpuS = (int[])DefGpuS.Clone();
         RefreshMode();
+        if (D.Writable()) ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_off"), $"{_dev!.FanMode:X2}={ProfileFanByte():X2}");
     }
 
     // Re-write the current graph while the curve is already on (e.g. after dragging a point).
@@ -227,6 +228,7 @@ public sealed class FanCurvePage : ThemedPage
             Ec.SetFanMode(dev, fc.AdvancedModeValue);             // advanced fan (0x8D)
         });
         RefreshMode();
+        if (D.Writable()) ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_on"), $"{_dev!.FanMode:X2}={fc.AdvancedModeValue:X2}");
     }
 
     // ---- paint ----
