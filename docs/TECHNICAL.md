@@ -417,7 +417,11 @@ So the app is honest about it: on Balanced, Extreme or Super Battery a curve jus
 
 ---
 
-### 17.7 Cooler Boost (max fans)
+### 17.7 Fan Boost / max fans (MSI "Cooler Boost")
+
+> **Naming:** the UI label is **"Fan Boost"** (generic), to avoid using MSI's *Cooler Boost* trademark
+> as our own feature name. The register/behaviour below is the same; internal identifiers
+> (`DeviceProfile.CoolerBoost`, `cooler_boost` keys) keep the technical name.
 
 Independent of the profile, MSI's **Cooler Boost** forces both fans to full speed for a burst of
 cooling (render, a long game). It is a single EC bit: **`0x98`, bit 7 (mask `0x80`)** — the address

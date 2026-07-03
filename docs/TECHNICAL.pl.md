@@ -450,7 +450,11 @@ Dlatego apka mówi to wprost: w Balanced, Extreme czy Super Battery krzywa zmien
 
 ---
 
-### 18.7 Cooler Boost (maks. wentylatory)
+### 18.7 Fan Boost / maks. wentylatory (MSI „Cooler Boost")
+
+> **Nazewnictwo:** etykieta w UI to **„Fan Boost"** (generyczna), żeby nie używać znaku towarowego
+> MSI *Cooler Boost* jako własnej nazwy funkcji. Rejestr/zachowanie poniżej są te same; wewnętrzne
+> identyfikatory (`DeviceProfile.CoolerBoost`, klucze `cooler_boost`) zachowują nazwę techniczną.
 
 Niezależnie od profilu, **Cooler Boost** MSI wymusza pełne obroty obu wentylatorów na czas
 intensywnego chłodzenia (render, długa gra). To pojedynczy bit EC: **`0x98`, bit 7 (maska `0x80`)** —

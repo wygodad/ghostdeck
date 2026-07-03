@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Renamed the "Cooler Boost" feature to "Fan Boost"** in the UI (tray, Scenarios brick, OSD, overlay,
+  hotkey label, all 8 languages) to avoid using MSI's *Cooler Boost* trademark as our own feature name.
+  Behaviour and the EC bit (`0x98` bit 7) are unchanged; the README keeps one descriptive reference
+  ("equivalent of MSI's Cooler Boost"). Tightened the trademark/affiliation disclaimer ("not affiliated,
+  endorsed, sponsored or supported by MSI").
+
 ## [1.13.0] - 2026-07-03
 ### Added
 - **Per-pixel overlay rendering** (`UpdateLayeredWindow`, 32-bpp premultiplied ARGB) replacing the old

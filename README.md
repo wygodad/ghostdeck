@@ -18,7 +18,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🎨 Custom color per profile
 - 📊 **Status** — live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH counters — no kernel driver, anti-cheat-safe)
 - 🌀 **Fan curve editor** — drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced — the app warns and switches for you
-- 🌪️ **Cooler Boost** — force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab
+- 🌪️ **Fan Boost** — force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*
 - 📜 **Change-history log** — a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window — handy for model-support reports
 - 🛡️ **Firmware-change guard** — after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
@@ -35,7 +35,7 @@ MSI Profile Switcher is a small, focused tool — it deliberately does one thing
 |---|:---:|:---:|
 | **Silent profile** | ❌ *(removed in 2.0)* | ✅ |
 | Balanced / Extreme / Super Battery modes | ✅ | ✅ |
-| Cooler Boost (max fans) | ✅ | ✅ |
+| Full fan speed (Fan Boost / MSI Cooler Boost) | ✅ | ✅ |
 | Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
 | Global **rebindable** hotkeys | Limited² | ✅ |
@@ -55,9 +55,9 @@ MSI Profile Switcher is a small, focused tool — it deliberately does one thing
 3. Monitors CPU/GPU temperature, fan RPM, CPU & RAM usage via EC/WMI, plus GPU load %, VRAM, an approximate CPU clock and battery % via driver-free Windows PDH counters — not MSI Center's full telemetry.
 4. MSI Center 2.0.x as the UWP app plus the files it installs to `C:\Program Files (x86)\MSI` on first launch.
 5. Self-contained single `.exe` — no installer, no background service, no separate .NET runtime.
-6. MSI Center shows an overlay for profile / Fn-key changes; this app shows one for **every** action it performs — profile switch **and** Cooler Boost (and future functions) — so you always get feedback on what changed.
+6. MSI Center shows an overlay for profile / Fn-key changes; this app shows one for **every** action it performs — profile switch **and** Fan Boost (and future functions) — so you always get feedback on what changed.
 
-> The comparison is against **MSI Center 2.0** (the version that dropped Silent). This app is **not** affiliated with or endorsed by MSI; "MSI", "MSI Center" and "Cooler Boost" are trademarks of Micro-Star International.
+> The comparison is against **MSI Center 2.0** (the version that dropped Silent). This app is an **unofficial, independent** project — **not affiliated with, endorsed, sponsored or supported by MSI**. "MSI", "MSI Center" and "Cooler Boost" are trademarks of Micro-Star International Co., Ltd.; they are used here only descriptively to state compatibility.
 
 ## Screenshots
 

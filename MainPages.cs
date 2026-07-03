@@ -1029,7 +1029,7 @@ public sealed class SettingsPage : ThemedPage
     {
         ("Silent", "Silent"), ("Balanced", "Balanced"),
         ("Extreme", "Extreme"), ("SuperBattery", "Super Battery"), ("Cycle", "Cycle"),
-        ("CoolerBoost", "Cooler Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
+        ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;

@@ -30,12 +30,12 @@ public static class Lang
         ["menu_status"]    = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Состояние" },
         ["menu_panel"]     = new[] { "Open panel", "Otwórz panel", "Panel öffnen", "Ouvrir le panneau", "Abrir panel", "打开面板", "Abrir painel", "Открыть панель" },
 
-        // ---- Cooler Boost (max fans) ----
-        ["cooler_boost"]     = new[] { "Cooler Boost (max fans)", "Cooler Boost (maks. wentylatory)", "Cooler Boost (max. Lüfter)", "Cooler Boost (ventilo max)", "Cooler Boost (ventiladores máx.)", "Cooler Boost（风扇全速）", "Cooler Boost (ventoinhas máx.)", "Cooler Boost (макс. вентиляторы)" },
+        // ---- Fan Boost (max fans) — generic name; the MSI "Cooler Boost" trademark is only referenced once, in the README ----
+        ["cooler_boost"]     = new[] { "Fan Boost (max fans)", "Fan Boost (maks. wentylatory)", "Fan Boost (max. Lüfter)", "Fan Boost (ventilo max)", "Fan Boost (ventiladores máx.)", "Fan Boost（风扇全速）", "Fan Boost (ventoinhas máx.)", "Fan Boost (макс. вентиляторы)" },
         ["cooler_boost_on"]  = new[] { "Max fans ON", "Maks. obroty WŁ.", "Max. Lüfter EIN", "Ventilo max ACTIVÉ", "Ventiladores máx. ACT.", "风扇全速 开", "Ventoinhas máx. LIG.", "Макс. обороты ВКЛ" },
         ["cooler_boost_off"] = new[] { "Max fans off", "Maks. obroty WYŁ.", "Max. Lüfter AUS", "Ventilo max désactivé", "Ventiladores máx. des.", "风扇全速 关", "Ventoinhas máx. DESL.", "Макс. обороты ВЫКЛ" },
         ["cooler_boost_hint"]= new[] { "Force full fan speed regardless of profile. When turned off, the fans spin down gradually (can take 10–25 s).", "Wymuś pełne obroty wentylatorów niezależnie od profilu. Po wyłączeniu wentylatory zwalniają stopniowo (może to potrwać 10–25 s).", "Volle Lüfterdrehzahl unabhängig vom Profil erzwingen. Nach dem Ausschalten drehen die Lüfter allmählich herunter (kann 10–25 s dauern).", "Forcer la vitesse max des ventilateurs quel que soit le profil. À l'arrêt, les ventilateurs ralentissent progressivement (10–25 s).", "Forzar ventiladores al máximo sin importar el perfil. Al desactivar, bajan de forma gradual (puede tardar 10–25 s).", "无视配置文件强制风扇全速。关闭后风扇会逐渐降速（约 10–25 秒）。", "Forçar ventoinhas no máximo independentemente do perfil. Ao desligar, desaceleram gradualmente (pode levar 10–25 s).", "Принудительно макс. обороты независимо от профиля. При выключении вентиляторы снижают обороты постепенно (10–25 с)." },
-        ["cooler_boost_short"]= new[] { "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost" },
+        ["cooler_boost_short"]= new[] { "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost" },
         ["scen_features"]    = new[] { "Features", "Funkcje", "Funktionen", "Fonctions", "Funciones", "功能", "Funções", "Функции" },
 
         // ---- gaming overlay ----
@@ -69,7 +69,7 @@ public static class Lang
         ["ov_m_rpm"]         = new[] { "Fan RPM", "Obroty (RPM)", "Lüfter-RPM", "RPM ventilos", "RPM ventilador", "风扇转速", "RPM ventoinha", "Обороты" },
         ["ov_m_fanpct"]      = new[] { "Fan %", "Wentylatory (%)", "Lüfter %", "Ventilo %", "Ventilador %", "风扇 %", "Ventoinha %", "Вентил. %" },
         ["ov_m_profile"]     = new[] { "Active profile", "Aktywny profil", "Aktives Profil", "Profil actif", "Perfil activo", "当前配置文件", "Perfil ativo", "Активный профиль" },
-        ["ov_m_cooler"]      = new[] { "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost", "Cooler Boost" },
+        ["ov_m_cooler"]      = new[] { "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost" },
         ["ov_m_load"]        = new[] { "CPU load", "Obciążenie CPU", "CPU-Last", "Charge CPU", "Carga CPU", "CPU 占用", "Carga CPU", "Загрузка CPU" },
         ["ov_m_ram"]         = new[] { "RAM", "RAM", "RAM", "RAM", "RAM", "内存", "RAM", "ОЗУ" },
         ["ov_m_gpuusage"]    = new[] { "GPU load", "Użycie GPU", "GPU-Last", "Charge GPU", "Carga GPU", "GPU 占用", "Carga GPU", "Загрузка GPU" },
@@ -112,7 +112,7 @@ public static class Lang
         ["log_src_fancurve"] = new[] { "fan curve", "krzywa went.", "Lüfterkurve", "courbe ventilo", "curva vent.", "风扇曲线", "curva ventoinha", "кривая вент." },
         ["log_src_external"] = new[] { "external sync", "sync. zewn.", "externer Sync", "sync externe", "sinc. externa", "外部同步", "sinc. externa", "внешняя синхр." },
         ["log_src_charge"]   = new[] { "charge limit", "limit ładowania", "Ladelimit", "limite charge", "límite carga", "充电限制", "limite carga", "лимит заряда" },
-        ["log_src_cooler"]   = new[] { "cooler boost", "cooler boost", "Cooler Boost", "cooler boost", "cooler boost", "Cooler Boost", "cooler boost", "cooler boost" },
+        ["log_src_cooler"]   = new[] { "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost" },
         ["log_src_firmware"] = new[] { "firmware", "firmware", "Firmware", "firmware", "firmware", "固件", "firmware", "прошивка" },
         ["log_src_test"]     = new[] { "test tool", "narz. testowe", "Testtool", "outil de test", "herr. de prueba", "测试工具", "ferr. de teste", "тест. инстр." },
 
