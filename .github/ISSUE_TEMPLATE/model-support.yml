@@ -58,6 +58,26 @@ body:
       render: text
 
   - type: checkboxes
+    id: verified
+    attributes:
+      label: Hardware verification (optional — lets us mark your model "Tested" right away)
+      description: |
+        **Only tick these if the app already recognises your model** (Status shows a profile, not
+        "read-only / unsupported") **and you personally switched profiles in the app and watched what
+        happened.** This is the whole difference between *Experimental* and *Tested* — if you confirm it
+        here, we don't have to ask again after you submit.
+
+        Not recognised yet? Leave every box below unchecked and just send the dumps — we'll build a
+        recipe from them, you update the app, and then you can come back and confirm.
+
+        What to check (Silent vs Balanced is the important one — that low-power cap is the reason this
+        project exists):
+      options:
+        - label: "**Silent** noticeably lowers CPU package power and/or fan noise vs **Balanced** (seen in HWiNFO64, or clearly quieter/cooler by ear)."
+        - label: "**Extreme** unlocks full power / the fans ramp up as expected."
+        - label: "Switching profiles in the app is stable — no crash, black screen, or stuck fans, and the app's profile matches what I selected."
+
+  - type: checkboxes
     id: confirm
     attributes:
       label: Confirmation

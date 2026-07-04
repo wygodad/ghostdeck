@@ -3,6 +3,20 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.15.2] - 2026-07-04
+### Changed
+- **MSI Crosshair A16 HX (D7W/D8W, `15PLIMS1`) promoted from Experimental to Tested** — owner-confirmed
+  in [issue #5](../../issues/5): HWiNFO64 shows Silent measurably lowering CPU package power/clocks vs
+  Balanced (~38 W avg / 54.5 W peak on Balanced vs a tight ~35.7-35.8 W band on Silent). Note: Silent and
+  Super Battery read identically on this unit — unlike the Intel reference board, ECO shift (`0xC2`)
+  doesn't cap further than Comfort + silent fan (`0xC1`/`0x1D`) here, so no super-battery register is used
+  (`Recipes` passes `null` for it).
+### Docs
+- **Model-support request now has an (optional) hardware-verification section** — the submitter can attest,
+  before sending, that they switched profiles in the app and confirmed Silent lowers power/fan vs Balanced,
+  Extreme unlocks, and switching is stable. This is exactly what we need to promote a model from Experimental
+  to Tested, so recognised-model owners can get verified in one round instead of a follow-up ask.
+
 ## [1.15.1] - 2026-07-04
 ### Changed
 - **Repository renamed to `wygodad/ghostdeck`** (following the app rename). Updated the hard-coded
