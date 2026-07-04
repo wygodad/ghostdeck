@@ -295,7 +295,10 @@ Addr   Silent  Balanced  Extreme  SuperBattery   Meaning
 
 A full-featured program that supersedes the PS scripts (kept as a backend/reference).
 
-**Download:** the latest `MSIProfileSwitcher.exe` from the repo's **Releases**. Single-file, self-contained (~154 MB), no install, no .NET required. Build: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`.
+> **UI rendering internals** (how the Status tab and gaming overlay stay sharp + smooth at any DPI,
+> and how the other tabs are drawn) are documented separately in [RENDERING.md](RENDERING.md).
+
+**Download:** the latest `GhostDeck.exe` from the repo's **Releases**. Single-file, self-contained (~154 MB), no install, no .NET required. Build: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`.
 
 **Features:**
 - Tray icon (color = active profile), menu with 4 profiles, left-click = cycle.

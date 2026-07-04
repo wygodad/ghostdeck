@@ -484,12 +484,54 @@ public sealed class StatusPage : ThemedPage
 
     // The page is painted by an inner canvas sized to the full content height; WinForms scrolls that
     // child natively (no manual translate), which removes the ghosting the self-scrolled paint had.
+    // Renders the (heavy) content once into a persistent BufferedGraphics allocated FROM this control's
+    // own Graphics — so the offscreen DC is DPI-aware and TextRenderer draws exactly like on-screen
+    // (correct size + crisp), unlike a plain Bitmap which renders at 96 DPI and blurs when scaled.
+    // Scrolling then only BitBlts the buffer (fast), so it's smooth; a full re-render happens only when
+    // data / size / theme change (Rebuild) — not per scroll frame.
     private sealed class Canvas : Control
     {
         private readonly StatusPage _p;
-        public Canvas(StatusPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
-        public void Rebuild() => Invalidate();
-        protected override void OnPaint(PaintEventArgs e) { e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; _p.Render(e.Graphics, Width); }
+        private BufferedGraphics? _buf;
+        private int _bufW, _bufH;
+
+        public Canvas(StatusPage p)
+        {
+            _p = p;
+            BackColor = Theme.Surface;
+            ResizeRedraw = true;
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
+        }
+
+        public void Rebuild() { RenderToBuffer(); Invalidate(); }
+
+        private void RenderToBuffer()
+        {
+            if (Width <= 0 || Height <= 0) return;
+            using var cg = CreateGraphics();   // DPI-aware DC of this control
+            if (_buf == null || _bufW != Width || _bufH != Height)
+            {
+                _buf?.Dispose();
+                var ctx = BufferedGraphicsManager.Current;
+                ctx.MaximumBuffer = new Size(Width + 1, Height + 1);
+                _buf = ctx.Allocate(cg, new Rectangle(0, 0, Width, Height));
+                _bufW = Width; _bufH = Height;
+            }
+            var g = _buf!.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Theme.Surface);
+            _p.Render(g, Width);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e) { }   // buffer covers the whole surface
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            if (_buf == null || _bufW != Width || _bufH != Height) RenderToBuffer();
+            _buf?.Render(e.Graphics);
+        }
+
+        protected override void Dispose(bool disposing) { if (disposing) _buf?.Dispose(); base.Dispose(disposing); }
     }
 
     internal void Render(Graphics g, int width)
