@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Lightweight update check against GitHub Releases. Read-only: queries the public
@@ -26,7 +26,7 @@ public static class Updater
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("MSIProfileSwitcher-UpdateCheck");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("GhostDeck-UpdateCheck");
             http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
 
             string json = await http.GetStringAsync(ListApi + count).ConfigureAwait(false);
@@ -52,7 +52,7 @@ public static class Updater
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("MSIProfileSwitcher-UpdateCheck");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("GhostDeck-UpdateCheck");
             http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
 
             string json = await http.GetStringAsync(LatestApi).ConfigureAwait(false);

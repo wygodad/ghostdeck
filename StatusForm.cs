@@ -1,4 +1,4 @@
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Snapshot of app/device state for the Status tab. (The old standalone StatusForm

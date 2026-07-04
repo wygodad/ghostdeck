@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Extra hardware metrics that don't come from the MSI EC: GPU utilisation %, VRAM used, and an

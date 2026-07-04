@@ -1,4 +1,4 @@
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Prosta lokalizacja. Kolejnosc jezykow = indeksy w tablicach.</summary>
 public static class Lang

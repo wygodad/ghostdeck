@@ -1,7 +1,7 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Nakladka OSD: pasek "MSI · PROFIL" z kolorem, bez kradziezy fokusa, z zanikaniem.</summary>
 public sealed class OsdForm : Form

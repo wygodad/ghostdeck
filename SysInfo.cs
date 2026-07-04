@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Lightweight OS metrics (no external libs): total CPU load via GetSystemTimes

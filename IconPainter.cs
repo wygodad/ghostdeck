@@ -1,6 +1,6 @@
 using System.Drawing.Drawing2D;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Vector icons drawn with GDI+ (no icon font dependency) for tiles and gauges.</summary>
 internal static class IconPainter

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 public static class Hk
 {

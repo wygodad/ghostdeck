@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 internal static class Program
 {

@@ -3,6 +3,8 @@
 > **Język / Language:** **Polski** · [English](TECHNICAL.md)
 >
 > Pełna lista wszystkich rozpoznawanych modeli (per firmware): [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md).
+>
+> *Projekt nieoficjalny - niezwiązany z MSI ani przez MSI niefirmowany. „MSI", „MSI Center" i „Cooler Boost" to znaki towarowe Micro-Star International, użyte tu wyłącznie opisowo.*
 
 Pełna dokumentacja problemu, diagnostyki i rozwiązania.
 Data prac: **2026-06-25**.

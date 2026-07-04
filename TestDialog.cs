@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Advanced test / discovery dialog (opened from the Status tab):

@@ -3,7 +3,7 @@ using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Snapshot fed to the gaming overlay (built by the tray from EC + OS metrics).</summary>
 public readonly record struct OverlaySample(

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Text;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// In-app "Report my model" wizard. Walks the user through a READ-ONLY EC dump

@@ -1,6 +1,6 @@
 using System.Drawing;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 public enum ProfileId { Silent, Balanced, Extreme, SuperBattery }
 

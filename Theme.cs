@@ -1,6 +1,6 @@
 using System.Drawing.Drawing2D;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Central light/dark palette for the tabbed UI. WinForms has no built-in theming,

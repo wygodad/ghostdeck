@@ -3,7 +3,7 @@ using System.Drawing.Drawing2D;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Shared themed widgets / drawing helpers for the tab pages.</summary>
 internal static class Ui

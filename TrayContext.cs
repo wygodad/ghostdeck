@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 public sealed class TrayContext : ApplicationContext
 {

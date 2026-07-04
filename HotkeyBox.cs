@@ -1,4 +1,4 @@
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Pole przechwytujace kombinacje klawiszy (do rebindu skrotow).</summary>
 public sealed class HotkeyBox : TextBox

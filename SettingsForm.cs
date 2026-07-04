@@ -1,4 +1,4 @@
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 public sealed class SettingsForm : Form
 {

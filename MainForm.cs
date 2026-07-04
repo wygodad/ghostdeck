@@ -1,6 +1,6 @@
 using System.Drawing.Drawing2D;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 public enum MainTab { Scenarios, Status, FanCurve, Settings, Models, Report, Updates }
 

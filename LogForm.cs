@@ -1,4 +1,4 @@
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Full history-log window: every recorded profile / EC change (time, source, written bytes,

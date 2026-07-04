@@ -1,7 +1,7 @@
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Rysuje ikone tray w kolorze aktywnego profilu (squircle + tachometr).</summary>
 public static class TrayIconFactory

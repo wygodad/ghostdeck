@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Lightweight one-way announcement channel: fetches a static <c>announcements.json</c> from the
@@ -24,7 +24,7 @@ public static class Notices
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("MSIProfileSwitcher-Notices");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("GhostDeck-Notices");
 
             string json = await http.GetStringAsync(FeedUrl).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);

@@ -1,6 +1,6 @@
 using System.Drawing.Drawing2D;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 // =====================================================================
 //  Models — full list of recognised firmware IDs (from Devices.All)

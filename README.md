@@ -44,7 +44,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Global **rebindable** hotkeys | Limited² | ✅ |
 | Auto-switch profile on AC / battery | ❌ | ✅ |
 | On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
-| Detachable gaming HUD overlay | ❌ | ✅ *(temps / RPM / GPU% / VRAM / clocks / RAM / battery)* |
+| Detachable gaming overlay (HUD) | ❌ | ✅ *(temps / RPM / GPU% / VRAM / clocks / RAM / battery; card or bar)* |
 | Live EC profile-byte view / transparency | ❌ | ✅ |
 | Change & EC-write history log | ❌ | ✅ |
 | Hardware monitoring | ✅ | Limited³ |

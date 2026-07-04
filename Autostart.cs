@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Autostart przez zadanie Harmonogramu (ONLOGON + RL HIGHEST) — uruchamia

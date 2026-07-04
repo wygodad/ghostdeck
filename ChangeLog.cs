@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text.Json;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Where a profile / EC change came from (for the history log).</summary>
 public enum ChangeSource

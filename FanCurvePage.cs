@@ -1,6 +1,6 @@
 using System.Drawing.Drawing2D;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>
 /// Phase 2 fan-curve editor. Two graphs (Fan 1 / Fan 2); each point's temperature is

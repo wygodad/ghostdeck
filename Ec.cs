@@ -1,7 +1,7 @@
 using System.Management;
 using System.Text;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 public readonly record struct HwSnapshot(
     int CpuTemp, int GpuTemp, int CpuFan, int GpuFan, int ChargeLimit, string Firmware,

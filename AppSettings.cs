@@ -3,7 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace MSIProfileSwitcher;
+namespace GhostDeck;
 
 /// <summary>Which metrics the gaming overlay shows (bit flags, persisted as an int).</summary>
 [Flags]
