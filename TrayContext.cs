@@ -707,7 +707,7 @@ public sealed class TrayContext : ApplicationContext
     {
         string body = Uri.EscapeDataString(
             $"\n\n---\nApp: {AppVersion()}  |  Model: {(Known ? _device!.Name : "unknown")}  |  Firmware: {_firmware}");
-        OpenUrl($"https://github.com/wygodad/msi-profile-switcher/discussions/new?category=ideas&body={body}");
+        OpenUrl($"https://github.com/wygodad/ghostdeck/discussions/new?category=ideas&body={body}");
     }
 
     private static void OpenUrl(string url)

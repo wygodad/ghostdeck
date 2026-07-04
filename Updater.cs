@@ -12,9 +12,9 @@ namespace MSIProfileSwitcher;
 /// </summary>
 public static class Updater
 {
-    private const string LatestApi   = "https://api.github.com/repos/wygodad/msi-profile-switcher/releases/latest";
-    private const string ListApi     = "https://api.github.com/repos/wygodad/msi-profile-switcher/releases?per_page=";
-    public  const string ReleasesUrl = "https://github.com/wygodad/msi-profile-switcher/releases/latest";
+    private const string LatestApi   = "https://api.github.com/repos/wygodad/ghostdeck/releases/latest";
+    private const string ListApi     = "https://api.github.com/repos/wygodad/ghostdeck/releases?per_page=";
+    public  const string ReleasesUrl = "https://github.com/wygodad/ghostdeck/releases/latest";
 
     public readonly record struct Result(Version Version, string Tag, string Url);
     public readonly record struct ReleaseInfo(string Tag, string Name, string Body, string Url, DateTime? Published);

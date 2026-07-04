@@ -3,6 +3,24 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.15.1] - 2026-07-04
+### Changed
+- **Repository renamed to `wygodad/ghostdeck`** (following the app rename). Updated the hard-coded
+  URLs in-app so update checks, the announcements feed and "Send feedback" point at the new repo
+  (`Updater`, `Notices`, feedback Discussion, Report links, `announcements.json`). GitHub redirects
+  the old `msi-profile-switcher` URLs, so older releases keep working.
+### Fixed
+- **Settings tab scrolling** — the title is now a child label (was hand-painted with the scroll
+  offset while the cards scrolled natively), so the page scrolls natively with no flicker or the
+  phantom gap that opened above the first group.
+- **Status tab scrolling** — rendered into a DPI-aware `BufferedGraphics` (allocated from the
+  control's own `Graphics`) and blitted on scroll, so it's smooth **and** the text stays sharp at
+  high DPI (150 % etc.) instead of the blurry/"doubled" text a plain 96-DPI bitmap produced.
+### Docs
+- New [docs/RENDERING.md](docs/RENDERING.md): how the Status tab and gaming overlay are rendered
+  (DPI-aware buffered canvas vs. per-pixel layered window), a plain-language overview, how the other
+  tabs draw, and do/don't rules. Linked from TECHNICAL.
+
 ## [1.15.0] - 2026-07-04
 ### Changed
 - **Renamed the app to “GhostDeck”** (tagline: *for MSI laptops*) — to keep the project clearly
@@ -178,7 +196,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.4.1] - 2026-06-28
 ### Added
-- Experimental support for **MSI Crosshair A16 HX (D7W/D8W)** (firmware `15PLIMS1`), added from a community EC snapshot ([#2](https://github.com/wygodad/msi-profile-switcher/issues/2)). Shift/fan registers match the G2 recipe exactly; uses no super-battery register and leaves a secondary fan bit untouched pending hardware verification.
+- Experimental support for **MSI Crosshair A16 HX (D7W/D8W)** (firmware `15PLIMS1`), added from a community EC snapshot ([#2](https://github.com/wygodad/ghostdeck/issues/2)). Shift/fan registers match the G2 recipe exactly; uses no super-battery register and leaves a secondary fan bit untouched pending hardware verification.
 
 ## [1.4.0] - 2026-06-27
 ### Added

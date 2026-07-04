@@ -16,7 +16,7 @@ namespace MSIProfileSwitcher;
 /// </summary>
 public sealed class ReportForm : Form
 {
-    private const string RepoUrl = "https://github.com/wygodad/msi-profile-switcher";
+    private const string RepoUrl = "https://github.com/wygodad/ghostdeck";
 
     private static readonly (ProfileId id, string msiName)[] Steps =
     {

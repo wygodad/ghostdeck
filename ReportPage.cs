@@ -10,7 +10,7 @@ namespace MSIProfileSwitcher;
 /// </summary>
 public sealed class ReportPage : ThemedPage
 {
-    private const string RepoUrl = "https://github.com/wygodad/msi-profile-switcher";
+    private const string RepoUrl = "https://github.com/wygodad/ghostdeck";
     private const int Pad = 28, Gutter = 44;
     private int _leftW = 430;
 

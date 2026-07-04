@@ -14,7 +14,7 @@ namespace MSIProfileSwitcher;
 /// </summary>
 public static class Notices
 {
-    private const string FeedUrl = "https://raw.githubusercontent.com/wygodad/msi-profile-switcher/main/announcements.json";
+    private const string FeedUrl = "https://raw.githubusercontent.com/wygodad/ghostdeck/main/announcements.json";
 
     public readonly record struct Notice(string Id, string Severity, string Title, string Body, string Url);
 
