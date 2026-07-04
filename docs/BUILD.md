@@ -19,7 +19,7 @@ dotnet publish -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:DebugType=none -p:Version=X.Y.Z -o release
 ```
-Output: `release/MSIProfileSwitcher.exe` (~154 MB, self-contained, requires admin to *run*).
+Output: `release/GhostDeck.exe` (~154 MB, self-contained, requires admin to *run*).
 A local re-publish to `release/` needs the running app closed first (file lock) — exit it from the tray.
 
 ## Day-to-day

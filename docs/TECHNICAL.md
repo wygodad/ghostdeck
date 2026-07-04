@@ -291,7 +291,7 @@ Addr   Silent  Balanced  Extreme  SuperBattery   Meaning
 
 ---
 
-## 15. The native app — `MSIProfileSwitcher.exe` (C# .NET 8)
+## 15. The native app — `GhostDeck.exe` (C# .NET 8)
 
 A full-featured program that supersedes the PS scripts (kept as a backend/reference).
 
@@ -311,7 +311,7 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 - **AC/battery auto-switch** — OFF by default (so it won't collide with MSI), with a profile choice for AC and battery.
 - **External sync** — polls the EC every 3 s; if MSI Center/anything changes the profile, the tray/OSD/menu re-sync automatically.
 - **Battery charge limit** — Don't change / 100% / 80% / 60% (`0xD7 = 0x80 | %`).
-- `requireAdministrator` manifest (EC write); settings in `%AppData%\MSIProfileSwitcher\settings.json`.
+- `requireAdministrator` manifest (EC write); settings in `%AppData%\GhostDeck\settings.json`.
 
 **EC in C#:** `System.Management` → `ManagementClass("root\\wmi","Package_32")` + `MSI_ACPI.Get_Data/Set_Data` (the same channel as the scripts).
 

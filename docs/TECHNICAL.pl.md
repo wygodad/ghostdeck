@@ -324,11 +324,11 @@ Lewy klik ikony w zasobniku = cykl; prawy klik = menu wyboru + „Zamknij".
 
 ---
 
-## 16. Aplikacja natywna — `MSIProfileSwitcher.exe` (C# .NET 8)
+## 16. Aplikacja natywna — `GhostDeck.exe` (C# .NET 8)
 
 Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumentacja).
 
-**Pobranie:** najnowszy `MSIProfileSwitcher.exe` z zakładki **[Releases](../../releases)** repo. Pojedynczy plik, self-contained (~154 MB), bez instalacji i bez .NET. Build ze źródeł: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`.
+**Pobranie:** najnowszy `GhostDeck.exe` z zakładki **[Releases](../../releases)** repo. Pojedynczy plik, self-contained (~154 MB), bez instalacji i bez .NET. Build ze źródeł: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`.
 
 **Funkcje:**
 - Ikona w zasobniku (kolor = aktywny profil), menu z 4 profilami, lewy klik = cykl.
@@ -341,7 +341,7 @@ Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumen
 - **Auto-przełączanie zasilacz/bateria** — domyślnie WYŁĄCZONE (by nie kolidować z MSI), z wyborem profilu dla AC i baterii.
 - **Sync zewnętrzny** — poll EC co 3 s; jeśli profil zmieni MSI Center/cokolwiek, tray/OSD/menu same się dostroją.
 - **Limit ładowania baterii** — Nie zmieniaj / 100% / 80% / 60% (`0xD7 = 0x80 | %`).
-- Manifest `requireAdministrator` (zapis EC); ustawienia w `%AppData%\MSIProfileSwitcher\settings.json`.
+- Manifest `requireAdministrator` (zapis EC); ustawienia w `%AppData%\GhostDeck\settings.json`.
 
 **EC w C#:** `System.Management` → `ManagementClass("root\\wmi","Package_32")` + `MSI_ACPI.Get_Data/Set_Data` (ten sam kanał co skrypty).
 

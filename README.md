@@ -32,9 +32,9 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 ## Comparison with MSI software
 
-MSI Profile Switcher is a small, focused tool - it deliberately does one thing (power/fan profiles) well, rather than replacing MSI Center. The table shows where it helps most: the **Silent** profile MSI removed, a fan curve outside just Extreme, no background services, and full transparency of what it writes to the EC.
+GhostDeck is a small, focused tool - it deliberately does one thing (power/fan profiles) well, rather than replacing MSI Center. The table shows where it helps most: the **Silent** profile MSI removed, a fan curve outside just Extreme, no background services, and full transparency of what it writes to the EC.
 
-| Feature | MSI Center 2.0 | MSI Profile Switcher |
+| Feature | MSI Center 2.0 | GhostDeck |
 |---|:---:|:---:|
 | **Silent profile** | ❌ *(removed in 2.0)* | ✅ |
 | Balanced / Extreme / Super Battery modes | ✅ | ✅ |
@@ -77,7 +77,7 @@ MSI Profile Switcher is a small, focused tool - it deliberately does one thing (
 
 ## Download
 
-Grab the latest **`MSIProfileSwitcher.exe`** from the [**Releases**](../../releases) page.
+Grab the latest **`GhostDeck.exe`** from the [**Releases**](../../releases) page.
 It's a single, self-contained file - no install, no .NET runtime needed. Run it and approve the UAC prompt (EC access requires administrator).
 
 ## Supported models
@@ -142,7 +142,7 @@ To preview the **experimental** / **unsupported** UI on any machine, set the `MS
 # Run from an ADMIN PowerShell so the variable reaches the elevated app:
 $env:MSIPS_FORCE_FIRMWARE = "16V1EMS1.100"   # an experimental model
 # or "ZZZZ" for an unsupported firmware
-& .\MSIProfileSwitcher.exe
+& .\GhostDeck.exe
 # (close it, clear the variable, relaunch to return to normal)
 ```
 
