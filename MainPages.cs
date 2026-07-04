@@ -421,7 +421,7 @@ public sealed class StatusPage : ThemedPage
         _logBtn.Click += (_, _) => LogForm.ShowSingleton();
         _canvas.Controls.Add(_logBtn);
 
-        _timer.Tick += (_, _) => { RefreshLive(); _canvas.Invalidate(); };
+        _timer.Tick += (_, _) => { RefreshLive(); _canvas.Rebuild(); };
         VisibleChanged += (_, _) => { if (Visible) { Relayout(); RefreshLive(); _timer.Start(); } else _timer.Stop(); };
         ClientSizeChanged += (_, _) => Relayout();
         ChangeLog.Changed += OnLogChanged;
@@ -430,9 +430,9 @@ public sealed class StatusPage : ThemedPage
         _test.Visible = false;
     }
 
-    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { Relayout(); _canvas.Invalidate(); }); } catch { } } }
+    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { Relayout(); _canvas.Rebuild(); }); } catch { } } }
 
-    public override void LiveRefresh() { RefreshLive(); _canvas.Invalidate(); }
+    public override void LiveRefresh() { RefreshLive(); _canvas.Rebuild(); }
 
     private void RefreshLive()
     {
@@ -478,8 +478,8 @@ public sealed class StatusPage : ThemedPage
 
     private const int RecentLogRows = 6;
 
-    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); Relayout(); RefreshLive(); _canvas.Invalidate(); }
-    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _canvas.Invalidate(); } }
+    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); Relayout(); RefreshLive(); _canvas.Rebuild(); }
+    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _canvas.Rebuild(); } }
     protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; } base.Dispose(disposing); }
 
     // The page is painted by an inner canvas sized to the full content height; WinForms scrolls that
@@ -488,6 +488,7 @@ public sealed class StatusPage : ThemedPage
     {
         private readonly StatusPage _p;
         public Canvas(StatusPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
+        public void Rebuild() => Invalidate();
         protected override void OnPaint(PaintEventArgs e) { e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; _p.Render(e.Graphics, Width); }
     }
 
@@ -1040,8 +1041,15 @@ public sealed class SettingsPage : ThemedPage
     private readonly Dictionary<string, HotkeyBox> _boxes = new();
     private readonly Dictionary<string, List<Panel>> _swatches = new();
     private OverlaySettingsPanel? _overlayPanel;
+    private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
 
-    public SettingsPage(MainDeps d) : base(d) { BuildForm(); Resize += (_, _) => Layout2(); }
+    public SettingsPage(MainDeps d) : base(d)
+    {
+        _title.Location = new Point(Pad, TitleTop);
+        Controls.Add(_title);
+        BuildForm();
+        Resize += (_, _) => Layout2();
+    }
 
     public override void OnEnter() { _overlayPanel?.SyncFromSettings(); Layout2(); Invalidate(); }
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
@@ -1051,23 +1059,26 @@ public sealed class SettingsPage : ThemedPage
     public override void ApplyTheme()
     {
         base.ApplyTheme();
+        _title.ForeColor = Theme.Text;
+        _title.BackColor = Theme.Surface;
         foreach (var c in _left.Concat(_right)) c.ApplyTheme();
         _overlayPanel?.ApplyThemeColors();
         Invalidate();
     }
 
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics; ApplyScroll(g);
-        TextRenderer.DrawText(g, Lang.T("menu_settings"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, TitleTop), Theme.Text);
-    }
+    // No custom OnPaint: the title is a child Label and everything else is a child control, so the page
+    // scrolls natively (smooth, no title/blit mismatch). The base clears to Theme.Surface.
 
     private void Layout2()
     {
         if (_left.Count == 0) return;
+        _title.Text = Lang.T("menu_settings");
+        _title.ForeColor = Theme.Text;
+        _title.BackColor = Theme.Surface;
+        _title.Location = new Point(Pad, TitleTop);
         int colW = Math.Max(320, (ClientSize.Width - Pad * 2 - Gutter) / 2);
         int fullW = colW * 2 + Gutter;
-        int top = TitleTop + new Font("Segoe UI", 18f, FontStyle.Bold).Height + 18;
+        int top = TitleTop + _title.Height + 18;
 
         if (_overlayPanel != null)
         {
