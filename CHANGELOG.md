@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.15.0] - 2026-07-04
+### Changed
+- **Renamed the app to “GhostDeck”** (tagline: *for MSI laptops*) — to keep the project clearly
+  independent of MSI and avoid using MSI trademarks in the product name. The download is now
+  **`GhostDeck.exe`**, the window/tray/title say GhostDeck, and the settings folder moved to
+  `%AppData%\GhostDeck`.
+- **Automatic migration on first launch:** existing settings and change-log (`settings.json`,
+  `changelog.json`) are copied from the old `%AppData%\MSIProfileSwitcher` folder (the old folder is
+  left as a backup), and the autostart task is renamed from `MSIProfileSwitcher` to `GhostDeck`
+  (pointing at the new exe). Nothing for the user to do; after updating you can delete the old
+  `MSIProfileSwitcher.exe`.
+- The `MSI` name now appears only descriptively (“for MSI laptops”), never as the product brand.
+
 ## [1.14.1] - 2026-07-04
 ### Fixed
 - **Announcements no longer nag.** A notice is shown once: an in-window banner when the panel is open

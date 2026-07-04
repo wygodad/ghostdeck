@@ -82,7 +82,7 @@ public sealed class MainForm : Form
     public MainForm(MainDeps d)
     {
         _d = d;
-        Text = "MSI Profile Switcher";
+        Text = "GhostDeck";
         Icon = TrayIconFactory.Create(Theme.Accent);
         FormBorderStyle = FormBorderStyle.Sizable;
         AutoScaleMode = AutoScaleMode.Dpi;

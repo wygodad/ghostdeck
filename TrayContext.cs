@@ -41,6 +41,7 @@ public sealed class TrayContext : ApplicationContext
     public TrayContext()
     {
         _settings = AppSettings.Load();
+        Autostart.Migrate();                       // move a pre-rename "MSIProfileSwitcher" autostart task to "GhostDeck"
         _settings.Autostart = Autostart.IsEnabled();
         Lang.Set(_settings.Language);
         Theme.Set(_settings.DarkMode);
@@ -152,7 +153,7 @@ public sealed class TrayContext : ApplicationContext
         _menuSwatches.Clear();
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add(new ToolStripLabel("MSI Profile Switcher") { Font = new Font("Segoe UI", 9, FontStyle.Bold) });
+        menu.Items.Add(new ToolStripLabel("GhostDeck") { Font = new Font("Segoe UI", 9, FontStyle.Bold) });
         menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
         menu.Items.Add(new ToolStripSeparator());
 
@@ -489,7 +490,7 @@ public sealed class TrayContext : ApplicationContext
         _tray.Icon = newIcon;
         _currentIcon?.Dispose();
         _currentIcon = newIcon;
-        _tray.Text = Writable ? "MSI Profile: " + Profiles.Get(id).Label : "MSI · " + DeviceDescriptor();
+        _tray.Text = Writable ? "GhostDeck · " + Profiles.Get(id).Label : "GhostDeck · " + DeviceDescriptor();
 
         if (_tray.ContextMenuStrip is { } menu)
             foreach (var it in menu.Items)

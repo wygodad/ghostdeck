@@ -8,9 +8,26 @@ namespace MSIProfileSwitcher;
 /// </summary>
 public static class Autostart
 {
-    private const string TaskName = "MSIProfileSwitcher";
+    private const string TaskName = "GhostDeck";
+    private const string OldTaskName = "MSIProfileSwitcher";   // pre-rename task, migrated away on startup
 
     private static string ExePath => Environment.ProcessPath ?? Application.ExecutablePath;
+
+    /// <summary>
+    /// One-time rename migration: if the old "MSIProfileSwitcher" autostart task exists, delete it
+    /// (it points at the old exe) and, since it means autostart was enabled, recreate it under the new
+    /// name pointing at the current exe. Safe/idempotent — a no-op once the old task is gone.
+    /// </summary>
+    public static void Migrate()
+    {
+        try
+        {
+            if (Run($"/Query /TN \"{OldTaskName}\"") != 0) return;   // no old task -> nothing to do
+            Run($"/Delete /TN \"{OldTaskName}\" /F");
+            Set(true);                                               // recreate as "GhostDeck" at the current exe
+        }
+        catch { }
+    }
 
     private static int Run(string args)
     {

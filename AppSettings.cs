@@ -89,15 +89,36 @@ public sealed class AppSettings
     public bool WinMaximized { get; set; }
 
     [JsonIgnore]
-    public static string Dir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MSIProfileSwitcher");
+    private static string AppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+    [JsonIgnore]
+    public static string Dir => Path.Combine(AppData, "GhostDeck");
+    [JsonIgnore]
+    private static string OldDir => Path.Combine(AppData, "MSIProfileSwitcher");   // pre-rename settings folder
     [JsonIgnore]
     public static string FilePath => Path.Combine(Dir, "settings.json");
+
+    // One-time rename migration: copy settings.json + changelog.json from the old folder into the new
+    // one (copy, not move — the old folder is left intact as a backup). No-op once the new folder exists.
+    private static void MigrateFromOldDir()
+    {
+        try
+        {
+            if (Directory.Exists(Dir) || !Directory.Exists(OldDir)) return;
+            Directory.CreateDirectory(Dir);
+            foreach (var name in new[] { "settings.json", "changelog.json" })
+            {
+                var src = Path.Combine(OldDir, name);
+                if (File.Exists(src)) File.Copy(src, Path.Combine(Dir, name), overwrite: false);
+            }
+        }
+        catch { }
+    }
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
     public static AppSettings Load()
     {
+        MigrateFromOldDir();
         try
         {
             if (File.Exists(FilePath))

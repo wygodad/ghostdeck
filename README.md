@@ -1,6 +1,8 @@
-# MSI Profile Switcher
+# GhostDeck — for MSI laptops
 
-A lightweight Windows **tray app** to switch MSI laptop power profiles — **Silent / Balanced / Extreme / Super Battery** — instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile.
+<sub>*(formerly “MSI Profile Switcher” — renamed to keep the project clearly independent of MSI; see [docs/ABOUT_THE_NAME.md](docs/ABOUT_THE_NAME.md))*</sub>
+
+A lightweight, **independent** Windows **tray app** to switch MSI laptop power profiles — **Silent / Balanced / Extreme / Super Battery** — instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile.
 
 Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to the Embedded Controller (EC) through MSI's own **WMI interface** — no kernel driver, no disabling of Windows security — so it works regardless of the MSI Center version (even with MSI Center uninstalled).
 
