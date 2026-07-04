@@ -209,6 +209,8 @@ public static class Lang
 
         // ---- Report my model wizard ----
         ["menu_report"]    = new[] { "Report my model…", "Zgłoś mój model…", "Mein Modell melden…", "Signaler mon modèle…", "Reportar mi modelo…", "上报我的型号…", "Relatar meu modelo…", "Сообщить о модели…" },
+        ["menu_feedback"]  = new[] { "Send feedback…", "Wyślij opinię…", "Feedback senden…", "Envoyer un avis…", "Enviar comentarios…", "发送反馈…", "Enviar feedback…", "Отправить отзыв…" },
+        ["notice_more"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробнее" },
         ["rep_title"]      = new[] { "Report my model", "Zgłoś mój model", "Mein Modell melden", "Signaler mon modèle", "Reportar mi modelo", "上报我的型号", "Relatar meu modelo", "Сообщить о модели" },
         ["rep_intro"]      = new[] {
             "Help add support for your laptop. This reads your EC in each MSI Center scenario (READ-ONLY — nothing is written) and prepares a GitHub report for you.",

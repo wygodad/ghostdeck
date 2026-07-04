@@ -3,7 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.14.0] - 2026-07-04
+### Added
+- **In-app announcements channel** — the app now fetches a static `announcements.json` from the repo
+  (same daily cadence and opt-out as the update check, read-only, no identifiers sent) and shows unseen
+  notices as a tray balloon **and** a dismissible banner at the top of the window. Seen notices are
+  remembered (`SeenNoticeIds`). First use: a heads-up about the upcoming rename to **GhostDeck**.
+- **"Send feedback…" tray entry** — opens a prefilled GitHub Discussion in the browser (model reports
+  still go to Issues via the Report wizard). No data is collected by the app.
+
 ### Changed
 - **Renamed the "Cooler Boost" feature to "Fan Boost"** in the UI (tray, Scenarios brick, OSD, overlay,
   hotkey label, all 8 languages) to avoid using MSI's *Cooler Boost* trademark as our own feature name.

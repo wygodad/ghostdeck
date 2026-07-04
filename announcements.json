@@ -1,0 +1,13 @@
+[
+  {
+    "id": "2026-07-rename-ghostdeck",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.99.0",
+    "title": "Heads up: this app is being renamed to GhostDeck",
+    "title_pl": "Uwaga: aplikacja zmienia nazwę na GhostDeck",
+    "body": "This is an unofficial tool, not made by MSI. It will soon become “GhostDeck – for MSI laptops”. Your settings and history migrate automatically. Click Details.",
+    "body_pl": "To nieoficjalne narzędzie, nietworzone przez MSI. Wkrótce stanie się „GhostDeck – for MSI laptops”. Ustawienia i historia przeniosą się automatycznie. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/msi-profile-switcher/blob/main/docs/ABOUT_THE_NAME.md"
+  }
+]

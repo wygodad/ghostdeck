@@ -23,6 +23,8 @@ public sealed class TrayContext : ApplicationContext
     private readonly List<Image> _menuSwatches = new();
     private SynchronizationContext? _ui;
     private string? _updateUrl;
+    private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
+    private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
     private bool _coolerBoost;                 // Cooler Boost (max fans) currently on
     private byte? _fanBeforeBoost;             // fan-mode byte captured before boost, restored on off
@@ -72,7 +74,7 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
-        _tray.BalloonTipClicked += (_, _) => { if (_updateUrl != null) OpenUrl(_updateUrl); };
+        _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
         MaybeCheckForUpdates();
     }
 
@@ -233,6 +235,10 @@ public sealed class TrayContext : ApplicationContext
         var report = new ToolStripMenuItem(Lang.T("menu_report"));
         report.Click += (_, _) => OpenMain(MainTab.Report);
         menu.Items.Add(report);
+
+        var feedback = new ToolStripMenuItem(Lang.T("menu_feedback"));
+        feedback.Click += (_, _) => OpenFeedback();
+        menu.Items.Add(feedback);
 
         var log = new ToolStripMenuItem(Lang.T("menu_log"));
         log.Click += (_, _) => LogForm.ShowSingleton();
@@ -596,12 +602,14 @@ public sealed class TrayContext : ApplicationContext
             _main.ShowTab(tab);
             _main.BringToFront();
             _main.Activate();
+            if (_pendingNotice is { } pn1) ShowNoticeBanner(pn1);
             return;
         }
         _main = new MainForm(BuildDeps());
         _main.FormClosed += (_, _) => _main = null;
         _main.Show();
         _main.ShowTab(tab);
+        if (_pendingNotice is { } pn2) ShowNoticeBanner(pn2);
     }
 
     private void OpenReport()
@@ -622,8 +630,10 @@ public sealed class TrayContext : ApplicationContext
         Task.Run(async () =>
         {
             var res = await Updater.CheckAsync(current);
-            if (ui != null) ui.Post(_ => OnUpdateResult(res), null);
-            else OnUpdateResult(res);
+            var notices = await Notices.FetchAsync(current, _settings.SeenNoticeIds);
+            void Apply() { OnUpdateResult(res); OnNoticesResult(notices); }
+            if (ui != null) ui.Post(_ => Apply(), null);
+            else Apply();
         });
     }
 
@@ -634,10 +644,52 @@ public sealed class TrayContext : ApplicationContext
 
         if (res is not { } r) return;
         _updateUrl = r.Url;
+        _balloonUrl = r.Url;
         BuildMenu();
         _tray.BalloonTipTitle = Lang.T("update_available");
         _tray.BalloonTipText = string.Format(Lang.T("update_available_text"), r.Tag);
         _tray.ShowBalloonTip(8000);
+    }
+
+    // Announcements (one-way notices): show the newest unseen as a tray balloon now, and as an in-window
+    // banner when the panel is (or gets) opened. Seen ids are persisted so each notice shows once.
+    private void OnNoticesResult(List<Notices.Notice> notices)
+    {
+        if (notices.Count == 0) return;
+        var n = notices[0];               // newest-first by convention in announcements.json
+        _pendingNotice = n;
+
+        if (_main is { IsDisposed: false }) ShowNoticeBanner(n);
+        else if (_updateUrl == null)       // don't fight the update balloon; the banner still shows on open
+        {
+            _balloonUrl = string.IsNullOrEmpty(n.Url) ? null : n.Url;
+            _tray.BalloonTipTitle = n.Title;
+            _tray.BalloonTipText = n.Body;
+            _tray.ShowBalloonTip(9000);
+        }
+    }
+
+    private void ShowNoticeBanner(Notices.Notice n)
+    {
+        if (_main is not { IsDisposed: false }) return;
+        _main.ShowNotice(n.Title, n.Body, string.IsNullOrEmpty(n.Url) ? null : n.Url, () => MarkNoticeSeen(n.Id));
+    }
+
+    private void MarkNoticeSeen(string id)
+    {
+        if (_pendingNotice?.Id == id) _pendingNotice = null;
+        if (_settings.SeenNoticeIds.Contains(id)) return;
+        _settings.SeenNoticeIds.Add(id);
+        _settings.Save();
+    }
+
+    // Two-way feedback: open a prefilled GitHub Discussion in the browser (no data collected by the app;
+    // the user chooses what to post). Model reports keep going to Issues via the Report wizard.
+    private void OpenFeedback()
+    {
+        string body = Uri.EscapeDataString(
+            $"\n\n---\nApp: {AppVersion()}  |  Model: {(Known ? _device!.Name : "unknown")}  |  Firmware: {_firmware}");
+        OpenUrl($"https://github.com/wygodad/msi-profile-switcher/discussions/new?category=ideas&body={body}");
     }
 
     private static void OpenUrl(string url)

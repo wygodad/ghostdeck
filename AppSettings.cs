@@ -43,8 +43,9 @@ public sealed class AppSettings
     public bool StatusOnTop { get; set; } = false;                     // okno Status "zawsze na wierzchu"
     public bool ExperimentalEnabled { get; set; } = false;             // pozwol na zapis dla modeli Experimental
 
-    public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases
+    public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases (+ ogloszenia)
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
+    public List<string> SeenNoticeIds { get; set; } = new();           // ktore ogloszenia (announcements.json) juz pokazano
 
     public bool DarkMode { get; set; } = false;                        // ciemny motyw nowego okna z zakladkami
 
@@ -174,6 +175,7 @@ public sealed class AppSettings
             ExperimentalEnabled = ExperimentalEnabled,
             UpdateCheckEnabled = UpdateCheckEnabled,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
+            SeenNoticeIds = new List<string>(SeenNoticeIds),
             DarkMode = DarkMode,
             LastFirmware = LastFirmware,
             OverlayEnabled = OverlayEnabled,

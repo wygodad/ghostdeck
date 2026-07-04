@@ -70,6 +70,7 @@ public sealed class MainForm : Form
     private const int StripH = 78;
     private readonly MainDeps _d;
     private readonly Panel _strip = new();
+    private readonly NoticeBanner _banner = new();
     private readonly Panel _host = new BufferedPanel();
     private readonly List<TabButton> _tabs = new();
     private readonly Dictionary<MainTab, ThemedPage> _pages = new();
@@ -94,6 +95,7 @@ public sealed class MainForm : Form
         _host.Dock = DockStyle.Fill;
         Controls.Add(_host);
         Controls.Add(_strip);
+        Controls.Add(_banner);   // docked Top, below the strip and above the host (hidden until a notice arrives)
 
         Theme.Changed += OnThemeChanged;
         FormClosing += (_, _) => SaveBounds();
@@ -229,6 +231,10 @@ public sealed class MainForm : Form
         if (_pages.TryGetValue(_active, out var p) && p.Visible) p.LiveRefresh();
     }
 
+    /// <summary>Show an announcement banner at the top of the window (marks it seen immediately).</summary>
+    public void ShowNotice(string title, string body, string? url, Action onSeen)
+        => _banner.ShowNotice(title, body, url, onSeen);
+
     private ThemedPage CreatePage(MainTab tab) => tab switch
     {
         MainTab.Scenarios => new ScenariosPage(_d),
@@ -256,6 +262,7 @@ public sealed class MainForm : Form
         _host.BackColor = Theme.Surface;
         _version.ForeColor = Theme.Muted;
         _version.BackColor = Theme.Surface;
+        _banner.Invalidate();
         _strip.Invalidate();
         foreach (var b in _tabs) b.Invalidate();
         _themeBtn.Invalidate();
@@ -325,5 +332,102 @@ public sealed class MainForm : Form
     private sealed class BufferedPanel : Panel
     {
         public BufferedPanel() { DoubleBuffered = true; ResizeRedraw = true; }
+    }
+
+    /// <summary>Top-docked announcement strip: accent stripe + title/body + optional "Details" link + close.
+    /// Hidden until <see cref="ShowNotice"/>; marks the notice seen the moment it's shown. DPI-scaled.</summary>
+    private sealed class NoticeBanner : Panel
+    {
+        private string _title = "", _body = "";
+        private string? _url;
+        private Rectangle _moreRect, _closeRect;
+        private bool _hoverMore, _hoverClose;
+
+        public NoticeBanner()
+        {
+            Dock = DockStyle.Top;
+            Visible = false;
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+            Height = S(56);
+        }
+
+        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+
+        public void ShowNotice(string title, string body, string? url, Action onSeen)
+        {
+            _title = title; _body = body; _url = string.IsNullOrEmpty(url) ? null : url;
+            Height = S(56);
+            Visible = true;
+            onSeen();                 // seen the moment it's shown in-window
+            Invalidate();
+        }
+
+        public void ApplyTheme() => Invalidate();
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            bool m = _url != null && _moreRect.Contains(e.Location), c = _closeRect.Contains(e.Location);
+            if (m != _hoverMore || c != _hoverClose)
+            {
+                _hoverMore = m; _hoverClose = c;
+                Cursor = (m || c) ? Cursors.Hand : Cursors.Default;
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+            if (_closeRect.Contains(e.Location)) { Visible = false; return; }
+            if (_url != null && _moreRect.Contains(e.Location))
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_url) { UseShellExecute = true }); } catch { }
+                Visible = false;
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var accent = Theme.Accent;
+            using (var b = new SolidBrush(Theme.AccentSoft)) g.FillRectangle(b, ClientRectangle);
+            using (var b = new SolidBrush(accent)) g.FillRectangle(b, 0, 0, S(4), Height);
+            using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, 0, Height - 1, Width, Height - 1);
+
+            int pad = S(16);
+            int cs = S(28);
+            _closeRect = new Rectangle(Width - pad - cs, (Height - cs) / 2, cs, cs);
+            using (var cf = new Font("Segoe UI", 10f))
+                TextRenderer.DrawText(g, "✕", cf, _closeRect, _hoverClose ? Theme.Text : Theme.Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+
+            int rightLimit = _closeRect.Left - S(8);
+            if (_url != null)
+            {
+                using var lf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                string more = Lang.T("notice_more");
+                int mw = TextRenderer.MeasureText(more, lf).Width + S(12);
+                _moreRect = new Rectangle(rightLimit - mw, (Height - S(26)) / 2, mw, S(26));
+                TextRenderer.DrawText(g, more, lf, _moreRect, _hoverMore ? Theme.Text : accent,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                rightLimit = _moreRect.Left - S(10);
+            }
+            else _moreRect = Rectangle.Empty;
+
+            int x = S(18);
+            int textW = Math.Max(S(60), rightLimit - x);
+            using var tf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            using var bf = new Font("Segoe UI", 9.5f);
+            int tH = TextRenderer.MeasureText(_title, tf).Height;
+            int bH = TextRenderer.MeasureText(_body, bf).Height;
+            int ty = Math.Max(S(6), (Height - tH - bH) / 2);
+            TextRenderer.DrawText(g, _title, tf, new Rectangle(x, ty, textW, tH), Theme.Text,
+                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(g, _body, bf, new Rectangle(x, ty + tH, textW, bH), Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+        }
     }
 }
