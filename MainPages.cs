@@ -882,6 +882,7 @@ public sealed class UpdatesPage : ThemedPage
             _status.Text = "✓  " + Lang.T("upd_latest_ok");
         }
         _check.Enabled = true;
+        D.CheckNoticesNow();     // manual check also refreshes announcements (banner + tray balloon)
         await LoadHistory();
     }
 

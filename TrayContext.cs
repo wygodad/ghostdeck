@@ -564,6 +564,7 @@ public sealed class TrayContext : ApplicationContext
         Firmware = _firmware,
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),
+        CheckNoticesNow = CheckNoticesNow,
         SettingsChanged = () => { ApplyHotkeys(); BuildMenu(); UpdateUi(_current); },
         OpenLegacySettings = OpenSettings,
         StartReportWizard = OpenReport,
@@ -659,14 +660,30 @@ public sealed class TrayContext : ApplicationContext
         var n = notices[0];               // newest-first by convention in announcements.json
         _pendingNotice = n;
 
+        // One place at a time: banner if the window is open (marks it seen → never nags again),
+        // otherwise a tray balloon to nudge. The balloon doesn't mark it seen, so it keeps nudging
+        // on the daily check until the user actually opens the app once.
         if (_main is { IsDisposed: false }) ShowNoticeBanner(n);
-        else if (_updateUrl == null)       // don't fight the update balloon; the banner still shows on open
+        else
         {
             _balloonUrl = string.IsNullOrEmpty(n.Url) ? null : n.Url;
             _tray.BalloonTipTitle = n.Title;
             _tray.BalloonTipText = n.Body;
             _tray.ShowBalloonTip(9000);
         }
+    }
+
+    // Manual "Check now": respect SeenNoticeIds so an already-read notice does NOT pop up again.
+    private void CheckNoticesNow()
+    {
+        var current = typeof(TrayContext).Assembly.GetName().Version ?? new Version(1, 0, 0);
+        var ui = _ui;
+        Task.Run(async () =>
+        {
+            var notices = await Notices.FetchAsync(current, _settings.SeenNoticeIds);
+            if (ui != null) ui.Post(_ => OnNoticesResult(notices), null);
+            else OnNoticesResult(notices);
+        });
     }
 
     private void ShowNoticeBanner(Notices.Notice n)

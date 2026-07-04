@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.14.1] - 2026-07-04
+### Fixed
+- **Announcements no longer nag.** A notice is shown once: an in-window banner when the panel is open
+  (which marks it read) or a tray balloon when it's closed — never both at once. The manual
+  "Check now" button now also refreshes announcements but **respects the read state**, so an
+  already-read notice doesn't pop up again.
+
 ## [1.14.0] - 2026-07-04
 ### Added
 - **In-app announcements channel** — the app now fetches a static `announcements.json` from the repo

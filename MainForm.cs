@@ -17,6 +17,7 @@ public sealed class MainDeps
     public required string Firmware { get; init; }
     public required Func<string> AppVersion { get; init; }
     public required Action SaveSettings { get; init; }
+    public required Action CheckNoticesNow { get; init; }   // manual "Check now" also surfaces announcements
     public required Action SettingsChanged { get; init; }     // tray rebuilds menu / hotkeys
     public required Action OpenLegacySettings { get; init; }   // interim: advanced settings dialog
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
