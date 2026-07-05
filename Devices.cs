@@ -89,6 +89,12 @@ public static class Devices
     private static readonly FanCurveSpec ModernCurve =
         new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: false);
 
+    // Same table layout as ModernCurve, but Verified: an owner set a known test curve in MSI Center and
+    // GhostDeck's fan-curve wizard found those exact values at 0x72 (CPU) / 0x8A (GPU) — so the addresses
+    // are hardware-confirmed for that model (not just family-inferred).
+    private static readonly FanCurveSpec ModernCurveVerified =
+        new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true);
+
     public static readonly DeviceProfile[] All =
     {
         // ---------- TESTED ----------
@@ -131,8 +137,10 @@ public static class Devices
         // Fan RPM at 0xC9/0xCB (same as the tested G2 GE78HX): the #6 dump shows 0xC9 = C6/C0/C4/C0 across
         // scenarios → 478000/raw ≈ 2400-2490 RPM (plausible, load-varying); 0xCB = 00 (dGPU fan idle at capture).
         // Enabled so CPU fan RPM shows (issue #7); owner-confirm the value against HWiNFO.
+        // Fan curve VERIFIED (issue #8): the owner set a known test curve in MSI Center and the wizard found
+        // it at exactly 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
         new() { Name = "MSI Sword 16 HX B13V / B14V", FirmwarePrefixes = new[] { "15P2EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)

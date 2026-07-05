@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.2] - 2026-07-05
+### Changed
+- **MSI Sword 16 HX B13V / B14V: fan curve verified** ([issue #8](../../issues/8)). Using the new
+  fan-curve wizard, the owner set a known test curve in MSI Center and GhostDeck found those exact values
+  at `0x72` (CPU) / `0x8A` (GPU) — the shipped `ModernCurve` addresses — so the curve is now marked
+  editable/verified for this model instead of "unverified". First model verified end-to-end via the wizard.
+
 ## [1.16.1] - 2026-07-05
 ### Fixed
 - **MSI Sword 16 HX B13V / B14V (`15P2EMS1`): CPU fan RPM now shows** instead of "—". The fan-tachometer
