@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.1] - 2026-07-05
+### Fixed
+- **MSI Sword 16 HX B13V / B14V (`15P2EMS1`): CPU fan RPM now shows** instead of "—". The fan-tachometer
+  registers were not mapped for this model; the owner's per-scenario dump ([issue #6](../../issues/6))
+  shows plausible, load-varying values at `0xC9` (the same address the tested GE78HX G2 board uses), so
+  RPM is now read from `0xC9`/`0xCB`. GPU RPM reads 0 when the dGPU fan is idle. Reported in
+  [issue #7](../../issues/7); owner to confirm the value against HWiNFO.
+
 ## [1.16.0] - 2026-07-05
 ### Added
 - **Sub-tabs** — a reusable segmented control (`SubTabs`) that splits a page into shorter sub-pages.
