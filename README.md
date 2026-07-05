@@ -8,7 +8,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 > ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific - read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
-📋 **~135 MSI models recognised** - the GE78HX board (13V + 14V) and the Crosshair A16 HX (D7W/D8W) are confirmed on real hardware, the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+📋 **~135 MSI models recognised** - the GE78HX board (13V + 14V), the Crosshair A16 HX (D7W/D8W) and the Sword 16 HX (B13V/B14V) are confirmed on real hardware, the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
 ## Features
 

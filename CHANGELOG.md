@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.15.3] - 2026-07-05
+### Changed
+- **MSI Sword 16 HX B13V / B14V (`15P2EMS1`) promoted from Experimental to Tested** — owner-confirmed in
+  [issue #6](../../issues/6): under Cinebench 2026, HWiNFO64 shows each profile hitting its intended CPU
+  package-power limit, and the fan curve behaves on par with MSI Center. Their per-scenario EC dump also
+  matched the shipped recipe 1:1 (`0xD2` C1/C1/C4/C2, `0xD4` 1D/0D/0D/0D, super-batt `0xEB` only in Super
+  Battery). The owner is switching over from MSI Center for profile control.
+### Fixed
+- CI workflow actions bumped to Node 24 releases (checkout v5, setup-dotnet v5, action-gh-release v3) to
+  clear the GitHub-hosted-runner Node 20 deprecation warning.
+
 ## [1.15.2] - 2026-07-04
 ### Changed
 - **MSI Crosshair A16 HX (D7W/D8W, `15PLIMS1`) promoted from Experimental to Tested** — owner-confirmed
