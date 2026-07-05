@@ -21,6 +21,8 @@ public sealed class ModelsPage : ThemedPage
     private readonly Panel _scrollHost = new() { AutoScroll = true };
     private readonly Table _table;
     private readonly TextBox _search = new();
+    private readonly Button _verify = new();
+    private readonly Panel _footer = new();
     private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 8000 };
 
     public ModelsPage(MainDeps d) : base(d)
@@ -45,7 +47,28 @@ public sealed class ModelsPage : ThemedPage
         Controls.Add(_search);
         _search.BringToFront();
 
+        // Bottom footer bar (white): table legend on the left, "Verify my model" CTA on the right.
+        _footer.Paint += PaintFooter;
+        Controls.Add(_footer);
+        Ui.StylePrimary(_verify);
+        _verify.Text = Lang.T("models_verify_btn");
+        _verify.AutoSize = false;
+        _verify.Click += (_, _) => (FindForm() as MainForm)?.ShowReport(0);
+        _tip.SetToolTip(_verify, Lang.T("models_verify_desc"));
+        _footer.Controls.Add(_verify);
+
         ClientSizeChanged += (_, _) => LayoutBits();
+    }
+
+    private void PaintFooter(object? sender, PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.Clear(Theme.Surface);
+        using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, 0, 0, _footer.Width, 0);
+        int legendRight = _verify.Left - 20;
+        TextRenderer.DrawText(g, Lang.T("mdl_legend"), FLegend,
+            new Rectangle(Pad, 10, Math.Max(60, legendRight - Pad), _footer.Height - 16), Theme.Muted,
+            TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak);
     }
 
     public override void OnEnter() { StyleSearch(); LayoutBits(); Invalidate(); _table.Invalidate(); }
@@ -54,8 +77,10 @@ public sealed class ModelsPage : ThemedPage
         base.ApplyTheme();
         _scrollHost.BackColor = Theme.Surface;
         _table.BackColor = Theme.Surface;
+        _footer.BackColor = Theme.Surface;
         StyleSearch();
-        Invalidate(); _table.Invalidate();
+        Ui.StylePrimary(_verify);
+        Invalidate(); _table.Invalidate(); _footer.Invalidate();
     }
 
     private void StyleSearch() { _search.BackColor = Theme.Card; _search.ForeColor = Theme.Text; }
@@ -96,7 +121,15 @@ public sealed class ModelsPage : ThemedPage
         int hb = HeaderBandH();
         // search box: top-right of the fixed header band
         _search.Location = new Point(Math.Max(Pad, ClientSize.Width - Pad - _search.Width), 26);
-        _scrollHost.SetBounds(0, hb, ClientSize.Width, Math.Max(0, ClientSize.Height - hb));
+
+        // Fixed bottom footer: legend (left) + Verify CTA (right). The table scrolls between header and footer.
+        int footerH = Math.Max(66, FLegend.Height * 3 + 26);
+        _footer.SetBounds(0, ClientSize.Height - footerH, ClientSize.Width, footerH);
+        int vw = TextRenderer.MeasureText(_verify.Text, _verify.Font).Width + 44, vh = 42;
+        _verify.SetBounds(_footer.Width - Pad - vw, (footerH - vh) / 2, vw, vh);
+
+        _scrollHost.SetBounds(0, hb, ClientSize.Width, Math.Max(0, ClientSize.Height - hb - footerH));
+        _footer.Invalidate();
         LayoutTable();
     }
 
@@ -148,8 +181,7 @@ public sealed class ModelsPage : ThemedPage
         public int ContentHeight(int width)
         {
             int rows = _p.Rows.Count;
-            int tableH = HeadH + rows * RowH + 10;
-            return tableH + 14 + FLegend.Height * 3 + 24;
+            return HeadH + rows * RowH + 10 + 14;   // legend moved to the page footer
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -243,10 +275,6 @@ public sealed class ModelsPage : ThemedPage
             if (rows == 0)
                 TextRenderer.DrawText(g, "—", FCell, new Rectangle(cx[0], HeadH, avail, RowH), Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-
-            int ly = tableH + 14;
-            TextRenderer.DrawText(g, Lang.T("mdl_legend"), FLegend, new Rectangle(Pad, ly, avail, FLegend.Height * 3 + 4),
-                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak);
         }
 
         private static void Cell(Graphics g, int[] cx, int c, int ry, int w, string text, Font font, Color color) =>

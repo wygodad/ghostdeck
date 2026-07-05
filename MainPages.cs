@@ -408,15 +408,26 @@ public sealed class StatusPage : ThemedPage
 
     private readonly Canvas _canvas;
 
+    // Sub-tabs split the (heavy) Status page into three shorter views: charts, EC bytes, change log.
+    private readonly SubTabs _statusTabs = new(Lang.T("st_sub_charts"), Lang.T("st_sub_bytes"), Lang.T("st_sub_log"));
+    private int _statusSub;
+    private const int SubY = 90;      // sub-tab bar Y (clear gap under the title)
+    private const int SecTop = 168;   // content starts below the title + sub-tab bar (clear gap under it)
+
     public StatusPage(MainDeps d) : base(d)
     {
         _dev = Devices.Detect(d.Firmware);
         _canvas = new Canvas(this) { Location = new Point(0, 0) };
         Controls.Add(_canvas);
 
+        _statusTabs.Location = new Point(Pad, SubY);
+        _statusTabs.Changed += i => { _statusSub = i; _logBtn.Visible = i == 2; Relayout(); _canvas.Rebuild(); };
+        _canvas.Controls.Add(_statusTabs);
+
         // "Full log…" button lives on the canvas so it scrolls with the recent-changes section.
         _logBtn.Text = Lang.T("log_full");
         _logBtn.AutoSize = false;
+        _logBtn.Visible = false;   // only on the change-log sub-tab
         Ui.StyleGhost(_logBtn);
         _logBtn.Click += (_, _) => LogForm.ShowSingleton();
         _canvas.Controls.Add(_logBtn);
@@ -456,30 +467,36 @@ public sealed class StatusPage : ThemedPage
     private void Relayout()
     {
         if (_canvas == null) return;
+        _statusTabs.Size = new Size(_statusTabs.PreferredWidth, _statusTabs.Height);
         _canvas.Width = ClientSize.Width;
-        _canvas.Height = Math.Max(ContentHeight(_canvas.Width), ClientSize.Height);
+        _canvas.Height = Math.Max(SectionHeight(_canvas.Width, _statusSub), ClientSize.Height);
     }
 
     private static int GridH(bool title, int rows, int headerLines = 1) =>
         (title ? GTitle.Height + 12 : 0) + (GHead.Height * headerLines + 14) + rows * (GCell.Height + 14) + 8;
 
-    private int ContentHeight(int width)
+    // Height of the active sub-tab's content (0 = charts, 1 = EC bytes, 2 = change log).
+    private int SectionHeight(int width, int sub)
     {
-        int ring = RingSize(width);
-        // rings + sub-row1 (54) + sub-row2 (14+54) + gap → card
-        int cardTop = RingTop + ring + 68 + 54 + 14 + 54 + 40;
-        int afterCard = cardTop + RowH * Rows.Length + 14;
-        int sec = afterCard + 34 + GridH(true, 5, 2) + NoteH;   // matrix (2-line headers) + 0x34 note
-        sec += 8 + GridH(false, 4);                             // legend
-        if (_dev?.FanCurve is { } fc) sec += 16 + GridH(true, fc.Points);
-        sec += 16 + GridH(true, RecentLogRows);                 // recent-changes log
-        return sec + 40;
+        if (sub == 0)
+        {
+            int ring = RingSize(width);
+            int cardTop = SecTop + ring + 68 + 54 + 14 + 54 + 40;
+            return cardTop + RowH * Rows.Length + 14 + 40;
+        }
+        if (sub == 1)
+        {
+            int h = SecTop + GridH(true, 5, 2) + NoteH + 8 + GridH(false, 4);
+            if (_dev?.FanCurve is { } fc) h += 16 + GridH(true, fc.Points);
+            return h + 40;
+        }
+        return SecTop + 16 + GridH(true, RecentLogRows) + 40;
     }
 
-    private const int RecentLogRows = 6;
+    private const int RecentLogRows = 16;
 
-    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); Relayout(); RefreshLive(); _canvas.Rebuild(); }
-    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _canvas.Rebuild(); } }
+    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 2; Relayout(); RefreshLive(); _canvas.Rebuild(); }
+    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
     protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; } base.Dispose(disposing); }
 
     // The page is painted by an inner canvas sized to the full content height; WinForms scrolls that
@@ -545,9 +562,13 @@ public sealed class StatusPage : ThemedPage
         Ui.Pill(g, info.TierText, new Point(width - Pad - bw, 28), info.TierColor);
 
         int avail = width - Pad * 2;
+        if (_statusSub == 1) { RenderBytes(g, avail, info); return; }
+        if (_statusSub == 2) { RenderLog(g, avail); return; }
+
+        // ---- sub-tab 0: charts (rings + RAM + metric boxes + details card) ----
         int ringGap = RingGap();
         int ring = RingSize(width);
-        int top = RingTop;
+        int top = SecTop;
         int cpuUse = SysInfo.CpuUsage();
         var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
         int X(int i) => Pad + i * (ring + ringGap);
@@ -612,17 +633,22 @@ public sealed class StatusPage : ThemedPage
             }
             y += rowH;
         }
+    }
 
-        // ---- profile-byte matrix + legend + live fan-curve tables ----
-        int sec = (int)card.Bottom + 34;
+    // ---- sub-tab 1: profile-byte matrix + legend + live fan-curve tables ----
+    private void RenderBytes(Graphics g, int avail, StatusInfo info)
+    {
+        int sec = SecTop;
         sec = DrawMatrix(g, sec, avail, info);
         TextRenderer.DrawText(g, Lang.T("st_matrix_note"), new Font("Segoe UI", 9f), new Rectangle(Pad, sec + 4, avail, NoteH - 4),
             Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordEllipsis);
         sec += NoteH;
         sec = DrawLegend(g, sec, avail);
-        if (_dev?.FanCurve != null && _curve is { } cv) sec = DrawCurveLive(g, sec, avail, cv);
-        sec = DrawRecentLog(g, sec, avail);
+        if (_dev?.FanCurve != null && _curve is { } cv) DrawCurveLive(g, sec, avail, cv);
     }
+
+    // ---- sub-tab 2: recent-changes log ----
+    private void RenderLog(Graphics g, int avail) => DrawRecentLog(g, SecTop - 16, avail);
 
     private int DrawRecentLog(Graphics g, int top, int avail)
     {

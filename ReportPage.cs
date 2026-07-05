@@ -34,8 +34,45 @@ public sealed class ReportPage : ThemedPage
     private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH;
     private static readonly Font IntroFont = new("Segoe UI", 10.5f);
 
+    // ---- sub-tabs: 0 = profiles (default), 1 = fan curve ----
+    private readonly SubTabs _subTabs = new(Lang.T("subtab_profiles"), Lang.T("subtab_curve"));
+    private int _sub;
+    private int _subTop;
+
+    // ---- fan-curve verification flow ----
+    // The user sets these exact, distinctive speeds in MSI Center (Extreme → Advanced). We read the EC
+    // back and search the full dump for the sequences: finding them locates the per-model curve tables.
+    private static readonly int[] CpuTracer = { 25, 35, 45, 55, 65, 75 };
+    private static readonly int[] GpuTracer = { 20, 30, 40, 50, 60, 70 };
+    private readonly Button _curveBtn = new();
+    private InfoCardT _curveCard = null!;
+    private int _curveStepsTop;
+    private byte[]? _curveDump;
+    private bool _curveCapturing;
+    private int _curvePct = -1;
+    private float _curveBar;
+    private (int cpu, int gpu)? _curveFound;
+    private string? _curveMsg;
+    private bool _curveMatch;
+    private string? _curveSavedPath;
+    private int _curveTop, _curveBtnY, _curveBarY;
+
     public ReportPage(MainDeps d) : base(d)
     {
+        _subTabs.Changed += i => { _sub = i; SyncSub(); Relayout(); Invalidate(); };
+        Controls.Add(_subTabs);
+
+        Ui.StylePrimary(_curveBtn);
+        _curveBtn.Click += OnCurveCapture;
+        Controls.Add(_curveBtn);
+
+        _curveCard = new InfoCardT("⚠", new (string, string?)[]
+        {
+            (Lang.T("rep_curve_warn"), null),
+            (Lang.T("rep_curve_why"), null),
+        }, _leftW);
+        Controls.Add(_curveCard);
+
         _card = new InfoCardT("ⓘ", new (string, string?)[]
         {
             (Lang.T("rep_need_msi"), null),
@@ -58,9 +95,30 @@ public sealed class ReportPage : ThemedPage
         _anim.Tick += (_, _) => OnAnim();
         Resize += (_, _) => Relayout();
         RefreshSteps();
+        SyncSub();
     }
 
-    public override void OnEnter() { Relayout(); RefreshSteps(); Invalidate(); }
+    /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve). Used by deep links.</summary>
+    public void SetSubTab(int sub)
+    {
+        _sub = Math.Clamp(sub, 0, 1);
+        _subTabs.SetActive(_sub);
+        SyncSub(); Relayout(); Invalidate();
+    }
+
+    // Show only the active sub-tab's controls (the rest are hand-painted, gated in OnPaint).
+    private void SyncSub()
+    {
+        bool prof = _sub == 0;
+        _card.Visible = prof;
+        foreach (var r in _rows) r.Visible = prof;
+        _capture.Visible = prof;
+        _curveBtn.Visible = !prof;
+        _curveCard.Visible = !prof;
+        if (!prof) RefreshCurve();
+    }
+
+    public override void OnEnter() { Relayout(); RefreshSteps(); SyncSub(); Invalidate(); }
 
     public override void ApplyTheme()
     {
@@ -68,18 +126,30 @@ public sealed class ReportPage : ThemedPage
         _card.ApplyTheme();
         for (int i = 0; i < _rows.Length; i++) { _rows[i].Tint = Theme.Profile(D.ColorOf(Steps[i].id)); _rows[i].Invalidate(); }
         Ui.StylePrimary(_capture);
+        Ui.StylePrimary(_curveBtn);
+        _curveCard.ApplyTheme();
+        _subTabs.Invalidate();
     }
 
     private void Relayout()
+    {
+        int titleH = new Font("Segoe UI", 18f, FontStyle.Bold).Height;
+        _subTop = 24 + titleH + 18;
+        _subTabs.SetBounds(Pad, _subTop, _subTabs.PreferredWidth, _subTabs.Height);
+
+        if (_sub == 0) LayoutProfiles(_subTabs.Bottom + 26);
+        else LayoutCurve(_subTabs.Bottom + 26);
+    }
+
+    private void LayoutProfiles(int top)
     {
         // equal-width columns
         _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
         _rightX = Pad + _leftW + Gutter;
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
 
-        int titleH = new Font("Segoe UI", 18f, FontStyle.Bold).Height;
         int secH = new Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
-        _introY = 24 + titleH + 10;
+        _introY = top;
         _introH = TextRenderer.MeasureText(Lang.T("rep_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
         _contentTop = _introY + _introH + 18;
         _rowsTop = _contentTop + secH + 14;
@@ -100,15 +170,43 @@ public sealed class ReportPage : ThemedPage
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
 
+    // Two-column layout mirroring the profiles flow: left = intro + info card + firmware pill,
+    // right = section label + numbered steps + capture button + result.
+    private void LayoutCurve(int top)
+    {
+        _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
+        _rightX = Pad + _leftW + Gutter;
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
+        int secH = new Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
+
+        _curveTop = top;   // intro (left)
+        _introH = TextRenderer.MeasureText(Lang.T("rep_curve_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
+        _contentTop = _curveTop + _introH + 18;
+        _curveCard.Location = new Point(Pad, _contentTop);
+        _curveCard.SetWidth(_leftW);
+
+        // right column: section label + 5 steps + button
+        _curveStepsTop = _contentTop + secH + 14;
+        _curveBtnY = _curveStepsTop + 34 * 5 + 18;
+        _curveBarY = _curveBtnY + 62;
+        _curveBtn.SetBounds(_rightX, _curveBtnY, Math.Min(320, rightW), 44);
+
+        int leftBottom = _curveCard.Bottom + 70;   // + firmware pill
+        int rightBottom = _curveBarY + 80;
+        AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
         ApplyScroll(g);
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
 
         TextRenderer.DrawText(g, Lang.T("menu_report"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
+        if (_sub == 1) { PaintCurve(g); return; }
+
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
         // left: intro under title, info card (child) already placed, firmware pill below it
         TextRenderer.DrawText(g, Lang.T("rep_intro"), IntroFont,
             new Rectangle(Pad, _introY, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
@@ -144,6 +242,184 @@ public sealed class ReportPage : ThemedPage
         if (done && _savedPath != null)
             TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _savedPath), new Font("Segoe UI", 9f),
                 new Rectangle(_rightX, _capture.Bottom + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
+    }
+
+    // =================================================================
+    //  fan-curve verification sub-tab
+    // =================================================================
+    private void RefreshCurve() => _curveBtn.Text = _curveDump == null ? Lang.T("rep_curve_capture") : Lang.T("rep_curve_finish");
+
+    private void PaintCurve(Graphics g)
+    {
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
+
+        // ---- left column: intro + info card (child) + firmware pill ----
+        TextRenderer.DrawText(g, Lang.T("rep_curve_intro"), IntroFont,
+            new Rectangle(Pad, _curveTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        var pill = new RectangleF(Pad, _curveCard.Bottom + 14, _leftW, 44);
+        using (var path = Theme.RoundRect(pill, 11))
+        { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
+        var lf = new Font("Segoe UI", 10f);
+        TextRenderer.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+        int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
+        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware) ? "—" : D.Firmware, new Font("Consolas", 11f, FontStyle.Bold),
+            new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+
+        // ---- right column: section label + numbered steps ----
+        TextRenderer.DrawText(g, Lang.T("rep_curve_steps"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
+        string[] steps = { Lang.T("rep_curve_s1"), Lang.T("rep_curve_s2"), Lang.T("rep_curve_s3"), Lang.T("rep_curve_s4"), Lang.T("rep_curve_s5") };
+        var numFont = new Font("Segoe UI", 9f, FontStyle.Bold);
+        var stFont = new Font("Segoe UI", 10.5f);
+        for (int i = 0; i < steps.Length; i++)
+        {
+            int ry = _curveStepsTop + i * 34;
+            var circ = new RectangleF(_rightX, ry, 24, 24);
+            using (var b = new SolidBrush(Theme.AccentSoft)) g.FillEllipse(b, circ);
+            TextRenderer.DrawText(g, (i + 1).ToString(), numFont, Rectangle.Round(circ), Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(g, steps[i], stFont, new Rectangle(_rightX + 36, ry - 4, rightW - 40, 34), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        }
+
+        // ---- right column: progress / result (under the capture button) ----
+        if (_curveCapturing)
+        {
+            TextRenderer.DrawText(g, Lang.T("rep_capturing") + $"  {_curvePct}%", new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, _curveBarY - 4), Theme.Accent);
+            var track = new RectangleF(_rightX, _curveBarY + 20, rightW, 12);
+            using (var path = Theme.RoundRect(track, 6)) { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
+            float fw = Math.Max(12, rightW * _curveBar);
+            using (var path = Theme.RoundRect(new RectangleF(_rightX, _curveBarY + 20, fw, 12), 6)) { using var b = new SolidBrush(Theme.Accent); g.FillPath(b, path); }
+        }
+        else if (_curveMsg != null)
+        {
+            var col = _curveFound != null ? (_curveMatch ? Theme.Green : Theme.Amber) : Theme.Red;
+            var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak);
+        }
+    }
+
+    private void OnCurveCapture(object? sender, EventArgs e)
+    {
+        if (_curveDump != null) { FinishCurve(); return; }
+        if (_curveCapturing) return;
+        _curveCapturing = true; _curveBtn.Enabled = false; _curvePct = 0; _curveBar = 0; _curveMsg = null; Invalidate();
+        Task.Run(() =>
+        {
+            try { var d = Ec.DumpAll(CurveProgress); BeginInvoke(() => CurveDone(d, null)); }
+            catch (Exception ex) { BeginInvoke(() => CurveDone(null, ex)); }
+        });
+    }
+
+    private void CurveProgress(int byteIdx)
+    {
+        int pct = (int)((byteIdx + 1) / 256f * 100);
+        if (pct == _curvePct) return;
+        _curvePct = pct;
+        BeginInvoke(() => { _curveBar = pct / 100f; Invalidate(); });
+    }
+
+    private void CurveDone(byte[]? dump, Exception? ex)
+    {
+        _curveCapturing = false; _curveBtn.Enabled = true;
+        if (ex != null || dump == null)
+        {
+            MessageBox.Show(string.Format(Lang.T("rep_read_fail"), ex?.Message ?? ""), Lang.T("err"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Invalidate(); return;
+        }
+        _curveDump = dump;
+        int cpu = FindTracer(dump, CpuTracer), gpu = FindTracer(dump, GpuTracer);
+        if (cpu >= 0 && gpu >= 0)
+        {
+            _curveFound = (cpu, gpu);
+            var fc = Devices.Detect(D.Firmware)?.FanCurve;
+            _curveMatch = fc != null && cpu == fc.CpuSpeedBase && gpu == fc.GpuSpeedBase;
+            _curveMsg = string.Format(Lang.T("rep_curve_found"), cpu, gpu) + "  " + Lang.T(_curveMatch ? "rep_curve_match" : "rep_curve_nomatch");
+        }
+        else { _curveFound = null; _curveMatch = false; _curveMsg = Lang.T("rep_curve_notfound"); }
+        PrepareCurveReport();
+        RefreshCurve();
+        Invalidate();
+    }
+
+    // Scan the 256-byte dump for the tracer speeds. Exact 6-value run first; fall back to the first 5.
+    private static int FindTracer(byte[] dump, int[] seq)
+    {
+        for (int len = seq.Length; len >= 5; len--)
+            for (int a = 0; a + len <= 256; a++)
+            {
+                bool ok = true;
+                for (int i = 0; i < len; i++) if (dump[a + i] != seq[i]) { ok = false; break; }
+                if (ok) return a;
+            }
+        return -1;
+    }
+
+    private string BuildCurveReport()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== GhostDeck — fan-curve verification report ===");
+        sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
+        sb.AppendLine($"App version: {D.AppVersion()}");
+        sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware) ? "(unknown)" : D.Firmware)}");
+        sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
+        sb.AppendLine();
+        sb.AppendLine("Test curve set in MSI Center (Extreme → Advanced):");
+        sb.AppendLine($"  Fan 1 (CPU): {string.Join(" ", CpuTracer)}");
+        sb.AppendLine($"  Fan 2 (GPU): {string.Join(" ", GpuTracer)}");
+        sb.AppendLine();
+        if (_curveFound is { } f)
+        {
+            sb.AppendLine($"Located in EC dump:  CPU speed table @ 0x{f.cpu:X2}   GPU speed table @ 0x{f.gpu:X2}");
+            var fc = Devices.Detect(D.Firmware)?.FanCurve;
+            if (fc != null) sb.AppendLine($"Shipped map for this model:  CPU 0x{fc.CpuSpeedBase:X2}  GPU 0x{fc.GpuSpeedBase:X2}  → {(_curveMatch ? "MATCH" : "DIFFERENT")}");
+            else sb.AppendLine("Shipped map for this model:  (none — model not recognised)");
+        }
+        else sb.AppendLine("Test curve NOT located in the dump (was the curve Saved in MSI Center?).");
+        sb.AppendLine();
+        sb.AppendLine("--- Full EC dump (256 bytes) ---");
+        for (int row = 0; row < 256; row += 16)
+        {
+            sb.Append($"{row:X2}: ");
+            for (int c = 0; c < 16; c++) sb.Append($"{_curveDump![row + c]:X2} ");
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    private void PrepareCurveReport()
+    {
+        string report = BuildCurveReport();
+        try { Clipboard.SetText(report); } catch { }
+        try
+        {
+            string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string fwTag = string.IsNullOrEmpty(D.Firmware) ? "unknown" : D.Firmware.Replace('.', '_');
+            _curveSavedPath = Path.Combine(dir, $"ghostdeck-curve-report-{fwTag}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+            File.WriteAllText(_curveSavedPath, report, new UTF8Encoding(false));
+        }
+        catch { _curveSavedPath = null; }
+    }
+
+    private void FinishCurve()
+    {
+        try { Process.Start(new ProcessStartInfo(BuildCurveIssueUrl()) { UseShellExecute = true }); } catch { }
+    }
+
+    private string BuildCurveIssueUrl()
+    {
+        string title = $"[Curve] {ModelName()} ({D.Firmware})";
+        string found = _curveFound is { } f
+            ? $"CPU @ 0x{f.cpu:X2}, GPU @ 0x{f.gpu:X2}" + (_curveMatch ? " (matches shipped map)" : " (differs from shipped map)")
+            : "not located in dump";
+        string dump = _curveSavedPath != null
+            ? $"Full curve report copied to clipboard and saved to:\n{_curveSavedPath}\n\nPlease paste it here with Ctrl+V."
+            : "Full curve report copied to clipboard — please paste it here with Ctrl+V.";
+        return RepoUrl + "/issues/new?template=curve-support.yml&labels=curve-support"
+            + "&title=" + Uri.EscapeDataString(title)
+            + "&model=" + Uri.EscapeDataString(ModelName())
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware)
+            + "&found=" + Uri.EscapeDataString(found)
+            + "&dump=" + Uri.EscapeDataString(dump);
     }
 
     // ---- step state ----

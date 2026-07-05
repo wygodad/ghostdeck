@@ -646,3 +646,33 @@ więc czcionki w punktach renderują się identycznie jak zmierzony rozmiar przy
 chwytalną powierzchnię (min. ~43 % wypełnienia niezależnie od ustawień tła) plus mocniejszą ramkę
 akcentu i uchwyt 3×3 kropek, żeby dało się ją znaleźć i przeciągnąć nawet przy wyłączonym tle;
 zablokowanie przywraca skonfigurowane tło i włącza klik-through.
+
+## 22. Sub-zakładki i dwa przepływy zgłaszania/weryfikacji
+
+**Sub-zakładki (`SubTabs.cs`).** Wielokrotnego użytku, themowany segmentowy przełącznik, który dzieli
+stronę na kilka podstron bez dodawania zakładek najwyższego poziomu. To kontrolka-dziecko zgłaszająca
+`Changed(int)`; host przelicza układ i pokazuje tylko aktywną podstronę. Użyty w dwóch miejscach:
+
+- **Status** — ciężki, ręcznie malowany canvas (§4 w RENDERING.md) podzielony na trzy podstrony:
+  `Wykresy` (pierścienie, RAM, kafelki, tabela szczegółów), `Bajty EC` (matryca bajtów profilu +
+  legenda + żywe tablice krzywej) i `Historia zmian`. `SectionHeight(width, sub)` skaluje canvas do
+  wysokości aktywnej sekcji, a `Render` rozgałęzia się do `RenderBytes` / `RenderLog` (wykresy domyślnie).
+  Treść zaczyna się na stałym `SecTop` pod tytułem i paskiem sub-zakładek; przycisk „Pełny log…” jest
+  widoczny tylko na podstronie logu.
+- **Zgłoś** — podzielone na `Profile` (dotychczasowy zbiór 4 scenariuszy) i `Krzywa wentylatora` (niżej).
+
+**Zgłoś jako ikona, nie zakładka.** Aby zwolnić miejsce na głównym pasku, Zgłoś przeniesiono z rzędu
+zakładek do przycisku-ikony `⚑` po prawej (obok przełącznika motywu). `MainForm.ShowReport(sub)`
+deep-linkuje sub-zakładkę; strona Modele (CTA „Zweryfikuj mój model”) otwiera sub 0, strona Krzywa
+(„Zgłoś krzywą”) otwiera sub 1, a zasobnik grupuje oba pod pod-menu „Zgłoś / zweryfikuj”.
+
+**Weryfikacja krzywej znacznikiem (`ReportPage`, `curve-support.yml`).** MSI Center udostępnia edytor
+krzywej tylko w **Extreme Performance**, więc kreator prowadzi tam użytkownika i prosi o ustawienie
+**wyraźnej, nietypowej** krzywej: Fan 1 = `25 35 45 55 65 75`, Fan 2 = `20 30 40 50 60 70`. Ponieważ
+MSI Center zapisuje krzywą do tych samych bajtów EC, które my odczytujemy, jeden zrzut 256 bajtów
+(tylko odczyt) zawiera te ciągi. `FindTracer` przeszukuje cały zrzut za każdym ciągiem (dokładne 6
+wartości, w razie braku pierwsze 5) i zwraca adres — to **odkrywa** bazę tablicy prędkości per model,
+nie tylko potwierdza założenie. Jeśli znalezione adresy równają się mapie w kodzie (`FanCurveSpec`:
+`CpuSpeedBase` / `GpuSpeedBase`), krzywą modelu można oznaczyć jako zweryfikowaną; w przeciwnym razie
+raportujemy realne adresy do przeglądu. Różne ciągi dla obu wentylatorów pozwalają odróżnić tablicę CPU
+od GPU i wykluczają przypadkowe trafienie w (statyczną) krzywą domyślną.

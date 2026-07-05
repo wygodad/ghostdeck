@@ -26,6 +26,156 @@ public static class Lang
 
     private static readonly Dictionary<string, string[]> Map = new()
     {
+        // ---- sub-tabs ----
+        ["subtab_profiles"] = new[] { "Profiles", "Profile", "Profile", "Profils", "Perfiles", "配置文件", "Perfis", "Профили" },
+        ["subtab_curve"]    = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe du ventilateur", "Curva del ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора" },
+        ["st_sub_charts"]   = new[] { "Charts", "Wykresy", "Diagramme", "Graphiques", "Gráficos", "图表", "Gráficos", "Графики" },
+        ["st_sub_bytes"]    = new[] { "EC bytes", "Bajty EC", "EC-Bytes", "Octets EC", "Bytes EC", "EC 字节", "Bytes EC", "Байты EC" },
+        ["st_sub_log"]      = new[] { "Change log", "Historia zmian", "Änderungen", "Journal", "Registro", "更改记录", "Alterações", "Журнал" },
+
+        // ---- report: fan-curve verification flow ----
+        ["rep_curve_intro"]   = new[]
+        {
+            "Help verify the fan-curve addresses for your model. Set the exact test curve below in MSI Center, then capture — we read it back from the EC (read-only) and locate it, then prepare a GitHub report.",
+            "Pomóż zweryfikować adresy krzywej wentylatora dla Twojego modelu. Ustaw w MSI Center dokładnie poniższą krzywą testową, potem kliknij Zbierz — odczytamy ją z EC (tylko odczyt), zlokalizujemy i przygotujemy zgłoszenie na GitHub.",
+            "Hilf, die Lüfterkurven-Adressen für dein Modell zu verifizieren. Stelle in MSI Center genau die untenstehende Testkurve ein, dann erfasse — wir lesen sie aus dem EC zurück (nur Lesen), lokalisieren sie und erstellen einen GitHub-Bericht.",
+            "Aidez à vérifier les adresses de la courbe de ventilation pour votre modèle. Réglez exactement la courbe de test ci-dessous dans MSI Center, puis capturez — nous la relisons depuis l'EC (lecture seule), la localisons et préparons un rapport GitHub.",
+            "Ayuda a verificar las direcciones de la curva del ventilador de tu modelo. Configura en MSI Center exactamente la curva de prueba de abajo y luego captura — la leemos del EC (solo lectura), la localizamos y preparamos un informe de GitHub.",
+            "帮助验证你机型的风扇曲线地址。在 MSI Center 中精确设置下面的测试曲线，然后采集——我们会从 EC 读回（只读）并定位它，随后生成 GitHub 报告。",
+            "Ajude a verificar os endereços da curva da ventoinha do seu modelo. Defina no MSI Center exatamente a curva de teste abaixo e capture — lemos de volta do EC (somente leitura), localizamos e preparamos um relatório no GitHub.",
+            "Помогите проверить адреса кривой вентилятора для вашей модели. Задайте в MSI Center точно указанную ниже тестовую кривую, затем снимите — мы считаем её из EC (только чтение), найдём и подготовим отчёт на GitHub."
+        },
+        ["rep_curve_warn"] = new[]
+        {
+            "MSI Center only lets you edit the fan curve in Extreme Performance. Switch to that profile first.",
+            "MSI Center pozwala edytować krzywą tylko w trybie Extreme Performance. Najpierw przełącz się na ten profil.",
+            "MSI Center erlaubt das Bearbeiten der Lüfterkurve nur im Modus Extreme Performance. Wechsle zuerst zu diesem Profil.",
+            "MSI Center ne permet de modifier la courbe qu'en mode Extreme Performance. Passez d'abord à ce profil.",
+            "MSI Center solo permite editar la curva en modo Extreme Performance. Cambia primero a ese perfil.",
+            "MSI Center 仅允许在 Extreme Performance 模式下编辑风扇曲线。请先切换到该配置文件。",
+            "O MSI Center só permite editar a curva no modo Extreme Performance. Mude primeiro para esse perfil.",
+            "MSI Center позволяет редактировать кривую только в режиме Extreme Performance. Сначала переключитесь на этот профиль."
+        },
+        ["rep_curve_steps"] = new[] { "STEPS", "KROKI", "SCHRITTE", "ÉTAPES", "PASOS", "步骤", "PASSOS", "ШАГИ" },
+        ["rep_curve_why"] = new[]
+        {
+            "The values are deliberately unusual, so we can find exactly where MSI Center wrote them in the EC and confirm the curve addresses for your model.",
+            "Wartości są celowo nietypowe, żebyśmy mogli znaleźć dokładnie tam, gdzie MSI Center zapisał je w EC, i potwierdzić adresy krzywej dla Twojego modelu.",
+            "Die Werte sind bewusst ungewöhnlich, damit wir genau finden, wohin MSI Center sie im EC geschrieben hat, und die Kurvenadressen für dein Modell bestätigen können.",
+            "Les valeurs sont volontairement inhabituelles, afin de trouver exactement où MSI Center les a écrites dans l'EC et de confirmer les adresses de la courbe pour votre modèle.",
+            "Los valores son deliberadamente inusuales para poder encontrar exactamente dónde los escribió MSI Center en el EC y confirmar las direcciones de la curva de tu modelo.",
+            "这些数值刻意与众不同，便于我们准确找到 MSI Center 在 EC 中写入的位置，并确认你机型的曲线地址。",
+            "Os valores são propositalmente incomuns, para encontrarmos exatamente onde o MSI Center os gravou no EC e confirmar os endereços da curva do seu modelo.",
+            "Значения намеренно необычные, чтобы мы могли точно найти, куда MSI Center записал их в EC, и подтвердить адреса кривой для вашей модели."
+        },
+        ["rep_curve_s1"] = new[]
+        {
+            "Switch the laptop to the Extreme Performance profile (Features → Extreme Performance).",
+            "Przełącz laptop na profil Extreme Performance (Features → Extreme Performance).",
+            "Wechsle das Notebook in das Profil Extreme Performance (Features → Extreme Performance).",
+            "Passez le PC au profil Extreme Performance (Features → Extreme Performance).",
+            "Cambia el portátil al perfil Extreme Performance (Features → Extreme Performance).",
+            "将笔记本切换到 Extreme Performance 配置文件（Features → Extreme Performance）。",
+            "Mude o notebook para o perfil Extreme Performance (Features → Extreme Performance).",
+            "Переключите ноутбук в профиль Extreme Performance (Features → Extreme Performance)."
+        },
+        ["rep_curve_s2"] = new[]
+        {
+            "Open Advanced (the gear icon) → the Fan Speed tab → Advanced mode.",
+            "Otwórz Advanced (koło zębate) → zakładka Fan Speed → tryb Advanced.",
+            "Öffne Advanced (Zahnrad) → Reiter Fan Speed → Modus Advanced.",
+            "Ouvrez Advanced (l'engrenage) → onglet Fan Speed → mode Advanced.",
+            "Abre Advanced (el engranaje) → pestaña Fan Speed → modo Advanced.",
+            "打开 Advanced（齿轮图标）→ Fan Speed 选项卡 → Advanced 模式。",
+            "Abra Advanced (a engrenagem) → aba Fan Speed → modo Advanced.",
+            "Откройте Advanced (шестерёнка) → вкладка Fan Speed → режим Advanced."
+        },
+        ["rep_curve_s3"] = new[]
+        {
+            "Set Fan 1 (CPU) to these values, in order: 25, 35, 45, 55, 65, 75 %.",
+            "Ustaw wentylator 1 (CPU) na kolejne wartości: 25, 35, 45, 55, 65, 75 %.",
+            "Stelle Lüfter 1 (CPU) der Reihe nach auf: 25, 35, 45, 55, 65, 75 %.",
+            "Réglez le ventilateur 1 (CPU) sur, dans l'ordre : 25, 35, 45, 55, 65, 75 %.",
+            "Ajusta el ventilador 1 (CPU) a, en orden: 25, 35, 45, 55, 65, 75 %.",
+            "将风扇 1（CPU）依次设为：25、35、45、55、65、75 %。",
+            "Defina o ventilador 1 (CPU), em ordem: 25, 35, 45, 55, 65, 75 %.",
+            "Задайте вентилятор 1 (CPU) по порядку: 25, 35, 45, 55, 65, 75 %."
+        },
+        ["rep_curve_s4"] = new[]
+        {
+            "Set Fan 2 (GPU) to these values, in order: 20, 30, 40, 50, 60, 70 %.",
+            "Ustaw wentylator 2 (GPU) na kolejne wartości: 20, 30, 40, 50, 60, 70 %.",
+            "Stelle Lüfter 2 (GPU) der Reihe nach auf: 20, 30, 40, 50, 60, 70 %.",
+            "Réglez le ventilateur 2 (GPU) sur, dans l'ordre : 20, 30, 40, 50, 60, 70 %.",
+            "Ajusta el ventilador 2 (GPU) a, en orden: 20, 30, 40, 50, 60, 70 %.",
+            "将风扇 2（GPU）依次设为：20、30、40、50、60、70 %。",
+            "Defina o ventilador 2 (GPU), em ordem: 20, 30, 40, 50, 60, 70 %.",
+            "Задайте вентилятор 2 (GPU) по порядку: 20, 30, 40, 50, 60, 70 %."
+        },
+        ["rep_curve_s5"] = new[]
+        {
+            "Click Save in MSI Center, come back here and press “Capture & scan”.",
+            "Kliknij Save w MSI Center, wróć tutaj i naciśnij „Zbierz i skanuj”.",
+            "Klicke in MSI Center auf Save, komm hierher zurück und drücke „Erfassen und scannen“.",
+            "Cliquez sur Save dans MSI Center, revenez ici et appuyez sur « Capturer et analyser ».",
+            "Haz clic en Save en MSI Center, vuelve aquí y pulsa «Capturar y escanear».",
+            "在 MSI Center 点击 Save，返回此处并点击“采集并扫描”。",
+            "Clique em Save no MSI Center, volte aqui e pressione “Capturar e analisar”.",
+            "Нажмите Save в MSI Center, вернитесь сюда и нажмите «Снять и просканировать»."
+        },
+        ["rep_curve_capture"] = new[] { "Capture & scan", "Zbierz i skanuj", "Erfassen und scannen", "Capturer et analyser", "Capturar y escanear", "采集并扫描", "Capturar e analisar", "Снять и просканировать" },
+        ["rep_curve_finish"]  = new[] { "Open GitHub report", "Otwórz zgłoszenie GitHub", "GitHub-Bericht öffnen", "Ouvrir le rapport GitHub", "Abrir informe de GitHub", "打开 GitHub 报告", "Abrir relatório no GitHub", "Открыть отчёт на GitHub" },
+        ["rep_curve_found"]   = new[]
+        {
+            "Test curve found — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Znaleziono krzywą testową — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Testkurve gefunden — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Courbe de test trouvée — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Curva de prueba encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "已找到测试曲线 — CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
+            "Curva de teste encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Тестовая кривая найдена — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}."
+        },
+        ["rep_curve_match"]   = new[]
+        {
+            "Matches the shipped map — this model's curve can be marked verified.", "Zgodne z mapą w aplikacji — krzywą tego modelu można oznaczyć jako zweryfikowaną.",
+            "Stimmt mit der mitgelieferten Zuordnung überein — die Kurve dieses Modells kann als verifiziert markiert werden.", "Correspond à la carte fournie — la courbe de ce modèle peut être marquée comme vérifiée.",
+            "Coincide con el mapa incluido — la curva de este modelo puede marcarse como verificada.", "与内置映射一致——该机型的曲线可标记为已验证。",
+            "Corresponde ao mapa incluído — a curva deste modelo pode ser marcada como verificada.", "Совпадает со встроенной картой — кривую этой модели можно отметить как проверенную."
+        },
+        ["rep_curve_nomatch"] = new[]
+        {
+            "Differs from the shipped map — sending the addresses for review.", "Różni się od mapy w aplikacji — wysyłam adresy do przeglądu.",
+            "Weicht von der mitgelieferten Zuordnung ab — Adressen werden zur Prüfung gesendet.", "Diffère de la carte fournie — envoi des adresses pour examen.",
+            "Difiere del mapa incluido — enviando las direcciones para revisión.", "与内置映射不同——正在发送地址以供审核。",
+            "Difere do mapa incluído — enviando os endereços para revisão.", "Отличается от встроенной карты — отправляю адреса на проверку."
+        },
+        ["rep_curve_notfound"]= new[]
+        {
+            "Couldn't locate the test curve. Send the dump anyway so we can map it (did you Save in MSI Center?).", "Nie udało się znaleźć krzywej testowej. Wyślij zrzut mimo to (czy na pewno kliknięto Save w MSI Center?).",
+            "Testkurve nicht gefunden. Sende den Dump trotzdem, damit wir sie zuordnen können (in MSI Center gespeichert?).", "Impossible de localiser la courbe de test. Envoyez quand même le vidage pour qu'on la cartographie (avez-vous cliqué sur Save dans MSI Center ?).",
+            "No se pudo localizar la curva de prueba. Envía el volcado de todos modos para mapearla (¿guardaste en MSI Center?).", "未能定位测试曲线。仍请发送转储以便我们映射（是否在 MSI Center 点击了 Save？）。",
+            "Não foi possível localizar a curva de teste. Envie o despejo mesmo assim para mapearmos (você clicou em Save no MSI Center?).", "Не удалось найти тестовую кривую. Всё равно отправьте дамп, чтобы мы её сопоставили (нажали Save в MSI Center?)."
+        },
+
+        // ---- Models: verify CTA ----
+        ["models_verify_desc"]  = new[]
+        {
+            "Experimental models work but aren't hardware-confirmed. A 2-minute read-only capture lets us promote your model to Tested.",
+            "Modele eksperymentalne działają, ale nie są potwierdzone sprzętowo. 2-minutowy odczyt (bez zapisu) pozwala awansować Twój model do Tested.",
+            "Experimentelle Modelle funktionieren, sind aber nicht per Hardware bestätigt. Eine 2-minütige Nur-Lesen-Erfassung befördert dein Modell zu „Getestet“.",
+            "Les modèles expérimentaux fonctionnent mais ne sont pas confirmés matériellement. Une capture en lecture seule de 2 min permet de faire passer votre modèle en « Testé ».",
+            "Los modelos experimentales funcionan pero no están confirmados por hardware. Una captura de solo lectura de 2 minutos permite promover tu modelo a Probado.",
+            "实验性机型可用，但未经硬件确认。2 分钟的只读采集即可将你的机型提升为“已测试”。",
+            "Modelos experimentais funcionam, mas não são confirmados por hardware. Uma captura somente-leitura de 2 minutos permite promover seu modelo para Testado.",
+            "Экспериментальные модели работают, но не подтверждены на железе. Двухминутное снятие (только чтение) позволит повысить вашу модель до «Проверено»."
+        },
+        ["models_verify_btn"]   = new[] { "Verify my model", "Zweryfikuj mój model", "Modell verifizieren", "Vérifier mon modèle", "Verificar mi modelo", "验证我的机型", "Verificar meu modelo", "Проверить мою модель" },
+
+        // ---- Fan curve: report button ----
+        ["fc_report_curve"] = new[] { "Report fan curve", "Zgłoś krzywą", "Lüfterkurve melden", "Signaler la courbe", "Reportar la curva", "报告风扇曲线", "Reportar a curva", "Сообщить о кривой" },
+
+        // ---- tray: grouped report submenu ----
+        ["tray_report"]       = new[] { "Report / verify", "Zgłoś / zweryfikuj", "Melden / verifizieren", "Signaler / vérifier", "Reportar / verificar", "报告 / 验证", "Reportar / verificar", "Сообщить / проверить" },
+        ["tray_report_model"] = new[] { "My model…", "Mój model…", "Mein Modell…", "Mon modèle…", "Mi modelo…", "我的机型…", "Meu modelo…", "Моя модель…" },
+        ["tray_report_curve"] = new[] { "Fan curve…", "Krzywą wentylatora…", "Lüfterkurve…", "Courbe du ventilateur…", "Curva del ventilador…", "风扇曲线…", "Curva da ventoinha…", "Кривая вентилятора…" },
+
         ["menu_settings"]  = new[] { "Settings", "Ustawienia", "Einstellungen", "Paramètres", "Configuración", "设置", "Configurações", "Настройки" },
         ["menu_status"]    = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Состояние" },
         ["menu_panel"]     = new[] { "Open panel", "Otwórz panel", "Panel öffnen", "Ouvrir le panneau", "Abrir panel", "打开面板", "Abrir painel", "Открыть панель" },

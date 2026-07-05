@@ -1,0 +1,61 @@
+name: Fan-curve verification
+description: Confirm the fan-curve registers for your MSI laptop model
+title: "[Curve] <your model> (<EC firmware>)"
+labels: ["curve-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping verify the **fan curve** for your model!
+
+        The easiest path is in the app: **Report / verify (⚑) → Fan curve**. It walks you through setting a
+        known test curve in MSI Center (Extreme → Advanced), reads it back from the EC (**read-only**), locates
+        the curve tables, and pre-fills this form. The fields below are filled for you — just paste the full
+        report into the "Full EC dump" field and submit.
+
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      description: Exact model (sticker on the bottom, or MSI Center).
+      placeholder: MSI ...
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: EC firmware
+      description: From the app → Status → "EC firmware" (e.g. 15P2EMS1.110).
+      placeholder: 15P2EMS1.xxx
+    validations:
+      required: true
+
+  - type: input
+    id: found
+    attributes:
+      label: Located curve tables (from the app)
+      description: The app fills this with where it found the test curve, e.g. "CPU @ 0x72, GPU @ 0x8A (matches shipped map)".
+      placeholder: CPU @ 0x.., GPU @ 0x..
+
+  - type: textarea
+    id: dump
+    attributes:
+      label: Full EC dump (with the test curve applied)
+      description: |
+        The app copies the full report to your clipboard and saves it to a file. Paste it here with Ctrl+V.
+        It contains the 256-byte EC dump taken **after** you set the test curve (Fan 1 = 25 35 45 55 65 75,
+        Fan 2 = 20 30 40 50 60 70) and clicked Save in MSI Center.
+      render: text
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I set the exact test curve in MSI Center (Extreme → Advanced) and clicked Save before capturing.
+          required: true
+        - label: I understand this is a read-only capture and EC writes are at my own risk.
+          required: true

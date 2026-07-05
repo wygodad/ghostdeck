@@ -76,6 +76,9 @@ public sealed class MainForm : Form
     private readonly List<TabButton> _tabs = new();
     private readonly Dictionary<MainTab, ThemedPage> _pages = new();
     private readonly GlyphButton _themeBtn = new();
+    private readonly GlyphButton _reportBtn = new();
+    private readonly GlyphButton _updatesBtn = new();
+    private readonly ToolTip _tip = new();
     private readonly Label _version = new();
     private MainTab _active = MainTab.Scenarios;
 
@@ -171,12 +174,25 @@ public sealed class MainForm : Form
         AddTab(MainTab.FanCurve, Lang.T("tab_fancurve"),"");
         AddTab(MainTab.Settings,  Lang.T("menu_settings"), "");
         AddTab(MainTab.Models,    Lang.T("tab_models"),   "\U0001F4BB");
-        AddTab(MainTab.Report,    Lang.T("tab_report"),   "");
-        AddTab(MainTab.Updates,   Lang.T("tab_updates"),   "");
 
         _version.AutoSize = true;
         _version.Font = new Font("Segoe UI", 9.5f);
         _strip.Controls.Add(_version);
+
+        // Report + Updates live as icons on the right (next to the theme toggle) instead of top-level
+        // tabs, freeing room in the strip. Report opens the Report page (deep-linkable sub-tab).
+        _updatesBtn.Size = new Size(40, 38);
+        _updatesBtn.Glyph = "⟳";
+        _updatesBtn.GlyphDx = 1; _updatesBtn.GlyphDy = -2;   // ⟳ ink sits low/left — nudge up + right to match ⚑ / ☾
+        _updatesBtn.Click += (_, _) => ShowTab(MainTab.Updates);
+        _tip.SetToolTip(_updatesBtn, Lang.T("tab_updates"));
+        _strip.Controls.Add(_updatesBtn);
+
+        _reportBtn.Size = new Size(40, 38);
+        _reportBtn.Glyph = "⚑";
+        _reportBtn.Click += (_, _) => ShowTab(MainTab.Report);
+        _tip.SetToolTip(_reportBtn, Lang.T("tab_report"));
+        _strip.Controls.Add(_reportBtn);
 
         _themeBtn.Size = new Size(40, 38);
         _themeBtn.Glyph = Theme.Dark ? "☀" : "☾";
@@ -206,8 +222,10 @@ public sealed class MainForm : Form
             x += w + 8;
         }
         _themeBtn.Location = new Point(_strip.Width - _themeBtn.Width - 18, (StripH - _themeBtn.Height) / 2);
+        _reportBtn.Location = new Point(_themeBtn.Left - _reportBtn.Width - 8, (StripH - _reportBtn.Height) / 2);
+        _updatesBtn.Location = new Point(_reportBtn.Left - _updatesBtn.Width - 8, (StripH - _updatesBtn.Height) / 2);
         _version.Text = "v" + _d.AppVersion();
-        _version.Location = new Point(_themeBtn.Left - _version.Width - 14, (StripH - _version.Height) / 2);
+        _version.Location = new Point(_updatesBtn.Left - _version.Width - 14, (StripH - _version.Height) / 2);
     }
 
     public void ShowTab(MainTab tab)
@@ -225,6 +243,13 @@ public sealed class MainForm : Form
         foreach (var b in _tabs) { b.Active = (MainTab)b.Tag! == tab; b.Invalidate(); }
         _strip.Invalidate();
         Activate();
+    }
+
+    /// <summary>Open the Report page on a given sub-tab (0 = profiles, 1 = fan curve). Deep-linked from Models / Fan curve.</summary>
+    public void ShowReport(int sub)
+    {
+        ShowTab(MainTab.Report);
+        if (_pages.TryGetValue(MainTab.Report, out var p) && p is ReportPage rp) rp.SetSubTab(sub);
     }
 
     public void RefreshActive()
@@ -267,6 +292,8 @@ public sealed class MainForm : Form
         _strip.Invalidate();
         foreach (var b in _tabs) b.Invalidate();
         _themeBtn.Invalidate();
+        _reportBtn.Invalidate();
+        _updatesBtn.Invalidate();
         LayoutStrip();
     }
 
@@ -307,6 +334,8 @@ public sealed class MainForm : Form
     private sealed class GlyphButton : Control
     {
         public string Glyph = "";
+        public int GlyphDx, GlyphDy;   // optical nudge — TextRenderer centres the glyph CELL, not its ink,
+                                       // and symbol glyphs have uneven side bearings, so each needs its own tweak
         private bool _hover;
         public GlyphButton() { DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; }
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); }
@@ -324,8 +353,9 @@ public sealed class MainForm : Form
                 using var pen = new Pen(Theme.Border);
                 g.DrawPath(pen, path);
             }
-            TextRenderer.DrawText(g, Glyph, new Font("Segoe UI Symbol", 14f), ClientRectangle, Theme.Muted,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            var gr = ClientRectangle; gr.Offset(GlyphDx, GlyphDy);
+            TextRenderer.DrawText(g, Glyph, new Font("Segoe UI Symbol", 14f), gr, Theme.Muted,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
     }
 

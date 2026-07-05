@@ -28,6 +28,7 @@ public sealed class FanCurvePage : ThemedPage
     private readonly ToggleSwitch _enable = new();
     private readonly Label _enableLabel = new();
     private readonly Button _default = new();
+    private readonly Button _report = new();
 
     public FanCurvePage(MainDeps d) : base(d)
     {
@@ -41,6 +42,8 @@ public sealed class FanCurvePage : ThemedPage
         Controls.Add(_enableLabel);
         Controls.Add(_enable);
         Controls.Add(_default);
+        _report.Click += (_, _) => (FindForm() as MainForm)?.ShowReport(1);
+        Controls.Add(_report);
         Restyle();
 
         // The single switch: ON = write our curve + Advanced fan; OFF = hand fans back to the
@@ -97,6 +100,8 @@ public sealed class FanCurvePage : ThemedPage
     {
         Ui.StyleGhost(_default);
         _default.Text = Lang.T("fc_default");
+        Ui.StylePrimary(_report);
+        _report.Text = Lang.T("fc_report_curve");
         _enableLabel.Text = Lang.T("fc_enable");
         _enableLabel.Font = new Font("Segoe UI", 11.5f);
         _enableLabel.ForeColor = Theme.Text;
@@ -109,6 +114,8 @@ public sealed class FanCurvePage : ThemedPage
         _enable.Location = new Point(Pad, by + (bh - _enable.Height) / 2);
         _enableLabel.Location = new Point(Pad + _enable.Width + 12, by + (bh - _enableLabel.Height) / 2);
         _default.SetBounds(Width - Pad - 170, by, 170, bh);
+        int rw = TextRenderer.MeasureText(_report.Text, _report.Font).Width + 40;
+        _report.SetBounds(_default.Left - 14 - rw, by, rw, bh);
     }
 
     // Editing is gated by the normal write permission (Tested, or Experimental opted in) — same as

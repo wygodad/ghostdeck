@@ -612,3 +612,32 @@ frame + drag grip. Layout is measured on a screen-DPI `Graphics` and the content
 (minimum ~43 % fill regardless of the background setting) plus a stronger accent frame and a 3×3 dot
 grip, so it can be found and dragged even with the background off; locking restores the configured
 background and enables click-through.
+
+## 21. Sub-tabs and the two report/verify flows
+
+**Sub-tabs (`SubTabs.cs`).** A reusable themed segmented control that splits a page into a few
+sub-pages without adding top-level tabs. It's a child control that raises `Changed(int)`; the host
+re-lays-out and shows only the active sub-page. Used in two places:
+
+- **Status** — the heavy hand-painted canvas (§4 in RENDERING.md) is split into three sub-pages:
+  `Charts` (rings, RAM, metric boxes, details card), `EC bytes` (profile-byte matrix + legend + live
+  curve tables) and `Change log`. `SectionHeight(width, sub)` sizes the canvas to the active section
+  only, and `Render` branches to `RenderBytes` / `RenderLog` (charts is the default). Content starts at
+  a fixed `SecTop` below the title + sub-tab bar; the "Full log…" button is only shown on the log sub-page.
+- **Report** — split into `Profiles` (the existing 4-scenario capture) and `Fan curve` (below).
+
+**Report is an icon, not a tab.** To free space in the main strip, Report was moved out of the tab row
+to a `⚑` glyph button on the right (next to the theme toggle). `MainForm.ShowReport(sub)` deep-links a
+sub-tab; the Models page ("Verify my model" CTA) opens sub 0, the Fan-curve page ("Report fan curve")
+opens sub 1, and the tray groups both under a "Report / verify" submenu.
+
+**Fan-curve verification by tracer (`ReportPage`, `curve-support.yml`).** MSI Center only exposes the
+curve editor in **Extreme Performance**, so the wizard guides the user there, then asks them to set a
+**distinctive, non-default** curve: Fan 1 = `25 35 45 55 65 75`, Fan 2 = `20 30 40 50 60 70`. Because
+MSI Center writes the curve into the same EC bytes we read, a single read-only 256-byte dump then
+contains those sequences. `FindTracer` scans the whole dump for each run (exact 6-value, else the first
+5) and returns the address — this **discovers** the per-model speed-table base, not just confirms a
+guess. If the found addresses equal the shipped `FanCurveSpec` (`CpuSpeedBase` / `GpuSpeedBase`) the
+model's curve can be marked verified; otherwise the real addresses are reported for review. Using
+distinct sequences per fan is what lets us tell the CPU table from the GPU table and rules out a
+coincidental match against the (static) default curve.

@@ -233,8 +233,14 @@ public sealed class TrayContext : ApplicationContext
         models.Click += (_, _) => OpenMain(MainTab.Models);
         menu.Items.Add(models);
 
-        var report = new ToolStripMenuItem(Lang.T("menu_report"));
-        report.Click += (_, _) => OpenMain(MainTab.Report);
+        // Grouped "Report / verify" submenu: my model (profiles) + fan curve.
+        var report = new ToolStripMenuItem(Lang.T("tray_report"));
+        var reportModel = new ToolStripMenuItem(Lang.T("tray_report_model"));
+        reportModel.Click += (_, _) => OpenReportTab(0);
+        var reportCurve = new ToolStripMenuItem(Lang.T("tray_report_curve"));
+        reportCurve.Click += (_, _) => OpenReportTab(1);
+        report.DropDownItems.Add(reportModel);
+        report.DropDownItems.Add(reportCurve);
         menu.Items.Add(report);
 
         var feedback = new ToolStripMenuItem(Lang.T("menu_feedback"));
@@ -619,6 +625,13 @@ public sealed class TrayContext : ApplicationContext
         using var form = new ReportForm(_firmware, Known ? _device!.Name : "", AppVersion());
         if (_main is { IsDisposed: false }) form.ShowDialog(_main);
         else form.ShowDialog();
+    }
+
+    // Open the in-window Report page on a specific sub-tab (0 = profiles, 1 = fan curve).
+    private void OpenReportTab(int sub)
+    {
+        OpenMain(MainTab.Report);
+        if (_main is { IsDisposed: false }) _main.ShowReport(sub);
     }
 
     // ---------------- update check ----------------

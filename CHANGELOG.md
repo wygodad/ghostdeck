@@ -3,6 +3,26 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.0] - 2026-07-05
+### Added
+- **Sub-tabs** — a reusable segmented control (`SubTabs`) that splits a page into shorter sub-pages.
+  - **Status** is now three sub-tabs: **Charts** (rings, RAM, metric boxes, details), **EC bytes**
+    (profile-byte matrix + legend + live curve tables) and **Change log** — instead of one long scroll.
+  - **Report** is two sub-tabs: **Profiles** and **Fan curve**.
+- **Fan-curve verification wizard** (Report → Fan curve). Guides you through setting a distinctive test
+  curve in MSI Center (Extreme → Advanced), reads the EC back (read-only), and **locates the curve
+  tables by scanning the dump** for the test values — discovering the per-model addresses, not just
+  confirming them. If they match the shipped map the model's curve can be marked verified; either way it
+  opens a pre-filled GitHub report (new `curve-support.yml` template).
+- **Report entry points** — "Verify my model" CTA on the Models tab and "Report fan curve" on the Fan
+  curve tab (deep-link to the right Report sub-tab); the tray groups both under "Report / verify".
+### Changed
+- **Report and Updates moved out of the main tab strip** to icon buttons on the right (`⚑` report,
+  `⟳` updates, next to the theme toggle), freeing room in the strip.
+- **Status → Change log** now shows the last 20 entries (was 6).
+- Sub-tab bar restyled: softer (less rounded) corners and more breathing room above/below.
+- All new UI strings localized into all 8 languages.
+
 ## [1.15.3] - 2026-07-05
 ### Changed
 - **MSI Sword 16 HX B13V / B14V (`15P2EMS1`) promoted from Experimental to Tested** — owner-confirmed in

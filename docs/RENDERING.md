@@ -125,6 +125,13 @@ Structure:
 Why the earlier attempt failed: it rendered into a plain 96-DPI `Bitmap` and blitted with
 `DrawImageUnscaled`, which rescaled to 134 DPI → the blurry/doubled text the buffered approach fixes.
 
+**Sub-tabs on the canvas.** Status is split into three sub-pages — **Charts**, **EC bytes** and
+**Change log** — via a `SubTabs` child control placed on the canvas (like the "Full log…" button). The
+canvas is sized to the **active section only** (`SectionHeight(width, sub)`), and `Render` branches to
+`RenderBytes` / `RenderLog` (charts is the default); content starts at a fixed `SecTop` below the title
+and the sub-tab bar. This keeps each view short (so scrolling is minimal) while reusing the same
+buffered-canvas machinery — only the active section is ever rendered into the buffer.
+
 Key point to reuse: **to cache a `TextRenderer`-based render off-screen, allocate the buffer from the
 control's Graphics** (don't use a bare `Bitmap`). If you *must* use a bare `Bitmap`, switch the text to
 GDI+ `DrawString` and call `SetResolution(dpi)` — the overlay's recipe.
@@ -158,6 +165,15 @@ current position so focusing a child does **not** yank the page to the top.
 
 Shared primitives live in the `Ui`, `Theme` and `IconPainter` helpers (rounded rects, pills, cards,
 gauge rings, scenario icons), so the look stays consistent across tabs.
+
+- **Sub-tabs** ([`SubTabs.cs`](../SubTabs.cs)) — a reusable themed segmented control (a child `Control`
+  raising `Changed(int)`) that splits a page into a few sub-pages without adding top-level tabs. Used on
+  **Status** (Charts / EC bytes / Change log) and **Report** (Profiles / Fan curve). It paints its own
+  rounded container + segments; hosts just position it and re-lay-out on `Changed`.
+- **Icon glyph buttons** (the theme toggle, plus the Report `⚑` and Updates `⟳` buttons that replaced
+  those top-level tabs) use `TextRenderer` with `NoPadding` and per-glyph `GlyphDx/GlyphDy` nudges —
+  `TextRenderer` centres the glyph *cell*, not its ink, and symbol glyphs have uneven side bearings, so
+  each icon needs a small optical tweak to line up.
 
 ---
 
