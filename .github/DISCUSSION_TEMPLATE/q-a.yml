@@ -1,0 +1,29 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Attachment policy
+
+        Do not attach installers, executable files, or archives containing compiled binaries.
+
+        Share source code through a public repository. Use screenshots, GIFs,
+        or videos to demonstrate visual behavior.
+
+        See the full policy:
+        https://github.com/wygodad/ghostdeck/wiki/Attachment-policy
+
+  - type: checkboxes
+    id: attachment-policy
+    attributes:
+      label: Attachment policy
+      options:
+        - label: I have not attached installers, executables, or archives containing compiled binaries.
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe your question, idea, or feedback.
+    validations:
+      required: true
