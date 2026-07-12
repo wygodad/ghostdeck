@@ -1337,7 +1337,7 @@ public sealed class SettingsPage : ThemedPage
 
     private ComboBox Combo(string[] items, int sel)
     {
-        var c = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
+        var c = new ThemedComboBox { Width = 220 };
         c.Items.AddRange(items);
         c.SelectedIndex = Math.Clamp(sel, 0, items.Length - 1);
         return c;
@@ -1402,6 +1402,7 @@ public sealed class SettingsPage : ThemedPage
                 if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
                 if (ctl is FlowLayoutPanel fp) { fp.BackColor = Theme.Card; foreach (Control _ in fp.Controls) { } }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }
+                if (ctl is ComboBox cb) { cb.BackColor = Theme.Surface; cb.ForeColor = Theme.Text; }
                 // Composite hotkey row (Panel holding a ToggleSwitch + HotkeyBox): theme the nested box too.
                 if (ctl is Panel p && ctl is not FlowLayoutPanel)
                 {
@@ -1553,7 +1554,7 @@ public sealed class OverlaySettingsPanel : Panel
         _layout.SelectedChanged += i => { s.OverlayLayout = i == 1 ? "Bar" : "Card"; d.SaveSettings(); d.ApplyOverlaySettings(); };
         Controls.Add(_layout);
 
-        _position = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+        _position = new ThemedComboBox();
         _position.Items.AddRange(new object[] { Lang.T("ov_pos_pick"), Lang.T("ov_pos_tl"), Lang.T("ov_pos_tr"), Lang.T("ov_pos_bl"), Lang.T("ov_pos_br") });
         _position.SelectedIndex = 0;
         _position.SelectedIndexChanged += (_, _) => { if (_position.SelectedIndex > 0) { d.SnapOverlay(_position.SelectedIndex - 1); _position.SelectedIndex = 0; } };
@@ -1895,5 +1896,82 @@ public sealed class ToggleSwitch : Control
         float kx = _checked ? Width - d - 4 : 4;
         using var kb = new SolidBrush(knob);
         g.FillEllipse(kb, kx, 4, d, d);
+    }
+}
+
+/// <summary>
+/// DropDownList combo that honours the app theme (the stock ComboBox keeps a white field/button/list in
+/// dark mode). Items are owner-drawn; the drop button, chevron and border are repainted after the default
+/// paint so nothing stays light. Read theme colours at paint time so a light/dark switch just needs Invalidate.
+/// </summary>
+public sealed class ThemedComboBox : ComboBox
+{
+    private const int WM_PAINT = 0x000F;
+    [System.Runtime.InteropServices.DllImport("uxtheme.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int SetWindowTheme(IntPtr hWnd, string? app, string? idList);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr BeginPaint(IntPtr hWnd, out PAINTSTRUCT ps);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool EndPaint(IntPtr hWnd, ref PAINTSTRUCT ps);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct PAINTSTRUCT
+    {
+        public IntPtr hdc; public int fErase; public RECT rcPaint; public int fRestore; public int fIncUpdate;
+        [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] rgbReserved;
+    }
+
+    public ThemedComboBox()
+    {
+        DropDownStyle = ComboBoxStyle.DropDownList;
+        FlatStyle = FlatStyle.Flat;
+        DrawMode = DrawMode.OwnerDrawFixed;
+        ItemHeight = 30;   // roomy rows in the drop-down list
+    }
+
+    // Disable visual styles so the drop-down list scrollbar/border follow the flat dark look too.
+    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); SetWindowTheme(Handle, "", ""); }
+
+    // Drop-down LIST rows.
+    protected override void OnDrawItem(DrawItemEventArgs e)
+    {
+        if (e.Index < 0) { e.DrawBackground(); return; }
+        bool sel = (e.State & DrawItemState.Selected) != 0;
+        using (var b = new SolidBrush(sel ? Theme.Accent : Theme.Surface)) e.Graphics.FillRectangle(b, e.Bounds);
+        var fore = sel ? Color.White : Theme.Text;
+        var rect = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height);
+        TextRenderer.DrawText(e.Graphics, Items[e.Index]?.ToString() ?? "", Font, rect, fore,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+    }
+
+    // Fully own the closed-field paint: the stock combo flashes its button light on hover/press before an
+    // overpaint can cover it. We validate the update region ourselves and never let the base class paint,
+    // so there is no light frame at all.
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_PAINT)
+        {
+            BeginPaint(Handle, out var ps);
+            try { using var g = Graphics.FromHdc(ps.hdc); PaintField(g); }
+            finally { EndPaint(Handle, ref ps); }
+            m.Result = IntPtr.Zero;
+            return;
+        }
+        base.WndProc(ref m);
+    }
+
+    private void PaintField(Graphics g)
+    {
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var bg = new SolidBrush(Theme.Surface)) g.FillRectangle(bg, ClientRectangle);
+        var textRect = new Rectangle(8, 0, Width - 30, Height);
+        TextRenderer.DrawText(g, Text, Font, textRect, Theme.Text,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        int cx = Width - 13, cy = Height / 2;
+        using (var pen = new Pen(Theme.Muted, 1.6f))
+            g.DrawLines(pen, new[] { new Point(cx - 4, cy - 2), new Point(cx, cy + 2), new Point(cx + 4, cy - 2) });
+        using (var bp = new Pen(Theme.Border))
+            g.DrawRectangle(bp, 0, 0, Width - 1, Height - 1);
     }
 }

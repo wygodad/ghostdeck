@@ -174,6 +174,17 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   those top-level tabs) use `TextRenderer` with `NoPadding` and per-glyph `GlyphDx/GlyphDy` nudges —
   `TextRenderer` centres the glyph *cell*, not its ink, and symbol glyphs have uneven side bearings, so
   each icon needs a small optical tweak to line up.
+- **Dropdowns** ([`ThemedComboBox`](../MainPages.cs)) — the stock `ComboBox` keeps a white field, drop
+  button and list in dark mode, and its themed button *flashes light on hover/press* before any overpaint
+  can cover it. `ThemedComboBox` fixes this by **owning the paint**: `DrawMode = OwnerDrawFixed` draws the
+  list rows (`OnDrawItem`, accent for the selected row), and `WndProc` intercepts `WM_PAINT` to paint the
+  **closed field itself** via its own `BeginPaint`/`EndPaint` and **never calls `base`** for that message —
+  so there is no light frame at all (an overpaint *after* `base` still flashes; that was the failed first
+  attempt). It also calls `SetWindowTheme(handle, "", "")` so the drop-down list's scrollbar/border follow
+  the flat dark look. Colours are read from `Theme` at paint time, so a light/dark switch only needs
+  `Invalidate` (done in `CardSection.ApplyTheme` / `OverlaySettingsPanel.ApplyThemeColors`). **Use
+  `ThemedComboBox`, never a bare `ComboBox`, for any new select** (language, AC/battery profile, overlay
+  position all use it).
 
 ---
 
@@ -192,3 +203,7 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   (chroma-key), which fringes anti-aliased edges and can't do partial background alpha.
 - **Layout from measured metrics, scaled by DPI** (or a user-scale factor), never from hard-coded
   pixel steps — so it stays correct at every scaling level.
+- **For themed native inputs, own `WM_PAINT` — don't overpaint after `base`.** A stock control paints
+  itself (light) first, so painting over it afterwards leaves a visible flash on hover/press. Intercept
+  `WM_PAINT`, `BeginPaint`/`EndPaint` yourself and skip `base` (see `ThemedComboBox`). New selects must use
+  `ThemedComboBox`, not a bare `ComboBox`.

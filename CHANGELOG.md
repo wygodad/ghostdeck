@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.17.1] - 2026-07-12
+### Fixed
+- **Dark-theme dropdowns.** The Language, On AC / On battery and overlay-position selects kept a white
+  field, drop button and list in dark mode (and flashed light on hover/click). They now use a fully
+  theme-aware combo that owns its painting, so they match the theme with no flicker
+  ([#9](../../discussions/9)).
+
 ## [1.17.0] - 2026-07-12
 ### Added
 - **Gaming overlay: "Bold text" option** (Settings → Gaming overlay → Options, on by default). Renders the
