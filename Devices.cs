@@ -147,9 +147,11 @@ public static class Devices
         // Raider GE67 HX 12U (1545IMS1) — owner per-scenario snapshot (issue #14) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Owner
         // hardware-confirmed all three checks (Silent lowers power/noise vs Balanced, Extreme unlocks,
-        // switching stable), so promoted to Tested. RPM/curve not yet verified for this model.
+        // switching stable), so promoted to Tested. Fan curve VERIFIED (issue #16): the owner ran the wizard
+        // and it reported the test curve at 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses.
+        // RPM not yet verified for this model.
         new() { Name = "MSI Raider GE67 HX 12U", FirmwarePrefixes = new[] { "1545IMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
