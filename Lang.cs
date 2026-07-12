@@ -153,6 +153,17 @@ public static class Lang
             "No se pudo localizar la curva de prueba. Envía el volcado de todos modos para mapearla (¿guardaste en MSI Center?).", "未能定位测试曲线。仍请发送转储以便我们映射（是否在 MSI Center 点击了 Save？）。",
             "Não foi possível localizar a curva de teste. Envie o despejo mesmo assim para mapearmos (você clicou em Save no MSI Center?).", "Не удалось найти тестовую кривую. Всё равно отправьте дамп, чтобы мы её сопоставили (нажали Save в MSI Center?)."
         },
+        ["rep_curve_notadvanced"]= new[]
+        {
+            "The Advanced fan curve isn't active right now — your laptop is in another profile, so the EC still holds the default curve. Switch to Extreme Performance, set the Advanced curve in MSI Center, click Save, and stay in Extreme, then capture again.",
+            "Zaawansowana krzywa nie jest teraz aktywna — laptop jest w innym profilu, więc w EC jest wciąż domyślna krzywa. Przełącz na Extreme Performance, ustaw krzywą (Advanced) w MSI Center, kliknij Save i zostań w Extreme, potem przechwyć ponownie.",
+            "Die erweiterte Lüfterkurve ist gerade nicht aktiv — dein Notebook ist in einem anderen Profil, daher enthält der EC noch die Standardkurve. Wechsle zu Extreme Performance, stelle die Advanced-Kurve in MSI Center ein, klicke Save, bleib in Extreme und erfasse erneut.",
+            "La courbe avancée n'est pas active actuellement — votre PC est sur un autre profil, donc l'EC contient encore la courbe par défaut. Passez en Extreme Performance, réglez la courbe (Advanced) dans MSI Center, cliquez sur Save, restez en Extreme, puis capturez à nouveau.",
+            "La curva avanzada no está activa ahora — tu portátil está en otro perfil, así que el EC aún tiene la curva por defecto. Cambia a Extreme Performance, configura la curva (Advanced) en MSI Center, haz clic en Save, quédate en Extreme y captura de nuevo.",
+            "高级风扇曲线当前未激活——你的笔记本处于其他配置文件，因此 EC 中仍是默认曲线。请切换到 Extreme Performance，在 MSI Center 设置 Advanced 曲线，点击 Save 并保持在 Extreme，然后重新采集。",
+            "A curva avançada não está ativa agora — seu notebook está em outro perfil, então o EC ainda tem a curva padrão. Mude para Extreme Performance, defina a curva (Advanced) no MSI Center, clique em Save, permaneça no Extreme e capture novamente.",
+            "Расширенная кривая сейчас не активна — ноутбук в другом профиле, поэтому в EC всё ещё стандартная кривая. Переключитесь на Extreme Performance, задайте кривую (Advanced) в MSI Center, нажмите Save, оставайтесь в Extreme и снимите ещё раз."
+        },
 
         // ---- Models: verify CTA ----
         ["models_verify_desc"]  = new[]

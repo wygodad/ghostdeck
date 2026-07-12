@@ -63,6 +63,7 @@ public sealed class ReportPage : ThemedPage
         Controls.Add(_subTabs);
 
         Ui.StylePrimary(_curveBtn);
+        _curveBtn.UseMnemonic = false;   // its label ("Capture & scan") contains a literal & — don't treat it as a mnemonic
         _curveBtn.Click += OnCurveCapture;
         Controls.Add(_curveBtn);
 
@@ -276,7 +277,7 @@ public sealed class ReportPage : ThemedPage
             var circ = new RectangleF(_rightX, ry, 24, 24);
             using (var b = new SolidBrush(Theme.AccentSoft)) g.FillEllipse(b, circ);
             TextRenderer.DrawText(g, (i + 1).ToString(), numFont, Rectangle.Round(circ), Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            TextRenderer.DrawText(g, steps[i], stFont, new Rectangle(_rightX + 36, ry - 4, rightW - 40, 34), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak);
+            TextRenderer.DrawText(g, steps[i], stFont, new Rectangle(_rightX + 36, ry - 4, rightW - 40, 34), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
         }
 
         // ---- right column: progress / result (under the capture button) ----
@@ -293,7 +294,7 @@ public sealed class ReportPage : ThemedPage
             var col = _curveFound != null ? (_curveMatch ? Theme.Green : Theme.Amber) : Theme.Red;
             var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
-            TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak);
+            TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             if (_curveSavedPath != null)
                 TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _curveSavedPath), new Font("Segoe UI", 9f),
                     new Rectangle(_rightX, _curveBarY + mh + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
@@ -337,7 +338,16 @@ public sealed class ReportPage : ThemedPage
             _curveMatch = fc != null && cpu == fc.CpuSpeedBase && gpu == fc.GpuSpeedBase;
             _curveMsg = string.Format(Lang.T("rep_curve_found"), cpu, gpu) + "  " + Lang.T(_curveMatch ? "rep_curve_match" : "rep_curve_nomatch");
         }
-        else { _curveFound = null; _curveMatch = false; _curveMsg = Lang.T("rep_curve_notfound"); }
+        else
+        {
+            _curveFound = null; _curveMatch = false;
+            // Common cause: the Advanced curve isn't the live EC state (e.g. the laptop is in Silent), so the
+            // tables hold the default curve, not the test values. Detect that and say so, instead of "not found".
+            var dev = Devices.Detect(D.Firmware);
+            byte adv = dev?.FanCurve?.AdvancedModeValue ?? 0x8D;
+            bool inAdvanced = dev != null && dump[dev.FanMode] == adv;
+            _curveMsg = inAdvanced ? Lang.T("rep_curve_notfound") : Lang.T("rep_curve_notadvanced");
+        }
         PrepareCurveReport();
         RefreshCurve();
         Invalidate();

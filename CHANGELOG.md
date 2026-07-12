@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.6] - 2026-07-12
+### Fixed
+- **Fan-curve wizard now explains *why* a capture found nothing.** If the test curve isn't in the EC, the
+  app checks the live fan mode: when the laptop isn't in the Advanced-curve state (e.g. it's in Silent, so
+  the EC still holds the default curve), it now says exactly that — "switch to Extreme, set the Advanced
+  curve, Save, stay in Extreme, then capture again" — instead of the vague "couldn't locate the test curve".
+- **"Capture & scan" no longer renders as "Capture _scan".** The literal `&` in the step text and button
+  was being treated as a WinForms mnemonic; fixed with `NoPrefix` / `UseMnemonic = false`.
+
 ## [1.16.5] - 2026-07-12
 ### Fixed
 - **Report wizards no longer pre-fill the "paste your dump here" field.** The app used to seed that field
