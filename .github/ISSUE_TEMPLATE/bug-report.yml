@@ -1,0 +1,121 @@
+name: Bug report
+description: Report a reproducible problem with GhostDeck
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem.
+
+        Please search existing issues before submitting a new report.
+        Do not include passwords, tokens, serial numbers, personal data,
+        installers, executables, or archives containing compiled binaries.
+
+  - type: input
+    id: ghostdeck-version
+    attributes:
+      label: GhostDeck version
+      description: Enter the installed GhostDeck version or commit.
+      placeholder: "For example: 1.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: laptop-model
+    attributes:
+      label: MSI laptop model
+      description: Enter the full model name.
+      placeholder: "For example: MSI Raider GE78HX 13VI"
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      placeholder: "For example: Windows 11 24H2"
+    validations:
+      required: true
+
+  - type: input
+    id: bios-version
+    attributes:
+      label: BIOS version
+      description: Enter the BIOS version if known.
+      placeholder: "For example: E17S1IMS.10E"
+
+  - type: input
+    id: ec-firmware
+    attributes:
+      label: EC firmware version
+      description: This is displayed in GhostDeck's Status window.
+      placeholder: "For example: 17S1IMS1.114"
+
+  - type: dropdown
+    id: msi-center
+    attributes:
+      label: MSI Center status
+      options:
+        - Installed and running
+        - Installed but not running
+        - Uninstalled
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: Clearly describe what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open GhostDeck
+        2. Select...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Describe what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: |
+        Paste relevant logs or attach screenshots.
+        Remove personal information, credentials, serial numbers, and other sensitive data.
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Submission checklist
+      options:
+        - label: I searched existing issues and discussions for the same problem.
+          required: true
+        - label: I removed credentials, personal information, and sensitive data.
+          required: true
+        - label: I have not attached installers, executables, or archives containing compiled binaries.
+          required: true
