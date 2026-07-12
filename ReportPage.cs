@@ -294,6 +294,9 @@ public sealed class ReportPage : ThemedPage
             var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
             TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak);
+            if (_curveSavedPath != null)
+                TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _curveSavedPath), new Font("Segoe UI", 9f),
+                    new Rectangle(_rightX, _curveBarY + mh + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
         }
     }
 
@@ -411,15 +414,13 @@ public sealed class ReportPage : ThemedPage
         string found = _curveFound is { } f
             ? $"CPU @ 0x{f.cpu:X2}, GPU @ 0x{f.gpu:X2}" + (_curveMatch ? " (matches shipped map)" : " (differs from shipped map)")
             : "not located in dump";
-        string dump = _curveSavedPath != null
-            ? $"Full curve report copied to clipboard and saved to:\n{_curveSavedPath}\n\nPlease paste it here with Ctrl+V."
-            : "Full curve report copied to clipboard — please paste it here with Ctrl+V.";
+        // NB: the paste field (id "dump") is deliberately NOT prefilled — the full report is on the
+        // clipboard / saved to file, and any reload of a prefilled URL would wipe what the user pasted.
         return RepoUrl + "/issues/new?template=curve-support.yml&labels=curve-support"
             + "&title=" + Uri.EscapeDataString(title)
             + "&model=" + Uri.EscapeDataString(ModelName())
             + "&firmware=" + Uri.EscapeDataString(D.Firmware)
-            + "&found=" + Uri.EscapeDataString(found)
-            + "&dump=" + Uri.EscapeDataString(dump);
+            + "&found=" + Uri.EscapeDataString(found);
     }
 
     // ---- step state ----
@@ -564,14 +565,12 @@ public sealed class ReportPage : ThemedPage
     private string BuildIssueUrl()
     {
         string title = $"[Model] {ModelName()} ({D.Firmware})";
-        string fulldump = _savedPath != null
-            ? $"Full report copied to clipboard and saved to:\n{_savedPath}\n\nPlease paste it here with Ctrl+V."
-            : "Full report copied to clipboard — please paste it here with Ctrl+V.";
+        // NB: the paste field (id "fulldump") is deliberately NOT prefilled — the full report is on the
+        // clipboard / saved to file, and any reload of a prefilled URL would wipe what the user pasted.
         string Base() => RepoUrl + "/issues/new?template=model-support.yml&labels=model-support"
             + "&title=" + Uri.EscapeDataString(title)
             + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware)
-            + "&fulldump=" + Uri.EscapeDataString(fulldump);
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware);
         string url = Base() + "&snapshot=" + Uri.EscapeDataString(BuildSnapshot());
         return url.Length > 7000 ? Base() : url;
     }

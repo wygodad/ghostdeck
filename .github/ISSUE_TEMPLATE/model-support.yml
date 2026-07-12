@@ -52,8 +52,11 @@ body:
     attributes:
       label: Full EC dump per scenario (optional, very helpful)
       description: |
-        Same steps, but run `scripts/diagnostics/msi_ec_fulldump.ps1` instead. It dumps all 256 EC
-        bytes per scenario, which lets us find the exact registers for your model. Paste or attach
+        **If you used the app's Report button**, the full report is already on your clipboard (and saved
+        to a .txt on your Desktop) — just click this empty field and paste it with Ctrl+V.
+
+        Manual alternative: run `scripts/diagnostics/msi_ec_fulldump.ps1`. It dumps all 256 EC bytes per
+        scenario, which lets us find the exact registers for your model. Paste or attach
         `msi_ec_fulldump_results.txt`. **This is the most useful file** — please include it if you can.
       render: text
 

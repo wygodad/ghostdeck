@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.5] - 2026-07-12
+### Fixed
+- **Report wizards no longer pre-fill the "paste your dump here" field.** The app used to seed that field
+  (via the GitHub form URL) with a "paste it here" placeholder; reopening or reloading the prefilled link
+  restored the placeholder and wiped what the user had pasted, so dumps sometimes arrived empty
+  ([#12](../../issues/12), [#16](../../issues/16)). The field is now left empty — the full report is on the
+  clipboard and saved to a .txt — so Ctrl+V just works. All other fields stay prefilled. The curve wizard
+  also now shows where the report was saved, and the model form's help text explains the paste step.
+
 ## [1.16.4] - 2026-07-12
 ### Changed
 - **MSI Raider GE67 HX 12U: fan curve verified** ([issue #16](../../issues/16)). The owner ran the fan-curve
