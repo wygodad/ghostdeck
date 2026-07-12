@@ -1140,24 +1140,32 @@ public sealed class SettingsPage : ThemedPage
     private void Layout2()
     {
         if (_left.Count == 0) return;
+        // Manual layout inside an AutoScroll panel: WinForms physically shifts children by the scroll
+        // delta, so child Location must be expressed in *content* coordinates offset by AutoScrollPosition
+        // (which is <= 0). Positioning at absolute content coords while the page is scrolled desynced the
+        // scrollbar from the children — resizing the window width (which changes the overlay panel height,
+        // as its checkboxes rewrap) then scrolling back up left a large empty gap. See docs/RENDERING.md.
+        int ox = AutoScrollPosition.X, oy = AutoScrollPosition.Y;
         _title.Text = Lang.T("menu_settings");
         _title.ForeColor = Theme.Text;
         _title.BackColor = Theme.Surface;
-        _title.Location = new Point(Pad, TitleTop);
+        _title.Location = new Point(Pad + ox, TitleTop + oy);
         int colW = Math.Max(320, (ClientSize.Width - Pad * 2 - Gutter) / 2);
         int fullW = colW * 2 + Gutter;
-        int top = TitleTop + _title.Height + 18;
+        int top = TitleTop + _title.Height + 18;   // content coords throughout; offset applied at Location
 
         if (_overlayPanel != null)
         {
             _overlayPanel.Relayout(fullW);
-            _overlayPanel.Location = new Point(Pad, top);
-            top = _overlayPanel.Bottom + 18;
+            _overlayPanel.Location = new Point(Pad + ox, top + oy);
+            top += _overlayPanel.Height + 18;
         }
 
         int yL = top, yR = top;
-        foreach (var c in _left) { c.Relayout(colW); c.Location = new Point(Pad, yL); yL += c.Height + 16; }
-        foreach (var c in _right) { c.Relayout(colW); c.Location = new Point(Pad + colW + Gutter, yR); yR += c.Height + 16; }
+        foreach (var c in _left) { c.Relayout(colW); c.Location = new Point(Pad + ox, yL + oy); yL += c.Height + 16; }
+        foreach (var c in _right) { c.Relayout(colW); c.Location = new Point(Pad + colW + Gutter + ox, yR + oy); yR += c.Height + 16; }
+        // Setting AutoScrollMinSize after positioning lets WinForms clamp AutoScrollPosition to the new
+        // content extent and shift the children by that same delta, keeping everything consistent.
         AutoScrollMinSize = new Size(Pad * 2 + fullW, Math.Max(yL, yR) + 20);
     }
 
