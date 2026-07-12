@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.3] - 2026-07-12
+### Changed
+- **MSI Crosshair A16 HX (D7W/D8W): fan curve verified** ([issue #11](../../issues/11)). The owner ran the
+  fan-curve wizard and it found the test curve at exactly `0x72` (CPU) / `0x8A` (GPU) — the shipped
+  addresses — so the curve is now marked editable/verified for this model.
+- **MSI Raider GE67 HX 12U (`1545IMS1`) promoted from Experimental to Tested** ([issue #14](../../issues/14)).
+  The owner's per-scenario snapshot matches the shipped recipe 1:1 and they hardware-confirmed all three
+  checks (Silent lowers power/noise vs Balanced, Extreme unlocks, switching stable).
+
 ## [1.16.2] - 2026-07-05
 ### Changed
 - **MSI Sword 16 HX B13V / B14V: fan curve verified** ([issue #8](../../issues/8)). Using the new

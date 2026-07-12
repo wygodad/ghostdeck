@@ -127,8 +127,10 @@ public static class Devices
         // measurably lowers CPU package power/clocks vs Balanced (HWiNFO64), promoted to Tested. Note: Silent
         // and Super Battery read identically on this unit (both ~35.7-35.8 W in the owner's test) — unlike the
         // Intel reference board, ECO shift (C2) doesn't cap further than Comfort+silent-fan (C1/1D) here.
+        // Fan curve VERIFIED (issue #11): the owner ran the wizard and it found the test curve at exactly
+        // 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
         new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null) },
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null) },
 
         // Sword 16 HX B13V / B14V (15P2EMS1) — owner per-scenario dump (issue #6) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Real-hardware
@@ -141,6 +143,13 @@ public static class Devices
         // it at exactly 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
         new() { Name = "MSI Sword 16 HX B13V / B14V", FirmwarePrefixes = new[] { "15P2EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+
+        // Raider GE67 HX 12U (1545IMS1) — owner per-scenario snapshot (issue #14) matches StdRecipes 1:1:
+        // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Owner
+        // hardware-confirmed all three checks (Silent lowers power/noise vs Balanced, Extreme unlocks,
+        // switching stable), so promoted to Tested. RPM/curve not yet verified for this model.
+        new() { Name = "MSI Raider GE67 HX 12U", FirmwarePrefixes = new[] { "1545IMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
@@ -189,7 +198,6 @@ public static class Devices
         new() { Name = "MSI Cyborg 14 A13VF",               FirmwarePrefixes = new[] { "14P1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Venture A14 AI+ A3HMG",         FirmwarePrefixes = new[] { "14QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Raider GE67 HX 12U",            FirmwarePrefixes = new[] { "1545IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 A11M",                FirmwarePrefixes = new[] { "1552EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11SEK",            FirmwarePrefixes = new[] { "1562EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11UEK",            FirmwarePrefixes = new[] { "1563EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
