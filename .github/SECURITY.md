@@ -13,7 +13,11 @@ Security fixes are provided for the latest released version of GhostDeck.
 
 Please do not report security vulnerabilities in public GitHub Issues or Discussions.
 
-Report vulnerabilities privately through GitHub's security reporting features, if available, or contact the maintainer directly through the contact information provided in the repository.
+Use GitHub's private vulnerability reporting feature:
+
+1. Open the repository's **Security** tab.
+2. Select **Advisories**.
+3. Click **Report a vulnerability**.
 
 Please include:
 
