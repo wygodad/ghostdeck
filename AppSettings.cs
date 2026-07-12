@@ -22,16 +22,25 @@ public sealed class HotkeyDef
     public uint Mods { get; set; }
     public uint Vk { get; set; }
     public string Display { get; set; } = "";
+    public bool Enabled { get; set; } = true;   // per-shortcut on/off (discussion #9); default on
 
     [JsonIgnore] public bool IsSet => Vk != 0;
 
-    public HotkeyDef Clone() => new() { Mods = Mods, Vk = Vk, Display = Display };
+    public HotkeyDef Clone() => new() { Mods = Mods, Vk = Vk, Display = Display, Enabled = Enabled };
 }
 
 public sealed class AppSettings
 {
     public string Language { get; set; } = "en";
     public Dictionary<string, HotkeyDef> Hotkeys { get; set; } = new();
+    public bool HotkeysEnabled { get; set; } = true;   // master on/off for all keyboard shortcuts (#9)
+
+    // Which tray context-menu entries are shown; all default on (discussion #9).
+    public bool TrayShowStatus { get; set; } = true;
+    public bool TrayShowFanCurve { get; set; } = true;
+    public bool TrayShowModels { get; set; } = true;
+    public bool TrayShowReport { get; set; } = true;
+    public bool TrayShowChangeLog { get; set; } = true;
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
 
@@ -66,6 +75,7 @@ public sealed class AppSettings
     public string OverlayBgColor { get; set; } = "#16181D";            // kolor tla nakladki
     public int OverlayMetrics { get; set; } = (int)(OverlayMetric.CpuTemp | OverlayMetric.GpuTemp |
         OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram);
+    public bool OverlayBoldText { get; set; } = true;                  // pogrubione etykiety (Segoe UI Semibold) dla czytelnosci przy malej skali
 
     // Reset just the Gaming-overlay settings to their defaults (leaves everything else untouched).
     public void RestoreOverlayDefaults()
@@ -75,6 +85,7 @@ public sealed class AppSettings
         OverlayClickThrough = d.OverlayClickThrough; OverlayAlwaysTop = d.OverlayAlwaysTop;
         OverlayAccentFromProfile = d.OverlayAccentFromProfile; OverlayX = d.OverlayX; OverlayY = d.OverlayY;
         OverlayBgEnabled = d.OverlayBgEnabled; OverlayBgColor = d.OverlayBgColor; OverlayMetrics = d.OverlayMetrics;
+        OverlayBoldText = d.OverlayBoldText;
     }
 
     [JsonIgnore] public OverlayMetric Metrics => (OverlayMetric)OverlayMetrics;
@@ -195,6 +206,9 @@ public sealed class AppSettings
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
             UpdateCheckEnabled = UpdateCheckEnabled,
+            HotkeysEnabled = HotkeysEnabled,
+            TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
+            TrayShowReport = TrayShowReport, TrayShowChangeLog = TrayShowChangeLog,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             SeenNoticeIds = new List<string>(SeenNoticeIds),
             DarkMode = DarkMode,
@@ -209,6 +223,7 @@ public sealed class AppSettings
             OverlayAccentFromProfile = OverlayAccentFromProfile,
             OverlayX = OverlayX, OverlayY = OverlayY, OverlayMetrics = OverlayMetrics,
             OverlayBgEnabled = OverlayBgEnabled, OverlayBgColor = OverlayBgColor,
+            OverlayBoldText = OverlayBoldText,
             WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();

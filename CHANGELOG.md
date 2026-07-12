@@ -3,6 +3,31 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.17.0] - 2026-07-12
+### Added
+- **Gaming overlay: "Bold text" option** (Settings → Gaming overlay → Options, on by default). Renders the
+  small metric labels bold and slightly larger so they stay readable when the overlay is scaled down. In
+  the horizontal bar layout the bar height is unchanged whether the option is on or off
+  ([#10](../../discussions/10)).
+- **Keyboard shortcuts can be enabled/disabled** (Settings → Keyboard shortcuts): a toggle next to each
+  shortcut plus a master "All shortcuts" switch, so accidental triggers can be turned off. Defaults on
+  ([#9](../../discussions/9)).
+- **Status: VRAM as a bar under RAM.** When the total dedicated VRAM is known, VRAM is shown as a progress
+  bar beneath the RAM bar (instead of a used-MB tile) ([#9](../../discussions/9)).
+- **Tray menu entries can be hidden** (Settings → Tray menu): toggles for *Status*, *Fan curve*, *Models*,
+  *Report/verify* and *Change log*, so the context menu can be trimmed. Defaults on ([#9](../../discussions/9)).
+### Changed
+- **Settings layout tidied** ([#9](../../discussions/9)): the *Updates* card moved to the bottom of the
+  left column so it lines up with *Power* and *Keyboard shortcuts*; profile colours now sit on a single row.
+- **Tray menu order** now mirrors the main tabs — *Settings* comes right after *Fan curve*, and *Change log*
+  moved below *Language*. The *Fan Boost*, *Gaming overlay* and *Lock overlay* items now show a dim marker
+  when off (instead of nothing) so their state is always visible ([#9](../../discussions/9)).
+### Fixed
+- **Settings tab no longer leaves a large empty gap.** Scrolling down, resizing the window width, then
+  scrolling back up used to open a big blank area, because the page positioned its cards at absolute
+  coordinates inside a scrolled `AutoScroll` panel. Children are now placed relative to the scroll
+  position ([#10](../../discussions/10)).
+
 ## [1.16.6] - 2026-07-12
 ### Fixed
 - **Fan-curve wizard now explains *why* a capture found nothing.** If the test curve isn't in the EC, the

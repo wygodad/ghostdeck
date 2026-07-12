@@ -109,4 +109,39 @@ internal static class Perf
     public static int GpuUsage() { Tick(); return _gpuUsage; }
     public static int VramUsedMb() { Tick(); return _vramMb; }
     public static int CpuClockMhz() { Tick(); return _cpuClock; }
+
+    // Total dedicated VRAM in MB (-1 = unknown). Read once from the display-adapter registry keys
+    // (HardwareInformation.qwMemorySize, in bytes) and cached — the total never changes at runtime. We
+    // take the largest adapter, i.e. the discrete GPU on a laptop with an iGPU + dGPU. This is the same
+    // "no kernel driver" spirit as the rest of Perf; on any failure we return -1 and the UI hides the bar.
+    private static int _vramTotalMb = -2;   // -2 = not yet probed, -1 = unavailable
+    public static int VramTotalMb()
+    {
+        if (_vramTotalMb != -2) return _vramTotalMb;
+        long maxBytes = 0;
+        try
+        {
+            using var cls = Registry.LocalMachine.OpenSubKey(
+                @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}");
+            if (cls != null)
+                foreach (var sub in cls.GetSubKeyNames())
+                {
+                    if (!int.TryParse(sub, out _)) continue;   // only the 0000/0001/... adapter keys
+                    using var k = cls.OpenSubKey(sub);
+                    var v = k?.GetValue("HardwareInformation.qwMemorySize");
+                    long bytes = v switch
+                    {
+                        long l => l,
+                        int i => i,
+                        byte[] b when b.Length >= 8 => BitConverter.ToInt64(b, 0),
+                        byte[] b when b.Length >= 4 => BitConverter.ToUInt32(b, 0),
+                        _ => 0,
+                    };
+                    if (bytes > maxBytes) maxBytes = bytes;
+                }
+        }
+        catch { }
+        _vramTotalMb = maxBytes > 0 ? (int)(maxBytes / (1024 * 1024)) : -1;
+        return _vramTotalMb;
+    }
 }

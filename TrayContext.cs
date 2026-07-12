@@ -146,6 +146,20 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // ---------------- menu ----------------
+    // Small state indicator for the toggle menu items: a filled accent dot when ON, a dim hollow ring
+    // when OFF — so an inactive toggle still shows a (greyed) marker instead of nothing (discussion #9).
+    private static Image StateDot(bool on)
+    {
+        var bmp = new Bitmap(16, 16);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var r = new Rectangle(3, 3, 9, 9);
+        if (on) { using var b = new SolidBrush(Theme.Accent); g.FillEllipse(b, r); }
+        else { using var p = new Pen(Color.FromArgb(0x6A, 0x70, 0x7C), 1.6f); g.DrawEllipse(p, r); }
+        return bmp;
+    }
+    private static void SetDot(ToolStripMenuItem it, bool on) { var old = it.Image; it.Image = StateDot(on); old?.Dispose(); }
+
     private void BuildMenu()
     {
         _tray.ContextMenuStrip?.Dispose();
@@ -198,20 +212,18 @@ public sealed class TrayContext : ApplicationContext
 
         menu.Items.Add(new ToolStripSeparator());
 
-        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost"))
-        {
-            Enabled = Writable,
-            Checked = _coolerBoost,
-            CheckOnClick = false,
-        };
+        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost")) { Enabled = Writable, CheckOnClick = false };
+        SetDot(_coolerItem, _coolerBoost);
         _coolerItem.Click += (_, _) => ToggleCoolerBoost();
         menu.Items.Add(_coolerItem);
 
-        _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { Checked = OverlayVisible, CheckOnClick = false };
+        _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { CheckOnClick = false };
+        SetDot(_overlayItem, OverlayVisible);
         _overlayItem.Click += (_, _) => ToggleOverlay();
         menu.Items.Add(_overlayItem);
 
-        _overlayLockItem = new ToolStripMenuItem(Lang.T("ov_lock_menu")) { Checked = _settings.OverlayClickThrough, CheckOnClick = false };
+        _overlayLockItem = new ToolStripMenuItem(Lang.T("ov_lock_menu")) { CheckOnClick = false };
+        SetDot(_overlayLockItem, _settings.OverlayClickThrough);
         _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
         menu.Items.Add(_overlayLockItem);
 
@@ -221,35 +233,48 @@ public sealed class TrayContext : ApplicationContext
         panel.Click += (_, _) => OpenMain(MainTab.Scenarios);
         menu.Items.Add(panel);
 
-        var status = new ToolStripMenuItem(Lang.T("menu_status"));
-        status.Click += (_, _) => OpenMain(MainTab.Status);
-        menu.Items.Add(status);
+        if (_settings.TrayShowStatus)
+        {
+            var status = new ToolStripMenuItem(Lang.T("menu_status"));
+            status.Click += (_, _) => OpenMain(MainTab.Status);
+            menu.Items.Add(status);
+        }
 
-        var curve = new ToolStripMenuItem(Lang.T("fc_title"));
-        curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
-        menu.Items.Add(curve);
+        if (_settings.TrayShowFanCurve)
+        {
+            var curve = new ToolStripMenuItem(Lang.T("fc_title"));
+            curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
+            menu.Items.Add(curve);
+        }
 
-        var models = new ToolStripMenuItem(Lang.T("tab_models"));
-        models.Click += (_, _) => OpenMain(MainTab.Models);
-        menu.Items.Add(models);
+        // Settings sits right after Fan curve, mirroring the main window's tab order (discussion #9).
+        var settings = new ToolStripMenuItem(Lang.T("menu_settings"));
+        settings.Click += (_, _) => OpenMain(MainTab.Settings);
+        menu.Items.Add(settings);
+
+        if (_settings.TrayShowModels)
+        {
+            var models = new ToolStripMenuItem(Lang.T("tab_models"));
+            models.Click += (_, _) => OpenMain(MainTab.Models);
+            menu.Items.Add(models);
+        }
 
         // Grouped "Report / verify" submenu: my model (profiles) + fan curve.
-        var report = new ToolStripMenuItem(Lang.T("tray_report"));
-        var reportModel = new ToolStripMenuItem(Lang.T("tray_report_model"));
-        reportModel.Click += (_, _) => OpenReportTab(0);
-        var reportCurve = new ToolStripMenuItem(Lang.T("tray_report_curve"));
-        reportCurve.Click += (_, _) => OpenReportTab(1);
-        report.DropDownItems.Add(reportModel);
-        report.DropDownItems.Add(reportCurve);
-        menu.Items.Add(report);
+        if (_settings.TrayShowReport)
+        {
+            var report = new ToolStripMenuItem(Lang.T("tray_report"));
+            var reportModel = new ToolStripMenuItem(Lang.T("tray_report_model"));
+            reportModel.Click += (_, _) => OpenReportTab(0);
+            var reportCurve = new ToolStripMenuItem(Lang.T("tray_report_curve"));
+            reportCurve.Click += (_, _) => OpenReportTab(1);
+            report.DropDownItems.Add(reportModel);
+            report.DropDownItems.Add(reportCurve);
+            menu.Items.Add(report);
+        }
 
         var feedback = new ToolStripMenuItem(Lang.T("menu_feedback"));
         feedback.Click += (_, _) => OpenFeedback();
         menu.Items.Add(feedback);
-
-        var log = new ToolStripMenuItem(Lang.T("menu_log"));
-        log.Click += (_, _) => LogForm.ShowSingleton();
-        menu.Items.Add(log);
 
         var langMenu = new ToolStripMenuItem(Lang.T("menu_language"));
         for (int i = 0; i < Lang.Names.Length; i++)
@@ -261,9 +286,13 @@ public sealed class TrayContext : ApplicationContext
         }
         menu.Items.Add(langMenu);
 
-        var settings = new ToolStripMenuItem(Lang.T("menu_settings"));
-        settings.Click += (_, _) => OpenMain(MainTab.Settings);
-        menu.Items.Add(settings);
+        // Change log goes after Language (discussion #9).
+        if (_settings.TrayShowChangeLog)
+        {
+            var log = new ToolStripMenuItem(Lang.T("menu_log"));
+            log.Click += (_, _) => LogForm.ShowSingleton();
+            menu.Items.Add(log);
+        }
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -403,7 +432,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void UpdateCoolerBoostMenu()
     {
-        if (_coolerItem is { } it && !it.IsDisposed) it.Checked = _coolerBoost;
+        if (_coolerItem is { } it && !it.IsDisposed) SetDot(it, _coolerBoost);
         if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
@@ -461,8 +490,8 @@ public sealed class TrayContext : ApplicationContext
 
     private void UpdateOverlayMenu()
     {
-        if (_overlayItem is { } it && !it.IsDisposed) it.Checked = OverlayVisible;
-        if (_overlayLockItem is { } lk && !lk.IsDisposed) lk.Checked = _settings.OverlayClickThrough;
+        if (_overlayItem is { } it && !it.IsDisposed) SetDot(it, OverlayVisible);
+        if (_overlayLockItem is { } lk && !lk.IsDisposed) SetDot(lk, _settings.OverlayClickThrough);
         if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
@@ -523,7 +552,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void Reg(string key, Action action)
     {
-        if (_settings.Hotkeys.TryGetValue(key, out var hd) && hd.IsSet)
+        if (_settings.HotkeysEnabled && _settings.Hotkeys.TryGetValue(key, out var hd) && hd.IsSet && hd.Enabled)
             _hotkeys.Register(hd.Mods, hd.Vk, action);
     }
 

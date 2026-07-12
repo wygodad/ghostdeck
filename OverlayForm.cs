@@ -119,6 +119,11 @@ public sealed class OverlayForm : Form
         : _settings.OverlayAccentFromProfile && _s.ProfileColor.A != 0 ? _s.ProfileColor : Color.FromArgb(0x17, 0xC0, 0xEB);
 
     private bool ShowHeader => _settings.HasMetric(OverlayMetric.Profile);
+    // Optional heavier + larger metric labels — improves legibility when the overlay is scaled down.
+    // Semibold alone was too subtle against the muted grey, so the toggle uses full Bold at a bumped size.
+    private Font LabelFont() => _settings.OverlayBoldText
+        ? new Font("Segoe UI", 10.5f * U, FontStyle.Bold)
+        : new Font("Segoe UI", 9f * U);
     private string HeaderText => !_s.Known ? "MSI · n/a" : "MSI · " + _s.ProfileLabel;
 
     // Metric cells (icon, label, value) picked by the settings flags. Profile/Cooler live in the header.
@@ -267,7 +272,7 @@ public sealed class OverlayForm : Form
     {
         var accent = Accent();
         using var valueF = new Font("Segoe UI", 14.5f * U, FontStyle.Bold);
-        using var labelF = new Font("Segoe UI", 9f * U);
+        using var labelF = LabelFont();
         using var headF = new Font("Segoe UI", 11.5f * U, FontStyle.Bold);
         using var whiteB = new SolidBrush(White);
         using var mutedB = new SolidBrush(Muted);
@@ -338,19 +343,22 @@ public sealed class OverlayForm : Form
     {
         var accent = Accent();
         using var valueF = new Font("Segoe UI", 12.5f * U, FontStyle.Bold);
-        using var labelF = new Font("Segoe UI", 9f * U);
+        using var labelF = LabelFont();
         using var headF = new Font("Segoe UI", 12.5f * U, FontStyle.Bold);
         using var whiteB = new SolidBrush(White);
         using var mutedB = new SolidBrush(Muted);
         using var accentB = new SolidBrush(accent);
 
+        // uH is the geometry unit: the *regular* 9pt label height, so the bar's size (padding, gaps, dot,
+        // overall height) stays identical whether the Bold-text toggle enlarges the drawn label or not.
+        int uH; using (var uf = new Font("Segoe UI", 9f * U)) uH = Ceil(uf.GetHeight(g));
         int labelH = Ceil(labelF.GetHeight(g)), valueH = Ceil(valueF.GetHeight(g)), headH = Ceil(headF.GetHeight(g));
-        int icon = Ceil(valueH * 0.95f), iconGap = Ceil(labelH * 0.32f), chipGap = Ceil(labelH * 1.0f);
-        int padH = Ceil(labelH * 1.0f), padV = Ceil(labelH * 0.8f);
+        int icon = Ceil(valueH * 0.95f), iconGap = Ceil(uH * 0.32f), chipGap = Ceil(uH * 1.0f);
+        int padH = Ceil(uH * 1.0f), padV = Ceil(uH * 0.8f);
         int rowH = Math.Max(valueH, icon);
         int h = padV * 2 + rowH;
         int midY = h / 2;
-        int dot = Ceil(labelH * 0.7f);
+        int dot = Ceil(uH * 0.7f);
         float stroke = Math.Max(1f, 1.3f * U);
         var cells = Cells();
 
@@ -381,7 +389,7 @@ public sealed class OverlayForm : Form
             if (draw) DrawIcon(g, ic, new RectangleF(x, midY - icon / 2f, icon, icon), accent, stroke);
             x += icon + iconGap;
             if (draw) g.DrawString(value, valueF, whiteB, x, midY - valueH / 2f);
-            x += Ceil(g.MeasureString(value, valueF).Width) + Ceil(labelH * 0.25f);
+            x += Ceil(g.MeasureString(value, valueF).Width) + Ceil(uH * 0.25f);
             if (draw) g.DrawString(label, labelF, mutedB, x, midY - labelH / 2f);
             x += Ceil(g.MeasureString(label, labelF).Width) + chipGap;
         }

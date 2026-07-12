@@ -605,13 +605,27 @@ public sealed class StatusPage : ThemedPage
         MetricBox(new RectangleF(X(4) + 14, subY, ring - 28, subH),
             Perf.CpuClockMhz() is int mhz and > 0 ? $"CPU: {mhz} MHz" : "CPU: — MHz");
 
-        // second sub-row: battery, GPU load %, VRAM used — same box width as the RPM counters, under rings 2/3/4
+        // second sub-row: battery, GPU load %, VRAM — same box width as the RPM counters, under rings 2/3/4
         int subY2 = subY + subH + 14;
-        int gu = Perf.GpuUsage(), vm = Perf.VramUsedMb();
+        int gu = Perf.GpuUsage(), vm = Perf.VramUsedMb(), vt = Perf.VramTotalMb();
+        bool vramBar = vt > 0 && vm >= 0;   // only meaningful as a bar when we know the total (discussion #9)
         void Box2(int i, string text) => MetricBox(new RectangleF(X(i) + 14, subY2, ring - 28, subH), text);
         Box2(2, $"{Lang.T("st_battery")}: {BatteryText()}");
         Box2(3, $"{Lang.T("ov_m_gpuusage")}: " + (gu >= 0 ? $"{gu} %" : "—"));
-        Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
+        // VRAM: shown as a bar under RAM when the total is known; otherwise fall back to the MB box.
+        if (vramBar)
+        {
+            int vpct = (int)Math.Round(Math.Clamp(vm / (float)vt, 0f, 1f) * 100);
+            TextRenderer.DrawText(g, Lang.T("ov_m_vram"), new Font("Segoe UI", 10.5f, FontStyle.Bold),
+                new Rectangle(ramX, subY2, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(g, $"{vm / 1024f:0.0} / {vt / 1024f:0.0} GB · {vpct}%", new Font("Segoe UI", 10.5f),
+                new Rectangle(ramX, subY2, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            DrawBar(g, new RectangleF(ramX + 20, subY2 + 36, ramW - 40, 14), vm / (float)vt, vpct >= 90 ? Theme.Amber : Theme.Accent);
+        }
+        else
+        {
+            Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
+        }
 
         int cardTop = subY2 + subH + 40;
         int rowH = RowH;
@@ -1107,6 +1121,8 @@ public sealed class SettingsPage : ThemedPage
     private readonly List<CardSection> _left = new();
     private readonly List<CardSection> _right = new();
     private readonly Dictionary<string, HotkeyBox> _boxes = new();
+    private readonly Dictionary<string, ToggleSwitch> _hkToggles = new();
+    private ToggleSwitch? _hkMaster;
     private readonly Dictionary<string, List<Panel>> _swatches = new();
     private OverlaySettingsPanel? _overlayPanel;
     private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
@@ -1213,23 +1229,49 @@ public sealed class SettingsPage : ThemedPage
 
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
-        _right.Add(upd);
+        _left.Add(upd);   // Updates -> bottom of LEFT column, aligns with Power+Shortcuts on right (#9)
+
+        // Tray context-menu visibility toggles (discussion #9); all default on.
+        var tray = new CardSection(Lang.T("set_grp_tray"), "");
+        tray.AddRow(Lang.T("menu_status"), Toggle(D.Settings.TrayShowStatus, v => { D.Settings.TrayShowStatus = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("fc_title"), Toggle(D.Settings.TrayShowFanCurve, v => { D.Settings.TrayShowFanCurve = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("tab_models"), Toggle(D.Settings.TrayShowModels, v => { D.Settings.TrayShowModels = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("tray_report"), Toggle(D.Settings.TrayShowReport, v => { D.Settings.TrayShowReport = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("menu_log"), Toggle(D.Settings.TrayShowChangeLog, v => { D.Settings.TrayShowChangeLog = v; D.SaveSettings(); D.SettingsChanged(); }));
+        _left.Add(tray);
 
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
+        _hkToggles.Clear();
+        _hkMaster = new ToggleSwitch { Checked = D.Settings.HotkeysEnabled };
+        _hkMaster.Toggled += v => { D.Settings.HotkeysEnabled = v; UpdateHotkeyRowsEnabled(); D.SaveSettings(); D.SettingsChanged(); };
+        hk.AddRow(Lang.T("hk_all"), _hkMaster);   // master on/off (#9), default on
         foreach (var (key, label) in Acts)
         {
-            var box = new HotkeyBox { Width = 220 };
+            var box = new HotkeyBox { Width = 200, AutoSize = false, Height = 28 };   // fixed height so the row panel doesn't clip it
             box.SetValue(D.Settings.Hotkeys.TryGetValue(key, out var hd) ? hd : new HotkeyDef());
             string k = key;
-            box.Leave += (_, _) => { D.Settings.Hotkeys[k] = box.Value.Clone(); D.SaveSettings(); D.SettingsChanged(); };
+            var tg = new ToggleSwitch { Checked = D.Settings.Hotkeys.TryGetValue(k, out var hd2) ? hd2.Enabled : true };
+            tg.Toggled += v =>
+            {
+                if (!D.Settings.Hotkeys.TryGetValue(k, out var cur)) { cur = new HotkeyDef(); D.Settings.Hotkeys[k] = cur; }
+                cur.Enabled = v; box.Value.Enabled = v;
+                D.SaveSettings(); D.SettingsChanged();
+            };
+            _hkToggles[key] = tg;
+            box.Leave += (_, _) => { var def = box.Value.Clone(); def.Enabled = tg.Checked; D.Settings.Hotkeys[k] = def; D.SaveSettings(); D.SettingsChanged(); };
             _boxes[key] = box;
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : label, box);
+            var row = new Panel { Width = tg.Width + 12 + box.Width, Height = Math.Max(tg.Height, box.Height) + 4 };
+            tg.Location = new Point(0, (row.Height - tg.Height) / 2);
+            box.Location = new Point(tg.Width + 12, (row.Height - box.Height) / 2);
+            row.Controls.Add(tg); row.Controls.Add(box);
+            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : label, row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
         reset.Click += (_, _) => ResetHotkeys();
         hk.AddRow(null, reset);
         _right.Add(hk);
+        UpdateHotkeyRowsEnabled();
 
         _overlayPanel = new OverlaySettingsPanel(D);
         Controls.Add(_overlayPanel);
@@ -1245,8 +1287,20 @@ public sealed class SettingsPage : ThemedPage
         {
             box.SetValue(def.Hotkeys[key]);
             D.Settings.Hotkeys[key] = def.Hotkeys[key].Clone();
+            if (_hkToggles.TryGetValue(key, out var tg)) tg.Checked = true;   // defaults = all enabled
         }
+        D.Settings.HotkeysEnabled = true;
+        if (_hkMaster != null) _hkMaster.Checked = true;
+        UpdateHotkeyRowsEnabled();
         D.SaveSettings(); D.SettingsChanged();
+    }
+
+    // Grey out and disable the per-shortcut toggles + capture boxes when the master switch is off.
+    private void UpdateHotkeyRowsEnabled()
+    {
+        bool on = _hkMaster?.Checked ?? true;
+        foreach (var tg in _hkToggles.Values) tg.Enabled = on;
+        foreach (var box in _boxes.Values) box.Enabled = on;
     }
 
     private int ProfileIndex(string key)
@@ -1259,12 +1313,13 @@ public sealed class SettingsPage : ThemedPage
     private FlowLayoutPanel BuildSwatches(ProfileId id)
     {
         string key = Profiles.Get(id).Key;
-        var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = true, MaximumSize = new Size(300, 0) };
+        // Single row of swatches (discussion #9): no wrap, no width cap.
+        var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
         var list = new List<Panel>(); _swatches[key] = list;
         string sel = ColorTranslator.ToHtml(D.Settings.ColorFor(id));
         foreach (var hex in Profiles.Palette)
         {
-            var sw = new Panel { Size = new Size(26, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 0, 5, 5), Tag = hex };
+            var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 0, 4, 0), Tag = hex };
             string ph = hex;
             sw.Paint += (s, e) =>
             {
@@ -1347,6 +1402,16 @@ public sealed class SettingsPage : ThemedPage
                 if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
                 if (ctl is FlowLayoutPanel fp) { fp.BackColor = Theme.Card; foreach (Control _ in fp.Controls) { } }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }
+                // Composite hotkey row (Panel holding a ToggleSwitch + HotkeyBox): theme the nested box too.
+                if (ctl is Panel p && ctl is not FlowLayoutPanel)
+                {
+                    p.BackColor = Theme.Card;
+                    foreach (Control child in p.Controls)
+                    {
+                        if (child is HotkeyBox chb) { chb.BackColor = Theme.Surface; chb.ForeColor = Theme.Text; }
+                        child.Invalidate();
+                    }
+                }
                 ctl.Invalidate();
             }
             Invalidate();
@@ -1420,7 +1485,7 @@ public sealed class CheckItem : Control
 public sealed class OverlaySettingsPanel : Panel
 {
     private readonly MainDeps _d;
-    private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _bgToggle;
+    private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _optBold, _bgToggle;
     private readonly Slider _opacity, _scale, _bgOpacity;
     private readonly SegControl _layout, _opacityPre, _scalePre, _bgOpacityPre;
     private readonly ComboBox _position;
@@ -1499,6 +1564,7 @@ public sealed class OverlaySettingsPanel : Panel
         _optTop = OptToggle(s.OverlayAlwaysTop, v => { s.OverlayAlwaysTop = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
         _optClick = OptToggle(s.OverlayClickThrough, v => { s.OverlayClickThrough = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
         _optAccent = OptToggle(s.OverlayAccentFromProfile, v => { s.OverlayAccentFromProfile = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
+        _optBold = OptToggle(s.OverlayBoldText, v => { s.OverlayBoldText = v; d.SaveSettings(); d.ApplyOverlaySettings(); });
 
         // Background: on/off toggle + colour swatch.
         _bgToggle = new ToggleSwitch { Checked = s.OverlayBgEnabled };
@@ -1543,6 +1609,7 @@ public sealed class OverlaySettingsPanel : Panel
         _scale.Value = s.OverlayScale; _scalePre.Selected = Array.IndexOf(ScalePresets, s.OverlayScale);
         _layout.Selected = string.Equals(s.OverlayLayout, "Bar", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         _optTop.Checked = s.OverlayAlwaysTop; _optClick.Checked = s.OverlayClickThrough; _optAccent.Checked = s.OverlayAccentFromProfile;
+        _optBold.Checked = s.OverlayBoldText;
         _bgToggle.Checked = s.OverlayBgEnabled;
         _bgOpacity.Value = s.OverlayBgOpacity; _bgOpacityPre.Selected = Array.IndexOf(BgOpacityPresets, s.OverlayBgOpacity);
         try { _bgColor.BackColor = ColorTranslator.FromHtml(s.OverlayBgColor); } catch { }
@@ -1631,6 +1698,7 @@ public sealed class OverlaySettingsPanel : Panel
         OptRow(_optTop, Lang.T("ov_ontop"));
         OptRow(_optClick, Lang.T("ov_lock_row"));
         OptRow(_optAccent, Lang.T("ov_accent"));
+        OptRow(_optBold, Lang.T("ov_bold"));
         yR = oy;
 
         // restore-defaults button, bottom-right
@@ -1650,6 +1718,7 @@ public sealed class OverlaySettingsPanel : Panel
         _optTop.Checked = s.OverlayAlwaysTop;
         _optClick.Checked = s.OverlayClickThrough;
         _optAccent.Checked = s.OverlayAccentFromProfile;
+        _optBold.Checked = s.OverlayBoldText;
         Invalidate();
     }
 
@@ -1807,7 +1876,8 @@ public sealed class ToggleSwitch : Control
 
     public ToggleSwitch() { DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; Size = new Size(52, 28); }
 
-    protected override void OnClick(EventArgs e) { _checked = !_checked; Invalidate(); Toggled?.Invoke(_checked); }
+    protected override void OnClick(EventArgs e) { if (!Enabled) return; _checked = !_checked; Invalidate(); Toggled?.Invoke(_checked); }
+    protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Cursor = Enabled ? Cursors.Hand : Cursors.Default; Invalidate(); }
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -1815,14 +1885,15 @@ public sealed class ToggleSwitch : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Parent?.BackColor ?? Theme.Surface);
         var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
+        // Dimmed when disabled (master shortcut switch off): muted track + knob so it reads as inactive.
+        var track = !Enabled ? Theme.Border : _checked ? Theme.Accent : Theme.BorderStrong;
+        var knob = Enabled ? Color.White : Theme.Muted;
         using (var path = Theme.RoundRect(r, Height / 2f))
-        {
-            using var b = new SolidBrush(_checked ? Theme.Accent : Theme.BorderStrong);
+        using (var b = new SolidBrush(track))
             g.FillPath(b, path);
-        }
         float d = Height - 8;
         float kx = _checked ? Width - d - 4 : 4;
-        using var kb = new SolidBrush(Color.White);
+        using var kb = new SolidBrush(knob);
         g.FillEllipse(kb, kx, 4, d, d);
     }
 }

@@ -216,6 +216,7 @@ public static class Lang
         ["ov_unlocked"]      = new[] { "Unlocked · drag to move", "Odblokowana · przeciągnij", "Entsperrt · zum Verschieben ziehen", "Déverrouillé · glisser pour déplacer", "Desbloqueado · arrastra para mover", "已解锁 · 拖动移动", "Desbloqueado · arraste para mover", "Разблокирована · перетащите" },
         ["ov_ontop"]         = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au premier plan", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон" },
         ["ov_accent"]        = new[] { "Accent = profile colour", "Akcent = kolor profilu", "Akzent = Profilfarbe", "Accent = couleur du profil", "Acento = color del perfil", "强调色 = 配置文件颜色", "Destaque = cor do perfil", "Акцент = цвет профиля" },
+        ["ov_bold"]          = new[] { "Bold text", "Pogrubiony tekst", "Fetter Text", "Texte en gras", "Texto en negrita", "粗体文字", "Texto em negrito", "Жирный текст" },
         ["ov_metrics"]       = new[] { "What to show", "Co pokazywać", "Was anzeigen", "Quoi afficher", "Qué mostrar", "显示内容", "O que mostrar", "Что показывать" },
         ["ov_position"]      = new[] { "Position", "Pozycja", "Position", "Position", "Posición", "位置", "Posição", "Позиция" },
         ["ov_options"]       = new[] { "Options", "Opcje", "Optionen", "Options", "Opciones", "选项", "Opções", "Опции" },
@@ -309,6 +310,7 @@ public static class Lang
         ["menu_exit"]      = new[] { "Exit", "Zamknij", "Beenden", "Quitter", "Salir", "退出", "Sair", "Выход" },
 
         ["set_hotkeys"]    = new[] { "Keyboard shortcuts", "Skróty klawiszowe", "Tastenkürzel", "Raccourcis clavier", "Atajos de teclado", "键盘快捷键", "Atalhos de teclado", "Горячие клавиши" },
+        ["hk_all"]         = new[] { "All shortcuts", "Wszystkie skróty", "Alle Kürzel", "Tous les raccourcis", "Todos los atajos", "所有快捷键", "Todos os atalhos", "Все клавиши" },
         ["set_hint"]       = new[] { "Click a field and press a combo.  Esc / Delete = clear.", "Kliknij pole i wciśnij kombinację.  Esc / Delete = wyczyść.", "Feld anklicken und Kombination drücken.  Esc / Entf = löschen.", "Cliquez sur un champ et appuyez sur une combinaison.  Échap / Suppr = effacer.", "Haz clic en un campo y pulsa una combinación.  Esc / Supr = borrar.", "点击字段并按下组合键。Esc / Delete = 清除。", "Clique num campo e pressione uma combinação.  Esc / Delete = limpar.", "Нажмите поле и введите комбинацию.  Esc / Delete = очистить." },
         ["cycle"]          = new[] { "Cycle (next)", "Cykl (następny)", "Wechseln (nächstes)", "Cycle (suivant)", "Ciclo (siguiente)", "循环（下一个）", "Ciclo (próximo)", "Цикл (следующий)" },
         ["set_autostart"]  = new[] { "Start with Windows", "Uruchamiaj z Windowsem", "Mit Windows starten", "Démarrer avec Windows", "Iniciar con Windows", "随 Windows 启动", "Iniciar com o Windows", "Запускать с Windows" },
@@ -606,6 +608,7 @@ public static class Lang
         ["set_grp_power"]  = new[] { "Power", "Zasilanie", "Energie", "Alimentation", "Energía", "电源", "Energia", "Питание" },
         ["set_grp_start"]  = new[] { "Startup & tray", "Start i zasobnik", "Start & Infobereich", "Démarrage", "Inicio", "启动与托盘", "Inicialização", "Запуск" },
         ["set_grp_updates"]= new[] { "Updates", "Aktualizacje", "Updates", "Mises à jour", "Actualizaciones", "更新", "Atualizações", "Обновления" },
+        ["set_grp_tray"]   = new[] { "Tray menu", "Menu w zasobniku", "Infobereichsmenü", "Menu de la barre d'état", "Menú de bandeja", "托盘菜单", "Menu da bandeja", "Меню в трее" },
         ["rep_step"]       = new[] { "Step {0} of {1}", "Krok {0} z {1}", "Schritt {0} von {1}", "Étape {0} sur {1}", "Paso {0} de {1}", "第 {0} / {1} 步", "Etapa {0} de {1}", "Шаг {0} из {1}" },
         ["rep_set_scenario"] = new[] {
             "In MSI Center set the scenario to: {0}, then click Capture.",
