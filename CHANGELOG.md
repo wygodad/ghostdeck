@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.16.4] - 2026-07-12
+### Changed
+- **MSI Raider GE67 HX 12U: fan curve verified** ([issue #16](../../issues/16)). The owner ran the fan-curve
+  wizard and it reported the test curve at the shipped `0x72` (CPU) / `0x8A` (GPU) addresses, so the curve
+  is now marked editable/verified for this model.
+
 ## [1.16.3] - 2026-07-12
 ### Changed
 - **MSI Crosshair A16 HX (D7W/D8W): fan curve verified** ([issue #11](../../issues/11)). The owner ran the
