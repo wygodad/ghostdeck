@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Feature ideas
+    url: https://github.com/wygodad/ghostdeck/discussions/categories/ideas
+    about: Suggest new features and improvements in Discussions.
+
+  - name: Questions and support
+    url: https://github.com/wygodad/ghostdeck/discussions/categories/q-a
+    about: Ask for help using or configuring GhostDeck.
+
+  - name: Attachment policy
+    url: https://github.com/wygodad/ghostdeck/wiki/Attachment-policy
+    about: Read the rules for logs, screenshots, archives, and executable files.
