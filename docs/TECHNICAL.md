@@ -1,7 +1,5 @@
 # MSI GE78HX — Restoring the "Silent" profile via the WMI EC interface
 
-> **Language / Język:** **English** · [Polski](TECHNICAL.pl.md)
->
 > Full per-firmware list of every recognised model: [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md).
 >
 > *Unofficial project - not affiliated with or endorsed by MSI. "MSI", "MSI Center" and "Cooler Boost" are trademarks of Micro-Star International, used here descriptively only.*
@@ -612,6 +610,16 @@ frame + drag grip. Layout is measured on a screen-DPI `Graphics` and the content
 (minimum ~43 % fill regardless of the background setting) plus a stronger accent frame and a 3×3 dot
 grip, so it can be found and dragged even with the background off; locking restores the configured
 background and enables click-through.
+
+### 20.5 Bold-text option for the metric labels
+
+Metric **values** are already `FontStyle.Bold`, but the small **labels** (`CPU`, `GPU`, `Load`, `RAM`
+…) render in a muted grey at 9 pt, which becomes hard to read once the overlay is scaled down — users
+compared it unfavourably with NVIDIA's HUD. `OverlayBoldText` (settings toggle **Bold text**, default
+**on**) switches only the label font family from `Segoe UI` to **`Segoe UI Semibold`**. Semibold is a
+distinct installed family, so this is a genuine weight step *lighter* than `FontStyle.Bold` — enough to
+lift legibility without making the labels shout over the values. Values/header stay `Bold` either way.
+The toggle lives in the overlay **Options** group and is reset by "Restore defaults".
 
 ## 21. Sub-tabs and the two report/verify flows
 
