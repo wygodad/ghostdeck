@@ -43,6 +43,39 @@ public static class Autostart
         return p.ExitCode;
     }
 
+    private static string RunRead(string args)
+    {
+        var psi = new ProcessStartInfo("schtasks.exe", args)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        using var p = Process.Start(psi)!;
+        string output = p.StandardOutput.ReadToEnd();
+        p.WaitForExit();
+        return output;
+    }
+
+    /// <summary>
+    /// The task stores the exe path from the moment autostart was enabled, so moving the exe
+    /// (e.g. into Program Files) silently broke autostart (discussion #9). If the task exists
+    /// but points elsewhere, recreate it at the current location. Runs on every startup.
+    /// </summary>
+    public static void Heal()
+    {
+        try
+        {
+            if (!IsEnabled()) return;
+            string xml = RunRead($"/Query /TN \"{TaskName}\" /XML");
+            var m = System.Text.RegularExpressions.Regex.Match(xml, @"<Command>\s*""?([^""<]+?)""?\s*</Command>");
+            if (m.Success && !string.Equals(m.Groups[1].Value.Trim(), ExePath, StringComparison.OrdinalIgnoreCase))
+                Set(true);
+        }
+        catch { }
+    }
+
     public static bool IsEnabled()
     {
         try { return Run($"/Query /TN \"{TaskName}\"") == 0; }

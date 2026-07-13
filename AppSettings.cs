@@ -41,6 +41,8 @@ public sealed class AppSettings
     public bool TrayShowModels { get; set; } = true;
     public bool TrayShowReport { get; set; } = true;
     public bool TrayShowChangeLog { get; set; } = true;
+    public bool TrayShowFeedback { get; set; } = true;
+    public int IconStyle { get; set; } = 1;    // 0=logo, 1=ghost dark tile (default), 2=ghost light tile, 3=classic gauge
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
 
@@ -209,6 +211,8 @@ public sealed class AppSettings
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
             TrayShowReport = TrayShowReport, TrayShowChangeLog = TrayShowChangeLog,
+            TrayShowFeedback = TrayShowFeedback,
+            IconStyle = IconStyle,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             SeenNoticeIds = new List<string>(SeenNoticeIds),
             DarkMode = DarkMode,

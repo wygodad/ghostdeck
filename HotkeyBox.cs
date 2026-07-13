@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace GhostDeck;
 
 /// <summary>Pole przechwytujace kombinacje klawiszy (do rebindu skrotow).</summary>
@@ -11,8 +13,38 @@ public sealed class HotkeyBox : TextBox
         Cursor = Cursors.Hand;
         TextAlign = HorizontalAlignment.Center;
         ShortcutsEnabled = false;
-        BackColor = Color.White;
+        BorderStyle = BorderStyle.FixedSingle;
+        BackColor = Theme.Surface;
     }
+
+    // The stock FixedSingle border is drawn by Windows in a light system colour, which glows
+    // white in dark mode (discussion #9). Overpaint the 1px non-client frame with the theme
+    // border after every paint; colours are read live so a theme switch just needs Invalidate.
+    [DllImport("user32.dll")] private static extern IntPtr GetWindowDC(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+    private const int WM_PAINT = 0x000F, WM_NCPAINT = 0x0085;
+
+    protected override void WndProc(ref Message m)
+    {
+        base.WndProc(ref m);
+        if (m.Msg is WM_PAINT or WM_NCPAINT) PaintBorder();
+    }
+
+    private void PaintBorder()
+    {
+        IntPtr dc = GetWindowDC(Handle);
+        if (dc == IntPtr.Zero) return;
+        try
+        {
+            using var g = Graphics.FromHdc(dc);
+            using var p = new Pen(Focused ? Theme.Accent : Theme.BorderStrong);
+            g.DrawRectangle(p, 0, 0, Width - 1, Height - 1);
+        }
+        finally { ReleaseDC(Handle, dc); }
+    }
+
+    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
+    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
 
     public void SetValue(HotkeyDef def)
     {

@@ -691,16 +691,13 @@ public sealed class StatusPage : ThemedPage
         for (int i = 0; i < Rows.Length; i++)
         {
             var (key, val, mono) = Rows[i];
+            // zebra stripe on odd rows (matches the tables on the EC-bytes / change-log sub-tabs)
+            if (i % 2 == 1) { using var b = new SolidBrush(Theme.RowAlt); g.FillRectangle(b, Pad + 8, y, avail - 16, rowH); }
             TextRenderer.DrawText(g, Lang.T(key), new Font("Segoe UI", 10.5f),
                 new Rectangle(Pad + 22, y, avail - 44, rowH), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
             var font = mono ? new Font("Consolas", 11f, FontStyle.Bold) : new Font("Segoe UI", 11f, FontStyle.Bold);
             TextRenderer.DrawText(g, val(info, hw), font,
                 new Rectangle(Pad, y, avail - 22, rowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
-            if (i < Rows.Length - 1)
-            {
-                using var pen = new Pen(Theme.Border);
-                g.DrawLine(pen, Pad + 22, y + rowH, Pad + avail - 22, y + rowH);
-            }
             y += rowH;
         }
     }
@@ -750,7 +747,8 @@ public sealed class StatusPage : ThemedPage
     // Generic table drawer; all row heights derive from font.Height (DPI-safe). Returns bottom Y.
     private int DrawGrid(Graphics g, int top, int avail, string title, string[] headers, float[] lefts,
         IReadOnlyList<string[]> rows, bool[] mono, Func<int, Color?>? rowTint = null,
-        Func<int, int, Color?>? cellColor = null, int activeRow = -1, int headerLines = 1)
+        Func<int, int, Color?>? cellColor = null, int activeRow = -1, int headerLines = 1,
+        Func<int, Color?>? rowBar = null, bool zebra = true)
     {
         int x = Pad;
         int y = top;
@@ -778,8 +776,12 @@ public sealed class StatusPage : ThemedPage
         int ry = y + headH;
         for (int r = 0; r < rows.Count; r++)
         {
-            if (rowTint?.Invoke(r) is Color tint) { using var b = new SolidBrush(tint); g.FillRectangle(b, x + 8, ry, avail - 16, rowH); }
-            if (r == activeRow) { using var b = new SolidBrush(Theme.Accent); g.FillRectangle(b, x + 8, ry, 4, rowH); }
+            // row background: explicit tint wins, else zebra stripe on odd rows
+            var fill = rowTint?.Invoke(r) ?? (zebra && r % 2 == 1 ? Theme.RowAlt : (Color?)null);
+            if (fill is Color bg) { using var b = new SolidBrush(bg); g.FillRectangle(b, x + 8, ry, avail - 16, rowH); }
+            // left accent bar: per-row colour (e.g. profile), or the active-row marker
+            var bar = r == activeRow ? Theme.Accent : rowBar?.Invoke(r);
+            if (bar is Color bc) { using var b = new SolidBrush(bc); g.FillRectangle(b, x + 8, ry, 4, rowH); }
             for (int c = 0; c < rows[r].Length; c++)
                 TextRenderer.DrawText(g, rows[r][c], mono[c] ? GMono : GCell, new Rectangle(cx[c], ry, ColW(c), rowH),
                     cellColor?.Invoke(r, c) ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
@@ -827,15 +829,20 @@ public sealed class StatusPage : ThemedPage
         int active = Array.IndexOf(order, info.Profile);
         bool[] mono = { false, true, true, true, true };
 
-        Color? Tint(int r) => r < order.Length ? Color.FromArgb(26, D.ColorOf(order[r])) : (Color?)null;
+        // gentle profile wash per row (a touch stronger on the active one), plus a solid left
+        // accent bar in the profile colour; the "Now (live)" row falls back to zebra + cyan bar
+        Color? Tint(int r) => r < order.Length
+            ? Color.FromArgb(r == active ? 40 : 20, D.ColorOf(order[r]))
+            : (Color?)null;
+        Color? Bar(int r) => r < order.Length ? Theme.Profile(D.ColorOf(order[r])) : (Color?)null;
         Color? Cell(int r, int c)
         {
-            if (r < order.Length) return c == 0 ? ControlPaint.Dark(D.ColorOf(order[r]), 0.05f) : Theme.Text;
+            if (r < order.Length) return c == 0 ? Theme.Profile(D.ColorOf(order[r])) : Theme.Text;
             if (c == 0) return Theme.Accent;                                   // "Now" label
             if (c == 4 && _live.Length > 3 && _live[3] == 0x8D) return Theme.Accent;   // custom curve active (fan byte)
             return Theme.Text;
         }
-        return DrawGrid(g, top, avail, Lang.T("st_matrix"), headers, lefts, rows, mono, Tint, Cell, active, headerLines: 2);
+        return DrawGrid(g, top, avail, Lang.T("st_matrix"), headers, lefts, rows, mono, Tint, Cell, active, headerLines: 2, rowBar: Bar);
     }
 
     private int DrawLegend(Graphics g, int top, int avail)
@@ -926,25 +933,30 @@ public sealed class UpdatesPage : ThemedPage
     private bool _loaded;
     private Updater.Result? _avail;   // newer release found by the last check
 
-    /// <summary>Slim rounded progress bar (0..1), themed like the Status-tab bars.</summary>
+    /// <summary>Rounded progress bar (0..1), styled like the report wizard's capture bar.</summary>
     private sealed class ThinBar : Control
     {
         private float _value;
         public float Value { get => _value; set { _value = Math.Clamp(value, 0, 1); Invalidate(); } }
-        public ThinBar() { DoubleBuffered = true; Size = new Size(220, 10); Visible = false; }
+        public ThinBar() { DoubleBuffered = true; Size = new Size(320, 12); Visible = false; }
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Parent?.BackColor ?? Theme.Surface);
-            float r = Height / 2f;
-            using (var p = Theme.RoundRect(new RectangleF(0, 0, Width - 1, Height - 1), r))
-            using (var b = new SolidBrush(Theme.Border)) g.FillPath(b, p);
+            var track = new RectangleF(0, 0, Width - 1, Height - 1);
+            using (var p = Theme.RoundRect(track, Height / 2f))
+            {
+                using var b = new SolidBrush(Theme.Card); g.FillPath(b, p);
+                using var pen = new Pen(Theme.Border); g.DrawPath(pen, p);
+            }
             if (_value > 0)
             {
                 float w = Math.Max(Height, (Width - 1) * _value);
-                using var p = Theme.RoundRect(new RectangleF(0, 0, w, Height - 1), r);
-                using var b = new SolidBrush(Theme.AccentFill);
+                var fr = new RectangleF(0, 0, w, Height - 1);
+                using var p = Theme.RoundRect(fr, Height / 2f);
+                using var b = new LinearGradientBrush(new RectangleF(0, 0, Width, Height),
+                    ControlPaint.Light(Theme.Accent, 0.2f), Theme.Accent, 0f);
                 g.FillPath(b, p);
             }
         }
@@ -1020,16 +1032,21 @@ public sealed class UpdatesPage : ThemedPage
         int w = ClientSize.Width - 56;
         _check.Location = new Point(ClientSize.Width - 28 - _check.Width, 66);
         _install.Location = new Point(_check.Left - _install.Width - 10, 66);
-        // status ("new version…" / "downloading…" / "up to date") + progress bar sit to the LEFT
-        // of the buttons, in the same row - they used to overlap the "Release history" label
-        int rowLeft = _install.Visible ? _install.Left : _check.Left;
+        _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _check.Bottom + 12);
         if (_bar.Visible)
         {
-            _bar.Location = new Point(rowLeft - _bar.Width - 14, 66 + (_check.Height - _bar.Height) / 2);
-            rowLeft = _bar.Left;
+            // download mode: buttons hidden, "Downloading… X%" label stacked ABOVE the bar,
+            // right-aligned in the button area (like the report wizard's capture bar)
+            int bx = ClientSize.Width - 28 - _bar.Width;
+            _status.Location = new Point(bx, 66);
+            _bar.Location = new Point(bx, _status.Bottom + 8);
         }
-        _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, 66 + (_check.Height - _status.PreferredHeight) / 2);
-        _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _check.Bottom + 12);
+        else
+        {
+            // idle: status ("new version…" / "up to date") sits to the LEFT of the buttons
+            int rowLeft = _install.Visible ? _install.Left : _check.Left;
+            _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, 66 + (_check.Height - _status.PreferredHeight) / 2);
+        }
         _history.SetBounds(28, HistoryTop, w, Math.Max(120, ClientSize.Height - HistoryTop - 24));
     }
 
@@ -1080,10 +1097,13 @@ public sealed class UpdatesPage : ThemedPage
     private async Task InstallNow()
     {
         if (_avail is not { } r) return;
-        _install.Enabled = _check.Enabled = false;
+        // download mode: hide the buttons, show the stacked label + progress bar
+        _install.Visible = _check.Visible = false;
         _status.ForeColor = Theme.Accent;
         _bar.Visible = true;
         _bar.Value = 0;
+        _status.Text = string.Format(Lang.T("upd_downloading"), 0);
+        LayoutBits();
         var progress = new Progress<int>(p =>
         {
             _bar.Value = p / 100f;
@@ -1095,11 +1115,11 @@ public sealed class UpdatesPage : ThemedPage
         {
             // no exe asset / download or launch failed - fall back to the release page
             _bar.Visible = false;
+            _install.Visible = _check.Visible = true;
             _status.ForeColor = Theme.Red;
             _status.Text = Lang.T("upd_dl_failed");
             LayoutBits();
             try { Process.Start(new ProcessStartInfo(r.Url) { UseShellExecute = true }); } catch { }
-            _install.Enabled = _check.Enabled = true;
             return;
         }
         _status.Text = Lang.T("upd_restarting");
@@ -1386,6 +1406,7 @@ public sealed class SettingsPage : ThemedPage
         tray.AddRow(Lang.T("tab_models"), Toggle(D.Settings.TrayShowModels, v => { D.Settings.TrayShowModels = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("tray_report"), Toggle(D.Settings.TrayShowReport, v => { D.Settings.TrayShowReport = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("menu_log"), Toggle(D.Settings.TrayShowChangeLog, v => { D.Settings.TrayShowChangeLog = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("menu_feedback"), Toggle(D.Settings.TrayShowFeedback, v => { D.Settings.TrayShowFeedback = v; D.SaveSettings(); D.SettingsChanged(); }));
         _left.Add(tray);
 
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
@@ -1420,6 +1441,12 @@ public sealed class SettingsPage : ThemedPage
         hk.AddRow(null, reset);
         _right.Add(hk);
         UpdateHotkeyRowsEnabled();
+
+        // Application icon: four visual tiles under Keyboard shortcuts; clicking one applies it
+        // immediately to the window/taskbar/tray (#9).
+        var iconCard = new CardSection(Lang.T("set_app_icon"), "");
+        iconCard.AddRow(null, new IconStylePicker(D));
+        _right.Add(iconCard);
 
         _overlayPanel = new OverlaySettingsPanel(D);
         Controls.Add(_overlayPanel);
@@ -1489,6 +1516,69 @@ public sealed class SettingsPage : ThemedPage
         c.Items.AddRange(items);
         c.SelectedIndex = Math.Clamp(sel, 0, items.Length - 1);
         return c;
+    }
+
+    /// <summary>
+    /// Four clickable icon-style tiles (preview + label); the selected one gets an accent frame.
+    /// Clicking applies the style immediately (window/taskbar/tray) via SettingsChanged.
+    /// </summary>
+    private sealed class IconStylePicker : Control
+    {
+        private static readonly string[] LabelKeys = { "icon_logo", "icon_ghost_dark", "icon_ghost_light", "icon_gauge" };
+        private readonly MainDeps D;
+        private readonly int _cellW, _gap, _icon;
+        private int _hover = -1;
+
+        public IconStylePicker(MainDeps d)
+        {
+            D = d;
+            DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
+            float k = DeviceDpi / 96f;
+            _cellW = (int)(88 * k); _gap = (int)(8 * k); _icon = (int)(44 * k);
+            Width = 4 * _cellW + 3 * _gap;
+            Height = (int)(104 * k);
+        }
+
+        private Rectangle Cell(int i) => new(i * (_cellW + _gap), 0, _cellW, Height);
+        private int HitTest(Point p) { for (int i = 0; i < 4; i++) if (Cell(i).Contains(p)) return i; return -1; }
+
+        protected override void OnMouseMove(MouseEventArgs e) { int h = HitTest(e.Location); if (h != _hover) { _hover = h; Invalidate(); } }
+        protected override void OnMouseLeave(EventArgs e) { _hover = -1; Invalidate(); }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            int i = HitTest(e.Location);
+            if (i < 0 || i == D.Settings.IconStyle) return;
+            D.Settings.IconStyle = i;
+            TrayIconFactory.Style = i;
+            D.SaveSettings(); D.SettingsChanged();
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Parent?.BackColor ?? Theme.Card);
+            using var lf = new Font("Segoe UI", 8.5f);
+            for (int i = 0; i < 4; i++)
+            {
+                var c = Cell(i);
+                bool sel = D.Settings.IconStyle == i;
+                using (var path = Theme.RoundRect(new RectangleF(c.X + 1f, c.Y + 1f, c.Width - 2, c.Height - 2), 8))
+                {
+                    if (sel) { using var b = new SolidBrush(Theme.AccentSoft); g.FillPath(b, path); }
+                    using var pen = new Pen(sel ? Theme.Accent : _hover == i ? Theme.BorderStrong : Theme.Border, sel ? 2f : 1f);
+                    g.DrawPath(pen, path);
+                }
+                int iy = (int)(12 * DeviceDpi / 96f);
+                TrayIconFactory.DrawStylePreview(g, i, c.X + (c.Width - _icon) / 2f, c.Y + iy, _icon);
+                TextRenderer.DrawText(g, Lang.T(LabelKeys[i]), lf,
+                    new Rectangle(c.X + 4, c.Y + iy + _icon + 6, c.Width - 8, c.Height - iy - _icon - 10),
+                    sel ? Theme.Text : Theme.Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+            }
+        }
     }
 
     private ToggleSwitch Toggle(bool on, Action<bool> onChange)
@@ -2121,11 +2211,15 @@ public sealed class ThemedComboBox : ComboBox
             }
     }
 
-    // Drop-down LIST rows.
+    // Drop-down LIST rows. The CLOSED field can also arrive here (DrawItemState.ComboBoxEdit),
+    // e.g. when the combo merely receives focus - clicking an overlay checkbox pushed focus to
+    // the Position combo and its field lit up solid blue (discussion #9). Paint the field like
+    // the normal closed state instead: no selection highlight outside the drop-down list.
     protected override void OnDrawItem(DrawItemEventArgs e)
     {
         if (e.Index < 0) { e.DrawBackground(); return; }
-        bool sel = (e.State & DrawItemState.Selected) != 0;
+        bool field = (e.State & DrawItemState.ComboBoxEdit) != 0;
+        bool sel = !field && (e.State & DrawItemState.Selected) != 0;
         using (var b = new SolidBrush(sel ? Theme.AccentFill : Theme.Surface)) e.Graphics.FillRectangle(b, e.Bounds);
         var fore = sel ? Color.White : Theme.Text;
         var rect = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height);

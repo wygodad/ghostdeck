@@ -27,7 +27,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
-- ⬇️ **Automatic update check** (once a day, can be disabled) - tray notification + one-click to the download page
+- ⬇️ **In-app updates** - a daily update check (can be disabled) with a tray notification, plus **one-click install from the Updates tab**: it downloads the new release, shows a progress bar and restarts itself on the new version (the previous `.exe` is kept as a `.bak` and cleaned up on next start); falls back to the download page if the download fails
 - 📣 **Announcements & feedback** - occasional in-app notices (tray balloon + a dismissible banner) fetched read-only from the repo on the same daily check; a **Send feedback…** tray entry opens GitHub Discussions. No data is collected by the app (a plain download, same privacy footprint as the update check); both can be turned off with the update-check toggle
 
 ## Comparison with MSI software
@@ -51,6 +51,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Works with any / no MSI Center version | ❌ | ✅ |
 | Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |
 | RGB / keyboard / other MSI-Center features | ✅ | ❌ |
+| In-app self-update | ✅ | ✅ *(one-click install + restart)* |
 | Open source | ❌ | ✅ |
 
 1. MSI Center only allows a custom fan curve in **Extreme**; this app runs one on **Balanced / Extreme / Super Battery**, fully reversible. **Silent** is a hardware exception: its power cap and the fan-curve mode share the same EC byte (`0xD4`), so enabling a curve in Silent necessarily switches the profile to Balanced (the app warns first).
@@ -74,6 +75,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Updates** - installed version, check now, release history |
 | ![Fan curve](docs/images/fan_curve.png) | ![Status EC bytes](docs/images/status_ec.png) |
 | **Fan curve** - drag a custom CPU/GPU fan curve (manual fan control) | **Status (EC bytes)** - live profile-byte matrix, legend and fan-curve tables |
+| ![Models](docs/images/models.png) | ![Change log](docs/images/change_log.png) |
+| **Models** - every recognized firmware with its support tier | **Change log** - full history of profile switches and EC writes |
 
 ## Download
 

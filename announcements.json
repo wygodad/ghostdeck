@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v118-redesign-autoupdate",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.17.9",
+    "title": "New release: refreshed look + one-click updates",
+    "title_pl": "Nowe wydanie: odświeżony wygląd + aktualizacje jednym klikiem",
+    "body": "GhostDeck v1.18 is out: a full ghostdeck.dev visual refresh (new ghost icon, dark theme by default, new scenario icons and gauges) and in-app updates — from now on the Updates tab can download and install new versions itself. Click Details to grab it.",
+    "body_pl": "Wyszło GhostDeck v1.18: pełne odświeżenie wyglądu w stylu ghostdeck.dev (nowa ikona duszka, domyślnie ciemny motyw, nowe ikony scenariuszy i wskaźniki) oraz aktualizacje w aplikacji — od teraz zakładka Aktualizacje sama pobierze i zainstaluje nowe wersje. Kliknij Szczegóły, aby pobrać.",
+    "url": "https://github.com/wygodad/ghostdeck/releases/latest"
+  },
+  {
     "id": "2026-07-rename-ghostdeck",
     "severity": "info",
     "minVersion": "1.0.0",

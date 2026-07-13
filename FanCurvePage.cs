@@ -330,6 +330,26 @@ public sealed class FanCurvePage : ThemedPage
         var pts = new PointF[n];
         for (int i = 0; i < n; i++) pts[i] = PointAt(fan, i);
 
+        if (n >= 2)
+        {
+            // translucent gradient wash under the curve (fades toward the axis, like the site mockup)
+            using (var area = new GraphicsPath())
+            {
+                area.AddLines(pts);
+                area.AddLine(pts[n - 1], new PointF(pts[n - 1].X, p.Bottom));
+                area.AddLine(new PointF(pts[n - 1].X, p.Bottom), new PointF(pts[0].X, p.Bottom));
+                area.CloseFigure();
+                var box = new RectangleF(p.Left, p.Top, p.Width, p.Height + 1);
+                using var grad = new LinearGradientBrush(box,
+                    Color.FromArgb(70, Theme.Accent), Color.FromArgb(8, Theme.Accent), 90f);
+                g.FillPath(grad, area);
+            }
+            // vertical guide from each node down to the axis
+            using (var guide = new Pen(Color.FromArgb(60, Theme.Accent)) { DashStyle = DashStyle.Dash })
+                foreach (var pt in pts)
+                    g.DrawLine(guide, pt.X, pt.Y, pt.X, p.Bottom);
+        }
+
         using (var line = new Pen(Theme.Accent, 2.5f) { LineJoin = LineJoin.Round })
             if (n >= 2) g.DrawLines(line, pts);
 

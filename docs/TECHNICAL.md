@@ -324,6 +324,8 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 | ![Status](images/status.png) | ![Settings](images/settings.png) |
 | Report my model | Updates |
 | ![Report my model](images/report_my_model.png) | ![Updates](images/updates.png) |
+| Fan curve | Change log |
+| ![Fan curve](images/fan_curve.png) | ![Change log](images/change_log.png) |
 
 ## 16. Hidden test / discovery tools (Ctrl+Shift+T)
 
@@ -669,9 +671,42 @@ Two accent tokens in `Theme.cs` — do not merge them:
 (`Ui.Pill`) are outlined chips (1px border + ~10% tint), matching the site's table chips:
 tested/positive = Accent, experimental/limited = Amber, unsupported/negative = Red.
 
-Profile colour defaults (Profiles.cs) follow the site mockup: Silent `#61E7A4`,
-Balanced `#3C7DFF`, Extreme `#8D63FF`, Super Battery `#B86BFF`. The swatch palette must
+Profile colour defaults (Profiles.cs): Silent `#3C7DFF` (blue), Balanced `#FFC15D` (amber),
+Extreme `#FF2F7D` (pink), Super Battery `#61E7A4` (green). The swatch palette must
 contain every default (the selected-marker compares live `ColorFor`, so "Restore default
 colors" in Settings moves the markers without a rebuild). Icon vector sources live in
 `assets/icons/*.svg` (32-unit grid) and MUST be kept in sync with `IconPainter.cs` /
 `TrayIconFactory.cs` when an icon changes.
+
+**Tables.** `Theme.RowAlt` is a one-step-off-`Card` wash for zebra striping. The shared
+table drawer `DrawGrid` stripes odd rows by default (`zebra`), and takes `rowTint` (explicit
+per-row fill, wins over zebra) and `rowBar` (per-row left accent bar). The EC-bytes matrix
+uses `rowTint` for a gentle per-profile wash (stronger on the active row) + `rowBar` for a
+solid profile-colour edge; the active row's bar switches to `Theme.Accent`. The Charts detail
+card stripes odd rows the same way (no more divider lines).
+
+## 23. In-app updates (`Updater.cs`, Updates tab)
+
+The daily background check (`Updater.CheckAsync`) compares the GitHub `releases/latest` tag to
+the running assembly version. As of v1.18 it also reads the `GhostDeck.exe` **asset** URL + size
+so the app can install the update itself instead of only opening the download page.
+
+**Install flow (Updates tab):** *Install vX.Y.Z* → `DownloadAsync` streams the asset next to the
+running exe as `GhostDeck.update.exe` (progress bar; size is checked against the release asset
+size) → `StartSelfUpdate` → `Application.Exit()`.
+
+**The swap is version-independent — this is the key design point.** A running exe can't overwrite
+itself, and the *downloaded* exe can't do the swap either (it might be any version, including one
+that predates this feature — an early attempt to run the swap inside the downloaded exe via a
+`--finish-update` arg failed exactly because the older downloaded build didn't know that arg and
+was killed by the single-instance mutex). So `StartSelfUpdate` writes a tiny **cmd script** to
+`%TEMP%\ghostdeck-update.cmd` and launches it hidden (`cmd.exe /d /c`, `CreateNoWindow`). The
+script: waits for our PID to exit (`tasklist /fi "PID eq <pid>" /fo csv | find`), `move`s the old
+exe to `<target>.bak`, `move`s the downloaded exe onto `<target>`, `start`s it, and deletes
+itself. `Program.CleanupAfterUpdate` (delayed 5 s on the next normal start) removes the leftover
+`.bak` / `.update.exe`. Failure at any point → fall back to opening the releases page.
+
+**Single instance UX.** Launching the exe while GhostDeck is already running can't start a second
+process (named mutex `GhostDeck_SingleInstance`); the second launch instead `Set`s the named event
+`GhostDeck_ShowMainWindow`, and a background thread in `TrayContext` brings up the main window — so
+double-clicking the exe (or the freshly-swapped one) always shows something.

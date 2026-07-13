@@ -3,6 +3,35 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.18.1] - 2026-07-13
+### Added
+- **Application icon choice** (Settings → Appearance): GhostDeck logo, ghost on a dark rounded
+  tile (new default - crisper in the taskbar and title bar, with rounded corners), ghost on a
+  light tile, or the classic pre-1.18 gauge. The tray icon keeps following the active profile
+  colour in every style ([#9](../../discussions/9)).
+- **"Send feedback" can be hidden** from the tray menu (Settings → Tray menu)
+  ([#9](../../discussions/9)).
+### Fixed
+- **Autostart survives moving the exe.** The scheduled task stores the exe path from the moment
+  autostart was enabled, so moving `GhostDeck.exe` (e.g. into Program Files) silently broke
+  autostart; the app now re-points the task at its current location on every start
+  ([#9](../../discussions/9)).
+- **Clicking overlay checkboxes no longer lights up the Position dropdown** - the combo showed a
+  solid selection highlight when it merely received focus ([#9](../../discussions/9)).
+- **Overlay "Limit" metric now shows OFF** when the battery-charge limit is not managed by the
+  app, instead of keeping the last percentage ([#9](../../discussions/9)).
+- **Shortcut capture boxes are theme-aware** - they had a glaring white system border in dark
+  mode; now they use the theme border (accent when capturing) ([#9](../../discussions/9)).
+### Changed
+- **Status tables restyled.** The EC profile-byte matrix now uses a cleaner per-profile row wash
+  with a coloured left edge (and a cyan edge on the active profile); the byte legend, live
+  fan-curve table, change-log and the Charts detail card now use alternating row shading for
+  easier reading.
+- **Update download bar.** During an in-app update the progress now shows as a "Downloading… X%"
+  label above a rounded progress bar (the Install/Check buttons hide while it runs).
+- **Fan-curve charts** now draw a translucent gradient fill under the curve and a vertical
+  guide line at every node, matching the ghostdeck.dev look.
+
 ## [1.18.0] - 2026-07-13
 ### Added
 - **In-app updates.** The Updates tab can now download and install a new release directly: an

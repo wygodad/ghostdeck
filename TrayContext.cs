@@ -42,9 +42,11 @@ public sealed class TrayContext : ApplicationContext
     {
         _settings = AppSettings.Load();
         Autostart.Migrate();                       // move a pre-rename "MSIProfileSwitcher" autostart task to "GhostDeck"
+        Autostart.Heal();                          // re-point the task if the exe was moved since it was created
         _settings.Autostart = Autostart.IsEnabled();
         Lang.Set(_settings.Language);
         Theme.Set(_settings.DarkMode);
+        TrayIconFactory.Style = _settings.IconStyle;
 
         ChangeLog.Load();
 
@@ -284,9 +286,12 @@ public sealed class TrayContext : ApplicationContext
             menu.Items.Add(report);
         }
 
-        var feedback = new ToolStripMenuItem(Lang.T("menu_feedback"));
-        feedback.Click += (_, _) => OpenFeedback();
-        menu.Items.Add(feedback);
+        if (_settings.TrayShowFeedback)
+        {
+            var feedback = new ToolStripMenuItem(Lang.T("menu_feedback"));
+            feedback.Click += (_, _) => OpenFeedback();
+            menu.Items.Add(feedback);
+        }
 
         var langMenu = new ToolStripMenuItem(Lang.T("menu_language"));
         for (int i = 0; i < Lang.Names.Length; i++)
@@ -520,7 +525,9 @@ public sealed class TrayContext : ApplicationContext
             Known, Writable,
             Profiles.Get(_current).Label, _settings.ColorFor(_current), _coolerBoost,
             hw.CpuTemp, hw.GpuTemp, hw.CpuRpm, hw.GpuRpm, hw.CpuFan, hw.GpuFan,
-            load, ramPct, ramUsed, hw.ChargeLimit, batt, charging,
+            // overlay shows the app-managed limit: OFF unless we actively enforce 60/80/100
+            // (the EC byte keeps the last value even when the app stops managing it)
+            load, ramPct, ramUsed, _settings.ChargeLimit is 60 or 80 or 100 ? _settings.ChargeLimit : 0, batt, charging,
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz());
     }
 
@@ -532,6 +539,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void UpdateUi(ProfileId id)
     {
+        TrayIconFactory.Style = _settings.IconStyle;   // follow the Settings icon-style choice
         var color = Writable ? _settings.ColorFor(id) : Color.Gray;
         var newIcon = TrayIconFactory.Create(color);
         _tray.Icon = newIcon;
@@ -544,7 +552,12 @@ public sealed class TrayContext : ApplicationContext
                 if (it is ToolStripMenuItem mi && mi.Tag is ProfileId pid)
                     mi.Checked = Writable && pid == id;
 
-        if (_main is { IsDisposed: false }) _main.RefreshActive();
+        if (_main is { IsDisposed: false })
+        {
+            var appIcon = TrayIconFactory.AppIcon();
+            if (!ReferenceEquals(_main.Icon, appIcon)) _main.Icon = appIcon;   // follows an icon-style change
+            _main.RefreshActive();
+        }
     }
 
     // ---------------- hotkeys ----------------
