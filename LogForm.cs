@@ -73,7 +73,8 @@ public sealed class LogForm : Form
             bool sel = e.Item?.Selected == true;
             var bg = sel ? Theme.AccentSoft : e.ItemIndex % 2 == 0 ? Theme.Card : Theme.Surface;
             using (var b = new SolidBrush(bg)) e.Graphics.FillRectangle(b, e.Bounds);
-            var fg = e.ColumnIndex == 0 ? Theme.Muted : Theme.Text;
+            // column colours: muted time, accent source, plain detail, muted readback
+            var fg = e.ColumnIndex switch { 0 => Theme.Muted, 1 => Theme.Accent, 3 => Theme.Muted, _ => Theme.Text };
             TextRenderer.DrawText(e.Graphics, e.SubItem?.Text ?? "", _list.Font,
                 new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
                 fg, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);

@@ -22,6 +22,15 @@ internal static class Ui
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
+    /// <summary>Faint background grid (ghostdeck.dev texture), drawn under the page content.</summary>
+    public static void DrawGrid(Graphics g, Rectangle r)
+    {
+        const int pitch = 48;
+        using var pen = new Pen(Theme.GridLine);
+        for (int x = r.Left + pitch; x < r.Right; x += pitch) g.DrawLine(pen, x, r.Top, x, r.Bottom);
+        for (int y = r.Top + pitch; y < r.Bottom; y += pitch) g.DrawLine(pen, r.Left, y, r.Right, y);
+    }
+
     /// <summary>
     /// Runs a bulk control rebuild with painting + layout suspended (WM_SETREDRAW), then repaints
     /// once. Without this a rebuild (e.g. Settings after a language change) visibly blanks the
@@ -132,28 +141,29 @@ public sealed class ScenariosPage : ThemedPage
     private readonly SegControl _charge;
     private readonly ToggleSwitch _auto;
     private readonly FeatureBrick[] _bricks;
-    private int _cardTop, _cardH, _headH, _subY, _bricksTop;
+    private int _headH, _subY, _bricksTop;
 
     public ScenariosPage(MainDeps d) : base(d)
     {
         _tiles = Profiles.Order.Select(id => new Tile(d, id)).ToArray();
         foreach (var t in _tiles) Controls.Add(t);
 
-        _charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" }, ChargeIndex());
+        _charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" }, ChargeIndex()) { Size = new Size(280, 34) };
         _charge.SelectedChanged += i => D.SetChargeLimit(i switch { 1 => 60, 2 => 80, 3 => 100, _ => 0 });
-        Controls.Add(_charge);
 
         _auto = new ToggleSwitch { Checked = D.Settings.AutoSwitchEnabled };
         _auto.Toggled += v => D.SetAutoSwitch(v);
-        Controls.Add(_auto);
 
-        // Functional "feature bricks" grid (à la MSI Center). Cooler Boost is the first; add more here later.
+        // One uniform "brick" per feature (discussion feedback): toggles and the charge-limit
+        // segment all live in matching boxes under the profile tiles.
         _bricks = new[]
         {
             new FeatureBrick("cooler_boost_short", "❄", "cooler_boost_hint",
                              () => D.Writable() && D.CoolerBoost(), v => D.SetCoolerBoost(v)),
             new FeatureBrick("overlay_title", "▦", "overlay_hint",
                              () => D.OverlayOn(), v => D.SetOverlay(v)),
+            new FeatureBrick("st_charge", "⚡", _charge),
+            new FeatureBrick("scen_autoswitch", "⇄", _auto),
         };
         foreach (var b in _bricks) Controls.Add(b);
 
@@ -201,18 +211,9 @@ public sealed class ScenariosPage : ThemedPage
         for (int i = 0; i < _tiles.Length; i++)
             _tiles[i].SetBounds(Pad + i * (tw + Gap), _headH, tw, TileH);
 
-        _cardTop = _headH + TileH + 28;
-        int rowGap = 30, rowH = 40, cardPad = 22;
-        _cardH = cardPad * 2 + rowH * 2 + rowGap;
-        int segW = Math.Min(360, avail - 220);
-        int r1 = _cardTop + cardPad, r2 = r1 + rowH + rowGap;
-        _charge.SetBounds(Pad + avail - segW - cardPad, r1, segW, rowH);
-        _auto.SetBounds(Pad + avail - _auto.Width - cardPad, r2 + (rowH - _auto.Height) / 2, _auto.Width, _auto.Height);
-
-        // Feature bricks grid: same column width as the profile tiles above, but short cards.
-        int featHeadH = new Font("Segoe UI", 13f, FontStyle.Bold).Height;
-        _bricksTop = _cardTop + _cardH + 26 + featHeadH + 14;
-        const int cols = 4, brickH = 82;
+        // Uniform feature bricks, two per row, straight under the tiles (mockup W5 layout).
+        _bricksTop = _headH + TileH + 24;
+        const int cols = 2, brickH = 82;
         int bw = (avail - Gap * (cols - 1)) / cols;
         int rows = 0;
         for (int i = 0; i < _bricks.Length; i++)
@@ -234,27 +235,7 @@ public sealed class ScenariosPage : ThemedPage
         TextRenderer.DrawText(g, Lang.T("scen_title"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
         string sub = info.Device + (string.IsNullOrEmpty(D.Firmware) ? "" : "  ·  " + D.Firmware);
         TextRenderer.DrawText(g, sub, new Font("Segoe UI", 10.5f), new Point(Pad, _subY), Theme.Muted);
-        var bf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-        int bw = TextRenderer.MeasureText(info.TierText, bf).Width + 32;
-        Ui.Pill(g, info.TierText, new Point(ClientSize.Width - Pad - bw, 26), info.TierColor);
-
-        int avail = ClientSize.Width - Pad * 2;
-        var card = new RectangleF(Pad, _cardTop, avail, _cardH);
-        Ui.FillCard(g, card);
-        const int cardPad = 22, rowH = 40, rowGap = 30;
-        int r1 = _cardTop + cardPad, r2 = r1 + rowH + rowGap;
-        var lf = new Font("Segoe UI", 11f);
-        TextRenderer.DrawText(g, Lang.T("st_charge"), lf,
-            new Rectangle(Pad + cardPad, r1, 360, rowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-        TextRenderer.DrawText(g, Lang.T("scen_autoswitch"), lf,
-            new Rectangle(Pad + cardPad, r2, 460, rowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-        using (var pen = new Pen(Theme.Border))
-            g.DrawLine(pen, Pad + cardPad, r1 + rowH + rowGap / 2, Pad + avail - cardPad, r1 + rowH + rowGap / 2);
-
-        // "Features" section heading above the bricks grid.
-        var fhf = new Font("Segoe UI", 13f, FontStyle.Bold);
-        TextRenderer.DrawText(g, Lang.T("scen_features"), fhf,
-            new Point(Pad, _bricksTop - fhf.Height - 12), Theme.Text);
+        // (the tier badge lives in the header strip now, next to the version)
     }
 
     private sealed class Tile : Control
@@ -286,13 +267,24 @@ public sealed class ScenariosPage : ThemedPage
                 using var pen = new Pen(active ? Theme.Accent : (_hover ? Theme.BorderStrong : Theme.Border), active ? 2f : 1f);
                 g.DrawPath(pen, path);
             }
-            // icon centred on top, text stacked below (font-height stacked = DPI-safe)
+            if (active)
+            {
+                // soft inner neon (ghostdeck.dev card style): fading strokes just inside the border
+                for (int i = 1; i <= 3; i++)
+                {
+                    using var gp = Theme.RoundRect(new RectangleF(0.5f + i * 2, 0.5f + i * 2, Width - 1 - i * 4, Height - 1 - i * 4), 6);
+                    using var pen = new Pen(Color.FromArgb(46 - i * 12, Theme.Accent), 2f);
+                    g.DrawPath(pen, gp);
+                }
+            }
+            // icon centred on top, text stacked below, SELECT/ACTIVE footer (font-height stacked = DPI-safe)
             int iconBox = 76;
             var nameFont = new Font("Segoe UI", 15f, FontStyle.Bold);
             var subFont = new Font("Segoe UI", 10.5f);
-            int nameH = nameFont.Height, subH = subFont.Height, g1 = 16, g2 = 6;
-            int blockH = iconBox + g1 + nameH + g2 + subH;
-            int top = Math.Max(20, (Height - blockH) / 2);
+            var footFont = new Font("Segoe UI", 9f, FontStyle.Bold);
+            int nameH = nameFont.Height, subH = subFont.Height, g1 = 16, g2 = 6, g3 = 18, footH = footFont.Height + 12;
+            int blockH = iconBox + g1 + nameH + g2 + subH + g3 + footH;
+            int top = Math.Max(16, (Height - blockH) / 2);
             IconPainter.Scenario(g, _id, new RectangleF((Width - iconBox) / 2f, top, iconBox, iconBox), col, 4f);
             int textW = Width - 24;
             TextRenderer.DrawText(g, def.Label, nameFont,
@@ -301,13 +293,19 @@ public sealed class ScenariosPage : ThemedPage
             TextRenderer.DrawText(g, Lang.T(def.SubKey), subFont,
                 new Rectangle(12, top + iconBox + g1 + nameH + g2, textW, subH), Theme.Muted,
                 TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
+            int footY = top + iconBox + g1 + nameH + g2 + subH + g3;
             if (active)
             {
-                int cx = Width - 26, cy = 24;
-                using var bb = new SolidBrush(Theme.AccentFill);
-                g.FillEllipse(bb, cx - 11, cy - 11, 22, 22);
-                using var pen = new Pen(Color.White, 2.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-                g.DrawLines(pen, new[] { new Point(cx - 5, cy), new Point(cx - 1, cy + 4), new Point(cx + 6, cy - 5) });
+                string t = Lang.T("scen_active");
+                int tw = TextRenderer.MeasureText(t, new Font("Segoe UI", 9.5f, FontStyle.Bold)).Width;   // same font Ui.Pill sizes with
+                Ui.Pill(g, t, new Point((Width - (tw + 32)) / 2, footY), Theme.Accent);
+            }
+            else
+            {
+                TextRenderer.DrawText(g, Lang.T("scen_select"), footFont,
+                    new Rectangle(12, footY + 6, textW, footFont.Height + 2),
+                    _hover ? Theme.Muted : Theme.Faint,
+                    TextFormatFlags.Top | TextFormatFlags.HorizontalCenter);
             }
         }
     }
@@ -321,9 +319,10 @@ public sealed class ScenariosPage : ThemedPage
     {
         private readonly string _labelKey;
         private readonly string _glyph;
-        private readonly Func<bool> _get;
-        private readonly ToggleSwitch _toggle;
-        private readonly HelpDot _help;
+        private readonly Func<bool>? _get;
+        private readonly ToggleSwitch? _toggle;
+        private readonly Control _right;
+        private readonly HelpDot? _help;
         private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 15000, ReshowDelay = 100 };
         private bool _hover;
 
@@ -332,22 +331,33 @@ public sealed class ScenariosPage : ThemedPage
             _labelKey = labelKey; _glyph = glyph; _get = get;
             DoubleBuffered = true; ResizeRedraw = true;
             BackColor = Theme.Card;                       // so the child controls blend with the card interior
-            _toggle = new ToggleSwitch { Checked = get() };
-            _toggle.Toggled += v => set(v);
+            var toggle = new ToggleSwitch { Checked = get() };
+            toggle.Toggled += v => set(v);
+            _toggle = toggle; _right = toggle;
             _help = new HelpDot();
             _tip.SetToolTip(_help, Ui.Wrap(Lang.T(tipKey), 46));
-            Controls.Add(_toggle);
+            Controls.Add(_right);
             Controls.Add(_help);
             Resize += (_, _) => LayoutInner();
         }
 
-        public void SyncState() => _toggle.Checked = _get();
-        public void ApplyTheme() { BackColor = Theme.Card; _toggle.Invalidate(); _help.Invalidate(); Invalidate(); }
+        /// <summary>Brick hosting an arbitrary right-side control (e.g. a SegControl) instead of a toggle.</summary>
+        public FeatureBrick(string labelKey, string glyph, Control right)
+        {
+            _labelKey = labelKey; _glyph = glyph; _right = right;
+            DoubleBuffered = true; ResizeRedraw = true;
+            BackColor = Theme.Card;
+            Controls.Add(_right);
+            Resize += (_, _) => LayoutInner();
+        }
+
+        public void SyncState() { if (_toggle != null && _get != null) _toggle.Checked = _get(); }
+        public void ApplyTheme() { BackColor = Theme.Card; _right.Invalidate(); _help?.Invalidate(); Invalidate(); }
 
         private void LayoutInner()
         {
-            _toggle.Location = new Point(Width - _toggle.Width - 18, (Height - _toggle.Height) / 2);
-            _help.Location = new Point(_toggle.Left - _help.Width - 14, (Height - _help.Height) / 2);
+            _right.Location = new Point(Width - _right.Width - 18, (Height - _right.Height) / 2);
+            _help?.SetBounds(_right.Left - _help.Width - 14, (Height - _help.Height) / 2, _help.Width, _help.Height);
         }
 
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); }
@@ -374,7 +384,7 @@ public sealed class ScenariosPage : ThemedPage
             using (var gf = new Font("Segoe UI Symbol", 12f))
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, new RectangleF(bx, by, box, box));
             // label (stops before the help dot + toggle)
-            int lx = bx + box + 14, rightPad = _toggle.Width + 14 + _help.Width + 14 + 12;
+            int lx = bx + box + 14, rightPad = _right.Width + 14 + (_help != null ? _help.Width + 14 : 0) + 12;
             TextRenderer.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
                 new Rectangle(lx, 0, Math.Max(20, Width - lx - rightPad), Height), Theme.Text,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
@@ -593,6 +603,7 @@ public sealed class StatusPage : ThemedPage
             var g = _buf!.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Theme.Surface);
+            if (_p.D.Settings.ShowGrid) Ui.DrawGrid(g, new Rectangle(0, 0, Width, Height));
             _p.Render(g, Width);
         }
 
@@ -613,17 +624,17 @@ public sealed class StatusPage : ThemedPage
         var hw = _hw;   // cached; refreshed off the UI thread by RefreshAsync
 
         TextRenderer.DrawText(g, Lang.T("menu_status"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
-        var bf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-        int bw = TextRenderer.MeasureText(info.TierText, bf).Width + 32;
-        Ui.Pill(g, info.TierText, new Point(width - Pad - bw, 28), info.TierColor);
+        // (the tier badge lives in the header strip now, next to the version)
 
         int avail = width - Pad * 2;
         if (_statusSub == 1) { RenderBytes(g, avail, info); return; }
         if (_statusSub == 2) { RenderLog(g, avail); return; }
 
         // ---- sub-tab 0: charts (rings + RAM + metric boxes + details card) ----
-        int ringGap = RingGap();
         int ring = RingSize(width);
+        // justify the gauge row: spread the leftover width into the gaps so the five rings
+        // (and the metric boxes that follow their columns) span the full content width
+        int ringGap = Math.Max(24, (avail - RingCount * ring) / (RingCount - 1));
         int top = SecTop;
         int cpuUse = SysInfo.CpuUsage();
         var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
@@ -676,7 +687,7 @@ public sealed class StatusPage : ThemedPage
                 new Rectangle(ramX, subY2, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
             TextRenderer.DrawText(g, $"{vm / 1024f:0.0} / {vt / 1024f:0.0} GB · {vpct}%", new Font("Segoe UI", 10.5f),
                 new Rectangle(ramX, subY2, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
-            DrawBar(g, new RectangleF(ramX + 20, subY2 + 36, ramW - 40, 14), vm / (float)vt, vpct >= 90 ? Theme.Amber : Theme.Accent);
+            DrawBar(g, new RectangleF(ramX + 20, subY2 + 36, ramW - 40, 14), vm / (float)vt, vpct >= 90 ? Theme.Amber : Theme.AccentFill);
         }
         else
         {
@@ -727,7 +738,10 @@ public sealed class StatusPage : ThemedPage
         if (rows.Count == 0) rows.Add(new[] { "—", "", Lang.T("log_empty"), "" });
         bool[] mono = { true, false, false, true };
         int titleY = top + 16;
-        int bottom = DrawGrid(g, titleY, avail, Lang.T("log_recent"), headers, lefts, rows, mono);
+        // column colour language shared with the full-log window: muted time, accent source,
+        // plain detail, muted mono readback
+        Color? LogCell(int r, int c) => c switch { 0 => Theme.Muted, 1 => Theme.Accent, 3 => Theme.Muted, _ => Theme.Text };
+        int bottom = DrawGrid(g, titleY, avail, Lang.T("log_recent"), headers, lefts, rows, mono, cellColor: LogCell);
 
         // Right-align the "Full log…" button on the section title row.
         int btnW = 150, btnH = GTitle.Height + 6;
@@ -861,7 +875,8 @@ public sealed class StatusPage : ThemedPage
             new[] { $"0x{fanA:X2}",  Lang.T("st_b_fan"),   $"1D ({Si}) · 0D ({Au}) · 8D ({Cu})" },
         };
         bool[] mono = { true, false, false };
-        return DrawGrid(g, top + 8, avail, "", headers, lefts, rows, mono);
+        Color? LegendCell(int r, int c) => c switch { 0 => Theme.Accent, 2 => Theme.Muted, _ => Theme.Text };
+        return DrawGrid(g, top + 8, avail, "", headers, lefts, rows, mono, cellColor: LegendCell);
     }
 
     private int DrawCurveLive(Graphics g, int top, int avail, (int[] ct, int[] cs, int[] gt, int[] gs) cv)
@@ -872,7 +887,9 @@ public sealed class StatusPage : ThemedPage
         var rows = new List<string[]>();
         for (int i = 0; i < n; i++) rows.Add(new[] { (i + 1).ToString(), cv.ct[i] + "°", cv.cs[i] + "%", cv.gt[i] + "°", cv.gs[i] + "%" });
         bool[] mono = { false, true, true, true, true };
-        return DrawGrid(g, top + 16, avail, Lang.T("st_curve_live"), headers, lefts, rows, mono);
+        // temps muted, duty coloured per fan (CPU accent / GPU violet), point number faint
+        Color? CurveCell(int r, int c) => c switch { 0 => Theme.Faint, 2 => Theme.Accent, 4 => Theme.Violet, _ => Theme.Muted };
+        return DrawGrid(g, top + 16, avail, Lang.T("st_curve_live"), headers, lefts, rows, mono, cellColor: CurveCell);
     }
 
     private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false)
@@ -1408,6 +1425,32 @@ public sealed class SettingsPage : ThemedPage
         tray.AddRow(Lang.T("menu_log"), Toggle(D.Settings.TrayShowChangeLog, v => { D.Settings.TrayShowChangeLog = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("menu_feedback"), Toggle(D.Settings.TrayShowFeedback, v => { D.Settings.TrayShowFeedback = v; D.SaveSettings(); D.SettingsChanged(); }));
         _left.Add(tray);
+
+        // Interface: background grid on/off + which main tabs collapse to icon buttons on the
+        // right of the strip (e.g. keep Models reachable but out of the tab row).
+        var uiSec = new CardSection(Lang.T("set_grp_ui"), "");
+        uiSec.AddRow(Lang.T("set_grid"), Toggle(D.Settings.ShowGrid, v =>
+        {
+            D.Settings.ShowGrid = v;
+            D.SaveSettings(); D.SettingsChanged();
+            Invalidate(true);
+        }));
+        foreach (var (id, nameKey) in new[]
+        {
+            ("Scenarios", "tab_scenarios"), ("Status", "menu_status"), ("FanCurve", "tab_fancurve"),
+            ("Settings", "menu_settings"), ("Models", "tab_models"),
+        })
+        {
+            string tid = id;
+            uiSec.AddRow(string.Format(Lang.T("set_tab_as_icon"), Lang.T(nameKey)),
+                Toggle(D.Settings.IconTabs.Contains(tid), v =>
+                {
+                    if (v) { if (!D.Settings.IconTabs.Contains(tid)) D.Settings.IconTabs.Add(tid); }
+                    else D.Settings.IconTabs.Remove(tid);
+                    D.SaveSettings(); D.SettingsChanged();
+                }));
+        }
+        _left.Add(uiSec);
 
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
         _hkToggles.Clear();

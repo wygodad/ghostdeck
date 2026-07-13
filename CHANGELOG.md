@@ -3,10 +3,34 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.19.0] - 2026-07-13
 ### Added
 - **Fifth application-icon style**: the dark-style cyan ghost on the light tile
   (Settings → Application icon).
+- **"Start over" buttons in both report wizards** - a capture run in the wrong MSI Center
+  state can now be repeated without restarting the app ([#9](../../discussions/9)).
+### Changed
+- **Scenario tiles restyled** like the ghostdeck.dev cards: a soft inner glow on the active
+  profile with an outlined ACTIVE chip, a subtle SELECT hint on the rest.
+- **Uniform feature bricks.** Charge limit and AC/battery auto-switch moved into the same
+  style of boxes as Fan Boost and Gaming overlay - one consistent block per feature.
+- **Header layout**: the GhostDeck wordmark moved to the left of the tabs, and the
+  tested/experimental badge now sits in the header next to the version (instead of on
+  each page).
+- **Subtle background grid** on every tab, matching the ghostdeck.dev page texture.
+- **New "Interface" settings section**: the background grid can be turned off, and every main
+  tab can individually be moved out of the tab row into an icon-only button on the right of
+  the header (e.g. keep Models one click away without it occupying the tab row).
+- **Status tables** now use the change-log colour language (muted labels, accent keys,
+  per-fan colours in the live curve table), and the full-log window colours its source column.
+- **Charts row justified**: the five gauges and the metric boxes under them spread across the
+  full content width instead of hugging the left edge.
+### Fixed
+- **Tabs are clickable across their full height**, not only on the text/icon line.
+- **First-show flashes and sluggish tabs eliminated at the source.** The one-time white flash
+  per tab was the native handle-creation storm; the window is now pre-built hidden shortly
+  after startup (all pages and their controls created off-screen), and closing the window
+  hides it instead of destroying it - so reopening and every tab switch is instant.
 
 ## [1.18.1] - 2026-07-13
 ### Added

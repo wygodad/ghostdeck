@@ -80,6 +80,19 @@ public sealed class TrayContext : ApplicationContext
         _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
         MaybeCheckForUpdates();
 
+        // Pre-create the main window HIDDEN shortly after startup: the form, its pages and all
+        // their native handles are built off-screen, so the first open (and every tab) shows
+        // instantly instead of flashing while dozens of controls are created.
+        var prewarm = new System.Windows.Forms.Timer { Interval = 1800 };
+        prewarm.Tick += (_, _) =>
+        {
+            prewarm.Stop();
+            prewarm.Dispose();
+            var m = EnsureMain();
+            if (!m.Visible) { _ = m.Handle; m.EnsureWarm(); }
+        };
+        prewarm.Start();
+
         // A second launched exe can't start (single-instance mutex); it sets this named event
         // instead, and we bring the main window up - so double-clicking the exe again doesn't
         // look like "nothing happened".
@@ -556,6 +569,7 @@ public sealed class TrayContext : ApplicationContext
         {
             var appIcon = TrayIconFactory.AppIcon();
             if (!ReferenceEquals(_main.Icon, appIcon)) _main.Icon = appIcon;   // follows an icon-style change
+            _main.SyncStrip();                                                 // follows a tabs-as-icons change
             _main.RefreshActive();
         }
     }
@@ -656,22 +670,23 @@ public sealed class TrayContext : ApplicationContext
         },
     };
 
+    private MainForm EnsureMain()
+    {
+        if (_main is { IsDisposed: false }) return _main;
+        _main = new MainForm(BuildDeps());
+        _main.FormClosed += (_, _) => _main = null;   // real close = app exit; user close only hides
+        return _main;
+    }
+
     private void OpenMain(MainTab tab)
     {
-        if (_main is { IsDisposed: false })
-        {
-            _main.WindowState = FormWindowState.Normal;
-            _main.ShowTab(tab);
-            _main.BringToFront();
-            _main.Activate();
-            if (_pendingNotice is { } pn1) ShowNoticeBanner(pn1);
-            return;
-        }
-        _main = new MainForm(BuildDeps());
-        _main.FormClosed += (_, _) => _main = null;
-        _main.Show();
-        _main.ShowTab(tab);
-        if (_pendingNotice is { } pn2) ShowNoticeBanner(pn2);
+        var m = EnsureMain();
+        if (m.WindowState == FormWindowState.Minimized) m.WindowState = FormWindowState.Normal;
+        m.Show();
+        m.ShowTab(tab);
+        m.BringToFront();
+        m.Activate();
+        if (_pendingNotice is { } pn) ShowNoticeBanner(pn);
     }
 
     private void OpenReport()

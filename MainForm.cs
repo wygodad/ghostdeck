@@ -46,6 +46,17 @@ public abstract class ThemedPage : UserControl
         BackColor = Theme.Surface;
         Resize += (_, _) => Invalidate();
     }
+
+    // NB: WS_EX_COMPOSITED was tried here against scroll tearing (discussion #9) and REVERTED -
+    // it made every tab visibly slow to paint and flashed white during startup. Do not re-add;
+    // the children are individually double-buffered instead.
+
+    // Faint brand grid under every tab's content (cards and controls paint over it).
+    protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        base.OnPaintBackground(e);
+        if (D.Settings.ShowGrid) Ui.DrawGrid(e.Graphics, ClientRectangle);
+    }
     public virtual void OnEnter() { }
     // Lightweight refresh after external state changes (profile/cooler/overlay). Unlike OnEnter it must
     // NOT re-run layout — a re-layout on a scrolled page (Settings) yanks the scroll position to the top.
@@ -107,21 +118,13 @@ public sealed class MainForm : Form
 
         ApplyThemeChrome();
         ShowTab(MainTab.Scenarios);
+        Shown += (_, _) => EnsureWarm();
 
-        // Warm up the heavy pages shortly after the window shows (spread out to keep the UI
-        // responsive): the first click on Settings used to build ~60 controls on the spot,
-        // which read as a visible delay. Pages are created hidden; ShowTab just flips them on.
-        Shown += async (_, _) =>
+        // Closing the window would dispose every page and repeat the whole first-show cost on
+        // reopen; hide instead (the app lives in the tray). App exit still closes it for real.
+        FormClosing += (_, e) =>
         {
-            foreach (var t in new[] { MainTab.Settings, MainTab.Status, MainTab.FanCurve, MainTab.Models })
-            {
-                await Task.Delay(250);
-                if (IsDisposed || _pages.ContainsKey(t)) continue;
-                var page = CreatePage(t);
-                page.Visible = false;
-                _pages[t] = page;
-                _host.Controls.Add(page);
-            }
+            if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); }
         };
 
         // Hidden developer entry to the EC test/discovery tools (Ctrl+Shift+T). See docs/TECHNICAL.md §12.
@@ -184,13 +187,10 @@ public sealed class MainForm : Form
                 using (var pen = new Pen(Theme.Accent, 3f))
                     g.DrawLine(pen, act.Left + 14, sepY, act.Right - 14, sepY);
             DrawWordmark(g);
+            DrawTierBadge(g);
         };
 
-        AddTab(MainTab.Scenarios, Lang.T("tab_scenarios"), "");
-        AddTab(MainTab.Status,    Lang.T("menu_status"),   "");
-        AddTab(MainTab.FanCurve, Lang.T("tab_fancurve"),"");
-        AddTab(MainTab.Settings,  Lang.T("menu_settings"), "");
-        AddTab(MainTab.Models,    Lang.T("tab_models"),   "\U0001F4BB");
+        BuildTabs();
 
         _version.AutoSize = true;
         _version.Font = new Font("Segoe UI", 9.5f);
@@ -220,23 +220,82 @@ public sealed class MainForm : Form
         LayoutStrip();
     }
 
-    // Brand wordmark (ghost mark + "GhostDeck", "Deck" in accent) right-aligned before the
-    // version label; skipped when the strip is too narrow to fit it after the tabs.
+    // Brand wordmark (ghost mark + "GhostDeck", "Deck" in accent) at the far LEFT of the strip;
+    // the tab row starts after it (LayoutStrip uses WordmarkWidth for the offset).
     private void DrawWordmark(Graphics g)
     {
         using var wf = new Font("Segoe UI", 12.5f, FontStyle.Bold);
         const string s1 = "Ghost", s2 = "Deck";
         int w1 = TextRenderer.MeasureText(g, s1, wf, Size.Empty, TextFormatFlags.NoPadding).Width;
-        int w2 = TextRenderer.MeasureText(g, s2, wf, Size.Empty, TextFormatFlags.NoPadding).Width;
         int mark = (int)(26 * _strip.DeviceDpi / 96f);
-        int total = mark + 9 + w1 + w2;
-        int bx = _version.Left - 22 - total;
-        int tabsRight = _tabs.Count > 0 ? _tabs[^1].Right : 0;
-        if (bx < tabsRight + 24) return;
+        const int bx = 20;
         TrayIconFactory.DrawGhost(g, bx, (StripH - mark) / 2f - 1, mark, Theme.Accent, Theme.Surface);
         int ty = (StripH - wf.Height) / 2 - 1;
         TextRenderer.DrawText(g, s1, wf, new Point(bx + mark + 9, ty), Theme.Text, TextFormatFlags.NoPadding);
         TextRenderer.DrawText(g, s2, wf, new Point(bx + mark + 9 + w1, ty), Theme.Accent, TextFormatFlags.NoPadding);
+    }
+
+    private int WordmarkWidth()
+    {
+        using var wf = new Font("Segoe UI", 12.5f, FontStyle.Bold);
+        int tw = TextRenderer.MeasureText("GhostDeck", wf, Size.Empty, TextFormatFlags.NoPadding).Width;
+        return (int)(26 * _strip.DeviceDpi / 96f) + 9 + tw;
+    }
+
+    // Tier badge (tested / experimental / unsupported) drawn left of the version label.
+    private void DrawTierBadge(Graphics g)
+    {
+        var info = _d.Status();
+        using var bf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        int w = TextRenderer.MeasureText(info.TierText, bf).Width + 32;
+        int h = bf.Height + 14;
+        Ui.Pill(g, info.TierText, new Point(_version.Left - w - 16, (StripH - h) / 2), info.TierColor);
+    }
+
+    // Every main view with its strip glyph; each can live in the tab row or, per user choice
+    // (Settings → Interface), as an icon-only button on the right, past the version number.
+    private static readonly (MainTab tab, string langKey, string glyph)[] TabDefs =
+    {
+        (MainTab.Scenarios, "tab_scenarios", ""),
+        (MainTab.Status,    "menu_status",   ""),
+        (MainTab.FanCurve,  "tab_fancurve",  ""),
+        (MainTab.Settings,  "menu_settings", ""),
+        (MainTab.Models,    "tab_models",    "\U0001F4BB"),
+    };
+    private readonly List<GlyphButton> _tabIcons = new();
+    private string _iconTabsApplied = "";
+
+    private void BuildTabs()
+    {
+        foreach (var b in _tabs) { _strip.Controls.Remove(b); b.Dispose(); }
+        _tabs.Clear();
+        foreach (var gb in _tabIcons) { _strip.Controls.Remove(gb); gb.Dispose(); }
+        _tabIcons.Clear();
+        var asIcons = _d.Settings.IconTabs;
+        foreach (var (tab, key, glyph) in TabDefs)
+        {
+            if (asIcons.Contains(tab.ToString()))
+            {
+                var gb = new GlyphButton { Size = new Size(40, 38), Glyph = glyph, Tag = tab };
+                gb.Click += (_, _) => ShowTab((MainTab)gb.Tag!);
+                _tip.SetToolTip(gb, Lang.T(key));
+                _strip.Controls.Add(gb);
+                _tabIcons.Add(gb);
+            }
+            else AddTab(tab, Lang.T(key), glyph);
+        }
+        _iconTabsApplied = string.Join(",", asIcons.OrderBy(s => s));
+    }
+
+    /// <summary>Re-applies the tab/icon split after a settings change (no-op when unchanged).</summary>
+    public void SyncStrip()
+    {
+        string want = string.Join(",", _d.Settings.IconTabs.OrderBy(s => s));
+        if (want == _iconTabsApplied) return;
+        BuildTabs();
+        LayoutStrip();
+        foreach (var b in _tabs) b.Active = (MainTab)b.Tag! == _active;
+        _strip.Invalidate(true);
     }
 
     private void AddTab(MainTab tab, string text, string glyph)
@@ -249,7 +308,9 @@ public sealed class MainForm : Form
 
     private void LayoutStrip()
     {
-        int x = 20, y = 12, h = 44;
+        // tabs start after the left wordmark; buttons reach almost down to the separator line,
+        // so the whole tab height is clickable (not just the text)
+        int x = 20 + WordmarkWidth() + 30, y = 6, h = StripH - 7;
         var f = new Font("Segoe UI", 11.5f, FontStyle.Bold);
         foreach (var b in _tabs)
         {
@@ -260,8 +321,15 @@ public sealed class MainForm : Form
         _themeBtn.Location = new Point(_strip.Width - _themeBtn.Width - 18, (StripH - _themeBtn.Height) / 2);
         _reportBtn.Location = new Point(_themeBtn.Left - _reportBtn.Width - 8, (StripH - _reportBtn.Height) / 2);
         _updatesBtn.Location = new Point(_reportBtn.Left - _updatesBtn.Width - 8, (StripH - _updatesBtn.Height) / 2);
+        // tabs demoted to icons sit right of the version number, before the updates button
+        int ix = _updatesBtn.Left;
+        for (int i = _tabIcons.Count - 1; i >= 0; i--)
+        {
+            ix -= _tabIcons[i].Width + 8;
+            _tabIcons[i].Location = new Point(ix, (StripH - _tabIcons[i].Height) / 2);
+        }
         _version.Text = "v" + _d.AppVersion();
-        _version.Location = new Point(_updatesBtn.Left - _version.Width - 14, (StripH - _version.Height) / 2);
+        _version.Location = new Point(ix - _version.Width - 14, (StripH - _version.Height) / 2);
     }
 
     public void ShowTab(MainTab tab)
@@ -279,6 +347,40 @@ public sealed class MainForm : Form
         foreach (var b in _tabs) { b.Active = (MainTab)b.Tag! == tab; b.Invalidate(); }
         _strip.Invalidate();
         Activate();
+    }
+
+    private bool _warmed;
+
+    /// <summary>
+    /// Builds the remaining pages AND forces their native window handles off-screen. The
+    /// once-per-tab white flash was the handle-creation storm: showing a page for the first
+    /// time created dozens of native controls on the spot. Runs after Shown, or right after
+    /// the tray pre-creates this form hidden.
+    /// </summary>
+    public async void EnsureWarm()
+    {
+        if (_warmed) return;
+        _warmed = true;
+        ForceHandles(this);   // strip, host, banner + the initial Scenarios page
+        foreach (var t in new[] { MainTab.Settings, MainTab.Status, MainTab.FanCurve, MainTab.Models })
+        {
+            await Task.Delay(250);   // spread out so the UI thread stays responsive
+            if (IsDisposed) return;
+            if (!_pages.ContainsKey(t))
+            {
+                var page = CreatePage(t);
+                page.Visible = false;
+                _pages[t] = page;
+                _host.Controls.Add(page);
+            }
+            ForceHandles(_pages[t]);
+        }
+    }
+
+    private static void ForceHandles(Control c)
+    {
+        _ = c.Handle;   // creates the native window even while invisible
+        foreach (Control ch in c.Controls) ForceHandles(ch);
     }
 
     /// <summary>Open the Report page on a given sub-tab (0 = profiles, 1 = fan curve). Deep-linked from Models / Fan curve.</summary>
@@ -392,7 +494,10 @@ public sealed class MainForm : Form
                 g.DrawPath(pen, path);
             }
             var gr = ClientRectangle; gr.Offset(GlyphDx, GlyphDy);
-            TextRenderer.DrawText(g, Glyph, new Font("Segoe UI Symbol", 14f), gr, Theme.Muted,
+            // PUA glyphs (the tab icons) live in Segoe MDL2 Assets; Segoe UI Symbol shows them as boxes
+            bool mdl2 = Glyph.Length > 0 && Glyph[0] >= '' && Glyph[0] <= '';
+            using var gf = new Font(mdl2 ? "Segoe MDL2 Assets" : "Segoe UI Symbol", 14f);
+            TextRenderer.DrawText(g, Glyph, gf, gr, Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
     }

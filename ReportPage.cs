@@ -25,6 +25,8 @@ public sealed class ReportPage : ThemedPage
     private readonly StepRowT[] _rows;
     private readonly InfoCardT _card;
     private readonly Button _capture = new();
+    private readonly Button _restart = new();        // reset the 4-profile capture
+    private readonly Button _curveRestart = new();   // reset the fan-curve capture
     private readonly System.Windows.Forms.Timer _anim = new() { Interval = 15 };
     private int _step;
     private bool _capturing;
@@ -93,6 +95,29 @@ public sealed class ReportPage : ThemedPage
         _capture.Click += OnCapture;
         Controls.Add(_capture);
 
+        // "Start over" for both wizards (discussion #9: a capture run with the wrong MSI Center
+        // state couldn't be repeated without restarting the app).
+        _restart.Text = _curveRestart.Text = Lang.T("rep_restart");
+        Ui.StyleGhost(_restart);
+        Ui.StyleGhost(_curveRestart);
+        _restart.Visible = _curveRestart.Visible = false;
+        _restart.Click += (_, _) =>
+        {
+            if (_capturing) return;
+            Array.Clear(_dumps, 0, _dumps.Length);
+            _step = 0; _savedPath = null; _barValue = 0; _lastPct = -1;
+            RefreshSteps(); Invalidate();
+        };
+        _curveRestart.Click += (_, _) =>
+        {
+            if (_curveCapturing) return;
+            _curveDump = null; _curveFound = null; _curveMsg = null; _curveMatch = false;
+            _curveSavedPath = null; _curvePct = -1; _curveBar = 0;
+            RefreshCurve(); SyncSub(); Invalidate();
+        };
+        Controls.Add(_restart);
+        Controls.Add(_curveRestart);
+
         _anim.Tick += (_, _) => OnAnim();
         Resize += (_, _) => Relayout();
         RefreshSteps();
@@ -114,7 +139,9 @@ public sealed class ReportPage : ThemedPage
         _card.Visible = prof;
         foreach (var r in _rows) r.Visible = prof;
         _capture.Visible = prof;
+        _restart.Visible = prof && _step > 0;
         _curveBtn.Visible = !prof;
+        _curveRestart.Visible = !prof && _curveDump != null;
         _curveCard.Visible = !prof;
         if (!prof) RefreshCurve();
     }
@@ -128,6 +155,8 @@ public sealed class ReportPage : ThemedPage
         for (int i = 0; i < _rows.Length; i++) { _rows[i].Tint = Theme.Profile(D.ColorOf(Steps[i].id)); _rows[i].Invalidate(); }
         Ui.StylePrimary(_capture);
         Ui.StylePrimary(_curveBtn);
+        Ui.StyleGhost(_restart);
+        Ui.StyleGhost(_curveRestart);
         _curveCard.ApplyTheme();
         _subTabs.Invalidate();
     }
@@ -164,7 +193,9 @@ public sealed class ReportPage : ThemedPage
         _instrTop = _barY + 58;
         var instrFont = new Font("Segoe UI", 11.5f, FontStyle.Bold);
         _instrH = TextRenderer.MeasureText(Lang.T("rep_all_done"), instrFont, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
-        _capture.SetBounds(_rightX, _instrTop + _instrH + 18, Math.Min(320, rightW), 44);
+        int capW = Math.Min(320, rightW - 180);
+        _capture.SetBounds(_rightX, _instrTop + _instrH + 18, capW, 44);
+        _restart.SetBounds(_rightX + capW + 10, _capture.Top, 170, 44);
 
         int leftBottom = _card.Bottom + 70;       // + firmware pill
         int rightBottom = _capture.Bottom + 80;   // + wrapped saved-path line
@@ -190,7 +221,9 @@ public sealed class ReportPage : ThemedPage
         _curveStepsTop = _contentTop + secH + 14;
         _curveBtnY = _curveStepsTop + 34 * 5 + 18;
         _curveBarY = _curveBtnY + 62;
-        _curveBtn.SetBounds(_rightX, _curveBtnY, Math.Min(320, rightW), 44);
+        int cbW = Math.Min(320, rightW - 180);
+        _curveBtn.SetBounds(_rightX, _curveBtnY, cbW, 44);
+        _curveRestart.SetBounds(_rightX + cbW + 10, _curveBtnY, 170, 44);
 
         int leftBottom = _curveCard.Bottom + 70;   // + firmware pill
         int rightBottom = _curveBarY + 80;
@@ -248,7 +281,11 @@ public sealed class ReportPage : ThemedPage
     // =================================================================
     //  fan-curve verification sub-tab
     // =================================================================
-    private void RefreshCurve() => _curveBtn.Text = _curveDump == null ? Lang.T("rep_curve_capture") : Lang.T("rep_curve_finish");
+    private void RefreshCurve()
+    {
+        _curveBtn.Text = _curveDump == null ? Lang.T("rep_curve_capture") : Lang.T("rep_curve_finish");
+        _curveRestart.Visible = _sub == 1 && _curveDump != null;
+    }
 
     private void PaintCurve(Graphics g)
     {
@@ -438,6 +475,7 @@ public sealed class ReportPage : ThemedPage
     {
         for (int i = 0; i < Steps.Length; i++) _rows[i].SetState(_dumps[i] != null, i == _step);
         _capture.Text = _step >= Steps.Length ? Lang.T("rep_finish") : Lang.T("rep_capture");
+        _restart.Visible = _sub == 0 && _step > 0;
         EnsureAnim();
         Invalidate();
     }

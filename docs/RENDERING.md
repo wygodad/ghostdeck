@@ -228,3 +228,29 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   `DrawSubItem` (alternating `Theme.Card`/`Theme.Surface` rows, `Theme.AccentSoft` selection,
   muted first column), header in `DrawColumnHeader`. The control must be a double-buffered
   subclass or hover repaints flicker. Buttons use `Ui.StyleGhost`.
+
+## 8. Window lifecycle & first-show performance (v1.19)
+
+WinForms creates a control's native window handle lazily — on first `Visible`. Each tab page
+holds dozens of custom-painted controls, so **showing a tab for the first time** created that
+whole handle storm at once: a one-off white flash and a stutter per tab, repeated every time
+the window was reopened (closing the form disposed everything). Three measures remove it:
+
+- **Pre-warm hidden after startup.** `TrayContext` starts a one-shot ~1.8 s timer that calls
+  `EnsureMain()` (creates the `MainForm` but does **not** `Show()` it) and `MainForm.EnsureWarm()`.
+  `EnsureWarm` builds the remaining pages and calls `ForceHandles(control)` — a recursive walk
+  that touches `Control.Handle` on every descendant, which **creates the native window even while
+  invisible**. Page creation is spread out with `await Task.Delay(250)` between pages so the UI
+  thread stays responsive. Idempotent via a `_warmed` guard; also invoked from `Shown` if the
+  user opens the window before the timer fires.
+- **Close = hide, not dispose.** `MainForm.FormClosing` cancels a `CloseReason.UserClosing` and
+  `Hide()`s instead. The pages (and their warm handles) survive, so reopening from the tray is
+  instant. Real teardown (tray → Exit, self-update, OS shutdown) has a different `CloseReason`,
+  so it closes normally; `_main`'s `FormClosed` still nulls the tray's reference.
+- **Reuse on open.** `OpenMain` goes through `EnsureMain()` and only forces `Normal` when the
+  window is `Minimized` (so it doesn't clobber a maximized layout).
+
+**Do NOT add `WS_EX_COMPOSITED`** to the pages. It was tried against scroll tearing and reverted
+(a comment in `ThemedPage.CreateParams`… note marks it): compositing the whole child tree made
+every tab paint slowly and flashed white on startup — the exact symptoms this section fixes.
+The children are individually `DoubleBuffered` instead.

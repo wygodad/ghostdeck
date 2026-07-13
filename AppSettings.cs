@@ -43,6 +43,8 @@ public sealed class AppSettings
     public bool TrayShowChangeLog { get; set; } = true;
     public bool TrayShowFeedback { get; set; } = true;
     public int IconStyle { get; set; } = 1;    // 0=logo, 1=ghost dark tile (default), 2=ghost light tile, 3=classic gauge
+    public List<string> IconTabs { get; set; } = new();   // MainTab names shown as strip icons instead of tabs
+    public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
 
@@ -213,6 +215,8 @@ public sealed class AppSettings
             TrayShowReport = TrayShowReport, TrayShowChangeLog = TrayShowChangeLog,
             TrayShowFeedback = TrayShowFeedback,
             IconStyle = IconStyle,
+            IconTabs = new List<string>(IconTabs),
+            ShowGrid = ShowGrid,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             SeenNoticeIds = new List<string>(SeenNoticeIds),
             DarkMode = DarkMode,

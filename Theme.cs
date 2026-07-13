@@ -36,6 +36,8 @@ public static class Theme
     public static Color Card    => Dark ? Color.FromArgb(0x11, 0x16, 0x22) : Color.FromArgb(0xFA, 0xFA, 0xFC);
     // alternate table-row wash, one step off Card for zebra striping
     public static Color RowAlt  => Dark ? Color.FromArgb(0x18, 0x1F, 0x2E) : Color.FromArgb(0xEF, 0xF1, 0xF6);
+    // faint page-background grid line (ghostdeck.dev texture)
+    public static Color GridLine => Dark ? Color.FromArgb(0x0F, 0x16, 0x24) : Color.FromArgb(0xEC, 0xEF, 0xF4);
     public static Color Border  => Dark ? Color.FromArgb(0x23, 0x2C, 0x40) : Color.FromArgb(0xE5, 0xE7, 0xEB);
     public static Color BorderStrong => Dark ? Color.FromArgb(0x32, 0x3E, 0x58) : Color.FromArgb(0xD7, 0xDA, 0xE0);
 
