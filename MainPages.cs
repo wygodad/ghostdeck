@@ -12,11 +12,34 @@ internal static class Ui
     {
         b.FlatStyle = FlatStyle.Flat;
         b.FlatAppearance.BorderSize = 0;
-        b.BackColor = Theme.Accent;
+        b.BackColor = Theme.AccentFill;
         b.ForeColor = Color.White;
         b.Font = new Font("Segoe UI", 10.5f, FontStyle.Bold);
         b.Cursor = Cursors.Hand;
         b.Height = 40;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>
+    /// Runs a bulk control rebuild with painting + layout suspended (WM_SETREDRAW), then repaints
+    /// once. Without this a rebuild (e.g. Settings after a language change) visibly blanks the
+    /// page and repaints control-by-control.
+    /// </summary>
+    public static void BatchRedraw(Control c, Action work)
+    {
+        const int WM_SETREDRAW = 0x000B;
+        if (!c.IsHandleCreated) { work(); return; }
+        SendMessage(c.Handle, WM_SETREDRAW, IntPtr.Zero, IntPtr.Zero);
+        c.SuspendLayout();
+        try { work(); }
+        finally
+        {
+            c.ResumeLayout(true);
+            SendMessage(c.Handle, WM_SETREDRAW, (IntPtr)1, IntPtr.Zero);
+            c.Invalidate(true);
+        }
     }
 
     public static void StyleGhost(Button b)
@@ -87,9 +110,13 @@ internal static class Ui
         var sz = TextRenderer.MeasureText(text, font);
         int w = sz.Width + 32, h = sz.Height + 14;       // bigger padding
         var r = new RectangleF(at.X, at.Y, w, h);
-        using (var path = Theme.RoundRect(r, 5))         // smaller corner radius
-        using (var b = new SolidBrush(Color.FromArgb(40, fg)))
-            g.FillPath(b, path);
+        // outlined badge like the ghostdeck.dev status chips: soft tint + 1px border in the badge colour
+        using (var path = Theme.RoundRect(r, 4))
+        {
+            using (var b = new SolidBrush(Color.FromArgb(26, fg))) g.FillPath(b, path);
+            using var pen = new Pen(Color.FromArgb(170, fg));
+            g.DrawPath(pen, path);
+        }
         TextRenderer.DrawText(g, text, font, Rectangle.Round(r), fg,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
@@ -123,9 +150,9 @@ public sealed class ScenariosPage : ThemedPage
         // Functional "feature bricks" grid (à la MSI Center). Cooler Boost is the first; add more here later.
         _bricks = new[]
         {
-            new FeatureBrick("cooler_boost_short", "❄", Color.FromArgb(0x17, 0xC0, 0xEB), "cooler_boost_hint",
+            new FeatureBrick("cooler_boost_short", "❄", "cooler_boost_hint",
                              () => D.Writable() && D.CoolerBoost(), v => D.SetCoolerBoost(v)),
-            new FeatureBrick("overlay_title", "▦", Color.FromArgb(0x8B, 0x5C, 0xF6), "overlay_hint",
+            new FeatureBrick("overlay_title", "▦", "overlay_hint",
                              () => D.OverlayOn(), v => D.SetOverlay(v)),
         };
         foreach (var b in _bricks) Controls.Add(b);
@@ -277,7 +304,7 @@ public sealed class ScenariosPage : ThemedPage
             if (active)
             {
                 int cx = Width - 26, cy = 24;
-                using var bb = new SolidBrush(Theme.Accent);
+                using var bb = new SolidBrush(Theme.AccentFill);
                 g.FillEllipse(bb, cx - 11, cy - 11, 22, 22);
                 using var pen = new Pen(Color.White, 2.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
                 g.DrawLines(pen, new[] { new Point(cx - 5, cy), new Point(cx - 1, cy + 4), new Point(cx + 6, cy - 5) });
@@ -294,16 +321,15 @@ public sealed class ScenariosPage : ThemedPage
     {
         private readonly string _labelKey;
         private readonly string _glyph;
-        private readonly Color _accent;
         private readonly Func<bool> _get;
         private readonly ToggleSwitch _toggle;
         private readonly HelpDot _help;
         private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 15000, ReshowDelay = 100 };
         private bool _hover;
 
-        public FeatureBrick(string labelKey, string glyph, Color accent, string tipKey, Func<bool> get, Action<bool> set)
+        public FeatureBrick(string labelKey, string glyph, string tipKey, Func<bool> get, Action<bool> set)
         {
-            _labelKey = labelKey; _glyph = glyph; _accent = accent; _get = get;
+            _labelKey = labelKey; _glyph = glyph; _get = get;
             DoubleBuffered = true; ResizeRedraw = true;
             BackColor = Theme.Card;                       // so the child controls blend with the card interior
             _toggle = new ToggleSwitch { Checked = get() };
@@ -342,11 +368,11 @@ public sealed class ScenariosPage : ThemedPage
             }
             // icon box (outlined square + glyph, like the MSI Center feature cards)
             int box = 32, bx = 18, by = (Height - box) / 2;
-            using (var pen = new Pen(_accent, 1.6f))
+            using (var pen = new Pen(Theme.Accent, 1.6f))
             using (var ip = Theme.RoundRect(new RectangleF(bx + 0.5f, by + 0.5f, box - 1, box - 1), 6))
                 g.DrawPath(pen, ip);
             using (var gf = new Font("Segoe UI Symbol", 12f))
-                Ui.CenterGlyph(g, _glyph, gf, _accent, new RectangleF(bx, by, box, box));
+                Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, new RectangleF(bx, by, box, box));
             // label (stops before the help dot + toggle)
             int lx = bx + box + 14, rightPad = _toggle.Width + 14 + _help.Width + 14 + 12;
             TextRenderer.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
@@ -405,6 +431,8 @@ public sealed class StatusPage : ThemedPage
     private readonly DeviceProfile? _dev;
     private byte[] _live = Array.Empty<byte>();    // [shift, 0x34, 0xEB, fan]
     private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
+    private HwSnapshot _hw;                        // last EC/hw snapshot, refreshed off the UI thread
+    private int _refreshing;                       // 1 while a background refresh is in flight
 
     private readonly Canvas _canvas;
 
@@ -432,8 +460,8 @@ public sealed class StatusPage : ThemedPage
         _logBtn.Click += (_, _) => LogForm.ShowSingleton();
         _canvas.Controls.Add(_logBtn);
 
-        _timer.Tick += (_, _) => { RefreshLive(); _canvas.Rebuild(); };
-        VisibleChanged += (_, _) => { if (Visible) { Relayout(); RefreshLive(); _timer.Start(); } else _timer.Stop(); };
+        _timer.Tick += (_, _) => RefreshAsync();
+        VisibleChanged += (_, _) => { if (Visible) { Relayout(); _timer.Start(); } else _timer.Stop(); };
         ClientSizeChanged += (_, _) => Relayout();
         ChangeLog.Changed += OnLogChanged;
 
@@ -443,20 +471,47 @@ public sealed class StatusPage : ThemedPage
 
     private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { Relayout(); _canvas.Rebuild(); }); } catch { } } }
 
-    public override void LiveRefresh() { RefreshLive(); _canvas.Rebuild(); }
+    public override void LiveRefresh() { _canvas.Rebuild(); RefreshAsync(); }
 
-    private void RefreshLive()
+    // EC/WMI reads take tens of ms each and the full snapshot is dozens of them; doing that
+    // synchronously froze every tab switch (user-visible lag). Read on a worker, then rebuild
+    // the canvas back on the UI thread. Get_Data is stateless (address in the payload), so a
+    // background read can't interleave badly with UI-thread writes.
+    private void RefreshAsync()
     {
-        if (_dev == null) return;
-        try { _live = Ec.ReadMany(new[] { _dev.ShiftMode, (byte)0x34, (byte)0xEB, _dev.FanMode }); } catch { }
-        try { _curve = Ec.ReadFanCurve(_dev); } catch { }
+        if (Interlocked.Exchange(ref _refreshing, 1) == 1) return;
+        var dev = _dev;
+        Task.Run(() =>
+        {
+            HwSnapshot hw = default;
+            byte[]? live = null;
+            (int[], int[], int[], int[])? curve = null;
+            try { hw = D.Hw(); } catch { }
+            if (dev != null)
+            {
+                try { live = Ec.ReadMany(new[] { dev.ShiftMode, (byte)0x34, (byte)0xEB, dev.FanMode }); } catch { }
+                try { curve = Ec.ReadFanCurve(dev); } catch { }
+            }
+            try
+            {
+                BeginInvoke(() =>
+                {
+                    _hw = hw;
+                    if (live != null) _live = live;
+                    if (curve != null) _curve = curve;
+                    _refreshing = 0;
+                    if (Visible) _canvas.Rebuild();
+                });
+            }
+            catch { _refreshing = 0; }   // page disposed mid-flight
+        });
     }
 
     private void PlaceTest() { }
 
     private const int RingCount = 5;
     private const int RingTop = 92, RowH = 56;
-    private static readonly Color CpuUseColor = Color.FromArgb(0x0E, 0xA5, 0xB5);   // teal, distinct from the purple accent
+    private static readonly Color CpuUseColor = Color.FromArgb(0x3C, 0x7D, 0xFF);   // blue: CPU side of the palette (fans = cyan/violet)
     private int RingGap() => 24;
     private int RingSize(int width)
     {
@@ -495,7 +550,8 @@ public sealed class StatusPage : ThemedPage
 
     private const int RecentLogRows = 16;
 
-    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 2; Relayout(); RefreshLive(); _canvas.Rebuild(); }
+    // Paint the cached snapshot immediately (instant tab switch) and refresh in the background.
+    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 2; Relayout(); _canvas.Rebuild(); RefreshAsync(); }
     public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
     protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; } base.Dispose(disposing); }
 
@@ -554,7 +610,7 @@ public sealed class StatusPage : ThemedPage
     internal void Render(Graphics g, int width)
     {
         var info = D.Status();
-        HwSnapshot hw; try { hw = D.Hw(); } catch { hw = default; }
+        var hw = _hw;   // cached; refreshed off the UI thread by RefreshAsync
 
         TextRenderer.DrawText(g, Lang.T("menu_status"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
         var bf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
@@ -575,7 +631,7 @@ public sealed class StatusPage : ThemedPage
         DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), info.Known);
         DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), info.Known);
         DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 100, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known);
-        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Accent, info.Known);
+        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known);
         DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
 
         // --- sub-row under the rings (clear gap above and below) ---
@@ -862,10 +918,37 @@ public sealed class StatusPage : ThemedPage
 public sealed class UpdatesPage : ThemedPage
 {
     private readonly Button _check = new();
+    private readonly Button _install = new();
     private readonly Label _status = new();
     private readonly Label _lastChecked = new();
+    private readonly ThinBar _bar = new();     // download progress, next to the status text
     private readonly FlowLayoutPanel _history = new();
     private bool _loaded;
+    private Updater.Result? _avail;   // newer release found by the last check
+
+    /// <summary>Slim rounded progress bar (0..1), themed like the Status-tab bars.</summary>
+    private sealed class ThinBar : Control
+    {
+        private float _value;
+        public float Value { get => _value; set { _value = Math.Clamp(value, 0, 1); Invalidate(); } }
+        public ThinBar() { DoubleBuffered = true; Size = new Size(220, 10); Visible = false; }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Parent?.BackColor ?? Theme.Surface);
+            float r = Height / 2f;
+            using (var p = Theme.RoundRect(new RectangleF(0, 0, Width - 1, Height - 1), r))
+            using (var b = new SolidBrush(Theme.Border)) g.FillPath(b, p);
+            if (_value > 0)
+            {
+                float w = Math.Max(Height, (Width - 1) * _value);
+                using var p = Theme.RoundRect(new RectangleF(0, 0, w, Height - 1), r);
+                using var b = new SolidBrush(Theme.AccentFill);
+                g.FillPath(b, p);
+            }
+        }
+    }
 
     public UpdatesPage(MainDeps d) : base(d)
     {
@@ -873,6 +956,13 @@ public sealed class UpdatesPage : ThemedPage
         Ui.StylePrimary(_check);
         _check.Width = 150;
         _check.Click += async (_, _) => await CheckNow();
+
+        Ui.StylePrimary(_install);
+        _install.Width = 220;
+        _install.Visible = false;
+        _install.Click += async (_, _) => await InstallNow();
+        Controls.Add(_install);
+        Controls.Add(_bar);
 
         _status.AutoSize = true;
         _status.Font = new Font("Segoe UI", 10.5f);
@@ -902,6 +992,7 @@ public sealed class UpdatesPage : ThemedPage
     {
         base.ApplyTheme();
         Ui.StylePrimary(_check);
+        Ui.StylePrimary(_install);
         ApplyThemeText();
         foreach (Control c in _history.Controls) c.Invalidate();
     }
@@ -928,7 +1019,16 @@ public sealed class UpdatesPage : ThemedPage
     {
         int w = ClientSize.Width - 56;
         _check.Location = new Point(ClientSize.Width - 28 - _check.Width, 66);
-        _status.Location = new Point(28, VersionY + new Font("Segoe UI", 16f, FontStyle.Bold).Height + 6);
+        _install.Location = new Point(_check.Left - _install.Width - 10, 66);
+        // status ("new version…" / "downloading…" / "up to date") + progress bar sit to the LEFT
+        // of the buttons, in the same row - they used to overlap the "Release history" label
+        int rowLeft = _install.Visible ? _install.Left : _check.Left;
+        if (_bar.Visible)
+        {
+            _bar.Location = new Point(rowLeft - _bar.Width - 14, 66 + (_check.Height - _bar.Height) / 2);
+            rowLeft = _bar.Left;
+        }
+        _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, 66 + (_check.Height - _status.PreferredHeight) / 2);
         _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _check.Bottom + 12);
         _history.SetBounds(28, HistoryTop, w, Math.Max(120, ClientSize.Height - HistoryTop - 24));
     }
@@ -948,6 +1048,7 @@ public sealed class UpdatesPage : ThemedPage
         _check.Enabled = false;
         _status.ForeColor = Theme.Accent;
         _status.Text = Lang.T("upd_checking");
+        LayoutBits();
         Version cur = Version.TryParse(D.AppVersion(), out var v) ? v : new Version(0, 0, 0);
         var res = await Updater.CheckAsync(cur);
         D.Settings.LastUpdateCheckUtc = DateTime.UtcNow;
@@ -955,18 +1056,55 @@ public sealed class UpdatesPage : ThemedPage
         ApplyThemeText();
         if (res is { } r)
         {
+            // in-app install instead of bouncing the user to the browser (discussion #9)
+            _avail = r;
             _status.ForeColor = Theme.Accent;
             _status.Text = string.Format(Lang.T("upd_available"), r.Version);
-            try { Process.Start(new ProcessStartInfo(r.Url) { UseShellExecute = true }); } catch { }
+            _install.Text = string.Format(Lang.T("upd_install"), r.Tag);
+            _install.Visible = true;
+            LayoutBits();
         }
         else
         {
+            _avail = null;
+            _install.Visible = false;
             _status.ForeColor = Theme.Green;
             _status.Text = "✓  " + Lang.T("upd_latest_ok");
+            LayoutBits();
         }
         _check.Enabled = true;
         D.CheckNoticesNow();     // manual check also refreshes announcements (banner + tray balloon)
         await LoadHistory();
+    }
+
+    private async Task InstallNow()
+    {
+        if (_avail is not { } r) return;
+        _install.Enabled = _check.Enabled = false;
+        _status.ForeColor = Theme.Accent;
+        _bar.Visible = true;
+        _bar.Value = 0;
+        var progress = new Progress<int>(p =>
+        {
+            _bar.Value = p / 100f;
+            _status.Text = string.Format(Lang.T("upd_downloading"), p);
+            LayoutBits();
+        });
+        string? path = await Updater.DownloadAsync(r, progress);
+        if (path == null || !Updater.StartSelfUpdate(path))
+        {
+            // no exe asset / download or launch failed - fall back to the release page
+            _bar.Visible = false;
+            _status.ForeColor = Theme.Red;
+            _status.Text = Lang.T("upd_dl_failed");
+            LayoutBits();
+            try { Process.Start(new ProcessStartInfo(r.Url) { UseShellExecute = true }); } catch { }
+            _install.Enabled = _check.Enabled = true;
+            return;
+        }
+        _status.Text = Lang.T("upd_restarting");
+        LayoutBits();
+        Application.Exit();   // the hidden updater script waits for this process, swaps the exe and relaunches
     }
 
     private async Task LoadHistory()
@@ -1202,10 +1340,20 @@ public sealed class SettingsPage : ThemedPage
         {
             D.Settings.Language = Lang.Codes[Math.Max(0, lang.SelectedIndex)];
             Lang.Set(D.Settings.Language); D.SaveSettings(); D.SettingsChanged();
-            BuildForm(); Layout2();
+            // batch the full rebuild into one repaint - it used to blank the page for a second
+            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
         };
         look.AddRow(Lang.T("set_language"), lang);
         foreach (var id in Profiles.Order) look.AddRow(Profiles.Get(id).Label, BuildSwatches(id));
+        var resetColors = new Button { Text = Lang.T("set_colors_reset"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+        Ui.StyleGhost(resetColors);
+        resetColors.Click += (_, _) =>
+        {
+            foreach (var pid in Profiles.Order) D.Settings.Colors.Remove(Profiles.Get(pid).Key);
+            D.SaveSettings(); D.SettingsChanged();
+            foreach (var lst in _swatches.Values) foreach (var p in lst) p.Invalidate();
+        };
+        look.AddRow("", resetColors);
         _left.Add(look);
 
         var start = new CardSection(Lang.T("set_grp_start"), "");
@@ -1316,14 +1464,14 @@ public sealed class SettingsPage : ThemedPage
         // Single row of swatches (discussion #9): no wrap, no width cap.
         var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
         var list = new List<Panel>(); _swatches[key] = list;
-        string sel = ColorTranslator.ToHtml(D.Settings.ColorFor(id));
         foreach (var hex in Profiles.Palette)
         {
             var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 0, 4, 0), Tag = hex };
             string ph = hex;
             sw.Paint += (s, e) =>
             {
-                if (string.Equals(D.Settings.Colors.TryGetValue(key, out var cur) ? cur : sel, ph, StringComparison.OrdinalIgnoreCase))
+                // compare against the live effective colour so a defaults-reset moves the marker too
+                if (string.Equals(ColorTranslator.ToHtml(D.Settings.ColorFor(id)), ph, StringComparison.OrdinalIgnoreCase))
                 {
                     using var p1 = new Pen(Color.White, 2); e.Graphics.DrawRectangle(p1, 2, 2, sw.Width - 5, sw.Height - 5);
                     using var p2 = new Pen(Color.FromArgb(80, 0, 0, 0), 1); e.Graphics.DrawRectangle(p2, 0, 0, sw.Width - 1, sw.Height - 1);
@@ -1469,7 +1617,7 @@ public sealed class CheckItem : Control
         using var path = Theme.RoundRect(new RectangleF(0.5f, y + 0.5f, b - 1, b - 1), 4);
         if (_on)
         {
-            using (var br = new SolidBrush(Theme.Accent)) g.FillPath(br, path);
+            using (var br = new SolidBrush(Theme.AccentFill)) g.FillPath(br, path);
             using var pen = new Pen(Color.White, 2f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
             g.DrawLines(pen, new[] { new PointF(b * 0.26f, y + b * 0.52f), new PointF(b * 0.44f, y + b * 0.70f), new PointF(b * 0.74f, y + b * 0.30f) });
         }
@@ -1745,7 +1893,7 @@ public sealed class OverlaySettingsPanel : Panel
         using (var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 12))
             g.DrawPath(pen, path);
 
-        var acc = Color.FromArgb(0x8B, 0x5C, 0xF6);
+        var acc = Theme.Accent;
         int isz = Ceil(26 * k);
         var iconR = new Rectangle(pad, Ceil(20 * k), isz, isz);
         using (var pen = new Pen(acc, 1.7f))
@@ -1817,7 +1965,7 @@ public sealed class Slider : Control
         float t = (_val - _min) / (float)Math.Max(1, _max - _min);
         int tx = X0 + (int)(t * (X1 - X0));
         using (var b = new SolidBrush(Theme.Border)) g.FillRectangle(b, X0, cy - 2, X1 - X0, 4);
-        using (var b = new SolidBrush(Theme.Accent)) g.FillRectangle(b, X0, cy - 2, Math.Max(0, tx - X0), 4);
+        using (var b = new SolidBrush(Theme.AccentFill)) g.FillRectangle(b, X0, cy - 2, Math.Max(0, tx - X0), 4);
         using (var b = new SolidBrush(Theme.Surface)) g.FillEllipse(b, tx - 8, cy - 8, 16, 16);
         using (var p = new Pen(Theme.BorderStrong)) g.DrawEllipse(p, tx - 8, cy - 8, 16, 16);
         if (ShowValue)
@@ -1859,7 +2007,7 @@ public sealed class SegControl : Control
             if (i == _sel)
             {
                 using var path = Theme.RoundRect(new RectangleF(r.X + 2, 2, r.Width - 4, Height - 4), 7);
-                using var b = new SolidBrush(Theme.Accent); g.FillPath(b, path);
+                using var b = new SolidBrush(Theme.AccentFill); g.FillPath(b, path);
             }
             TextRenderer.DrawText(g, _items[i], new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Rectangle.Round(r), i == _sel ? Color.White : Theme.Muted,
@@ -1887,7 +2035,7 @@ public sealed class ToggleSwitch : Control
         g.Clear(Parent?.BackColor ?? Theme.Surface);
         var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
         // Dimmed when disabled (master shortcut switch off): muted track + knob so it reads as inactive.
-        var track = !Enabled ? Theme.Border : _checked ? Theme.Accent : Theme.BorderStrong;
+        var track = !Enabled ? Theme.Border : _checked ? Theme.AccentFill : Theme.BorderStrong;
         var knob = Enabled ? Color.White : Theme.Muted;
         using (var path = Theme.RoundRect(r, Height / 2f))
         using (var b = new SolidBrush(track))
@@ -1933,12 +2081,52 @@ public sealed class ThemedComboBox : ComboBox
     // Disable visual styles so the drop-down list scrollbar/border follow the flat dark look too.
     protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); SetWindowTheme(Handle, "", ""); }
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetComboBoxInfo(IntPtr hWnd, ref COMBOBOXINFO info);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    private const int LB_GETTOPINDEX = 0x018E, LB_SETTOPINDEX = 0x0197;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct COMBOBOXINFO
+    {
+        public int cbSize; public RECT rcItem, rcButton; public int stateButton;
+        public IntPtr hwndCombo, hwndItem, hwndList;
+    }
+
+    // Windows routes the wheel to the control under the cursor, and a stock combo responds by
+    // CHANGING ITS VALUE - so scrolling Settings past the language combo switched the language
+    // and the page stopped scrolling (discussion #9). Never let the wheel change the value:
+    // with the list closed, hand the scroll to the nearest scrollable ancestor; with the list
+    // open, scroll the drop-down listbox itself (LB_SETTOPINDEX on its window).
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        if (e is HandledMouseEventArgs h) h.Handled = true;
+        if (DroppedDown)
+        {
+            var info = new COMBOBOXINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<COMBOBOXINFO>() };
+            if (GetComboBoxInfo(Handle, ref info) && info.hwndList != IntPtr.Zero)
+            {
+                int top = (int)SendMessage(info.hwndList, LB_GETTOPINDEX, IntPtr.Zero, IntPtr.Zero);
+                int next = Math.Max(0, top - Math.Sign(e.Delta) * SystemInformation.MouseWheelScrollLines);
+                SendMessage(info.hwndList, LB_SETTOPINDEX, (IntPtr)next, IntPtr.Zero);
+            }
+            return;
+        }
+        for (Control? p = Parent; p != null; p = p.Parent)
+            if (p is ScrollableControl sc && sc.AutoScroll)
+            {
+                sc.AutoScrollPosition = new Point(-sc.AutoScrollPosition.X, -sc.AutoScrollPosition.Y - e.Delta);
+                break;
+            }
+    }
+
     // Drop-down LIST rows.
     protected override void OnDrawItem(DrawItemEventArgs e)
     {
         if (e.Index < 0) { e.DrawBackground(); return; }
         bool sel = (e.State & DrawItemState.Selected) != 0;
-        using (var b = new SolidBrush(sel ? Theme.Accent : Theme.Surface)) e.Graphics.FillRectangle(b, e.Bounds);
+        using (var b = new SolidBrush(sel ? Theme.AccentFill : Theme.Surface)) e.Graphics.FillRectangle(b, e.Bounds);
         var fore = sel ? Color.White : Theme.Text;
         var rect = new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height);
         TextRenderer.DrawText(e.Graphics, Items[e.Index]?.ToString() ?? "", Font, rect, fore,

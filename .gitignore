@@ -3,6 +3,7 @@ bin/
 obj/
 publish/
 release/
+release-updtest/
 out/
 
 # IDE

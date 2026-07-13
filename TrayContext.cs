@@ -77,6 +77,16 @@ public sealed class TrayContext : ApplicationContext
         _ui = SynchronizationContext.Current;
         _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
         MaybeCheckForUpdates();
+
+        // A second launched exe can't start (single-instance mutex); it sets this named event
+        // instead, and we bring the main window up - so double-clicking the exe again doesn't
+        // look like "nothing happened".
+        var showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "GhostDeck_ShowMainWindow");
+        new Thread(() =>
+        {
+            while (showSignal.WaitOne())
+                _ui?.Post(_ => OpenMain(MainTab.Scenarios), null);
+        }) { IsBackground = true }.Start();
     }
 
     // ---------------- firmware-change guard ----------------
@@ -121,10 +131,12 @@ public sealed class TrayContext : ApplicationContext
 
     private (string text, Color color) TierBadge()
     {
-        if (!Known) return (Lang.T("tier_unsupported"), Color.FromArgb(0xB0, 0x4A, 0x3A));
+        // Theme-aware badge colours matching the ghostdeck.dev chips: positive = accent,
+        // limited = amber, unsupported = pink/red.
+        if (!Known) return (Lang.T("tier_unsupported"), Theme.Red);
         return _device!.Tier == Tier.Tested
-            ? (Lang.T("tier_tested"),       Color.FromArgb(0x2E, 0xA0, 0x43))
-            : (Lang.T("tier_experimental"), Color.FromArgb(0xCC, 0x7A, 0x12));
+            ? (Lang.T("tier_tested"),       Theme.Accent)
+            : (Lang.T("tier_experimental"), Theme.Amber);
     }
 
     private string DeviceDescriptor()

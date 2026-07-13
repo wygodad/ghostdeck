@@ -10,8 +10,15 @@ public sealed class LogForm : Form
 {
     private static LogForm? _open;
 
-    private readonly ListView _list = new();
+    private readonly ListView _list = new BufferedListView();
     private readonly Action _onChanged;
+
+    // ListView repaints whole rows on hover/selection; without double buffering the
+    // owner-drawn cells flicker visibly.
+    private sealed class BufferedListView : ListView
+    {
+        public BufferedListView() { DoubleBuffered = true; }
+    }
 
     public static void ShowSingleton()
     {
@@ -29,7 +36,7 @@ public sealed class LogForm : Form
     public LogForm()
     {
         Text = Lang.T("log_title");
-        Icon = TrayIconFactory.Create(Theme.Accent);
+        Icon = TrayIconFactory.AppIcon();
         AutoScaleMode = AutoScaleMode.Dpi;
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(1120, 640);
@@ -39,13 +46,38 @@ public sealed class LogForm : Form
         _list.Dock = DockStyle.Fill;
         _list.View = View.Details;
         _list.FullRowSelect = true;
-        _list.GridLines = true;
+        _list.GridLines = false;
+        _list.BorderStyle = BorderStyle.None;
         _list.MultiSelect = true;
         _list.HideSelection = false;
         _list.Columns.Add(Lang.T("log_col_time"), 180);
         _list.Columns.Add(Lang.T("log_col_source"), 160);
         _list.Columns.Add(Lang.T("log_col_detail"), 470);
         _list.Columns.Add(Lang.T("log_col_result"), 290);
+
+        // Owner-drawn cells: the stock ListView paints a glaring white-on-black grid in dark
+        // mode. Alternating themed row tints + accent-soft selection keep it readable.
+        _list.OwnerDraw = true;
+        _list.DrawItem += (_, e) => { };   // cells are painted per-subitem below
+        _list.DrawColumnHeader += (_, e) =>
+        {
+            using (var b = new SolidBrush(Theme.Surface)) e.Graphics.FillRectangle(b, e.Bounds);
+            using (var p = new Pen(Theme.Border)) e.Graphics.DrawLine(p, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+            using var hf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? "", hf,
+                new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
+                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        };
+        _list.DrawSubItem += (_, e) =>
+        {
+            bool sel = e.Item?.Selected == true;
+            var bg = sel ? Theme.AccentSoft : e.ItemIndex % 2 == 0 ? Theme.Card : Theme.Surface;
+            using (var b = new SolidBrush(bg)) e.Graphics.FillRectangle(b, e.Bounds);
+            var fg = e.ColumnIndex == 0 ? Theme.Muted : Theme.Text;
+            TextRenderer.DrawText(e.Graphics, e.SubItem?.Text ?? "", _list.Font,
+                new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
+                fg, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        };
         _list.KeyDown += (_, e) =>
         {
             if (e.Control && e.KeyCode == Keys.C) { CopySelected(); e.Handled = e.SuppressKeyPress = true; }
@@ -63,10 +95,13 @@ public sealed class LogForm : Form
             Padding = new Padding(12, 10, 12, 12),
         };
         var close = new Button { Text = Lang.T("set_close"), AutoSize = true, Padding = new Padding(14, 6, 14, 6), Margin = new Padding(6, 0, 0, 0) };
+        Ui.StyleGhost(close);
         close.Click += (_, _) => Close();
         var copy = new Button { Text = Lang.T("log_copy_all"), AutoSize = true, Padding = new Padding(14, 6, 14, 6), Margin = new Padding(6, 0, 0, 0) };
+        Ui.StyleGhost(copy);
         copy.Click += (_, _) => { try { Clipboard.SetText(ChangeLog.ToText()); } catch { } };
         var clear = new Button { Text = Lang.T("log_clear"), AutoSize = true, Padding = new Padding(14, 6, 14, 6), Margin = new Padding(6, 0, 0, 0) };
+        Ui.StyleGhost(clear);
         clear.Click += (_, _) =>
         {
             if (MessageBox.Show(this, Lang.T("log_clear_confirm"), Lang.T("log_title"),

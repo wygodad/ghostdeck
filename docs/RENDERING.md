@@ -207,3 +207,24 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   itself (light) first, so painting over it afterwards leaves a visible flash on hover/press. Intercept
   `WM_PAINT`, `BeginPaint`/`EndPaint` yourself and skip `base` (see `ThemedComboBox`). New selects must use
   `ThemedComboBox`, not a bare `ComboBox`.
+
+## 7. Brand drawing (v1.18): ghost mark, gauges, log list
+
+- **Ghost mark** — `TrayIconFactory.DrawGhost(g, x, y, size, body, eyes)` draws the brand ghost
+  on a 32-unit design grid (dome arc, straight sides, three feet arcs, two rotated-ellipse eyes
+  "punched" in the background colour). Used by the tray icon (`Create`, on the profile-coloured
+  squircle) and the header wordmark (`MainForm.DrawWordmark`, "Ghost" in `Theme.Text` +
+  "Deck" in `Theme.Accent`; hidden when the strip is too narrow). Windows/taskbar icons use the
+  embedded multi-size `app.ico` via `TrayIconFactory.AppIcon()` — `ApplicationIcon` in the csproj
+  only brands the exe file, it is NOT reachable at runtime, hence the `EmbeddedResource`.
+- **Ring gauges** — `IconPainter.Ring` draws 40 arc tick segments clockwise from the top;
+  lit ticks blend from the base colour toward white (`Mix`), unlit ticks use `Theme.Border`.
+  Flat pen caps keep the ticks crisp; don't switch back to a single `DrawArc`.
+- **Scenario icons** — vector GDI+ paths in `IconPainter.Scenario` (feather / scales / bolt /
+  battery), stroked in the per-profile colour. SVG sources: `assets/icons/` (see its README;
+  keep SVG and C# in sync).
+- **Change-history list (`LogForm`)** — stock `ListView` grid is glaring white-on-black in dark
+  mode, so the list is owner-drawn: `OwnerDraw = true`, empty `DrawItem`, cells painted in
+  `DrawSubItem` (alternating `Theme.Card`/`Theme.Surface` rows, `Theme.AccentSoft` selection,
+  muted first column), header in `DrawColumnHeader`. The control must be a double-buffered
+  subclass or hover repaints flicker. Buttons use `Ui.StyleGhost`.

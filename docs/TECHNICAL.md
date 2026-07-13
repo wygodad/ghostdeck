@@ -649,3 +649,29 @@ guess. If the found addresses equal the shipped `FanCurveSpec` (`CpuSpeedBase` /
 model's curve can be marked verified; otherwise the real addresses are reported for review. Using
 distinct sequences per fan is what lets us tell the CPU table from the GPU table and rules out a
 coincidental match against the (static) default curve.
+
+## 22. Design tokens & brand palette (v1.18)
+
+The UI follows the ghostdeck.dev site palette. Dark mode: bg `#05070B`, surface `#0A0D14`,
+card `#111622`, text `#F3F7FF`, muted `#A4ADBD`, border `#232C40`, green `#61E7A4`,
+amber `#FFC15D`, danger/pink `#FF2F7D`, violet `#8D63FF`. Light mode keeps the neutral
+greys with a blue accent.
+
+Two accent tokens in `Theme.cs` — do not merge them:
+
+- **`Theme.Accent`** — indicator colour (neon cyan `#3DE3FF` dark / blue `#3C7DFF` light).
+  For things drawn ON a surface: icons, tab underline, ring gauges, links, badges, wordmark.
+- **`Theme.AccentFill`** — fill colour (blue `#3C7DFF`, both modes) for interactive controls
+  that carry white text or a white knob: primary buttons, checkboxes, toggles, slider fill,
+  segmented controls, drop-down selection. White on cyan fails contrast, hence the split.
+
+`Theme.Violet` (`#8D63FF`) is the secondary data colour (GPU-side gauges). Status badges
+(`Ui.Pill`) are outlined chips (1px border + ~10% tint), matching the site's table chips:
+tested/positive = Accent, experimental/limited = Amber, unsupported/negative = Red.
+
+Profile colour defaults (Profiles.cs) follow the site mockup: Silent `#61E7A4`,
+Balanced `#3C7DFF`, Extreme `#8D63FF`, Super Battery `#B86BFF`. The swatch palette must
+contain every default (the selected-marker compares live `ColorFor`, so "Restore default
+colors" in Settings moves the markers without a rebuild). Icon vector sources live in
+`assets/icons/*.svg` (32-unit grid) and MUST be kept in sync with `IconPainter.cs` /
+`TrayIconFactory.cs` when an icon changes.

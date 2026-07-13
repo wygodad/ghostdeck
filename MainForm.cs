@@ -86,7 +86,7 @@ public sealed class MainForm : Form
     {
         _d = d;
         Text = "GhostDeck";
-        Icon = TrayIconFactory.Create(Theme.Accent);
+        Icon = TrayIconFactory.AppIcon();
         FormBorderStyle = FormBorderStyle.Sizable;
         AutoScaleMode = AutoScaleMode.Dpi;
         MinimumSize = new Size(900, 620);
@@ -107,6 +107,22 @@ public sealed class MainForm : Form
 
         ApplyThemeChrome();
         ShowTab(MainTab.Scenarios);
+
+        // Warm up the heavy pages shortly after the window shows (spread out to keep the UI
+        // responsive): the first click on Settings used to build ~60 controls on the spot,
+        // which read as a visible delay. Pages are created hidden; ShowTab just flips them on.
+        Shown += async (_, _) =>
+        {
+            foreach (var t in new[] { MainTab.Settings, MainTab.Status, MainTab.FanCurve, MainTab.Models })
+            {
+                await Task.Delay(250);
+                if (IsDisposed || _pages.ContainsKey(t)) continue;
+                var page = CreatePage(t);
+                page.Visible = false;
+                _pages[t] = page;
+                _host.Controls.Add(page);
+            }
+        };
 
         // Hidden developer entry to the EC test/discovery tools (Ctrl+Shift+T). See docs/TECHNICAL.md §12.
         KeyPreview = true;
@@ -167,6 +183,7 @@ public sealed class MainForm : Form
             if (act != null)
                 using (var pen = new Pen(Theme.Accent, 3f))
                     g.DrawLine(pen, act.Left + 14, sepY, act.Right - 14, sepY);
+            DrawWordmark(g);
         };
 
         AddTab(MainTab.Scenarios, Lang.T("tab_scenarios"), "");
@@ -201,6 +218,25 @@ public sealed class MainForm : Form
 
         _strip.Resize += (_, _) => { LayoutStrip(); _strip.Invalidate(); };
         LayoutStrip();
+    }
+
+    // Brand wordmark (ghost mark + "GhostDeck", "Deck" in accent) right-aligned before the
+    // version label; skipped when the strip is too narrow to fit it after the tabs.
+    private void DrawWordmark(Graphics g)
+    {
+        using var wf = new Font("Segoe UI", 12.5f, FontStyle.Bold);
+        const string s1 = "Ghost", s2 = "Deck";
+        int w1 = TextRenderer.MeasureText(g, s1, wf, Size.Empty, TextFormatFlags.NoPadding).Width;
+        int w2 = TextRenderer.MeasureText(g, s2, wf, Size.Empty, TextFormatFlags.NoPadding).Width;
+        int mark = (int)(26 * _strip.DeviceDpi / 96f);
+        int total = mark + 9 + w1 + w2;
+        int bx = _version.Left - 22 - total;
+        int tabsRight = _tabs.Count > 0 ? _tabs[^1].Right : 0;
+        if (bx < tabsRight + 24) return;
+        TrayIconFactory.DrawGhost(g, bx, (StripH - mark) / 2f - 1, mark, Theme.Accent, Theme.Surface);
+        int ty = (StripH - wf.Height) / 2 - 1;
+        TextRenderer.DrawText(g, s1, wf, new Point(bx + mark + 9, ty), Theme.Text, TextFormatFlags.NoPadding);
+        TextRenderer.DrawText(g, s2, wf, new Point(bx + mark + 9 + w1, ty), Theme.Accent, TextFormatFlags.NoPadding);
     }
 
     private void AddTab(MainTab tab, string text, string glyph)
@@ -275,7 +311,7 @@ public sealed class MainForm : Form
     private void OnThemeChanged()
     {
         _themeBtn.Glyph = Theme.Dark ? "☀" : "☾";
-        Icon = TrayIconFactory.Create(Theme.Accent);
+        Icon = TrayIconFactory.AppIcon();
         ApplyThemeChrome();
         foreach (var p in _pages.Values) p.ApplyTheme();
         Invalidate(true);
@@ -324,8 +360,10 @@ public sealed class MainForm : Form
             const int iconW = 28, gap = 10;
             int total = iconW + gap + tw;
             int sx = Math.Max(6, (Width - total) / 2);
+            // NoClipping: at some DPI scales / font fallbacks the glyph ink is wider than its
+            // 28px cell and the default clip cut its edge (discussion #9, "Settings icon cut").
             TextRenderer.DrawText(g, Glyph, iconFont, new Rectangle(sx, 0, iconW, Height), col,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
+                TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.NoClipping);
             TextRenderer.DrawText(g, Text, textFont, new Rectangle(sx + iconW + gap, 0, tw + 8, Height), col,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         }

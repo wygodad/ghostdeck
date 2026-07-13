@@ -3,10 +3,61 @@ using System.Runtime.InteropServices;
 
 namespace GhostDeck;
 
-/// <summary>Rysuje ikone tray w kolorze aktywnego profilu (squircle + tachometr).</summary>
+/// <summary>Rysuje ikone tray w kolorze aktywnego profilu (squircle + duszek GhostDeck).</summary>
 public static class TrayIconFactory
 {
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
+
+    private static Icon? _appIcon;
+
+    /// <summary>Multi-size ghost app icon (embedded app.ico) for window/taskbar use.</summary>
+    public static Icon AppIcon()
+    {
+        if (_appIcon != null) return _appIcon;
+        try
+        {
+            using var s = typeof(TrayIconFactory).Assembly.GetManifestResourceStream("GhostDeck.app.ico");
+            if (s != null) return _appIcon = new Icon(s);
+        }
+        catch { }
+        return _appIcon = Create(Theme.Accent);
+    }
+
+    /// <summary>
+    /// Ghost mark scaled into a box (32-unit design grid): dome, straight sides, three feet
+    /// bumps, slanted almond eyes punched in <paramref name="eyes"/> (outer corners raised).
+    /// </summary>
+    public static void DrawGhost(Graphics g, float x, float y, float size, Color body, Color eyes)
+    {
+        var old = g.Transform;
+        g.TranslateTransform(x, y);
+        float k = size / 32f;
+        g.ScaleTransform(k, k);
+
+        using (var ghost = new GraphicsPath())
+        {
+            ghost.AddArc(7f, 5f, 18f, 18f, 180f, 180f);      // dome, (7,14) over the top to (25,14)
+            ghost.AddLine(25f, 14f, 25f, 23.5f);             // right side
+            ghost.AddArc(19f, 20.5f, 6f, 6f, 0f, 180f);      // feet, right to left
+            ghost.AddArc(13f, 20.5f, 6f, 6f, 0f, 180f);
+            ghost.AddArc(7f, 20.5f, 6f, 6f, 0f, 180f);
+            ghost.CloseFigure();                             // left side back up to the dome
+            using var b = new SolidBrush(body);
+            g.FillPath(b, ghost);
+        }
+
+        using (var eyeB = new SolidBrush(eyes))
+            foreach (var (ex, rot) in new[] { (12.7f, 20f), (19.3f, -20f) })
+            {
+                var st = g.Save();
+                g.TranslateTransform(ex, 14.5f);
+                g.RotateTransform(rot);
+                g.FillEllipse(eyeB, -1.7f, -2.9f, 3.4f, 5.8f);
+                g.Restore(st);
+            }
+
+        g.Transform = old;
+    }
 
     public static Icon Create(Color color)
     {
@@ -30,15 +81,7 @@ public static class TrayIconFactory
                 ControlPaint.Light(color, 0.3f), ControlPaint.Dark(color, 0.10f), 60f);
             g.FillPath(bg, path);
 
-            float cx = S / 2f, cy = S / 2f + 1f, r = S * 0.26f;
-            using var pen = new Pen(Color.FromArgb(240, 255, 255, 255), 3f)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            g.DrawArc(pen, cx - r, cy - r, 2 * r, 2 * r, 135, 270);
-
-            double ang = 215 * Math.PI / 180.0;
-            using var needle = new Pen(Color.White, 2.4f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            g.DrawLine(needle, cx, cy, (float)(cx + Math.Cos(ang) * r * 0.8), (float)(cy + Math.Sin(ang) * r * 0.8));
-            g.FillEllipse(Brushes.White, cx - 2f, cy - 2f, 4f, 4f);
+            DrawGhost(g, 0, 0, S, Color.White, color);
         }
 
         IntPtr h = bmp.GetHicon();

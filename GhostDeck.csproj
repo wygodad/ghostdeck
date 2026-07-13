@@ -20,4 +20,9 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- multi-size ghost icon reachable at runtime (window/taskbar); ApplicationIcon only brands the exe file -->
+    <EmbeddedResource Include="app.ico" LogicalName="GhostDeck.app.ico" />
+  </ItemGroup>
+
 </Project>

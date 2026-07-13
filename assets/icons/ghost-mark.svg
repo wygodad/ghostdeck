@@ -1,0 +1,9 @@
+<!-- GhostDeck ghost mark. Source of the GDI+ drawing in TrayIconFactory.DrawGhost
+     (tray icon, header wordmark). Geometry: 32-unit grid; body = currentColor,
+     eyes punched in the background colour (here the site dark bg #05070B). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <path fill="currentColor" d="M 7 14 A 9 9 0 0 1 25 14 L 25 23.5
+    A 3 3 0 0 1 19 23.5 A 3 3 0 0 1 13 23.5 A 3 3 0 0 1 7 23.5 Z"/>
+  <ellipse cx="12.7" cy="14.5" rx="1.7" ry="2.9" transform="rotate(20 12.7 14.5)" fill="#05070B"/>
+  <ellipse cx="19.3" cy="14.5" rx="1.7" ry="2.9" transform="rotate(-20 19.3 14.5)" fill="#05070B"/>
+</svg>

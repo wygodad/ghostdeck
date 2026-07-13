@@ -3,6 +3,42 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.18.0] - 2026-07-13
+### Added
+- **In-app updates.** The Updates tab can now download and install a new release directly: an
+  *Install vX.Y.Z* button appears when a newer version is found, with a progress bar; the app
+  restarts itself on the new version (the previous exe is kept as `.bak` and cleaned up on the
+  next start). Falls back to opening the releases page if the download fails
+  ([#9](../../discussions/9)).
+- **"Restore default colors"** button under the profile colours in Settings.
+- **Brand icon set.** New ghost logo everywhere: application/taskbar/window icon, tray icon
+  (ghost on the profile-coloured tile), and a GhostDeck wordmark in the header. Icon vector
+  sources live in `assets/icons/*.svg`.
+### Changed
+- **Full ghostdeck.dev visual refresh.** The dark theme now matches the website palette
+  (near-black background, neon-cyan accents for indicators, blue fills for buttons/toggles/
+  sliders so white text stays readable); the light theme accent moved from purple to blue.
+  Dark mode is now the default for new installs.
+- **New scenario icons** (feather / scales / bolt / battery) and new default profile colours
+  (blue / amber / pink / green).
+- **Status gauges** redrawn as segmented tick rings with a colour gradient; GPU rings use the
+  violet data colour.
+- **Verified/experimental/unsupported badges** restyled as outlined chips matching the site.
+- **Change history window** restyled: themed alternating rows instead of the white-on-black
+  grid, readable buttons.
+### Fixed
+- **Sluggish tab switching.** Status and Fan curve did dozens of synchronous EC/WMI reads on
+  the UI thread when entering the tab (and periodically); reads now run in the background and
+  the page paints instantly from the last snapshot.
+- **Settings page delays.** The page is pre-built shortly after startup, and a language change
+  repaints in one go instead of blanking for a second.
+- **Scrolling Settings past a dropdown** no longer stops the page scroll or changes the value
+  (hovering the language combo while scrolling used to switch languages)
+  ([#9](../../discussions/9)).
+- **Settings tab icon no longer clipped** at some DPI scales ([#9](../../discussions/9)).
+- **Launching the exe while GhostDeck is already running** now brings up the main window of the
+  running instance instead of doing nothing.
+
 ## [1.17.1] - 2026-07-12
 ### Fixed
 - **Dark-theme dropdowns.** The Language, On AC / On battery and overlay-position selects kept a white

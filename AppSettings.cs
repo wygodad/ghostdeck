@@ -56,7 +56,7 @@ public sealed class AppSettings
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
     public List<string> SeenNoticeIds { get; set; } = new();           // ktore ogloszenia (announcements.json) juz pokazano
 
-    public bool DarkMode { get; set; } = false;                        // ciemny motyw nowego okna z zakladkami
+    public bool DarkMode { get; set; } = true;                         // ciemny motyw domyslnie (brand ghostdeck.dev)
 
     public string LastFirmware { get; set; } = "";                     // ostatnio widziany firmware EC (ostrzezenie o zmianie)
 

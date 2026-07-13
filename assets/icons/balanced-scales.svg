@@ -1,0 +1,12 @@
+<!-- Balanced profile icon (balance scale with triangle pans). Source of the GDI+ drawing in
+     IconPainter.Scenario. Geometry: 32-unit grid, cx=cy=16, s=13; colour = profile colour. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
+     stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M 16 5.9 L 16 25.4"/>
+  <path d="M 10.8 25.4 L 21.2 25.4"/>
+  <path d="M 6.4 6.9 L 25.6 6.9"/>
+  <path d="M 6.4 6.9 L 2.2 13.1 M 6.4 6.9 L 10.6 13.1"/>
+  <path d="M 10.6 13.1 A 4.2 3.7 0 0 1 2.2 13.1"/>
+  <path d="M 25.6 6.9 L 21.4 13.1 M 25.6 6.9 L 29.8 13.1"/>
+  <path d="M 29.8 13.1 A 4.2 3.7 0 0 1 21.4 13.1"/>
+</svg>

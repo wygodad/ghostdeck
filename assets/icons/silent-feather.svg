@@ -1,0 +1,8 @@
+<!-- Silent profile icon (quill feather). Source of the GDI+ drawing in IconPainter.Scenario.
+     Geometry: 32-unit grid; colour = profile colour (currentColor). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
+     stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M 6.7 14 L 6.7 25.3 L 18 25.3 L 27 16.3 A 8 8 0 0 0 15.7 5 Z"/>
+  <path d="M 21.3 10.7 L 2.7 29.3"/>
+  <path d="M 23.3 20 L 12 20"/>
+</svg>

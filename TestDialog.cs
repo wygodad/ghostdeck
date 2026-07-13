@@ -30,7 +30,7 @@ public sealed class TestDialog : Form
         MaximizeBox = MinimizeBox = false;
         ClientSize = new Size(580, 700);
         Font = new Font("Segoe UI", 9.5f);
-        Icon = TrayIconFactory.Create(Theme.Accent);
+        Icon = TrayIconFactory.AppIcon();
 
         var note = new Label { Text = Lang.T("test_note"), AutoSize = false };
         note.SetBounds(20, 14, 540, 56);

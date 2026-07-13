@@ -1,0 +1,10 @@
+<!-- Super Battery profile icon (battery with charge bars). Source of the GDI+ drawing in
+     IconPainter.Scenario. Geometry: 32-unit grid, cx=cy=16, s=13; colour = profile colour. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none"
+     stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="9.2" y="8.4" width="13.7" height="18.9" rx="2.1"/>
+  <path d="M 13.4 6.3 L 18.6 6.3"/>
+  <rect x="11.9" y="22.1" width="8.2" height="2.1" rx="1.05" fill="currentColor" stroke="none"/>
+  <rect x="11.9" y="18.2" width="8.2" height="2.1" rx="1.05" fill="currentColor" stroke="none"/>
+  <rect x="11.9" y="14.3" width="8.2" height="2.1" rx="1.05" fill="currentColor" stroke="none"/>
+</svg>

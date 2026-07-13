@@ -21,6 +21,7 @@ public sealed class FanCurvePage : ThemedPage
     private readonly FanCurveSpec? _fc;
     private int[] _cpuT, _cpuS, _gpuT, _gpuS;
     private bool _loaded;
+    private bool _loading;   // background first-load in flight
     private int _dragFan = -1, _dragIdx = -1;
     private byte _fanMode;
     private readonly System.Windows.Forms.Timer _modeTimer = new() { Interval = 1200 };
@@ -62,14 +63,32 @@ public sealed class FanCurvePage : ThemedPage
 
     public override void OnEnter()
     {
-        if (!_loaded && _fc != null)
+        // First open used to read the whole curve (dozens of WMI calls) synchronously and froze
+        // the tab switch; load it on a worker and repaint when it lands.
+        if (!_loaded && !_loading && _fc != null)
         {
-            var c = Ec.ReadFanCurve(_dev!);
-            if (c is { } v && v.cpuSpeed.Length == _fc.Points)
+            _loading = true;
+            var dev = _dev!;
+            int points = _fc.Points;
+            Task.Run(() =>
             {
-                _cpuT = v.cpuTemp; _cpuS = v.cpuSpeed; _gpuT = v.gpuTemp; _gpuS = v.gpuSpeed;
-                _loaded = true;
-            }
+                (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? c = null;
+                try { c = Ec.ReadFanCurve(dev); } catch { }
+                try
+                {
+                    BeginInvoke(() =>
+                    {
+                        _loading = false;
+                        if (c is { } v && v.cpuSpeed.Length == points)
+                        {
+                            _cpuT = v.cpuTemp; _cpuS = v.cpuSpeed; _gpuT = v.gpuTemp; _gpuS = v.gpuSpeed;
+                            _loaded = true;
+                        }
+                        Invalidate();
+                    });
+                }
+                catch { _loading = false; }   // page disposed mid-flight
+            });
         }
         _enable.Enabled = _enableLabel.Enabled = _default.Enabled = Editable;
         RefreshMode();
@@ -79,11 +98,24 @@ public sealed class FanCurvePage : ThemedPage
 
     private void RefreshMode()
     {
+        // Single-byte EC read, but still a WMI round-trip; keep it off the UI thread
+        // (called on enter and every 1.2 s by the mode timer).
         if (_fc != null && _dev != null)
         {
-            try { _fanMode = Ec.ReadByte(_dev.FanMode); } catch { }
+            var dev = _dev;
+            Task.Run(() =>
+            {
+                byte m = _fanMode;
+                try { m = Ec.ReadByte(dev.FanMode); } catch { }
+                try { BeginInvoke(() => { _fanMode = m; SyncEnable(); }); } catch { }
+            });
         }
-        // keep the switch in sync with the actual hardware state (programmatic set won't fire Toggled)
+        else SyncEnable();
+    }
+
+    // keep the switch in sync with the actual hardware state (programmatic set won't fire Toggled)
+    private void SyncEnable()
+    {
         _enable.Checked = _fanMode == 0x8D;
         Invalidate();
     }

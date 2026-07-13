@@ -29,8 +29,8 @@ public sealed class ReportForm : Form
     private static readonly byte[] SnapshotAddrs = { 0x34, 0xD2, 0xD4, 0xEB, 0xF2, 0xF4, 0xD7, 0xEF };
 
     // ---- palette ----
-    private static readonly Color Accent     = Color.FromArgb(0x7C, 0x3A, 0xED);
-    private static readonly Color AccentDark = Color.FromArgb(0x6D, 0x28, 0xD9);
+    private static readonly Color Accent     = Color.FromArgb(0x3C, 0x7D, 0xFF);
+    private static readonly Color AccentDark = Color.FromArgb(0x2E, 0x62, 0xD6);
     private static readonly Color Ink        = Color.FromArgb(0x1F, 0x24, 0x30);
     private static readonly Color Muted      = Color.FromArgb(0x6B, 0x72, 0x80);
     private static readonly Color Green      = Color.FromArgb(0x2E, 0xA0, 0x43);
@@ -75,7 +75,7 @@ public sealed class ReportForm : Form
         Font = new Font("Segoe UI", 10.5f);
         BackColor = Color.White;
         Text = Lang.T("rep_title");
-        Icon = TrayIconFactory.Create(Accent);
+        Icon = TrayIconFactory.AppIcon();
         DoubleBuffered = true;
 
         BuildHeader();
@@ -579,8 +579,8 @@ public sealed class ReportForm : Form
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
             using var path = RoundRect(r, 11);
-            using (var b = new SolidBrush(Color.FromArgb(0xF6, 0xF5, 0xFB))) g.FillPath(b, path);
-            using (var p = new Pen(Color.FromArgb(0xEA, 0xE7, 0xF5))) g.DrawPath(p, path);
+            using (var b = new SolidBrush(Color.FromArgb(0xF2, 0xF6, 0xFE))) g.FillPath(b, path);
+            using (var p = new Pen(Color.FromArgb(0xDE, 0xE9, 0xFC))) g.DrawPath(p, path);
             var lblFont = new Font("Segoe UI", 10f);
             TextRenderer.DrawText(g, _label, lblFont, new Rectangle(18, 0, 220, Height), Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
@@ -721,7 +721,7 @@ public sealed class ReportForm : Form
             float r = Height / 2f;
             var track = new RectangleF(0, 0, Width, Height);
             using (var path = RoundRect(track, r))
-            using (var b = new SolidBrush(Color.FromArgb(0xEC, 0xE9, 0xF6)))
+            using (var b = new SolidBrush(Color.FromArgb(0xE4, 0xED, 0xFD)))
                 g.FillPath(b, path);
 
             float w = Math.Max(Height, Width * _value);
