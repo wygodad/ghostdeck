@@ -331,6 +331,7 @@ public static class Lang
         ["icon_ghost_dark"] = new[] { "Ghost (dark)", "Duszek (ciemna)", "Geist (dunkel)", "Fantôme (sombre)", "Fantasma (oscuro)", "幽灵（深色）", "Fantasma (escuro)", "Призрак (тёмный)" },
         ["icon_ghost_light"] = new[] { "Ghost (light)", "Duszek (jasna)", "Geist (hell)", "Fantôme (clair)", "Fantasma (claro)", "幽灵（浅色）", "Fantasma (claro)", "Призрак (светлый)" },
         ["icon_gauge"]     = new[] { "Classic gauge", "Klasyczny zegar", "Klassische Anzeige", "Jauge classique", "Indicador clásico", "经典仪表", "Indicador clássico", "Классический спидометр" },
+        ["icon_ghost_cyan"] = new[] { "Ghost (light, cyan)", "Duszek (jasna, cyan)", "Geist (hell, Cyan)", "Fantôme (clair, cyan)", "Fantasma (claro, cian)", "幽灵（浅色，青色）", "Fantasma (claro, ciano)", "Призрак (светлый, циан)" },
         ["set_charge"]     = new[] { "Battery charge limit", "Limit ładowania baterii", "Akkuladelimit", "Limite de charge batterie", "Límite de carga", "电池充电限制", "Limite de carga", "Лимит заряда батареи" },
         ["charge_dont"]    = new[] { "Don't change", "Nie zmieniaj", "Nicht ändern", "Ne pas changer", "No cambiar", "不更改", "Não alterar", "Не менять" },
         ["set_autoswitch"] = new[] { "Auto-switch AC / battery", "Auto-przełączanie zasilacz / bateria", "Auto-Wechsel Netz / Akku", "Bascule auto secteur / batterie", "Cambio auto CA / batería", "电源/电池自动切换", "Troca auto tomada / bateria", "Автопереключение сеть / батарея" },

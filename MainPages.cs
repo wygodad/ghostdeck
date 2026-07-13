@@ -1524,7 +1524,7 @@ public sealed class SettingsPage : ThemedPage
     /// </summary>
     private sealed class IconStylePicker : Control
     {
-        private static readonly string[] LabelKeys = { "icon_logo", "icon_ghost_dark", "icon_ghost_light", "icon_gauge" };
+        private static readonly string[] LabelKeys = { "icon_logo", "icon_ghost_dark", "icon_ghost_light", "icon_gauge", "icon_ghost_cyan" };
         private readonly MainDeps D;
         private readonly int _cellW, _gap, _icon;
         private int _hover = -1;
@@ -1535,12 +1535,12 @@ public sealed class SettingsPage : ThemedPage
             DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
             float k = DeviceDpi / 96f;
             _cellW = (int)(88 * k); _gap = (int)(8 * k); _icon = (int)(44 * k);
-            Width = 4 * _cellW + 3 * _gap;
+            Width = LabelKeys.Length * _cellW + (LabelKeys.Length - 1) * _gap;
             Height = (int)(104 * k);
         }
 
         private Rectangle Cell(int i) => new(i * (_cellW + _gap), 0, _cellW, Height);
-        private int HitTest(Point p) { for (int i = 0; i < 4; i++) if (Cell(i).Contains(p)) return i; return -1; }
+        private int HitTest(Point p) { for (int i = 0; i < LabelKeys.Length; i++) if (Cell(i).Contains(p)) return i; return -1; }
 
         protected override void OnMouseMove(MouseEventArgs e) { int h = HitTest(e.Location); if (h != _hover) { _hover = h; Invalidate(); } }
         protected override void OnMouseLeave(EventArgs e) { _hover = -1; Invalidate(); }
@@ -1561,7 +1561,7 @@ public sealed class SettingsPage : ThemedPage
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Parent?.BackColor ?? Theme.Card);
             using var lf = new Font("Segoe UI", 8.5f);
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < LabelKeys.Length; i++)
             {
                 var c = Cell(i);
                 bool sel = D.Settings.IconStyle == i;

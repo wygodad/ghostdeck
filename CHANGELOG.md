@@ -3,6 +3,11 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **Fifth application-icon style**: the dark-style cyan ghost on the light tile
+  (Settings → Application icon).
+
 ## [1.18.1] - 2026-07-13
 ### Added
 - **Application icon choice** (Settings → Appearance): GhostDeck logo, ghost on a dark rounded

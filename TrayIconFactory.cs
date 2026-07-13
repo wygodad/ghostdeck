@@ -36,6 +36,7 @@ public static class TrayIconFactory
             0 => LoadLogoIcon(),
             2 => BuildIcon((g, sz) => DrawTile(g, sz, LightTile, BrandBlue)),
             3 => BuildIcon((g, sz) => DrawGauge(g, sz, BrandBlue)),
+            4 => BuildIcon((g, sz) => DrawTile(g, sz, LightTile, BrandCyan)),   // dark-style ghost on the light tile
             _ => BuildIcon((g, sz) => DrawTile(g, sz, DarkTile, BrandCyan)),
         };
         return _appIcons[s] = icon;
@@ -53,7 +54,8 @@ public static class TrayIconFactory
             switch (Style)
             {
                 case 0: DrawSquircleGhost(g, S, color); break;                                  // white ghost, profile squircle
-                case 2: DrawTile(g, S, LightTile, ControlPaint.Dark(color, 0.02f)); break;      // profile ghost, light tile
+                case 2:
+                case 4: DrawTile(g, S, LightTile, ControlPaint.Dark(color, 0.02f)); break;      // profile ghost, light tile
                 case 3: DrawGauge(g, S, color); break;                                          // classic gauge, profile squircle
                 default: DrawTile(g, S, DarkTile, Theme.Profile(color)); break;                 // profile ghost, dark tile
             }
@@ -128,6 +130,7 @@ public static class TrayIconFactory
         {
             case 2: DrawTile(g, size, LightTile, BrandBlue); break;
             case 3: DrawGauge(g, size, BrandBlue); break;
+            case 4: DrawTile(g, size, LightTile, BrandCyan); break;
             default: DrawTile(g, size, DarkTile, BrandCyan); break;
         }
         g.Transform = t;
