@@ -615,23 +615,6 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // ---------------- settings / language / status ----------------
-    private void OpenSettings()
-    {
-        using var form = new SettingsForm(_settings.Clone(), saved =>
-        {
-            _settings = saved;
-            Lang.Set(saved.Language);
-            _settings.Save();
-            if (Known) _current = Ec.GetCurrent(_device!);
-            ApplyHotkeys();
-            BuildMenu();
-            UpdateUi(_current);
-            if (Writable) TryApplyChargeLimit();
-            try { Autostart.Set(_settings.Autostart); } catch { }
-        });
-        form.ShowDialog();
-    }
-
     private void ChangeLanguage(string code)
     {
         _settings.Language = code;
@@ -660,7 +643,6 @@ public sealed class TrayContext : ApplicationContext
         SaveSettings = () => _settings.Save(),
         CheckNoticesNow = CheckNoticesNow,
         SettingsChanged = () => { ApplyHotkeys(); BuildMenu(); UpdateUi(_current); },
-        OpenLegacySettings = OpenSettings,
         StartReportWizard = OpenReport,
         SetChargeLimit = limit =>
         {

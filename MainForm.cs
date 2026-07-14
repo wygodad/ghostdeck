@@ -19,7 +19,6 @@ public sealed class MainDeps
     public required Action SaveSettings { get; init; }
     public required Action CheckNoticesNow { get; init; }   // manual "Check now" also surfaces announcements
     public required Action SettingsChanged { get; init; }     // tray rebuilds menu / hotkeys
-    public required Action OpenLegacySettings { get; init; }   // interim: advanced settings dialog
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100
     public required Action<bool> SetAutoSwitch { get; init; }
