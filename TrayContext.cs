@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.IO.Pipes;
+using System.Text.Json;
 
 namespace GhostDeck;
 
@@ -105,6 +107,104 @@ public sealed class TrayContext : ApplicationContext
             while (showSignal.WaitOne())
                 _ui?.Post(_ => OpenMain(MainTab.Scenarios), null);
         }) { IsBackground = true }.Start();
+
+        StartCliServer();
+    }
+
+    // ---------------- CLI pipe server ----------------
+    // "GhostDeck.exe --profile Silent" from a second process lands here: the command line is
+    // sent over a named pipe and executed on the UI thread with the exact same gates as the
+    // UI itself. Response format: "<exitcode>|<message>".
+    private void StartCliServer()
+    {
+        new Thread(() =>
+        {
+            while (true)
+            {
+                try
+                {
+                    using var srv = new NamedPipeServerStream(Cli.PipeName, PipeDirection.InOut, 1);
+                    srv.WaitForConnection();
+                    using var r = new StreamReader(srv);
+                    using var w = new StreamWriter(srv) { AutoFlush = true };
+                    string? line = r.ReadLine();
+                    if (line == null) continue;
+                    string resp = "1|busy";
+                    // deliberately NOT disposed here: on a timeout the UI thread may still call
+                    // Set() later, which would throw on a disposed event inside a finally
+                    var done = new ManualResetEventSlim();
+                    var ui = _ui;
+                    if (ui == null) resp = ExecuteCli(line);
+                    else
+                    {
+                        ui.Post(_ => { try { resp = ExecuteCli(line); } finally { done.Set(); } }, null);
+                        done.Wait(8000);
+                    }
+                    w.WriteLine(resp);
+                }
+                catch { Thread.Sleep(300); }
+            }
+        }) { IsBackground = true, Name = "GhostDeckCli" }.Start();
+    }
+
+    private string ExecuteCli(string raw)
+    {
+        try
+        {
+            var cmd = Cli.Parse(raw.Split('\t'));
+            if (cmd == null) return "2|bad command";
+            switch (cmd.Kind)
+            {
+                case CliKind.Status:
+                {
+                    HwSnapshot hw = default;
+                    if (Known) { try { hw = Ec.ReadHw(_device!); } catch { } }
+                    return "0|" + JsonSerializer.Serialize(new
+                    {
+                        running = true,
+                        model = Known ? _device!.Name : "unsupported",
+                        firmware = _firmware,
+                        tier = _device?.Tier.ToString() ?? "None",
+                        writable = Writable,
+                        profile = Known ? _current.ToString() : null,
+                        fanBoost = _coolerBoost,
+                        overlay = OverlayVisible,
+                        cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
+                        cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
+                        cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
+                    });
+                }
+                case CliKind.Overlay:
+                    SetOverlay(cmd.Arg == "on", osd: false);
+                    return "0|overlay: " + cmd.Arg;
+            }
+
+            if (!Writable) return "1|" + (Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
+            switch (cmd.Kind)
+            {
+                case CliKind.Profile:
+                    SetProfile(Enum.Parse<ProfileId>(cmd.Arg), osd: true, ChangeSource.Cli);
+                    return "0|profile set: " + cmd.Arg;
+                case CliKind.Cycle:
+                    Cycle(ChangeSource.Cli);
+                    return "0|profile set: " + _current;
+                case CliKind.FanBoost:
+                    SetCoolerBoostState(cmd.Arg == "on");
+                    return "0|fan boost: " + cmd.Arg;
+                case CliKind.Curve:
+                    if (_device?.FanCurve is not { } fc) return "1|no fan-curve support on this model";
+                    if (cmd.Arg.Equals("auto", StringComparison.OrdinalIgnoreCase)) { ApplyPresetFromTray(null); return "0|fan curve: stock"; }
+                    if (_settings.FindPreset(cmd.Arg) is not { } p || !p.IsValid(fc.Points)) return "1|preset not found: " + cmd.Arg;
+                    ApplyPresetFromTray(p.Name);
+                    return "0|fan curve applied: " + p.Name;
+                case CliKind.Panic:
+                    PanicReset();
+                    return "0|panic reset done";
+                default:
+                    return "2|bad command";
+            }
+        }
+        catch (Exception ex) { return "1|" + ex.Message; }
     }
 
     // ---------------- firmware-change guard ----------------
@@ -273,7 +373,26 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.TrayShowFanCurve)
         {
             var curve = new ToolStripMenuItem(Lang.T("fc_title"));
-            curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
+            // With saved presets the entry becomes a submenu (editor + quick preset switch);
+            // without any it stays the plain "open the editor" click it always was.
+            if (Writable && _device?.FanCurve != null && _settings.CurvePresets.Count > 0)
+            {
+                var open = new ToolStripMenuItem(Lang.T("fc_open_editor"));
+                open.Click += (_, _) => OpenMain(MainTab.FanCurve);
+                curve.DropDownItems.Add(open);
+                curve.DropDownItems.Add(new ToolStripSeparator());
+                var auto = new ToolStripMenuItem(Lang.T("fc_preset_auto"));
+                auto.Click += (_, _) => ApplyPresetFromTray(null);
+                curve.DropDownItems.Add(auto);
+                foreach (var p in _settings.CurvePresets)
+                {
+                    string name = p.Name;
+                    var it = new ToolStripMenuItem(name);
+                    it.Click += (_, _) => ApplyPresetFromTray(name);
+                    curve.DropDownItems.Add(it);
+                }
+            }
+            else curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
             menu.Items.Add(curve);
         }
 
@@ -366,7 +485,9 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // ---------------- profile ----------------
-    private void SetProfile(ProfileId id, bool osd, ChangeSource source, bool count = true)
+    // applyCurve=false skips the per-profile curve preset: panic reset wants stock fans, and
+    // internal switches that write their own curve right after (fan-curve editor) don't need it.
+    private void SetProfile(ProfileId id, bool osd, ChangeSource source, bool count = true, bool applyCurve = true)
     {
         if (!Writable) { ShowState(); return; }
         try
@@ -374,7 +495,10 @@ public sealed class TrayContext : ApplicationContext
             if (_simulate)
                 ChangeLog.Add(source, $"{Profiles.Get(id).Label}  ·  {RecipeStr(id)}", "(simulate)");
             else
+            {
                 ApplyRecipeLogged(id, source);
+                if (applyCurve) ApplyAssignedCurve(id);
+            }
             if (id != _current && count) _switches++;
             _current = id;
             _profileSince = DateTime.Now;
@@ -412,6 +536,63 @@ public sealed class TrayContext : ApplicationContext
     {
         int i = Array.IndexOf(Profiles.Order, _current);
         SetProfile(Profiles.Order[(i + 1) % Profiles.Order.Length], osd: true, source);
+    }
+
+    // ---------------- fan-curve presets ----------------
+    // Per-profile preset, applied right after the profile recipe. Never for Silent (its power
+    // cap shares the fan byte 0xD4 with the curve mode) and never on ExternalSync (a profile
+    // set by MSI Center is not ours to re-style). Runs only inside SetProfile, i.e. under the
+    // same Writable gate as the recipe itself.
+    private void ApplyAssignedCurve(ProfileId id)
+    {
+        if (id == ProfileId.Silent || _device?.FanCurve is not { } fc) return;
+        if (!_settings.ProfileCurves.TryGetValue(Profiles.Get(id).Key, out var name) || string.IsNullOrEmpty(name)) return;
+        var p = _settings.FindPreset(name);
+        if (p == null || !p.IsValid(fc.Points)) return;
+        try
+        {
+            Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
+            Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+            ChangeLog.Add(ChangeSource.FanCurve,
+                string.Format(Lang.T("log_curve_preset"), name),
+                $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
+        }
+        catch { }   // curve is cosmetic on top of the recipe; a failed write must not fail the switch
+    }
+
+    // Tray quick-switch: apply a named preset (or null = back to the profile's stock fans).
+    private void ApplyPresetFromTray(string? name)
+    {
+        if (!Writable || _device?.FanCurve is not { } fc) { ShowState(); return; }
+        try
+        {
+            if (name == null)
+            {
+                byte b = _current == ProfileId.Silent ? _device!.FanSilentValue : (byte)0x0D;
+                if (!_simulate) Ec.SetFanMode(_device!, b);
+                ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_off"), $"{_device!.FanMode:X2}={b:X2}");
+                _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), Lang.T("fc_preset_auto"), _settings.ColorFor(_current));
+                return;
+            }
+            var p = _settings.FindPreset(name);
+            if (p == null || !p.IsValid(fc.Points)) return;
+            // A curve in Silent drops the Silent cap (same EC byte) -> leave Silent for Balanced first.
+            if (_current == ProfileId.Silent)
+                SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Tray, applyCurve: false);
+            if (!_simulate)
+            {
+                Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
+                Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+            }
+            ChangeLog.Add(ChangeSource.FanCurve,
+                string.Format(Lang.T("log_curve_preset"), p.Name),
+                $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
+            _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), p.Name, _settings.ColorFor(_current));
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
     }
 
     // ---------------- cooler boost (max fans) ----------------
@@ -604,7 +785,7 @@ public sealed class TrayContext : ApplicationContext
         _coolerBoost = false;
         _fanBeforeBoost = null;
         UpdateCoolerBoostMenu();
-        SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey);
+        SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey, applyCurve: false);   // panic = stock fans, no preset
         ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub"));
         _osd.ShowProfile("MSI  ·  " + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
     }
@@ -820,15 +1001,15 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
-    // ---------------- thermal alert (opt-in) ----------------
-    // OSD + tray balloon once CPU/GPU stays above the configured threshold for the configured
-    // time. Runs on the 3 s poll; the EC read goes off the UI thread (same reasoning as the
-    // Status page's RefreshAsync). A fixed cool-down keeps a hot gaming session from spamming.
+    // ---------------- background HW sampler (history + thermal alert) ----------------
+    // One EC read per 3 s poll, off the UI thread (same reasoning as the Status page's
+    // RefreshAsync). Every sample lands in the local HwHistory ring buffer (Status -> History
+    // charts); the thermal alert consumes the same sample when enabled - one read, two features.
     private static readonly TimeSpan ThermalCooldown = TimeSpan.FromMinutes(5);
 
-    private void CheckThermal()
+    private void SampleHw()
     {
-        if (!_settings.TempAlertEnabled || !Known || _simulate) return;
+        if (!Known || _simulate) return;
         if (Interlocked.Exchange(ref _thermalBusy, 1) != 0) return;
         var dev = _device!;
         var ui = _ui;
@@ -837,7 +1018,10 @@ public sealed class TrayContext : ApplicationContext
             try
             {
                 var hw = Ec.ReadHw(dev);
-                ui?.Post(_ => OnThermalSample(hw), null);
+                int load = SysInfo.CpuUsage();
+                HwHistory.Add(new HwSample(DateTime.Now, (short)hw.CpuTemp, (short)hw.GpuTemp,
+                    (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current));
+                if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
             }
             catch { }
             finally { Interlocked.Exchange(ref _thermalBusy, 0); }
@@ -867,7 +1051,7 @@ public sealed class TrayContext : ApplicationContext
     // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
-        CheckThermal();   // reads only; also works on non-writable (Experimental locked) models
+        SampleHw();   // reads only; also works on non-writable (Experimental locked) models
         if (!Writable) return;
 
         var power = SystemInformation.PowerStatus.PowerLineStatus;

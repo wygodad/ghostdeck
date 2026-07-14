@@ -52,6 +52,11 @@ public sealed class DeviceProfile
     public byte ShiftTurboValue { get; init; } = 0xC4;
     public byte ShiftEcoValue { get; init; } = 0xC2;
 
+    // Community attribution (Models tab "Thanks" column): GitHub login of the person whose
+    // report/verification backs this entry, and the issue to link as a thank-you.
+    public string Credit { get; init; } = "";
+    public string CreditUrl { get; init; } = "";
+
     public required Dictionary<ProfileId, (byte addr, byte val)[]> Recipes { get; init; }
 
     public bool Matches(string firmware) =>
@@ -106,6 +111,7 @@ public static class Devices
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
             CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
+            Credit = "wygodad", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/1",
 
             // Fan-curve tables located via the test tool; 6 points each (read-only preview for now).
             // First point is the 0°C→0% entry; tables verified 1:1 against MSI Center (6 points each).
@@ -130,7 +136,8 @@ public static class Devices
         // Fan curve VERIFIED (issue #11): the owner ran the wizard and it found the test curve at exactly
         // 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
         new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null) },
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "cesarcamps", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5" },
 
         // Sword 16 HX B13V / B14V (15P2EMS1) — owner per-scenario dump (issue #6) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Real-hardware
@@ -142,7 +149,8 @@ public static class Devices
         // Fan curve VERIFIED (issue #8): the owner set a known test curve in MSI Center and the wizard found
         // it at exactly 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
         new() { Name = "MSI Sword 16 HX B13V / B14V", FirmwarePrefixes = new[] { "15P2EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "skandy121", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/6" },
 
         // Raider GE67 HX 12U (1545IMS1) — owner per-scenario snapshot (issue #14) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Owner
@@ -151,7 +159,20 @@ public static class Devices
         // and it reported the test curve at 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses.
         // RPM not yet verified for this model.
         new() { Name = "MSI Raider GE67 HX 12U", FirmwarePrefixes = new[] { "1545IMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "alibi90", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/14" },
+
+        // Cyborg 15 A12VF (15K1IMS1) — owner per-scenario dump (issue #19) matches StdRecipes 1:1:
+        // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
+        // (0x34 constant 00 across scenarios — ignored, StdRecipes doesn't touch it). ModernCurve
+        // tables (0x69/0x72/0x81/0x8A) hold a valid ascending curve in the dump. Owner confirmed
+        // all three hardware checks (Silent lowers power, Extreme unlocks, switching stable), so
+        // Tier.Tested. Fan RPM: 0xC9 varies per scenario (9C/85/7D/7E ≈ 3000-3800 RPM), 0xCB = 00
+        // (dGPU fan idle at capture) — same layout as the other tested G2 boards. Curve addresses
+        // stay Verified:false until the owner runs the fan-curve wizard.
+        new() { Name = "MSI Cyborg 15 A12VF", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "hengeleng10-tech", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
@@ -231,7 +252,6 @@ public static class Devices
         new() { Name = "MSI Modern 15 B13M",                FirmwarePrefixes = new[] { "15H1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B12HW",               FirmwarePrefixes = new[] { "15H2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Cyborg 15 A12VF",               FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Pulse 16 AI C1VGKG/C1VFKG",     FirmwarePrefixes = new[] { "15P3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 16 HX AI D2XW",       FirmwarePrefixes = new[] { "15P4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

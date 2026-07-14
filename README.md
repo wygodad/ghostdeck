@@ -20,6 +20,9 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🎨 Custom color per profile
 - 📊 **Status** - live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH counters - no kernel driver, anti-cheat-safe)
 - 🌀 **Fan curve editor** - drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced - the app warns and switches for you
+- 🗂️ **Fan-curve presets** - save curves under a name, switch them from the editor or the tray menu, **assign a preset per profile** (auto-applied on every switch; Silent stays stock), and **export / import / share** presets as JSON - a Share button opens a prefilled GitHub Discussion with your model and curve
+- 📈 **History charts** - local trend of CPU/GPU temperature, fan duty and fan RPM over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
+- ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on`, `--curve "<preset>"`, `--panic`, `--status` (JSON) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
 - 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
 - 🛡️ **Firmware-change guard** - after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
@@ -53,6 +56,9 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Temperature alert (threshold + duration) | ❌ | ✅ *(opt-in, OSD + tray)* |
 | Panic reset hotkey (back to a safe stock state) | ❌ | ✅ *(Ctrl+Alt+F10)* |
 | Settings backup (export / import) | ❌ | ✅ |
+| Fan-curve presets + per-profile auto-apply | ❌ | ✅ *(share/import as JSON)* |
+| Local history charts (last 60 min) | ❌ | ✅ *(temps + fans, memory-only)* |
+| Command-line interface (automation) | ❌ | ✅ |
 | Hardware monitoring | ✅ | Limited³ |
 | Works with any / no MSI Center version | ❌ | ✅ |
 | Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |
@@ -99,15 +105,33 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 
 | Tier | Models | EC firmware / registers | Fan curve |
 |---|---|---|---|
-| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V** | `17S1IMS1.*`, `17S2IMS2.*` - shift `0xD2` / fan `0xD4` | ✅ editable |
+| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V**, **Crosshair A16 HX**, **Sword 16 HX B13V/B14V**, **Raider GE67 HX 12U**, **Cyborg 15 A12VF** | `17S1IMS1.*`, `17S2IMS2.*`, `15PLIMS1.*`, `15P2EMS1.*`, `1545IMS1.*`, `15K1IMS1.*` - shift `0xD2` / fan `0xD4` | ✅ editable |
 | ⚗️ **G2 family** (~101) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
 | ⚗️ **G1 family** (~33) | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | shift `0xF2` / fan `0xF4` / charge `0xEF` | - profiles only |
 
-The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; on experimental models the curve is editable once you opt in, but stays flagged **unverified** until you compare it with MSI Center on your own model. See the **[full per-firmware list of all ~135 models](docs/SUPPORTED_MODELS.md)** (source of truth: [`Devices.cs`](Devices.cs)). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function - guessing it would be unsafe).
+The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; on experimental models the curve is editable once you opt in, but stays flagged **unverified** until you compare it with MSI Center on your own model. See the **[full per-firmware list of all ~135 models](docs/SUPPORTED_MODELS.md)** (source of truth: [`Devices.cs`](Core/Devices.cs)). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function - guessing it would be unsafe).
 
 **Got a different MSI - or own an experimental one and can confirm it works?** The easiest way is right inside the app: tray menu → **Report my model…** (also a button in the Status window). It walks you through a read-only EC capture in each MSI Center scenario, builds the report, copies it to your clipboard, saves it to a file, and opens a pre-filled GitHub issue - just paste and submit. (Requires MSI Center installed as the scenario reference.)
 
 Prefer to do it by hand? Open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
+
+## CLI / automation
+
+Every core action is scriptable - handy for Task Scheduler, Stream Deck, AutoHotkey or plain shortcuts. Run from an **elevated** prompt (EC access needs admin, same as the app):
+
+```powershell
+GhostDeck.exe --profile Silent        # or Balanced / Extreme / SuperBattery
+GhostDeck.exe --cycle                 # next profile
+GhostDeck.exe --fanboost on           # full fan speed (off restores the profile's fans)
+GhostDeck.exe --curve "My quiet"      # apply a saved fan-curve preset ("auto" = stock fans)
+GhostDeck.exe --overlay on            # gaming overlay (needs the app running)
+GhostDeck.exe --panic                 # safe state: Fan Boost off, Balanced, fans auto
+GhostDeck.exe --status                # current state as JSON
+```
+
+If the tray app is running, the command is executed by it (with the exact same safety gates as the UI - tier, experimental opt-in); otherwise a one-shot mode talks to the EC directly and exits. Exit codes: `0` OK, `1` failed, `2` bad usage.
+
+Full reference - every command, the `--status` JSON schema and ready-made recipes (Task Scheduler, Stream Deck, AutoHotkey, game-launcher wrappers): **[docs/CLI.md](docs/CLI.md)**.
 
 ## Build from source
 

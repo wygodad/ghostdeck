@@ -112,7 +112,7 @@ public sealed class ModelsPage : ThemedPage
     internal static readonly Font FIcon = new("Segoe UI Symbol", 10.5f, FontStyle.Bold);
 
     internal const int HeadH = 34, RowH = 32;
-    internal static readonly float[] Lefts = { 0f, .30f, .48f, .56f, .68f, .82f, .89f };
+    internal static readonly float[] Lefts = { 0f, .26f, .42f, .49f, .58f, .70f, .77f, .855f };
 
     private int HeaderBandH() => 24 + FTitle.Height + 14 + FSub.Height + 10 + FIntro.Height * 2 + 18;
 
@@ -175,6 +175,7 @@ public sealed class ModelsPage : ThemedPage
         private readonly ModelsPage _p;
         private Rectangle _sbHeaderRect;
         private bool _tipOn;
+        private readonly List<(Rectangle rect, string url)> _creditRects = new();
 
         public Table(ModelsPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
 
@@ -189,9 +190,22 @@ public sealed class ModelsPage : ThemedPage
             bool over = _sbHeaderRect.Contains(e.Location);
             if (over && !_tipOn) { _tipOn = true; _p.Tip.Show(Lang.T("mdl_sb_tip"), this, e.X + 14, e.Y + 16, 8000); }
             else if (!over && _tipOn) { _tipOn = false; _p.Tip.Hide(this); }
+            Cursor = _creditRects.Any(c => c.rect.Contains(e.Location)) ? Cursors.Hand : Cursors.Default;
             base.OnMouseMove(e);
         }
         protected override void OnMouseLeave(EventArgs e) { if (_tipOn) { _tipOn = false; _p.Tip.Hide(this); } base.OnMouseLeave(e); }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button != MouseButtons.Left) return;
+            foreach (var (rect, url) in _creditRects)
+                if (rect.Contains(e.Location))
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+                    return;
+                }
+        }
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -215,7 +229,9 @@ public sealed class ModelsPage : ThemedPage
             {
                 Lang.T("st_model"), Lang.T("st_firmware"), Lang.T("mdl_c_family"),
                 Lang.T("mdl_c_status"), Lang.T("mdl_c_curve"), Lang.T("mdl_c_sb"), Lang.T("mdl_c_rpm"),
+                Lang.T("mdl_c_thanks"),
             };
+            _creditRects.Clear();
             for (int c = 0; c < headers.Length; c++)
                 TextRenderer.DrawText(g, headers[c], FHead, new Rectangle(cx[c], 8, ColW(c), HeadH - 8), Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
@@ -268,6 +284,17 @@ public sealed class ModelsPage : ThemedPage
                 Cell(g, cx, 4, ry, ColW(4), curve, FCell, curveCol);
                 Cell(g, cx, 5, ry, ColW(5), sbStr, FCell, sb ? Theme.Text : Theme.Muted);
                 Cell(g, cx, 6, ry, ColW(6), rpm, m.CpuRpmAddr != 0 ? FMono : FCell, m.CpuRpmAddr != 0 ? Theme.Text : Theme.Muted);
+
+                // Thank-you column: the reporter's GitHub login, clickable -> their issue.
+                if (m.Credit.Length > 0)
+                {
+                    string nick = "@" + m.Credit;
+                    Cell(g, cx, 7, ry, ColW(7), nick, FCell, Theme.Accent);
+                    int nw = Math.Min(ColW(7), TextRenderer.MeasureText(nick, FCell).Width);
+                    if (m.CreditUrl.Length > 0)
+                        _creditRects.Add((new Rectangle(cx[7], ry, nw, RowH), m.CreditUrl));
+                }
+                else Cell(g, cx, 7, ry, ColW(7), "—", FCell, Theme.Muted);
 
                 ry += RowH;
             }

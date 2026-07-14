@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v121-presets-history-cli",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.20.9",
+    "title": "New release: fan-curve presets, history charts, CLI",
+    "title_pl": "Nowe wydanie: presety krzywych, wykresy historii, CLI",
+    "body": "GhostDeck v1.21 is out: named fan-curve presets with per-profile auto-apply and community sharing, local history charts (temps/fans/RPM with CSV/JSON export), and a full command-line interface for scripts and Stream Deck. Click Details for the illustrated tour.",
+    "body_pl": "Wyszło GhostDeck v1.21: nazwane presety krzywej wentylatora z auto-aplikacją per profil i udostępnianiem społeczności, lokalne wykresy historii (temperatury/wentylatory/RPM z eksportem CSV/JSON) oraz pełny interfejs wiersza poleceń do skryptów i Stream Decka. Kliknij Szczegóły, aby zobaczyć ilustrowany przegląd.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.21"
+  },
+  {
     "id": "2026-07-v120-backup-alert-panic",
     "severity": "info",
     "minVersion": "1.0.0",

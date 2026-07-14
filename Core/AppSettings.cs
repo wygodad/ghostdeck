@@ -71,6 +71,15 @@ public sealed class AppSettings
 
     public int OsdSeconds { get; set; } = 3;                           // how long OSD toasts stay visible (1-15 s)
 
+    // ---- Fan-curve presets + per-profile assignment ----
+    public List<FanCurvePreset> CurvePresets { get; set; } = new();
+    // profile key -> preset name ("" / missing = stock fans). Silent is never assignable:
+    // its power cap lives in the same EC byte (0xD4) a curve needs, so Silent = stock by design.
+    public Dictionary<string, string> ProfileCurves { get; set; } = new();
+
+    public FanCurvePreset? FindPreset(string name) =>
+        CurvePresets.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
     // ---- Gaming overlay (odczepiany, always-on-top mini-panel) ----
     public bool OverlayEnabled { get; set; } = false;                  // ostatni stan widocznosci (przywracany po starcie)
     public string OverlayLayout { get; set; } = "Card";                // "Card" (pionowa karta) | "Bar" (poziomy pasek)
@@ -198,6 +207,16 @@ public sealed class AppSettings
         if (TempAlertDegrees is < 60 or > 105) TempAlertDegrees = 90;
         if (TempAlertSeconds is < 3 or > 120) TempAlertSeconds = 10;
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
+
+        // Curve presets sanity (hand-edited / imported files): no nameless or duplicate names,
+        // never a Silent assignment (its power cap shares the fan byte), no dangling assignments.
+        CurvePresets.RemoveAll(p => string.IsNullOrWhiteSpace(p.Name));
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CurvePresets.RemoveAll(p => !seenNames.Add(p.Name.Trim()));
+        ProfileCurves.Remove("Silent");
+        foreach (var k in ProfileCurves.Keys.ToList())
+            if (string.IsNullOrEmpty(ProfileCurves[k]) || FindPreset(ProfileCurves[k]) == null)
+                ProfileCurves.Remove(k);
     }
 
     /// <summary>
@@ -245,6 +264,10 @@ public sealed class AppSettings
         OverlayX = src.OverlayX; OverlayY = src.OverlayY; OverlayMetrics = src.OverlayMetrics;
         OverlayBgEnabled = src.OverlayBgEnabled; OverlayBgColor = src.OverlayBgColor;
         OverlayBoldText = src.OverlayBoldText;
+        CurvePresets.Clear();
+        foreach (var p in src.CurvePresets) CurvePresets.Add(p.Clone());
+        ProfileCurves.Clear();
+        foreach (var (k, v) in src.ProfileCurves) ProfileCurves[k] = v;
         EnsureDefaults();
     }
 
@@ -301,6 +324,8 @@ public sealed class AppSettings
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();
         foreach (var (k, v) in Colors) c.Colors[k] = v;
+        foreach (var p in CurvePresets) c.CurvePresets.Add(p.Clone());
+        foreach (var (k, v) in ProfileCurves) c.ProfileCurves[k] = v;
         return c;
     }
 }

@@ -745,3 +745,65 @@ Fan Boost bit, then applies the **Balanced** recipe. No separate fan write is ne
 rewrites the fan-mode byte to auto (`0x0D`), which by design also releases a custom fan curve
 (`0x8D`) and the Silent cap (`0x1D`). User-initiated, so it works even while the firmware-change
 guard is blocking automatic writes. Shows an OSD confirmation and logs under the Hotkey source.
+
+## 25. Fan-curve presets and per-profile curves (v1.21)
+
+**Storage.** `FanCurvePreset` (name + the four point tables, same shape as the EC tables) lives in
+`settings.json` (`CurvePresets`), so the settings backup from §24 carries presets automatically.
+`ProfileCurves` maps a profile key to a preset name. `EnsureDefaults` sanitises both (no nameless
+or duplicate presets, no dangling assignments) and `FanCurvePreset.IsValid(points)` is checked
+before **every** EC write - an imported file can never push out-of-range bytes.
+
+**Per-profile auto-apply.** `TrayContext.SetProfile` applies the assigned preset right after the
+profile recipe (write tables → set fan mode `0x8D`). Three deliberate exceptions:
+- **Silent is never assignable** - its power cap is the same EC byte (`0xD4`) the curve mode uses
+  (§17/§19), so Silent always keeps stock fans; the UI shows the three other profiles only.
+- **Panic reset** passes `applyCurve:false` - panic means stock behaviour, not "your preset".
+- **ExternalSync never applies presets** - a profile set by MSI software is not ours to re-style;
+  the preset returns on the next switch made through GhostDeck.
+
+**Quick switch.** The tray "Fan curve" entry becomes a submenu once presets exist (editor +
+"Auto (stock)" + one item per preset); with none it stays the plain open-the-editor click.
+Applying a preset while in Silent switches to Balanced first (same warning logic as the editor).
+
+**Sharing.** *Share…* opens the browser on a prefilled GitHub Discussion (category `fan-curves`)
+containing the preset JSON plus model/firmware/app version. Nothing is posted automatically -
+the user reviews and submits. Import de-duplicates names by appending " (2)".
+Note for maintainers: the `Fan curves` category must exist (otherwise GitHub falls back to the
+category chooser) and must NOT have a `.github/DISCUSSION_TEMPLATE/fan-curves.yml` form - the
+structured forms ignore the `body` query parameter, which would drop the prefilled JSON.
+
+## 26. Local hardware history (Status → History)
+
+`TrayContext.SampleHw` (the 3 s poll, before the `Writable` gate) reads one `HwSnapshot` on a
+worker thread and feeds two consumers from the same read: the thermal alert (§24) and the
+`HwHistory` ring buffer (1200 samples ≈ 60 min). The buffer is **memory-only by design** - no
+file, no network, starts empty each launch - so the feature adds zero privacy surface.
+The Status "History" sub-tab draws fixed-scale (0-100) line charts - CPU/GPU temperature and
+CPU/GPU fan duty, plus fan RPM on models that report a tach (dynamic ceiling with ≥500 RPM of
+headroom) - over a 5/15/30/60-minute window (SegControl on the canvas, like the log button).
+Unknown reads (≤ 0) are skipped rather than plotted as zero. Each sample also records the active
+profile, and the visible window can be **exported to CSV or JSON** (Export… button) for external
+analysis - a plain local file write. The crosshair overlay pattern is described in
+RENDERING.md §9.
+
+## 27. Command-line interface (v1.21)
+
+`Program.Main(args)`: any argument routes to `Cli.Run` before the single-instance mutex is taken.
+Commands: `--profile <id>`, `--cycle`, `--fanboost on|off`, `--overlay on|off`,
+`--curve <preset|auto>`, `--panic`, `--status`, `--help`. Output is deliberately English-only
+(machine-readable). Exit codes: 0 OK, 1 failed, 2 bad usage. `AttachConsole(-1)` makes the WinExe
+print into the parent terminal.
+
+**Two execution paths:**
+- **App running** → the args are sent over named pipe `GhostDeck_Cli` (tab-joined line); a
+  background server thread in `TrayContext` posts the command to the UI thread and executes it
+  through the same code paths as the UI (`SetProfile`, `SetCoolerBoostState`,
+  `ApplyPresetFromTray`, `PanicReset`) - so every gate (tier, experimental opt-in) and every OSD /
+  ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
+- **App not running** → one-shot mode: load settings, detect the device, same gates
+  (`Tier.Tested` or `ExperimentalEnabled`), apply directly via `Ec.*`, log to the shared
+  ChangeLog file, exit. `--overlay` is the one command that requires the running app.
+
+CLI profile changes count as user-initiated (the user ran the command), mirroring hotkeys; log
+entries use the `Cli` source. Elevation is required for EC access exactly like the app itself.

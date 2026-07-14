@@ -51,6 +51,12 @@ public sealed class UpdatesPage : ThemedPage
 
     public UpdatesPage(MainDeps d) : base(d)
     {
+        // No outer scrolling: the release list has its own scroll panel and everything else is
+        // fixed-height. With base AutoScroll on, a vertical bar appearing shrank ClientSize.Width
+        // AFTER LayoutBits ran, the right-anchored children stuck out ~17 px and a horizontal
+        // scrollbar popped up even though everything visually fit.
+        AutoScroll = false;
+
         _check.Text = Lang.T("upd_check_now");
         Ui.StylePrimary(_check);
         _check.Width = 150;

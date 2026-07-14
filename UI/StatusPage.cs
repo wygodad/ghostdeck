@@ -42,9 +42,13 @@ public sealed class StatusPage : ThemedPage
 
     private readonly Canvas _canvas;
 
-    // Sub-tabs split the (heavy) Status page into three shorter views: charts, EC bytes, change log.
-    private readonly SubTabs _statusTabs = new(Lang.T("st_sub_charts"), Lang.T("st_sub_bytes"), Lang.T("st_sub_log"));
+    // Sub-tabs split the (heavy) Status page into shorter views: charts, history, EC bytes, change log.
+    private readonly SubTabs _statusTabs = new(Lang.T("st_sub_charts"), Lang.T("st_sub_history"), Lang.T("st_sub_bytes"), Lang.T("st_sub_log"));
     private int _statusSub;
+    private readonly SegControl _histRange = new(new[] { "5 min", "15 min", "30 min", "60 min" }, 1) { Size = new Size(300, 30), Visible = false };
+    private readonly Button _histExport = new() { Visible = false };
+    private static readonly int[] HistMins = { 5, 15, 30, 60 };
+    private int _histMin = 15;
     private const int SubY = 90;      // sub-tab bar Y (clear gap under the title)
     private const int SecTop = 168;   // content starts below the title + sub-tab bar (clear gap under it)
 
@@ -55,8 +59,18 @@ public sealed class StatusPage : ThemedPage
         Controls.Add(_canvas);
 
         _statusTabs.Location = new Point(Pad, SubY);
-        _statusTabs.Changed += i => { _statusSub = i; _logBtn.Visible = i == 2; Relayout(); _canvas.Rebuild(); };
+        _statusTabs.Changed += i => { _statusSub = i; _logBtn.Visible = i == 3; _histRange.Visible = _histExport.Visible = i == 1; Relayout(); _canvas.Rebuild(); };
         _canvas.Controls.Add(_statusTabs);
+
+        // History range picker (5-60 min) lives on the canvas, shown only on the History sub-tab.
+        _histRange.SelectedChanged += i => { _histMin = HistMins[i]; _canvas.Rebuild(); };
+        _canvas.Controls.Add(_histRange);
+
+        // Export the visible history window to CSV/JSON (for external analysis).
+        Ui.StyleGhost(_histExport);
+        _histExport.Text = Lang.T("st_hist_export");
+        _histExport.Click += (_, _) => ExportHistory();
+        _canvas.Controls.Add(_histExport);
 
         // "Full log…" button lives on the canvas so it scrolls with the recent-changes section.
         _logBtn.Text = Lang.T("log_full");
@@ -136,7 +150,7 @@ public sealed class StatusPage : ThemedPage
     private static int GridH(bool title, int rows, int headerLines = 1) =>
         (title ? GTitle.Height + 12 : 0) + (GHead.Height * headerLines + 14) + rows * (GCell.Height + 14) + 8;
 
-    // Height of the active sub-tab's content (0 = charts, 1 = EC bytes, 2 = change log).
+    // Height of the active sub-tab's content (0 = charts, 1 = history, 2 = EC bytes, 3 = change log).
     private int SectionHeight(int width, int sub)
     {
         if (sub == 0)
@@ -146,6 +160,11 @@ public sealed class StatusPage : ThemedPage
             return cardTop + RowH * Rows.Length + 14 + 40;
         }
         if (sub == 1)
+        {
+            int charts = HwHistory.HasRpm ? 3 : 2;   // RPM chart only on models that report a tach
+            return SecTop + 44 + charts * HistChartH + (charts - 1) * 24 + 40;
+        }
+        if (sub == 2)
         {
             int h = SecTop + GridH(true, 5, 2) + NoteH + 8 + GridH(false, 4);
             if (_dev?.FanCurve is { } fc) h += 16 + GridH(true, fc.Points);
@@ -157,7 +176,7 @@ public sealed class StatusPage : ThemedPage
     private const int RecentLogRows = 16;
 
     // Paint the cached snapshot immediately (instant tab switch) and refresh in the background.
-    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 2; Relayout(); _canvas.Rebuild(); RefreshAsync(); }
+    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 3; _histRange.Visible = _histExport.Visible = _statusSub == 1; Relayout(); _canvas.Rebuild(); RefreshAsync(); }
     public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
     protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; } base.Dispose(disposing); }
 
@@ -179,7 +198,9 @@ public sealed class StatusPage : ThemedPage
             _p = p;
             BackColor = Theme.Surface;
             ResizeRedraw = true;
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
+            // OptimizedDoubleBuffer: OnPaint composes buffer-blit + cursor overlay offscreen and
+            // presents once - without it the overlay text visibly flickered on every mouse move.
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
         }
 
         public void Rebuild() { RenderToBuffer(); Invalidate(); }
@@ -209,7 +230,11 @@ public sealed class StatusPage : ThemedPage
         {
             if (_buf == null || _bufW != Width || _bufH != Height) RenderToBuffer();
             _buf?.Render(e.Graphics);
+            _p.DrawHistCursor(e.Graphics);   // cheap per-paint overlay (crosshair on the history charts)
         }
+
+        protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); _p.HistMouse(e.Location); }
+        protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _p.HistMouse(null); }
 
         protected override void Dispose(bool disposing) { if (disposing) _buf?.Dispose(); base.Dispose(disposing); }
     }
@@ -223,8 +248,9 @@ public sealed class StatusPage : ThemedPage
         // (the tier badge lives in the header strip now, next to the version)
 
         int avail = width - Pad * 2;
-        if (_statusSub == 1) { RenderBytes(g, avail, info); return; }
-        if (_statusSub == 2) { RenderLog(g, avail); return; }
+        if (_statusSub == 1) { RenderHistory(g, avail); return; }
+        if (_statusSub == 2) { RenderBytes(g, avail, info); return; }
+        if (_statusSub == 3) { RenderLog(g, avail); return; }
 
         // ---- sub-tab 0: charts (rings + RAM + metric boxes + details card) ----
         int ring = RingSize(width);
@@ -309,7 +335,7 @@ public sealed class StatusPage : ThemedPage
         }
     }
 
-    // ---- sub-tab 1: profile-byte matrix + legend + live fan-curve tables ----
+    // ---- sub-tab 2: profile-byte matrix + legend + live fan-curve tables ----
     private void RenderBytes(Graphics g, int avail, StatusInfo info)
     {
         int sec = SecTop;
@@ -321,7 +347,257 @@ public sealed class StatusPage : ThemedPage
         if (_dev?.FanCurve != null && _curve is { } cv) DrawCurveLive(g, sec, avail, cv);
     }
 
-    // ---- sub-tab 2: recent-changes log ----
+    // ---- sub-tab 1: local hardware history (fed by the tray sampler, in-memory only) ----
+    private const int HistChartH = 310;
+
+    // Chart geometry captured during the buffered render so the cursor overlay (drawn per
+    // paint, on top of the buffer) can hit-test and map x -> time without a full re-render.
+    private sealed record HistPlot(RectangleF Plot, int MaxVal, string Unit,
+        Func<HwSample, int> A, Func<HwSample, int> B, float LegendLeft, int CardTop);
+    private readonly List<HistPlot> _histPlots = new();
+    private List<HwSample>? _histData;
+    private DateTime _histT0;
+    private double _histSpanSec;
+    private Point? _histCursor;
+
+    private void RenderHistory(Graphics g, int avail)
+    {
+        // range picker right-aligned on the row above the first chart, export button to its left
+        var rb = new Rectangle(Pad + avail - _histRange.Width, SecTop - 6, _histRange.Width, _histRange.Height);
+        if (_histRange.Bounds != rb) _histRange.Bounds = rb;
+        _histRange.BringToFront();
+        // size from the measured text (DPI-safe): at 125%+ the fixed 30 px row clipped the label
+        var esz = TextRenderer.MeasureText(_histExport.Text, _histExport.Font);
+        int ewW = esz.Width + 30, ewH = Math.Max(rb.Height, esz.Height + 12);
+        var eb = new Rectangle(rb.Left - ewW - 10, rb.Top + (rb.Height - ewH) / 2, ewW, ewH);
+        if (_histExport.Bounds != eb) _histExport.Bounds = eb;
+        _histExport.BringToFront();
+
+        var data = HwHistory.Window(TimeSpan.FromMinutes(_histMin));
+        _histPlots.Clear();
+        _histData = data;
+        _histT0 = DateTime.Now - TimeSpan.FromMinutes(_histMin);
+        _histSpanSec = _histMin * 60.0;
+        int top = SecTop + 44;
+        top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_temps"), "°C", data,
+            s => s.CpuTemp, s => s.GpuTemp, "CPU", "GPU") + 24;
+        top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_fans"), "%", data,
+            s => s.CpuFan, s => s.GpuFan, "CPU", "GPU") + 24;
+        if (HwHistory.HasRpm)
+        {
+            // dynamic RPM ceiling: at least 500 RPM of headroom above the observed peak
+            // (rounded up to the next 500), so the line never hugs the top edge
+            int peak = 0;
+            foreach (var s in data) peak = Math.Max(peak, Math.Max(s.CpuRpm, s.GpuRpm));
+            int maxRpm = Math.Max(2000, (peak + 500 + 499) / 500 * 500);
+            DrawHistoryChart(g, top, avail, Lang.T("st_hist_rpm"), "", data,
+                s => s.CpuRpm, s => s.GpuRpm, "CPU", "GPU", maxRpm);
+        }
+    }
+
+    // One line chart card (two series, 0..maxVal scale) over the last _histMin minutes.
+    private int DrawHistoryChart(Graphics g, int top, int avail, string title, string unit,
+        List<HwSample> data, Func<HwSample, int> serA, Func<HwSample, int> serB, string aLabel, string bLabel,
+        int maxVal = 100)
+    {
+        var card = new RectangleF(Pad, top, avail, HistChartH);
+        Ui.FillCard(g, card);
+        TextRenderer.DrawText(g, title, GTitle, new Rectangle(Pad + 16, top + 10, avail - 200, GTitle.Height + 4),
+            Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
+
+        // legend (series colours follow the gauges: CPU = accent, GPU = violet)
+        var legFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        int lx = Pad + avail - 16;
+        foreach (var (label, color) in new[] { (bLabel, Theme.Violet), (aLabel, Theme.Accent) })
+        {
+            int w = TextRenderer.MeasureText(label, legFont).Width;
+            lx -= w;
+            TextRenderer.DrawText(g, label, legFont, new Point(lx, top + 12), color);
+            lx -= 18;
+            using var b = new SolidBrush(color);
+            g.FillEllipse(b, lx + 4, top + 16, 9, 9);
+            lx -= 14;
+        }
+
+        // 50 px reserved under the plot so the time labels never clip against the card edge
+        var plot = new RectangleF(Pad + 62, top + 46, avail - 62 - 20, HistChartH - 46 - 50);
+        _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top));
+        using (var grid = new Pen(Theme.Border))
+        using (var axisFont = new Font("Segoe UI", 8.5f))
+        {
+            for (int i = 0; i <= 4; i++)
+            {
+                int v = maxVal * i / 4;
+                float y = plot.Bottom - v / (float)maxVal * plot.Height;
+                g.DrawLine(grid, plot.Left, y, plot.Right, y);
+                TextRenderer.DrawText(g, v + unit, axisFont, new Rectangle(Pad + 6, (int)y - 9, 52, 18),
+                    Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            }
+            // time ticks: -N min ... now
+            int ticks = 4;
+            for (int t = 0; t <= ticks; t++)
+            {
+                float x = plot.Left + t / (float)ticks * plot.Width;
+                string lab = t == ticks ? Lang.T("st_hist_now") : $"-{_histMin - t * _histMin / ticks} min";
+                TextRenderer.DrawText(g, lab, axisFont, new Rectangle((int)x - 34, (int)plot.Bottom + 10, 68, 18),
+                    Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+            }
+        }
+
+        if (data.Count < 2)
+        {
+            TextRenderer.DrawText(g, Lang.T("st_hist_empty"), new Font("Segoe UI", 10.5f),
+                Rectangle.Round(plot), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            return top + HistChartH;
+        }
+
+        var now = DateTime.Now;
+        var t0 = now - TimeSpan.FromMinutes(_histMin);
+        double span = (now - t0).TotalSeconds;
+        void DrawSeries(Func<HwSample, int> sel, Color color)
+        {
+            var pts = new List<PointF>(data.Count);
+            foreach (var s in data)
+            {
+                int v = sel(s);
+                if (v <= 0 || v > maxVal * 1.3f) continue;   // unknown reads leave a gap rather than plotting 0
+                float x = plot.Left + (float)((s.Time - t0).TotalSeconds / span) * plot.Width;
+                float y = plot.Bottom - Math.Clamp(v, 0, maxVal) / (float)maxVal * plot.Height;
+                pts.Add(new PointF(x, y));
+            }
+            if (pts.Count < 2) return;
+            using var pen = new Pen(color, 2f) { LineJoin = LineJoin.Round };
+            g.DrawLines(pen, pts.ToArray());
+        }
+        DrawSeries(serA, Theme.Accent);
+        DrawSeries(serB, Theme.Violet);
+        return top + HistChartH;
+    }
+
+    // Export the visible history window as CSV or JSON (picked by the chosen extension).
+    // Plain local file write - the same data the charts show, nothing more.
+    private void ExportHistory()
+    {
+        var data = HwHistory.Window(TimeSpan.FromMinutes(_histMin));
+        if (data.Count == 0) return;
+        using var dlg = new SaveFileDialog
+        {
+            Filter = "CSV (*.csv)|*.csv|JSON (*.json)|*.json",
+            FileName = $"ghostdeck-history-{DateTime.Now:yyyyMMdd-HHmm}.csv",
+        };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            if (Path.GetExtension(dlg.FileName).Equals(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                var rows = data.Select(s => new
+                {
+                    time = s.Time.ToString("yyyy-MM-dd'T'HH:mm:ss"),
+                    profile = s.Profile.ToString(),
+                    cpuTempC = (int)s.CpuTemp, gpuTempC = (int)s.GpuTemp,
+                    cpuFanPct = (int)s.CpuFan, gpuFanPct = (int)s.GpuFan,
+                    cpuRpm = s.CpuRpm, gpuRpm = s.GpuRpm,
+                    cpuLoadPct = (int)s.CpuLoad,
+                });
+                File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            else
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("time,profile,cpu_temp_c,gpu_temp_c,cpu_fan_pct,gpu_fan_pct,cpu_rpm,gpu_rpm,cpu_load_pct");
+                foreach (var s in data)
+                    sb.Append(s.Time.ToString("yyyy-MM-dd HH:mm:ss")).Append(',').Append(s.Profile).Append(',')
+                      .Append(s.CpuTemp).Append(',').Append(s.GpuTemp).Append(',')
+                      .Append(s.CpuFan).Append(',').Append(s.GpuFan).Append(',')
+                      .Append(s.CpuRpm).Append(',').Append(s.GpuRpm).Append(',')
+                      .Append(s.CpuLoad).AppendLine();
+                File.WriteAllText(dlg.FileName, sb.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    // Cursor tracking for the history charts (mouse over the canvas). Only stores the point and
+    // repaints - the heavy chart render stays in the buffer, the overlay is drawn per paint.
+    private void HistMouse(Point? p)
+    {
+        if (_statusSub != 1) p = null;
+        if (_histCursor == p) return;
+        _histCursor = p;
+        _canvas.Invalidate();
+    }
+
+    // Overlay for the history charts, drawn on every paint on top of the buffered render:
+    // a permanent "selected · now" value row left of each legend ("--" when the cursor is off
+    // the charts), plus the tracking line + dots when the cursor is over the plot area.
+    private void DrawHistCursor(Graphics g)
+    {
+        if (_statusSub != 1 || _histPlots.Count == 0) return;
+        var data = _histData;
+        if (data == null || data.Count < 2) return;
+        var p0 = _histPlots[0].Plot;
+
+        bool hasCur = _histCursor is { } cur && cur.X >= p0.Left - 6 && cur.X <= p0.Right + 6;
+        HwSample selSample = default;
+        float sx = 0;
+        if (hasCur)
+        {
+            float cx = Math.Clamp(_histCursor!.Value.X, p0.Left, p0.Right);
+            var tSel = _histT0.AddSeconds((cx - p0.Left) / p0.Width * _histSpanSec);
+            double best = double.MaxValue;
+            foreach (var s in data)
+            {
+                double d = Math.Abs((s.Time - tSel).TotalSeconds);
+                if (d < best) { best = d; selSample = s; }
+            }
+            sx = Math.Clamp(p0.Left + (float)((selSample.Time - _histT0).TotalSeconds / _histSpanSec) * p0.Width, p0.Left, p0.Right);
+        }
+
+        var last = data[^1];
+        using var line = new Pen(Color.FromArgb(120, Theme.Muted)) { DashStyle = DashStyle.Dash };
+        using var valFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        string now = Lang.T("st_hist_now");
+        foreach (var hp in _histPlots)
+        {
+            int Val(Func<HwSample, int> f, HwSample s)
+            {
+                int v = f(s);
+                return v > 0 && v <= hp.MaxVal * 1.3f ? v : -1;
+            }
+            int va = -1, vb = -1;
+            if (hasCur)
+            {
+                g.DrawLine(line, sx, hp.Plot.Top, sx, hp.Plot.Bottom);
+                void Dot(int v, Color c)
+                {
+                    if (v < 0) return;
+                    float y = hp.Plot.Bottom - Math.Clamp(v, 0, hp.MaxVal) / (float)hp.MaxVal * hp.Plot.Height;
+                    using var fill = new SolidBrush(c);
+                    using var ring = new Pen(Theme.Surface, 2f);
+                    g.FillEllipse(fill, sx - 5, y - 5, 10, 10);
+                    g.DrawEllipse(ring, sx - 5, y - 5, 10, 10);
+                }
+                va = Val(hp.A, selSample);
+                vb = Val(hp.B, selSample);
+                Dot(va, Theme.Accent);
+                Dot(vb, Theme.Violet);
+            }
+
+            string Fmt(int v) => v > 0 ? v + hp.Unit : "--";
+            string ta = $"CPU {Fmt(va)} · {now} {Fmt(Val(hp.A, last))}";
+            string tb = $"GPU {Fmt(vb)} · {now} {Fmt(Val(hp.B, last))}";
+            int xRight = (int)hp.LegendLeft - 16;
+            int wb = TextRenderer.MeasureText(tb, valFont).Width;
+            int wa = TextRenderer.MeasureText(ta, valFont).Width;
+            TextRenderer.DrawText(g, tb, valFont, new Point(xRight - wb, hp.CardTop + 12), Theme.Violet);
+            TextRenderer.DrawText(g, ta, valFont, new Point(xRight - wb - 18 - wa, hp.CardTop + 12), Theme.Accent);
+        }
+    }
+
+    // ---- sub-tab 3: recent-changes log ----
     private void RenderLog(Graphics g, int avail) => DrawRecentLog(g, SecTop - 16, avail);
 
     private int DrawRecentLog(Graphics g, int top, int avail)

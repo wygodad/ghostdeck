@@ -254,3 +254,28 @@ the window was reopened (closing the form disposed everything). Three measures r
 (a comment in `ThemedPage.CreateParams`… note marks it): compositing the whole child tree made
 every tab paint slowly and flashed white on startup — the exact symptoms this section fixes.
 The children are individually `DoubleBuffered` instead.
+
+## 9. Interactive overlays on a buffered canvas (v1.21: history crosshair)
+
+The Status page's canvas renders its (heavy) content once into a persistent `BufferedGraphics`
+(§4) and scrolling/painting only blits it. The history charts add a **cursor overlay** - a
+tracking line, dots and a "selected · now" value readout that follow the mouse - and that must
+NOT trigger the heavy re-render on every mouse move.
+
+The pattern:
+
+1. **Geometry is captured during the buffered render.** `DrawHistoryChart` records each chart's
+   plot rectangle, scale and series selectors (`HistPlot`), so the overlay can hit-test and map
+   x → time without recomputing anything.
+2. **The overlay draws per paint, on top of the blit.** `Canvas.OnPaint` = `_buf.Render(g)` +
+   `DrawHistCursor(g)`. Mouse moves only store the point and call `Invalidate()` - the buffer is
+   untouched.
+3. **`ControlStyles.OptimizedDoubleBuffer` on the canvas is what kills the flicker.** Without it
+   the buffer blit hits the screen first and the overlay text lands a moment later - visibly
+   flashing on every invalidate. With it, blit + overlay are composed offscreen and presented as
+   one frame. (This was a real user-reported bug; don't remove the style.)
+4. **The value row is permanent, the cursor parts are conditional.** With no cursor over the
+   plots the readout shows `--` for the selected value instead of a stale number.
+
+Same idea applies to any future hover effect on a `BufferedGraphics` surface: bake the static
+scene, overlay the dynamic bits per paint, and make the control double-buffered.

@@ -286,6 +286,38 @@ public static class Lang
         ["ta_time"]         = new[] { "For at least", "Przez co najmniej", "Für mindestens", "Pendant au moins", "Durante al menos", "持续至少", "Por pelo menos", "Не менее" },
         ["ta_alert_title"]  = new[] { "High temperature", "Wysoka temperatura", "Hohe Temperatur", "Température élevée", "Temperatura alta", "温度过高", "Temperatura alta", "Высокая температура" },
         ["set_osd_secs"]    = new[] { "OSD display time", "Czas wyświetlania OSD", "OSD-Anzeigedauer", "Durée d'affichage de l'OSD", "Duración del OSD", "OSD 显示时长", "Duração do OSD", "Время показа OSD" },
+
+        // ---- generic dialog buttons ----
+        ["gen_ok"]     = new[] { "OK", "OK", "OK", "OK", "Aceptar", "确定", "OK", "ОК" },
+        ["gen_cancel"] = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена" },
+
+        // ---- fan-curve presets ----
+        ["fc_preset"]      = new[] { "Preset", "Preset", "Voreinstellung", "Préréglage", "Preajuste", "预设", "Predefinição", "Пресет" },
+        ["fc_open_editor"] = new[] { "Open editor…", "Otwórz edytor…", "Editor öffnen…", "Ouvrir l'éditeur…", "Abrir editor…", "打开编辑器…", "Abrir editor…", "Открыть редактор…" },
+        ["fc_preset_auto"] = new[] { "Auto (stock)", "Auto (fabryczna)", "Auto (Standard)", "Auto (d'origine)", "Auto (de fábrica)", "自动（原厂）", "Auto (de fábrica)", "Авто (заводская)" },
+        ["fc_ps_save"]     = new[] { "Save", "Zapisz", "Speichern", "Enregistrer", "Guardar", "保存", "Salvar", "Сохранить" },
+        ["fc_ps_saveas"]   = new[] { "Save as…", "Zapisz jako…", "Speichern unter…", "Enregistrer sous…", "Guardar como…", "另存为…", "Salvar como…", "Сохранить как…" },
+        ["fc_ps_rename"]   = new[] { "Rename…", "Zmień nazwę…", "Umbenennen…", "Renommer…", "Renombrar…", "重命名…", "Renomear…", "Переименовать…" },
+        ["fc_ps_delete"]   = new[] { "Delete", "Usuń", "Löschen", "Supprimer", "Eliminar", "删除", "Excluir", "Удалить" },
+        ["fc_ps_import"]   = new[] { "Import…", "Import…", "Importieren…", "Importer…", "Importar…", "导入…", "Importar…", "Импорт…" },
+        ["fc_ps_export"]   = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…" },
+        ["fc_ps_share"]    = new[] { "Share…", "Udostępnij…", "Teilen…", "Partager…", "Compartir…", "分享…", "Compartilhar…", "Поделиться…" },
+        ["fc_ps_name"]     = new[] { "Preset name", "Nazwa presetu", "Name der Voreinstellung", "Nom du préréglage", "Nombre del preajuste", "预设名称", "Nome da predefinição", "Название пресета" },
+        ["fc_ps_exists"]   = new[] { "A preset with this name already exists.", "Preset o tej nazwie już istnieje.", "Eine Voreinstellung mit diesem Namen existiert bereits.", "Un préréglage de ce nom existe déjà.", "Ya existe un preajuste con ese nombre.", "已存在同名预设。", "Já existe uma predefinição com esse nome.", "Пресет с таким именем уже существует." },
+        ["fc_ps_invalid"]  = new[] { "This is not a valid fan-curve preset file.", "To nie jest prawidłowy plik presetu krzywej.", "Dies ist keine gültige Lüfterkurven-Voreinstellungsdatei.", "Ce n'est pas un fichier de préréglage de courbe valide.", "No es un archivo de preajuste de curva válido.", "这不是有效的风扇曲线预设文件。", "Este não é um arquivo de predefinição de curva válido.", "Это не корректный файл пресета кривой." },
+        ["fc_ps_del_confirm"] = new[] { "Delete preset \"{0}\"?", "Usunąć preset \"{0}\"?", "Voreinstellung \"{0}\" löschen?", "Supprimer le préréglage \"{0}\" ?", "¿Eliminar el preajuste \"{0}\"?", "删除预设\"{0}\"？", "Excluir a predefinição \"{0}\"?", "Удалить пресет \"{0}\"?" },
+        ["fc_assign"]      = new[] { "Curve per profile (Silent stays stock):", "Krzywa per profil (Silent zawsze fabryczny):", "Kurve pro Profil (Silent bleibt Standard):", "Courbe par profil (Silent reste d'origine) :", "Curva por perfil (Silent siempre de fábrica):", "按配置文件应用曲线（Silent 始终原厂）：", "Curva por perfil (Silent sempre de fábrica):", "Кривая на профиль (Silent всегда заводской):" },
+        ["log_curve_preset"] = new[] { "Fan curve preset applied: {0}", "Zastosowano preset krzywej: {0}", "Lüfterkurven-Voreinstellung angewendet: {0}", "Préréglage de courbe appliqué : {0}", "Preajuste de curva aplicado: {0}", "已应用风扇曲线预设：{0}", "Predefinição de curva aplicada: {0}", "Применён пресет кривой: {0}" },
+
+        // ---- status: history sub-tab ----
+        ["st_sub_history"] = new[] { "History", "Historia", "Verlauf", "Historique", "Historial", "历史", "Histórico", "История" },
+        ["st_hist_temps"]  = new[] { "Temperatures (°C)", "Temperatury (°C)", "Temperaturen (°C)", "Températures (°C)", "Temperaturas (°C)", "温度（°C）", "Temperaturas (°C)", "Температуры (°C)" },
+        ["st_hist_fans"]   = new[] { "Fans (duty %)", "Wentylatory (wypełnienie %)", "Lüfter (Duty %)", "Ventilateurs (charge %)", "Ventiladores (ciclo %)", "风扇（占空比 %）", "Ventoinhas (ciclo %)", "Вентиляторы (нагрузка %)" },
+        ["st_hist_empty"]  = new[] { "Collecting data…", "Zbieranie danych…", "Daten werden gesammelt…", "Collecte des données…", "Recopilando datos…", "正在收集数据…", "Coletando dados…", "Сбор данных…" },
+        ["st_hist_rpm"]    = new[] { "Fan speed (RPM)", "Obroty wentylatorów (RPM)", "Lüfterdrehzahl (RPM)", "Vitesse des ventilateurs (RPM)", "Velocidad de ventiladores (RPM)", "风扇转速（RPM）", "Velocidade das ventoinhas (RPM)", "Обороты вентиляторов (RPM)" },
+        ["mdl_c_thanks"]   = new[] { "Thanks", "Podziękowania", "Dank", "Merci", "Gracias", "致谢", "Agradecimentos", "Благодарности" },
+        ["st_hist_export"] = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…" },
+        ["st_hist_now"]    = new[] { "now", "teraz", "jetzt", "maintenant", "ahora", "现在", "agora", "сейчас" },
         ["ta_alert_text"]   = new[]
         {
             "CPU {0}°C / GPU {1}°C: above {2}°C for {3} s",

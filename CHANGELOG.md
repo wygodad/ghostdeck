@@ -3,6 +3,39 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.21.0] - 2026-07-15
+### Added
+- **Fan-curve presets** (Fan curve tab): save the current curve under a name, switch between
+  presets from the editor or straight from the tray menu, rename/delete, and **export/import**
+  a preset as a JSON file. A **Share…** button opens a prefilled GitHub Discussion so you can
+  post your curve for others with your model/firmware attached (nothing is sent automatically).
+- **Per-profile fan curve**: assign a preset to Balanced / Extreme / Super Battery and it is
+  applied automatically on every profile switch made through GhostDeck (hotkey, tray, panel,
+  AC/battery auto-switch). Silent deliberately stays stock - its power cap lives in the same
+  EC byte a curve needs. Panic reset and profile changes made by MSI software never apply presets.
+- **History sub-tab on Status**: local charts of CPU/GPU temperature and fan duty over the last
+  5-60 minutes, fed by a background sampler every 3 s. Memory-only by design: nothing is written
+  to disk and nothing leaves the machine.
+- **Command-line interface**: `GhostDeck.exe --profile Silent`, `--cycle`, `--fanboost on|off`,
+  `--overlay on|off`, `--curve <preset|auto>`, `--panic`, `--status` (JSON). Commands go to the
+  running app (same safety gates as the UI) or run one-shot against the EC when it isn't running.
+  Made for Task Scheduler, Stream Deck and scripts; exit codes 0/1/2.
+- **History crosshair**: a tracking line with per-series dots and a "selected · now" value
+  readout on the history charts; the fan RPM chart keeps at least 500 RPM of headroom.
+- **History export**: the visible history window (time, profile, temps, fan duty, RPM, CPU load)
+  can be saved as **CSV or JSON** for external analysis - a plain local file, nothing leaves
+  the machine.
+- **CLI reference**: full command documentation with the `--status` JSON schema and automation
+  recipes in [docs/CLI.md](docs/CLI.md).
+- **MSI Cyborg 15 A12VF promoted to Tested** - owner-verified report with full per-scenario
+  dumps, fan RPM enabled at `0xC9`/`0xCB` ([#19](../../issues/19), thanks @hengeleng10-tech).
+- **"Thanks" column on the Models tab**: the GitHub user whose report/verification backs each
+  tested model, linking to their issue.
+### Fixed
+- **Updates tab horizontal scrollbar** that could appear even though everything fit the window.
+
+## [1.20.0] - 2026-07-14
+
 ## [1.20.0] - 2026-07-14
 ### Added
 - **Settings export / import** (Settings → Backup): save all preferences (colours, hotkeys,

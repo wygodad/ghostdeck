@@ -7,7 +7,7 @@ namespace GhostDeck;
 public enum ChangeSource
 {
     Startup, Hotkey, Tray, Panel, AutoAc, FanCurve, ExternalSync,
-    ChargeLimit, CoolerBoost, Firmware, Test, Thermal,
+    ChargeLimit, CoolerBoost, Firmware, Test, Thermal, Cli,
 }
 
 public sealed record LogEntry(DateTime Time, ChangeSource Source, string Detail, string Result);
@@ -98,6 +98,7 @@ public static class ChangeLog
         ChangeSource.Firmware     => Lang.T("log_src_firmware"),
         ChangeSource.Test         => Lang.T("log_src_test"),
         ChangeSource.Thermal      => Lang.T("log_src_thermal"),
+        ChangeSource.Cli          => "CLI",
         _                         => s.ToString(),
     };
 
