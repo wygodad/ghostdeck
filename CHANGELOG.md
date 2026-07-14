@@ -13,6 +13,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   (5-60 s), with a 5-minute cool-down between alerts and an entry in the change history.
 - **Panic reset hotkey** (default Ctrl+Alt+F10): one press returns the machine to a safe
   stock state - Fan Boost off, Balanced profile, fans back on the automatic curve.
+- **Alert threshold test steps** 70/75 °C so the temperature alert can be tried out without
+  heating the laptop up first.
+### Changed
+- **Internal source reorganization**: files grouped into `Core/` (hardware + app logic),
+  `UI/` (tabbed window, pages, shared controls) and `Forms/` (standalone windows); the
+  116 kB `MainPages.cs` split into per-class files; the dead pre-tabs settings dialog
+  removed. No functional changes.
 
 ## [1.19.0] - 2026-07-13
 ### Added
