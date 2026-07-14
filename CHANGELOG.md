@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Fixed
+- **History Export button clipped** at 125-140% display scale (sizing now uses the control's
+  DPI-aware preferred size).
+- **Models intro said "1 tested"** regardless of reality - the count now comes live from the
+  model table; the whole Models tab is also translated into all 8 languages (it was EN/PL only).
+
 ## [1.21.0] - 2026-07-15
 ### Added
 - **Fan-curve presets** (Fan curve tab): save the current curve under a name, switch between
