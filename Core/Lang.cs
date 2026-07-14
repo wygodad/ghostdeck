@@ -285,6 +285,7 @@ public static class Lang
         ["ta_threshold"]    = new[] { "Threshold", "Próg", "Schwelle", "Seuil", "Umbral", "阈值", "Limite", "Порог" },
         ["ta_time"]         = new[] { "For at least", "Przez co najmniej", "Für mindestens", "Pendant au moins", "Durante al menos", "持续至少", "Por pelo menos", "Не менее" },
         ["ta_alert_title"]  = new[] { "High temperature", "Wysoka temperatura", "Hohe Temperatur", "Température élevée", "Temperatura alta", "温度过高", "Temperatura alta", "Высокая температура" },
+        ["set_osd_secs"]    = new[] { "OSD display time", "Czas wyświetlania OSD", "OSD-Anzeigedauer", "Durée d'affichage de l'OSD", "Duración del OSD", "OSD 显示时长", "Duração do OSD", "Время показа OSD" },
         ["ta_alert_text"]   = new[]
         {
             "CPU {0}°C / GPU {1}°C: above {2}°C for {3} s",

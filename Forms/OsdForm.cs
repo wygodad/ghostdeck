@@ -14,6 +14,10 @@ public sealed class OsdForm : Form
     private enum Phase { Idle, In, Hold, Out }
     private Phase _phase = Phase.Idle;
     private DateTime _holdUntil;
+    private int _holdMs = 3000;
+
+    /// <summary>How long a toast stays fully visible (seconds); follows the OSD setting.</summary>
+    public int HoldSeconds { get; set; } = 3;
 
     protected override bool ShowWithoutActivation => true;
     protected override CreateParams CreateParams
@@ -53,9 +57,12 @@ public sealed class OsdForm : Form
         return new Region(p);
     }
 
-    public void ShowProfile(string title, string sub, Color accent)
+    // minSeconds lets important toasts (e.g. the temperature alert) stay up at least that long
+    // even when the user prefers short OSDs for profile switches.
+    public void ShowProfile(string title, string sub, Color accent, int minSeconds = 0)
     {
         _title = title; _sub = sub; _accent = accent;
+        _holdMs = Math.Max(HoldSeconds, minSeconds) * 1000;
 
         // dopasuj szerokosc do dluzszej z linii (tytul np. "SUPER BATTERY" albo dluzszy podtytul)
         using (var g = CreateGraphics())
@@ -88,7 +95,7 @@ public sealed class OsdForm : Form
         {
             case Phase.In:
                 Opacity = Math.Min(0.97, Opacity + 0.14);
-                if (Opacity >= 0.97) { _phase = Phase.Hold; _holdUntil = DateTime.Now.AddMilliseconds(1500); }
+                if (Opacity >= 0.97) { _phase = Phase.Hold; _holdUntil = DateTime.Now.AddMilliseconds(_holdMs); }
                 break;
             case Phase.Hold:
                 if (DateTime.Now >= _holdUntil) _phase = Phase.Out;

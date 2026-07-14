@@ -15,6 +15,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   stock state - Fan Boost off, Balanced profile, fans back on the automatic curve.
 - **Alert threshold test steps** 70/75 °C so the temperature alert can be tried out without
   heating the laptop up first.
+- **Adjustable OSD display time** (Settings → Notifications, 1-15 s, default 3): how long the
+  on-screen toasts stay visible; the temperature alert always stays up at least 5 s.
 ### Changed
 - **Internal source reorganization**: files grouped into `Core/` (hardware + app logic),
   `UI/` (tabbed window, pages, shared controls) and `Forms/` (standalone windows); the

@@ -735,6 +735,11 @@ up first) continuously for
 logged. A fixed 5-minute cool-down between alerts keeps a hot gaming session from spamming.
 `EnsureDefaults` clamps hand-edited values (60–105 °C, 3–120 s).
 
+**OSD display time.** `OsdSeconds` (Settings → Notifications, 1–15 s, default 3) controls how long
+every OSD toast stays fully visible (`OsdForm.HoldSeconds`; the fade in/out is unchanged). The
+temperature alert passes `minSeconds: 5` to `ShowProfile`, so it stays up at least 5 s even when
+the user prefers short OSDs for profile switches.
+
 **Panic reset hotkey (default Ctrl+Alt+F10).** One press back to a safe stock state: clears the
 Fan Boost bit, then applies the **Balanced** recipe. No separate fan write is needed — the recipe
 rewrites the fan-mode byte to auto (`0x0D`), which by design also releases a custom fan curve

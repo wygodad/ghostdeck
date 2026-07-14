@@ -556,6 +556,7 @@ public sealed class TrayContext : ApplicationContext
     private void UpdateUi(ProfileId id)
     {
         TrayIconFactory.Style = _settings.IconStyle;   // follow the Settings icon-style choice
+        _osd.HoldSeconds = _settings.OsdSeconds;       // follow the OSD display-time choice
         var color = Writable ? _settings.ColorFor(id) : Color.Gray;
         var newIcon = TrayIconFactory.Create(color);
         _tray.Icon = newIcon;
@@ -855,7 +856,7 @@ public sealed class TrayContext : ApplicationContext
         _lastTempAlert = now;
         string text = string.Format(Lang.T("ta_alert_text"),
             hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
-        _osd.ShowProfile("MSI  ·  " + Lang.T("ta_alert_title"), text, Theme.Red);
+        _osd.ShowProfile("MSI  ·  " + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
         _balloonUrl = null;
         _tray.BalloonTipTitle = Lang.T("ta_alert_title");
         _tray.BalloonTipText = text;

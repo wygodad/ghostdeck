@@ -69,6 +69,8 @@ public sealed class AppSettings
     public int TempAlertDegrees { get; set; } = 90;                    // alert threshold (max of CPU/GPU, °C)
     public int TempAlertSeconds { get; set; } = 10;                    // must stay above threshold this long
 
+    public int OsdSeconds { get; set; } = 3;                           // how long OSD toasts stay visible (1-15 s)
+
     // ---- Gaming overlay (odczepiany, always-on-top mini-panel) ----
     public bool OverlayEnabled { get; set; } = false;                  // ostatni stan widocznosci (przywracany po starcie)
     public string OverlayLayout { get; set; } = "Card";                // "Card" (pionowa karta) | "Bar" (poziomy pasek)
@@ -195,6 +197,7 @@ public sealed class AppSettings
         // Sanity for hand-edited / imported files: keep the thermal-alert numbers in a sane band.
         if (TempAlertDegrees is < 60 or > 105) TempAlertDegrees = 90;
         if (TempAlertSeconds is < 3 or > 120) TempAlertSeconds = 10;
+        if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
     }
 
     /// <summary>
@@ -230,6 +233,7 @@ public sealed class AppSettings
         TempAlertEnabled = src.TempAlertEnabled;
         TempAlertDegrees = src.TempAlertDegrees;
         TempAlertSeconds = src.TempAlertSeconds;
+        OsdSeconds = src.OsdSeconds;
         OverlayEnabled = src.OverlayEnabled;
         OverlayLayout = src.OverlayLayout;
         OverlayOpacity = src.OverlayOpacity;
@@ -281,6 +285,7 @@ public sealed class AppSettings
             TempAlertEnabled = TempAlertEnabled,
             TempAlertDegrees = TempAlertDegrees,
             TempAlertSeconds = TempAlertSeconds,
+            OsdSeconds = OsdSeconds,
             OverlayEnabled = OverlayEnabled,
             OverlayLayout = OverlayLayout,
             OverlayOpacity = OverlayOpacity,

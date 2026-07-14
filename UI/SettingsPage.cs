@@ -153,6 +153,11 @@ public sealed class SettingsPage : ThemedPage
         var secsCombo = Combo(secVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(secVals, D.Settings.TempAlertSeconds)));
         secsCombo.SelectedIndexChanged += (_, _) => { D.Settings.TempAlertSeconds = secVals[Math.Max(0, secsCombo.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ta_time"), secsCombo);
+        // How long OSD toasts stay fully visible; the temperature alert enforces a 5 s minimum.
+        int[] osdVals = Enumerable.Range(1, 15).ToArray();
+        var osdCombo = Combo(osdVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(osdVals, D.Settings.OsdSeconds)));
+        osdCombo.SelectedIndexChanged += (_, _) => { D.Settings.OsdSeconds = osdVals[Math.Max(0, osdCombo.SelectedIndex)]; D.SaveSettings(); D.SettingsChanged(); };
+        alerts.AddRow(Lang.T("set_osd_secs"), osdCombo);
         _right.Add(alerts);
 
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
