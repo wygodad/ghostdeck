@@ -50,6 +50,9 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Detachable gaming overlay (HUD) | ❌ | ✅ *(temps / RPM / GPU% / VRAM / clocks / RAM / battery; card or bar)* |
 | Live EC profile-byte view / transparency | ❌ | ✅ |
 | Change & EC-write history log | ❌ | ✅ |
+| Temperature alert (threshold + duration) | ❌ | ✅ *(opt-in, OSD + tray)* |
+| Panic reset hotkey (back to a safe stock state) | ❌ | ✅ *(Ctrl+Alt+F10)* |
+| Settings backup (export / import) | ❌ | ✅ |
 | Hardware monitoring | ✅ | Limited³ |
 | Works with any / no MSI Center version | ❌ | ✅ |
 | Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |

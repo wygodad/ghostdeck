@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v120-backup-alert-panic",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.19.9",
+    "title": "New release: settings backup, temperature alert, panic reset",
+    "title_pl": "Nowe wydanie: kopia ustawień, alert temperatury, reset awaryjny",
+    "body": "GhostDeck v1.20 is out: export/import all your settings, an opt-in temperature alert (OSD + tray notification, adjustable display time) and a panic-reset hotkey (Ctrl+Alt+F10) that returns the machine to a safe stock state. Click Details for the full tour.",
+    "body_pl": "Wyszło GhostDeck v1.20: eksport/import wszystkich ustawień, opcjonalny alert temperatury (OSD + powiadomienie w tray, regulowany czas wyświetlania) oraz skrót resetu awaryjnego (Ctrl+Alt+F10) przywracający bezpieczny stan fabryczny. Kliknij Szczegóły, aby poznać szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.20"
+  },
+  {
     "id": "2026-07-v118-redesign-autoupdate",
     "severity": "info",
     "minVersion": "1.0.0",
