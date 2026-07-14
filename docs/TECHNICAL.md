@@ -710,3 +710,33 @@ itself. `Program.CleanupAfterUpdate` (delayed 5 s on the next normal start) remo
 process (named mutex `GhostDeck_SingleInstance`); the second launch instead `Set`s the named event
 `GhostDeck_ShowMainWindow`, and a background thread in `TrayContext` brings up the main window — so
 double-clicking the exe (or the freshly-swapped one) always shows something.
+
+## 24. Settings backup, thermal alert, panic reset (v1.20)
+
+**Settings export / import (Settings → Backup).** Export serialises the live `AppSettings` to a
+user-chosen JSON file (same shape as `settings.json`). Import validates the file first (root must
+be a JSON object with a `Language` property — an arbitrary JSON object would otherwise deserialise
+into a defaults instance and silently wipe the user's settings), then calls
+`AppSettings.ImportFrom`, which mutates the **live** instance in place (the tray context and all
+pages hold references to it). Machine-local state is deliberately **not** imported: `LastFirmware`
+(the firmware-change guard must keep judging against this machine), the update-check timestamp,
+seen notice ids, and the window geometry. After a successful import the page applies language,
+theme, autostart, hotkeys/tray menu (`SettingsChanged`), charge limit, and overlay settings, then
+rebuilds itself.
+
+**Thermal alert (Settings → Notifications; off by default).** Runs on the existing 3 s tray poll,
+*before* the `Writable` gate, so it also works on known-but-locked (Experimental) models; it is a
+pure EC read. The read runs off the UI thread (`Task.Run` + `SynchronizationContext.Post`, guarded
+by an `Interlocked` busy flag — same reasoning as the Status page's `RefreshAsync`). Trigger:
+`max(CpuTemp, GpuTemp)` must stay at/above `TempAlertDegrees` (default 90 °C; UI offers
+70–100 °C — the 70/75 steps exist mainly so the alert can be tried without heating the laptop
+up first) continuously for
+`TempAlertSeconds` (default 10 s); then an OSD toast + tray balloon fire and a `Thermal` entry is
+logged. A fixed 5-minute cool-down between alerts keeps a hot gaming session from spamming.
+`EnsureDefaults` clamps hand-edited values (60–105 °C, 3–120 s).
+
+**Panic reset hotkey (default Ctrl+Alt+F10).** One press back to a safe stock state: clears the
+Fan Boost bit, then applies the **Balanced** recipe. No separate fan write is needed — the recipe
+rewrites the fan-mode byte to auto (`0x0D`), which by design also releases a custom fan curve
+(`0x8D`) and the Silent cap (`0x1D`). User-initiated, so it works even while the firmware-change
+guard is blocking automatic writes. Shows an OSD confirmation and logs under the Hotkey source.

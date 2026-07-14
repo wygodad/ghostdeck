@@ -64,6 +64,11 @@ public sealed class AppSettings
 
     public string LastFirmware { get; set; } = "";                     // ostatnio widziany firmware EC (ostrzezenie o zmianie)
 
+    // ---- Thermal alert: opt-in OSD + tray balloon when CPU/GPU stays hot (todo #8) ----
+    public bool TempAlertEnabled { get; set; } = false;                // user opts in explicitly
+    public int TempAlertDegrees { get; set; } = 90;                    // alert threshold (max of CPU/GPU, °C)
+    public int TempAlertSeconds { get; set; } = 10;                    // must stay above threshold this long
+
     // ---- Gaming overlay (odczepiany, always-on-top mini-panel) ----
     public bool OverlayEnabled { get; set; } = false;                  // ostatni stan widocznosci (przywracany po starcie)
     public string OverlayLayout { get; set; } = "Card";                // "Card" (pionowa karta) | "Bar" (poziomy pasek)
@@ -172,6 +177,7 @@ public sealed class AppSettings
         Def("SuperBattery", 0x73, "Ctrl+Alt+F4");
         Def("Cycle",        0x50, "Ctrl+Alt+P");
         Def("CoolerBoost",  0x74, "Ctrl+Alt+F5");
+        Def("PanicReset",   0x79, "Ctrl+Alt+F10");   // 0x79 = F10 — safe-state panic reset
         const uint CS = Hk.MOD_CONTROL | Hk.MOD_SHIFT, WA = Hk.MOD_WIN | Hk.MOD_ALT;
         void DefM(string k, uint mods, uint vk, string disp) { if (!Hotkeys.ContainsKey(k)) Hotkeys[k] = new HotkeyDef { Mods = mods, Vk = vk, Display = disp }; }
         DefM("Overlay",     CS, 0x4F, "Ctrl+Shift+O");   // 0x4F = 'O' — toggle gaming overlay
@@ -185,6 +191,57 @@ public sealed class AppSettings
         }
         MigrateTo("Overlay", 0x4F, "Ctrl+Shift+O", new[] { (CA, 0x4Fu), (CA, 0x47u), (WA, 0x47u) });
         MigrateTo("OverlayLock", 0x4C, "Ctrl+Shift+L", new[] { (CA, 0x4Cu), (WA, 0x4Cu) });
+
+        // Sanity for hand-edited / imported files: keep the thermal-alert numbers in a sane band.
+        if (TempAlertDegrees is < 60 or > 105) TempAlertDegrees = 90;
+        if (TempAlertSeconds is < 3 or > 120) TempAlertSeconds = 10;
+    }
+
+    /// <summary>
+    /// Adopt the PREFERENCES from an imported settings file onto this (live) instance — the tray
+    /// context and all pages hold references to this object, so it is mutated in place.
+    /// Machine-local state is deliberately NOT imported: LastFirmware (the firmware-change guard
+    /// must keep judging against THIS machine), the update-check timestamp, seen notice ids and
+    /// the window geometry.
+    /// </summary>
+    public void ImportFrom(AppSettings src)
+    {
+        Language = src.Language;
+        HotkeysEnabled = src.HotkeysEnabled;
+        Hotkeys.Clear();
+        foreach (var (k, v) in src.Hotkeys) Hotkeys[k] = v.Clone();
+        Colors.Clear();
+        foreach (var (k, v) in src.Colors) Colors[k] = v;
+        TrayShowStatus = src.TrayShowStatus; TrayShowFanCurve = src.TrayShowFanCurve; TrayShowModels = src.TrayShowModels;
+        TrayShowReport = src.TrayShowReport; TrayShowChangeLog = src.TrayShowChangeLog;
+        TrayShowFeedback = src.TrayShowFeedback;
+        IconStyle = src.IconStyle;
+        IconTabs = new List<string>(src.IconTabs);
+        ShowGrid = src.ShowGrid;
+        Autostart = src.Autostart;
+        AutoSwitchEnabled = src.AutoSwitchEnabled;
+        ProfileOnAC = src.ProfileOnAC;
+        ProfileOnBattery = src.ProfileOnBattery;
+        ChargeLimit = src.ChargeLimit;
+        StatusOnTop = src.StatusOnTop;
+        ExperimentalEnabled = src.ExperimentalEnabled;
+        UpdateCheckEnabled = src.UpdateCheckEnabled;
+        DarkMode = src.DarkMode;
+        TempAlertEnabled = src.TempAlertEnabled;
+        TempAlertDegrees = src.TempAlertDegrees;
+        TempAlertSeconds = src.TempAlertSeconds;
+        OverlayEnabled = src.OverlayEnabled;
+        OverlayLayout = src.OverlayLayout;
+        OverlayOpacity = src.OverlayOpacity;
+        OverlayBgOpacity = src.OverlayBgOpacity;
+        OverlayScale = src.OverlayScale;
+        OverlayClickThrough = src.OverlayClickThrough;
+        OverlayAlwaysTop = src.OverlayAlwaysTop;
+        OverlayAccentFromProfile = src.OverlayAccentFromProfile;
+        OverlayX = src.OverlayX; OverlayY = src.OverlayY; OverlayMetrics = src.OverlayMetrics;
+        OverlayBgEnabled = src.OverlayBgEnabled; OverlayBgColor = src.OverlayBgColor;
+        OverlayBoldText = src.OverlayBoldText;
+        EnsureDefaults();
     }
 
     public Color ColorFor(ProfileId id)
@@ -221,6 +278,9 @@ public sealed class AppSettings
             SeenNoticeIds = new List<string>(SeenNoticeIds),
             DarkMode = DarkMode,
             LastFirmware = LastFirmware,
+            TempAlertEnabled = TempAlertEnabled,
+            TempAlertDegrees = TempAlertDegrees,
+            TempAlertSeconds = TempAlertSeconds,
             OverlayEnabled = OverlayEnabled,
             OverlayLayout = OverlayLayout,
             OverlayOpacity = OverlayOpacity,

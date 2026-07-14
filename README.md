@@ -23,6 +23,9 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
 - 🛡️ **Firmware-change guard** - after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
+- 🌡️ **Temperature alert** *(opt-in)* - an OSD toast + tray notification when the CPU or GPU stays above a chosen threshold (70-100 °C) for a chosen time (5-60 s), with a cool-down between alerts and an entry in the change history
+- 🆘 **Panic reset hotkey** (default `Ctrl+Alt+F10`) - one press returns the machine to a safe stock state: Fan Boost off, Balanced profile, fans back on the automatic curve
+- 💾 **Settings backup** - export every preference (colors, hotkeys, rules, overlay, alerts) to a JSON file and import it after a reinstall or on another machine; machine-specific state (firmware guard, window position) stays local
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)

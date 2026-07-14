@@ -28,6 +28,9 @@ public sealed class TrayContext : ApplicationContext
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
     private bool _coolerBoost;                 // Cooler Boost (max fans) currently on
     private byte? _fanBeforeBoost;             // fan-mode byte captured before boost, restored on off
+    private DateTime? _tempOverSince;          // when CPU/GPU first crossed the thermal-alert threshold
+    private DateTime _lastTempAlert = DateTime.MinValue;
+    private int _thermalBusy;                  // 1 while a background EC temperature read is in flight
     private ToolStripMenuItem? _coolerItem;
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
@@ -587,6 +590,22 @@ public sealed class TrayContext : ApplicationContext
         Reg("SuperBattery", () => SetProfile(ProfileId.SuperBattery, true, ChangeSource.Hotkey));
         Reg("Cycle", () => Cycle(ChangeSource.Hotkey));
         Reg("CoolerBoost", ToggleCoolerBoost);
+        Reg("PanicReset", PanicReset);
+    }
+
+    // "Panic" hotkey: one press back to a safe stock state — Fan Boost off, Balanced profile.
+    // The Balanced recipe rewrites the fan-mode byte to auto (0x0D), which also releases a
+    // custom fan curve (0x8D) and the Silent cap (0x1D), so no separate fan write is needed.
+    private void PanicReset()
+    {
+        if (!Writable) { ShowState(); return; }
+        if (!_simulate) { try { Ec.SetCoolerBoost(_device!, false); } catch { } }
+        _coolerBoost = false;
+        _fanBeforeBoost = null;
+        UpdateCoolerBoostMenu();
+        SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey);
+        ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub"));
+        _osd.ShowProfile("MSI  ·  " + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
     }
 
     private void Reg(string key, Action action)
@@ -818,9 +837,54 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
+    // ---------------- thermal alert (opt-in) ----------------
+    // OSD + tray balloon once CPU/GPU stays above the configured threshold for the configured
+    // time. Runs on the 3 s poll; the EC read goes off the UI thread (same reasoning as the
+    // Status page's RefreshAsync). A fixed cool-down keeps a hot gaming session from spamming.
+    private static readonly TimeSpan ThermalCooldown = TimeSpan.FromMinutes(5);
+
+    private void CheckThermal()
+    {
+        if (!_settings.TempAlertEnabled || !Known || _simulate) return;
+        if (Interlocked.Exchange(ref _thermalBusy, 1) != 0) return;
+        var dev = _device!;
+        var ui = _ui;
+        Task.Run(() =>
+        {
+            try
+            {
+                var hw = Ec.ReadHw(dev);
+                ui?.Post(_ => OnThermalSample(hw), null);
+            }
+            catch { }
+            finally { Interlocked.Exchange(ref _thermalBusy, 0); }
+        });
+    }
+
+    private void OnThermalSample(HwSnapshot hw)
+    {
+        if (!_settings.TempAlertEnabled) return;
+        int worst = Math.Max(hw.CpuTemp, hw.GpuTemp);
+        if (worst < _settings.TempAlertDegrees) { _tempOverSince = null; return; }
+        var now = DateTime.Now;
+        _tempOverSince ??= now;
+        if ((now - _tempOverSince.Value).TotalSeconds < _settings.TempAlertSeconds) return;
+        if (now - _lastTempAlert < ThermalCooldown) return;
+        _lastTempAlert = now;
+        string text = string.Format(Lang.T("ta_alert_text"),
+            hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
+        _osd.ShowProfile("MSI  ·  " + Lang.T("ta_alert_title"), text, Theme.Red);
+        _balloonUrl = null;
+        _tray.BalloonTipTitle = Lang.T("ta_alert_title");
+        _tray.BalloonTipText = text;
+        _tray.ShowBalloonTip(8000);
+        ChangeLog.Add(ChangeSource.Thermal, text);
+    }
+
     // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
+        CheckThermal();   // reads only; also works on non-writable (Experimental locked) models
         if (!Writable) return;
 
         var power = SystemInformation.PowerStatus.PowerLineStatus;

@@ -277,6 +277,47 @@ public static class Lang
         ["log_src_cooler"]   = new[] { "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost" },
         ["log_src_firmware"] = new[] { "firmware", "firmware", "Firmware", "firmware", "firmware", "固件", "firmware", "прошивка" },
         ["log_src_test"]     = new[] { "test tool", "narz. testowe", "Testtool", "outil de test", "herr. de prueba", "测试工具", "ferr. de teste", "тест. инстр." },
+        ["log_src_thermal"]  = new[] { "thermal", "temperatura", "thermisch", "thermique", "térmico", "温度", "térmico", "температура" },
+
+        // ---- thermal alert (Settings -> Notifications) ----
+        ["set_grp_alerts"]  = new[] { "Notifications", "Powiadomienia", "Benachrichtigungen", "Notifications", "Notificaciones", "通知", "Notificações", "Уведомления" },
+        ["ta_enable"]       = new[] { "Temperature alert", "Alert temperatury", "Temperaturwarnung", "Alerte de température", "Alerta de temperatura", "温度警报", "Alerta de temperatura", "Оповещение о температуре" },
+        ["ta_threshold"]    = new[] { "Threshold", "Próg", "Schwelle", "Seuil", "Umbral", "阈值", "Limite", "Порог" },
+        ["ta_time"]         = new[] { "For at least", "Przez co najmniej", "Für mindestens", "Pendant au moins", "Durante al menos", "持续至少", "Por pelo menos", "Не менее" },
+        ["ta_alert_title"]  = new[] { "High temperature", "Wysoka temperatura", "Hohe Temperatur", "Température élevée", "Temperatura alta", "温度过高", "Temperatura alta", "Высокая температура" },
+        ["ta_alert_text"]   = new[]
+        {
+            "CPU {0}°C / GPU {1}°C: above {2}°C for {3} s",
+            "CPU {0}°C / GPU {1}°C: powyżej {2}°C przez {3} s",
+            "CPU {0}°C / GPU {1}°C: über {2}°C seit {3} s",
+            "CPU {0}°C / GPU {1}°C : au-dessus de {2}°C depuis {3} s",
+            "CPU {0}°C / GPU {1}°C: por encima de {2}°C durante {3} s",
+            "CPU {0}°C / GPU {1}°C：超过 {2}°C 已持续 {3} 秒",
+            "CPU {0}°C / GPU {1}°C: acima de {2}°C por {3} s",
+            "CPU {0}°C / GPU {1}°C: выше {2}°C в течение {3} с"
+        },
+
+        // ---- panic reset hotkey ----
+        ["hk_panic"]        = new[] { "Panic reset", "Reset awaryjny", "Not-Reset", "Réinitialisation d'urgence", "Reinicio de emergencia", "紧急重置", "Reset de emergência", "Аварийный сброс" },
+        ["panic_sub"]       = new[]
+        {
+            "Balanced profile, Fan Boost off, fans auto",
+            "Profil Balanced, Fan Boost wył., wentylatory auto",
+            "Profil Balanced, Fan Boost aus, Lüfter auto",
+            "Profil Balanced, Fan Boost désactivé, ventilateurs auto",
+            "Perfil Balanced, Fan Boost desactivado, ventiladores en auto",
+            "Balanced 配置文件，Fan Boost 关闭，风扇自动",
+            "Perfil Balanced, Fan Boost desligado, ventoinhas em auto",
+            "Профиль Balanced, Fan Boost выкл., вентиляторы авто"
+        },
+
+        // ---- settings backup (export / import) ----
+        ["set_grp_backup"]  = new[] { "Backup", "Kopia zapasowa", "Sicherung", "Sauvegarde", "Copia de seguridad", "备份", "Backup", "Резервная копия" },
+        ["set_export"]      = new[] { "Export settings…", "Eksportuj ustawienia…", "Einstellungen exportieren…", "Exporter les réglages…", "Exportar ajustes…", "导出设置…", "Exportar configurações…", "Экспорт настроек…" },
+        ["set_import"]      = new[] { "Import settings…", "Importuj ustawienia…", "Einstellungen importieren…", "Importer les réglages…", "Importar ajustes…", "导入设置…", "Importar configurações…", "Импорт настроек…" },
+        ["imp_ok"]          = new[] { "Settings imported.", "Ustawienia zaimportowane.", "Einstellungen importiert.", "Réglages importés.", "Ajustes importados.", "设置已导入。", "Configurações importadas.", "Настройки импортированы." },
+        ["imp_err"]         = new[] { "This is not a valid GhostDeck settings file.", "To nie jest prawidłowy plik ustawień GhostDeck.", "Dies ist keine gültige GhostDeck-Einstellungsdatei.", "Ce n'est pas un fichier de réglages GhostDeck valide.", "No es un archivo de ajustes de GhostDeck válido.", "这不是有效的 GhostDeck 设置文件。", "Este não é um arquivo de configurações válido do GhostDeck.", "Это не корректный файл настроек GhostDeck." },
+        ["bk_err"]          = new[] { "Operation failed: {0}", "Operacja nie powiodła się: {0}", "Vorgang fehlgeschlagen: {0}", "Échec de l'opération : {0}", "La operación falló: {0}", "操作失败：{0}", "Falha na operação: {0}", "Операция не удалась: {0}" },
 
         // ---- firmware-change warning ----
         ["menu_fw_ack"]      = new[] { "⚠ Firmware changed — verify model", "⚠ Zmiana firmware — zweryfikuj model", "⚠ Firmware geändert — Modell prüfen", "⚠ Firmware modifié — vérifier le modèle", "⚠ Firmware cambiado — verificar modelo", "⚠ 固件已更改 — 请核对型号", "⚠ Firmware alterado — verificar modelo", "⚠ Прошивка изменена — проверьте модель" },

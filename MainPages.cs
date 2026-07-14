@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace GhostDeck;
@@ -1289,6 +1290,7 @@ public sealed class SettingsPage : ThemedPage
         ("Silent", "Silent"), ("Balanced", "Balanced"),
         ("Extreme", "Extreme"), ("SuperBattery", "Super Battery"), ("Cycle", "Cycle"),
         ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
+        ("PanicReset", "Panic reset"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -1412,6 +1414,21 @@ public sealed class SettingsPage : ThemedPage
         power.AddRow(Lang.T("on_battery"), bat);
         _right.Add(power);
 
+        // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
+        // the chosen time. Off by default — the user opts in.
+        var alerts = new CardSection(Lang.T("set_grp_alerts"), "");
+        alerts.AddRow(Lang.T("ta_enable"), Toggle(D.Settings.TempAlertEnabled, v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); }));
+        // 70/75 exist mainly so the alert can be tried out without heating the laptop up first.
+        int[] degVals = { 70, 75, 80, 85, 90, 95, 100 };
+        var deg = Combo(degVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(degVals, D.Settings.TempAlertDegrees)));
+        deg.SelectedIndexChanged += (_, _) => { D.Settings.TempAlertDegrees = degVals[Math.Max(0, deg.SelectedIndex)]; D.SaveSettings(); };
+        alerts.AddRow(Lang.T("ta_threshold"), deg);
+        int[] secVals = { 5, 10, 20, 30, 60 };
+        var secsCombo = Combo(secVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(secVals, D.Settings.TempAlertSeconds)));
+        secsCombo.SelectedIndexChanged += (_, _) => { D.Settings.TempAlertSeconds = secVals[Math.Max(0, secsCombo.SelectedIndex)]; D.SaveSettings(); };
+        alerts.AddRow(Lang.T("ta_time"), secsCombo);
+        _right.Add(alerts);
+
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
         _left.Add(upd);   // Updates -> bottom of LEFT column, aligns with Power+Shortcuts on right (#9)
@@ -1452,6 +1469,20 @@ public sealed class SettingsPage : ThemedPage
         }
         _left.Add(uiSec);
 
+        // Settings backup: export = a copy of settings.json, import = adopt the preferences from
+        // such a file. Machine-local state survives an import (see AppSettings.ImportFrom).
+        var backup = new CardSection(Lang.T("set_grp_backup"), "");
+        var expBtn = new Button { Text = Lang.T("set_export"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(expBtn);
+        expBtn.Click += (_, _) => ExportSettings();
+        var impBtn = new Button { Text = Lang.T("set_import"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(impBtn);
+        impBtn.Click += (_, _) => ImportSettings();
+        var bRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
+        bRow.Controls.Add(expBtn); bRow.Controls.Add(impBtn);
+        backup.AddRow(null, bRow);
+        _left.Add(backup);
+
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
         _hkToggles.Clear();
         _hkMaster = new ToggleSwitch { Checked = D.Settings.HotkeysEnabled };
@@ -1476,7 +1507,7 @@ public sealed class SettingsPage : ThemedPage
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             box.Location = new Point(tg.Width + 12, (row.Height - box.Height) / 2);
             row.Controls.Add(tg); row.Controls.Add(box);
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : label, row);
+            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : label, row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
@@ -1496,6 +1527,61 @@ public sealed class SettingsPage : ThemedPage
 
         foreach (var c in _left.Concat(_right)) Controls.Add(c);
         Layout2(); ApplyTheme();
+    }
+
+    // ---------------- settings backup ----------------
+    private void ExportSettings()
+    {
+        using var dlg = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = "ghostdeck-settings.json" };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(D.Settings, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ImportSettings()
+    {
+        using var dlg = new OpenFileDialog { Filter = "JSON (*.json)|*.json" };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            string txt = File.ReadAllText(dlg.FileName);
+            AppSettings? imported = null;
+            // Cheap shape check first: an arbitrary JSON object would otherwise deserialize
+            // into a defaults instance and silently wipe the user's settings.
+            using (var doc = JsonDocument.Parse(txt))
+                if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("Language", out _))
+                    imported = JsonSerializer.Deserialize<AppSettings>(txt);
+            if (imported == null)
+            {
+                MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            D.Settings.ImportFrom(imported);
+            Lang.Set(D.Settings.Language);
+            Theme.Set(D.Settings.DarkMode);
+            try { Autostart.Set(D.Settings.Autostart); } catch { }
+            D.SaveSettings();
+            D.SettingsChanged();          // hotkeys + tray menu + icons follow the imported values
+            D.SetChargeLimit(D.Settings.ChargeLimit);
+            D.ApplyOverlaySettings();
+            D.SetOverlay(D.Settings.OverlayEnabled);
+            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+            MessageBox.Show(FindForm(), Lang.T("imp_ok"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (JsonException)
+        {
+            MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     private void ResetHotkeys()

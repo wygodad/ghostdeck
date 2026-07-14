@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **Settings export / import** (Settings → Backup): save all preferences (colours, hotkeys,
+  rules, overlay, alerts) to a JSON file and restore them after a reinstall or on another
+  machine. Machine-specific state (firmware guard, window position) is kept local.
+- **Temperature alert** (Settings → Notifications, off by default): an OSD toast and a tray
+  balloon when the CPU or GPU stays above a chosen threshold (80-100 °C) for a chosen time
+  (5-60 s), with a 5-minute cool-down between alerts and an entry in the change history.
+- **Panic reset hotkey** (default Ctrl+Alt+F10): one press returns the machine to a safe
+  stock state - Fan Boost off, Balanced profile, fans back on the automatic curve.
+
 ## [1.19.0] - 2026-07-13
 ### Added
 - **Fifth application-icon style**: the dark-style cyan ghost on the light tile
