@@ -3,7 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.22.0] - 2026-07-15
+### Added
+- **Refresh-rate auto-switch** (Settings → Power, opt-in): pick a preferred display refresh
+  rate for AC and for battery (only modes your panel reports are offered) and GhostDeck applies
+  it on every plug/unplug, with an OSD toast and a change-history entry. Pure Windows display
+  API - no EC involved - so it works on **every** model, including unrecognised firmware
+  ([#18](../../discussions/18), thanks @alibi90). `--status` now also reports `refreshHz`.
 ### Fixed
 - **History Export button clipped** at 125-140% display scale (sizing now uses the control's
   DPI-aware preferred size).

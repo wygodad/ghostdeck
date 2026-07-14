@@ -71,6 +71,11 @@ public sealed class AppSettings
 
     public int OsdSeconds { get; set; } = 3;                           // how long OSD toasts stay visible (1-15 s)
 
+    // ---- Display refresh-rate auto-switch on AC/battery (discussion #18) ----
+    public bool RefreshSwitchEnabled { get; set; } = false;            // opt-in
+    public int RefreshOnAC { get; set; } = 0;                          // Hz; 0 = don't change
+    public int RefreshOnBattery { get; set; } = 0;                     // Hz; 0 = don't change
+
     // ---- Fan-curve presets + per-profile assignment ----
     public List<FanCurvePreset> CurvePresets { get; set; } = new();
     // profile key -> preset name ("" / missing = stock fans). Silent is never assignable:
@@ -253,6 +258,9 @@ public sealed class AppSettings
         TempAlertDegrees = src.TempAlertDegrees;
         TempAlertSeconds = src.TempAlertSeconds;
         OsdSeconds = src.OsdSeconds;
+        RefreshSwitchEnabled = src.RefreshSwitchEnabled;
+        RefreshOnAC = src.RefreshOnAC;
+        RefreshOnBattery = src.RefreshOnBattery;
         OverlayEnabled = src.OverlayEnabled;
         OverlayLayout = src.OverlayLayout;
         OverlayOpacity = src.OverlayOpacity;
@@ -309,6 +317,9 @@ public sealed class AppSettings
             TempAlertDegrees = TempAlertDegrees,
             TempAlertSeconds = TempAlertSeconds,
             OsdSeconds = OsdSeconds,
+            RefreshSwitchEnabled = RefreshSwitchEnabled,
+            RefreshOnAC = RefreshOnAC,
+            RefreshOnBattery = RefreshOnBattery,
             OverlayEnabled = OverlayEnabled,
             OverlayLayout = OverlayLayout,
             OverlayOpacity = OverlayOpacity,

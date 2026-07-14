@@ -317,6 +317,14 @@ public static class Lang
         ["st_hist_rpm"]    = new[] { "Fan speed (RPM)", "Obroty wentylatorów (RPM)", "Lüfterdrehzahl (RPM)", "Vitesse des ventilateurs (RPM)", "Velocidad de ventiladores (RPM)", "风扇转速（RPM）", "Velocidade das ventoinhas (RPM)", "Обороты вентиляторов (RPM)" },
         ["mdl_c_thanks"]   = new[] { "Thanks", "Podziękowania", "Dank", "Merci", "Gracias", "致谢", "Agradecimentos", "Благодарности" },
         ["st_hist_export"] = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…" },
+
+        // ---- display refresh-rate auto-switch (discussion #18) ----
+        ["set_refresh_toggle"] = new[] { "Switch refresh rate on AC / battery", "Przełączaj odświeżanie przy AC / baterii", "Bildwiederholrate bei Netz / Akku umschalten", "Changer la fréquence sur secteur / batterie", "Cambiar la frecuencia con CA / batería", "接通/电池时切换刷新率", "Alternar taxa de atualização na CA / bateria", "Переключать частоту при сети / батарее" },
+        ["set_refresh_ac"]     = new[] { "Refresh on AC", "Odświeżanie na zasilaczu", "Frequenz am Netz", "Fréquence sur secteur", "Frecuencia con CA", "接通电源时刷新率", "Taxa na CA", "Частота от сети" },
+        ["set_refresh_batt"]   = new[] { "Refresh on battery", "Odświeżanie na baterii", "Frequenz im Akkubetrieb", "Fréquence sur batterie", "Frecuencia con batería", "电池模式刷新率", "Taxa na bateria", "Частота от батареи" },
+        ["ref_keep"]           = new[] { "No change", "Bez zmiany", "Keine Änderung", "Aucun changement", "Sin cambio", "不更改", "Sem alteração", "Без изменения" },
+        ["ref_title"]          = new[] { "Refresh rate", "Odświeżanie", "Bildwiederholrate", "Fréquence d'affichage", "Frecuencia de refresco", "刷新率", "Taxa de atualização", "Частота обновления" },
+        ["log_src_display"]    = new[] { "display", "ekran", "Display", "écran", "pantalla", "显示器", "tela", "экран" },
         ["st_hist_now"]    = new[] { "now", "teraz", "jetzt", "maintenant", "ahora", "现在", "agora", "сейчас" },
         ["ta_alert_text"]   = new[]
         {

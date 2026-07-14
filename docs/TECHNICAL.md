@@ -807,3 +807,23 @@ print into the parent terminal.
 
 CLI profile changes count as user-initiated (the user ran the command), mirroring hotkeys; log
 entries use the `Cli` source. Elevation is required for EC access exactly like the app itself.
+
+## 28. Display refresh-rate auto-switch (v1.22, discussion #18)
+
+Requested by @alibi90: high refresh on AC, 60 Hz on battery, remembered per power source
+(Armoury Crate has it; MSI Center doesn't). Implementation is **pure Windows display API** -
+`EnumDisplaySettings` / `ChangeDisplaySettingsEx` from user32 (`Core/Display.cs`) - with **no EC
+involvement**, so unlike everything else in the app it runs OUTSIDE the `Writable` gates and
+works on every machine, including unrecognised firmware.
+
+Safety rails: only the **frequency** is changed (resolution and colour depth are copied from the
+current mode); only modes the panel **actually reports** at the current resolution are ever
+requested (`SupportedRates()` filters `EnumDisplaySettings` by the current width/height/bpp);
+`CDS_UPDATEREGISTRY` persists the choice like the Windows Settings page would. v1 touches the
+**primary display only** - external monitors are left alone.
+
+Wiring: `AppSettings.RefreshSwitchEnabled` (opt-in) + `RefreshOnAC` / `RefreshOnBattery`
+(Hz, 0 = don't change; pickers in Settings → Power). `TrayContext.ApplyRefreshForPower` runs on
+every AC/battery transition (in `Poll`, deliberately **before** the `Writable` early-return),
+once at startup, and after a settings edit (`SettingsChanged`). Each switch shows an OSD toast
+("240 Hz → 60 Hz") and logs a `Display`-source entry. `--status` (CLI) reports `refreshHz`.

@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v122-refresh-switch",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.21.9",
+    "title": "New release: automatic refresh-rate switching on AC / battery",
+    "title_pl": "Nowe wydanie: automatyczne przełączanie odświeżania przy AC / baterii",
+    "body": "GhostDeck v1.22 is out: pick a display refresh rate for AC and for battery (e.g. 240 Hz plugged in, 60 Hz unplugged) and the app switches it automatically on every plug/unplug - works on every laptop, even unrecognised models. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.22: wybierz odświeżanie ekranu dla zasilacza i dla baterii (np. 240 Hz po podłączeniu, 60 Hz bez zasilacza), a aplikacja przełączy je automatycznie przy każdym wpięciu/wypięciu - działa na każdym laptopie, także nierozpoznanych modelach. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.22"
+  },
+  {
     "id": "2026-07-v121-presets-history-cli",
     "severity": "info",
     "minVersion": "1.0.0",

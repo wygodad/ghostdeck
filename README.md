@@ -30,6 +30,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🆘 **Panic reset hotkey** (default `Ctrl+Alt+F10`) - one press returns the machine to a safe stock state: Fan Boost off, Balanced profile, fans back on the automatic curve
 - 💾 **Settings backup** - export every preference (colors, hotkeys, rules, overlay, alerts) to a JSON file and import it after a reinstall or on another machine; machine-specific state (firmware guard, window position) stays local
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
+- 🖥️ **Refresh-rate auto-switch** *(opt-in)* - drop the panel to 60 Hz on battery and jump back to 144/240 Hz on AC, automatically; pickers list only the modes your panel reports. Pure Windows display API, so it works on **every** laptop - even unrecognised models
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
@@ -49,6 +50,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
 | Global **rebindable** hotkeys | Limited² | ✅ |
 | Auto-switch profile on AC / battery | ❌ | ✅ |
+| Auto refresh-rate switch on AC / battery | ❌ | ✅ *(any model)* |
 | On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
 | Detachable gaming overlay (HUD) | ❌ | ✅ *(temps / RPM / GPU% / VRAM / clocks / RAM / battery; card or bar)* |
 | Live EC profile-byte view / transparency | ❌ | ✅ |

@@ -138,6 +138,20 @@ public sealed class SettingsPage : ThemedPage
         var bat = Combo(Profiles.Order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(D.Settings.ProfileOnBattery));
         bat.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnBattery = Profiles.Get(Profiles.Order[bat.SelectedIndex]).Key; D.SaveSettings(); };
         power.AddRow(Lang.T("on_battery"), bat);
+
+        // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
+        // model. Pickers list only the modes the panel reports at its current resolution.
+        var rates = Display.SupportedRates();
+        power.AddRow(Lang.T("set_refresh_toggle"), Toggle(D.Settings.RefreshSwitchEnabled, v => { D.Settings.RefreshSwitchEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
+        string[] rateItems = new[] { Lang.T("ref_keep") }.Concat(rates.Select(r => r + " Hz")).ToArray();
+        int RateIdx(int hz) { int i = rates.IndexOf(hz); return i < 0 ? 0 : i + 1; }
+        var rAc = Combo(rateItems, RateIdx(D.Settings.RefreshOnAC));
+        rAc.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnAC = rAc.SelectedIndex <= 0 ? 0 : rates[rAc.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
+        power.AddRow(Lang.T("set_refresh_ac"), rAc);
+        var rBat = Combo(rateItems, RateIdx(D.Settings.RefreshOnBattery));
+        rBat.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnBattery = rBat.SelectedIndex <= 0 ? 0 : rates[rBat.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
+        power.AddRow(Lang.T("set_refresh_batt"), rBat);
+        if (rates.Count == 0) rAc.Enabled = rBat.Enabled = false;   // enumeration failed - leave visible but inert
         _right.Add(power);
 
         // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for

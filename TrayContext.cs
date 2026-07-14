@@ -73,6 +73,7 @@ public sealed class TrayContext : ApplicationContext
 
         _lastPower = SystemInformation.PowerStatus.PowerLineStatus;
         if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
+        ApplyRefreshForPower(_lastPower.Value);   // align the panel with the current power source once at start
 
         _poll.Tick += (_, _) => Poll();
         _poll.Start();
@@ -172,6 +173,7 @@ public sealed class TrayContext : ApplicationContext
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
+                        refreshHz = Display.Current(),
                     });
                 }
                 case CliKind.Overlay:
@@ -824,7 +826,12 @@ public sealed class TrayContext : ApplicationContext
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),
         CheckNoticesNow = CheckNoticesNow,
-        SettingsChanged = () => { ApplyHotkeys(); BuildMenu(); UpdateUi(_current); },
+        SettingsChanged = () =>
+        {
+            ApplyHotkeys(); BuildMenu(); UpdateUi(_current);
+            // apply a just-edited refresh preference right away (no-op when disabled)
+            ApplyRefreshForPower(SystemInformation.PowerStatus.PowerLineStatus);
+        },
         StartReportWizard = OpenReport,
         SetChargeLimit = limit =>
         {
@@ -1048,18 +1055,37 @@ public sealed class TrayContext : ApplicationContext
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 
+    // ---------------- display refresh-rate switch (AC/battery, discussion #18) ----------------
+    // Pure Windows display API (no EC write), so this runs OUTSIDE the Writable gates and works
+    // on every model, including unrecognised firmware.
+    private void ApplyRefreshForPower(PowerLineStatus power)
+    {
+        if (!_settings.RefreshSwitchEnabled || power == PowerLineStatus.Unknown) return;
+        int hz = power == PowerLineStatus.Online ? _settings.RefreshOnAC : _settings.RefreshOnBattery;
+        if (hz <= 0) return;
+        int before = Display.Current();
+        if (before == hz) return;
+        if (!Display.SetRefresh(hz)) return;
+        ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+        _osd.ShowProfile("MSI  ·  " + Lang.T("ref_title"), $"{before} Hz → {hz} Hz", Theme.Accent);
+    }
+
     // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
         SampleHw();   // reads only; also works on non-writable (Experimental locked) models
-        if (!Writable) return;
 
+        // Power-transition actions live BEFORE the Writable gate: the refresh-rate switch is
+        // not an EC write and must work on every machine. Profile auto-switch keeps its gates.
         var power = SystemInformation.PowerStatus.PowerLineStatus;
         if (power != PowerLineStatus.Unknown && power != _lastPower)
         {
+            ApplyRefreshForPower(power);
             if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(power, osd: true);
             _lastPower = power;
         }
+
+        if (!Writable) return;
 
         try
         {

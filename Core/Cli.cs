@@ -122,6 +122,7 @@ public static class Cli
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
+                        refreshHz = Display.Current(),
                     }));
                     return 0;
                 }
