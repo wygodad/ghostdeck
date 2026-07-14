@@ -161,7 +161,9 @@ public sealed class ModelsPage : ThemedPage
             TextRenderer.DrawText(g, sub, FSub, new Point(Pad, y), Color.FromArgb(0xB0, 0x4A, 0x3A));
         }
         y += FSub.Height + 10;
-        TextRenderer.DrawText(g, Lang.T("mdl_intro"), FIntro, new Rectangle(Pad, y, avail, FIntro.Height * 2 + 4),
+        // tested count injected live from Devices.All - the old text hardcoded "1 tested" and went stale
+        string intro = string.Format(Lang.T("mdl_intro"), _all.Count(m => m.Tier == Tier.Tested));
+        TextRenderer.DrawText(g, intro, FIntro, new Rectangle(Pad, y, avail, FIntro.Height * 2 + 4),
             Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.WordEllipsis);
     }
 
