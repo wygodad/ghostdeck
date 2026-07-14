@@ -66,7 +66,7 @@ Both end with a **1 : 1 device-pixel blit** (no scaling), which is what keeps th
 
 ## 3. Gaming overlay — per-pixel layered window
 
-File: [`OverlayForm.cs`](../OverlayForm.cs) (`RenderLayered`, ~line 168).
+File: [`OverlayForm.cs`](../Forms/OverlayForm.cs) (`RenderLayered`, ~line 168).
 
 The overlay is a borderless, always-on-top, **per-pixel alpha** window. It is **not** painted via the
 normal `OnPaint`; instead it builds a 32-bit ARGB bitmap and hands it to Windows with
@@ -101,7 +101,7 @@ Why it looks great: correct-DPI bitmap + GDI+ text + 1 : 1 layered blit + a drop
 
 ## 4. Status tab — DPI-aware buffered canvas
 
-File: [`MainPages.cs`](../MainPages.cs) — `StatusPage` and its inner `Canvas`.
+File: [`StatusPage.cs`](../UI/StatusPage.cs) — `StatusPage` and its inner `Canvas`.
 
 Status is a tall, heavy page (5 gauge rings, a RAM bar, RPM/battery/GPU/VRAM tiles, a details table,
 the EC **byte matrix**, a legend, live fan-curve tables, a recent-changes log). It scrolls, so we
@@ -140,33 +140,33 @@ GDI+ `DrawString` and call `SetResolution(dpi)` — the overlay's recipe.
 
 ## 5. The other tabs
 
-Base class [`ThemedPage`](../MainForm.cs): a scrollable `UserControl` (`AutoScroll`, double-buffered,
+Base class [`ThemedPage`](../UI/MainForm.cs): a scrollable `UserControl` (`AutoScroll`, double-buffered,
 `BackColor = Theme.Surface`). Helpers: `ApplyScroll(g)` translates painting by the scroll offset;
 `OnScroll`/`OnMouseWheel` force a full repaint; and `ScrollToControl` is overridden to return the
 current position so focusing a child does **not** yank the page to the top.
 
-- **Settings** ([`SettingsPage`](../MainPages.cs)) — **child-controls only**: the title is a `Label`,
+- **Settings** ([`SettingsPage`](../UI/SettingsPage.cs)) — **child-controls only**: the title is a `Label`,
   the groups are `CardSection` controls, the gaming-overlay block is a `Panel`. There is **no custom
   `OnPaint`**, so Windows scrolls it natively and smoothly. (It previously hand-painted the title while
   the cards were child controls; the two scrolled by different mechanisms and diverged — flicker + a
   phantom gap. The fix was to make the title a child too.)
-- **Scenarios** ([`ScenariosPage`](../MainPages.cs)) — a hybrid: the header/labels and the settings
+- **Scenarios** ([`ScenariosPage`](../UI/ScenariosPage.cs)) — a hybrid: the header/labels and the settings
   card are hand-painted in `OnPaint (ApplyScroll)`, while the profile **tiles** and the feature
   **bricks** (Fan Boost, overlay) are child `Control`s. Fine because it barely scrolls.
-- **Fan curve** ([`FanCurvePage.cs`](../FanCurvePage.cs)) — a custom-painted editable curve (drag
+- **Fan curve** ([`FanCurvePage.cs`](../UI/FanCurvePage.cs)) — a custom-painted editable curve (drag
   points) plus a few child controls; short, no special caching needed.
-- **Models** ([`ModelsPage.cs`](../ModelsPage.cs)) / **Report** ([`ReportPage.cs`](../ReportPage.cs))
+- **Models** ([`ModelsPage.cs`](../UI/ModelsPage.cs)) / **Report** ([`ReportPage.cs`](../UI/ReportPage.cs))
   / **Updates** — mostly standard child controls (lists, buttons, labels) with light custom painting;
   they scroll natively.
-- **Chrome** ([`MainForm`](../MainForm.cs)) — the tab strip, theme button and the announcement
+- **Chrome** ([`MainForm`](../UI/MainForm.cs)) — the tab strip, theme button and the announcement
   **banner** are custom-drawn controls; the banner is a top-docked `Panel` shown on demand.
-- **Overlay OSD** ([`OsdForm.cs`](../OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change
+- **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change
   is a separate rounded, fading, non-activating window (simpler than the gaming overlay).
 
 Shared primitives live in the `Ui`, `Theme` and `IconPainter` helpers (rounded rects, pills, cards,
 gauge rings, scenario icons), so the look stays consistent across tabs.
 
-- **Sub-tabs** ([`SubTabs.cs`](../SubTabs.cs)) — a reusable themed segmented control (a child `Control`
+- **Sub-tabs** ([`SubTabs.cs`](../UI/SubTabs.cs)) — a reusable themed segmented control (a child `Control`
   raising `Changed(int)`) that splits a page into a few sub-pages without adding top-level tabs. Used on
   **Status** (Charts / EC bytes / Change log) and **Report** (Profiles / Fan curve). It paints its own
   rounded container + segments; hosts just position it and re-lay-out on `Changed`.
@@ -174,7 +174,7 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   those top-level tabs) use `TextRenderer` with `NoPadding` and per-glyph `GlyphDx/GlyphDy` nudges —
   `TextRenderer` centres the glyph *cell*, not its ink, and symbol glyphs have uneven side bearings, so
   each icon needs a small optical tweak to line up.
-- **Dropdowns** ([`ThemedComboBox`](../MainPages.cs)) — the stock `ComboBox` keeps a white field, drop
+- **Dropdowns** ([`ThemedComboBox`](../UI/Controls/ThemedComboBox.cs)) — the stock `ComboBox` keeps a white field, drop
   button and list in dark mode, and its themed button *flashes light on hover/press* before any overpaint
   can cover it. `ThemedComboBox` fixes this by **owning the paint**: `DrawMode = OwnerDrawFixed` draws the
   list rows (`OnDrawItem`, accent for the selected row), and `WndProc` intercepts `WM_PAINT` to paint the

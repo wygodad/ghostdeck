@@ -1,6 +1,6 @@
 # Supported models
 
-> Auto-generated from [`Devices.cs`](../Devices.cs) - the single source of truth. Do not edit by hand; regenerate when models change.
+> Auto-generated from [`Devices.cs`](../Core/Devices.cs) - the single source of truth. Do not edit by hand; regenerate when models change.
 
 **135 firmware IDs** are recognised: **4 tested** on real hardware (MSI Raider GE78HX / Vector GP78HX 13V/14V; MSI Crosshair A16 HX D7W/D8W; MSI Sword 16 HX B13V/B14V; MSI Raider GE67 HX 12U) and **131 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
 
