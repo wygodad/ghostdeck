@@ -366,9 +366,11 @@ public sealed class StatusPage : ThemedPage
         var rb = new Rectangle(Pad + avail - _histRange.Width, SecTop - 6, _histRange.Width, _histRange.Height);
         if (_histRange.Bounds != rb) _histRange.Bounds = rb;
         _histRange.BringToFront();
-        // size from the measured text (DPI-safe): at 125%+ the fixed 30 px row clipped the label
-        var esz = TextRenderer.MeasureText(_histExport.Text, _histExport.Font);
-        int ewW = esz.Width + 30, ewH = Math.Max(rb.Height, esz.Height + 12);
+        // Size from the control's own PreferredSize: TextRenderer.MeasureText(text, font) measured
+        // at 96 DPI under PerMonitorV2 and the label still clipped at 125/140% scale.
+        // PreferredSize is computed by WinForms against the control's real DPI, so it's authoritative.
+        var pref = _histExport.PreferredSize;
+        int ewW = pref.Width + 12, ewH = Math.Max(rb.Height, pref.Height + 2);
         var eb = new Rectangle(rb.Left - ewW - 10, rb.Top + (rb.Height - ewH) / 2, ewW, ewH);
         if (_histExport.Bounds != eb) _histExport.Bounds = eb;
         _histExport.BringToFront();
