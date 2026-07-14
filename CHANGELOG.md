@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.20.0] - 2026-07-14
 ### Added
 - **Settings export / import** (Settings → Backup): save all preferences (colours, hotkeys,
   rules, overlay, alerts) to a JSON file and restore them after a reinstall or on another
