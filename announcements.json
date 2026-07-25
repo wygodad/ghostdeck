@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v123-fps-sessions",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.22.9",
+    "title": "New release: FPS counter, game-session reports",
+    "title_pl": "Nowe wydanie: licznik FPS, raporty sesji gry",
+    "body": "GhostDeck v1.23 is out: FPS and frametime of any game measured driver-free (no injection, anti-cheat-safe), a new Status - Gaming tab with a live frametime chart, and a session report popup when a game exits - average FPS, 1% low, max temps and fan RPM together, with PNG save and JSON/CSV export. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.23: FPS i czas klatki dowolnej gry mierzone bez sterowników i wstrzykiwania (bezpieczne dla anty-cheatów), nowa zakładka Status - Gry z wykresem frametime na żywo oraz okienko raportu po zamknięciu gry - średnie FPS, 1% low, maksymalne temperatury i obroty wentylatorów razem, z zapisem PNG i eksportem JSON/CSV. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.23"
+  },
+  {
     "id": "2026-07-v122-refresh-switch",
     "severity": "info",
     "minVersion": "1.0.0",
