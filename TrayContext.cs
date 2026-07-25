@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.IO.Pipes;
 using System.Text.Json;
+using Microsoft.Win32;
 
 namespace GhostDeck;
 
@@ -37,6 +38,7 @@ public sealed class TrayContext : ApplicationContext
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
     private ToolStripMenuItem? _overlayLockItem;
+    private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
@@ -54,6 +56,11 @@ public sealed class TrayContext : ApplicationContext
         TrayIconFactory.Style = _settings.IconStyle;
 
         ChangeLog.Load();
+        GameSessions.Load();
+
+        FpsMonitor.StopOrphan();                   // clear an ETW session a crashed instance left behind
+        FpsMonitor.SessionEnded += OnGameSession;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
         _simulate = !string.IsNullOrEmpty(forced);
@@ -72,6 +79,11 @@ public sealed class TrayContext : ApplicationContext
         ApplyHotkeys();
 
         _lastPower = SystemInformation.PowerStatus.PowerLineStatus;
+        // Some ECs boot (or wake) in Super Battery instead of the last profile; opt-in restore
+        // brings back what the user actually chose. AC/battery auto-switch takes precedence.
+        if (_settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && AutoWritable &&
+            Enum.TryParse<ProfileId>(_settings.LastProfile, out var lastProf) && lastProf != _current)
+            SetProfile(lastProf, osd: false, ChangeSource.Restore, count: false);
         if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
         ApplyRefreshForPower(_lastPower.Value);   // align the panel with the current power source once at start
 
@@ -160,6 +172,7 @@ public sealed class TrayContext : ApplicationContext
                 {
                     HwSnapshot hw = default;
                     if (Known) { try { hw = Ec.ReadHw(_device!); } catch { } }
+                    var fs = FpsMonitor.Current;   // null unless the FPS monitor is on and a game presents
                     return "0|" + JsonSerializer.Serialize(new
                     {
                         running = true,
@@ -174,6 +187,9 @@ public sealed class TrayContext : ApplicationContext
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
                         refreshHz = Display.Current(),
+                        fps = fs is { } f1 ? f1.Fps : (int?)null,
+                        frameTimeMs = fs is { } f2 ? Math.Round(f2.FrameTimeMs, 1) : (double?)null,
+                        game = fs is { } f3 ? f3.Process : null,
                     });
                 }
                 case CliKind.Overlay:
@@ -504,6 +520,9 @@ public sealed class TrayContext : ApplicationContext
             if (id != _current && count) _switches++;
             _current = id;
             _profileSince = DateTime.Now;
+            // remember the deliberate choice (external syncs don't land here) for the
+            // startup / resume restore option
+            if (_settings.LastProfile != id.ToString()) { _settings.LastProfile = id.ToString(); _settings.Save(); }
             UpdateUi(id);
             if (osd) ShowOsd(id);
         }
@@ -673,12 +692,110 @@ public sealed class TrayContext : ApplicationContext
 
         if (_settings.OverlayEnabled != on) { _settings.OverlayEnabled = on; _settings.Save(); }
         UpdateOverlayMenu();
+        UpdateFpsActive();
         if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("overlay_title"),
             Lang.T(on ? "st_on" : "st_off"), Color.FromArgb(0x17, 0xC0, 0xEB));
     }
 
     // Re-read overlay options after the user edits them in Settings.
-    private void ApplyOverlaySettings() { _overlay?.ApplySettings(); UpdateOverlayMenu(); }
+    private void ApplyOverlaySettings() { _overlay?.ApplySettings(); UpdateOverlayMenu(); UpdateFpsActive(); }
+
+    // The ETW-based FPS monitor runs only while someone is looking: the overlay with an FPS metric
+    // enabled, or the Status → Gaming sub-tab. Off otherwise — zero idle cost by design.
+    private void UpdateFpsActive()
+    {
+        bool overlayWants = OverlayVisible &&
+            (_settings.HasMetric(OverlayMetric.Fps) || _settings.HasMetric(OverlayMetric.FrameTime));
+        FpsMonitor.SetActive(overlayWants || _statusWantsFps);
+    }
+
+    // Game-session summary: the FPS side comes from the monitor; the EC side (temps / fan RPM /
+    // profile) is read out of the HW-history ring for the session's timespan — the combination
+    // only GhostDeck has. Raised on a worker thread → marshal the UI bits.
+    private void OnGameSession(GameSession s)
+    {
+        int maxCpu = 0, maxGpu = 0; long rpmCpu = 0, rpmGpu = 0; int rpmN = 0;
+        var prof = new Dictionary<ProfileId, int>();
+        foreach (var h in HwHistory.Window(DateTime.Now - s.Start))
+        {
+            if (h.Time < s.Start || h.Time > s.End) continue;
+            maxCpu = Math.Max(maxCpu, h.CpuTemp);
+            maxGpu = Math.Max(maxGpu, h.GpuTemp);
+            if (h.CpuRpm > 0 || h.GpuRpm > 0) { rpmCpu += h.CpuRpm; rpmGpu += h.GpuRpm; rpmN++; }
+            prof[h.Profile] = prof.GetValueOrDefault(h.Profile) + 1;
+        }
+        var full = s with
+        {
+            MaxCpuTemp = maxCpu, MaxGpuTemp = maxGpu,
+            AvgCpuRpm = rpmN > 0 ? (int)(rpmCpu / rpmN) : 0,
+            AvgGpuRpm = rpmN > 0 ? (int)(rpmGpu / rpmN) : 0,
+            Profile = prof.Count > 0 ? Profiles.Get(prof.MaxBy(kv => kv.Value).Key).Label : "",
+        };
+        FpsMonitor.LastSession = full;
+        GameSessions.Add(full, _settings.GameSessionKeep);   // persisted picker on Status → Gaming
+        _ui?.Post(_ =>
+        {
+            string dur = FmtDur(full.End - full.Start);
+            string text = string.Format(Lang.T("gm_sess_text"), dur, full.AvgFps, full.P1LowFps);
+            if (full.MaxCpuTemp > 0) text += string.Format(Lang.T("gm_sess_ec"), full.MaxCpuTemp);
+            ChangeLog.Add(ChangeSource.Game, full.Process + "  ·  " + text);
+            if (_settings.SessionPopupEnabled) ShowSessionReport(full);
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }, null);
+    }
+
+    // ---- profile restore around sleep/hibernation ----
+    // Observed on the GE78HX: the EC sometimes comes back from S3/S4 in Super Battery on its own
+    // (no MSI software running). The poll's external sync would faithfully ADOPT that, so instead
+    // we remember the profile at suspend and re-assert it a few seconds after resume (opt-in).
+    private ProfileId? _profileBeforeSleep;
+
+    private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Suspend)
+        {
+            _profileBeforeSleep = Writable ? _current : null;
+            return;
+        }
+        if (e.Mode != PowerModes.Resume || _profileBeforeSleep is not { } want) return;
+        if (!_settings.RestoreProfileOnResume || _settings.AutoSwitchEnabled) return;   // auto-switch owns the choice
+        _ui?.Post(_ =>
+        {
+            // the EC needs a moment after wake; one delayed shot on the UI thread
+            var t = new System.Windows.Forms.Timer { Interval = 6000 };
+            t.Tick += (_, _) =>
+            {
+                t.Stop();
+                t.Dispose();
+                if (AutoWritable && !_settings.AutoSwitchEnabled)
+                    SetProfile(want, osd: true, ChangeSource.Restore, count: false);
+            };
+            t.Start();
+        }, null);
+    }
+
+    // The custom borderless report popup replaced the plain tray balloon (user request).
+    private SessionReportForm? _report;
+    private void ShowSessionReport(GameSession s)
+    {
+        try
+        {
+            if (_report is { IsDisposed: false }) _report.Close();
+            _report = new SessionReportForm(s, () =>
+            {
+                OpenMain(MainTab.Status);
+                if (_main is { IsDisposed: false }) _main.ShowStatusGaming();
+            }, _settings.SessionPopupSeconds);
+            _report.FormClosed += (_, _) => _report = null;
+            _report.Show();
+        }
+        catch { }
+    }
+
+    private static string FmtDur(TimeSpan t) =>
+        t.TotalHours >= 1 ? $"{(int)t.TotalHours} h {t.Minutes} min"
+        : t.TotalMinutes >= 1 ? $"{(int)t.TotalMinutes} min"
+        : $"{t.Seconds} s";
 
     // Snap the overlay to a screen corner (0=TL 1=TR 2=BL 3=BR); persists and re-applies.
     private void SnapOverlayCorner(int corner)
@@ -727,7 +844,8 @@ public sealed class TrayContext : ApplicationContext
             // overlay shows the app-managed limit: OFF unless we actively enforce 60/80/100
             // (the EC byte keeps the last value even when the app stops managing it)
             load, ramPct, ramUsed, _settings.ChargeLimit is 60 or 80 or 100 ? _settings.ChargeLimit : 0, batt, charging,
-            Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz());
+            Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
+            FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1);
     }
 
     private void ShowOsd(ProfileId id)
@@ -831,6 +949,7 @@ public sealed class TrayContext : ApplicationContext
             ApplyHotkeys(); BuildMenu(); UpdateUi(_current);
             // apply a just-edited refresh preference right away (no-op when disabled)
             ApplyRefreshForPower(SystemInformation.PowerStatus.PowerLineStatus);
+            GameSessions.ApplyLimit(_settings.GameSessionKeep);   // a lowered keep-count trims at once
         },
         StartReportWizard = OpenReport,
         SetChargeLimit = limit =>
@@ -851,6 +970,7 @@ public sealed class TrayContext : ApplicationContext
         SetOverlay = on => SetOverlay(on, osd: false),
         ApplyOverlaySettings = ApplyOverlaySettings,
         SnapOverlay = SnapOverlayCorner,
+        SetFpsViewer = on => { _statusWantsFps = on; UpdateFpsActive(); },
         WithEcWrite = act =>
         {
             if (Writable && !_simulate && _device != null)
@@ -1027,7 +1147,8 @@ public sealed class TrayContext : ApplicationContext
                 var hw = Ec.ReadHw(dev);
                 int load = SysInfo.CpuUsage();
                 HwHistory.Add(new HwSample(DateTime.Now, (short)hw.CpuTemp, (short)hw.GpuTemp,
-                    (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current));
+                    (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
+                    (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
             }
             catch { }
@@ -1119,10 +1240,13 @@ public sealed class TrayContext : ApplicationContext
     private void ExitApp()
     {
         _poll.Stop();
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        FpsMonitor.Shutdown();   // stop the ETW session (also flushes an open game session)
         _tray.Visible = false;
         _hotkeys.Dispose();
         _main?.Close();
         _overlay?.Close();
+        _report?.Close();
         _osd.Dispose();
         _tray.Dispose();
         _currentIcon?.Dispose();

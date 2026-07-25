@@ -3,11 +3,12 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-/// <summary>Where a profile / EC change came from (for the history log).</summary>
+/// <summary>Where a profile / EC change came from (for the history log).
+/// New members go at the END — the JSON file stores these as ints.</summary>
 public enum ChangeSource
 {
     Startup, Hotkey, Tray, Panel, AutoAc, FanCurve, ExternalSync,
-    ChargeLimit, CoolerBoost, Firmware, Test, Thermal, Cli, Display,
+    ChargeLimit, CoolerBoost, Firmware, Test, Thermal, Cli, Display, Game, Restore,
 }
 
 public sealed record LogEntry(DateTime Time, ChangeSource Source, string Detail, string Result);
@@ -100,6 +101,8 @@ public static class ChangeLog
         ChangeSource.Thermal      => Lang.T("log_src_thermal"),
         ChangeSource.Cli          => "CLI",
         ChangeSource.Display      => Lang.T("log_src_display"),
+        ChangeSource.Game         => Lang.T("log_src_game"),
+        ChangeSource.Restore      => Lang.T("log_src_restore"),
         _                         => s.ToString(),
     };
 

@@ -316,6 +316,13 @@ public sealed class MainForm : Form
         if (_pages.TryGetValue(MainTab.Report, out var p) && p is ReportPage rp) rp.SetSubTab(sub);
     }
 
+    /// <summary>Open Status on the Gaming sub-tab. Deep-linked from the session-report popup.</summary>
+    public void ShowStatusGaming()
+    {
+        ShowTab(MainTab.Status);
+        if (_pages.TryGetValue(MainTab.Status, out var p) && p is StatusPage sp) sp.ShowGaming();
+    }
+
     public void RefreshActive()
     {
         if (_pages.TryGetValue(_active, out var p) && p.Visible) p.LiveRefresh();

@@ -125,7 +125,11 @@ public sealed class FanCurvePage : ThemedPage
                         _loading = false;
                         if (c is { } v && v.cpuSpeed.Length == points)
                         {
-                            _cpuT = v.cpuTemp; _cpuS = v.cpuSpeed; _gpuT = v.gpuTemp; _gpuS = v.gpuSpeed;
+                            // Defensive clamp: some boards keep other units in (or near) these
+                            // tables — values over 100 pushed points off the plot and broke the
+                            // page's hit-testing (issue #28). The editor's world is 0-100 only.
+                            _cpuT = Clamp100(v.cpuTemp); _cpuS = Clamp100(v.cpuSpeed);
+                            _gpuT = Clamp100(v.gpuTemp); _gpuS = Clamp100(v.gpuSpeed);
                             _loaded = true;
                         }
                         Invalidate();
@@ -139,6 +143,13 @@ public sealed class FanCurvePage : ThemedPage
         RefreshMode();
         LayoutButtons();
         Invalidate();
+    }
+
+    private static int[] Clamp100(int[] a)
+    {
+        var r = new int[a.Length];
+        for (int i = 0; i < a.Length; i++) r[i] = Math.Clamp(a[i], 0, 100);
+        return r;
     }
 
     // ---------------- presets ----------------

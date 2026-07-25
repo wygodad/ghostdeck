@@ -15,6 +15,7 @@ public enum OverlayMetric
     Profile = 16, FanPct = 32, CoolerBoost = 64,
     CpuLoad = 128, Ram = 256, ChargeLimit = 512, Battery = 1024,
     GpuUsage = 2048, Vram = 4096, CpuClock = 8192,
+    Fps = 16384, FrameTime = 32768,
 }
 
 public sealed class HotkeyDef
@@ -99,8 +100,19 @@ public sealed class AppSettings
     public bool OverlayBgEnabled { get; set; } = true;                 // false = tlo wylaczone (czysty HUD, tylko napisy/ikony)
     public string OverlayBgColor { get; set; } = "#16181D";            // kolor tla nakladki
     public int OverlayMetrics { get; set; } = (int)(OverlayMetric.CpuTemp | OverlayMetric.GpuTemp |
-        OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram);
+        OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram |
+        OverlayMetric.Fps);
     public bool OverlayBoldText { get; set; } = true;                  // pogrubione etykiety (Segoe UI Semibold) dla czytelnosci przy malej skali
+    public bool FpsMetricSeeded { get; set; }                          // one-time: dosianie metryki FPS istniejacym uzytkownikom (bitmaska sprzed v1.23)
+
+    // ---- game-session report (Status -> Gaming + popup) ----
+    public bool SessionPopupEnabled { get; set; } = true;              // pokaz okienko podsumowania po zamknieciu gry
+    public int SessionPopupSeconds { get; set; } = 60;                 // czas widocznosci; 0 = az do zamkniecia krzyzykiem
+    public int GameSessionKeep { get; set; } = 10;                     // ile ostatnich sesji pamietamy (5-50)
+
+    // ---- profile restore (EC potrafi sam wskoczyc w Super Battery po wybudzeniu / hibernacji) ----
+    public bool RestoreProfileOnResume { get; set; }                   // opt-in: przywroc profil po wznowieniu i przy starcie
+    public string LastProfile { get; set; } = "";                      // ostatni profil ustawiony swiadomie (persist dla startu)
 
     // Reset just the Gaming-overlay settings to their defaults (leaves everything else untouched).
     public void RestoreOverlayDefaults()
@@ -208,10 +220,21 @@ public sealed class AppSettings
         MigrateTo("Overlay", 0x4F, "Ctrl+Shift+O", new[] { (CA, 0x4Fu), (CA, 0x47u), (WA, 0x47u) });
         MigrateTo("OverlayLock", 0x4C, "Ctrl+Shift+L", new[] { (CA, 0x4Cu), (WA, 0x4Cu) });
 
+        // One-time migration: settings saved before v1.23 carry an OverlayMetrics bitmask without
+        // the FPS bit, which would hide the new flagship metric (and never start the monitor from
+        // the overlay). Seed it once; the user can still untick it permanently afterwards.
+        if (!FpsMetricSeeded)
+        {
+            OverlayMetrics |= (int)OverlayMetric.Fps;
+            FpsMetricSeeded = true;
+        }
+
         // Sanity for hand-edited / imported files: keep the thermal-alert numbers in a sane band.
         if (TempAlertDegrees is < 60 or > 105) TempAlertDegrees = 90;
         if (TempAlertSeconds is < 3 or > 120) TempAlertSeconds = 10;
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
+        if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
+        if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
 
         // Curve presets sanity (hand-edited / imported files): no nameless or duplicate names,
         // never a Silent assignment (its power cap shares the fan byte), no dangling assignments.
@@ -272,6 +295,11 @@ public sealed class AppSettings
         OverlayX = src.OverlayX; OverlayY = src.OverlayY; OverlayMetrics = src.OverlayMetrics;
         OverlayBgEnabled = src.OverlayBgEnabled; OverlayBgColor = src.OverlayBgColor;
         OverlayBoldText = src.OverlayBoldText;
+        FpsMetricSeeded = src.FpsMetricSeeded || FpsMetricSeeded;
+        SessionPopupEnabled = src.SessionPopupEnabled;
+        SessionPopupSeconds = src.SessionPopupSeconds;
+        GameSessionKeep = src.GameSessionKeep;
+        RestoreProfileOnResume = src.RestoreProfileOnResume;
         CurvePresets.Clear();
         foreach (var p in src.CurvePresets) CurvePresets.Add(p.Clone());
         ProfileCurves.Clear();
@@ -331,6 +359,12 @@ public sealed class AppSettings
             OverlayX = OverlayX, OverlayY = OverlayY, OverlayMetrics = OverlayMetrics,
             OverlayBgEnabled = OverlayBgEnabled, OverlayBgColor = OverlayBgColor,
             OverlayBoldText = OverlayBoldText,
+            FpsMetricSeeded = FpsMetricSeeded,
+            SessionPopupEnabled = SessionPopupEnabled,
+            SessionPopupSeconds = SessionPopupSeconds,
+            GameSessionKeep = GameSessionKeep,
+            RestoreProfileOnResume = RestoreProfileOnResume,
+            LastProfile = LastProfile,
             WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();

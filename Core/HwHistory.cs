@@ -1,9 +1,10 @@
 namespace GhostDeck;
 
-/// <summary>One point of the local hardware history (temps in °C, fan duty in %, load in %).</summary>
+/// <summary>One point of the local hardware history (temps in °C, fan duty in %, load in %).
+/// Fps is the foreground game's FPS from <see cref="FpsMonitor"/>; -1 = monitor off / no game.</summary>
 public readonly record struct HwSample(
     DateTime Time, short CpuTemp, short GpuTemp, short CpuFan, short GpuFan,
-    int CpuRpm, int GpuRpm, short CpuLoad, ProfileId Profile = ProfileId.Balanced);
+    int CpuRpm, int GpuRpm, short CpuLoad, ProfileId Profile = ProfileId.Balanced, short Fps = -1);
 
 /// <summary>
 /// In-memory ring buffer of hardware samples fed by the tray poll (one sample every 3 s,
@@ -20,6 +21,9 @@ public static class HwHistory
     /// <summary>True once any sample carried a fan RPM (models without tach addresses never do).</summary>
     public static bool HasRpm { get; private set; }
 
+    /// <summary>True once any sample carried an FPS reading (needs the FPS monitor + a game).</summary>
+    public static bool HasFps { get; private set; }
+
     public static void Add(HwSample s)
     {
         lock (_lock)
@@ -28,6 +32,7 @@ public static class HwHistory
             _head = (_head + 1) % Cap;
             if (_count < Cap) _count++;
             if (s.CpuRpm > 0 || s.GpuRpm > 0) HasRpm = true;
+            if (s.Fps > 0) HasFps = true;
         }
     }
 

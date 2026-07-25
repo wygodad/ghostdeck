@@ -13,14 +13,16 @@ namespace GhostDeck;
 public sealed class OverlaySettingsPanel : Panel
 {
     private readonly MainDeps _d;
-    private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _optBold, _bgToggle;
+    private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _optBold, _bgToggle, _sessPopup;
     private readonly Slider _opacity, _scale, _bgOpacity;
     private readonly SegControl _layout, _opacityPre, _scalePre, _bgOpacityPre;
-    private readonly ComboBox _position;
+    private readonly ComboBox _position, _sessSecs, _sessKeep;
     private readonly Button _bgColor, _restore;
     private static readonly int[] OpacityPresets = { 60, 75, 90, 100 };
     private static readonly int[] ScalePresets = { 90, 100, 120, 140 };
     private static readonly int[] BgOpacityPresets = { 0, 40, 70, 100 };
+    private static readonly int[] SessSecsVals = { 20, 30, 40, 50, 60, 0 };   // 0 = until closed
+    private static readonly int[] SessKeepVals = { 5, 10, 20, 30, 40, 50 };
     private readonly List<(CheckItem item, OverlayMetric metric)> _metrics = new();
     private readonly List<(string text, Rectangle rect, int kind)> _texts = new();
     private readonly List<int> _dividers = new();
@@ -45,6 +47,8 @@ public sealed class OverlaySettingsPanel : Panel
             _metrics.Add((it, m));
             Controls.Add(it);
         }
+        AddMetric("ov_m_fps", OverlayMetric.Fps);
+        AddMetric("ov_m_frametime", OverlayMetric.FrameTime);
         AddMetric("ov_m_temp", OverlayMetric.CpuTemp | OverlayMetric.GpuTemp);
         AddMetric("ov_m_rpm", OverlayMetric.CpuRpm | OverlayMetric.GpuRpm);
         AddMetric("ov_m_profile", OverlayMetric.Profile);
@@ -122,6 +126,22 @@ public sealed class OverlaySettingsPanel : Panel
         };
         Controls.Add(_bgColor);
 
+        // Game-session report: popup after a game exits + how many sessions Status → Gaming keeps.
+        // Lives here (not under Notifications) because it belongs to the gaming feature set.
+        _sessPopup = new ToggleSwitch { Checked = s.SessionPopupEnabled };
+        _sessPopup.Toggled += v => { s.SessionPopupEnabled = v; d.SaveSettings(); };
+        Controls.Add(_sessPopup);
+        _sessSecs = new ThemedComboBox { Width = 190 };
+        _sessSecs.Items.AddRange(SessSecsVals.Select(x => (object)(x == 0 ? Lang.T("sess_always") : x + " s")).ToArray());
+        _sessSecs.SelectedIndex = Math.Max(0, Array.IndexOf(SessSecsVals, s.SessionPopupSeconds));
+        _sessSecs.SelectedIndexChanged += (_, _) => { s.SessionPopupSeconds = SessSecsVals[Math.Max(0, _sessSecs.SelectedIndex)]; d.SaveSettings(); };
+        Controls.Add(_sessSecs);
+        _sessKeep = new ThemedComboBox { Width = 190 };
+        _sessKeep.Items.AddRange(SessKeepVals.Select(x => (object)x.ToString()).ToArray());
+        _sessKeep.SelectedIndex = Math.Max(0, Array.IndexOf(SessKeepVals, s.GameSessionKeep));
+        _sessKeep.SelectedIndexChanged += (_, _) => { s.GameSessionKeep = SessKeepVals[Math.Max(0, _sessKeep.SelectedIndex)]; d.SaveSettings(); d.SettingsChanged(); };
+        Controls.Add(_sessKeep);
+
         _restore = new Button { Text = Lang.T("ov_restore"), AutoSize = false };
         Ui.StyleGhost(_restore);
         _restore.Click += (_, _) => { s.RestoreOverlayDefaults(); d.SaveSettings(); d.ApplyOverlaySettings(); RefreshFromSettings(); Relayout(_w); };
@@ -141,6 +161,9 @@ public sealed class OverlaySettingsPanel : Panel
         _bgToggle.Checked = s.OverlayBgEnabled;
         _bgOpacity.Value = s.OverlayBgOpacity; _bgOpacityPre.Selected = Array.IndexOf(BgOpacityPresets, s.OverlayBgOpacity);
         try { _bgColor.BackColor = ColorTranslator.FromHtml(s.OverlayBgColor); } catch { }
+        _sessPopup.Checked = s.SessionPopupEnabled;
+        _sessSecs.SelectedIndex = Math.Max(0, Array.IndexOf(SessSecsVals, s.SessionPopupSeconds));
+        _sessKeep.SelectedIndex = Math.Max(0, Array.IndexOf(SessKeepVals, s.GameSessionKeep));
     }
 
     // Fully DPI-aware: every offset is scaled by the current display scaling, and captions/labels are
@@ -229,8 +252,32 @@ public sealed class OverlaySettingsPanel : Panel
         OptRow(_optBold, Lang.T("ov_bold"));
         yR = oy;
 
+        // ---- game-session report section (full width, under both columns) ----
+        int sy = Math.Max(yL, yR) + Ceil(6 * k);
+        _dividers.Add(sy); sy += Ceil(16 * k);
+        _texts.Add((Lang.T("gm_sess_title"), new Rectangle(pad, sy, width - pad * 2, capH), 1));
+        sy += capH + capGap;
+        // what the feature does - without this nobody discovers the popup / session history
+        var descFont = new Font("Segoe UI", 9f);
+        int descW = width - pad * 2;
+        int descH = TextRenderer.MeasureText(Lang.T("set_sess_desc"), descFont, new Size(descW, 0),
+            TextFormatFlags.WordBreak).Height + Ceil(4 * k);
+        descFont.Dispose();
+        _texts.Add((Lang.T("set_sess_desc"), new Rectangle(pad, sy, descW, descH), 6));
+        sy += descH + Ceil(10 * k);
+        void SessRow(Control c, string label)
+        {
+            int rh = Math.Max(c.Height, capH);
+            c.Location = new Point(width - pad - c.Width, sy + (rh - c.Height) / 2);
+            _texts.Add((label, new Rectangle(pad, sy, width - pad * 2 - c.Width - Ceil(10 * k), rh), 5));
+            sy += rh + Ceil(12 * k);
+        }
+        SessRow(_sessPopup, Lang.T("set_sess_popup"));
+        SessRow(_sessSecs, Lang.T("set_sess_secs"));
+        SessRow(_sessKeep, Lang.T("set_sess_keep"));
+
         // restore-defaults button, bottom-right
-        int by = Math.Max(yL, yR) + Ceil(4 * k);
+        int by = sy + Ceil(4 * k);
         _restore.SetBounds(width - pad - Ceil(190 * k), by, Ceil(190 * k), Ceil(34 * k));
         Height = by + Ceil(34 * k) + pad;
         Invalidate();
@@ -289,6 +336,7 @@ public sealed class OverlaySettingsPanel : Panel
                 3 => (new Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
                 4 => (new Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Right),
                 5 => (new Font("Segoe UI", 10.5f), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis),
+                6 => (new Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak),
                 _ => (new Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
             };
             TextRenderer.DrawText(g, text, font, rect, color, flags);

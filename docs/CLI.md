@@ -62,7 +62,8 @@ that process).
   "cpuTemp": 52, "gpuTemp": 46,
   "cpuFan": 34,  "gpuFan": 0,
   "cpuRpm": 2450, "gpuRpm": 0,
-  "refreshHz": 240
+  "refreshHz": 240,
+  "fps": 143, "frameTimeMs": 7.0, "game": "witcher3"
 }
 ```
 
@@ -79,6 +80,7 @@ that process).
 | `cpuFan`, `gpuFan` | int | fan duty %, `0` = unknown/stopped |
 | `cpuRpm`, `gpuRpm` | int | real RPM, `0` = unknown or no tach registers on this model |
 | `refreshHz` | int | current refresh rate of the primary display, `0` = unknown |
+| `fps`, `frameTimeMs`, `game` | int? / float? / string? | foreground game via the ETW FPS monitor; `null` when the monitor is off (overlay hidden, Gaming tab closed) or no game is presenting. Only present when `running` is `true` |
 
 ## Recipes
 

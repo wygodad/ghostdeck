@@ -8,20 +8,22 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 > ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific - read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
-📋 **~135 MSI models recognised** - the GE78HX board (13V + 14V), the Crosshair A16 HX (D7W/D8W) and the Sword 16 HX (B13V/B14V) are confirmed on real hardware, the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+📋 **~135 MSI models recognised** - **12 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
 ## Features
 
 - 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**
 - ⌨️ Global, **rebindable** hotkeys (default `Ctrl+Alt+F1–F4`, `Ctrl+Alt+P` = cycle)
 - 🔔 On-screen overlay (OSD) on every profile change
-- 🎮 **Detachable gaming overlay (HUD)** - a small always-on-top panel with temps / fan RPM / profile / load / GPU% / VRAM / clocks / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
+- 🎮 **Detachable gaming overlay (HUD)** - a small always-on-top panel with **FPS / frametime**, temps / fan RPM / profile / load / GPU% / VRAM / clocks / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
+- 🎯 **FPS & frametime of any game** - measured **driver-free** from Windows' own ETW `Present` events (the same source Intel PresentMon uses): no DLL injection, nothing touches the game, **anti-cheat-safe**. Live FPS + frametime in the overlay, and a **Status → Gaming** tab with a 60 s frametime chart (stutter markers), 1% lows and a stutter counter. The monitor runs **only** while the overlay or the Gaming tab is open - zero idle cost
+- 🏁 **Game-session report** - when a game exits, GhostDeck pairs the FPS story with the EC story nobody else has: *"1 h 42 min · avg 87 FPS · 1% low 54 · CPU max 91 °C"* in a sleek **borderless popup** (frametime sparkline included) with one-click **save as PNG** and **data export (JSON/CSV)**, plus a summary card on Status → Gaming and a change-history entry
 - 🌍 **8 languages** - EN / PL / DE / FR / ES / 中文 / PT-BR / RU
 - 🎨 Custom color per profile
 - 📊 **Status** - live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH counters - no kernel driver, anti-cheat-safe)
 - 🌀 **Fan curve editor** - drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced - the app warns and switches for you
 - 🗂️ **Fan-curve presets** - save curves under a name, switch them from the editor or the tray menu, **assign a preset per profile** (auto-applied on every switch; Silent stays stock), and **export / import / share** presets as JSON - a Share button opens a prefilled GitHub Discussion with your model and curve
-- 📈 **History charts** - local trend of CPU/GPU temperature, fan duty and fan RPM over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
+- 📈 **History charts** - local trend of CPU/GPU temperature, fan duty, fan RPM and **game FPS** over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
 - ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on`, `--curve "<preset>"`, `--panic`, `--status` (JSON) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
 - 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
@@ -52,7 +54,9 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Auto-switch profile on AC / battery | ❌ | ✅ |
 | Auto refresh-rate switch on AC / battery | ❌ | ✅ *(any model)* |
 | On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
-| Detachable gaming overlay (HUD) | ❌ | ✅ *(temps / RPM / GPU% / VRAM / clocks / RAM / battery; card or bar)* |
+| Detachable gaming overlay (HUD) | ❌ | ✅ *(FPS / frametime / temps / RPM / GPU% / VRAM / clocks / RAM / battery; card or bar)* |
+| FPS + frametime counter (any game, no injection) | ❌ | ✅ *(ETW, anti-cheat-safe)* |
+| Game-session report (FPS + temps/fans together) | ❌ | ✅ *(on game exit)* |
 | Live EC profile-byte view / transparency | ❌ | ✅ |
 | Change & EC-write history log | ❌ | ✅ |
 | Temperature alert (threshold + duration) | ❌ | ✅ *(opt-in, OSD + tray)* |
@@ -70,7 +74,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 
 1. MSI Center only allows a custom fan curve in **Extreme**; this app runs one on **Balanced / Extreme / Super Battery**, fully reversible. **Silent** is a hardware exception: its power cap and the fan-curve mode share the same EC byte (`0xD4`), so enabling a curve in Silent necessarily switches the profile to Balanced (the app warns first).
 2. MSI Center's shortcuts are limited; here every hotkey is global and rebindable.
-3. Monitors CPU/GPU temperature, fan RPM, CPU & RAM usage via EC/WMI, plus GPU load %, VRAM, an approximate CPU clock and battery % via driver-free Windows PDH counters - not MSI Center's full telemetry.
+3. Monitors CPU/GPU temperature, fan RPM, CPU & RAM usage via EC/WMI, plus GPU load %, VRAM, an approximate CPU clock and battery % via driver-free Windows PDH counters, and game FPS / frametime via Windows ETW `Present` events - not MSI Center's full telemetry.
 4. MSI Center 2.0.x as the UWP app plus the files it installs to `C:\Program Files (x86)\MSI` on first launch.
 5. Self-contained single `.exe` - no installer, no background service, no separate .NET runtime.
 6. MSI Center shows an overlay for profile / Fn-key changes; this app shows one for **every** action it performs - profile switch **and** Fan Boost (and future functions) - so you always get feedback on what changed.
@@ -107,8 +111,8 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 
 | Tier | Models | EC firmware / registers | Fan curve |
 |---|---|---|---|
-| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V**, **Crosshair A16 HX**, **Sword 16 HX B13V/B14V**, **Raider GE67 HX 12U**, **Cyborg 15 A12VF** | `17S1IMS1.*`, `17S2IMS2.*`, `15PLIMS1.*`, `15P2EMS1.*`, `1545IMS1.*`, `15K1IMS1.*` - shift `0xD2` / fan `0xD4` | ✅ editable |
-| ⚗️ **G2 family** (~101) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
+| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V / Vector 17 HX A14V**, **Crosshair A16 HX**, **Sword 16 HX B13V/B14V**, **Raider GE67 HX 12U**, **Cyborg 15 A12VF**, **Thin GF63 12VE**, **Titan 18 HX Dragon Edition**, **Bravo 15 B7ED**, **Bravo 17 C7VE/D7VFK**, **GF63 Thin 11UC/11SC**, **Katana GF66 11UE/11UG**, **Pulse/Katana 17 B13V/GK** | `17S1IMS1.*`, `17S2IMS2.*`, `15PLIMS1.*`, `15P2EMS1.*`, `1545IMS1.*`, `15K1IMS1.*`, `16R8IMS1.*`, `1824EMS1.*`, `158PIMS1.*`, `17LNIMS1.*`, `16R6EMS1.*`, `1581EMS1.*`, `17L5EMS1.*` - shift `0xD2` / fan `0xD4` | ✅ editable |
+| ⚗️ **G2 family** (~94) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
 | ⚗️ **G1 family** (~33) | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | shift `0xF2` / fan `0xF4` / charge `0xEF` | - profiles only |
 
 The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; on experimental models the curve is editable once you opt in, but stays flagged **unverified** until you compare it with MSI Center on your own model. See the **[full per-firmware list of all ~135 models](docs/SUPPORTED_MODELS.md)** (source of truth: [`Devices.cs`](Core/Devices.cs)). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function - guessing it would be unsafe).

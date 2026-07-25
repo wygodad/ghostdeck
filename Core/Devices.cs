@@ -108,6 +108,8 @@ public static class Devices
             Name = "MSI Raider GE78HX 13V / 14V",     // 17S1IMS1 (13V, also Vector GP78HX 13V) + 17S2IMS2 (14V)
             // Same board & EC layout (per-scenario dumps 1:1). 14V (17S2IMS2) is owner-confirmed on real
             // hardware (profile switching works), so it shares Tier.Tested, not Experimental. See TECHNICAL §19.5.
+            // The Vector 17 HX A14V ships the same MS-17S2 board (17S2IMS2.112, issue #32): its owner's
+            // fan-curve wizard found the test curve at the shipped 0x72/0x8A — independent 14V confirmation.
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
             CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
@@ -168,11 +170,69 @@ public static class Devices
         // tables (0x69/0x72/0x81/0x8A) hold a valid ascending curve in the dump. Owner confirmed
         // all three hardware checks (Silent lowers power, Extreme unlocks, switching stable), so
         // Tier.Tested. Fan RPM: 0xC9 varies per scenario (9C/85/7D/7E ≈ 3000-3800 RPM), 0xCB = 00
-        // (dGPU fan idle at capture) — same layout as the other tested G2 boards. Curve addresses
-        // stay Verified:false until the owner runs the fan-curve wizard.
+        // (dGPU fan idle at capture) — same layout as the other tested G2 boards. Fan curve
+        // VERIFIED (issue #29): the owner ran the wizard and it found the test curve at exactly
+        // 0x72 (CPU) / 0x8A (GPU) — the shipped addresses. A second owner's capture (issue #31)
+        // independently matched the recipe 1:1.
         new() { Name = "MSI Cyborg 15 A12VF", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "hengeleng10-tech", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
+
+        // Thin GF63 12VE (16R8IMS1) — owner per-scenario dump (issue #21) matches StdRecipes 1:1:
+        // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
+        // (0x34 constant 00 — ignored). Fan RPM at 0xC9/0xCB (0xC9=A3 ≈ 2930 RPM in the capture,
+        // 0xCB=00 = second fan idle). Fan-curve wizard (issue #22): MSI Center exposes only Fan 1
+        // on this unit; the CPU test curve IS at the shipped 0x72 in the dump, but with no GPU
+        // curve to locate the wizard reports "not located" — stays Verified:false until the
+        // single-vs-dual-fan question is settled with the owner.
+        new() { Name = "MSI Thin GF63 12VE", FirmwarePrefixes = new[] { "16R8IMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "fwbvng", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/21" },
+
+        // Titan 18 HX Dragon Edition (1824EMS1) — owner per-scenario dump (issue #23) matches
+        // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
+        // Fan curve VERIFIED (issue #24): the wizard found the test curve at exactly 0x72 / 0x8A.
+        // Fan RPM at 0xC9/0xCB — both plausible in the capture (FB/F3 ≈ 1900-1970 RPM).
+        new() { Name = "MSI Titan 18 HX Dragon Edition", FirmwarePrefixes = new[] { "1824EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Mung-Bean-Monkey", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/23" },
+
+        // Bravo 15 B7ED (158PIMS1) — owner per-scenario dump (issue #25) confirms shift/fan 1:1
+        // (0xD2 C1/C1/C4/C2, 0xD4 1D/0D/0D/0D). Like the Crosshair (the other tested AMD board),
+        // 0xEB never leaves 00 → no super-battery register, hence null; the ECO shift (C2) still
+        // applies in Super Battery (the owner's capture shows SB moving 0xF5/F7/F9 instead).
+        new() { Name = "MSI Bravo 15 B7ED", FirmwarePrefixes = new[] { "158PIMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "AnyTw", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/25" },
+
+        // GF63 Thin 11UC / 11SC (16R6EMS1) — owner per-scenario dump (issue #30) matches
+        // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
+        new() { Name = "MSI GF63 Thin 11UC / 11SC", FirmwarePrefixes = new[] { "16R6EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Qaron-makaron", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/30" },
+
+        // Katana GF66 11UE / 11UG (1581EMS1) — owner per-scenario dump (issue #34) matches
+        // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
+        new() { Name = "MSI Katana GF66 11UE / 11UG", FirmwarePrefixes = new[] { "1581EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "mewmrow", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/34" },
+
+        // Bravo 17 C7VE / D7VFK (17LNIMS1) — owner per-scenario dump (issue #40, a D7VFK unit)
+        // matches shift/fan 1:1 (0xD2 C1/C1/C4/C2, 0xD4 1D/0D/0D/0D) and the owner confirmed all
+        // three hardware checks. Like the other AMD Bravos, 0xEB never leaves 00 → no
+        // super-battery register (null). Fan curve VERIFIED (issue #41): wizard found the test
+        // curve at exactly 0x72 / 0x8A.
+        new() { Name = "MSI Bravo 17 C7VE / D7VFK", FirmwarePrefixes = new[] { "17LNIMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "inokra", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/40" },
+
+        // Pulse/Katana 17 B13V/GK (17L5EMS1) — owner per-scenario dump (issue #38) matches
+        // StdRecipes 1:1. Fan curve VERIFIED (issue #39): the wizard found the test curve at
+        // exactly 0x72 / 0x8A. RPM left OFF: single-byte 0xC9 reads implausible here; the dump
+        // suggests 16-bit counters at 0xC8-0xC9 / 0xCA-0xCB (~1750/1530 RPM) — owner check first.
+        new() { Name = "MSI Pulse/Katana 17 B13V/GK", FirmwarePrefixes = new[] { "17L5EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "eaglent1", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/38" },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
@@ -226,15 +286,19 @@ public static class Devices
         new() { Name = "MSI Stealth 15M A11UEK",            FirmwarePrefixes = new[] { "1563EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator Z16 A11UE",             FirmwarePrefixes = new[] { "1571EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator Z16 A12U",              FirmwarePrefixes = new[] { "1572EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Katana GF66 11UE / 11UG",       FirmwarePrefixes = new[] { "1581EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 15 B12UEZ / B12UGSZ", FirmwarePrefixes = new[] { "1583EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF66 12U",               FirmwarePrefixes = new[] { "1584EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF66 12UDO",             FirmwarePrefixes = new[] { "1584IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator M16 B13VF",             FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 15 B12VEK / B12VFK / B12VGK", FirmwarePrefixes = new[] { "1585EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 15 HX B14WEK",           FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Bravo 15 C7V",                  FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Bravo 15 B7ED",                 FirmwarePrefixes = new[] { "158PIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
+        // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
+        // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register
+        // (null). Stays Experimental until the owner confirms the hardware checks.
+        new() { Name = "MSI Bravo 15 C7V", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "dmas-dll", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27" },
         new() { Name = "MSI Summit E16 Flip A11UCT",        FirmwarePrefixes = new[] { "1591EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E16 Flip A12UCT / A12MT", FirmwarePrefixes = new[] { "1592EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 Studio A13VE",      FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -255,9 +319,7 @@ public static class Devices
         new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Pulse 16 AI C1VGKG/C1VFKG",     FirmwarePrefixes = new[] { "15P3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 16 HX AI D2XW",       FirmwarePrefixes = new[] { "15P4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI GF63 Thin 11UC / 11SC",         FirmwarePrefixes = new[] { "16R6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Thin GF63 12VE",                FirmwarePrefixes = new[] { "16R8IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -273,10 +335,8 @@ public static class Devices
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 12UC",              FirmwarePrefixes = new[] { "17L4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Pulse/Katana 17 B13V/GK",       FirmwarePrefixes = new[] { "17L5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 17 B12UCXK",             FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 17 HX B14WGK",           FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Bravo 17 C7VE",                 FirmwarePrefixes = new[] { "17LNIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth GS76 11UG",             FirmwarePrefixes = new[] { "17M1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator 17 B11UE",              FirmwarePrefixes = new[] { "17M1EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator Z17 A12UGST",           FirmwarePrefixes = new[] { "17N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -286,7 +346,6 @@ public static class Devices
         new() { Name = "MSI Titan GT77HX 13VH",             FirmwarePrefixes = new[] { "17Q2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Sword 17 HX B14VGKG",           FirmwarePrefixes = new[] { "17T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Titan 18 HX A14V",              FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Titan 18 HX Dragon Edition",    FirmwarePrefixes = new[] { "1824EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Raider A18 HX A7VIG",           FirmwarePrefixes = new[] { "182KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Vector A18 HX A9WHG",           FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 

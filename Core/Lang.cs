@@ -318,6 +318,88 @@ public static class Lang
         ["mdl_c_thanks"]   = new[] { "Thanks", "Podziękowania", "Dank", "Merci", "Gracias", "致谢", "Agradecimentos", "Благодарности" },
         ["st_hist_export"] = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…" },
 
+        // ---- FPS / gaming (overlay metrics, Status → Gaming, game-session report) ----
+        ["ov_m_fps"]       = new[] { "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS" },
+        ["ov_m_frametime"] = new[] { "Frametime", "Czas klatki", "Frametime", "Temps d'image", "Tiempo de fotograma", "帧生成时间", "Tempo de quadro", "Время кадра" },
+        ["st_sub_gaming"]  = new[] { "Gaming", "Gry", "Gaming", "Jeu", "Juegos", "游戏", "Jogos", "Игры" },
+        ["st_hist_fps"]    = new[] { "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS" },
+        ["gm_game"]        = new[] { "Game: {0}", "Gra: {0}", "Spiel: {0}", "Jeu : {0}", "Juego: {0}", "游戏：{0}", "Jogo: {0}", "Игра: {0}" },
+        ["gm_none"]        = new[]
+        {
+            "No game detected. Start a game while this tab or the overlay is open and FPS appears automatically.",
+            "Nie wykryto gry. Uruchom grę przy otwartej tej zakładce lub włączonym overlay, a FPS pojawi się automatycznie.",
+            "Kein Spiel erkannt. Starte ein Spiel, während dieser Tab oder das Overlay offen ist - die FPS erscheinen automatisch.",
+            "Aucun jeu détecté. Lancez un jeu pendant que cet onglet ou l'overlay est ouvert - les FPS apparaissent automatiquement.",
+            "No se detectó ningún juego. Inicia un juego con esta pestaña o el overlay abiertos y los FPS aparecerán automáticamente.",
+            "未检测到游戏。在此标签页或悬浮窗打开时启动游戏，FPS 会自动显示。",
+            "Nenhum jogo detectado. Inicie um jogo com esta aba ou o overlay abertos e o FPS aparecerá automaticamente.",
+            "Игра не обнаружена. Запустите игру, пока открыта эта вкладка или оверлей - FPS появится автоматически."
+        },
+        ["gm_chart"]       = new[] { "Frametime — last 60 s", "Czas klatki — ostatnie 60 s", "Frametime — letzte 60 s", "Temps d'image — 60 dernières s", "Tiempo de fotograma — últimos 60 s", "帧生成时间 — 最近 60 秒", "Tempo de quadro — últimos 60 s", "Время кадра — последние 60 с" },
+        ["gm_chart_empty"] = new[] { "Waiting for frames…", "Czekam na klatki…", "Warte auf Frames…", "En attente d'images…", "Esperando fotogramas…", "等待帧数据…", "Aguardando quadros…", "Ожидание кадров…" },
+        ["gm_stut"]        = new[] { "Stutters", "Przycięcia", "Ruckler", "Saccades", "Tirones", "卡顿", "Engasgos", "Статтеры" },
+        ["gm_last"]        = new[] { "Last game session", "Ostatnia sesja gry", "Letzte Spielsitzung", "Dernière session de jeu", "Última sesión de juego", "上次游戏会话", "Última sessão de jogo", "Последняя игровая сессия" },
+        ["gm_last_none"]   = new[]
+        {
+            "Play for at least a minute — a summary lands here when the game exits.",
+            "Zagraj co najmniej minutę — podsumowanie pojawi się tu po zamknięciu gry.",
+            "Spiele mindestens eine Minute — die Zusammenfassung erscheint hier nach dem Beenden des Spiels.",
+            "Jouez au moins une minute — le résumé apparaît ici à la fermeture du jeu.",
+            "Juega al menos un minuto — el resumen aparecerá aquí al cerrar el juego.",
+            "至少游玩一分钟，游戏退出后摘要会显示在这里。",
+            "Jogue por pelo menos um minuto — o resumo aparece aqui quando o jogo fechar.",
+            "Поиграйте хотя бы минуту — сводка появится здесь после закрытия игры."
+        },
+        ["gm_game_lbl"]    = new[] { "Game", "Gra", "Spiel", "Jeu", "Juego", "游戏", "Jogo", "Игра" },
+        ["gm_dur"]         = new[] { "Duration", "Czas trwania", "Dauer", "Durée", "Duración", "时长", "Duração", "Длительность" },
+        ["gm_fps_row"]     = new[] { "avg {0} · min {1} · max {2}", "śr. {0} · min {1} · maks {2}", "Ø {0} · min {1} · max {2}", "moy. {0} · min {1} · max {2}", "med. {0} · mín {1} · máx {2}", "平均 {0} · 最低 {1} · 最高 {2}", "méd. {0} · mín {1} · máx {2}", "ср. {0} · мин {1} · макс {2}" },
+        ["gm_frames"]      = new[] { "Frames", "Klatki", "Frames", "Images", "Fotogramas", "帧数", "Quadros", "Кадры" },
+        ["gm_temp_max"]    = new[] { "Max temperature", "Maks. temperatura", "Max. Temperatur", "Température max", "Temperatura máx.", "最高温度", "Temperatura máx.", "Макс. температура" },
+        ["gm_rpm_avg"]     = new[] { "Avg fan RPM", "Śr. obroty (RPM)", "Ø Lüfter-RPM", "RPM moyen ventilos", "RPM medio ventilador", "平均风扇转速", "RPM médio ventoinha", "Ср. обороты (RPM)" },
+        ["gm_profile"]     = new[] { "Profile", "Profil", "Profil", "Profil", "Perfil", "配置文件", "Perfil", "Профиль" },
+        ["gm_sess_title"]  = new[] { "Game session", "Sesja gry", "Spielsitzung", "Session de jeu", "Sesión de juego", "游戏会话", "Sessão de jogo", "Игровая сессия" },
+        ["gm_sess_text"]   = new[] { "{0} · avg {1} FPS · 1% low {2}", "{0} · śr. {1} FPS · 1% low {2}", "{0} · Ø {1} FPS · 1% low {2}", "{0} · moy. {1} FPS · 1% low {2}", "{0} · med. {1} FPS · 1% low {2}", "{0} · 平均 {1} FPS · 1% low {2}", "{0} · méd. {1} FPS · 1% low {2}", "{0} · ср. {1} FPS · 1% low {2}" },
+        ["gm_sess_ec"]     = new[] { " · CPU max {0}°C", " · CPU maks. {0}°C", " · CPU max. {0}°C", " · CPU max {0}°C", " · CPU máx. {0}°C", " · CPU 最高 {0}°C", " · CPU máx. {0}°C", " · CPU макс. {0}°C" },
+        ["log_src_game"]   = new[] { "game", "gra", "Spiel", "jeu", "juego", "游戏", "jogo", "игра" },
+        ["log_src_restore"] = new[] { "restore", "przywracanie", "Wiederherstellung", "restauration", "restauración", "恢复", "restauração", "восстановление" },
+        ["set_sess_popup"] = new[] { "Game-session popup", "Okienko podsumowania sesji", "Sitzungs-Popup", "Fenêtre de résumé de session", "Ventana de resumen de sesión", "游戏会话弹窗", "Popup de resumo da sessão", "Окно сводки сессии" },
+        ["set_sess_desc"]  = new[]
+        {
+            "When a game exits, GhostDeck shows a summary popup: FPS, 1% low, temperatures and fan RPM, with one-click PNG save and JSON/CSV export. Recent sessions are kept in Status → Gaming, where you can browse and export them later.",
+            "Po zamknięciu gry GhostDeck pokazuje okienko z podsumowaniem: FPS, 1% low, temperatury i obroty wentylatorów, z zapisem PNG i eksportem JSON/CSV jednym kliknięciem. Ostatnie sesje znajdziesz w Status → Gry, gdzie można je przeglądać i eksportować.",
+            "Beim Beenden eines Spiels zeigt GhostDeck ein Zusammenfassungs-Popup: FPS, 1% low, Temperaturen und Lüfterdrehzahl, mit PNG-Speicherung und JSON/CSV-Export per Klick. Die letzten Sitzungen bleiben unter Status → Gaming zum Ansehen und Exportieren.",
+            "À la fermeture d'un jeu, GhostDeck affiche un résumé : FPS, 1% low, températures et RPM des ventilateurs, avec enregistrement PNG et export JSON/CSV en un clic. Les sessions récentes restent dans Statut → Jeu pour les consulter et les exporter.",
+            "Al cerrar un juego, GhostDeck muestra una ventana de resumen: FPS, 1% low, temperaturas y RPM de los ventiladores, con guardado PNG y exportación JSON/CSV con un clic. Las sesiones recientes quedan en Estado → Juegos para verlas y exportarlas.",
+            "游戏退出时，GhostDeck 会显示会话摘要弹窗：FPS、1% low、温度和风扇转速，可一键保存 PNG 或导出 JSON/CSV。最近的会话保存在 状态 → 游戏 中，可随时查看和导出。",
+            "Ao fechar um jogo, o GhostDeck mostra um popup de resumo: FPS, 1% low, temperaturas e RPM das ventoinhas, com salvamento em PNG e exportação JSON/CSV em um clique. As sessões recentes ficam em Status → Jogos para consulta e exportação.",
+            "После закрытия игры GhostDeck показывает окно сводки: FPS, 1% low, температуры и обороты вентиляторов, с сохранением PNG и экспортом JSON/CSV в один клик. Последние сессии хранятся в Статус → Игры, где их можно просматривать и экспортировать."
+        },
+        ["set_sess_secs"]  = new[] { "Popup visible for", "Czas widoczności okienka", "Popup sichtbar für", "Durée d'affichage", "Duración del popup", "弹窗显示时长", "Duração do popup", "Время показа окна" },
+        ["sess_always"]    = new[] { "Until closed", "Aż do zamknięcia", "Bis zum Schließen", "Jusqu'à fermeture", "Hasta cerrarla", "直到关闭", "Até fechar", "До закрытия" },
+        ["set_sess_keep"]  = new[] { "Remembered game sessions", "Zapamiętane sesje gier", "Gespeicherte Spielsitzungen", "Sessions de jeu mémorisées", "Sesiones de juego guardadas", "保存的游戏会话数", "Sessões de jogo guardadas", "Сохранённые игровые сессии" },
+        ["set_restore_profile"] = new[]
+        {
+            "Restore profile after wake / at startup",
+            "Przywracaj profil po wybudzeniu i przy starcie",
+            "Profil nach Aufwachen / beim Start wiederherstellen",
+            "Restaurer le profil après réveil / au démarrage",
+            "Restaurar perfil al despertar / al iniciar",
+            "唤醒 / 启动时恢复配置文件",
+            "Restaurar perfil ao acordar / ao iniciar",
+            "Восстанавливать профиль после пробуждения / при запуске"
+        },
+        ["st_hist_fps_hint"] = new[]
+        {
+            "Fills in while a game is running (open the Gaming tab or the overlay to start the FPS monitor).",
+            "Wypełnia się, gdy działa gra (otwórz zakładkę Gry albo overlay, by uruchomić monitor FPS).",
+            "Füllt sich, während ein Spiel läuft (öffne den Gaming-Tab oder das Overlay, um den FPS-Monitor zu starten).",
+            "Se remplit pendant qu'un jeu tourne (ouvrez l'onglet Jeu ou l'overlay pour démarrer le moniteur FPS).",
+            "Se llena mientras un juego está en marcha (abre la pestaña Juegos o el overlay para iniciar el monitor de FPS).",
+            "游戏运行时填充（打开游戏标签页或悬浮窗以启动 FPS 监视器）。",
+            "Preenche-se enquanto um jogo está em execução (abra a aba Jogos ou o overlay para iniciar o monitor de FPS).",
+            "Заполняется, пока запущена игра (откройте вкладку Игры или оверлей, чтобы запустить монитор FPS)."
+        },
+
         // ---- display refresh-rate auto-switch (discussion #18) ----
         ["set_refresh_toggle"] = new[] { "Switch refresh rate on AC / battery", "Przełączaj odświeżanie przy AC / baterii", "Bildwiederholrate bei Netz / Akku umschalten", "Changer la fréquence sur secteur / batterie", "Cambiar la frecuencia con CA / batería", "接通/电池时切换刷新率", "Alternar taxa de atualização na CA / bateria", "Переключать частоту при сети / батарее" },
         ["set_refresh_ac"]     = new[] { "Refresh on AC", "Odświeżanie na zasilaczu", "Frequenz am Netz", "Fréquence sur secteur", "Frecuencia con CA", "接通电源时刷新率", "Taxa na CA", "Частота от сети" },

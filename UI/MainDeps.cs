@@ -29,4 +29,5 @@ public sealed class MainDeps
     public required Action<bool> SetOverlay { get; init; }
     public required Action ApplyOverlaySettings { get; init; }   // re-read overlay options after a settings edit
     public required Action<int> SnapOverlay { get; init; }       // 0=TL 1=TR 2=BL 3=BR — snap overlay to a screen corner
+    public required Action<bool> SetFpsViewer { get; init; }     // Status → Gaming visible: keeps FpsMonitor running
 }

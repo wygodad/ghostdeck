@@ -12,7 +12,8 @@ public readonly record struct OverlaySample(
     int CpuTemp, int GpuTemp, int CpuRpm, int GpuRpm, int CpuFanPct, int GpuFanPct,
     int CpuLoad, int RamPct, double RamUsedGb, int ChargeLimit,
     int BatteryPct, bool Charging,
-    int GpuUsage, int VramMb, int CpuClock);
+    int GpuUsage, int VramMb, int CpuClock,
+    int Fps = -1, double FrameMs = -1);   // foreground game via FpsMonitor; -1 = no game / monitor off
 
 /// <summary>
 /// Detachable, always-on-top mini status panel for gaming: temps / fan RPM / profile / load, in a
@@ -22,7 +23,7 @@ public readonly record struct OverlaySample(
 /// </summary>
 public sealed class OverlayForm : Form
 {
-    private enum IconKind { None, Cpu, Gpu, Fan, Load, Ram, Charge }
+    private enum IconKind { None, Cpu, Gpu, Fan, Load, Ram, Charge, Fps }
 
     private readonly AppSettings _settings;
     private readonly Func<OverlaySample> _sampler;
@@ -132,6 +133,9 @@ public sealed class OverlayForm : Form
         var st = _settings;
         var list = new List<(IconKind, string, string)>();
         void Add(OverlayMetric m, IconKind ic, string label, string value) { if (st.HasMetric(m)) list.Add((ic, label, value)); }
+        // FPS metrics lead the list — they're the reason the overlay is on screen during a game.
+        Add(OverlayMetric.Fps, IconKind.Fps, "FPS", _s.Fps >= 0 ? _s.Fps.ToString() : "--");
+        Add(OverlayMetric.FrameTime, IconKind.Fps, "Frame", _s.FrameMs > 0 ? $"{_s.FrameMs:0.0} ms" : "--");
         Add(OverlayMetric.CpuTemp, IconKind.Cpu, "CPU", _s.Known ? $"{_s.CpuTemp}°" : "--");
         Add(OverlayMetric.GpuTemp, IconKind.Gpu, "GPU", _s.Known ? $"{_s.GpuTemp}°" : "--");
         Add(OverlayMetric.CpuRpm, IconKind.Fan, "CPU fan", _s.CpuRpm > 0 ? $"{_s.CpuRpm}" : "--");
@@ -456,6 +460,13 @@ public sealed class OverlayForm : Form
                 g.DrawRectangle(pen, bat.X, bat.Y, bat.Width, bat.Height);
                 g.FillRectangle(br, bat.Right + w * 0.02f, bat.Y + bat.Height * 0.28f, w * 0.06f, bat.Height * 0.44f);
                 g.FillRectangle(br, bat.X + bat.Width * 0.14f, bat.Y + bat.Height * 0.24f, bat.Width * 0.5f, bat.Height * 0.52f);
+                break;
+            case IconKind.Fps:
+                // speedometer: lower arc + needle pointing upper-right
+                float sx = x + w / 2, sy = y + h * 0.58f, sr = Math.Min(w, h) * 0.38f;
+                g.DrawArc(pen, sx - sr, sy - sr, sr * 2, sr * 2, 150, 240);
+                g.DrawLine(pen, sx, sy, sx + sr * 0.62f, sy - sr * 0.62f);
+                g.FillEllipse(br, sx - sr * 0.14f, sy - sr * 0.14f, sr * 0.28f, sr * 0.28f);
                 break;
         }
     }

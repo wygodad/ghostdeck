@@ -827,3 +827,90 @@ Wiring: `AppSettings.RefreshSwitchEnabled` (opt-in) + `RefreshOnAC` / `RefreshOn
 every AC/battery transition (in `Poll`, deliberately **before** the `Writable` early-return),
 once at startup, and after a settings edit (`SettingsChanged`). Each switch shows an OSD toast
 ("240 Hz → 60 Hz") and logs a `Display`-source entry. `--status` (CLI) reports `refreshHz`.
+
+## 29. FPS / frametime monitor and game-session reports (v1.23)
+
+**Goal:** FPS and frametime of any game with zero footprint inside the game. **How:** a private
+real-time **ETW session** (`Core/FpsMonitor.cs`, session name `GhostDeck-Present`) enabling two
+user-mode providers - `Microsoft-Windows-DXGI` `{CA11C036-0102-4A2D-A6AD-F03CFED5D3C9}` (event 42
+= `IDXGISwapChain::Present` start) and `Microsoft-Windows-D3D9` `{783ACA0A-790E-4D7F-8451-AA850511C6B9}`
+(event 1) - and counting Present-start events per PID. This is the same source Intel PresentMon
+uses. Raw P/Invoke to `advapi32` (`StartTraceW` / `EnableTraceEx2` / `OpenTraceW` / `ProcessTrace`),
+**no NuGet dependency** (TraceEvent was rejected: a large package with native sub-dependencies
+that would complicate the single-file publish), the same hand-rolled philosophy as `Perf.cs`.
+
+**Design decisions:**
+- **User-mode only, no injection.** ETW is a passive, official OS mechanism (PresentMon, CapFrameX
+  and the Xbox Game Bar do the same), so it is anti-cheat-safe by construction - consistent with
+  §21's "no kernel driver" rule. Hooking `Present` RTSS-style was rejected outright.
+- **Runs only while watched.** `TrayContext.UpdateFpsActive()` starts the session when the overlay
+  is visible with an FPS/frametime metric enabled, or when Status → Gaming is open
+  (`MainDeps.SetFpsViewer`); it stops otherwise. Idle cost of the feature: zero.
+- **Session hygiene.** ETW sessions outlive their process. `FpsMonitor.StopOrphan()` issues
+  `ControlTrace(STOP)` by name at app start, and `StartSession` stops/retries on
+  `ERROR_ALREADY_EXISTS` - a crashed instance can never wedge the feature.
+- **QPC timestamps** (`Wnode.ClientContext = 1`) so frame deltas use `Stopwatch.Frequency`.
+  `FlushTimer = 1` keeps real-time delivery within ~1 s.
+- **Overlay follows the foreground PID** (`GetForegroundWindow` each 1 s tick); alt-tab shows "--"
+  honestly. **Sessions are keyed by PID** and keep counting in the background, so alt-tabbing
+  never splits a game session.
+- **Session = sustained presenting.** A foreground PID that presents ≥ 5 FPS for 10 consecutive
+  seconds is promoted; browsers / explorer / dwm / GhostDeck itself are excluded by process name
+  (a YouTube tab presents 60 fps for hours and would otherwise "end a game session" on close).
+  Reports require ≥ 45 s and ≥ 500 frames.
+- **Metrics:** FPS = presents in the last second; frametime = average delta over that second;
+  1% low = 1000 / p99 frametime over a rolling 30 s window (session-wide from a 0.25 ms-bucket
+  histogram, so long sessions stay O(1) memory); stutter = frame > max(25 ms, 2× median).
+  Present-start counting measures the *presented* rate (PresentMon's displayed-vs-dropped state
+  machine is deliberately out of scope - irrelevant at overlay granularity).
+
+**Surfaces:** overlay metrics `OverlayMetric.Fps` / `FrameTime` (FPS on by default for new
+installs); Status → Gaming sub-tab (live boxes: FPS / frametime / 1% low / stutters; 60 s
+frametime chart - per-2-px buckets, average line + red dots where the bucket max crosses the
+stutter threshold, dashed median; last-session card); `HwSample.Fps` (-1 = no reading) feeding a
+fourth History chart + CSV/JSON export column; CLI `--status` fields `fps` / `frameTimeMs` /
+`game` (null when the monitor is off); ChangeLog source `Game` (enum **appended at the end** -
+the JSON log stores ints).
+
+**Game-session report:** `FpsMonitor` raises `SessionEnded` (worker thread) when a tracked
+process exits; `TrayContext.OnGameSession` enriches the FPS summary with the EC side from the
+`HwHistory` ring over the session's timespan (max CPU/GPU temp, average fan RPM, dominant
+profile) - the FPS+EC pairing no plain FPS overlay can produce - then (on the UI thread) shows
+the report popup, logs a `Game` entry and stores `FpsMonitor.LastSession` for the Gaming card.
+The ring holds 60 min, so longer sessions summarise the last hour of EC data.
+
+**Report popup (`Forms/SessionReportForm.cs`):** replaced the tray balloon (user request). A
+borderless, per-pixel layered window (same UpdateLayeredWindow technique as the overlay), design
+mixed from the mockup set: flat left edge with a cyan-to-violet gradient rail, square left /
+rounded right corners, thin border on the other three sides, W4 speech-bubble tail aiming at the
+tray, GhostDeck wordmark ("Deck" in accent cyan) and a "//SESSION-END" tag (deliberately
+untranslated, like CLI output). Content: game + duration, four stat tiles (avg FPS / 1% low /
+CPU max / fan RPM), a frametime sparkline with stutter dots (GameSession.Spark/SparkPeak - 120
+averaged/peak buckets of the session's closing 30 s window, built in FinalizeDeadLocked), and
+three actions: save the card as PNG (screenshot mode re-renders the same bitmap without buttons
+/ tail / countdown), export the session as JSON (includes the spark series) or CSV, close.
+Clicking the body deep-links to Status -> Gaming (MainForm.ShowStatusGaming -> SubTabs.SetActive).
+Auto-hides after 60 s (countdown bar along the bottom edge, paused while hovered or while a save
+dialog is open) and can be grabbed and dragged anywhere (a real move suppresses the body-click
+action). WS_EX_NOACTIVATE - never steals focus from a game. Any deliberate interaction
+(drag, PNG, export, the Gaming deep-link button) PINS the popup - the countdown (top edge, so
+it never crosses the tail) stops and only the close button dismisses it. Visibility time and
+an on/off switch live in Settings -> Notifications (20-60 s or 0 = until closed).
+
+**Session store (`Core/GameSessions.cs`):** finished sessions persist to `sessions.json`
+(newest first, trimmed to Settings -> Notifications "remembered sessions", 5-50, default 10).
+Status -> Gaming shows a picker + per-session JSON/CSV export; the JSON/CSV serialisation is
+shared with the popup (`GameSessions.ToJson/ToCsv/ExportWithDialog`).
+
+## 30. Profile restore around sleep / startup (v1.23, opt-in)
+
+Observed on the GE78HX: the EC sometimes comes back from S3/hibernation - and occasionally from
+a cold boot - in **Super Battery** on its own, with no MSI software running. The poll's external
+sync then faithfully ADOPTS that state (by design: don't fight external changes), which looks
+like "the app switched by itself". Fix: `AppSettings.RestoreProfileOnResume` (Settings -> Power,
+default OFF). The tray remembers the profile at `PowerModes.Suspend`, and 6 s after `Resume`
+(EC needs a moment) re-asserts it via the normal `SetProfile` path (`ChangeSource.Restore`).
+The last deliberate profile also persists (`AppSettings.LastProfile`, written on every
+`SetProfile` - external syncs never land there) and is re-applied once at startup. Both paths
+are skipped when the AC/battery auto-switch is enabled (it owns the choice) and both respect
+`AutoWritable` (firmware guard).

@@ -152,6 +152,11 @@ public sealed class SettingsPage : ThemedPage
         rBat.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnBattery = rBat.SelectedIndex <= 0 ? 0 : rates[rBat.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
         power.AddRow(Lang.T("set_refresh_batt"), rBat);
         if (rates.Count == 0) rAc.Enabled = rBat.Enabled = false;   // enumeration failed - leave visible but inert
+
+        // Some ECs wake from sleep/hibernation in Super Battery on their own — opt-in restore of
+        // the chosen profile after resume and at startup (skipped while auto-switch manages profiles).
+        power.AddRow(Lang.T("set_restore_profile"), Toggle(D.Settings.RestoreProfileOnResume,
+            v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
         _right.Add(power);
 
         // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
@@ -173,6 +178,7 @@ public sealed class SettingsPage : ThemedPage
         osdCombo.SelectedIndexChanged += (_, _) => { D.Settings.OsdSeconds = osdVals[Math.Max(0, osdCombo.SelectedIndex)]; D.SaveSettings(); D.SettingsChanged(); };
         alerts.AddRow(Lang.T("set_osd_secs"), osdCombo);
         _right.Add(alerts);
+        // (the game-session report options live in the Gaming-overlay panel, next to the feature)
 
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));

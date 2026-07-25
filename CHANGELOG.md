@@ -3,6 +3,46 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.23.0] - 2026-07-26
+### Added
+- **Seven more models verified on real hardware** - thank you, reporters! Thin GF63 12VE
+  ([#21](../../issues/21), incl. fan-RPM readout), Titan 18 HX Dragon Edition
+  ([#23](../../issues/23) / [#24](../../issues/24), incl. RPM and a verified fan curve),
+  Bravo 15 B7ED ([#25](../../issues/25)), Bravo 17 C7VE/D7VFK ([#40](../../issues/40) /
+  [#41](../../issues/41), verified fan curve), GF63 Thin 11UC/11SC ([#30](../../issues/30)),
+  Katana GF66 11UE/11UG ([#34](../../issues/34)), Pulse/Katana 17 B13V/GK
+  ([#38](../../issues/38) / [#39](../../issues/39), verified fan curve). Fan-curve addresses
+  also verified on the Cyborg 15 A12VF ([#29](../../issues/29)) and the Bravo 15 C7V
+  ([#27](../../issues/27)); the AMD Bravos drop the no-op super-battery write (no `0xEB`
+  register on those boards, same as the Crosshair). That's **12 tested models** now.
+- **FPS & frametime of any game, driver-free** - a private ETW session listens to Windows' own
+  `Present` events (the same source Intel PresentMon uses): no DLL injection, nothing touches the
+  game, anti-cheat-safe. New **FPS** and **Frametime** overlay metrics (FPS on by default), and
+  the monitor runs only while the overlay or the new Gaming tab is open - zero idle cost.
+- **Status → Gaming sub-tab** - live FPS / frametime / 1% low / stutter boxes, a 60 s frametime
+  chart with stutter markers and a median line, plus a card with the last game session.
+- **Game-session report** - when a game exits: a borderless summary popup (game, duration,
+  avg FPS / 1% low / max temp / fan RPM, frametime sparkline with stutter dots) pairing the FPS
+  stats with the EC data that only GhostDeck sees, plus a change-history entry. The popup can
+  **save itself as a PNG**, **export the session data as JSON/CSV** or jump to Status → Gaming;
+  it never steals focus, can be **dragged anywhere**, and hides after a configurable time
+  (Settings → Notifications: 20-60 s or "until closed") - any interaction pins it until the ✕.
+- **Saved game sessions** - the last 5-50 sessions (Settings → Notifications, default 10) are
+  kept on disk; Status → Gaming gets a **session picker** (newest first) with per-session
+  **JSON/CSV export**.
+- **History niceties** - the FPS chart is now always present (with a hint explaining it fills
+  while a game runs), and hovering any History chart shows a translucent **value bubble** at
+  the cursor; the frametime chart on Gaming got a legend.
+- **Restore profile after wake** *(opt-in, Settings → Power)* - some ECs wake from sleep or
+  hibernation in Super Battery on their own; this option re-asserts the profile you chose a few
+  seconds after resume and at app start (skipped while AC/battery auto-switch is on).
+- **FPS in History** - a fourth chart on Status → History and an `fps` column in the CSV/JSON
+  export (`-1` = no reading). `--status` (CLI) now also reports `fps`, `frameTimeMs` and `game`.
+### Fixed
+- **Export button on Status → History grew a few pixels on every chart refresh** (its measured
+  size fed back into itself); it is now measured against the DPI-aware canvas, which also keeps
+  the label intact at 125-150% display scale.
+
 ## [1.22.0] - 2026-07-15
 ### Added
 - **Refresh-rate auto-switch** (Settings → Power, opt-in): pick a preferred display refresh
