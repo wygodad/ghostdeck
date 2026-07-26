@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v1231-single-fan",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.23.0",
+    "title": "Update: proper support for single-fan-curve models",
+    "title_pl": "Aktualizacja: właściwa obsługa modeli z jedną krzywą wentylatora",
+    "body": "GhostDeck v1.23.1: boards where MSI Center shows a single fan slider (e.g. Thin GF63 12VE) now get one full-width curve editor, the unused GPU tables are never written, and the fan-curve wizard reports each fan separately. Click Details for more.",
+    "body_pl": "GhostDeck v1.23.1: płyty, na których MSI Center pokazuje jeden suwak wentylatora (np. Thin GF63 12VE), mają teraz jeden pełnowymiarowy edytor krzywej, nieużywane tabele GPU nie są zapisywane, a kreator weryfikacji raportuje każdy wentylator osobno. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.23.1"
+  },
+  {
     "id": "2026-07-v123-fps-sessions",
     "severity": "info",
     "minVersion": "1.0.0",
