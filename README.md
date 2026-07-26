@@ -132,7 +132,7 @@ GhostDeck.exe --fanboost on           # full fan speed (off restores the profile
 GhostDeck.exe --curve "My quiet"      # apply a saved fan-curve preset ("auto" = stock fans)
 GhostDeck.exe --overlay on            # gaming overlay (needs the app running)
 GhostDeck.exe --panic                 # safe state: Fan Boost off, Balanced, fans auto
-GhostDeck.exe --status                # current state as JSON
+GhostDeck.exe --status                # current state as JSON (profile, temps, fans/RPM, refresh rate, game FPS)
 ```
 
 If the tray app is running, the command is executed by it (with the exact same safety gates as the UI - tier, experimental opt-in); otherwise a one-shot mode talks to the EC directly and exits. Exit codes: `0` OK, `1` failed, `2` bad usage.
