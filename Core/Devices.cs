@@ -181,12 +181,13 @@ public static class Devices
         // Thin GF63 12VE (16R8IMS1) — owner per-scenario dump (issue #21) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
         // (0x34 constant 00 — ignored). Fan RPM at 0xC9/0xCB (0xC9=A3 ≈ 2930 RPM in the capture,
-        // 0xCB=00 = second fan idle). Fan-curve wizard (issue #22): MSI Center exposes only Fan 1
-        // on this unit; the CPU test curve IS at the shipped 0x72 in the dump, but with no GPU
-        // curve to locate the wizard reports "not located" — stays Verified:false until the
-        // single-vs-dual-fan question is settled with the owner.
+        // 0xCB=00 = second fan idle). Fan curve VERIFIED for the CPU table (issue #22): the test
+        // curve was found at exactly the shipped 0x72; this is a SINGLE-CURVE board — the owner
+        // confirms MSI Center has always shown one fan slider (cross-checked with YAMDCC, it is
+        // the CPU fan), so the wizard's "not located" was just the missing Fan 2. The GPU table
+        // at 0x8A holds the family-standard layout; writing it appears to be a no-op here.
         new() { Name = "MSI Thin GF63 12VE", FirmwarePrefixes = new[] { "16R8IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "fwbvng", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/21" },
 
         // Titan 18 HX Dragon Edition (1824EMS1) — owner per-scenario dump (issue #23) matches

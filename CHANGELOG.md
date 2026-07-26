@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Thin GF63 12VE: fan-curve addresses verified** ([#22](../../issues/22)) - the owner confirmed
+  this is a single-curve board (MSI Center exposes one fan slider, the CPU fan) and the test
+  curve was found at the shipped `0x72`, so the editor's "unverified" tag is gone.
+
 ## [1.23.0] - 2026-07-26
 ### Added
 - **Seven more models verified on real hardware** - thank you, reporters! Thin GF63 12VE
