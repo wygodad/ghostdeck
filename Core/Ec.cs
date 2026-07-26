@@ -138,7 +138,9 @@ public static class Ec
                 WriteWith(inst, pkg, (byte)(baseAddr + i), (byte)Math.Clamp(vals[i], 0, 255));
         }
         W(fc.CpuTempBase, cpuTemp); W(fc.CpuSpeedBase, cpuSpeed);
-        W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed);
+        // single-curve boards (e.g. GF63 12VE): the GPU tables are a dead field the firmware
+        // never reads - don't write them at all
+        if (!fc.SingleFan) { W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed); }
     }
 
     public static void SetFanMode(DeviceProfile dev, byte value)

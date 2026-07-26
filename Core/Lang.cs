@@ -153,6 +153,28 @@ public static class Lang
             "No se pudo localizar la curva de prueba. Envía el volcado de todos modos para mapearla (¿guardaste en MSI Center?).", "未能定位测试曲线。仍请发送转储以便我们映射（是否在 MSI Center 点击了 Save？）。",
             "Não foi possível localizar a curva de teste. Envie o despejo mesmo assim para mapearmos (você clicou em Save no MSI Center?).", "Не удалось найти тестовую кривую. Всё равно отправьте дамп, чтобы мы её сопоставили (нажали Save в MSI Center?)."
         },
+        ["rep_curve_cpuonly"] = new[]
+        {
+            "CPU test curve found at 0x{0:X2}; no GPU test curve in the dump - single-fan model (one slider in MSI Center) or Fan 2 not set.",
+            "Znaleziono krzywą testową CPU pod 0x{0:X2}; brak krzywej GPU w zrzucie - model z jednym wentylatorem (jeden suwak w MSI Center) albo Fan 2 nie został ustawiony.",
+            "CPU-Testkurve bei 0x{0:X2} gefunden; keine GPU-Testkurve im Dump - Modell mit einem Lüfter (ein Regler in MSI Center) oder Fan 2 nicht gesetzt.",
+            "Courbe de test CPU trouvée à 0x{0:X2} ; pas de courbe GPU dans le vidage - modèle à un seul ventilateur (un seul curseur dans MSI Center) ou Fan 2 non réglé.",
+            "Curva de prueba de CPU encontrada en 0x{0:X2}; sin curva de GPU en el volcado - modelo de un solo ventilador (un deslizador en MSI Center) o Fan 2 sin configurar.",
+            "在 0x{0:X2} 找到 CPU 测试曲线；转储中没有 GPU 测试曲线 - 单风扇机型（MSI Center 只有一个滑块）或未设置风扇 2。",
+            "Curva de teste da CPU encontrada em 0x{0:X2}; sem curva de GPU no despejo - modelo com uma ventoinha (um controle no MSI Center) ou Fan 2 não definido.",
+            "Тестовая кривая CPU найдена по адресу 0x{0:X2}; кривой GPU в дампе нет - модель с одним вентилятором (один ползунок в MSI Center) или Fan 2 не задан."
+        },
+        ["rep_curve_gpuonly"] = new[]
+        {
+            "GPU test curve found at 0x{0:X2}; the CPU test curve was not found in the dump.",
+            "Znaleziono krzywą testową GPU pod 0x{0:X2}; krzywej testowej CPU nie znaleziono w zrzucie.",
+            "GPU-Testkurve bei 0x{0:X2} gefunden; die CPU-Testkurve wurde im Dump nicht gefunden.",
+            "Courbe de test GPU trouvée à 0x{0:X2} ; la courbe de test CPU n'a pas été trouvée dans le vidage.",
+            "Curva de prueba de GPU encontrada en 0x{0:X2}; la curva de prueba de CPU no se encontró en el volcado.",
+            "在 0x{0:X2} 找到 GPU 测试曲线；转储中未找到 CPU 测试曲线。",
+            "Curva de teste da GPU encontrada em 0x{0:X2}; a curva de teste da CPU não foi encontrada no despejo.",
+            "Тестовая кривая GPU найдена по адресу 0x{0:X2}; тестовая кривая CPU в дампе не найдена."
+        },
         ["rep_curve_notadvanced"]= new[]
         {
             "The Advanced fan curve isn't active right now — your laptop is in another profile, so the EC still holds the default curve. Switch to Extreme Performance, set the Advanced curve in MSI Center, click Save, and stay in Extreme, then capture again.",
@@ -678,6 +700,18 @@ public static class Lang
             "Редактирование доступно только на поддерживаемых моделях (Tested / включён эксперимент)." },
         ["fc_fan_cpu"]     = new[] { "Fan 1 (CPU)", "Wentylator 1 (CPU)", "Lüfter 1 (CPU)", "Ventilateur 1 (CPU)", "Ventilador 1 (CPU)", "风扇 1（CPU）", "Ventoinha 1 (CPU)", "Вентилятор 1 (CPU)" },
         ["fc_fan_gpu"]     = new[] { "Fan 2 (GPU)", "Wentylator 2 (GPU)", "Lüfter 2 (GPU)", "Ventilateur 2 (GPU)", "Ventilador 2 (GPU)", "风扇 2（GPU）", "Ventoinha 2 (GPU)", "Вентилятор 2 (GPU)" },
+        ["fc_fan_single"]  = new[] { "Fan (CPU)", "Wentylator (CPU)", "Lüfter (CPU)", "Ventilateur (CPU)", "Ventilador (CPU)", "风扇（CPU）", "Ventoinha (CPU)", "Вентилятор (CPU)" },
+        ["fc_single_note"] = new[]
+        {
+            "This model has a single controllable fan curve",
+            "Ten model ma jedną sterowalną krzywą wentylatora",
+            "Dieses Modell hat eine einzige steuerbare Lüfterkurve",
+            "Ce modèle a une seule courbe de ventilateur contrôlable",
+            "Este modelo tiene una sola curva de ventilador controlable",
+            "该机型只有一条可控风扇曲线",
+            "Este modelo tem uma única curva de ventoinha controlável",
+            "У этой модели одна управляемая кривая вентилятора"
+        },
         ["fc_apply"]       = new[] { "Apply", "Zastosuj", "Anwenden", "Appliquer", "Aplicar", "应用", "Aplicar", "Применить" },
         ["fc_restore"]     = new[] { "Restore automatic fans", "Przywróć automatyczne", "Automatik wiederherstellen", "Rétablir l'automatique", "Restaurar automático", "恢复自动", "Restaurar automático", "Вернуть авто" },
         ["fc_enable"]      = new[] { "Custom fan curve (override this profile)", "Własna krzywa wentylatora (nadpisz ten profil)", "Eigene Lüfterkurve (Profil überschreiben)", "Courbe perso (remplacer ce profil)", "Curva personalizada (anular este perfil)", "自定义风扇曲线（覆盖此模式）", "Curva personalizada (substituir este perfil)", "Своя кривая (заменить профиль)" },

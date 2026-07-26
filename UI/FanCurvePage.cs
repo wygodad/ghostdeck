@@ -458,7 +458,8 @@ public sealed class FanCurvePage : ThemedPage
 
         // preset bar (label, picker, manage buttons, then import/export/share);
         // hidden controls (e.g. the whole manage group when no presets exist) take no space
-        int py = 98;
+        // 108 (not 98): breathing room below the hint line, which ends around y=88
+        int py = 108;
         int x = Pad;
         if (_presetLabel.Visible)
         {
@@ -522,10 +523,15 @@ public sealed class FanCurvePage : ThemedPage
         RefreshMode();
     }
 
+    // Single-curve board (e.g. GF63 12VE): only the CPU curve exists; the GPU plot is hidden
+    // and the CPU plot takes the full width.
+    private bool Single => _fc is { SingleFan: true };
+
     // ---- geometry ----
     private Rectangle GraphRect(int fan)
     {
         int top = 150, bottom = Height - 124, gap = 40;
+        if (Single) return new Rectangle(Pad, top, Width - Pad * 2, bottom - top);
         int gw = (Width - Pad * 2 - gap) / 2;
         int x = Pad + fan * (gw + gap);
         return new Rectangle(x, top, gw, bottom - top);
@@ -552,7 +558,7 @@ public sealed class FanCurvePage : ThemedPage
     private void OnDown(object? sender, MouseEventArgs e)
     {
         if (!Editable) return;
-        for (int fan = 0; fan < 2; fan++)
+        for (int fan = 0; fan < (Single ? 1 : 2); fan++)
         {
             if (!GraphRect(fan).Contains(e.Location)) continue;
             int[] s = fan == 0 ? _cpuS : _gpuS;
@@ -587,7 +593,7 @@ public sealed class FanCurvePage : ThemedPage
     private void Apply()
     {
         if (_fc is not { } fc) return;
-        int peak = Math.Max(_cpuS[^1], _gpuS[^1]);
+        int peak = Single ? _cpuS[^1] : Math.Max(_cpuS[^1], _gpuS[^1]);
         if (peak < 40 &&
             MessageBox.Show(FindForm(), Lang.T("fc_warn_low"), Lang.T("fc_title"),
                             MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
@@ -645,11 +651,12 @@ public sealed class FanCurvePage : ThemedPage
         string hint = !D.Writable() ? Lang.T("fc_locked")
                     : _fc is { Verified: false } ? Lang.T("fc_preview")   // editable, but addresses unconfirmed
                     : Lang.T("fc_hint");
+        if (Single) hint = Lang.T("fc_single_note") + "  ·  " + hint;
         TextRenderer.DrawText(g, hint, new Font("Segoe UI", 10.5f),
             new Rectangle(Pad, 68, Width - Pad * 2, 40), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordEllipsis);
 
-        DrawFan(g, 0, Lang.T("fc_fan_cpu"), _cpuT, _cpuS);
-        DrawFan(g, 1, Lang.T("fc_fan_gpu"), _gpuT, _gpuS);
+        DrawFan(g, 0, Lang.T(Single ? "fc_fan_single" : "fc_fan_cpu"), _cpuT, _cpuS);
+        if (!Single) DrawFan(g, 1, Lang.T("fc_fan_gpu"), _gpuT, _gpuS);
     }
 
     private void DrawFan(Graphics g, int fan, string title, int[] temps, int[] speeds)

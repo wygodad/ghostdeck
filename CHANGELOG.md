@@ -3,11 +3,17 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.23.1] - 2026-07-27
 ### Changed
 - **Thin GF63 12VE: fan-curve addresses verified** ([#22](../../issues/22)) - the owner confirmed
   this is a single-curve board (MSI Center exposes one fan slider, the CPU fan) and the test
   curve was found at the shipped `0x72`, so the editor's "unverified" tag is gone.
+- **Single-curve boards get a single-curve editor** - on models with one controllable fan curve
+  (currently the Thin GF63 12VE) the Fan curve tab shows one full-width plot instead of a dead
+  GPU graph, and the dead GPU tables are never written to the EC.
+- **Fan-curve wizard reports each fan separately** - finding only the CPU test curve now says
+  exactly that (with the located address) instead of a blanket "not located", so single-fan
+  models verify cleanly ([#22](../../issues/22)).
 
 ## [1.23.0] - 2026-07-26
 ### Added

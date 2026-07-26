@@ -53,7 +53,10 @@ public sealed class ReportPage : ThemedPage
     private bool _curveCapturing;
     private int _curvePct = -1;
     private float _curveBar;
-    private (int cpu, int gpu)? _curveFound;
+    // Tracer locations found in the dump (-1 = not found). Tracked per fan so a single-curve
+    // board (MSI Center exposes one slider - e.g. GF63 12VE, #22) reports "CPU found, no Fan 2"
+    // instead of a blanket "not located".
+    private int _curveCpuAt = -1, _curveGpuAt = -1;
     private string? _curveMsg;
     private bool _curveMatch;
     private string? _curveSavedPath;
@@ -111,7 +114,7 @@ public sealed class ReportPage : ThemedPage
         _curveRestart.Click += (_, _) =>
         {
             if (_curveCapturing) return;
-            _curveDump = null; _curveFound = null; _curveMsg = null; _curveMatch = false;
+            _curveDump = null; _curveCpuAt = _curveGpuAt = -1; _curveMsg = null; _curveMatch = false;
             _curveSavedPath = null; _curvePct = -1; _curveBar = 0;
             RefreshCurve(); SyncSub(); Invalidate();
         };
@@ -328,7 +331,7 @@ public sealed class ReportPage : ThemedPage
         }
         else if (_curveMsg != null)
         {
-            var col = _curveFound != null ? (_curveMatch ? Theme.Green : Theme.Amber) : Theme.Red;
+            var col = _curveCpuAt >= 0 || _curveGpuAt >= 0 ? (_curveMatch ? Theme.Green : Theme.Amber) : Theme.Red;
             var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
             TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
@@ -367,17 +370,28 @@ public sealed class ReportPage : ThemedPage
             Invalidate(); return;
         }
         _curveDump = dump;
-        int cpu = FindTracer(dump, CpuTracer), gpu = FindTracer(dump, GpuTracer);
-        if (cpu >= 0 && gpu >= 0)
+        _curveCpuAt = FindTracer(dump, CpuTracer);
+        _curveGpuAt = FindTracer(dump, GpuTracer);
+        var fcs = Devices.Detect(D.Firmware)?.FanCurve;
+        if (_curveCpuAt >= 0 && _curveGpuAt >= 0)
         {
-            _curveFound = (cpu, gpu);
-            var fc = Devices.Detect(D.Firmware)?.FanCurve;
-            _curveMatch = fc != null && cpu == fc.CpuSpeedBase && gpu == fc.GpuSpeedBase;
-            _curveMsg = string.Format(Lang.T("rep_curve_found"), cpu, gpu) + "  " + Lang.T(_curveMatch ? "rep_curve_match" : "rep_curve_nomatch");
+            _curveMatch = fcs != null && _curveCpuAt == fcs.CpuSpeedBase && _curveGpuAt == fcs.GpuSpeedBase;
+            _curveMsg = string.Format(Lang.T("rep_curve_found"), _curveCpuAt, _curveGpuAt) + "  " + Lang.T(_curveMatch ? "rep_curve_match" : "rep_curve_nomatch");
+        }
+        else if (_curveCpuAt >= 0 || _curveGpuAt >= 0)
+        {
+            // one tracer only: single-fan boards (MSI Center shows one slider) land here by
+            // design - report the found half instead of a blanket "not located" (#22)
+            bool cpuSide = _curveCpuAt >= 0;
+            int at = cpuSide ? _curveCpuAt : _curveGpuAt;
+            byte shipped = cpuSide ? (fcs?.CpuSpeedBase ?? 0) : (fcs?.GpuSpeedBase ?? 0);
+            _curveMatch = fcs != null && at == shipped;
+            _curveMsg = string.Format(Lang.T(cpuSide ? "rep_curve_cpuonly" : "rep_curve_gpuonly"), at)
+                        + "  " + Lang.T(_curveMatch ? "rep_curve_match" : "rep_curve_nomatch");
         }
         else
         {
-            _curveFound = null; _curveMatch = false;
+            _curveMatch = false;
             // Common cause: the Advanced curve isn't the live EC state (e.g. the laptop is in Silent), so the
             // tables hold the default curve, not the test values. Detect that and say so, instead of "not found".
             var dev = Devices.Detect(D.Firmware);
@@ -416,9 +430,12 @@ public sealed class ReportPage : ThemedPage
         sb.AppendLine($"  Fan 1 (CPU): {string.Join(" ", CpuTracer)}");
         sb.AppendLine($"  Fan 2 (GPU): {string.Join(" ", GpuTracer)}");
         sb.AppendLine();
-        if (_curveFound is { } f)
+        if (_curveCpuAt >= 0 || _curveGpuAt >= 0)
         {
-            sb.AppendLine($"Located in EC dump:  CPU speed table @ 0x{f.cpu:X2}   GPU speed table @ 0x{f.gpu:X2}");
+            string cpuPart = _curveCpuAt >= 0 ? $"CPU speed table @ 0x{_curveCpuAt:X2}" : "CPU test curve not found";
+            string gpuPart = _curveGpuAt >= 0 ? $"GPU speed table @ 0x{_curveGpuAt:X2}"
+                                              : "GPU test curve not found (single-fan model or Fan 2 not set)";
+            sb.AppendLine($"Located in EC dump:  {cpuPart}   {gpuPart}");
             var fc = Devices.Detect(D.Firmware)?.FanCurve;
             if (fc != null) sb.AppendLine($"Shipped map for this model:  CPU 0x{fc.CpuSpeedBase:X2}  GPU 0x{fc.GpuSpeedBase:X2}  → {(_curveMatch ? "MATCH" : "DIFFERENT")}");
             else sb.AppendLine("Shipped map for this model:  (none — model not recognised)");
@@ -458,8 +475,11 @@ public sealed class ReportPage : ThemedPage
     private string BuildCurveIssueUrl()
     {
         string title = $"[Curve] {ModelName()} ({D.Firmware})";
-        string found = _curveFound is { } f
-            ? $"CPU @ 0x{f.cpu:X2}, GPU @ 0x{f.gpu:X2}" + (_curveMatch ? " (matches shipped map)" : " (differs from shipped map)")
+        string suffix = _curveMatch ? " (matches shipped map)" : " (differs from shipped map)";
+        string found =
+            _curveCpuAt >= 0 && _curveGpuAt >= 0 ? $"CPU @ 0x{_curveCpuAt:X2}, GPU @ 0x{_curveGpuAt:X2}" + suffix
+            : _curveCpuAt >= 0 ? $"CPU @ 0x{_curveCpuAt:X2}" + suffix + "; GPU not set (single-fan model?)"
+            : _curveGpuAt >= 0 ? $"GPU @ 0x{_curveGpuAt:X2}" + suffix + "; CPU test curve not found"
             : "not located in dump";
         // NB: the paste field (id "dump") is deliberately NOT prefilled — the full report is on the
         // clipboard / saved to file, and any reload of a prefilled URL would wipe what the user pasted.

@@ -13,7 +13,10 @@ public sealed record FanCurveSpec(
     byte CpuTempBase, byte CpuSpeedBase,
     byte GpuTempBase, byte GpuSpeedBase,
     int Points,
-    bool Verified = false);   // false = read-only preview (addresses unconfirmed on real hardware)
+    bool Verified = false,    // false = read-only preview (addresses unconfirmed on real hardware)
+    bool SingleFan = false);  // true = board exposes ONE controllable curve (MSI Center shows a
+                              // single slider); the editor hides the GPU plot and the GPU table
+                              // is never written (it is a dead field on such boards, see #22)
 
 /// <summary>
 /// Per-model EC definition: firmware match, EC addresses, per-profile recipes, and a tier.
@@ -187,7 +190,8 @@ public static class Devices
         // the CPU fan), so the wizard's "not located" was just the missing Fan 2. The GPU table
         // at 0x8A holds the family-standard layout; writing it appears to be a no-op here.
         new() { Name = "MSI Thin GF63 12VE", FirmwarePrefixes = new[] { "16R8IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified with { SingleFan = true },
+                Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "fwbvng", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/21" },
 
         // Titan 18 HX Dragon Edition (1824EMS1) — owner per-scenario dump (issue #23) matches

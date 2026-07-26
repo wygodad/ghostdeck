@@ -914,3 +914,30 @@ The last deliberate profile also persists (`AppSettings.LastProfile`, written on
 `SetProfile` - external syncs never land there) and is re-applied once at startup. Both paths
 are skipped when the AC/battery auto-switch is enabled (it owns the choice) and both respect
 `AutoWritable` (firmware guard).
+
+## 31. Single-curve boards (v1.23.1, issue #22)
+
+Some budget boards expose only ONE controllable fan curve: MSI Center shows a single slider
+(the CPU fan) and the GPU-side tables in the EC are a dead field the firmware never reads. The
+first confirmed case is the Thin GF63 12VE (`16R8IMS1`) - the owner's wizard dump had the CPU
+test curve at the shipped `0x72` while MSI Center offered no Fan 2 to set, and the owner
+confirmed the single slider (cross-checked with YAMDCC).
+
+Implementation:
+- `FanCurveSpec.SingleFan` (new flag; set per model, e.g. `ModernCurveVerified with
+  { SingleFan = true }`). It is orthogonal to `Verified`.
+- **Editor** (`FanCurvePage`): with `SingleFan` the CPU plot takes the full width (`GraphRect`
+  returns one rectangle), the GPU plot is not drawn nor hit-tested, the hint line is prefixed
+  with `fc_single_note`, and the low-peak warning checks the CPU curve only. Presets still
+  carry both point sets - the GPU half is inert ballast on such boards, which keeps the preset
+  JSON format unchanged.
+- **EC writes** (`Ec.WriteFanCurve`): the GPU temp/speed tables are NOT written at all when
+  `SingleFan` - no more touching a dead field. This covers every caller (editor, per-profile
+  presets, tray quick-switch, CLI) in one place.
+- **Fan-curve wizard** (`ReportPage`): the two tracers are now located INDEPENDENTLY
+  (`_curveCpuAt` / `_curveGpuAt`, -1 = not found) instead of the old all-or-nothing pair. A
+  partial find reports the located half with its address (`rep_curve_cpuonly` /
+  `rep_curve_gpuonly`) and checks the match against the corresponding side of the shipped map,
+  so single-fan boards verify cleanly instead of producing a misleading "not located". The
+  generated text report and the prefilled issue URL carry the per-fan detail
+  ("GPU test curve not found (single-fan model or Fan 2 not set)").
