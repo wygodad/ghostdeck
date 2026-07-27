@@ -32,6 +32,15 @@ body:
       required: true
 
   - type: input
+    id: msicenter
+    attributes:
+      label: MSI Center version
+      description: MSI Center → Settings (gear) → About, e.g. "2.0.52". Write "not installed" if you don't have it.
+      placeholder: "2.0.xx / not installed"
+    validations:
+      required: true
+
+  - type: input
     id: found
     attributes:
       label: Located curve tables (from the app)

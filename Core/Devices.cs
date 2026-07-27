@@ -241,11 +241,12 @@ public static class Devices
 
         // Crosshair 16 HX AI D2XW (15P4EMS1) — owner per-scenario dump (issue #44) shows shift
         // 0xD2 = C2/C1/C4 across scenarios and 0xEB 00↔0F, matching the shipped map (and upstream
-        // msi-ec, which lists 15P4EMS1 with the standard G2 config incl. fan-silent 0x1D). This
-        // generation's MSI Center drives its own low-power scenario as eco C2 + fan auto 0x0D +
-        // 0xEB 0F — i.e. exactly our Super Battery recipe — and never writes 0x1D itself; we keep
-        // StdRecipes' Silent (comfort C1 + fan-silent 0x1D, owner-confirmed quieter and lower
-        // power) so Silent and Super Battery stay distinct modes. All three hardware checks
+        // msi-ec, which lists 15P4EMS1 with the standard G2 config incl. fan-silent 0x1D). In the
+        // owner captures (#12, #44) the "Silent" step read eco C2 + fan auto 0x0D + 0xEB 0F —
+        // identical to the Super Battery step; with this generation's renamed MSI Center
+        // scenarios that may simply be a scenario-selection artifact, so it is NOT treated as a
+        // board quirk. StdRecipes' Silent stays comfort C1 + fan-silent 0x1D (documented upstream,
+        // owner-confirmed quieter and lower power on this unit). All three hardware checks
         // confirmed. Fan curve VERIFIED (issue #43): wizard found the test curve at exactly
         // 0x72 / 0x8A. Note: EC accepts curve speeds up to 150% here (see TODO MaxFanPct).
         new() { Name = "MSI Crosshair 16 HX AI D2XW", FirmwarePrefixes = new[] { "15P4EMS1" }, Tier = Tier.Tested,
