@@ -9,13 +9,19 @@ on:
         description: 'Wersja bez literki v (np. 1.0.1)'
         required: true
         default: '1.0.0'
+      dry-run:
+        description: 'Tylko build + podpis (bez publikacji release)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
     runs-on: windows-latest
+    environment: release
     steps:
       - uses: actions/checkout@v5
 
@@ -42,7 +48,50 @@ jobs:
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none `
             -p:Version=${{ steps.ver.outputs.version }} -o publish
 
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Podpisz exe (Azure Artifact Signing)
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: https://eus.codesigning.azure.net/
+          signing-account-name: ghostdeck-signing
+          certificate-profile-name: ghostdeck-public
+          files-folder: ${{ github.workspace }}\publish
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Zweryfikuj podpis (hard gate)
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature publish/GhostDeck.exe
+          Write-Host "Status : $($sig.Status)"
+          Write-Host "Signer : $($sig.SignerCertificate.Subject)"
+          Write-Host "Stamp  : $($sig.TimeStamperCertificate.Subject)"
+          if ($sig.Status -ne 'Valid') {
+            Write-Error "Plik nie ma poprawnego podpisu - przerywam wydanie."
+            exit 1
+          }
+          if ($sig.SignerCertificate.Subject -notlike '*FENIX INSPIRE*') {
+            Write-Error "Nieoczekiwany podmiot podpisu: $($sig.SignerCertificate.Subject)"
+            exit 1
+          }
+
+      - name: Artefakt testowy (dry-run)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhostDeck-signed-${{ steps.ver.outputs.version }}
+          path: publish/GhostDeck.exe
+
       - name: Extract release notes from CHANGELOG
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
         shell: pwsh
         run: |
           $v = '${{ steps.ver.outputs.version }}'
@@ -55,6 +104,7 @@ jobs:
           $body | Out-File release_notes.md -Encoding utf8
 
       - name: Utworz Release i dolacz exe
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.ver.outputs.version }}
