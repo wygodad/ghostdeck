@@ -239,6 +239,19 @@ public static class Devices
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "eaglent1", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/38" },
 
+        // Crosshair 16 HX AI D2XW (15P4EMS1) — owner per-scenario dump (issue #44) shows shift
+        // 0xD2 = C2/C1/C4 across scenarios and 0xEB 00↔0F, matching the shipped map (and upstream
+        // msi-ec, which lists 15P4EMS1 with the standard G2 config incl. fan-silent 0x1D). This
+        // generation's MSI Center drives its own low-power scenario as eco C2 + fan auto 0x0D +
+        // 0xEB 0F — i.e. exactly our Super Battery recipe — and never writes 0x1D itself; we keep
+        // StdRecipes' Silent (comfort C1 + fan-silent 0x1D, owner-confirmed quieter and lower
+        // power) so Silent and Super Battery stay distinct modes. All three hardware checks
+        // confirmed. Fan curve VERIFIED (issue #43): wizard found the test curve at exactly
+        // 0x72 / 0x8A. Note: EC accepts curve speeds up to 150% here (see TODO MaxFanPct).
+        new() { Name = "MSI Crosshair 16 HX AI D2XW", FirmwarePrefixes = new[] { "15P4EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Harsh3456D", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/44" },
+
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
         new() { Name = "MSI Raider GE68HX 13V",          FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -323,7 +336,6 @@ public static class Devices
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Pulse 16 AI C1VGKG/C1VFKG",     FirmwarePrefixes = new[] { "15P3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Crosshair 16 HX AI D2XW",       FirmwarePrefixes = new[] { "15P4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
