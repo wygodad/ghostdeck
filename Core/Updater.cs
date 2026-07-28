@@ -21,7 +21,7 @@ public static class Updater
     private const string UpdateFile  = "GhostDeck.update.exe";
 
     public readonly record struct Result(Version Version, string Tag, string Url, string AssetUrl, long AssetSize);
-    public readonly record struct ReleaseInfo(string Tag, string Name, string Body, string Url, DateTime? Published);
+    public readonly record struct ReleaseInfo(string Tag, string Name, string Body, string Url, DateTime? Published, long Downloads);
 
     /// <summary>Last <paramref name="count"/> published releases (newest first), for the changelog list.</summary>
     public static async Task<List<ReleaseInfo>> RecentAsync(int count)
@@ -43,7 +43,12 @@ public static class Updater
                 string body = r.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
                 string url  = r.TryGetProperty("html_url", out var h) ? h.GetString() ?? ReleasesUrl : ReleasesUrl;
                 DateTime? pub = r.TryGetProperty("published_at", out var pa) && pa.TryGetDateTime(out var dt) ? dt : null;
-                list.Add(new ReleaseInfo(tag, name, body, url, pub));
+                // how many times the release was downloaded = sum of its assets' counters
+                long dl = 0;
+                if (r.TryGetProperty("assets", out var assets))
+                    foreach (var a in assets.EnumerateArray())
+                        if (a.TryGetProperty("download_count", out var dc) && dc.TryGetInt64(out var v)) dl += v;
+                list.Add(new ReleaseInfo(tag, name, body, url, pub, dl));
                 if (list.Count >= count) break;
             }
         }

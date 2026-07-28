@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace GhostDeck;
@@ -17,7 +16,12 @@ public sealed class UpdatesPage : ThemedPage
     private readonly Label _lastChecked = new();
     private readonly ThinBar _bar = new();     // download progress, next to the status text
     private readonly FlowLayoutPanel _history = new();
+    // A failed release fetch must not be terminal (it used to stick until app restart): _loaded
+    // stays false, the tab retries on every entry, the error row gets a "Try again" button and
+    // this timer re-checks on its own while the tab stays open.
+    private readonly System.Windows.Forms.Timer _retry = new() { Interval = 30_000 };
     private bool _loaded;
+    private bool _loading;
     private Updater.Result? _avail;   // newer release found by the last check
 
     /// <summary>Rounded progress bar (0..1), styled like the report wizard's capture bar.</summary>
@@ -57,7 +61,6 @@ public sealed class UpdatesPage : ThemedPage
         // scrollbar popped up even though everything visually fit.
         AutoScroll = false;
 
-        _check.Text = Lang.T("upd_check_now");
         Ui.StylePrimary(_check);
         _check.Width = 150;
         _check.Click += async (_, _) => await CheckNow();
@@ -79,6 +82,8 @@ public sealed class UpdatesPage : ThemedPage
         _history.AutoScroll = true;
         _history.ClientSizeChanged += (_, _) => SetRowWidths();
 
+        _retry.Tick += async (_, _) => { if (Visible && !_loaded) await LoadHistory(); };
+
         Controls.Add(_check);
         Controls.Add(_status);
         Controls.Add(_lastChecked);
@@ -86,11 +91,42 @@ public sealed class UpdatesPage : ThemedPage
         Resize += (_, _) => LayoutBits();
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _retry.Dispose();
+        base.Dispose(disposing);
+    }
+
     public override async void OnEnter()
     {
         LayoutBits();
         ApplyThemeText();
-        if (!_loaded) { _loaded = true; await LoadHistory(); }
+        if (!_loaded) await LoadHistory();
+    }
+
+    // Language can switch from the tray menu while this tab is visible - refresh the texts live.
+    public override void LiveRefresh() { ApplyThemeText(); Invalidate(); }
+
+    private string? _focusTag;   // release to auto-expand once the list is (or gets) loaded
+
+    /// <summary>Deep link (Settings Start "What's new" / update chip): expand the given release's notes.</summary>
+    public void FocusRelease(string? tag)
+    {
+        _focusTag = tag;
+        TryFocusRelease();
+    }
+
+    private void TryFocusRelease()
+    {
+        if (_focusTag == null) return;
+        foreach (Control c in _history.Controls)
+            if (c is ReleaseRow rr && rr.MatchesTag(_focusTag))
+            {
+                rr.Expand();
+                _history.ScrollControlIntoView(rr);
+                _focusTag = null;
+                return;
+            }
     }
 
     public override void ApplyTheme()
@@ -99,11 +135,14 @@ public sealed class UpdatesPage : ThemedPage
         Ui.StylePrimary(_check);
         Ui.StylePrimary(_install);
         ApplyThemeText();
-        foreach (Control c in _history.Controls) c.Invalidate();
     }
 
+    // Texts live here (not in the ctor) so a language switched from the tray menu shows up on
+    // the next entry / theme pass instead of sticking to the build-time language.
     private void ApplyThemeText()
     {
+        _check.Text = Lang.T("upd_check_now");
+        if (_avail is { } a) _install.Text = string.Format(Lang.T("upd_install"), a.Tag);
         _lastChecked.ForeColor = Theme.Muted;
         if (_status.ForeColor != Theme.Green && _status.ForeColor != Theme.Accent)
             _status.ForeColor = Theme.Text;
@@ -112,6 +151,7 @@ public sealed class UpdatesPage : ThemedPage
         _lastChecked.Text = string.Format(Lang.T("upd_last_checked"),
             d == DateTime.MinValue ? Lang.T("upd_never") : d.ToLocalTime().ToString("g"));
         _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _check.Bottom + 12);
+        foreach (Control c in _history.Controls) if (c is ReleaseRow rr) rr.Restyle();
     }
 
     // y positions derived from real font metrics (DPI-safe)
@@ -222,16 +262,39 @@ public sealed class UpdatesPage : ThemedPage
 
     private async Task LoadHistory()
     {
-        var list = await Updater.RecentAsync(5);
-        _history.Controls.Clear();
-        if (list.Count == 0)
+        if (_loading) return;
+        _loading = true;
+        try
         {
-            _history.Controls.Add(new Label { Text = Lang.T("upd_offline"), AutoSize = true, ForeColor = Theme.Muted, Margin = new Padding(2, 8, 0, 0) });
-            return;
+            var list = await Updater.RecentAsync(20);
+            _history.Controls.Clear();
+            if (list.Count == 0)
+            {
+                // failed (offline, rate-limited): keep _loaded false so the next tab entry
+                // retries, offer a manual retry and let the timer re-check on its own
+                _loaded = false;
+                var err = new Label
+                {
+                    Text = Lang.T("upd_offline"), AutoSize = true,
+                    ForeColor = Theme.Muted, BackColor = Theme.Surface,
+                    Margin = new Padding(2, 8, 0, 0),
+                };
+                var again = new Button { Text = Lang.T("upd_retry"), AutoSize = true, Padding = new Padding(12, 4, 12, 4), Margin = new Padding(2, 10, 0, 0) };
+                Ui.StyleGhost(again);
+                again.Click += async (_, _) => await LoadHistory();
+                _history.Controls.Add(err);
+                _history.Controls.Add(again);
+                _retry.Start();
+                return;
+            }
+            _loaded = true;
+            _retry.Stop();
+            int rw = RowWidth();
+            foreach (var rel in list)
+                _history.Controls.Add(new ReleaseRow(rel, rw));
+            TryFocusRelease();   // a pending "What's new" deep link waits for the list
         }
-        int rw = RowWidth();
-        foreach (var rel in list)
-            _history.Controls.Add(new ReleaseRow(rel, rw));
+        finally { _loading = false; }
     }
 
     // base on the control's full width minus the vertical scrollbar, so a horizontal
@@ -244,49 +307,215 @@ public sealed class UpdatesPage : ThemedPage
         foreach (Control c in _history.Controls) if (c is ReleaseRow) c.Width = w;
     }
 
+    /// <summary>
+    /// One release: header (tag, date, download count, a real "Details" button that opens
+    /// GitHub) + a two-line preview. Clicking the row expands the FULL release notes inline,
+    /// rendered from markdown (section headers, bullets, **bold**); clicking again collapses.
+    /// </summary>
     private sealed class ReleaseRow : Control
     {
+        private const TextFormatFlags F = TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix;
+        private static readonly Font TitleF = new("Segoe UI", 11.5f, FontStyle.Bold);
+        private static readonly Font MetaF  = new("Segoe UI", 9.5f);
+        private static readonly Font BodyF  = new("Segoe UI", 9.5f);
+        private static readonly Font BodyB  = new("Segoe UI", 9.5f, FontStyle.Bold);
+        private static readonly Font HeadF  = new("Segoe UI", 10f, FontStyle.Bold);
+        private static readonly Font ChevF  = new("Segoe UI", 9f);
+
+        private enum NoteKind { Header, Bullet, Para, Gap }
+        private readonly record struct Note(NoteKind Kind, List<(string text, bool bold)> Runs);
+
         private readonly Updater.ReleaseInfo _r;
+        private readonly Button _details = new();
+        private readonly List<Note> _notes;                       // full formatted notes
+        private readonly List<(string text, bool bold)> _preview; // collapsed two-liner
+        private bool _open;
+        private int _notesHeight;
+        private int _lastW;
+
+        private const int TitleY = 14;
+        private static int HeaderBottom => TitleY + TitleF.Height;
+
         public ReleaseRow(Updater.ReleaseInfo r, int width)
         {
-            _r = r; DoubleBuffered = true; ResizeRedraw = true; Width = width; Margin = new Padding(0, 0, 0, 12);
-            var titleF = new Font("Segoe UI", 11.5f, FontStyle.Bold);
-            var bodyF = new Font("Segoe UI", 9.5f);
-            Height = 16 + titleF.Height + 8 + bodyF.Height * 2 + 16;   // title + two body lines
+            _r = r;
+            DoubleBuffered = true; ResizeRedraw = true;
+            Width = _lastW = width;
+            Margin = new Padding(0, 0, 0, 12);
+            Height = CollapsedHeight;
             Cursor = Cursors.Hand;
-            Click += (_, _) => { try { Process.Start(new ProcessStartInfo(_r.Url) { UseShellExecute = true }); } catch { } };
+            _notes = ParseNotes(r.Body);
+            _preview = ParseRuns(CleanBody(r.Body));
+
+            _details.AutoSize = true;
+            _details.Padding = new Padding(10, 2, 10, 2);
+            _details.Click += (_, _) => { try { Process.Start(new ProcessStartInfo(_r.Url) { UseShellExecute = true }); } catch { } };
+            Controls.Add(_details);
+            Restyle();
+
+            Click += (_, _) => Toggle();
         }
+
+        private static int CollapsedHeight => HeaderBottom + 8 + BodyF.Height * 2 + 14;
+
+        public void Restyle()
+        {
+            Ui.StyleGhost(_details);
+            _details.Text = Lang.T("upd_details") + "  ↗";
+            PlaceButton();
+            Invalidate();
+        }
+
+        private void PlaceButton() => _details.Location = new Point(Width - 16 - _details.Width, 9);
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (Width != _lastW)
+            {
+                _lastW = Width;
+                PlaceButton();
+                if (_open) RecalcHeight();
+            }
+        }
+
+        private void Toggle()
+        {
+            if (_notes.Count == 0) return;   // nothing beyond the preview - stay collapsed
+            _open = !_open;
+            RecalcHeight();
+            Invalidate();
+        }
+
+        public bool MatchesTag(string tag) =>
+            string.Equals(_r.Tag.TrimStart('v', 'V'), tag.TrimStart('v', 'V'), StringComparison.OrdinalIgnoreCase);
+
+        public void Expand() { if (!_open) Toggle(); }
+
+        private void RecalcHeight()
+        {
+            if (!_open) { Height = CollapsedHeight; return; }
+            using var g = CreateGraphics();
+            _notesHeight = Math.Max(BodyF.Height, LayoutNotes(g, new Rectangle(18, 0, Width - 36, 0), draw: false));
+            Height = HeaderBottom + 10 + _notesHeight + 14;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Theme.Surface);
             Ui.FillCard(g, new RectangleF(0.5f, 0.5f, Width - 1, Height - 1));
-            var titleF = new Font("Segoe UI", 11.5f, FontStyle.Bold);
-            var dateF = new Font("Segoe UI", 9.5f);
-            var bodyF = new Font("Segoe UI", 9.5f);
-            var linkF = new Font("Segoe UI", 9.5f, FontStyle.Bold);
 
+            // chevron shows the row itself is clickable (expand/collapse)
+            if (_notes.Count > 0)
+                TextRenderer.DrawText(g, _open ? "▾" : "▸", ChevF, new Point(16, TitleY + 3), Theme.Accent, F);
             string title = string.IsNullOrEmpty(_r.Tag) ? _r.Name : _r.Tag;
-            int titleY = 16;
-            TextRenderer.DrawText(g, title, titleF, new Rectangle(18, titleY, Width / 2, titleF.Height), Theme.Text, TextFormatFlags.Left);
+            TextRenderer.DrawText(g, title, TitleF, new Point(32, TitleY), Theme.Text, F);
 
-            // top-right: "details ↗" link, with the date to its left (each measured -> no overlap)
-            string link = Lang.T("upd_details") + " ↗";
-            int linkW = TextRenderer.MeasureText(link, linkF).Width;
-            TextRenderer.DrawText(g, link, linkF, new Rectangle(Width - 18 - linkW, titleY, linkW + 2, titleF.Height), Theme.Accent, TextFormatFlags.Left);
-            string date = _r.Published?.ToLocalTime().ToString("yyyy-MM-dd") ?? "";
-            int dateW = TextRenderer.MeasureText(date, dateF).Width;
-            TextRenderer.DrawText(g, date, dateF, new Rectangle(Width - 18 - linkW - 16 - dateW, titleY + 2, dateW + 4, dateF.Height), Theme.Muted, TextFormatFlags.Left);
+            // right of the title, against the Details button: "date · Downloads: N"
+            // (date stays muted, the download count gets the accent - two facts, two colors)
+            string date = (_r.Published?.ToLocalTime().ToString("yyyy-MM-dd") ?? "") + "   ·   ";
+            string dl = string.Format(Lang.T("upd_downloads"), _r.Downloads.ToString("N0"));
+            int dateW = TextRenderer.MeasureText(g, date, MetaF, Size.Empty, F).Width;
+            int dlW = TextRenderer.MeasureText(g, dl, MetaF, Size.Empty, F).Width;
+            int metaX = _details.Left - 14 - dateW - dlW;
+            if (metaX > 32 + TextRenderer.MeasureText(g, title, TitleF, Size.Empty, F).Width + 10)
+            {
+                TextRenderer.DrawText(g, date, MetaF, new Point(metaX, TitleY + 3), Theme.Muted, F);
+                TextRenderer.DrawText(g, dl, MetaF, new Point(metaX + dateW, TitleY + 3), Theme.Accent, F);
+            }
 
-            // body: up to two changelog lines, with **bold** rendered and links removed
-            int by = titleY + titleF.Height + 8;
-            var bodyB = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            DrawRich(g, ParseRuns(CleanBody(_r.Body)), new Rectangle(18, by, Width - 36, bodyF.Height * 2 + 2),
-                bodyF, bodyB, Theme.Muted, 2);
+            if (_open)
+                LayoutNotes(g, new Rectangle(18, HeaderBottom + 10, Width - 36, 0), draw: true);
+            else
+                DrawRich(g, _preview, new Rectangle(18, HeaderBottom + 8, Width - 36, BodyF.Height * 2 + 2),
+                    BodyF, BodyB, Theme.Muted, 2);
         }
 
+        // ---------------- full notes: parse + measure/draw ----------------
+
         private static readonly Regex MdLink = new(@"\[([^\]]+)\]\([^)]+\)", RegexOptions.Compiled);
+
+        private static List<Note> ParseNotes(string body)
+        {
+            var notes = new List<Note>();
+            if (string.IsNullOrWhiteSpace(body)) return notes;
+            foreach (var raw in body.Replace("\r", "").Split('\n'))
+            {
+                var t = raw.Trim();
+                if (t.Length == 0)
+                {
+                    if (notes.Count > 0 && notes[^1].Kind != NoteKind.Gap) notes.Add(new(NoteKind.Gap, new()));
+                    continue;
+                }
+                if (t.StartsWith("Full Changelog", StringComparison.OrdinalIgnoreCase) ||
+                    t.StartsWith("**Full Changelog", StringComparison.OrdinalIgnoreCase)) continue;
+                if (t.StartsWith("#"))
+                {
+                    var h = MdLink.Replace(t.TrimStart('#', ' ').Trim(), "$1").Replace("**", "");
+                    if (h.Length > 0) notes.Add(new(NoteKind.Header, ParseRuns(h)));
+                    continue;
+                }
+                bool bullet = t.StartsWith("- ") || t.StartsWith("* ");
+                var l = MdLink.Replace(bullet ? t[2..].Trim() : t, "$1");
+                if (l.Length == 0) continue;
+                if (!bullet && IsSection(l)) { notes.Add(new(NoteKind.Header, ParseRuns(l.TrimEnd(':')))); continue; }
+                notes.Add(new(bullet ? NoteKind.Bullet : NoteKind.Para, ParseRuns(l)));
+            }
+            while (notes.Count > 0 && notes[^1].Kind == NoteKind.Gap) notes.RemoveAt(notes.Count - 1);
+            while (notes.Count > 0 && notes[0].Kind == NoteKind.Gap) notes.RemoveAt(0);
+            return notes;
+        }
+
+        /// <summary>Measure (draw=false) or draw the full notes; returns the used height.</summary>
+        private int LayoutNotes(Graphics g, Rectangle rect, bool draw)
+        {
+            int y = rect.Top;
+            foreach (var n in _notes)
+            {
+                switch (n.Kind)
+                {
+                    case NoteKind.Gap:
+                        y += 6;
+                        break;
+                    case NoteKind.Header:
+                        y = DrawWrapped(g, n.Runs, new Rectangle(rect.Left, y, rect.Width, 0), HeadF, HeadF, Theme.Accent, draw) + 4;
+                        break;
+                    case NoteKind.Bullet:
+                        if (draw) TextRenderer.DrawText(g, "•", BodyF, new Point(rect.Left + 2, y), Theme.Muted, F);
+                        y = DrawWrapped(g, n.Runs, new Rectangle(rect.Left + 16, y, rect.Width - 16, 0), BodyF, BodyB, Theme.Muted, draw) + 3;
+                        break;
+                    default:
+                        y = DrawWrapped(g, n.Runs, new Rectangle(rect.Left, y, rect.Width, 0), BodyF, BodyB, Theme.Muted, draw) + 3;
+                        break;
+                }
+            }
+            return y - rect.Top;
+        }
+
+        // word-wrap runs with no line limit; returns the bottom y (draw=false only measures)
+        private static int DrawWrapped(Graphics g, List<(string text, bool bold)> runs, Rectangle rect,
+                                       Font reg, Font bold, Color color, bool draw)
+        {
+            int spaceW = TextRenderer.MeasureText(g, " ", reg, Size.Empty, F).Width;
+            int lineH = reg.Height;
+            int x = rect.Left, y = rect.Top;
+            foreach (var (text, b) in runs)
+            {
+                var f = b ? bold : reg;
+                foreach (var w in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    int ww = TextRenderer.MeasureText(g, w, f, Size.Empty, F).Width;
+                    if (x > rect.Left && x + ww > rect.Right) { x = rect.Left; y += lineH; }
+                    if (draw) TextRenderer.DrawText(g, w, f, new Point(x, y), color, F);
+                    x += ww + spaceW;
+                }
+            }
+            return y + lineH;
+        }
+
+        // ---------------- collapsed preview (two joined lines) ----------------
 
         // join up to 2 content lines; drop headers, section words, "Full Changelog", and md links
         private static string CleanBody(string body)
@@ -328,11 +557,10 @@ public sealed class UpdatesPage : ThemedPage
             return runs;
         }
 
-        // word-wrap runs across up to maxLines, switching font for bold words
+        // word-wrap runs across up to maxLines, switching font for bold words (preview only)
         private static void DrawRich(Graphics g, List<(string text, bool bold)> runs, Rectangle rect,
                                      Font reg, Font bold, Color color, int maxLines)
         {
-            const TextFormatFlags F = TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix;
             int spaceW = TextRenderer.MeasureText(g, " ", reg, Size.Empty, F).Width;
             int lineH = reg.Height;
             int x = rect.Left, y = rect.Top, line = 1;
