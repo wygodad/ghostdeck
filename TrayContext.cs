@@ -26,6 +26,7 @@ public sealed class TrayContext : ApplicationContext
     private readonly List<Image> _menuSwatches = new();
     private SynchronizationContext? _ui;
     private string? _updateUrl;
+    private Updater.Result? _updateAvail;      // newer release found by the daily check (Settings Start header chip)
     private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
@@ -171,7 +172,7 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Status:
                 {
                     HwSnapshot hw = default;
-                    if (Known) { try { hw = Ec.ReadHw(_device!); } catch { } }
+                    if (Known) Ec.TryReadHw(_device!, out hw);
                     var fs = FpsMonitor.Current;   // null unless the FPS monitor is on and a game presents
                     return "0|" + JsonSerializer.Serialize(new
                     {
@@ -829,9 +830,12 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // Snapshot for the overlay: EC hardware + OS metrics + the active profile/cooler state.
-    private OverlaySample BuildOverlaySample()
+    // null = the EC read was refused this tick; the overlay keeps showing its previous sample.
+    private OverlaySample? BuildOverlaySample()
     {
-        var hw = Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware);
+        HwSnapshot hw;
+        if (Known) { if (!Ec.TryReadHw(_device!, out hw)) return null; }
+        else hw = new HwSnapshot(0, 0, 0, 0, 0, _firmware);
         int load = SysInfo.CpuUsage();
         var (ramPct, _, ramUsed) = SysInfo.Ram();
         var ps = SystemInformation.PowerStatus;
@@ -935,7 +939,7 @@ public sealed class TrayContext : ApplicationContext
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
                                   _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion());
         },
-        Hw = () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
+        Hw = () => Known && Ec.TryReadHw(_device!, out var hw) ? hw : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
         Current = () => _current,
         SetProfile = id => SetProfile(id, osd: true, ChangeSource.Panel),
         Writable = () => Writable,
@@ -971,6 +975,8 @@ public sealed class TrayContext : ApplicationContext
         ApplyOverlaySettings = ApplyOverlaySettings,
         SnapOverlay = SnapOverlayCorner,
         SetFpsViewer = on => { _statusWantsFps = on; UpdateFpsActive(); },
+        UpdateAvail = () => _updateAvail,
+        OpenUpdates = tag => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(tag); },
         WithEcWrite = act =>
         {
             if (Writable && !_simulate && _device != null)
@@ -1037,6 +1043,7 @@ public sealed class TrayContext : ApplicationContext
         _settings.Save();
 
         if (res is not { } r) return;
+        _updateAvail = r;
         _updateUrl = r.Url;
         _balloonUrl = r.Url;
         BuildMenu();
@@ -1144,7 +1151,7 @@ public sealed class TrayContext : ApplicationContext
         {
             try
             {
-                var hw = Ec.ReadHw(dev);
+                if (!Ec.TryReadHw(dev, out var hw)) return;   // refused read = no history sample this tick
                 int load = SysInfo.CpuUsage();
                 HwHistory.Add(new HwSample(DateTime.Now, (short)hw.CpuTemp, (short)hw.GpuTemp,
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
@@ -1194,6 +1201,9 @@ public sealed class TrayContext : ApplicationContext
     // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
+        // Windows is going down: WMI already refuses every call, so stop polling the EC for good.
+        if (AppLifecycle.ShuttingDown) { _poll.Stop(); return; }
+
         SampleHw();   // reads only; also works on non-writable (Experimental locked) models
 
         // Power-transition actions live BEFORE the Writable gate: the refresh-rate switch is

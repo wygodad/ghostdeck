@@ -26,7 +26,7 @@ public sealed class OverlayForm : Form
     private enum IconKind { None, Cpu, Gpu, Fan, Load, Ram, Charge, Fps }
 
     private readonly AppSettings _settings;
-    private readonly Func<OverlaySample> _sampler;
+    private readonly Func<OverlaySample?> _sampler;   // null = EC read refused; keep the previous sample
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1000 };
     private OverlaySample _s;
     private bool _dragging;
@@ -66,7 +66,7 @@ public sealed class OverlayForm : Form
     [DllImport("user32.dll")] private static extern bool UpdateLayeredWindow(IntPtr hwnd, IntPtr dstDc, ref POINT dst, ref SIZE size, IntPtr srcDc, ref POINT src, int key, ref BLENDFUNCTION blend, int flags);
     private const int ULW_ALPHA = 2, AC_SRC_OVER = 0, AC_SRC_ALPHA = 1;
 
-    public OverlayForm(AppSettings settings, Func<OverlaySample> sampler)
+    public OverlayForm(AppSettings settings, Func<OverlaySample?> sampler)
     {
         _settings = settings;
         _sampler = sampler;
@@ -76,14 +76,35 @@ public sealed class OverlayForm : Form
         ShowInTaskbar = false;
         DoubleBuffered = true;
         BackColor = Color.FromArgb(0x12, 0x14, 0x1A);
-        _s = sampler();
+        _s = Sample();
         ApplySettings();
-        _timer.Tick += (_, _) => { _s = _sampler(); RenderLayered(); };
+        _timer.Tick += (_, _) => { _s = Sample(); RenderLayered(); };
+    }
+
+    // A refused EC read (Ec.TryReadHw absorbs those) arrives as null: show the previous values
+    // and try again on the next tick. The catch is a last resort for the OS-side metrics in the
+    // sampler - nothing from a timer tick may ever reach the message loop (that is a crash
+    // dialog). Only a real session end stops the timer for good.
+    private OverlaySample Sample()
+    {
+        if (AppLifecycle.ShuttingDown) { _timer.Stop(); return _s; }
+        try { return _sampler() ?? _s; }
+        catch (Exception ex) { AppLifecycle.Report(ex, "overlay"); return _s; }
     }
 
     protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); ApplyClickThrough(); RenderLayered(); }
     protected override void OnLoad(EventArgs e) { base.OnLoad(e); _timer.Start(); RenderLayered(); }
     protected override void OnFormClosed(FormClosedEventArgs e) { _timer.Stop(); base.OnFormClosed(e); }
+
+    // Turning the overlay off only HIDES this window (the form is kept so position and layout
+    // survive), so the timer has to follow visibility - otherwise an invisible overlay went on
+    // reading the EC over WMI once a second for the rest of the session.
+    protected override void OnVisibleChanged(EventArgs e)
+    {
+        base.OnVisibleChanged(e);
+        if (Visible && !AppLifecycle.ShuttingDown) { _s = Sample(); _timer.Start(); RenderLayered(); }
+        else _timer.Stop();
+    }
 
     // Layered rendering owns the pixels; suppress the normal paint path so nothing fights it.
     protected override void OnPaintBackground(PaintEventArgs e) { }

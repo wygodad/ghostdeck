@@ -16,6 +16,7 @@ internal static class Program
         if (!createdNew) { showSignal.Set(); return 0; }   // already running - ask it to show its window
 
         Updater.CleanupAfterUpdate();   // drop leftover GhostDeck.update.exe / .bak from a previous update
+        AppLifecycle.Install();         // shutdown flag + no WinForms crash dialog, ever
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);

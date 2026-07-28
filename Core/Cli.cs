@@ -110,7 +110,7 @@ public static class Cli
                 {
                     HwSnapshot hw = default;
                     ProfileId? cur = null;
-                    if (dev != null) { try { hw = Ec.ReadHw(dev); cur = Ec.GetCurrent(dev); } catch { } }
+                    if (dev != null) { Ec.TryReadHw(dev, out hw); cur = Ec.GetCurrent(dev); }
                     Console.WriteLine(JsonSerializer.Serialize(new
                     {
                         running = false,

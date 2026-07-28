@@ -30,4 +30,6 @@ public sealed class MainDeps
     public required Action ApplyOverlaySettings { get; init; }   // re-read overlay options after a settings edit
     public required Action<int> SnapOverlay { get; init; }       // 0=TL 1=TR 2=BL 3=BR — snap overlay to a screen corner
     public required Action<bool> SetFpsViewer { get; init; }     // Status → Gaming visible: keeps FpsMonitor running
+    public required Func<Updater.Result?> UpdateAvail { get; init; }  // newer release found by the daily check (null = none)
+    public required Action<string?> OpenUpdates { get; init; }        // jump to the Updates tab; arg = release tag to expand
 }

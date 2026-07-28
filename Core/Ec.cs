@@ -1,4 +1,5 @@
 using System.Management;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace GhostDeck;
@@ -201,7 +202,25 @@ public static class Ec
         catch { return ProfileId.Balanced; }
     }
 
-    public static HwSnapshot ReadHw(DeviceProfile dev)
+    /// <summary>
+    /// The one entry point for periodic hardware sampling. A WMI call can be refused for reasons
+    /// unrelated to the EC (provider host recycling, sleep/resume, service restart, system
+    /// shutdown); that is a missing sample, not an app error, so the failure is absorbed HERE -
+    /// callers get false, keep their last good data and simply try again on their next tick.
+    /// </summary>
+    public static bool TryReadHw(DeviceProfile dev, out HwSnapshot hw)
+    {
+        try { hw = ReadHw(dev); return true; }
+        catch (Exception ex) when (ex is ManagementException or COMException
+            or ObjectDisposedException or InvalidOperationException)
+        {
+            AppLifecycle.Report(ex, "ec");   // transient codes are dropped there; oddities land in errors.log
+            hw = default;
+            return false;
+        }
+    }
+
+    private static HwSnapshot ReadHw(DeviceProfile dev)
     {
         using var inst = GetInstance();
         using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
