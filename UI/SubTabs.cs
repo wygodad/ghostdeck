@@ -9,19 +9,25 @@ namespace GhostDeck;
 /// </summary>
 public sealed class SubTabs : Control
 {
-    private const int SegPadX = 18, Inset = 3;
+    private const int SegPadX = 18, Inset = 3, GlyphGap = 7;
     private static readonly Font SegFont = new("Segoe UI", 10.5f, FontStyle.Bold);
+    // Same icon language as the main tab strip: PUA glyphs come from Segoe MDL2 Assets.
+    private static readonly Font GlyphFont = new("Segoe MDL2 Assets", 11f);
 
     private readonly string[] _labels;
+    private readonly string[]? _glyphs;   // optional, one per label ("" = none for that segment)
     private int _active;
     private int _hover = -1;
 
     public event Action<int>? Changed;
     public int Active => _active;
 
-    public SubTabs(params string[] labels)
+    public SubTabs(params string[] labels) : this(labels, null) { }
+
+    public SubTabs(string[] labels, string[]? glyphs)
     {
         _labels = labels;
+        _glyphs = glyphs;
         DoubleBuffered = true;
         ResizeRedraw = true;
         Cursor = Cursors.Hand;
@@ -32,10 +38,16 @@ public sealed class SubTabs : Control
     /// <summary>Total width the segments need (parent positions us with this width).</summary>
     public int PreferredWidth => Measure();
 
+    private int GlyphW(int i) =>
+        _glyphs is { } gl && gl[i].Length > 0
+            ? TextRenderer.MeasureText(gl[i], GlyphFont, Size.Empty, TextFormatFlags.NoPadding).Width + GlyphGap
+            : 0;
+
     private int Measure()
     {
         int w = Inset * 2;
-        foreach (var l in _labels) w += TextRenderer.MeasureText(l, SegFont).Width + SegPadX * 2;
+        for (int i = 0; i < _labels.Length; i++)
+            w += GlyphW(i) + TextRenderer.MeasureText(_labels[i], SegFont).Width + SegPadX * 2;
         return w;
     }
 
@@ -55,7 +67,7 @@ public sealed class SubTabs : Control
         float x = Inset, y = Inset, h = Height - Inset * 2;
         for (int i = 0; i < _labels.Length; i++)
         {
-            float w = TextRenderer.MeasureText(_labels[i], SegFont).Width + SegPadX * 2;
+            float w = GlyphW(i) + TextRenderer.MeasureText(_labels[i], SegFont).Width + SegPadX * 2;
             rects[i] = new RectangleF(x, y, w, h);
             x += w;
         }
@@ -85,6 +97,7 @@ public sealed class SubTabs : Control
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;   // clean 1.4px accent stroke on the active segment
         g.Clear(Theme.Surface);
 
         // outer container — softly rounded (rectangular-ish, like the theme toggle), not a full pill
@@ -117,8 +130,22 @@ public sealed class SubTabs : Control
                 g.FillPath(b, path);
             }
             var col = active ? Theme.Accent : (i == _hover ? Theme.Text : Theme.Muted);
-            TextRenderer.DrawText(g, _labels[i], SegFont, Rectangle.Round(r), col,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            int gw = GlyphW(i);
+            if (gw > 0)
+            {
+                // glyph + label centred together: glyph first, label right of it
+                int lw = TextRenderer.MeasureText(_labels[i], SegFont).Width;
+                int left = (int)(r.X + (r.Width - gw - lw) / 2);
+                TextRenderer.DrawText(g, _glyphs![i], GlyphFont,
+                    new Rectangle(left, (int)r.Y, gw - GlyphGap, (int)r.Height), col,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                TextRenderer.DrawText(g, _labels[i], SegFont,
+                    new Rectangle(left + gw, (int)r.Y, lw + 4, (int)r.Height), col,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            }
+            else
+                TextRenderer.DrawText(g, _labels[i], SegFont, Rectangle.Round(r), col,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
 }

@@ -129,6 +129,9 @@ public sealed class AppSettings
     public bool HasMetric(OverlayMetric m) => (OverlayMetrics & (int)m) != 0;
     public void SetMetric(OverlayMetric m, bool on) => OverlayMetrics = on ? OverlayMetrics | (int)m : OverlayMetrics & ~(int)m;
 
+    // ostatnio otwarta subzakladka Ustawien (0 = Start/kafelki); wraca po restarcie aplikacji
+    public int SettingsSubTab { get; set; }
+
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
     public int WinY { get; set; }

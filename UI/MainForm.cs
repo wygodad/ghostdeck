@@ -271,8 +271,21 @@ public sealed class MainForm : Form
         page.OnEnter();
         page.BringToFront();
         foreach (var b in _tabs) { b.Active = (MainTab)b.Tag! == tab; b.Invalidate(); }
+        // Icon-only buttons must show where we are too: tabs collapsed to icons (per Settings →
+        // Interface) plus the fixed Report / Updates icons on the right (raised by the user -
+        // opening a page via an icon left NOTHING highlighted anywhere in the strip).
+        foreach (var gb in _tabIcons) { gb.Active = gb.Tag is MainTab t && t == tab; gb.Invalidate(); }
+        _reportBtn.Active = tab == MainTab.Report; _reportBtn.Invalidate();
+        _updatesBtn.Active = tab == MainTab.Updates; _updatesBtn.Invalidate();
         _strip.Invalidate();
         Activate();
+    }
+
+    /// <summary>Open the Updates tab; when <paramref name="focusTag"/> is set, expand that release's notes.</summary>
+    public void ShowUpdates(string? focusTag)
+    {
+        ShowTab(MainTab.Updates);
+        if (_pages.TryGetValue(MainTab.Updates, out var p) && p is UpdatesPage up) up.FocusRelease(focusTag);
     }
 
     private bool _warmed;
@@ -406,6 +419,7 @@ public sealed class MainForm : Form
 
     private sealed class GlyphButton : Control
     {
+        public bool Active;            // marks the icon whose page is currently shown (accent frame + glyph)
         public string Glyph = "";
         public int GlyphDx, GlyphDy;   // optical nudge — TextRenderer centres the glyph CELL, not its ink,
                                        // and symbol glyphs have uneven side bearings, so each needs its own tweak
@@ -417,20 +431,23 @@ public sealed class MainForm : Form
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
+            // the accent stroke needs AA room INSIDE the control: a 1.4px pen on a rect only
+            // 0.5px from the edge gets clipped at the bounds and looks stair-stepped
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.Clear(Theme.Surface);
-            var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
+            var r = new RectangleF(1.2f, 1.2f, Width - 2.4f, Height - 2.4f);
             using (var path = Theme.RoundRect(r, 9))
             {
-                using var b = new SolidBrush(_hover ? Theme.Card : Theme.Surface);
+                using var b = new SolidBrush(Active ? Theme.AccentSoft : _hover ? Theme.Card : Theme.Surface);
                 g.FillPath(b, path);
-                using var pen = new Pen(Theme.Border);
+                using var pen = new Pen(Active ? Theme.Accent : Theme.Border, Active ? 1.4f : 1f);
                 g.DrawPath(pen, path);
             }
             var gr = ClientRectangle; gr.Offset(GlyphDx, GlyphDy);
             // PUA glyphs (the tab icons) live in Segoe MDL2 Assets; Segoe UI Symbol shows them as boxes
             bool mdl2 = Glyph.Length > 0 && Glyph[0] >= '' && Glyph[0] <= '';
             using var gf = new Font(mdl2 ? "Segoe MDL2 Assets" : "Segoe UI Symbol", 14f);
-            TextRenderer.DrawText(g, Glyph, gf, gr, Theme.Muted,
+            TextRenderer.DrawText(g, Glyph, gf, gr, Active ? Theme.Accent : Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
     }
