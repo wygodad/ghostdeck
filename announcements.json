@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v1240-settings-signing",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.23.9",
+    "title": "New release: Settings redesign, signed builds, in-app release notes",
+    "title_pl": "Nowe wydanie: przebudowa Ustawień, podpisane wydania, notki wydań w aplikacji",
+    "body": "GhostDeck v1.24 is out: Settings split into icon sub-tabs with a live Start dashboard (group tiles show your current values, quick switches included), the Updates tab shows the last 20 releases with download counts and full notes readable inline, and from this version every GhostDeck.exe is digitally signed - Windows shows a verified publisher instead of an unknown one. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.24: Ustawienia podzielone na subzakładki z ikonami i żywym dashboardem Start (kafelki grup pokazują bieżące wartości, są też szybkie przełączniki), zakładka Aktualizacje wyświetla ostatnie 20 wydań z licznikami pobrań i pełnymi notkami na miejscu, a od tej wersji każdy GhostDeck.exe jest podpisany cyfrowo - Windows pokazuje zweryfikowanego wydawcę zamiast nieznanego. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.24.0"
+  },
+  {
     "id": "2026-07-v1231-single-fan",
     "severity": "info",
     "minVersion": "1.0.0",

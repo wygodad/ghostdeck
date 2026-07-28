@@ -3,6 +3,57 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.24.0] - 2026-07-28
+### Added
+- **Crosshair 16 HX AI D2XW (`15P4EMS1`) promoted to Tested, fan curve verified**
+  ([#43](../../issues/43), [#44](../../issues/44), thanks @Harsh3456D) - a clean per-scenario
+  EC capture confirmed the shipped register map (shift `0xD2` C2/C1/C4, super-battery `0xEB`),
+  the wizard located the owner's test curve at exactly `0x72`/`0x8A`, and all three hardware
+  checks passed.
+- **Releases are digitally signed** - starting with this version, the `GhostDeck.exe`
+  published on GitHub carries an Authenticode signature ("WYGODA DAWID FENIX INSPIRE", Azure
+  Artifact Signing, RFC 3161 timestamp). Check it under file Properties → Digital Signatures;
+  the release pipeline refuses to publish an unsigned or wrongly-signed file. This also means
+  SmartScreen "unknown publisher" warnings will gradually disappear as reputation builds.
+- **Settings reorganized into sub-tabs** - the one long two-column page is now split into six
+  groups (General / Power / Notifications / Gaming / Hotkeys / System) behind an icon strip
+  like the Status tab, plus a **Start page with a tile per group** for quick orientation.
+  GhostDeck **remembers which sub-tab you were on** and reopens Settings right there, even
+  after an app restart. Display settings (refresh-rate switching) got their own card next to
+  Power.
+- **The Settings Start page is a dashboard** - every tile carries a live third line with the
+  group's current values (charge limit and refresh rates, alert threshold, overlay state and
+  metric count, enabled hotkeys, autostart and update check) plus an on/off dot; the Gaming
+  and Notifications tiles get a **quick master switch** right on the tile; a **status header**
+  shows the laptop model, support tier, firmware and app version, and turns into a clickable
+  **"new version available" chip** when the daily check finds a release; a **"What's new in
+  vX"** link opens Updates with the current version's notes already expanded.
+- **Release notes readable inside the app** - clicking a release in Updates → Release history
+  expands its full formatted notes inline (section headers, bullets, bold; click again to
+  collapse), the old "Details" link is now a proper button that opens the release on GitHub,
+  each entry shows its **download count**, and the list covers the **last 20 releases**
+  (was 5 with two-line previews only).
+
+### Fixed
+- **The top bar always shows where you are** - pages opened from icon-only buttons (Report,
+  Updates, or any tab collapsed to an icon via Settings → Interface) left nothing highlighted
+  in the strip; the active icon now gets an accent frame and accent glyph.
+- **Updates tab recovers after connection loss** - a failed fetch used to show the error once
+  and never load again, even after the internet came back. The tab now retries when you open
+  it again, the error message has a "Try again" button, and a background re-check runs every
+  30 s while the tab stays open.
+- **Settings always show the current state** - switching the language from the tray menu or
+  the theme from the header button left the Settings page showing the old values; the page now
+  syncs itself whenever it is shown or the app state changes.
+- **A failed hardware read no longer crashes the app** - the gaming overlay refreshed the EC
+  every second with no error handling, so one refused WMI call (provider restart, sleep/resume,
+  shutdown) was enough to raise a .NET "unhandled exception" box. The overlay now keeps the last
+  reading and tries again on the next refresh, and a last-chance handler catches anything else
+  and writes it to `%AppData%\GhostDeck\errors.log` instead of showing a dialog.
+- **A switched-off overlay no longer reads the hardware** - turning the gaming overlay off only
+  hides its window, and the 1 s sampling timer kept running with it, so the EC was polled every
+  second for the rest of the session. The timer now follows the window's visibility.
+
 ## [1.23.1] - 2026-07-27
 ### Changed
 - **Thin GF63 12VE: fan-curve addresses verified** ([#22](../../issues/22)) - the owner confirmed

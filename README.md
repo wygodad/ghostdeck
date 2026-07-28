@@ -8,11 +8,11 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 > ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific - read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
-📋 **~135 MSI models recognised** - **12 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+📋 **~135 MSI models recognised** - **13 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
 ## Features
 
-- 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**
+- 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**; Settings is organized into **icon sub-tabs** (a Start page with tiles + General / Power / Notifications / Gaming / Hotkeys / System) and reopens on the sub-tab you used last
 - ⌨️ Global, **rebindable** hotkeys (default `Ctrl+Alt+F1–F4`, `Ctrl+Alt+P` = cycle)
 - 🔔 On-screen overlay (OSD) on every profile change
 - 🎮 **Detachable gaming overlay (HUD)** - a small always-on-top panel with **FPS / frametime**, temps / fan RPM / profile / load / GPU% / VRAM / clocks / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
@@ -36,7 +36,8 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
-- ⬇️ **In-app updates** - a daily update check (can be disabled) with a tray notification, plus **one-click install from the Updates tab**: it downloads the new release, shows a progress bar and restarts itself on the new version (the previous `.exe` is kept as a `.bak` and cleaned up on next start); falls back to the download page if the download fails
+- ⬇️ **In-app updates** - a daily update check (can be disabled) with a tray notification, plus **one-click install from the Updates tab**: it downloads the new release, shows a progress bar and restarts itself on the new version (the previous `.exe` is kept as a `.bak` and cleaned up on next start); falls back to the download page if the download fails. The tab also lists the **last 20 releases with download counts and full release notes readable inline** (click an entry to expand), and recovers from a lost connection on its own (retry button + automatic re-check)
+- 🔏 **Digitally signed releases** - every `GhostDeck.exe` published since v1.24.0 carries a verified publisher signature ("WYGODA DAWID FENIX INSPIRE"), so Windows can confirm who built it and that nobody tampered with it - see [Download](#download) for what that means in practice
 - 📣 **Announcements & feedback** - occasional in-app notices (tray balloon + a dismissible banner) fetched read-only from the repo on the same daily check; a **Send feedback…** tray entry opens GitHub Discussions. No data is collected by the app (a plain download, same privacy footprint as the update check); both can be turned off with the update-check toggle
 
 ## Comparison with MSI software
@@ -88,9 +89,9 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | ![Tray menu](docs/images/tray-menu.png) | ![Scenarios](docs/images/scenarios.png) |
 | **Tray menu** - switch profile, Status, Language, Settings | **Scenarios** - large profile tiles + charge limit and AC/battery auto-switch |
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
-| **Status** - temperature/fan rings, fan RPM, CPU usage and RAM, tier badge | **Settings** - grouped cards: theme, language, power, startup, rebindable hotkeys |
+| **Status** - temperature/fan rings, fan RPM, CPU usage and RAM, tier badge | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
 | ![Report my model](docs/images/report_my_model.png) | ![Updates](docs/images/updates.png) |
-| **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Updates** - installed version, check now, release history |
+| **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Updates** - one-click install, 20 releases with download counts and inline notes |
 | ![Fan curve](docs/images/fan_curve.png) | ![Status EC bytes](docs/images/status_ec.png) |
 | **Fan curve** - drag a custom CPU/GPU fan curve (manual fan control) | **Status (EC bytes)** - live profile-byte matrix, legend and fan-curve tables |
 | ![Models](docs/images/models.png) | ![Change log](docs/images/change_log.png) |
@@ -100,6 +101,14 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 
 Grab the latest **`GhostDeck.exe`** from the [**Releases**](../../releases) page.
 It's a single, self-contained file - no install, no .NET runtime needed. Run it and approve the UAC prompt (EC access requires administrator).
+
+**Every release since v1.24.0 is digitally signed.** In plain terms: before publishing, the exe gets a cryptographic seal tied to the developer's registered business, verified by Microsoft (Azure Artifact Signing). That gives you three guarantees:
+
+- **You know who made it** - right-click the exe → Properties → **Digital Signatures** shows **"WYGODA DAWID FENIX INSPIRE"** (the developer's registered company). Windows shows the same name in the UAC prompt instead of "Unknown publisher".
+- **Nobody tampered with it** - if even one byte of the file were modified after signing (by malware, a broken download, or a fake mirror), the signature check fails visibly.
+- **Fewer scary warnings over time** - SmartScreen and antivirus tools treat consistently-signed software as increasingly trustworthy, so "Windows protected your PC" prompts fade away as the signature builds reputation.
+
+**A `GhostDeck.exe` v1.24.0+ without this signature is not an official build - don't run it.**
 
 ## Supported models
 
@@ -111,8 +120,8 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 
 | Tier | Models | EC firmware / registers | Fan curve |
 |---|---|---|---|
-| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V / Vector 17 HX A14V**, **Crosshair A16 HX**, **Sword 16 HX B13V/B14V**, **Raider GE67 HX 12U**, **Cyborg 15 A12VF**, **Thin GF63 12VE**, **Titan 18 HX Dragon Edition**, **Bravo 15 B7ED**, **Bravo 17 C7VE/D7VFK**, **GF63 Thin 11UC/11SC**, **Katana GF66 11UE/11UG**, **Pulse/Katana 17 B13V/GK** | `17S1IMS1.*`, `17S2IMS2.*`, `15PLIMS1.*`, `15P2EMS1.*`, `1545IMS1.*`, `15K1IMS1.*`, `16R8IMS1.*`, `1824EMS1.*`, `158PIMS1.*`, `17LNIMS1.*`, `16R6EMS1.*`, `1581EMS1.*`, `17L5EMS1.*` - shift `0xD2` / fan `0xD4` | ✅ editable |
-| ⚗️ **G2 family** (~94) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
+| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V / Vector 17 HX A14V**, **Crosshair A16 HX**, **Sword 16 HX B13V/B14V**, **Raider GE67 HX 12U**, **Cyborg 15 A12VF**, **Thin GF63 12VE**, **Titan 18 HX Dragon Edition**, **Bravo 15 B7ED**, **Bravo 17 C7VE/D7VFK**, **GF63 Thin 11UC/11SC**, **Katana GF66 11UE/11UG**, **Pulse/Katana 17 B13V/GK**, **Crosshair 16 HX AI D2XW** | `17S1IMS1.*`, `17S2IMS2.*`, `15PLIMS1.*`, `15P2EMS1.*`, `1545IMS1.*`, `15K1IMS1.*`, `16R8IMS1.*`, `1824EMS1.*`, `158PIMS1.*`, `17LNIMS1.*`, `16R6EMS1.*`, `1581EMS1.*`, `17L5EMS1.*`, `15P4EMS1.*` - shift `0xD2` / fan `0xD4` | ✅ editable |
+| ⚗️ **G2 family** (~93) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
 | ⚗️ **G1 family** (~33) | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | shift `0xF2` / fan `0xF4` / charge `0xEF` | - profiles only |
 
 The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; on experimental models the curve is editable once you opt in, but stays flagged **unverified** until you compare it with MSI Center on your own model. See the **[full per-firmware list of all ~135 models](docs/SUPPORTED_MODELS.md)** (source of truth: [`Devices.cs`](Core/Devices.cs)). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function - guessing it would be unsafe).

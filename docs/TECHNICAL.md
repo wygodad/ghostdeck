@@ -711,6 +711,25 @@ process (named mutex `GhostDeck_SingleInstance`); the second launch instead `Set
 `GhostDeck_ShowMainWindow`, and a background thread in `TrayContext` brings up the main window — so
 double-clicking the exe (or the freshly-swapped one) always shows something.
 
+**Release history (v1.24).** `Updater.RecentAsync(20)` lists the last 20 published releases;
+`ReleaseInfo.Downloads` = the sum of the release assets' `download_count` (in practice the one
+`GhostDeck.exe` asset). Each `ReleaseRow` shows tag + date + download count + a real ghost-styled
+"Details ↗" button (opens the release on GitHub); clicking anywhere else on the row toggles the
+FULL release notes inline. The notes are rendered by a markdown-lite pass (`ParseNotes`):
+`#`-headers and bare `Added`/`Fixed`/`Changed`… section words become accent-colored headers,
+`-`/`*` lines become bullets, `**bold**` runs switch font, `[text](url)` collapses to its text,
+"Full Changelog" lines are dropped. The expanded height is measured with the same word-wrap
+routine that draws (`DrawWrapped` with `draw:false`), so it is DPI-exact; collapsing restores the
+fixed two-line preview height. Rows re-read their button label in `Restyle()` so a language
+switch reaches them without a rebuild.
+
+**Fetch failure is not terminal (v1.24).** A failed `RecentAsync` used to latch: `_loaded` was
+set before the fetch, so the empty "couldn't reach GitHub" state survived until app restart.
+Now `_loaded` is only set on success; on failure the tab shows the error + a "Try again" button
+(`upd_retry`), retries automatically every 30 s while the tab is visible (WinForms timer), and
+retries on every tab entry. A `_loading` flag keeps the manual button, the timer and OnEnter
+from overlapping.
+
 ## 24. Settings backup, thermal alert, panic reset (v1.20)
 
 **Settings export / import (Settings → Backup).** Export serialises the live `AppSettings` to a
@@ -941,3 +960,153 @@ Implementation:
   so single-fan boards verify cleanly instead of producing a misleading "not located". The
   generated text report and the prefilled issue URL carry the per-fan detail
   ("GPU test curve not found (single-fan model or Fan 2 not set)").
+
+## 32. Surviving WMI read failures (`AppLifecycle.cs`, v1.23.2)
+
+Every EC read is a WMI `Get_Data` call, and such a call can fail for reasons that have nothing
+to do with the EC: the MSI ACPI provider host is being recycled, `Winmgmt` restarts, the machine
+goes to sleep or resumes, the app itself is being torn down, or Windows is shutting down (WMI
+stops serving before our process is killed). Typical results are `ManagementException`
+(`ShuttingDown`, `CallCanceled`, `ServerTooBusy`, `Timedout`) and the RPC-unavailable
+`COMException` HRESULTs.
+
+**A transient WMI failure is a missing sample, not an error to report.** It must never reach the
+message loop, and it must never be retried in a tight loop against a provider that is already
+struggling: drop that reading, keep the last good one, try again on the next normal tick.
+
+Reported on v1.23.1: the gaming overlay refreshed once a second straight on the UI thread with
+no guard (`OverlayForm` tick -> `TrayContext.BuildOverlaySample` -> `Ec.ReadHw`), so the first
+refused read escaped into the message loop and WinForms put up its `ThreadExceptionDialog`
+("unhandled exception ... Continue / Quit") mid-session. Every other periodic reader (Status
+`RefreshAsync`, `TrayContext.Poll`, `SampleHw`, Fan curve `RefreshMode`) already had a
+`try/catch`, which is why only the overlay ever showed it.
+
+The overlay did not even have to be switched on: `SetOverlay(false)` only calls `Hide()` (the
+form is kept so position and layout survive a toggle), but the 1 s timer was tied to the form's
+lifetime (`OnLoad` / `OnFormClosed`) instead of its visibility, so a hidden overlay went on
+reading the EC every second until exit. `OnVisibleChanged` now starts and stops the timer.
+
+Rules in force:
+
+1. **The guard lives in the EC layer, not in the callers.** `Ec.TryReadHw(dev, out hw)` is the
+   only public entry point for hardware sampling (`ReadHw` is private behind it); it absorbs
+   `ManagementException` / `COMException` / `ObjectDisposedException` / `InvalidOperationException`
+   and returns false. Callers keep their last good data and try again on their own next tick -
+   the next call reconnects on its own, since every EC call opens its own WMI connection
+   (`Ec.GetInstance`). The overlay sampler (`BuildOverlaySample`) returns null on a refused read
+   and `OverlayForm.Sample` keeps the previous `OverlaySample`. New code cannot reintroduce the
+   crash, because the throwing variant is not reachable from outside `Ec`.
+2. **Last line of defense, not a substitute for local handling.**
+   `Application.SetUnhandledExceptionMode(CatchException)` plus handlers on
+   `Application.ThreadException` and `AppDomain.UnhandledException`. `AppLifecycle.IsTransient`
+   drops the WMI noise listed above; anything else is appended to
+   `%AppData%\GhostDeck\errors.log` (capped at 128 KB) and the app keeps running. A release build
+   must never show the stock .NET exception dialog.
+3. **Stop polling when the session really ends.** `AppLifecycle.ShuttingDown` is set by
+   `SystemEvents.SessionEnding` / `SessionEnded` only, never by an exception (a WMI error code is
+   not evidence about the machine's state, and latching on one would freeze every EC read for the
+   rest of the session). `TrayContext.Poll` and the overlay timer stop on that flag.
+
+`errors.log` is the file to ask for in a bug report; it is written only for real, unexpected
+failures, so an empty or missing file is the normal state.
+
+## 33. Settings shows live state (v1.24)
+
+Settings controls are built once with build-time values, but two of those values can change
+elsewhere while the page exists: the language (tray menu -> `TrayContext.ChangeLanguage`) and
+the theme (header moon button -> `Theme.Toggle`). The page used to keep showing the stale
+selection in both cases.
+
+`SettingsPage.SyncExternal()` runs from `OnEnter` and `LiveRefresh` (the tray path calls
+`UpdateUi` -> `MainForm.RefreshActive` -> `LiveRefresh` of the visible page, so a change made
+while Settings is on screen lands immediately):
+
+- **language drift** (`_uiLang != Lang.CurrentCode`): full `BuildForm()+Layout2()` inside
+  `Ui.BatchRedraw` - every label changes anyway, and the rebuild re-reads all current values;
+  `BuildForm` records the language it was built with.
+- **theme drift**: `_themeSeg.Selected = Theme.Dark ? 1 : 0` - `SegControl.Selected` does NOT
+  raise `SelectedChanged`, so re-pointing it cannot loop back into `Theme.Set`. Also done in
+  `ApplyTheme`, which the header button triggers on every page via `Theme.Changed`.
+
+`UpdatesPage` gets the same treatment for its build-time texts: `ApplyThemeText()` (re)sets the
+button labels and per-row "Details" captions and is called from `OnEnter`, `ApplyTheme` and a
+new `LiveRefresh` override.
+
+## 34. Settings sub-tabs (v1.24)
+
+Settings outgrew its two-column card dump (raised in discussion #9; layout chosen by the owner
+from ten mockups - sub-tabs like the Status page, with icons and a tile start page).
+
+- `SettingsPage` keeps per-group card lists (`_gLeft[]` / `_gRight[]`); groups: 0 = Start,
+  then General, Power, Notifications, Gaming, Hotkeys, System. Only the active group's cards
+  are visible and laid out; hidden groups' controls stay built, so the language-change rebuild
+  path and all handlers are unchanged.
+- `SubTabs` (same control the Status/Report pages use) gained optional per-segment glyphs
+  drawn with Segoe MDL2 Assets, matching the main tab strip's icon language. Glyphs: Start
+  E80F (Home), General E790 (Color), Power E945 (LightningBolt), Notifications E7BA (Warning),
+  Gaming E7FC (Game), Hotkeys E765 (KeyboardClassic), System E90F (Repair).
+- The Start page is a grid of `GroupTile`s (glyph + group name + one-line description; 3 per
+  row, 2 on narrow windows). Clicking a tile equals clicking its strip segment.
+- The active sub-tab persists in `AppSettings.SettingsSubTab` (0 = Start, the first-run
+  default). `SelectSub` saves it, resets the scroll position and relayouts. So Settings
+  reopens exactly where the user left off, across app restarts too.
+- The full-width overlay panel IS the Gaming sub-page. The old Power card was split: battery
+  side (charge limit, AC/battery profiles, restore-on-resume) stays `set_grp_power`; the
+  refresh-rate rows moved to a new Display card (`set_grp_display`).
+- Group assignment: General = Appearance, Interface, Application icon; Power = Power + Display;
+  Notifications = alerts/OSD; Hotkeys = shortcuts; System = Startup & tray, Updates, Tray
+  menu, Backup.
+
+### 34.1 Start page dashboard + strip active state (v1.24)
+
+The Start page is a dashboard, not just navigation:
+
+- **Live tile state.** `SettingsPage.RefreshTiles()` (called from `OnEnter`, `LiveRefresh`,
+  after builds and after tile toggles) writes each tile's third line from the CURRENT
+  settings: General = theme + language; Power = charge limit (+ "AC x Hz / bat. y Hz" when the
+  refresh switch is fully configured); Notifications = threshold/time or Off; Gaming =
+  overlay on/off + enabled-metric count; Hotkeys = enabled count or Off; System = autostart +
+  update-check state. A small dot (Theme.Green / Theme.Faint) encodes the group's main on/off;
+  General has none.
+- **Quick switches.** `GroupTile.AttachToggle(get, set)` embeds a ToggleSwitch top-right;
+  used on Notifications (temp alert) and Gaming (overlay via `D.SetOverlay`). The toggle is a
+  child control, so clicking it never triggers the tile's navigate click; `SyncToggle` uses
+  the silent `Checked` setter, so re-syncing cannot loop into the action.
+- **Status header.** `HomeHeader` draws model + tier pill (`Ui.Pill`) + firmware + version
+  from `D.Status()` / `D.Firmware` / `D.AppVersion`. When `D.UpdateAvail()` (new MainDeps
+  member; `TrayContext._updateAvail` is set by the daily check) returns a release, a filled
+  accent chip appears; clicking it calls `D.OpenUpdates(tag)`.
+- **What's new.** A link under the tiles calls `D.OpenUpdates("v" + AppVersion)`;
+  `MainForm.ShowUpdates(tag)` -> `UpdatesPage.FocusRelease(tag)` expands (and scrolls to) the
+  matching `ReleaseRow` once the release list is loaded - the deep link survives the list
+  loading later (`_focusTag` is consumed in `TryFocusRelease` after a successful fetch).
+- **Strip active state (user report).** Opening a page from an icon-only button (Report,
+  Updates, or a tab collapsed to an icon) left NOTHING highlighted in the strip - TabButtons
+  had an Active state but GlyphButtons did not. `GlyphButton.Active` now paints an AccentSoft
+  fill + accent border + accent glyph, and `MainForm.ShowTab` updates `_tabIcons`,
+  `_reportBtn` and `_updatesBtn` alongside the tab row.
+
+## 35. Release code signing (v1.24)
+
+Release binaries are Authenticode-signed in CI with **Azure Artifact Signing** (managed
+short-lived certificates in a Microsoft HSM; publisher subject
+`CN=WYGODA DAWID FENIX INSPIRE`). Nothing is signed locally - only the release workflow.
+
+- `release.yml` runs in the GitHub environment `release` with `id-token: write`.
+  `azure/login@v3` authenticates via an **OIDC federated credential** on the Entra app
+  `ghostdeck-ci`, so the repo stores no passwords or secrets - only three non-secret Actions
+  variables (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`).
+- The repo is opted in to GitHub's **immutable OIDC subject** format
+  (`use_immutable_subject=true` via the REST API), so the credential matches on stable
+  numeric IDs (`repo:wygodad@697658/ghostdeck@1281617924:environment:release`) instead of
+  renameable account/repo names.
+- `azure/artifact-signing-action@v2` signs `publish/GhostDeck.exe`: endpoint
+  `https://eus.codesigning.azure.net/` (must match the signing account's region), account
+  `ghostdeck-signing`, certificate profile `ghostdeck-public`, SHA-256 digest, RFC 3161
+  timestamp from `timestamp.acs.microsoft.com`. The certificates are short-lived by design;
+  the timestamp is what keeps signatures on old releases valid after the cert expires.
+- A **hard gate** follows the signing step: `Get-AuthenticodeSignature` must report `Valid`
+  and the signer subject must contain `FENIX INSPIRE`, otherwise the job fails before the
+  release step - an unsigned or wrongly-signed exe can never be published.
+- `workflow_dispatch` has a **dry-run** input: build + sign + upload the exe as a workflow
+  artifact, with no release created. Used to validate the pipeline end to end.

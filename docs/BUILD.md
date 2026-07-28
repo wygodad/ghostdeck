@@ -20,7 +20,8 @@ dotnet publish -c Release -r win-x64 --self-contained true `
   -p:DebugType=none -p:Version=X.Y.Z -o release
 ```
 Output: `release/GhostDeck.exe` (~154 MB, self-contained, requires admin to *run*).
-A local re-publish to `release/` needs the running app closed first (file lock) — exit it from the tray.
+A local re-publish to `release/` needs the running app closed first (file lock) - exit it from the tray.
+Local builds are **unsigned**; only the release workflow signs (see below).
 
 ## Day-to-day
 ```powershell
@@ -36,8 +37,15 @@ git push origin main
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-GitHub Actions then builds the self-contained exe and publishes a **Release** with the
-exe attached and the notes taken from the matching CHANGELOG section.
+GitHub Actions then builds the self-contained exe, **signs it** (Azure Artifact Signing via
+OIDC; publisher "WYGODA DAWID FENIX INSPIRE") and publishes a **Release** with the exe
+attached and the notes taken from the matching CHANGELOG section. The workflow verifies the
+signature and **refuses to publish** when it is missing or has an unexpected subject, so a
+failed signing step can never ship an unsigned exe. Details: [TECHNICAL.md](TECHNICAL.md) §35.
+
+To test the signing pipeline without publishing anything: GitHub → Actions → **Release** →
+*Run workflow* with the **dry-run** box ticked. It builds and signs, then uploads the exe as
+a workflow artifact instead of creating a release.
 
 > Don't tag a release of an untested feature. Push to `main` first, test the local exe,
 > then tag.
