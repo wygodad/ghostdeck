@@ -1110,3 +1110,41 @@ short-lived certificates in a Microsoft HSM; publisher subject
   release step - an unsigned or wrongly-signed exe can never be published.
 - `workflow_dispatch` has a **dry-run** input: build + sign + upload the exe as a workflow
   artifact, with no release created. Used to validate the pipeline end to end.
+
+## 36. msi-ec sync pipeline, stage 1 (2026-07-28)
+
+`Core/Devices.cs` was seeded from [msi-ec](https://github.com/BeardOverflow/msi-ec), the
+community-maintained Linux kernel driver whose per-model EC maps keep evolving. Stage 1 of
+the sync pipeline is a **report-only watchdog**: `tools/msiec-sync.py` fetches upstream
+`msi-ec.c`, parses every `CONF_*` block (shift/fan/charge/super-battery addresses, mode
+values, firmware lists with their model-name comments) plus our `Devices.cs`, and diffs them.
+`.github/workflows/msiec-sync.yml` runs it every Monday 06:00 UTC (plus manual dispatch,
+`permissions: contents read / issues write` only) and opens or comments a "msi-ec sync
+report" issue when anything changed. **It never edits code** - imports go through a normal
+reviewed commit and reach users only with a release, always as `Tier.Experimental`. A parse
+failure (upstream layout change) files a "parser needs an update" issue instead of guessing;
+exit codes: 0 none / 10 diff / 2 parse failure.
+
+Report sections: (a) new prefixes whose conf has a Silent fan value, with ready-to-paste C#
+lines; (b) new prefixes WITHOUT a Silent fan value - human design decision, never blind
+import (our Silent/Balanced detection keys off the Silent fan byte, see §17/§19); (c) address
+mismatches for prefixes we already ship - the early-warning channel for upstream corrections
+(this is how the 15P4EMS1 confirmation would have surfaced automatically); (d) firmware
+version strings missing from `tools/msiec-fw-baseline.txt` (informational; refresh with
+`--update-baseline` after handling a report).
+
+Known equivalences and acks encoded in the script:
+- `CHARGE_EQUIV {(0xD7, 0xEF)}` - msi-ec standardises charge control on `0xEF` everywhere,
+  while the G2 family also accepts `0xD7 = 0x80|percent`, which is what we ship and have
+  verified on real hardware (§7). Not a divergence worth chasing weekly.
+- `NOSILENT_ACK` - the 14 prefixes found in the 2026-07-28 review (CONF_G1_1: 16U7/17E7/
+  17E8/17F2-17F6 = GP65/GL65/GP75/GL75/GF75 Thin; CONF_G1_9: 17G1EMS1/2, 17G3EMS1 = GS75
+  Stealth / P75 Creator; CONF_G1_10: 16P5, 1782 = GE63 Raider 8RE / GT72, old gen with fan
+  values 0x0C/4C/8C). All three confs lack `FM_SILENT` and G1_1/G1_9 carry an extra Sport
+  shift value (0xC0) we do not model - which is exactly why the original import skipped
+  them. They are parked in a tracking issue until a no-Silent handling design lands (the
+  owner's own GS75 is the planned hardware pilot); remove a prefix from the ack set when it
+  gets imported. `--include-acked` prints them again.
+
+Stage 2 (not built): generating a ready PR instead of an issue - deliberately deferred until
+the report has earned trust, since these maps drive EC writes.

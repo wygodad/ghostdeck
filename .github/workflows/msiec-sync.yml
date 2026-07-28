@@ -1,0 +1,59 @@
+# Weekly watchdog: diff upstream msi-ec model maps against Core/Devices.cs and open/update
+# a GitHub issue when something changed. Report-only by design - it NEVER edits code; new
+# models reach users exclusively through a normal reviewed commit + release.
+# See tools/msiec-sync.py and docs/TECHNICAL.md §36.
+name: msi-ec sync
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Diff msi-ec against Devices.cs
+        id: diff
+        run: |
+          set +e
+          python3 tools/msiec-sync.py --report report.md
+          code=$?
+          set -e
+          if [ "$code" = "2" ]; then
+            echo "parse_failed=true" >> "$GITHUB_OUTPUT"
+          elif [ "$code" = "10" ]; then
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+          elif [ "$code" != "0" ]; then
+            exit "$code"
+          fi
+
+      - name: Report parser failure
+        if: steps.diff.outputs.parse_failed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="msi-ec sync: parser needs an update"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          body="The weekly msi-ec sync could not parse upstream msi-ec.c - its layout probably changed. The parser refuses to guess; update tools/msiec-sync.py. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ -n "$num" ]; then gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi
+
+      - name: Open or update the report issue
+        if: steps.diff.outputs.has_diff == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="msi-ec sync report"
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body-file report.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title ($(date -u +%F))" --body-file report.md
+          fi
