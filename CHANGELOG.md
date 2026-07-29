@@ -3,6 +3,70 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.24.1] - 2026-07-29
+### Added
+- **Fan Boost can switch itself off** ([#51](../../discussions/51), thanks @cesarcamps) -
+  Settings → Power → "Turn Fan Boost off automatically after": 30 s, 1, 2, 3, 5, 10 or 15
+  minutes, or any custom value up to two hours (off by default). The countdown starts whenever
+  Fan Boost goes on - tray, hotkey, the Scenarios tile or the command line - and when it
+  elapses the fans go straight back to whatever the active profile or curve was doing, with an
+  on-screen note and a change-log entry. Turning Boost off by hand cancels the timer.
+- **Temperature readings on laptops without MSI's EC interface** ([#48](../../issues/48),
+  thanks @SavAlexander) - a few MSI models ship firmware that does not implement the EC
+  control interface at all (proven on a Delta 15 A5EFK: the owner extracted the BIOS and the
+  interface GUID is absent from the firmware tables). GhostDeck used to be completely dead on
+  such machines. It now falls back to MSI's own WMI sensor blocks and shows **live CPU/GPU
+  temperature** on the Status tab and in the overlay, with a plain explanation that profiles,
+  fan curves and the charge limit are unavailable on that firmware. Read-only, no driver.
+- **Custom fan curves survive a reboot** ([#49](../../discussions/49), thanks @inokra) - the
+  EC resets to its factory fan mode on every cold boot, so a custom curve always needed
+  re-enabling by hand. A new opt-in switch (Settings → Power → "Restore fan curve after wake /
+  at startup") makes GhostDeck remember the curve that was active - a preset or a manual one
+  from the editor - and re-apply it a few seconds after startup and resume, with a change-log
+  entry each time. Profile restore also re-asserts its state now even when the EC happens to
+  boot into the same profile.
+- **Status sub-tabs got icons** - Charts / History / Gaming / EC bytes / Change log now carry
+  the same icon style as the Settings sub-tabs.
+- **One-click diagnostic package** (Settings → System → Diagnostics) - a single zip with a
+  read-only EC dump (or the exact error it produced), settings, the change history and
+  errors.log; everything a bug report keeps asking for, attached in one file. No personal data
+  lives in any of these files.
+- **Battery health panel** (Settings → Power) - design capacity vs full-charge capacity,
+  wear % and charge cycles, read straight from Windows' battery WMI classes; the natural
+  neighbour of the charge limit.
+- **Estimated battery time** - while discharging, the tray tooltip shows Windows' own
+  "~2 h 40 min left" estimate, a new box on Status → Charts shows it too, and a new optional
+  overlay metric puts it in the HUD during gaming.
+- **Storage panel with per-disk S.M.A.R.T. temperature** - Status → Charts lists every
+  physical disk with its name, used/total space (with a usage bar) and live S.M.A.R.T. temperature (no kernel driver; the hottest
+  disk also available as an optional overlay metric); NVMe drives can throttle during long
+  sessions.
+- **Every Settings card now has an icon** and the Backup card moved to the left column of
+  System.
+- **Raider A18 HX A7VIG (`182KIMS1`) promoted to Tested** ([#50](../../issues/50), thanks
+  @afk789) - per-scenario capture matches the shipped map, all three hardware checks passed,
+  and fan-RPM readout is enabled. That's **15 tested models**.
+- **GP66 Leopard 11UG / GE66 Raider (`1543EMS1`): fan curve verified and RPM enabled**
+  ([#52](../../issues/52), [#53](../../issues/53), thanks @krystian-pytlik) - the owner's test
+  curve was found byte-for-byte at `0x72` / `0x8A`, so the editor's "unverified" tag is gone.
+- **Raider GE76 12UE (`17K4EMS1`) promoted to Tested, fan curve verified**
+  ([#45](../../issues/45), [#47](../../issues/47), thanks @moragab1993) - the per-scenario
+  capture matches the shipped register map, the owner's test curve was found byte-for-byte at
+  `0x72` / `0x8A`, and fan-RPM readout is enabled (`0xC9` / `0xCB`).
+
+### Fixed
+- **Super Battery on the A18 HX boards no longer writes a register MSI Center leaves alone**
+  ([#50](../../issues/50), [#54](../../issues/54)) - two independent captures (Raider A18 HX
+  A7VIG and Vector A18 HX A9WHG) show `0xEB` staying at 00 in Super Battery on those AMD
+  boards, so GhostDeck now mirrors MSI Center exactly and skips that write.
+- **Buttons react to the mouse again** - outline-style buttons (Details in the release list,
+  Try again, backup buttons and others) had no visible hover state on the dark theme; they now
+  highlight under the cursor.
+- **A clearer message when the EC cannot be read** ([#48](../../issues/48)) - the capture
+  wizard used to end with a bare "Details: Unsupported". It now says what actually happened
+  (the firmware refused the request) and points to reporting the model, with separate wording
+  for access-denied and for machines without MSI's WMI interface at all.
+
 ## [1.24.0] - 2026-07-28
 ### Added
 - **Crosshair 16 HX AI D2XW (`15P4EMS1`) promoted to Tested, fan curve verified**

@@ -8,7 +8,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 > ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific - read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
-📋 **~135 MSI models recognised** - **13 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+📋 **~135 MSI models recognised** - **15 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Raider GE76 12UE, Raider A18 HX, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
 ## Features
 
@@ -20,20 +20,23 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🏁 **Game-session report** - when a game exits, GhostDeck pairs the FPS story with the EC story nobody else has: *"1 h 42 min · avg 87 FPS · 1% low 54 · CPU max 91 °C"* in a sleek **borderless popup** (frametime sparkline included) with one-click **save as PNG** and **data export (JSON/CSV)**, plus a summary card on Status → Gaming and a change-history entry
 - 🌍 **8 languages** - EN / PL / DE / FR / ES / 中文 / PT-BR / RU
 - 🎨 Custom color per profile
-- 📊 **Status** - live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH counters - no kernel driver, anti-cheat-safe)
+- 📊 **Status** - live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus **NVMe/SSD temperature**, **estimated battery time left** and a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH/WMI - no kernel driver, anti-cheat-safe)
 - 🌀 **Fan curve editor** - drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced - the app warns and switches for you. **Single-fan-curve boards** (where MSI Center shows one slider, e.g. Thin GF63 12VE) automatically get a single full-width curve editor, and the unused GPU tables are never written
 - 🗂️ **Fan-curve presets** - save curves under a name, switch them from the editor or the tray menu, **assign a preset per profile** (auto-applied on every switch; Silent stays stock), and **export / import / share** presets as JSON - a Share button opens a prefilled GitHub Discussion with your model and curve
 - 📈 **History charts** - local trend of CPU/GPU temperature, fan duty, fan RPM and **game FPS** over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
 - ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on`, `--curve "<preset>"`, `--panic`, `--status` (JSON) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
-- 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*
+- 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*, with an optional **auto-off timer** (30 s to 15 min, or your own value) so a quick cooling blast never turns into a forgotten hurricane
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
 - 🛡️ **Firmware-change guard** - after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
 - 🌡️ **Temperature alert** *(opt-in)* - an OSD toast + tray notification when the CPU or GPU stays above a chosen threshold (70-100 °C) for a chosen time (5-60 s), with a cool-down between alerts and an entry in the change history; the **OSD display time is adjustable** (1-15 s, alerts stay up at least 5 s)
 - 🆘 **Panic reset hotkey** (default `Ctrl+Alt+F10`) - one press returns the machine to a safe stock state: Fan Boost off, Balanced profile, fans back on the automatic curve
 - 💾 **Settings backup** - export every preference (colors, hotkeys, rules, overlay, alerts) to a JSON file and import it after a reinstall or on another machine; machine-specific state (firmware guard, window position) stays local
+- 🌡️ **Temperatures even on unsupported firmware** - a few MSI models ship firmware without MSI's EC control interface (GhostDeck used to be dead there); the app now falls back to MSI's WMI sensor blocks and still shows live **CPU/GPU temperature** in Status and the overlay, while saying plainly that profiles, fan curves and the charge limit are unavailable on that machine
+- 🩺 **One-click diagnostic package** (Settings → System) - a single zip with a read-only EC dump, settings, change history and error log, ready to attach to a bug report; no personal data involved
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
+- ♻️ **Startup / wake restore** *(opt-in, Settings → Power)* - the EC resets to factory state on every cold boot (and sometimes wakes in Super Battery on its own); GhostDeck can re-assert both your **profile** and your **custom fan curve** a few seconds after startup and resume, so the machine always comes back exactly as you left it
 - 🖥️ **Refresh-rate auto-switch** *(opt-in)* - drop the panel to 60 Hz on battery and jump back to 144/240 Hz on AC, automatically; pickers list only the modes your panel reports. Pure Windows display API, so it works on **every** laptop - even unrecognised models
-- 🔋 **Battery charge limit** (60 / 80 / 100 %)
+- 🔋 **Battery charge limit** (60 / 80 / 100 %) plus a **battery health panel** (design vs full-charge capacity, wear %, charge cycles) in Settings → Power
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
 - ⬇️ **In-app updates** - a daily update check (can be disabled) with a tray notification, plus **one-click install from the Updates tab**: it downloads the new release, shows a progress bar and restarts itself on the new version (the previous `.exe` is kept as a `.bak` and cleaned up on next start); falls back to the download page if the download fails. The tab also lists the **last 20 releases with download counts and full release notes readable inline** (click an entry to expand), and recovers from a lost connection on its own (retry button + automatic re-check)
@@ -48,7 +51,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 |---|:---:|:---:|
 | **Silent profile** | ❌ *(removed in 2.0)* | ✅ |
 | Balanced / Extreme / Super Battery modes | ✅ | ✅ |
-| Full fan speed (Fan Boost / MSI Cooler Boost) | ✅ | ✅ |
+| Full fan speed (Fan Boost / MSI Cooler Boost) | ✅ | ✅ *(+ auto-off timer)* |
 | Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
 | Global **rebindable** hotkeys | Limited² | ✅ |
@@ -66,7 +69,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Fan-curve presets + per-profile auto-apply | ❌ | ✅ *(share/import as JSON)* |
 | Local history charts (last 60 min) | ❌ | ✅ *(temps + fans, memory-only)* |
 | Command-line interface (automation) | ❌ | ✅ |
-| Hardware monitoring | ✅ | Limited³ |
+| Hardware monitoring | ✅ | Limited³ *(temps, fans, disks, battery health)* |
+| One-click diagnostic package for bug reports | ❌ | ✅ |
 | Works with any / no MSI Center version | ❌ | ✅ |
 | Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |
 | RGB / keyboard / other MSI-Center features | ✅ | ❌ |
@@ -89,7 +93,9 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | ![Tray menu](docs/images/tray-menu.png) | ![Scenarios](docs/images/scenarios.png) |
 | **Tray menu** - switch profile, Status, Language, Settings | **Scenarios** - large profile tiles + charge limit and AC/battery auto-switch |
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
-| **Status** - temperature/fan rings, fan RPM, CPU usage and RAM, tier badge | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
+| **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
+| ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
+| **Settings → Power** - charge limit, battery health, Fan Boost auto-off timer, startup/wake restore | **Settings → System** - one-click diagnostic package, backup, autostart and updates |
 | ![Report my model](docs/images/report_my_model.png) | ![Updates](docs/images/updates.png) |
 | **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Updates** - one-click install, 20 releases with download counts and inline notes |
 | ![Fan curve](docs/images/fan_curve.png) | ![Status EC bytes](docs/images/status_ec.png) |

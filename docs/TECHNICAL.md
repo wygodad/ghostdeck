@@ -934,6 +934,22 @@ The last deliberate profile also persists (`AppSettings.LastProfile`, written on
 are skipped when the AC/battery auto-switch is enabled (it owns the choice) and both respect
 `AutoWritable` (firmware guard).
 
+**Fan-curve restore (v1.24.x, discussion #49).** The EC cold-boots into its factory fan mode,
+so a custom curve never survives a restart; the per-profile preset only came back if something
+called `SetProfile` at startup (auto-switch on, or profile restore with a *different* boot
+profile). Now the app remembers the curve that is LIVE in the EC - `AppSettings.CurveActive` +
+the four point arrays + the preset name for the log ("" = a manual curve from the editor) -
+recorded by every apply path (`ApplyAssignedCurve`, tray preset quick-switch, editor
+enable/re-apply) and cleared by every "back to profile fans" path (tray "Fan: profile", editor
+revert, panic reset). `AppSettings.RestoreCurveOnResume` (Settings → Power, default OFF) makes
+`TrayContext.TryRestoreCurve` re-write those tables + `SetFanMode(advanced)` at startup and
+6 s after resume, always AFTER the profile logic (so a recipe cannot overwrite the fan byte),
+gated by `AutoWritable`, skipped in Silent (shared `0xD4` byte) and validated against
+`FanCurveSpec.Points`/`SingleFan`. The profile restore itself also lost its
+"already on that profile" short-circuit: a cold boot loses fan state even when the EC wakes in
+the same profile, so restore now always re-asserts the full recipe (identical bytes are
+harmless).
+
 ## 31. Single-curve boards (v1.23.1, issue #22)
 
 Some budget boards expose only ONE controllable fan curve: MSI Center shows a single slider
@@ -1148,3 +1164,138 @@ Known equivalences and acks encoded in the script:
 
 Stage 2 (not built): generating a ready PR instead of an issue - deliberately deferred until
 the report has earned trust, since these maps drive EC writes.
+
+## 37. One-click diagnostic package (v1.24.x, roadmap #30)
+
+Settings → System → Diagnostics → "Save diagnostic package…" builds one zip
+(`SettingsPage.SaveDiagnostics`, `System.IO.Compression`):
+
+- `report.txt` - app version, EC firmware, detected model + tier, Windows version;
+- `ec-dump.txt` - a fresh read-only `Ec.DumpAll()` in the wizard's hex format, or - when the
+  read fails - the `AppLifecycle.DescribeEcFailure` text plus the raw exception message (that
+  failure text is itself the diagnostic, see issue #48);
+- copies of `settings.json`, `changelog.json` and `errors.log` (only when present) from
+  `%AppData%\GhostDeck`.
+
+None of these files carry personal data (settings hold colors/hotkeys/toggles/window
+geometry). Half of issue triage used to be requesting exactly these pieces one by one.
+
+## 38. Battery health, battery-time estimate, SSD temperature (v1.24.x, roadmap #14/#15/#17)
+
+All three stay inside the project's "no kernel driver" rule - plain WMI, admin only:
+
+- **Battery health** (`Core/BatteryHealth.cs`, card in Settings → Power): `root\wmi`
+  `BatteryStaticData.DesignedCapacity`, `BatteryFullChargedCapacity.FullChargedCapacity`,
+  `BatteryCycleCount.CycleCount` (all mWh / count; 0 = firmware does not report it - common
+  for CycleCount). Wear % = 100 - full*100/design, clamped. Read once at card build; the
+  values change too slowly to poll.
+- **Estimated battery time** (`Perf.BatteryMinutesLeft`): `Win32_Battery.EstimatedRunTime`
+  (minutes), only queried while discharging; sentinel/garbage values (charging returns huge
+  numbers) are filtered by a 0 < m < 6000 window; cached 15 s. Shown in the tray tooltip
+  (`TrayContext.UpdateTrayText`, refreshed by the 3 s poll, defensively capped at the 127-char
+  NotifyIcon limit), on Status → Charts row 3, and as the `BatteryTime` overlay metric.
+- **Storage panel** (`Perf.Disks`, cached 5 s): one entry per physical disk, ordered by the
+  Windows disk number. Names and sizes come from `MSFT_PhysicalDisk`
+  (`root\microsoft\windows\storage`); used/total volume space is summed per disk via the
+  `Win32_DiskPartition` → `Win32_LogicalDiskToPartition` association in `root\cimv2` (keyed by
+  `DiskIndex`, which equals `MSFT_PhysicalDisk.DeviceId`). Status → Charts row 3 shows each
+  disk with a usage bar (amber ≥90 %) and its temperature (amber ≥70 °C); the overlay's
+  `SsdTemp` metric shows both disks ("37/50°", like the Fans metric) via `Perf.DiskTemps2()`.
+
+  **The temperature ladder.** No single Windows API covers every drive/driver combination, so
+  each disk's temperature is resolved by trying four sources in order and stopping at the
+  first that answers (a value outside 1-119 °C counts as "no answer" and shows as "—"):
+
+  1. **Bulk WMI**: one `SELECT DeviceId, Temperature FROM MSFT_StorageReliabilityCounter` for
+     all disks at once - the cheapest path, but the class often cannot be enumerated directly
+     and returns nothing (PowerShell's `Get-StorageReliabilityCounter` has the same
+     limitation: it requires piping a disk in).
+  2. **WMI association**: `ASSOCIATORS OF {MSFT_PhysicalDisk.ObjectId="…"} WHERE ResultClass =
+     MSFT_StorageReliabilityCounter`, per disk (the ObjectId's backslashes and quotes must be
+     escaped in the object path).
+  3. **Storage temperature property**: `DeviceIoControl(IOCTL_STORAGE_QUERY_PROPERTY)` on
+     `\.\PhysicalDriveN` with `StorageDeviceTemperatureProperty` (= 52). The response is a
+     `STORAGE_TEMPERATURE_DATA_DESCRIPTOR`: 24-byte header (`InfoCount` at offset 12), then
+     16-byte `STORAGE_TEMPERATURE_INFO` entries with the signed Celsius temperature at entry
+     offset 2; the hottest sensor wins. `desiredAccess = 0` suffices for property queries;
+     elevation (which the app always has) is required. Some drivers do not implement this
+     property at all - e.g. the Kingston SKC3000 answers nothing here while step 4 works.
+  4. **NVMe SMART/health log** - the route CrystalDiskInfo takes, supported by practically
+     every NVMe drive: the same IOCTL with a protocol-specific query
+     (`StorageAdapterProtocolSpecificProperty` = 49, then the device variant 50;
+     `STORAGE_PROTOCOL_SPECIFIC_DATA` = ten DWORDs starting at the query's
+     `AdditionalParameters`, offset 8: `ProtocolType = 3` Nvme, `DataType = 2` LogPage,
+     `ProtocolDataRequestValue = 0x02` health-info log, `ProtocolDataOffset = 40`,
+     `ProtocolDataLength = 512`). The payload starts at 8 + the returned `ProtocolDataOffset`;
+     **Composite Temperature is bytes 1-2, little-endian, in Kelvin** - converted as
+     `°C = K - 273`.
+
+  All constants and struct layouts above were verified against the Windows SDK headers
+  (winioctl.h / nvme.h 10.0.19041), and steps 3-4 are plain user-mode `DeviceIoControl` - the
+  "no kernel driver" rule holds. Real-world coverage of the ladder on a dual-SSD machine:
+  a Samsung MZVL2 answers at step 3, a Kingston SKC3000 only at step 4.
+
+`OverlayMetric` gained `SsdTemp = 65536` and `BatteryTime = 131072`; `OverlaySample` carries
+both values from `BuildOverlaySample` so a refused EC read still leaves OS-side metrics intact.
+
+## 39. Telemetry-only mode: MSI WMI sensor blocks (v1.24.x, issue #48)
+
+Some MSI firmware does not implement the EC method interface at all. Proven on a Delta 15
+A5EFK (`15CKEMS1.108`): the owner extracted the 16 MB BIOS, decompressed every volume and
+decoded the firmware `_WDG`, and the `MSI_ACPI` GUID `ABBC0F6E-8EA1-11D1-00A0-C90629100000`
+is **absent** - from the image and from the live DSDT. The class visible in Windows comes
+from a MOF installed by MSI's software with no firmware backing, which is why every method
+call (including a correctly formed `Get_Data` with a full 32-byte `Package_32`, elevated,
+on both mapper instances) returns `NotSupported`. That is a firmware fact, not a bug we can
+fix: no register map, buffer shape, instance or privilege level can create an interface the
+firmware does not have.
+
+What that firmware DOES back are vendor DATA blocks: `MSI_CPU`, `MSI_VGA`,
+`MSI_Master_Battery`, `MSI_Power`, `MSI_System`, `MSI_AP`. Each is exposed as instances
+`ACPI\PNP0C14\0_N` where N is the byte index inside the block, and the value sits in a
+property named after the class. **Byte index 1 is the live temperature in °C** - established
+by CPU-load correlation on that machine (56 → 90 °C under load, GPU steady 52-54 °C) and
+cross-checked here: the class GUIDs on the tested GE78HX match the reporter's `_WDG` decode
+exactly (`MSI_CPU` BD2A216F, `MSI_VGA` 1EC3EC7A, `MSI_AP` A1753D7C), so the blocks are a
+platform-wide MSI feature rather than one board's quirk.
+
+`Core/MsiTelemetry.cs` reads those two blocks (cached 2 s, same 1-119 °C sanity window as the
+EC path, elevation required - the blocks deny non-admin callers). `TrayContext` probes it
+once at startup when no device profile matched (`_telemetryOnly`), and `ReadHwOrTelemetry`
+supplies temperatures wherever the EC would: Status rings, overlay metrics, tray. Everything
+else stays zero, the tier badge reads `tier_telemetry`, and Status prints `telemetry_note`
+stating plainly that profiles / fan curves / charge limit are unavailable on this firmware.
+`MSIPS_FORCE_FIRMWARE=telemetry` simulates the state on a normal machine for UI work.
+
+**The two surfaces are mutually exclusive in practice.** Tested on the GE78HX (`17S1IMS1`,
+where the EC interface works perfectly): `Get-CimInstance root\wmi MSI_CPU` fails with the very
+same `NotSupported` / `0x8004100C` that the Delta 15 returns for `MSI_ACPI`, elevated. So MSI
+gives different platform generations different WMI surfaces - one board serves the EC method
+interface, another serves the sensor data blocks - and neither machine can verify the other's
+path. That is why the diagnostic package (§37) also carries `msi-wmi-blocks.txt`
+(`MsiTelemetry.Dump()`): every vendor block with its instances and values, or the exact error
+returned. When telemetry mode does not light up on a machine that should have it, that file
+separates "the blocks are silent here" from "we are reading them wrong" in one step.
+
+**Deliberately NOT done:** driving `MsIo64.sys` (MSI's port-I/O driver, present on those
+machines) or any WinRing0-class driver to reach the EC directly. Those sit on the known
+vulnerable-driver lists; "GhostDeck never loads a kernel driver" is the project's core safety
+property (§12) and is worth more than the feature. Open research track: whether `MSI_AP` or
+MSI's own service exposes any control without a driver - data blocks are read-oriented, so it
+may lead nowhere.
+
+## 40. Fan Boost auto-off timer (v1.24.x, discussion #51)
+
+Fan Boost is the control users forget to switch back, so it can now hand itself over to the
+profile after a while. `AppSettings.FanBoostSeconds` (0 = never, the default) is set in
+Settings → Power from presets 30 s / 1 / 2 / 3 / 5 / 10 / 15 min plus a "Custom…" entry that
+asks for any value up to 120 minutes; a custom value keeps its own label in the list so the
+current setting is always visible.
+
+`TrayContext.ArmBoostTimer` runs a single WinForms timer that is (re)armed on every ON and
+disposed on every OFF, so all entry points are covered by construction: tray menu, hotkey,
+Scenarios tile, CLI, and the panic reset. When it elapses it calls
+`SetCoolerBoostState(false, auto: true)` - the normal OFF path, which also re-asserts the fan
+byte that was active before the boost (see §17.7), so the fans return to the profile or the
+running curve rather than to plain auto. `auto` only changes the wording: the OSD and the
+change-log entry say the timer elapsed instead of a plain "off".
