@@ -167,6 +167,18 @@ public static class Devices
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "alibi90", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/14" },
 
+        // Raider GE76 12UE (17K4EMS1) — owner per-scenario snapshot (issue #47) matches StdRecipes:
+        // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/…/0D/0D, super-batt 0xEB=0F only in Super Battery.
+        // Balanced read 0x8D (advanced fan) rather than 0x0D because a custom curve from the curve
+        // capture was still active — 0x8D is exactly the AdvancedModeValue we write for curves, so
+        // the map holds. Fan curve VERIFIED (issue #45): the owner's test curve (CPU 25/35/45/55/65/75,
+        // GPU 20/30/40/50/60/70) sits byte-for-byte at 0x72 / 0x8A — the shipped ModernCurve addresses.
+        // RPM: 0xC9/0xCB carry plausible values in both dumps (e.g. 0x8E/0xD0 ≈ 3366/2298 RPM) — same
+        // layout as the other tested G2 boards.
+        new() { Name = "MSI Raider GE76 12UE", FirmwarePrefixes = new[] { "17K4EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "moragab1993", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/47" },
+
         // Cyborg 15 A12VF (15K1IMS1) — owner per-scenario dump (issue #19) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
         // (0x34 constant 00 across scenarios — ignored, StdRecipes doesn't touch it). ModernCurve
@@ -261,7 +273,14 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Katana GF66",                FirmwarePrefixes = new[] { "1582EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76",                FirmwarePrefixes = new[] { "17L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // GE66 Raider / GP66 Leopard (1543EMS1) — owner dump from a GP66 Leopard 11UG (issue #52)
+        // matches StdRecipes 1:1 including 0xEB=0F only in Super Battery. Fan curve VERIFIED
+        // (issue #53): the test curve sits byte-for-byte at 0x72 / 0x8A. RPM 0xC9/0xCB vary per
+        // scenario (A0/BC/B0/BC ≈ 2500-3000 RPM). Tier stays Experimental until the owner confirms
+        // the Extreme hardware check (the other two passed).
+        new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "krystian-pytlik", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/53" },
 
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
         new() { Name = "MSI GS65 Stealth", FirmwarePrefixes = new[] { "16Q4EMS1" }, Tier = Tier.Experimental,
@@ -347,7 +366,7 @@ public static class Devices
         new() { Name = "MSI Stealth GS66 12UE / 12UGS",     FirmwarePrefixes = new[] { "16V5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15 A13V",               FirmwarePrefixes = new[] { "16V6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Raider GE76 12UE",              FirmwarePrefixes = new[] { "17K4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -364,8 +383,22 @@ public static class Devices
         new() { Name = "MSI Titan GT77HX 13VH",             FirmwarePrefixes = new[] { "17Q2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Sword 17 HX B14VGKG",           FirmwarePrefixes = new[] { "17T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Titan 18 HX A14V",              FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Raider A18 HX A7VIG",           FirmwarePrefixes = new[] { "182KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Vector A18 HX A9WHG",           FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Raider A18 HX A7VIG (182KIMS1) — owner per-scenario dump (issue #50) matches StdRecipes on
+        // shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D, and all three hardware checks passed, so
+        // Tested. Super battery: upstream msi-ec maps 0xEB for CONF_G2_10, but MSI Center on this AMD
+        // board leaves 0xEB=00 even in Super Battery (same as the Crosshair / AMD Bravos), so we drop
+        // the write and mirror what MSI Center actually does. RPM: 0xC9/0xCB vary per scenario
+        // (C8/C8 → 96/7D ≈ 2400-3800 RPM), the usual G2 layout. Curve not verified yet (no capture).
+        new() { Name = "MSI Raider A18 HX A7VIG", FirmwarePrefixes = new[] { "182KIMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "afk789", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50" },
+
+        // Vector A18 HX A9WHG (182LIMS1) — owner dump (issue #54) shows the same picture as its Raider
+        // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. RPM NOT added: 0xC9/0xCB
+        // read the same constant in every scenario, so there is no evidence they are live tachs here.
+        // Stays Experimental until the owner confirms the three hardware checks.
+        new() { Name = "MSI Vector A18 HX A9WHG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null) },
 
         // G1 family (shift 0xF2 / fan 0xF4 / charge 0xEF) — older boards; super-batt addr unknown (null) unless noted.
         new() { Name = "MSI Prestige 14 A10SC", FirmwarePrefixes = new[] { "14C1EMS1" }, Tier = Tier.Experimental,
