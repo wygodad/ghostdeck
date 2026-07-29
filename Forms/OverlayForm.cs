@@ -13,7 +13,9 @@ public readonly record struct OverlaySample(
     int CpuLoad, int RamPct, double RamUsedGb, int ChargeLimit,
     int BatteryPct, bool Charging,
     int GpuUsage, int VramMb, int CpuClock,
-    int Fps = -1, double FrameMs = -1);   // foreground game via FpsMonitor; -1 = no game / monitor off
+    int Fps = -1, double FrameMs = -1,    // foreground game via FpsMonitor; -1 = no game / monitor off
+    int SsdTemp = -1, int BattMinutes = -1,    // NVMe S.M.A.R.T. temp (disk 0); Windows' battery-time estimate
+    int SsdTemp2 = -1);                        // second disk's temp (dual-SSD laptops), -1 = none
 
 /// <summary>
 /// Detachable, always-on-top mini status panel for gaming: temps / fan RPM / profile / load, in a
@@ -157,8 +159,13 @@ public sealed class OverlayForm : Form
         // FPS metrics lead the list — they're the reason the overlay is on screen during a game.
         Add(OverlayMetric.Fps, IconKind.Fps, "FPS", _s.Fps >= 0 ? _s.Fps.ToString() : "--");
         Add(OverlayMetric.FrameTime, IconKind.Fps, "Frame", _s.FrameMs > 0 ? $"{_s.FrameMs:0.0} ms" : "--");
-        Add(OverlayMetric.CpuTemp, IconKind.Cpu, "CPU", _s.Known ? $"{_s.CpuTemp}°" : "--");
-        Add(OverlayMetric.GpuTemp, IconKind.Gpu, "GPU", _s.Known ? $"{_s.GpuTemp}°" : "--");
+        // temps are also valid in telemetry-only mode (#48), where Known is false
+        Add(OverlayMetric.CpuTemp, IconKind.Cpu, "CPU", _s.CpuTemp > 0 ? $"{_s.CpuTemp}°" : "--");
+        Add(OverlayMetric.GpuTemp, IconKind.Gpu, "GPU", _s.GpuTemp > 0 ? $"{_s.GpuTemp}°" : "--");
+        // both disks like the Fans metric ("x/y") - dual-SSD laptops throttle independently
+        Add(OverlayMetric.SsdTemp, IconKind.Ram, "SSD",
+            _s.SsdTemp2 > 0 && _s.SsdTemp > 0 ? $"{_s.SsdTemp}/{_s.SsdTemp2}°"
+            : _s.SsdTemp > 0 ? $"{_s.SsdTemp}°" : _s.SsdTemp2 > 0 ? $"{_s.SsdTemp2}°" : "--");
         Add(OverlayMetric.CpuRpm, IconKind.Fan, "CPU fan", _s.CpuRpm > 0 ? $"{_s.CpuRpm}" : "--");
         Add(OverlayMetric.GpuRpm, IconKind.Fan, "GPU fan", _s.GpuRpm > 0 ? $"{_s.GpuRpm}" : "--");
         Add(OverlayMetric.FanPct, IconKind.Fan, "Fans", $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
@@ -168,6 +175,7 @@ public sealed class OverlayForm : Form
         Add(OverlayMetric.Ram, IconKind.Ram, "RAM", $"{_s.RamUsedGb:0.0} GB");
         Add(OverlayMetric.Vram, IconKind.Ram, "VRAM", _s.VramMb >= 0 ? $"{_s.VramMb} MB" : "--");
         Add(OverlayMetric.Battery, IconKind.Charge, _s.Charging ? "Bat ⚡" : "Bat", _s.BatteryPct >= 0 ? $"{_s.BatteryPct}%" : "--");
+        Add(OverlayMetric.BatteryTime, IconKind.Charge, "Left", _s.BattMinutes > 0 ? $"{_s.BattMinutes / 60}h {_s.BattMinutes % 60:00}m" : "--");
         Add(OverlayMetric.ChargeLimit, IconKind.Charge, "Limit", _s.ChargeLimit > 0 ? $"{_s.ChargeLimit}%" : "—");
         return list;
     }

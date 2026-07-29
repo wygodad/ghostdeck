@@ -338,7 +338,7 @@ public sealed class ReportForm : Form
 
         if (ex != null || dump == null)
         {
-            MessageBox.Show(string.Format(Lang.T("rep_read_fail"), ex?.Message ?? ""),
+            MessageBox.Show(string.Format(Lang.T("rep_read_fail"), AppLifecycle.DescribeEcFailure(ex)),
                             Lang.T("err"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }

@@ -16,6 +16,7 @@ public enum OverlayMetric
     CpuLoad = 128, Ram = 256, ChargeLimit = 512, Battery = 1024,
     GpuUsage = 2048, Vram = 4096, CpuClock = 8192,
     Fps = 16384, FrameTime = 32768,
+    SsdTemp = 65536, BatteryTime = 131072,
 }
 
 public sealed class HotkeyDef
@@ -113,6 +114,40 @@ public sealed class AppSettings
     // ---- profile restore (EC potrafi sam wskoczyc w Super Battery po wybudzeniu / hibernacji) ----
     public bool RestoreProfileOnResume { get; set; }                   // opt-in: przywroc profil po wznowieniu i przy starcie
     public string LastProfile { get; set; } = "";                      // ostatni profil ustawiony swiadomie (persist dla startu)
+
+    // (#51) auto-wylaczenie Fan Boost po N SEKUNDACH (0 = bez limitu, jak dotad).
+    // UI: presety 30 s / 1 / 2 / 3 / 5 / 10 / 15 min + wlasna wartosc w minutach (do 120).
+    public int FanBoostSeconds { get; set; }
+
+    // opt-in (#49): przywroc ostatnia AKTYWNA krzywa wentylatora po starcie/wznowieniu -
+    // EC przy zimnym starcie wraca do fabrycznego trybu i gubi kazda wlasna krzywa
+    public bool RestoreCurveOnResume { get; set; }
+    // ostatnia aktywna krzywa - PUNKTY, nie nazwa presetu (pokrywa tez reczne krzywe z edytora)
+    public bool CurveActive { get; set; }
+    public string CurveName { get; set; } = "";                        // nazwa presetu do logu ("" = reczna z edytora)
+    public int[] CurveCpuTemp { get; set; } = Array.Empty<int>();
+    public int[] CurveCpuSpeed { get; set; } = Array.Empty<int>();
+    public int[] CurveGpuTemp { get; set; } = Array.Empty<int>();
+    public int[] CurveGpuSpeed { get; set; } = Array.Empty<int>();
+
+    /// <summary>Remember the curve that is live in the EC right now (clones the arrays - callers keep editing theirs).</summary>
+    public void RecordActiveCurve(string? name, int[] ct, int[] cs, int[] gt, int[] gs)
+    {
+        CurveActive = true;
+        CurveName = name ?? "";
+        CurveCpuTemp = (int[])ct.Clone(); CurveCpuSpeed = (int[])cs.Clone();
+        CurveGpuTemp = (int[])gt.Clone(); CurveGpuSpeed = (int[])gs.Clone();
+        Save();
+    }
+
+    /// <summary>The user went back to profile fans (or panic reset) - nothing to restore anymore.</summary>
+    public void ClearActiveCurve()
+    {
+        if (!CurveActive) return;
+        CurveActive = false;
+        CurveName = "";
+        Save();
+    }
 
     // Reset just the Gaming-overlay settings to their defaults (leaves everything else untouched).
     public void RestoreOverlayDefaults()
@@ -303,6 +338,8 @@ public sealed class AppSettings
         SessionPopupSeconds = src.SessionPopupSeconds;
         GameSessionKeep = src.GameSessionKeep;
         RestoreProfileOnResume = src.RestoreProfileOnResume;
+        RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
+        FanBoostSeconds = src.FanBoostSeconds;
         CurvePresets.Clear();
         foreach (var p in src.CurvePresets) CurvePresets.Add(p.Clone());
         ProfileCurves.Clear();
@@ -367,6 +404,8 @@ public sealed class AppSettings
             SessionPopupSeconds = SessionPopupSeconds,
             GameSessionKeep = GameSessionKeep,
             RestoreProfileOnResume = RestoreProfileOnResume,
+            RestoreCurveOnResume = RestoreCurveOnResume,
+            FanBoostSeconds = FanBoostSeconds,
             LastProfile = LastProfile,
             WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };

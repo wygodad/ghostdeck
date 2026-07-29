@@ -144,4 +144,231 @@ internal static class Perf
         _vramTotalMb = maxBytes > 0 ? (int)(maxBytes / (1024 * 1024)) : -1;
         return _vramTotalMb;
     }
+
+    // ---- Physical disks with S.M.A.R.T. temperature (roadmap #17) ----
+    // Names/sizes come from MSFT_PhysicalDisk; the temperature from the associated
+    // MSFT_StorageReliabilityCounter. The counter class often cannot be enumerated directly
+    // (returns nothing on many systems - PowerShell's Get-StorageReliabilityCounter also
+    // requires piping a disk in), so each disk's counter is fetched via an ASSOCIATORS query.
+    // Admin only, no kernel driver. Cached for 5 s (Status + overlay poll every second).
+    // UsedGb/VolGb are summed over the disk's mounted volumes (MSI Center shows the same
+    // numbers); VolGb <= SizeGb because unpartitioned space carries no volume.
+    public readonly record struct DiskInfo(int Index, string Name, double SizeGb, int TempC, double UsedGb, double VolGb);
+
+    private static IReadOnlyList<DiskInfo> _disks = Array.Empty<DiskInfo>();
+    private static DateTime _disksAt = DateTime.MinValue;
+
+    public static IReadOnlyList<DiskInfo> Disks()
+    {
+        if ((DateTime.UtcNow - _disksAt).TotalSeconds < 10) return _disks;
+        _disksAt = DateTime.UtcNow;
+        var list = new List<DiskInfo>();
+        try
+        {
+            const string ns = @"root\microsoft\windows\storage";
+
+            // bulk read first - cheap when it works
+            var temps = new Dictionary<string, int>();
+            try
+            {
+                using var rc = new System.Management.ManagementObjectSearcher(
+                    ns, "SELECT DeviceId, Temperature FROM MSFT_StorageReliabilityCounter");
+                foreach (var o in rc.Get())
+                {
+                    string id = o["DeviceId"]?.ToString() ?? "";
+                    if (id.Length > 0 && o["Temperature"] != null) temps[id] = Convert.ToInt32(o["Temperature"]);
+                }
+            }
+            catch { }
+
+            var usage = VolumeUsageByDiskIndex();
+
+            using var pd = new System.Management.ManagementObjectSearcher(
+                ns, "SELECT ObjectId, DeviceId, FriendlyName, Size FROM MSFT_PhysicalDisk");
+            foreach (var o in pd.Get())
+            {
+                string id = o["DeviceId"]?.ToString() ?? "";
+                string name = o["FriendlyName"]?.ToString() is { Length: > 0 } n ? n : "Disk " + id;
+                double gb = o["Size"] != null ? Convert.ToUInt64(o["Size"]) / 1e9 : 0;
+
+                int idx = int.TryParse(id, out int pi) ? pi : -1;
+                if (!temps.TryGetValue(id, out int t) || t <= 0)
+                    t = TempViaAssociation(ns, o["ObjectId"]?.ToString());
+                if (t <= 0 && idx >= 0)
+                    t = TempViaIoctl(idx);       // WMI counter absent on many systems - ask the device itself
+                if (t <= 0 && idx >= 0)
+                    t = TempViaNvmeSmart(idx);   // some drives skip the temperature property - read the NVMe SMART log
+
+                (double used, double vol) = idx >= 0 && usage.TryGetValue(idx, out var u) ? u : (0, 0);
+                list.Add(new DiskInfo(idx, name, gb, t is > 0 and < 120 ? t : -1, used, vol));
+            }
+        }
+        catch { }
+        _disks = list.OrderBy(d => d.Index).ToList();   // Windows disk order (Disk 0, Disk 1…)
+        return _disks;
+    }
+
+    // Last-resort temperature source: IOCTL_STORAGE_QUERY_PROPERTY with
+    // StorageDeviceTemperatureProperty (= 52; value, 24-byte descriptor header and 16-byte
+    // STORAGE_TEMPERATURE_INFO stride all verified against winioctl.h 10.0.19041, not recalled
+    // from memory). Plain user-mode DeviceIoControl - elevation is enough, desiredAccess 0
+    // suffices for property queries, no kernel driver involved.
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFileW(
+        string name, uint access, uint share, IntPtr sec, uint disp, uint flags, IntPtr tmpl);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool DeviceIoControl(Microsoft.Win32.SafeHandles.SafeFileHandle h,
+        uint code, byte[] inBuf, int inLen, byte[] outBuf, int outLen, out int ret, IntPtr ov);
+
+    // Deepest fallback: the NVMe SMART/health log (LID 0x02) via a protocol-specific query -
+    // the same route CrystalDiskInfo takes, supported by practically every NVMe drive even when
+    // the simpler temperature property is not (e.g. Kingston SKC3000). Composite Temperature
+    // sits at bytes 1-2 of the log, little-endian, in Kelvin. Struct layout verified against
+    // winioctl.h / nvme.h 10.0.19041: STORAGE_PROTOCOL_SPECIFIC_DATA = 10 DWORDs (40 B),
+    // ProtocolTypeNvme = 3, NVMeDataTypeLogPage = 2, NVME_LOG_PAGE_HEALTH_INFO = 0x02;
+    // response payload starts at 8 (descriptor header) + ProtocolDataOffset.
+    private static int TempViaNvmeSmart(int driveIndex)
+    {
+        const uint IOCTL_STORAGE_QUERY_PROPERTY = 0x2D1400;
+        try
+        {
+            using var h = CreateFileW($@"\\.\PhysicalDrive{driveIndex}", 0, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+            if (h.IsInvalid) return -1;
+            foreach (int propId in new[] { 49, 50 })   // StorageAdapterProtocolSpecificProperty, then the device variant
+            {
+                var buf = new byte[8 + 40 + 512];      // STORAGE_PROPERTY_QUERY header + protocol data + log payload
+                BitConverter.GetBytes(propId).CopyTo(buf, 0);
+                // STORAGE_PROTOCOL_SPECIFIC_DATA at AdditionalParameters (offset 8):
+                BitConverter.GetBytes(3).CopyTo(buf, 8);        // ProtocolType = Nvme
+                BitConverter.GetBytes(2).CopyTo(buf, 12);       // DataType = LogPage
+                BitConverter.GetBytes(0x02).CopyTo(buf, 16);    // RequestValue = health-info log
+                BitConverter.GetBytes(40).CopyTo(buf, 24);      // ProtocolDataOffset = sizeof(specific data)
+                BitConverter.GetBytes(512).CopyTo(buf, 28);     // ProtocolDataLength
+                var outBuf = new byte[8 + 40 + 512];
+                if (!DeviceIoControl(h, IOCTL_STORAGE_QUERY_PROPERTY, buf, buf.Length, outBuf, outBuf.Length, out int ret, IntPtr.Zero))
+                    continue;
+                int dataOff = 8 + BitConverter.ToInt32(outBuf, 8 + 16);   // 8 + returned ProtocolDataOffset
+                if (dataOff + 3 > ret) continue;
+                int kelvin = outBuf[dataOff + 1] | (outBuf[dataOff + 2] << 8);
+                int c = kelvin - 273;
+                if (c is > 0 and < 120) return c;
+            }
+        }
+        catch { }
+        return -1;
+    }
+
+    private static int TempViaIoctl(int driveIndex)
+    {
+        const uint IOCTL_STORAGE_QUERY_PROPERTY = 0x2D1400;
+        try
+        {
+            using var h = CreateFileW($@"\\.\PhysicalDrive{driveIndex}", 0, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+            if (h.IsInvalid) return -1;
+            var inBuf = new byte[16];
+            inBuf[0] = 52;   // STORAGE_PROPERTY_QUERY.PropertyId = StorageDeviceTemperatureProperty
+            var outBuf = new byte[512];
+            if (!DeviceIoControl(h, IOCTL_STORAGE_QUERY_PROPERTY, inBuf, inBuf.Length, outBuf, outBuf.Length, out int ret, IntPtr.Zero)
+                || ret < 24 + 16)
+                return -1;
+            int count = BitConverter.ToUInt16(outBuf, 12);   // InfoCount
+            int best = -1;
+            for (int i = 0; i < count && 24 + i * 16 + 4 <= ret; i++)
+            {
+                int t = BitConverter.ToInt16(outBuf, 24 + i * 16 + 2);   // Temperature, °C, signed
+                if (t > best) best = t;
+            }
+            return best;
+        }
+        catch { return -1; }
+    }
+
+    // Used/total volume space per physical-disk index (MSFT_PhysicalDisk.DeviceId == the
+    // Win32_DiskDrive index): partition -> logical-disk associations in root\cimv2.
+    private static Dictionary<int, (double used, double vol)> VolumeUsageByDiskIndex()
+    {
+        var map = new Dictionary<int, (double, double)>();
+        try
+        {
+            using var parts = new System.Management.ManagementObjectSearcher(
+                "SELECT DeviceID, DiskIndex FROM Win32_DiskPartition");
+            foreach (var p in parts.Get())
+            {
+                int idx = Convert.ToInt32(p["DiskIndex"]);
+                string pid = p["DeviceID"]?.ToString() ?? "";
+                if (pid.Length == 0) continue;
+                using var ld = new System.Management.ManagementObjectSearcher(
+                    $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{pid}'}} WHERE AssocClass = Win32_LogicalDiskToPartition");
+                foreach (var l in ld.Get())
+                {
+                    double size = l["Size"] != null ? Convert.ToUInt64(l["Size"]) / 1e9 : 0;
+                    double free = l["FreeSpace"] != null ? Convert.ToUInt64(l["FreeSpace"]) / 1e9 : 0;
+                    var cur = map.TryGetValue(idx, out var v) ? v : (0d, 0d);
+                    map[idx] = (cur.Item1 + Math.Max(0, size - free), cur.Item2 + size);
+                }
+            }
+        }
+        catch { }
+        return map;
+    }
+
+    private static int TempViaAssociation(string ns, string? objectId)
+    {
+        if (string.IsNullOrEmpty(objectId)) return -1;
+        try
+        {
+            // ObjectId contains backslashes and quotes - escape for the WQL object path
+            string esc = objectId.Replace("\\", "\\\\").Replace("\"", "\\\"");
+            using var s = new System.Management.ManagementObjectSearcher(
+                new System.Management.ManagementScope(ns),
+                new System.Management.RelatedObjectQuery(
+                    $"ASSOCIATORS OF {{MSFT_PhysicalDisk.ObjectId=\"{esc}\"}} WHERE ResultClass = MSFT_StorageReliabilityCounter"));
+            foreach (var o in s.Get())
+                if (o["Temperature"] != null)
+                    return Convert.ToInt32(o["Temperature"]);
+        }
+        catch { }
+        return -1;
+    }
+
+    /// <summary>Temperatures of the first two disks in Windows order (-1 = not reporting) - the overlay's SSD metric.</summary>
+    public static (int First, int Second) DiskTemps2()
+    {
+        var d = Disks();
+        return (d.Count > 0 ? d[0].TempC : -1, d.Count > 1 ? d[1].TempC : -1);
+    }
+
+    // ---- Estimated battery time left (roadmap #15): Windows' own estimate via Win32_Battery. ----
+    // EstimatedRunTime is in minutes; the API returns huge sentinel values (e.g. 0x44444444) when
+    // charging or unknown. -1 = no estimate (on AC, no battery, or query failed). Cached for 15 s.
+    private static int _battMin = -1;
+    private static DateTime _battMinAt = DateTime.MinValue;
+
+    public static int BatteryMinutesLeft()
+    {
+        if ((DateTime.UtcNow - _battMinAt).TotalSeconds < 15) return _battMin;
+        _battMinAt = DateTime.UtcNow;
+        int min = -1;
+        try
+        {
+            if (SystemInformation.PowerStatus.PowerLineStatus != PowerLineStatus.Online)
+            {
+                using var searcher = new System.Management.ManagementObjectSearcher(
+                    "SELECT EstimatedRunTime FROM Win32_Battery");
+                foreach (var o in searcher.Get())
+                {
+                    var t = o["EstimatedRunTime"];
+                    if (t != null)
+                    {
+                        int m = Convert.ToInt32(Convert.ToUInt32(t));
+                        if (m > 0 && m < 6000) min = m;   // sentinel/garbage guard (100 h cap)
+                    }
+                }
+            }
+        }
+        catch { }
+        _battMin = min;
+        return _battMin;
+    }
 }

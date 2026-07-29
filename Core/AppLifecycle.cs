@@ -63,6 +63,21 @@ public static class AppLifecycle
         }
     }
 
+    /// <summary>
+    /// Human-readable reason for an EC access failure, for the report wizard's error box.
+    /// The interesting case is `ManagementStatus.NotSupported` ("Unsupported"): the firmware
+    /// answers the WMI call but refuses that request. Seen on a Delta 15 A5EFK (issue #48)
+    /// whose MSI_ACPI does declare Get_Data/Set_Data, so the message stays factual about what
+    /// happened and asks for a report instead of blaming a missing interface.
+    /// </summary>
+    public static string DescribeEcFailure(Exception? ex) => ex switch
+    {
+        ManagementException { ErrorCode: ManagementStatus.NotSupported } => Lang.T("ec_err_unsupported"),
+        ManagementException { ErrorCode: ManagementStatus.AccessDenied } => Lang.T("ec_err_denied"),
+        InvalidOperationException => Lang.T("ec_err_missing"),
+        _ => ex?.Message ?? "",
+    };
+
     /// <summary>Swallow a transient failure, record anything else. Never throws.</summary>
     public static void Report(Exception? ex, string where)
     {

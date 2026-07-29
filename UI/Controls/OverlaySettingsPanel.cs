@@ -50,6 +50,7 @@ public sealed class OverlaySettingsPanel : Panel
         AddMetric("ov_m_fps", OverlayMetric.Fps);
         AddMetric("ov_m_frametime", OverlayMetric.FrameTime);
         AddMetric("ov_m_temp", OverlayMetric.CpuTemp | OverlayMetric.GpuTemp);
+        AddMetric("ov_m_ssd", OverlayMetric.SsdTemp);
         AddMetric("ov_m_rpm", OverlayMetric.CpuRpm | OverlayMetric.GpuRpm);
         AddMetric("ov_m_profile", OverlayMetric.Profile);
         AddMetric("ov_m_fanpct", OverlayMetric.FanPct);
@@ -60,6 +61,7 @@ public sealed class OverlaySettingsPanel : Panel
         AddMetric("ov_m_vram", OverlayMetric.Vram);
         AddMetric("ov_m_cooler", OverlayMetric.CoolerBoost);
         AddMetric("ov_m_battery", OverlayMetric.Battery);
+        AddMetric("ov_m_batttime", OverlayMetric.BatteryTime);
         AddMetric("ov_m_charge", OverlayMetric.ChargeLimit);
 
         // Opacity & size each get BOTH quick preset chips and a free-drag slider.

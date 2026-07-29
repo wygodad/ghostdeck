@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -278,11 +279,14 @@ public sealed class SettingsPage : ThemedPage
         // the chosen profile after resume and at startup (skipped while auto-switch manages profiles).
         power.AddRow(Lang.T("set_restore_profile"), Toggle(D.Settings.RestoreProfileOnResume,
             v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
+        // (#49) restore the last active fan curve too - the EC loses it on every cold boot
+        power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
+            v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
         _gLeft[SubPower].Add(power);
 
         // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
         // model. Pickers list only the modes the panel reports at its current resolution.
-        var disp = new CardSection(Lang.T("set_grp_display"), "");
+        var disp = new CardSection(Lang.T("set_grp_display"), "");
         var rates = Display.SupportedRates();
         disp.AddRow(Lang.T("set_refresh_toggle"), Toggle(D.Settings.RefreshSwitchEnabled, v => { D.Settings.RefreshSwitchEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
         string[] rateItems = new[] { Lang.T("ref_keep") }.Concat(rates.Select(r => r + " Hz")).ToArray();
@@ -296,9 +300,52 @@ public sealed class SettingsPage : ThemedPage
         if (rates.Count == 0) rAc.Enabled = rBat.Enabled = false;   // enumeration failed - leave visible but inert
         _gRight[SubPower].Add(disp);
 
+        // (#51) Fan Boost auto-off: the one control users forget to switch back. Presets cover the
+        // "quick blast" (30 s) and the "cool down after a session" (up to 15 min) cases; Custom…
+        // asks for any value up to 2 h. Stored in seconds (AppSettings.FanBoostSeconds, 0 = never).
+        int[] fbVals = { 0, 30, 60, 120, 180, 300, 600, 900 };
+        string FbLabel(int sec) => sec == 0 ? Lang.T("fb_never")
+            : sec < 60 ? string.Format(Lang.T("fb_secs"), sec)
+            : string.Format(Lang.T("fb_mins"), sec / 60);
+        var fbItems = fbVals.Select(FbLabel).Append(Lang.T("fb_custom")).ToArray();
+        int fbCur = D.Settings.FanBoostSeconds;
+        int fbIdx = Array.IndexOf(fbVals, fbCur);
+        // a custom value keeps its own label in the list so the current setting is always visible
+        if (fbIdx < 0) { fbItems = fbVals.Select(FbLabel).Append(FbLabel(fbCur)).Append(Lang.T("fb_custom")).ToArray(); fbIdx = fbVals.Length; }
+        var fb = Combo(fbItems, Math.Max(0, fbIdx));
+        fb.SelectedIndexChanged += (_, _) =>
+        {
+            if (fb.SelectedIndex == fb.Items.Count - 1)   // Custom…
+            {
+                string? txt = InputDialog.Ask(FindForm(), Lang.T("cooler_boost"), Lang.T("fb_custom_ask"),
+                    (Math.Max(60, D.Settings.FanBoostSeconds) / 60).ToString());
+                if (int.TryParse(txt, out int mins) && mins is >= 1 and <= 120)
+                {
+                    D.Settings.FanBoostSeconds = mins * 60;
+                    D.SaveSettings();
+                    Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // relabel the list
+                    return;
+                }
+                fb.SelectedIndex = Math.Max(0, Array.IndexOf(fbVals, D.Settings.FanBoostSeconds));
+                return;
+            }
+            if (fb.SelectedIndex < fbVals.Length) { D.Settings.FanBoostSeconds = fbVals[fb.SelectedIndex]; D.SaveSettings(); }
+        };
+        power.AddRow(Lang.T("set_fb_timer"), fb);
+
+        // (#14) Battery health - read-only wear data from the root\wmi battery classes.
+        var bh = BatteryHealth.Read();
+        var batt = new CardSection(Lang.T("set_grp_batt"), "");
+        Label BhVal(string txt) => new() { Text = txt, AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+        batt.AddRow(Lang.T("bh_design"), BhVal(bh.DesignMWh > 0 ? $"{bh.DesignMWh / 1000f:0.0} Wh" : "—"));
+        batt.AddRow(Lang.T("bh_full"), BhVal(bh.FullMWh > 0 ? $"{bh.FullMWh / 1000f:0.0} Wh" : "—"));
+        batt.AddRow(Lang.T("bh_wear"), BhVal(bh.WearPct >= 0 ? $"{bh.WearPct} %" : "—"));
+        batt.AddRow(Lang.T("bh_cycles"), BhVal(bh.Cycles > 0 ? bh.Cycles.ToString() : "—"));
+        _gRight[SubPower].Add(batt);
+
         // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
         // the chosen time. Off by default — the user opts in.
-        var alerts = new CardSection(Lang.T("set_grp_alerts"), "");
+        var alerts = new CardSection(Lang.T("set_grp_alerts"), "");
         alerts.AddRow(Lang.T("ta_enable"), Toggle(D.Settings.TempAlertEnabled, v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); }));
         // 70/75 exist mainly so the alert can be tried out without heating the laptop up first.
         int[] degVals = { 70, 75, 80, 85, 90, 95, 100 };
@@ -322,7 +369,7 @@ public sealed class SettingsPage : ThemedPage
         _gLeft[SubSystem].Add(upd);
 
         // Tray context-menu visibility toggles (discussion #9); all default on.
-        var tray = new CardSection(Lang.T("set_grp_tray"), "");
+        var tray = new CardSection(Lang.T("set_grp_tray"), "");
         tray.AddRow(Lang.T("menu_status"), Toggle(D.Settings.TrayShowStatus, v => { D.Settings.TrayShowStatus = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("fc_title"), Toggle(D.Settings.TrayShowFanCurve, v => { D.Settings.TrayShowFanCurve = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("tab_models"), Toggle(D.Settings.TrayShowModels, v => { D.Settings.TrayShowModels = v; D.SaveSettings(); D.SettingsChanged(); }));
@@ -333,7 +380,7 @@ public sealed class SettingsPage : ThemedPage
 
         // Interface: background grid on/off + which main tabs collapse to icon buttons on the
         // right of the strip (e.g. keep Models reachable but out of the tab row).
-        var uiSec = new CardSection(Lang.T("set_grp_ui"), "");
+        var uiSec = new CardSection(Lang.T("set_grp_ui"), "");
         uiSec.AddRow(Lang.T("set_grid"), Toggle(D.Settings.ShowGrid, v =>
         {
             D.Settings.ShowGrid = v;
@@ -359,7 +406,7 @@ public sealed class SettingsPage : ThemedPage
 
         // Settings backup: export = a copy of settings.json, import = adopt the preferences from
         // such a file. Machine-local state survives an import (see AppSettings.ImportFrom).
-        var backup = new CardSection(Lang.T("set_grp_backup"), "");
+        var backup = new CardSection(Lang.T("set_grp_backup"), "");
         var expBtn = new Button { Text = Lang.T("set_export"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(expBtn);
         expBtn.Click += (_, _) => ExportSettings();
@@ -369,7 +416,22 @@ public sealed class SettingsPage : ThemedPage
         var bRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
         bRow.Controls.Add(expBtn); bRow.Controls.Add(impBtn);
         backup.AddRow(null, bRow);
-        _gRight[SubSystem].Add(backup);
+        _gLeft[SubSystem].Add(backup);   // left column (user request)
+
+        // One-click diagnostics (#30 on the roadmap): everything a bug report needs, one zip.
+        var diag = new CardSection(Lang.T("set_grp_diag"), "");
+        var diagBtn = new Button { Text = Lang.T("diag_save"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(diagBtn);
+        diagBtn.Click += (_, _) => SaveDiagnostics();
+        // plain-sight description of exactly what gets collected (user request)
+        var diagInfo = new Label
+        {
+            Text = Lang.T("diag_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        };
+        diag.AddRow(null, diagInfo);
+        diag.AddRow(null, diagBtn);
+        _gRight[SubSystem].Add(diag);
 
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
         _hkToggles.Clear();
@@ -405,7 +467,7 @@ public sealed class SettingsPage : ThemedPage
         UpdateHotkeyRowsEnabled();
 
         // Application icon: visual tiles; clicking one applies it immediately (#9).
-        var iconCard = new CardSection(Lang.T("set_app_icon"), "");
+        var iconCard = new CardSection(Lang.T("set_app_icon"), "");
         iconCard.AddRow(null, new IconStylePicker(D));
         _gRight[SubGeneral].Add(iconCard);
 
@@ -461,6 +523,76 @@ public sealed class SettingsPage : ThemedPage
         ApplyVisibility();
         RefreshTiles();
         Layout2(); ApplyTheme();
+    }
+
+    // ---------------- diagnostics package (#30) ----------------
+    // One zip with everything issue triage keeps asking for piecemeal: a read-only EC dump (or
+    // the exact error it produced - itself a diagnostic, see issue #48), settings, the change
+    // history and errors.log. No personal data lives in any of these files.
+    private void SaveDiagnostics()
+    {
+        using var dlg = new SaveFileDialog
+        {
+            Filter = "ZIP (*.zip)|*.zip",
+            FileName = $"ghostdeck-diagnostics-{DateTime.Now:yyyyMMdd-HHmm}.zip",
+        };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            using var zip = ZipFile.Open(dlg.FileName, ZipArchiveMode.Create);
+            var info = D.Status();
+            var sb = new StringBuilder();
+            sb.AppendLine("=== GhostDeck diagnostic package ===");
+            sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (read-only, no EC writes)");
+            sb.AppendLine($"App version: {D.AppVersion()}");
+            sb.AppendLine($"EC firmware: {(D.Firmware.Length > 0 ? D.Firmware : "-")}");
+            sb.AppendLine($"Detected model: {info.Device}   Tier: {info.TierText}");
+            sb.AppendLine($"Windows: {Environment.OSVersion.VersionString}   64-bit: {Environment.Is64BitOperatingSystem}");
+            sb.AppendLine();
+            sb.AppendLine("Contents: ec-dump.txt (read-only EC snapshot, or the exact error it produced),");
+            sb.AppendLine("settings.json, changelog.json, errors.log (only when it exists).");
+            AddZipText(zip, "report.txt", sb.ToString());
+
+            string dump;
+            try
+            {
+                var d = Ec.DumpAll();
+                var ds = new StringBuilder();
+                for (int r = 0; r < 256; r += 16)
+                {
+                    ds.Append($"{r:X2}: ");
+                    for (int i = 0; i < 16; i++) ds.Append($"{d[r + i]:X2} ");
+                    ds.AppendLine();
+                }
+                dump = ds.ToString();
+            }
+            catch (Exception ex)
+            {
+                dump = "EC dump failed: " + AppLifecycle.DescribeEcFailure(ex) + "\r\nRaw error: " + ex.Message;
+            }
+            AddZipText(zip, "ec-dump.txt", dump);
+            AddZipText(zip, "msi-wmi-blocks.txt", MsiTelemetry.Dump());   // (#48) telemetry-mode triage
+
+            foreach (var name in new[] { "settings.json", "changelog.json", "errors.log" })
+            {
+                var p = Path.Combine(AppSettings.Dir, name);
+                if (File.Exists(p)) zip.CreateEntryFromFile(p, name);
+            }
+            MessageBox.Show(FindForm(), string.Format(Lang.T("rep_saved_to"), dlg.FileName), "GhostDeck",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private static void AddZipText(ZipArchive zip, string name, string content)
+    {
+        var e = zip.CreateEntry(name);
+        using var w = new StreamWriter(e.Open());
+        w.Write(content);
     }
 
     // ---------------- settings backup ----------------
@@ -858,6 +990,10 @@ public sealed class SettingsPage : ThemedPage
             y += Math.Max(_head.Height, Ceil(26 * DeviceDpi / 96f)) + 14;
             foreach (var (l, ctl) in _rows)
             {
+                // full-width note labels (Tag "muted", e.g. the diagnostics blurb) rewrap to the
+                // card's current width instead of a fixed MaximumSize
+                if (l == null && ctl is Label note && note.Tag as string == "muted")
+                    note.MaximumSize = new Size(width - pad * 2, 0);
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
                 if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
                 int cx = l != null ? Width - pad - ctl.Width : pad;
@@ -875,6 +1011,8 @@ public sealed class SettingsPage : ThemedPage
             {
                 if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
                 if (ctl is FlowLayoutPanel fp) { fp.BackColor = Theme.Card; foreach (Control _ in fp.Controls) { } }
+                // value labels (battery health) = Text; "muted"-tagged notes (diagnostics blurb) = Muted
+                if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : Theme.Text; vl.BackColor = Theme.Card; }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }
                 if (ctl is ComboBox cb) { cb.BackColor = Theme.Surface; cb.ForeColor = Theme.Text; }
                 // Composite hotkey row (Panel holding a ToggleSwitch + HotkeyBox): theme the nested box too.

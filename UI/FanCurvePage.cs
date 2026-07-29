@@ -510,6 +510,7 @@ public sealed class FanCurvePage : ThemedPage
     private void RevertToProfileDefault()
     {
         D.WithEcWrite(dev => Ec.SetFanMode(dev, ProfileFanByte()));
+        D.Settings.ClearActiveCurve();   // (#49) back to profile fans = nothing to restore at boot
         _cpuS = (int[])DefCpuS.Clone(); _gpuS = (int[])DefGpuS.Clone();
         RefreshMode();
         if (D.Writable()) ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_off"), $"{_dev!.FanMode:X2}={ProfileFanByte():X2}");
@@ -520,6 +521,7 @@ public sealed class FanCurvePage : ThemedPage
     {
         if (_fc == null) return;
         D.WithEcWrite(dev => { Ec.WriteFanCurve(dev, _cpuT, _cpuS, _gpuT, _gpuS); Ec.SetFanMode(dev, _fc.AdvancedModeValue); });
+        if (D.Writable()) D.Settings.RecordActiveCurve(null, _cpuT, _cpuS, _gpuT, _gpuS);   // (#49) manual curve
         RefreshMode();
     }
 
@@ -620,6 +622,7 @@ public sealed class FanCurvePage : ThemedPage
             Ec.WriteFanCurve(dev, _cpuT, _cpuS, _gpuT, _gpuS);    // our curve tables
             Ec.SetFanMode(dev, fc.AdvancedModeValue);             // advanced fan (0x8D)
         });
+        if (D.Writable()) D.Settings.RecordActiveCurve(null, _cpuT, _cpuS, _gpuT, _gpuS);   // (#49) manual curve
         RefreshMode();
         if (D.Writable()) ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_on"), $"{_dev!.FanMode:X2}={fc.AdvancedModeValue:X2}");
     }

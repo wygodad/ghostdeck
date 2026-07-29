@@ -43,7 +43,10 @@ public sealed class StatusPage : ThemedPage
     private readonly Canvas _canvas;
 
     // Sub-tabs split the (heavy) Status page into shorter views: charts, history, gaming, EC bytes, change log.
-    private readonly SubTabs _statusTabs = new(Lang.T("st_sub_charts"), Lang.T("st_sub_history"), Lang.T("st_sub_gaming"), Lang.T("st_sub_bytes"), Lang.T("st_sub_log"));
+    // Sub-tab glyphs follow the Settings strip convention (Segoe MDL2 Assets, see SubTabs).
+    private readonly SubTabs _statusTabs = new(
+        new[] { Lang.T("st_sub_charts"), Lang.T("st_sub_history"), Lang.T("st_sub_gaming"), Lang.T("st_sub_bytes"), Lang.T("st_sub_log") },
+        new[] { "\uE9D2", "\uE81C", "\uE7FC", "\uE943", "\uEA37" });
     private int _statusSub;
     private readonly SegControl _histRange = new(new[] { "5 min", "15 min", "30 min", "60 min" }, 1) { Size = new Size(300, 30), Visible = false };
     private readonly Button _histExport = new() { Visible = false };
@@ -325,8 +328,10 @@ public sealed class StatusPage : ThemedPage
         int cpuUse = SysInfo.CpuUsage();
         var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
         int X(int i) => Pad + i * (ring + ringGap);
-        DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), info.Known);
-        DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), info.Known);
+        // temperature rings stay live in telemetry-only mode (#48); the fan rings do not
+        bool temps = info.Known || info.Telemetry;
+        DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), temps);
+        DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), temps);
         DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 100, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known);
         DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known);
         DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
@@ -380,7 +385,60 @@ public sealed class StatusPage : ThemedPage
             Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
         }
 
-        int cardTop = subY2 + subH + 40;
+        // third sub-row: storage panel (#17) on the left - every physical disk with its name,
+        // used/total space (usage bar, like the RAM/VRAM bars) and S.M.A.R.T. temperature -
+        // plus a compact battery-time box (#15) under the rings
+        int subY3 = subY2 + subH + 14;
+        var disks = Perf.Disks();
+        const int diskBlockH = 58;   // same rhythm as the RAM/VRAM rows: 28px text line, bar at +36
+        int storageH = Math.Max(subH, disks.Count * diskBlockH);
+        var nameF = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+        var valF = new Font("Segoe UI", 10.5f);
+        if (disks.Count == 0)
+        {
+            TextRenderer.DrawText(g, $"{Lang.T("ov_m_ssd")}: —", nameF,
+                new Rectangle(ramX, subY3, ramW, subH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+        }
+        else
+        {
+            for (int di = 0; di < disks.Count; di++)
+            {
+                var d = disks[di];
+                int ly = subY3 + di * diskBlockH;
+                // right side: "1658 / 1908 GB · 37 °C" (used/total like MSI Center; temp amber when hot)
+                string cap = d.VolGb > 0 ? $"{d.UsedGb:0} / {d.SizeGb:0} GB" :
+                             d.SizeGb >= 1000 ? $"{d.SizeGb / 1000:0.0} TB" : $"{d.SizeGb:0} GB";
+                string right = cap + " · " + (d.TempC > 0 ? $"{d.TempC} °C" : "—");
+                int rightW = TextRenderer.MeasureText(right, valF).Width + 6;
+                TextRenderer.DrawText(g, d.Name, nameF,
+                    new Rectangle(ramX, ly, ramW - rightW - 10, 28), Theme.Text,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                TextRenderer.DrawText(g, right, valF,
+                    new Rectangle(ramX + ramW - rightW, ly, rightW, 28),
+                    d.TempC >= 70 ? Theme.Amber : Theme.Muted,
+                    TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+                if (d.VolGb > 0)
+                {
+                    float frac = (float)Math.Clamp(d.UsedGb / d.VolGb, 0, 1);
+                    DrawBar(g, new RectangleF(ramX + 20, ly + 36, ramW - 40, 14), frac,
+                        frac >= 0.9f ? Theme.Amber : Theme.AccentFill);
+                }
+            }
+        }
+        // battery-time box spans two ring slots so the full label fits (user request)
+        int bm = Perf.BatteryMinutesLeft();
+        MetricBox(new RectangleF(X(2) + 14, subY3, (X(3) - X(2)) + ring - 28, subH),
+            $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "—"));
+
+        int cardTop = subY3 + Math.Max(storageH, subH) + 40;
+        // (#48) telemetry-only machines: say plainly why the fan rings and controls are dead
+        if (info.Telemetry)
+        {
+            var noteR = new Rectangle(Pad, cardTop, avail, 44);
+            TextRenderer.DrawText(g, Lang.T("telemetry_note"), new Font("Segoe UI", 9.5f), noteR,
+                Theme.Muted, TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+            cardTop += 52;
+        }
         int rowH = RowH;
         var card = new RectangleF(Pad, cardTop, avail, rowH * Rows.Length + 14);
         Ui.FillCard(g, card);

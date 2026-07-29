@@ -57,6 +57,10 @@ internal static class Ui
         b.FlatStyle = FlatStyle.Flat;
         b.FlatAppearance.BorderColor = Theme.BorderStrong;
         b.FlatAppearance.BorderSize = 1;
+        // Without explicit hover/press colors WinForms derives them from BackColor, which on the
+        // dark surface is imperceptible - the button looked dead under the cursor (user report).
+        b.FlatAppearance.MouseOverBackColor = Theme.AccentSoft;
+        b.FlatAppearance.MouseDownBackColor = Theme.RowAlt;
         b.BackColor = Theme.Surface;
         b.ForeColor = Theme.Text;
         b.Font = new Font("Segoe UI", 10.5f);

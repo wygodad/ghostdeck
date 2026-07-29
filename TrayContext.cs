@@ -27,6 +27,7 @@ public sealed class TrayContext : ApplicationContext
     private SynchronizationContext? _ui;
     private string? _updateUrl;
     private Updater.Result? _updateAvail;      // newer release found by the daily check (Settings Start header chip)
+    private bool _telemetryOnly;               // (#48) no EC interface, but MSI WMI data blocks answer
     private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
@@ -67,6 +68,12 @@ public sealed class TrayContext : ApplicationContext
         _simulate = !string.IsNullOrEmpty(forced);
         _firmware = _simulate ? forced! : Ec.ReadFirmware();
         _device = Devices.Detect(_firmware);
+        // (#48) No EC interface for this firmware? The vendor WMI data blocks may still report
+        // live temperatures - that turns a dead app into a working thermometer. Probed once.
+        // MSIPS_FORCE_FIRMWARE=telemetry simulates this state on a normal machine (UI preview only)
+        _telemetryOnly = !Known && (_firmware.Equals("telemetry", StringComparison.OrdinalIgnoreCase)
+                                    ? MsiTelemetry.Available()
+                                    : !_simulate && MsiTelemetry.Available());
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
 
         DetectFirmwareChange();
@@ -82,10 +89,14 @@ public sealed class TrayContext : ApplicationContext
         _lastPower = SystemInformation.PowerStatus.PowerLineStatus;
         // Some ECs boot (or wake) in Super Battery instead of the last profile; opt-in restore
         // brings back what the user actually chose. AC/battery auto-switch takes precedence.
+        // Deliberately NO "already there" short-circuit: a cold boot loses the rest of the
+        // profile state (fan mode, curve) even when the EC happens to wake in the same profile,
+        // so restore always re-asserts the full recipe (re-writing identical bytes is harmless).
         if (_settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && AutoWritable &&
-            Enum.TryParse<ProfileId>(_settings.LastProfile, out var lastProf) && lastProf != _current)
+            Enum.TryParse<ProfileId>(_settings.LastProfile, out var lastProf))
             SetProfile(lastProf, osd: false, ChangeSource.Restore, count: false);
         if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
+        TryRestoreCurve();   // (#49) after the profile settles; no-op unless opted in
         ApplyRefreshForPower(_lastPower.Value);   // align the panel with the current power source once at start
 
         _poll.Tick += (_, _) => Poll();
@@ -270,7 +281,8 @@ public sealed class TrayContext : ApplicationContext
     {
         // Theme-aware badge colours matching the ghostdeck.dev chips: positive = accent,
         // limited = amber, unsupported = pink/red.
-        if (!Known) return (Lang.T("tier_unsupported"), Theme.Red);
+        if (!Known) return _telemetryOnly ? (Lang.T("tier_telemetry"), Theme.Amber)
+                                          : (Lang.T("tier_unsupported"), Theme.Red);
         return _device!.Tier == Tier.Tested
             ? (Lang.T("tier_tested"),       Theme.Accent)
             : (Lang.T("tier_experimental"), Theme.Amber);
@@ -278,7 +290,8 @@ public sealed class TrayContext : ApplicationContext
 
     private string DeviceDescriptor()
     {
-        if (!Known) return Lang.T("unsupported_title") + (_simulate ? "  (test)" : "");
+        if (!Known) return (_telemetryOnly ? Lang.T("tier_telemetry") : Lang.T("unsupported_title"))
+                         + (_simulate ? "  (test)" : "");
         string tier = _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
                     : Writable ? Lang.T("tier_experimental")
                     : Lang.T("experimental_locked");
@@ -575,6 +588,7 @@ public sealed class TrayContext : ApplicationContext
         {
             Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
             Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+            _settings.RecordActiveCurve(name, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);   // (#49)
             ChangeLog.Add(ChangeSource.FanCurve,
                 string.Format(Lang.T("log_curve_preset"), name),
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
@@ -592,6 +606,7 @@ public sealed class TrayContext : ApplicationContext
             {
                 byte b = _current == ProfileId.Silent ? _device!.FanSilentValue : (byte)0x0D;
                 if (!_simulate) Ec.SetFanMode(_device!, b);
+                _settings.ClearActiveCurve();   // (#49) back to profile fans = nothing to restore
                 ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_off"), $"{_device!.FanMode:X2}={b:X2}");
                 _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), Lang.T("fc_preset_auto"), _settings.ColorFor(_current));
                 return;
@@ -606,6 +621,7 @@ public sealed class TrayContext : ApplicationContext
                 Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
                 Ec.SetFanMode(_device!, fc.AdvancedModeValue);
             }
+            _settings.RecordActiveCurve(p.Name, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);   // (#49)
             ChangeLog.Add(ChangeSource.FanCurve,
                 string.Format(Lang.T("log_curve_preset"), p.Name),
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
@@ -620,7 +636,29 @@ public sealed class TrayContext : ApplicationContext
     // ---------------- cooler boost (max fans) ----------------
     private void ToggleCoolerBoost() => SetCoolerBoostState(!_coolerBoost);
 
-    private void SetCoolerBoostState(bool next)
+    // (#51) Optional auto-off timer: Fan Boost is the one control users forget to switch back,
+    // so it can hand itself back to the profile after N minutes. Started whenever boost goes ON
+    // (tray, hotkey, Scenarios brick, CLI) and cancelled on any OFF - including a panic reset.
+    private System.Windows.Forms.Timer? _boostTimer;
+
+    private void ArmBoostTimer(bool on)
+    {
+        _boostTimer?.Stop();
+        _boostTimer?.Dispose();
+        _boostTimer = null;
+        if (!on || _settings.FanBoostSeconds <= 0) return;
+        int seconds = Math.Clamp(_settings.FanBoostSeconds, 10, 7200);
+        _boostTimer = new System.Windows.Forms.Timer { Interval = seconds * 1000 };
+        _boostTimer.Tick += (_, _) =>
+        {
+            ArmBoostTimer(false);
+            if (_coolerBoost) SetCoolerBoostState(false, auto: true);
+        };
+        _boostTimer.Start();
+    }
+
+    // auto = the boost timer fired (#51); it only changes the on-screen wording.
+    private void SetCoolerBoostState(bool next, bool auto = false)
     {
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
         if (next == _coolerBoost) { UpdateCoolerBoostMenu(); return; }
@@ -652,11 +690,13 @@ public sealed class TrayContext : ApplicationContext
                 catch { read = Lang.T("log_read_fail"); }
             }
             _coolerBoost = next;
+            ArmBoostTimer(next);   // (#51) start the auto-off countdown, or cancel it on OFF
             ChangeLog.Add(ChangeSource.CoolerBoost,
-                Lang.T("cooler_boost") + ": " + (next ? Lang.T("st_on") : Lang.T("st_off")),
+                Lang.T("cooler_boost") + ": " + (next ? Lang.T("st_on") : Lang.T("st_off"))
+                    + (auto ? "  ·  " + Lang.T("fb_auto_off") : ""),
                 read);
             _osd.ShowProfile("MSI  ·  " + Lang.T("cooler_boost"),
-                Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
+                auto ? Lang.T("fb_auto_off") : Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
                 next ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             UpdateCoolerBoostMenu();
         }
@@ -758,8 +798,11 @@ public sealed class TrayContext : ApplicationContext
             _profileBeforeSleep = Writable ? _current : null;
             return;
         }
-        if (e.Mode != PowerModes.Resume || _profileBeforeSleep is not { } want) return;
-        if (!_settings.RestoreProfileOnResume || _settings.AutoSwitchEnabled) return;   // auto-switch owns the choice
+        if (e.Mode != PowerModes.Resume) return;
+        bool wantProfile = _settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && _profileBeforeSleep is { };
+        bool wantCurve = _settings.RestoreCurveOnResume && _settings.CurveActive;   // (#49)
+        if (!wantProfile && !wantCurve) return;
+        var want = _profileBeforeSleep;
         _ui?.Post(_ =>
         {
             // the EC needs a moment after wake; one delayed shot on the UI thread
@@ -768,11 +811,34 @@ public sealed class TrayContext : ApplicationContext
             {
                 t.Stop();
                 t.Dispose();
-                if (AutoWritable && !_settings.AutoSwitchEnabled)
-                    SetProfile(want, osd: true, ChangeSource.Restore, count: false);
+                if (wantProfile && AutoWritable && !_settings.AutoSwitchEnabled && want is { } w)
+                    SetProfile(w, osd: true, ChangeSource.Restore, count: false);
+                TryRestoreCurve();   // after the profile, so its recipe can't overwrite the fan mode
             };
             t.Start();
         }, null);
+    }
+
+    // (#49) The EC cold-boots into its factory fan mode, losing any custom curve; some machines
+    // do the same out of hibernation. Opt-in: re-assert the last ACTIVE curve at startup and
+    // after resume, once the profile logic has settled. Same gates as every automatic write.
+    private void TryRestoreCurve()
+    {
+        if (!_settings.RestoreCurveOnResume || !_settings.CurveActive) return;
+        if (!AutoWritable || _simulate || _device?.FanCurve is not { } fc) return;
+        if (_current == ProfileId.Silent) return;   // a curve would drop Silent's power cap (shared byte)
+        var s = _settings;
+        if (s.CurveCpuTemp.Length != fc.Points || s.CurveCpuSpeed.Length != fc.Points) return;
+        if (!fc.SingleFan && (s.CurveGpuTemp.Length != fc.Points || s.CurveGpuSpeed.Length != fc.Points)) return;
+        try
+        {
+            Ec.WriteFanCurve(_device!, s.CurveCpuTemp, s.CurveCpuSpeed, s.CurveGpuTemp, s.CurveGpuSpeed);
+            Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+            ChangeLog.Add(ChangeSource.Restore,
+                string.Format(Lang.T("log_curve_restore"), s.CurveName.Length > 0 ? s.CurveName : Lang.T("fc_custom")),
+                $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
+        }
+        catch { }   // best-effort: a refused write must not disturb startup/resume
     }
 
     // The custom borderless report popup replaced the plain tray balloon (user request).
@@ -829,13 +895,26 @@ public sealed class TrayContext : ApplicationContext
         if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
+    // Hardware readings for the UI: the EC when we have it, otherwise (#48) the vendor WMI
+    // data blocks - temperatures only, everything else stays zero.
+    private HwSnapshot ReadHwOrTelemetry()
+    {
+        if (Known && Ec.TryReadHw(_device!, out var hw)) return hw;
+        if (_telemetryOnly)
+        {
+            var t = MsiTelemetry.Read();
+            return new HwSnapshot(t.CpuTemp, t.GpuTemp, 0, 0, 0, _firmware);
+        }
+        return new HwSnapshot(0, 0, 0, 0, 0, _firmware);
+    }
+
     // Snapshot for the overlay: EC hardware + OS metrics + the active profile/cooler state.
     // null = the EC read was refused this tick; the overlay keeps showing its previous sample.
     private OverlaySample? BuildOverlaySample()
     {
         HwSnapshot hw;
         if (Known) { if (!Ec.TryReadHw(_device!, out hw)) return null; }
-        else hw = new HwSnapshot(0, 0, 0, 0, 0, _firmware);
+        else hw = ReadHwOrTelemetry();
         int load = SysInfo.CpuUsage();
         var (ramPct, _, ramUsed) = SysInfo.Ram();
         var ps = SystemInformation.PowerStatus;
@@ -849,7 +928,8 @@ public sealed class TrayContext : ApplicationContext
             // (the EC byte keeps the last value even when the app stops managing it)
             load, ramPct, ramUsed, _settings.ChargeLimit is 60 or 80 or 100 ? _settings.ChargeLimit : 0, batt, charging,
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
-            FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1);
+            FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
+            Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second);
     }
 
     private void ShowOsd(ProfileId id)
@@ -867,7 +947,8 @@ public sealed class TrayContext : ApplicationContext
         _tray.Icon = newIcon;
         _currentIcon?.Dispose();
         _currentIcon = newIcon;
-        _tray.Text = Writable ? "GhostDeck · " + Profiles.Get(id).Label : "GhostDeck · " + DeviceDescriptor();
+        _trayBase = Writable ? "GhostDeck · " + Profiles.Get(id).Label : "GhostDeck · " + DeviceDescriptor();
+        UpdateTrayText();
 
         if (_tray.ContextMenuStrip is { } menu)
             foreach (var it in menu.Items)
@@ -910,6 +991,7 @@ public sealed class TrayContext : ApplicationContext
         _fanBeforeBoost = null;
         UpdateCoolerBoostMenu();
         SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey, applyCurve: false);   // panic = stock fans, no preset
+        _settings.ClearActiveCurve();   // (#49) panic means "stock state" - don't restore the curve at next boot
         ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub"));
         _osd.ShowProfile("MSI  ·  " + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
     }
@@ -937,9 +1019,10 @@ public sealed class TrayContext : ApplicationContext
         {
             var (tier, color) = TierBadge();
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
-                                  _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion());
+                                  _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion(),
+                                  _telemetryOnly);
         },
-        Hw = () => Known && Ec.TryReadHw(_device!, out var hw) ? hw : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
+        Hw = () => ReadHwOrTelemetry(),
         Current = () => _current,
         SetProfile = id => SetProfile(id, osd: true, ChangeSource.Panel),
         Writable = () => Writable,
@@ -969,7 +1052,7 @@ public sealed class TrayContext : ApplicationContext
             if (on && AutoWritable) ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
         },
         CoolerBoost = () => _coolerBoost,
-        SetCoolerBoost = SetCoolerBoostState,
+        SetCoolerBoost = on => SetCoolerBoostState(on),
         OverlayOn = () => OverlayVisible,
         SetOverlay = on => SetOverlay(on, osd: false),
         ApplyOverlaySettings = ApplyOverlaySettings,
@@ -1198,6 +1281,21 @@ public sealed class TrayContext : ApplicationContext
         _osd.ShowProfile("MSI  ·  " + Lang.T("ref_title"), $"{before} Hz → {hz} Hz", Theme.Accent);
     }
 
+    // (#15) Tray tooltip carries Windows' battery-time estimate while discharging.
+    // NotifyIcon.Text throws above 127 chars, so the suffix is appended defensively.
+    private string _trayBase = "GhostDeck";
+
+    private void UpdateTrayText()
+    {
+        string text = _trayBase;
+        if (Perf.BatteryMinutesLeft() is int m and > 0)
+        {
+            string t = $"{text} · ~{m / 60} h {m % 60:00} min";
+            if (t.Length <= 127) text = t;
+        }
+        if (_tray.Text != text) _tray.Text = text;
+    }
+
     // ---------------- poll: auto-switch + external sync ----------------
     private void Poll()
     {
@@ -1205,6 +1303,7 @@ public sealed class TrayContext : ApplicationContext
         if (AppLifecycle.ShuttingDown) { _poll.Stop(); return; }
 
         SampleHw();   // reads only; also works on non-writable (Experimental locked) models
+        UpdateTrayText();   // battery-time suffix follows discharge state (#15)
 
         // Power-transition actions live BEFORE the Writable gate: the refresh-rate switch is
         // not an EC write and must work on every machine. Profile auto-switch keeps its gates.
