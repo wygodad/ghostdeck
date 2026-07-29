@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-07-v1241-boost-timer-monitoring",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.24.0",
+    "title": "New release: Fan Boost timer, disk & battery monitoring, diagnostics",
+    "title_pl": "Nowe wydanie: timer Fan Boost, monitoring dysków i baterii, diagnostyka",
+    "body": "GhostDeck v1.24.1 is out: Fan Boost can switch itself off after 30 s - 15 min (or your own value), custom fan curves survive a reboot, Status shows every disk with its S.M.A.R.T. temperature plus battery health and time left, a one-click diagnostic package helps with bug reports, and machines whose firmware lacks MSI's EC interface now get live temperatures instead of a dead app. 15 models tested. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.24.1: Fan Boost może wyłączyć się sam po 30 s - 15 min (lub własnej wartości), krzywe wentylatorów przeżywają restart, Status pokazuje każdy dysk z temperaturą S.M.A.R.T. oraz zdrowie i pozostały czas baterii, pakiet diagnostyczny jednym klikiem ułatwia zgłoszenia, a maszyny bez interfejsu EC w firmware dostają żywe temperatury zamiast martwej aplikacji. 15 modeli przetestowanych. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.24.1"
+  },
+  {
     "id": "2026-07-v1240-settings-signing",
     "severity": "info",
     "minVersion": "1.0.0",
