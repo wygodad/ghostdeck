@@ -1280,9 +1280,26 @@ separates "the blocks are silent here" from "we are reading them wrong" in one s
 **Deliberately NOT done:** driving `MsIo64.sys` (MSI's port-I/O driver, present on those
 machines) or any WinRing0-class driver to reach the EC directly. Those sit on the known
 vulnerable-driver lists; "GhostDeck never loads a kernel driver" is the project's core safety
-property (§12) and is worth more than the feature. Open research track: whether `MSI_AP` or
-MSI's own service exposes any control without a driver - data blocks are read-oriented, so it
-may lead nowhere.
+property (§12) and is worth more than the feature.
+
+**Is there a driver-free CONTROL path on such a board? No** - researched and closed. The
+reporter installed an older MSI Center (2.0.62, SDK `3.2025.1107.01`) on the same Delta 15 and
+fan control works there, which pins down how control reaches the EC when the WMI method
+interface is missing. Its stack: MSI Center UI -> `NamedPipeClientLib.dll` -> named pipe
+`\\.\pipe\MSI_SERVICE_2` -> MSI service -> ring-0 driver (WINIO `KernCoreLib64.sys` /
+WinRing0 / `MsIo64.sys`) -> EC ports `0x62`/`0x66`. Two candidate routes follow, both rejected:
+
+- *Speak MSI's named pipe.* Technically driver-free on our side, but it needs MSI Center
+  installed and running - which contradicts the project's central promise of working with any
+  MSI Center version, including none - and it is an undocumented, version-bound protocol.
+  It would also be a fig leaf: a ring-0 driver would still perform the EC write on GhostDeck's
+  behalf, so the safety property users actually care about would be gone while the wording
+  survived.
+- *Load or reuse a direct-I/O driver.* Rejected above.
+
+So on firmware without the WMI method interface, GhostDeck stays read-only (§39 telemetry) by
+design, and the practical answer for such owners is an MSI Center build that still drives the
+EC directly. Recorded so the question is not re-opened without new evidence.
 
 ## 40. Fan Boost auto-off timer (v1.24.x, discussion #51)
 
