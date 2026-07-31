@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1250-scenes-tray-backlight",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.24.1",
+    "title": "New release: scenes, tray mouse actions, keyboard backlight, camera switch",
+    "title_pl": "Nowe wydanie: sceny, obsługa myszy w zasobniku, podświetlenie klawiatury, wyłącznik kamery",
+    "body": "GhostDeck v1.25.0 is out. Scenes set your profile, fan curve, refresh rate, overlay, charge limit, keyboard backlight and webcam in one click - each field optional - and run from a card, the tray, a hotkey, the scroll wheel or the CLI; example scenes are one click away, including a \"Current setup\" one that brings you back. The tray icon now answers the scroll wheel and middle click, all configurable. New: keyboard-backlight level on supported models, an EC-level webcam switch with an optional hard block, a refresh-rate tile and panic button on Scenarios, and a live EC viewer for model reports. 16 models tested. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.25.0. Sceny ustawiają jednym kliknięciem profil, krzywą, odświeżanie, overlay, limit ładowania, podświetlenie klawiatury i kamerę - każde pole opcjonalnie - a uruchomisz je z karty, zasobnika, skrótu, kółka myszy lub wiersza poleceń; przykładowe sceny dodasz jednym kliknięciem, razem ze sceną \"Bieżące ustawienia\", która zawsze przywraca stan wyjściowy. Ikona w zasobniku reaguje teraz na kółko i środkowy przycisk, wszystko konfigurowalne. Nowości: poziom podświetlenia klawiatury na obsługiwanych modelach, sprzętowy wyłącznik kamery z opcjonalną twardą blokadą, kafelek odświeżania i przycisk resetu awaryjnego na Scenariuszach oraz podgląd EC na żywo do zgłoszeń modeli. 16 modeli przetestowanych. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.25.0"
+  },
+  {
     "id": "2026-07-v1241-boost-timer-monitoring",
     "severity": "info",
     "minVersion": "1.0.0",
