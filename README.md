@@ -8,12 +8,16 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 > ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific - read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
-📋 **~135 MSI models recognised** - **15 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Raider GE76 12UE, Raider A18 HX, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+📋 **~135 MSI models recognised** - **16 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Raider GE76 12UE/12UGS, Raider A18 HX, Vector A18 HX, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
 ## Features
 
 - 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**; Settings is organized into **icon sub-tabs** (a Start page with tiles + General / Power / Notifications / Gaming / Hotkeys / System) and reopens on the sub-tab you used last
+- 🎬 **Scenes** - one-click macros that set any mix of **profile + fan-curve preset + refresh rate + overlay + charge limit + keyboard backlight + webcam + Fan Boost** in a single stroke ("Gaming": Extreme, 240 Hz, overlay on · "Work": Silent, 60 Hz, overlay off). Run them from cards on the Scenarios tab, the tray menu, a **per-scene hotkey**, the tray scroll wheel or the CLI (`--scene "Name"`); an example set is one click away
+- 🖱️ **Tray-icon mouse actions** - **scroll the wheel** over the tray icon to switch profiles (or scenes / backlight), **middle-click** for Fan Boost; left, middle and wheel are all configurable in Settings (open a tab, toggle overlay, panic reset, …)
 - ⌨️ Global, **rebindable** hotkeys (default `Ctrl+Alt+F1–F4`, `Ctrl+Alt+P` = cycle)
+- 💡 **Keyboard-backlight level** (off / low / mid / high) on supported models (single-colour keyboards, per msi-ec's register map; per-key RGB laptops keep their own Fn key - [why](docs/LIGHTING.md)) - a brick on Scenarios, a cycle hotkey, a wheel mode, a CLI switch and a scene field; follows the Fn key
+- 📷 **Webcam switch** - the EC-level camera cut-off the Fn key uses (the camera drops off USB, below Windows privacy settings), as a brick / hotkey / CLI switch / scene field - plus an advanced **hard camera block** that even the Fn key can't override (a panic reset always restores the camera)
 - 🔔 On-screen overlay (OSD) on every profile change
 - 🎮 **Detachable gaming overlay (HUD)** - a small always-on-top panel with **FPS / frametime**, temps / fan RPM / profile / load / GPU% / VRAM / clocks / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
 - 🎯 **FPS & frametime of any game** - measured **driver-free** from Windows' own ETW `Present` events (the same source Intel PresentMon uses): no DLL injection, nothing touches the game, **anti-cheat-safe**. Live FPS + frametime in the overlay, and a **Status → Gaming** tab with a 60 s frametime chart (stutter markers), 1% lows and a stutter counter. The monitor runs **only** while the overlay or the Gaming tab is open - zero idle cost
@@ -24,7 +28,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🌀 **Fan curve editor** - drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced - the app warns and switches for you. **Single-fan-curve boards** (where MSI Center shows one slider, e.g. Thin GF63 12VE) automatically get a single full-width curve editor, and the unused GPU tables are never written
 - 🗂️ **Fan-curve presets** - save curves under a name, switch them from the editor or the tray menu, **assign a preset per profile** (auto-applied on every switch; Silent stays stock), and **export / import / share** presets as JSON - a Share button opens a prefilled GitHub Discussion with your model and curve
 - 📈 **History charts** - local trend of CPU/GPU temperature, fan duty, fan RPM and **game FPS** over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
-- ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on`, `--curve "<preset>"`, `--panic`, `--status` (JSON) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
+- ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on`, `--curve "<preset>"`, `--scene "<name>"`, `--kbd high`, `--webcam off`, `--panic`, `--status` (JSON) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
 - 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*, with an optional **auto-off timer** (30 s to 15 min, or your own value) so a quick cooling blast never turns into a forgotten hurricane
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
 - 🛡️ **Firmware-change guard** - after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
@@ -55,6 +59,10 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
 | Global **rebindable** hotkeys | Limited² | ✅ |
+| Scenes (one-click multi-setting macros) | ❌ | ✅ *(profile + curve + Hz + overlay + more)* |
+| Tray-icon wheel / middle-click actions | ❌ | ✅ *(configurable)* |
+| Keyboard-backlight level (EC register) | ✅ | ✅ *(supported single-colour models)* |
+| Webcam switch + hard camera block | ✅ *(switch)* | ✅ *(switch + firmware-level block)* |
 | Auto-switch profile on AC / battery | ❌ | ✅ |
 | Auto refresh-rate switch on AC / battery | ❌ | ✅ *(any model)* |
 | On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
@@ -73,7 +81,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | One-click diagnostic package for bug reports | ❌ | ✅ |
 | Works with any / no MSI Center version | ❌ | ✅ |
 | Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |
-| RGB / keyboard / other MSI-Center features | ✅ | ❌ |
+| RGB / per-key lighting / other MSI-Center features | ✅ | ❌ |
 | In-app self-update | ✅ | ✅ *(one-click install + restart)* |
 | Open source | ❌ | ✅ |
 
@@ -91,17 +99,21 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | | |
 |:---:|:---:|
 | ![Tray menu](docs/images/tray-menu.png) | ![Scenarios](docs/images/scenarios.png) |
-| **Tray menu** - switch profile, Status, Language, Settings | **Scenarios** - large profile tiles + charge limit and AC/battery auto-switch |
+| **Tray menu** - switch profile, run a scene, Status, Language, Settings | **Scenarios** - profile tiles, quick-control bricks (Fan Boost, overlay, charge limit, refresh rate, webcam, panic reset) and one-click **scenes** |
+| ![Scene editor](docs/images/scene_editor.png) | ![Settings General](docs/images/settings_general.png) |
+| **Scene editor** - switch on only the settings a scene should apply; everything else stays as it is | **Settings → General** - pick which bricks and sections the Scenarios tab shows |
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
 | **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
 | ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
-| **Settings → Power** - charge limit, battery health, Fan Boost auto-off timer, startup/wake restore | **Settings → System** - one-click diagnostic package, backup, autostart and updates |
-| ![Report my model](docs/images/report_my_model.png) | ![Updates](docs/images/updates.png) |
-| **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Updates** - one-click install, 20 releases with download counts and inline notes |
+| **Settings → Power** - charge limit, battery health, Fan Boost auto-off timer, current refresh rate and a manual switch | **Settings → System** - tray-icon mouse actions, camera privacy block, diagnostics, backup, autostart |
+| ![Settings Hotkeys](docs/images/settings_hotkeys.png) | ![Updates](docs/images/updates.png) |
+| **Settings → Hotkeys** - every action rebindable, including one shortcut per scene | **Updates** - one-click install, 20 releases with download counts and inline notes |
+| ![Report my model](docs/images/report_my_model.png) | ![Models](docs/images/models.png) |
+| **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Models** - every recognized firmware with its support tier |
 | ![Fan curve](docs/images/fan_curve.png) | ![Status EC bytes](docs/images/status_ec.png) |
 | **Fan curve** - drag a custom CPU/GPU fan curve (manual fan control) | **Status (EC bytes)** - live profile-byte matrix, legend and fan-curve tables |
-| ![Models](docs/images/models.png) | ![Change log](docs/images/change_log.png) |
-| **Models** - every recognized firmware with its support tier | **Change log** - full history of profile switches and EC writes |
+| ![Change log](docs/images/change_log.png) | ![Fan Boost timer](docs/images/fanboost_timer_osd.png) |
+| **Change log** - full history of profile switches and EC writes | **Fan Boost auto-off** - the OSD note when the boost timer hands the fans back |
 
 ## Download
 
@@ -145,6 +157,9 @@ GhostDeck.exe --profile Silent        # or Balanced / Extreme / SuperBattery
 GhostDeck.exe --cycle                 # next profile
 GhostDeck.exe --fanboost on           # full fan speed (off restores the profile's fans)
 GhostDeck.exe --curve "My quiet"      # apply a saved fan-curve preset ("auto" = stock fans)
+GhostDeck.exe --scene "Gaming"        # apply a saved scene (needs the app running)
+GhostDeck.exe --kbd high              # keyboard-backlight level (supported models)
+GhostDeck.exe --webcam off            # EC-level webcam switch (same as the Fn camera key)
 GhostDeck.exe --overlay on            # gaming overlay (needs the app running)
 GhostDeck.exe --panic                 # safe state: Fan Boost off, Balanced, fans auto
 GhostDeck.exe --status                # current state as JSON (profile, temps, fans/RPM, refresh rate, game FPS)
@@ -177,7 +192,7 @@ EC register map credit: [**BeardOverflow/msi-ec**](https://github.com/BeardOverf
 
 ## FAQ
 
-See **[docs/FAQ.md](docs/FAQ.md)** - fan control outside Extreme, exact-wattage / PL1-PL2 sliders (and the BIOS route), running alongside MSI Center (and why changes don't show in its UI), auto-clearing RAM, safety, and the admin/UAC prompt.
+See **[docs/FAQ.md](docs/FAQ.md)** - fan control outside Extreme, exact-wattage / PL1-PL2 sliders (and the BIOS route), running alongside MSI Center (and why changes don't show in its UI), **keyboard backlight and why per-key RGB laptops don't get it**, RGB/colour control, auto-clearing RAM, safety, and the admin/UAC prompt.
 
 ## Testing the model gate (developer)
 

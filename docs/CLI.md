@@ -22,8 +22,8 @@ the UI language).
 | **GhostDeck is running** (tray) | The command is forwarded over the local named pipe `GhostDeck_Cli` and executed **by the running instance** on its UI thread - identical code paths, safety gates (tier / experimental opt-in), OSD toasts and change-history entries as clicking the UI. |
 | **GhostDeck is not running** | One-shot mode: the process loads `settings.json`, detects the device, applies the same gates, talks to the EC directly, logs to the shared change history, and exits. Nothing stays resident. |
 
-The only command that strictly needs the running app is `--overlay` (the overlay is a window of
-that process).
+The only commands that strictly need the running app are `--overlay` (the overlay is a window
+of that process) and `--scene` (scenes orchestrate app state like the overlay and hotkeys).
 
 ## Commands
 
@@ -34,8 +34,11 @@ that process).
 | `--fanboost on\|off` | Full fan speed on/off; `off` re-asserts the active profile's fan mode | `fan boost: on` |
 | `--curve "<preset>"` | Apply a saved fan-curve preset by name (case-insensitive). In Silent this switches to Balanced first (the Silent cap shares the fan byte) | `fan curve applied: <name>` |
 | `--curve auto` | Back to stock fan behaviour for the active profile | `fan curve: stock` |
+| `--scene "<name>"` | Apply a saved scene by name, case-insensitive (**requires the app running**) | `scene applied: <name>` |
+| `--kbd <off\|low\|mid\|high\|0-3>` | Keyboard-backlight level (models with the EC brightness register) | `keyboard backlight: high` |
+| `--webcam on\|off` | EC-level webcam switch - same switch as the Fn camera key. Refused while the hard camera block (Settings → System → Privacy) is active | `webcam: off` |
 | `--overlay on\|off` | Show/hide the gaming overlay (**requires the app running**) | `overlay: on` |
-| `--panic` | Safe state: Fan Boost off, Balanced profile, fans on the automatic curve | `panic reset done` |
+| `--panic` | Safe state: Fan Boost off, Balanced profile, fans on the automatic curve; also lifts the camera block and re-enables the webcam | `panic reset done` |
 | `--status` | Print the current state as JSON (see below) | *(JSON document)* |
 | `--help` | Print usage | *(usage text)* |
 

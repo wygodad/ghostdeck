@@ -3,6 +3,67 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.25.0] - 2026-08-01
+### Added
+- **Vector A18 HX A9WHG (`182LIMS1`) promoted to Tested** ([#54](../../issues/54), thanks
+  @Skullkidsrevenge) - all three hardware checks confirmed on real hardware (Silent quieter,
+  Extreme ramps up, switching stable in daily use).
+- **Raider A18 HX A7VIG (`182KIMS1`) fan curve hardware-verified** ([#55](../../issues/55),
+  thanks @afk789) - the owner's wizard capture shows the MSI Center test curve exactly at the
+  shipped table addresses (CPU `0x72`, GPU `0x8A`), so the editor loses its "addresses
+  unconfirmed" caveat on this board.
+- **Scenes** (roadmap #21) - one-click macros over the existing controls. A scene can set any
+  combination of: profile, fan-curve preset, display refresh rate, gaming overlay, charge
+  limit, keyboard-backlight level, webcam and Fan Boost - each field is optional, so a scene
+  only touches what you picked. Run a scene from the new Scenes section on the Scenarios tab,
+  the tray menu, a per-scene global hotkey, the tray-icon scroll wheel, or the command line
+  (`--scene "Name"`). Ships with a one-click "Add example scenes" starter set (Gaming / Work /
+  Travel - plus a "Current setup" scene frozen from the machine's state at that moment, so
+  one click brings everything back after trying the examples). Applied in a safe order
+  (profile first, then the curve), logged as one change-log entry with a summary, one OSD
+  toast.
+- **Tray-icon mouse actions** (roadmap #23) - the tray icon now answers to more than a left
+  click: **scroll wheel** switches profiles (or scenes, or keyboard-backlight level), **middle
+  click** toggles Fan Boost by default, and all three - left, middle, wheel - are configurable
+  in Settings → System → Tray menu (profiles, Fan Boost, overlay, panic reset, show state, or
+  opening any tab). Fast wheel spins are coalesced: the target is previewed on the OSD and
+  written once when the wheel rests.
+- **Keyboard-backlight level** (roadmap #26) - off / low / mid / high on models where msi-ec
+  documents the EC brightness register (82 firmware prefixes, mostly single-colour keyboards;
+  per-key RGB boards are controlled by SteelSeries software instead and are not covered). A
+  segmented brick on the Scenarios tab, a cycle hotkey (off → low → mid → high) shipped as
+  `Ctrl+Alt+F6` but disabled by default, a scroll-wheel mode, `--kbd <off|low|mid|high>` in
+  the CLI, and a scene field. The state follows the laptop's own Fn key.
+- **Webcam switch** (roadmap #27) - the same EC-level switch the Fn camera key flips: off
+  means the camera drops off the USB bus entirely, below Windows privacy settings. A toggle
+  brick on the Scenarios tab, a hotkey shipped as `Ctrl+Alt+F7` (disabled by default),
+  `--webcam on|off` in the CLI and a scene field. Plus an advanced **hard camera block**
+  (Settings → System → Privacy) with an amber warning and an inline confirm step: while
+  active, neither the Fn key nor the switch can re-enable the camera. A panic reset lifts
+  the block and re-enables the camera, so there is always a one-key way back to stock.
+- **Scenarios tab grows up** - a panel refresh-rate switch (pure Windows display API, works
+  on any laptop) and a red **panic-reset button** join the quick-control bricks; the grid
+  moves to three columns on wide windows; every element there - each brick and the whole
+  Scenes section - can be hidden in Settings → General → "Scenarios tab"; and each scene
+  card carries its own action buttons (run / move up / move down / edit / delete, with a
+  click-again-to-confirm delete instead of a popup).
+- Settings → Power → Display now shows the **current panel refresh rate** plus a manual
+  "Change now" picker, and the Start dashboard's Power tile carries the live rate too.
+- **EC live view** (default hotkey `Ctrl+Shift+E`, also a button in the hidden EC test
+  dialog; rebindable or disable-able in Settings → Hotkeys) - a read-only window with the full 256-byte EC dump refreshed every 1.5 s: bytes
+  that just changed glow amber and every change lands in a log as `0xF3: 80 → 82`. Built for
+  model support - press an Fn key (backlight, camera, fans) and see immediately which EC
+  register reacts, no diagnostic zips to compare by hand.
+
+### Changed
+- The Raider GE76 `17K4EMS1` entry is now named **"Raider GE76 12UE / 12UGS"** - the same
+  MS-17K4 board ships under both names ([#47](../../issues/47), thanks @moragab1993).
+- Documented why laptops with **per-key RGB keyboards** get no backlight control: their five
+  brightness levels live inside the keyboard's own controller, invisible to the EC, to HID and
+  even to SteelSeries' own software, which has no brightness control either. Measured on real
+  hardware and written up in `docs/LIGHTING.md` together with the protocol that *is*
+  confirmed on those keyboards, so the question does not have to be reopened.
+
 ## [1.24.1] - 2026-07-29
 ### Added
 - **Fan Boost can switch itself off** ([#51](../../discussions/51), thanks @cesarcamps) -

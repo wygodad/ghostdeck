@@ -1299,3 +1299,120 @@ Scenarios tile, CLI, and the panic reset. When it elapses it calls
 byte that was active before the boost (see §17.7), so the fans return to the profile or the
 running curve rather than to plain auto. `auto` only changes the wording: the OSD and the
 change-log entry say the timer elapsed instead of a plain "off".
+
+## 41. Tray-icon mouse actions and the wheel hook (v1.25, roadmap #23)
+
+`NotifyIcon` reports left/middle/right clicks, but Windows never routes `WM_MOUSEWHEEL` to
+notification icons, so wheel support needs a low-level mouse hook. `Core/TrayWheel.cs`
+installs `WH_MOUSE_LL` **on a dedicated message-loop thread** (never the UI thread: a busy UI
+would delay every mouse event in the system, and Windows silently drops hooks that exceed the
+low-level-hook timeout). The callback only looks at `WM_MOUSEWHEEL`, matches the cursor
+against the icon's screen rectangle and posts the delta to the UI thread; everything else
+falls straight through to `CallNextHookEx`.
+
+The icon rectangle comes from `Shell_NotifyIconGetRect`, which needs the icon's message-window
+handle + id. WinForms keeps both private, so they are read via reflection (`_id`/`_window` on
+.NET Core, `id`/`window` on Framework; note the id field is **uint** on .NET 8 and int on
+Framework - the value is converted, not pattern-matched, precisely because a type mismatch
+here fails silently); if either the reflection or the hook fails, the wheel feature silently
+disables itself and clicks are unaffected. The rect is cached for 1.5 s so a
+wheel spin does one shell query, not one per notch. Both the hook coordinates and the shell
+rect are physical pixels under PerMonitorV2, so no DPI conversion is involved. The hook only
+exists while a wheel mode is selected; "None" removes it entirely.
+
+Left and middle click dispatch through `TrayContext.RunTrayAction` (profiles / Fan Boost /
+overlay / show state / panic / open any tab), configured in Settings → System → Tray menu
+(`AppSettings.TrayClickLeft/TrayClickMiddle/TrayWheelMode`). Wheel actions with real cost
+(profile switch, scene apply) are **coalesced**: each notch moves a previewed target shown on
+the OSD, and a 350 ms timer commits it once the wheel rests - a 4-notch spin is one EC write.
+The keyboard-backlight wheel mode writes per notch (a single cheap byte).
+
+## 42. Keyboard-backlight level (v1.25, roadmap #26)
+
+msi-ec's per-conf `kbd_bl` blocks document a single-byte brightness register: write
+`0x80 | level` (level 0-3 = off/low/mid/high), read the low 2 bits. The address is per family
+- `0xF3` on some confs, `0xD3` on others, absent on the rest - so
+`Devices.KbdBacklightMap` carries a firmware-prefix → address map generated from msi-ec's
+raw source (82 prefixes). Boards absent from the map get no UI at all: that includes the
+per-key RGB models (SteelSeries-controlled, msi-ec marks their register unsupported - the
+GE78HX among them) and `158NIMS1`, which msi-ec lists under two confs with contradicting
+kbd_bl data. Hardware-verified additions for boards outside msi-ec go into the same map.
+
+Surfaces: a segmented brick on Scenarios (`SegControl`, off/low/mid/high), a `KbdLight`
+hotkey that cycles like the Fn key, a `TrayWheelMode.KbdLight` wheel mode, `--kbd` in the
+CLI, and a scene field. The level is read back on demand (`Ec.GetKbdBacklight`), so changes
+made with the laptop's own Fn key stay in sync with what the app shows.
+
+## 43. Webcam switch and hard block (v1.25, roadmap #27)
+
+msi-ec documents the webcam registers identically on **every** conf: `0x2E` bit 1 is the
+switch the Fn camera key flips (bit set = camera present on the USB bus), `0x2F` bit 1 is a
+lock above that switch with **inverted** semantics (bit set = switching allowed, bit clear =
+camera stays off and both the Fn key and the soft switch are inert). Only three boards are
+annotated as lacking the control (`159KIMS1`, `15H5EMS1`, `13P5EMS1` → `Devices.NoWebcamCtrl`);
+everything else, including boards outside msi-ec, is assumed to have it.
+
+The soft switch is a Scenarios brick, a hotkey, `--webcam` and a scene field; `Poll` re-reads
+the bit every 3 s so Fn-key changes show up. The hard block is deliberately Settings-only
+(System → Privacy) with a plain description - it is the "nobody re-enables my camera behind
+my back" option. Turning the block on also clears the switch; turning the soft switch ON
+while blocked shows a warning toast instead of writing a bit that would do nothing. A panic
+reset (hotkey and CLI) lifts the block and re-enables the camera, so one key always returns
+the machine to stock - and a full EC reset does the same at the hardware level.
+
+## 44. Scenes (v1.25, roadmap #21)
+
+A scene (`Core/Scene.cs`, `AppSettings.Scenes`) is a named macro over existing controls:
+profile, fan-curve preset, refresh rate, overlay, charge limit, keyboard backlight, webcam,
+Fan Boost. Every field is nullable - null means "leave as is" - so the editor
+(`Forms/SceneEditForm`) pairs each row with an on/off toggle and only enabled rows are stored.
+
+`TrayContext.ApplyScene` runs the fields in a deliberate order: **profile first** (its recipe
+rewrites the fan byte), then the curve (via the same `ApplyPresetFromTray` path the tray
+uses, including the leave-Silent-first rule), then Fan Boost, charge limit, refresh rate,
+overlay, backlight, webcam. Sub-steps run with `osd: false` and write their usual per-feature
+change-log entries; the scene adds one `ChangeSource.Scene` summary entry and shows a single
+OSD toast. Because the profile and curve go through the normal paths, `LastProfile` and the
+active-curve snapshot (#49) stay correct for the startup/resume restore for free.
+
+Entry points: scene cards on the Scenarios tab (click = run, pencil = edit, right-click =
+run/edit/reorder/delete), a tray submenu, per-scene global hotkeys stored as
+`Hotkeys["Scene:<id>"]` (the id survives renames, so a binding follows its scene; orphaned
+entries are pruned in `EnsureDefaults`), a `TrayWheelMode.Scenes` wheel mode, and
+`--scene "Name"` over the CLI pipe (scenes orchestrate UI state, so the one-shot mode
+declines like `--overlay` does). "Add example scenes" seeds a localized Gaming / Work /
+Travel trio plus a "Current setup" scene frozen from the live machine state (profile,
+overlay, rate, charge limit, backlight, webcam, active curve preset), including only what
+the machine actually supports (rates, backlight).
+
+Scenarios-tab layout: the quick-control bricks are keyed (`fanboost`/`overlay`/`charge`/
+`autoswitch`/`refresh`/`kbd`/`webcam`/`panic`), and `AppSettings.ScenHidden` hides any of
+them - or the whole Scenes section (`scenes`) - via Settings → General → "Scenarios tab".
+The grid switches to three columns when the available width fits three 280 px segments.
+The hard camera block confirms inline (an amber warning label + a confirm button that
+appears when the toggle is armed) instead of a popup.
+
+## 45. EC live view (v1.25)
+
+`Forms/EcViewForm` (default hotkey Ctrl+Shift+E, key `EcView`; also a button in the Ctrl+Shift+T test dialog): a singleton read-only window
+with the full 256-byte EC dump on a 1.5 s timer. Each refresh runs `Ec.DumpAll()` on a worker
+task (a dump is 256 WMI reads - never on the UI thread) with a reentrancy latch; the UI diff
+against the previous sample highlights changed bytes (amber, fading over three ticks) and
+appends `0x<addr>: <old> → <new>` lines to a bounded log. Purpose: an owner can press an Fn
+key and read off which register reacted - this is how keyboard-backlight / webcam support on
+boards outside msi-ec gets verified without diffing diagnostic zips. Sensor-driven bytes
+(temperatures, fan speeds, counters) naturally flicker; the hint text says so.
+
+The hotkey is registered outside the Writable gate (read-only tool) and the viewer opens on
+any machine with a readable EC. The hotkey deliberately avoids Ctrl+Shift+T: that combination is the in-window shortcut
+for the EC test dialog (§12), and as a global hotkey it would also shadow the browser's
+"reopen closed tab". Like every shortcut, it can be rebound or disabled in Settings.
+
+## 46. Keyboard lighting on per-key RGB machines
+
+Moved to its own document: **[`docs/LIGHTING.md`](LIGHTING.md)**. It covers the SteelSeries
+lighting controllers found on per-key RGB laptops, the protocol that is confirmed on real
+hardware, the measurements proving that the Fn brightness levels are not reachable from the
+host, the documented hardware failure that makes blind opcode probing unacceptable, and what
+would be safe to build later. The EC-based backlight control that GhostDeck does ship stays
+in §42 above.
