@@ -184,6 +184,38 @@ public static class Ec
         WriteWith(inst, pkg, dev.CoolerBoost, next);
     }
 
+    // (#26) Keyboard-backlight level, 0-3 = off/low/mid/high. msi-ec kbd_bl: the register holds
+    // 0x80 | level (state_base_value 0x80); the level itself lives in the low 2 bits. The address
+    // is per-family (0xF3 / 0xD3), resolved by Devices.KbdBacklightFor.
+    public static int GetKbdBacklight(byte addr) => ReadByte(addr) & 0x03;
+
+    public static void SetKbdBacklight(byte addr, int level)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        WriteWith(inst, pkg, addr, (byte)(0x80 | Math.Clamp(level, 0, 3)));
+    }
+
+    // (#27) Webcam switch + block, msi-ec 0x2E / 0x2F bit 1 (identical across every conf).
+    // 0x2E is the same switch the Fn camera key flips: bit set = camera on the USB bus.
+    // 0x2F is a lock ABOVE that switch and is INVERTED: bit set = switching allowed,
+    // bit clear = camera stays off and the Fn key / soft switch stop working.
+    private const byte WebcamAddr = 0x2E, WebcamBlockAddr = 0x2F, WebcamMask = 0x02;
+
+    public static bool GetWebcam() => (ReadByte(WebcamAddr) & WebcamMask) != 0;
+    public static void SetWebcam(bool on) => SetMaskedBit(WebcamAddr, WebcamMask, on);
+    public static bool GetWebcamBlock() => (ReadByte(WebcamBlockAddr) & WebcamMask) == 0;
+    public static void SetWebcamBlock(bool blocked) => SetMaskedBit(WebcamBlockAddr, WebcamMask, !blocked);
+
+    private static void SetMaskedBit(byte addr, byte mask, bool set)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        byte cur = ReadWith(inst, pkg, addr);
+        byte next = set ? (byte)(cur | mask) : (byte)(cur & ~mask);
+        WriteWith(inst, pkg, addr, next);
+    }
+
     public static ProfileId GetCurrent(DeviceProfile dev)
     {
         try

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "");
 
@@ -30,6 +30,9 @@ public static class Cli
           GhostDeck.exe --fanboost <on|off>     full fan speed on/off
           GhostDeck.exe --overlay <on|off>      gaming overlay (needs the app running)
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
+          GhostDeck.exe --kbd <off|low|mid|high|0-3>   keyboard-backlight level (supported models)
+          GhostDeck.exe --webcam <on|off>       EC-level webcam switch (same as the Fn camera key)
+          GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
           GhostDeck.exe --status                print the current state as JSON
         Requires administrator rights (EC access), like the app itself.
@@ -50,12 +53,24 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
             case "--curve":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Curve, Arg1()) : null;
+            case "--kbd":
+                return ParseKbdLevel(Arg1()) >= 0 ? new CliCommand(CliKind.Kbd, Arg1().ToLowerInvariant()) : null;
+            case "--webcam":
+                return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Webcam, Arg1().ToLowerInvariant()) : null;
+            case "--scene":
+                return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
             case "--panic": return new CliCommand(CliKind.Panic);
             case "--status": return new CliCommand(CliKind.Status);
             case "--help" or "-h" or "/?": return new CliCommand(CliKind.Help);
             default: return null;
         }
     }
+
+    /// <summary>(#26) "off"/"low"/"mid"/"high" or "0".."3" -> level, -1 = invalid.</summary>
+    public static int ParseKbdLevel(string arg) => arg.ToLowerInvariant() switch
+    {
+        "off" or "0" => 0, "low" or "1" => 1, "mid" or "2" => 2, "high" or "3" => 3, _ => -1,
+    };
 
     /// <summary>Entry point for any launch with arguments. Returns the process exit code.</summary>
     public static int Run(string[] args)
@@ -129,6 +144,9 @@ public static class Cli
                 case CliKind.Overlay:
                     Console.WriteLine("overlay control needs the GhostDeck app running");
                     return 1;
+                case CliKind.Scene:
+                    Console.WriteLine("scene control needs the GhostDeck app running");
+                    return 1;
             }
 
             if (dev == null) { Console.WriteLine($"unsupported hardware (firmware: {(fw.Length > 0 ? fw : "unknown")})"); return 1; }
@@ -188,9 +206,31 @@ public static class Cli
                     Console.WriteLine($"fan curve applied: {p.Name}");
                     return 0;
                 }
+                case CliKind.Kbd:
+                {
+                    byte addr = Devices.KbdBacklightFor(fw);
+                    if (addr == 0) { Console.WriteLine("no keyboard-backlight support on this model"); return 1; }
+                    int level = ParseKbdLevel(cmd.Arg);
+                    Ec.SetKbdBacklight(addr, level);
+                    ChangeLog.Add(ChangeSource.Cli, $"Keyboard backlight: {cmd.Arg}");
+                    Console.WriteLine($"keyboard backlight: {cmd.Arg}");
+                    return 0;
+                }
+                case CliKind.Webcam:
+                {
+                    if (!Devices.WebcamSupported(fw)) { Console.WriteLine("no webcam control on this model"); return 1; }
+                    bool on = cmd.Arg == "on";
+                    if (on && Ec.GetWebcamBlock()) { Console.WriteLine("webcam is hard-blocked - lift the block in the app settings first"); return 1; }
+                    Ec.SetWebcam(on);
+                    ChangeLog.Add(ChangeSource.Cli, $"Webcam: {(on ? "on" : "off")}");
+                    Console.WriteLine($"webcam: {cmd.Arg}");
+                    return 0;
+                }
                 case CliKind.Panic:
                 {
                     try { Ec.SetCoolerBoost(dev, false); } catch { }
+                    // (#27) stock state includes a working camera (same as the in-app panic reset)
+                    if (Devices.WebcamSupported(fw)) { try { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); } catch { } }
                     Ec.Apply(dev.Recipes[ProfileId.Balanced]);
                     ChangeLog.Add(ChangeSource.Cli, "Panic reset  ·  CLI");
                     Console.WriteLine("panic reset done: Balanced, Fan Boost off, fans auto");

@@ -89,10 +89,15 @@ public sealed class TestDialog : Form
         cbB.SetBounds(290, 596, 250, 34);
         cbB.Click += (_, _) => CompareCooler();
 
+        // cross-link to the live EC viewer (its own window, global hotkey Ctrl+Shift+E)
+        var liveView = new Button { Text = Lang.T("ec_view_title") + "  (Ctrl+Shift+E)", Width = 250, Height = 34 };
+        liveView.SetBounds(20, 652, 250, 34);
+        liveView.Click += (_, _) => EcViewForm.ShowSingleton();
+
         var close = new Button { Text = Lang.T("set_close"), Width = 120, Height = 34, DialogResult = DialogResult.OK };
         close.SetBounds(440, 652, 120, 34);
 
-        Controls.AddRange(new Control[] { note, btnA, btnB, hint, _rpm, _live, dumpBtn, curveBtn, advOn, advOff, cbA, cbB, close });
+        Controls.AddRange(new Control[] { note, btnA, btnB, hint, _rpm, _live, dumpBtn, curveBtn, advOn, advOff, cbA, cbB, liveView, close });
 
         _liveTimer.Tick += (_, _) =>
         {

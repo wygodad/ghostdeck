@@ -17,7 +17,8 @@ public sealed class SettingsPage : ThemedPage
         ("Silent", "Silent"), ("Balanced", "Balanced"),
         ("Extreme", "Extreme"), ("SuperBattery", "Super Battery"), ("Cycle", "Cycle"),
         ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
-        ("PanicReset", "Panic reset"),
+        ("PanicReset", "Panic reset"), ("KbdLight", "Keyboard backlight"), ("Webcam", "Webcam"),
+        ("EcView", "EC live view"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -40,6 +41,8 @@ public sealed class SettingsPage : ThemedPage
     private readonly Dictionary<string, List<Panel>> _swatches = new();
     private OverlaySettingsPanel? _overlayPanel;
     private SegControl? _themeSeg;             // kept to re-point after a theme change from the header button
+    private Label? _refreshNow;                // live current panel refresh rate (Settings → Power → Display)
+    private Action? _syncRefreshMan;           // re-points the manual rate picker at the live rate
     private string _uiLang = Lang.CurrentCode; // language the form was built with
     private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
 
@@ -99,6 +102,7 @@ public sealed class SettingsPage : ThemedPage
             p += " · " + Profiles.Get(pa).Label + " / " + Profiles.Get(pb).Label;
         if (s.RefreshSwitchEnabled && s.RefreshOnAC > 0 && s.RefreshOnBattery > 0)
             p += " · " + string.Format(Lang.T("st2_hz"), s.RefreshOnAC, s.RefreshOnBattery);
+        if (Display.Current() is > 0 and var curHz) p += " · " + curHz + " Hz";   // live panel rate
         _tiles[1].SetState(p, s.ChargeLimit is 60 or 80 or 100 || s.RefreshSwitchEnabled);
 
         _tiles[2].SetState(s.TempAlertEnabled
@@ -136,6 +140,9 @@ public sealed class SettingsPage : ThemedPage
             return;
         }
         if (_themeSeg is { } ts) ts.Selected = Theme.Dark ? 1 : 0;
+        if (_refreshNow is { IsDisposed: false })
+            _refreshNow.Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—";
+        _syncRefreshMan?.Invoke();
     }
 
     public override void ApplyTheme()
@@ -288,6 +295,39 @@ public sealed class SettingsPage : ThemedPage
         // model. Pickers list only the modes the panel reports at its current resolution.
         var disp = new CardSection(Lang.T("set_grp_display"), "");
         var rates = Display.SupportedRates();
+        // live current panel rate first, so the switch rows below have a reference point
+        _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+        disp.AddRow(Lang.T("set_refresh_now"), _refreshNow);
+        // manual rate switch, same control as the Scenarios brick: a segmented button group
+        // when the panel reports a handful of modes, a combo when there are many
+        var manRates = Display.SupportedRates();
+        if (manRates.Count > 1)
+        {
+            void ApplyMan(int hz)
+            {
+                int before = Display.Current();
+                if (before != hz && Display.SetRefresh(hz))
+                {
+                    ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+                    if (_refreshNow is { IsDisposed: false }) _refreshNow.Text = hz + " Hz";
+                }
+            }
+            int manCur = Math.Max(0, manRates.IndexOf(Display.Current()));
+            if (manRates.Count <= 4)
+            {
+                var seg = new SegControl(manRates.Select(r => r + " Hz").ToArray(), manCur) { Size = new Size(Math.Min(280, 74 * manRates.Count), 34) };
+                seg.SelectedChanged += i => ApplyMan(manRates[i]);
+                _syncRefreshMan = () => { int i = manRates.IndexOf(Display.Current()); if (i >= 0) seg.Selected = i; };
+                disp.AddRow(Lang.T("set_refresh_set"), seg);
+            }
+            else
+            {
+                var man = Combo(manRates.Select(r => r + " Hz").ToArray(), manCur);
+                man.SelectedIndexChanged += (_, _) => ApplyMan(manRates[Math.Max(0, man.SelectedIndex)]);
+                _syncRefreshMan = () => { int i = manRates.IndexOf(Display.Current()); if (i >= 0 && man.SelectedIndex != i) man.SelectedIndex = i; };
+                disp.AddRow(Lang.T("set_refresh_set"), man);
+            }
+        }
         disp.AddRow(Lang.T("set_refresh_toggle"), Toggle(D.Settings.RefreshSwitchEnabled, v => { D.Settings.RefreshSwitchEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
         string[] rateItems = new[] { Lang.T("ref_keep") }.Concat(rates.Select(r => r + " Hz")).ToArray();
         int RateIdx(int hz) { int i = rates.IndexOf(hz); return i < 0 ? 0 : i + 1; }
@@ -370,6 +410,43 @@ public sealed class SettingsPage : ThemedPage
 
         // Tray context-menu visibility toggles (discussion #9); all default on.
         var tray = new CardSection(Lang.T("set_grp_tray"), "");
+        // (#23) Mouse actions on the tray icon itself: left / middle click and the scroll wheel.
+        TrayAction[] actOrder =
+        {
+            TrayAction.None, TrayAction.CycleProfile, TrayAction.FanBoost, TrayAction.Overlay,
+            TrayAction.ShowState, TrayAction.PanicReset, TrayAction.OpenScenarios, TrayAction.OpenStatus,
+            TrayAction.OpenFanCurve, TrayAction.OpenSettings, TrayAction.OpenModels, TrayAction.OpenChangeLog,
+        };
+        string ActName(TrayAction a) => a switch
+        {
+            TrayAction.None => Lang.T("act_none"),
+            TrayAction.CycleProfile => Lang.T("cycle"),
+            TrayAction.FanBoost => Lang.T("cooler_boost"),
+            TrayAction.Overlay => Lang.T("overlay_title"),
+            TrayAction.ShowState => Lang.T("act_show_state"),
+            TrayAction.PanicReset => Lang.T("hk_panic"),
+            TrayAction.OpenScenarios => string.Format(Lang.T("act_open"), Lang.T("tab_scenarios")),
+            TrayAction.OpenStatus => string.Format(Lang.T("act_open"), Lang.T("menu_status")),
+            TrayAction.OpenFanCurve => string.Format(Lang.T("act_open"), Lang.T("fc_title")),
+            TrayAction.OpenSettings => string.Format(Lang.T("act_open"), Lang.T("menu_settings")),
+            TrayAction.OpenModels => string.Format(Lang.T("act_open"), Lang.T("tab_models")),
+            TrayAction.OpenChangeLog => string.Format(Lang.T("act_open"), Lang.T("menu_log")),
+            _ => "",
+        };
+        var actNames = actOrder.Select(ActName).ToArray();
+        ComboBox ActCombo(int cur, Action<int> set)
+        {
+            var c = Combo(actNames, Math.Max(0, Array.IndexOf(actOrder, (TrayAction)cur)));
+            c.SelectedIndexChanged += (_, _) => { set((int)actOrder[Math.Max(0, c.SelectedIndex)]); D.SaveSettings(); D.SettingsChanged(); };
+            return c;
+        }
+        tray.AddRow(Lang.T("set_tray_left"), ActCombo(D.Settings.TrayClickLeft, v => D.Settings.TrayClickLeft = v));
+        tray.AddRow(Lang.T("set_tray_mid"), ActCombo(D.Settings.TrayClickMiddle, v => D.Settings.TrayClickMiddle = v));
+        var wheelModes = new[] { TrayWheelMode.None, TrayWheelMode.Profiles, TrayWheelMode.Scenes, TrayWheelMode.KbdLight };
+        var wheelNames = new[] { Lang.T("act_none"), Lang.T("twa_profiles"), Lang.T("twa_scenes"), Lang.T("twa_kbd") };
+        var wh = Combo(wheelNames, Math.Max(0, Array.IndexOf(wheelModes, (TrayWheelMode)D.Settings.TrayWheelMode)));
+        wh.SelectedIndexChanged += (_, _) => { D.Settings.TrayWheelMode = (int)wheelModes[Math.Max(0, wh.SelectedIndex)]; D.SaveSettings(); D.SettingsChanged(); };
+        tray.AddRow(Lang.T("set_tray_wheel"), wh);
         tray.AddRow(Lang.T("menu_status"), Toggle(D.Settings.TrayShowStatus, v => { D.Settings.TrayShowStatus = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("fc_title"), Toggle(D.Settings.TrayShowFanCurve, v => { D.Settings.TrayShowFanCurve = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("tab_models"), Toggle(D.Settings.TrayShowModels, v => { D.Settings.TrayShowModels = v; D.SaveSettings(); D.SettingsChanged(); }));
@@ -404,6 +481,29 @@ public sealed class SettingsPage : ThemedPage
         }
         _gRight[SubGeneral].Add(uiSec);
 
+        // Which quick-control bricks (and the Scenes section) the Scenarios tab shows - not
+        // everyone wants the full wall of switches there.
+        var scenVis = new CardSection(Lang.T("set_grp_scen"), "");   // MDL2 Tiles glyph
+        void VisRow(string key, string label)
+        {
+            scenVis.AddRow(label, Toggle(!D.Settings.ScenHidden.Contains(key), v =>
+            {
+                if (v) D.Settings.ScenHidden.Remove(key);
+                else if (!D.Settings.ScenHidden.Contains(key)) D.Settings.ScenHidden.Add(key);
+                D.SaveSettings(); D.SettingsChanged();
+            }));
+        }
+        VisRow("fanboost", Lang.T("cooler_boost"));
+        VisRow("overlay", Lang.T("overlay_title"));
+        VisRow("charge", Lang.T("st_charge"));
+        VisRow("autoswitch", Lang.T("scen_autoswitch"));
+        if (Display.SupportedRates().Count > 1) VisRow("refresh", Lang.T("ref_title"));
+        if (D.KbdLevel() >= 0) VisRow("kbd", Lang.T("kbd_title"));
+        if (D.WebcamState() >= 0) VisRow("webcam", Lang.T("webcam_title"));
+        VisRow("panic", Lang.T("hk_panic"));
+        VisRow("scenes", Lang.T("scene_title"));
+        _gLeft[SubGeneral].Add(scenVis);   // left column (user request; the right one is crowded)
+
         // Settings backup: export = a copy of settings.json, import = adopt the preferences from
         // such a file. Machine-local state survives an import (see AppSettings.ImportFrom).
         var backup = new CardSection(Lang.T("set_grp_backup"), "");
@@ -433,12 +533,53 @@ public sealed class SettingsPage : ThemedPage
         diag.AddRow(null, diagBtn);
         _gRight[SubSystem].Add(diag);
 
+        // (#27) Advanced privacy option: hard camera block (0x2F) - locks the camera off below
+        // the Fn key and the Scenarios switch until lifted here (or by a panic reset).
+        if (D.WebcamState() >= 0)
+        {
+            var priv = new CardSection(Lang.T("set_grp_privacy"), "");
+            var privInfo = new Label
+            {
+                Text = "⚠  " + Lang.T("webcam_block_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "warn",
+            };
+            priv.AddRow(null, privInfo);
+            // Two-step, no popup: flipping the toggle ON only ARMS the block - an inline confirm
+            // button appears and the switch snaps back until it is pressed. OFF applies at once
+            // (lifting a lock needs no friction). ToggleSwitch.Checked setter fires no event.
+            var tgBlock = new ToggleSwitch { Checked = D.WebcamBlocked() };
+            var confirm = new Button
+            {
+                Text = Lang.T("webcam_block_confirm"), AutoSize = true,
+                Padding = new Padding(10, 2, 10, 2), Visible = false,
+            };
+            Ui.StyleGhost(confirm);
+            confirm.ForeColor = Theme.Amber;
+            tgBlock.Toggled += v =>
+            {
+                if (v) { tgBlock.Checked = false; confirm.Visible = true; }
+                else { confirm.Visible = false; D.SetWebcamBlock(false); }
+            };
+            confirm.Click += (_, _) =>
+            {
+                confirm.Visible = false;
+                D.SetWebcamBlock(true);
+                tgBlock.Checked = true;
+            };
+            priv.AddRow(Lang.T("webcam_block"), tgBlock);
+            priv.AddRow(null, confirm);
+            _gLeft[SubSystem].Add(priv);
+        }
+
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
         _hkToggles.Clear();
         _hkMaster = new ToggleSwitch { Checked = D.Settings.HotkeysEnabled };
         _hkMaster.Toggled += v => { D.Settings.HotkeysEnabled = v; UpdateHotkeyRowsEnabled(); D.SaveSettings(); D.SettingsChanged(); };
         hk.AddRow(Lang.T("hk_all"), _hkMaster);   // master on/off (#9), default on
-        foreach (var (key, label) in Acts)
+        // static actions + one row per scene (#21); scene rows label with the scene's name
+        var hkRows = Acts.ToList();
+        foreach (var s in D.Settings.Scenes) hkRows.Add((s.HotkeyKey, s.Name));
+        foreach (var (key, label) in hkRows)
         {
             var box = new HotkeyBox { Width = 200, AutoSize = false, Height = 28 };   // fixed height so the row panel doesn't clip it
             box.SetValue(D.Settings.Hotkeys.TryGetValue(key, out var hd) ? hd : new HotkeyDef());
@@ -457,7 +598,7 @@ public sealed class SettingsPage : ThemedPage
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             box.Location = new Point(tg.Width + 12, (row.Height - box.Height) / 2);
             row.Controls.Add(tg); row.Controls.Add(box);
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : label, row);
+            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : label, row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
@@ -992,7 +1133,7 @@ public sealed class SettingsPage : ThemedPage
             {
                 // full-width note labels (Tag "muted", e.g. the diagnostics blurb) rewrap to the
                 // card's current width instead of a fixed MaximumSize
-                if (l == null && ctl is Label note && note.Tag as string == "muted")
+                if (l == null && ctl is Label note && note.Tag as string is "muted" or "warn")
                     note.MaximumSize = new Size(width - pad * 2, 0);
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
                 if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
@@ -1012,7 +1153,7 @@ public sealed class SettingsPage : ThemedPage
                 if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
                 if (ctl is FlowLayoutPanel fp) { fp.BackColor = Theme.Card; foreach (Control _ in fp.Controls) { } }
                 // value labels (battery health) = Text; "muted"-tagged notes (diagnostics blurb) = Muted
-                if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : Theme.Text; vl.BackColor = Theme.Card; }
+                if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : vl.Tag as string == "warn" ? Theme.Amber : Theme.Text; vl.BackColor = Theme.Card; }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }
                 if (ctl is ComboBox cb) { cb.BackColor = Theme.Surface; cb.ForeColor = Theme.Text; }
                 // Composite hotkey row (Panel holding a ToggleSwitch + HotkeyBox): theme the nested box too.

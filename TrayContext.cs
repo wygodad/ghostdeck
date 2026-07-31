@@ -41,6 +41,16 @@ public sealed class TrayContext : ApplicationContext
     private ToolStripMenuItem? _overlayItem;
     private ToolStripMenuItem? _overlayLockItem;
     private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
+    private TrayWheel? _wheel;                 // (#23) wheel-over-tray hook, installed only while a wheel mode is set
+    private int _wheelAccum;                   // raw wheel delta accumulator (one step per ±120)
+    private ProfileId? _wheelTarget;           // pending wheel selection (previewed via OSD, applied after a pause)
+    private System.Windows.Forms.Timer? _wheelTimer;
+    private Action? _wheelCommit;              // what the wheel timer applies when the spin rests
+    private int _wheelSceneIdx = -1;           // (#21) pending scene index while wheeling through scenes
+    private byte _kbdAddr;                     // (#26) keyboard-backlight register (0 = model not in the msi-ec map)
+    private int _kbdSim;                       // simulated level when MSIPS_FORCE_FIRMWARE is set
+    private bool _webcamSupported;             // (#27) EC webcam switch expected on this board
+    private bool _webcamOn = true;             // cached switch state, kept in sync by Poll (Fn key changes it too)
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
@@ -75,6 +85,9 @@ public sealed class TrayContext : ApplicationContext
                                     ? MsiTelemetry.Available()
                                     : !_simulate && MsiTelemetry.Available());
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
+        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
+        _webcamSupported = Known && Devices.WebcamSupported(_firmware);    // (#27)
+        if (_webcamSupported && !_simulate) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
 
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
@@ -107,6 +120,7 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
+        ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
         _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
         MaybeCheckForUpdates();
 
@@ -227,6 +241,21 @@ public sealed class TrayContext : ApplicationContext
                     if (_settings.FindPreset(cmd.Arg) is not { } p || !p.IsValid(fc.Points)) return "1|preset not found: " + cmd.Arg;
                     ApplyPresetFromTray(p.Name);
                     return "0|fan curve applied: " + p.Name;
+                case CliKind.Kbd:
+                    if (_kbdAddr == 0) return "1|no keyboard-backlight support on this model";
+                    SetKbdLight(Cli.ParseKbdLevel(cmd.Arg), ChangeSource.Cli);
+                    return "0|keyboard backlight: " + cmd.Arg;
+                case CliKind.Webcam:
+                    if (!_webcamSupported) return "1|no webcam control on this model";
+                    SetWebcamState(cmd.Arg == "on", ChangeSource.Cli);
+                    return "0|webcam: " + cmd.Arg;
+                case CliKind.Scene:
+                {
+                    var sc = _settings.Scenes.FirstOrDefault(x => x.Name.Equals(cmd.Arg, StringComparison.OrdinalIgnoreCase));
+                    if (sc == null) return "1|scene not found: " + cmd.Arg;
+                    ApplyScene(sc, ChangeSource.Cli);
+                    return "0|scene applied: " + sc.Name;
+                }
                 case CliKind.Panic:
                     PanicReset();
                     return "0|panic reset done";
@@ -372,6 +401,20 @@ public sealed class TrayContext : ApplicationContext
             menu.Items.Add(item);
         }
 
+        // (#21) scenes right under the profiles - same one-click spirit
+        if (Writable && _settings.Scenes.Count > 0)
+        {
+            var scenesItem = new ToolStripMenuItem(Lang.T("scene_title"));
+            foreach (var s in _settings.Scenes)
+            {
+                var scene = s;
+                var it = new ToolStripMenuItem((scene.Glyph.Length > 0 ? scene.Glyph + "  " : "") + scene.Name);
+                it.Click += (_, _) => ApplyScene(scene, ChangeSource.Tray);
+                scenesItem.DropDownItems.Add(it);
+            }
+            menu.Items.Add(scenesItem);
+        }
+
         menu.Items.Add(new ToolStripSeparator());
 
         _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost")) { Enabled = Writable, CheckOnClick = false };
@@ -491,9 +534,118 @@ public sealed class TrayContext : ApplicationContext
 
     private void TrayClick(object? s, MouseEventArgs e)
     {
-        if (e.Button != MouseButtons.Left) return;
-        if (Writable) Cycle(ChangeSource.Tray);
-        else ShowState();
+        // (#23) Left and middle click run whatever the user picked in Settings → System → Tray.
+        // Right click stays the context menu (handled by NotifyIcon itself).
+        if (e.Button == MouseButtons.Left) RunTrayAction((TrayAction)_settings.TrayClickLeft);
+        else if (e.Button == MouseButtons.Middle) RunTrayAction((TrayAction)_settings.TrayClickMiddle);
+    }
+
+    private void RunTrayAction(TrayAction a)
+    {
+        switch (a)
+        {
+            case TrayAction.CycleProfile: if (Writable) Cycle(ChangeSource.Tray); else ShowState(); break;
+            case TrayAction.FanBoost: ToggleCoolerBoost(); break;
+            case TrayAction.Overlay: ToggleOverlay(); break;
+            case TrayAction.ShowState: ShowState(); break;
+            case TrayAction.PanicReset: PanicReset(); break;
+            case TrayAction.OpenScenarios: OpenMain(MainTab.Scenarios); break;
+            case TrayAction.OpenStatus: OpenMain(MainTab.Status); break;
+            case TrayAction.OpenFanCurve: OpenMain(MainTab.FanCurve); break;
+            case TrayAction.OpenSettings: OpenMain(MainTab.Settings); break;
+            case TrayAction.OpenModels: OpenMain(MainTab.Models); break;
+            case TrayAction.OpenChangeLog: LogForm.ShowSingleton(); break;
+        }
+    }
+
+    // ---------------- tray wheel (#23) ----------------
+    // The hook only exists while a wheel mode is selected; "None" removes it entirely.
+    private void ApplyTrayWheel()
+    {
+        bool want = _settings.TrayWheelMode != (int)TrayWheelMode.None && _ui != null;
+        if (want && _wheel == null) _wheel = new TrayWheel(_tray, _ui!, OnTrayWheel);
+        else if (!want && _wheel != null) { _wheel.Dispose(); _wheel = null; }
+    }
+
+    private void OnTrayWheel(int delta)
+    {
+        _wheelAccum += delta;
+        int steps = _wheelAccum / 120;
+        if (steps == 0) return;
+        _wheelAccum -= steps * 120;
+        switch ((TrayWheelMode)_settings.TrayWheelMode)
+        {
+            case TrayWheelMode.Profiles: WheelProfileStep(steps); break;
+            case TrayWheelMode.Scenes: WheelSceneStep(steps); break;
+            case TrayWheelMode.KbdLight: WheelKbdStep(steps); break;
+        }
+    }
+
+    // Fast spins are coalesced: each notch only moves the previewed target (OSD), and the
+    // selection is committed once, when the wheel rests - a 4-notch spin is one apply, not four.
+    private void ArmWheelCommit(Action commit)
+    {
+        _wheelCommit = commit;
+        if (_wheelTimer == null)
+        {
+            _wheelTimer = new System.Windows.Forms.Timer { Interval = 350 };
+            _wheelTimer.Tick += (_, _) =>
+            {
+                _wheelTimer!.Stop();
+                var c = _wheelCommit;
+                _wheelCommit = null;
+                c?.Invoke();
+            };
+        }
+        _wheelTimer.Stop();
+        _wheelTimer.Start();
+    }
+
+    // Wheel up = next profile, wheel down = previous.
+    private void WheelProfileStep(int steps)
+    {
+        if (!Writable) { ShowState(); return; }
+        int n = Profiles.Order.Length;
+        int i = Array.IndexOf(Profiles.Order, _wheelTarget ?? _current);
+        var next = Profiles.Order[((i + steps) % n + n) % n];
+        _wheelTarget = next;
+        ShowOsd(next);
+        ArmWheelCommit(() =>
+        {
+            if (_wheelTarget is { } t)
+            {
+                _wheelTarget = null;
+                if (t != _current) SetProfile(t, osd: true, ChangeSource.Tray);
+            }
+        });
+    }
+
+    // (#21) Wheel through the scene list; the previewed scene is applied when the wheel rests.
+    private void WheelSceneStep(int steps)
+    {
+        var list = _settings.Scenes;
+        if (!Writable || list.Count == 0) { ShowState(); return; }
+        int n = list.Count;
+        _wheelSceneIdx = _wheelSceneIdx < 0
+            ? (steps > 0 ? 0 : n - 1)
+            : ((_wheelSceneIdx + steps) % n + n) % n;
+        var s = list[_wheelSceneIdx];
+        _osd.ShowProfile("MSI  ·  " + Lang.T("scene_title"), s.Name, _settings.ColorFor(_current));
+        ArmWheelCommit(() =>
+        {
+            int idx = _wheelSceneIdx;
+            _wheelSceneIdx = -1;
+            if (idx >= 0 && idx < _settings.Scenes.Count) ApplyScene(_settings.Scenes[idx], ChangeSource.Tray);
+        });
+    }
+
+    // (#26) Backlight is a single cheap byte - applied per notch, no coalescing needed.
+    private void WheelKbdStep(int steps)
+    {
+        int cur = KbdLevel();
+        if (cur < 0) { ShowState(); return; }
+        int next = Math.Clamp(cur + steps, 0, 3);
+        if (next != cur) SetKbdLight(next, ChangeSource.Tray);
     }
 
     // maly kafelek w kolorze profilu (do menu)
@@ -597,7 +749,8 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // Tray quick-switch: apply a named preset (or null = back to the profile's stock fans).
-    private void ApplyPresetFromTray(string? name)
+    // Scenes (#21) reuse this with osd: false, under their own single toast.
+    private void ApplyPresetFromTray(string? name, bool osd = true)
     {
         if (!Writable || _device?.FanCurve is not { } fc) { ShowState(); return; }
         try
@@ -608,7 +761,7 @@ public sealed class TrayContext : ApplicationContext
                 if (!_simulate) Ec.SetFanMode(_device!, b);
                 _settings.ClearActiveCurve();   // (#49) back to profile fans = nothing to restore
                 ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_off"), $"{_device!.FanMode:X2}={b:X2}");
-                _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), Lang.T("fc_preset_auto"), _settings.ColorFor(_current));
+                if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), Lang.T("fc_preset_auto"), _settings.ColorFor(_current));
                 return;
             }
             var p = _settings.FindPreset(name);
@@ -625,7 +778,145 @@ public sealed class TrayContext : ApplicationContext
             ChangeLog.Add(ChangeSource.FanCurve,
                 string.Format(Lang.T("log_curve_preset"), p.Name),
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
-            _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), p.Name, _settings.ColorFor(_current));
+            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), p.Name, _settings.ColorFor(_current));
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // ---------------- keyboard backlight (#26) ----------------
+    // Level 0-3 (off/low/mid/high); the register is read back on demand, so a change made with
+    // the laptop's own Fn key stays in sync with what the brick / hotkey shows next.
+    private int KbdLevel()
+    {
+        if (_kbdAddr == 0 || !Writable) return -1;
+        if (_simulate) return _kbdSim;
+        try { return Ec.GetKbdBacklight(_kbdAddr); } catch { return -1; }
+    }
+
+    private void SetKbdLight(int level, ChangeSource source, bool osd = true)
+    {
+        if (_kbdAddr == 0 || !Writable) { ShowState(); return; }
+        level = Math.Clamp(level, 0, 3);
+        try
+        {
+            if (_simulate) _kbdSim = level;
+            else Ec.SetKbdBacklight(_kbdAddr, level);
+            string name = Lang.T(level switch { 0 => "kbd_off", 1 => "kbd_low", 2 => "kbd_mid", _ => "kbd_high" });
+            ChangeLog.Add(source, Lang.T("kbd_title") + ": " + name,
+                _simulate ? "(simulate)" : $"{_kbdAddr:X2}={0x80 | level:X2}");
+            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("kbd_title"), name, Color.FromArgb(0x17, 0xC0, 0xEB));
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // Hotkey: cycle like the Fn key does (off -> low -> mid -> high -> off).
+    private void CycleKbdLight()
+    {
+        int cur = KbdLevel();
+        if (cur < 0) { ShowState(); return; }
+        SetKbdLight((cur + 1) % 4, ChangeSource.Hotkey);
+    }
+
+    // ---------------- scenes (#21) ----------------
+    // One click applies every field the scene defines, in a deliberate order: profile first
+    // (its recipe rewrites the fan byte), then the curve, then everything independent of the
+    // EC fan state. Sub-steps run with osd: false - the scene shows ONE toast at the end.
+    private void ApplyScene(SceneDef s, ChangeSource source)
+    {
+        if (!Writable) { ShowState(); return; }
+        try
+        {
+            if (s.Profile is { } pn && Enum.TryParse<ProfileId>(pn, out var pid))
+                SetProfile(pid, osd: false, source, applyCurve: s.CurvePreset == null);
+            if (s.CurvePreset is { } cp)
+                ApplyPresetFromTray(cp.Length == 0 ? null : cp, osd: false);
+            if (s.FanBoost is { } fb && fb != _coolerBoost)
+                SetCoolerBoostState(fb, osd: false);
+            if (s.ChargeLimit is { } cl)
+            {
+                if (_settings.ChargeLimit != cl) { _settings.ChargeLimit = cl; _settings.Save(); }
+                TryApplyChargeLimit();
+            }
+            if (s.RefreshHz is { } hz && hz > 0)
+            {
+                int before = Display.Current();
+                if (before != hz && Display.SetRefresh(hz))
+                    ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+            }
+            if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
+            if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
+            if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
+
+            ChangeLog.Add(ChangeSource.Scene, string.Format(Lang.T("log_scene"), s.Name), s.Summary());
+            // no glyph in the OSD title: the OSD's text renderer has no emoji fallback (tofu)
+            _osd.ShowProfile("MSI  ·  " + s.Name, Lang.T("scene_applied"), _settings.ColorFor(_current));
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // ---------------- webcam (#27) ----------------
+    // Soft switch = the same EC bit the Fn camera key flips (device drops off the USB bus).
+    // The hard block is a separate Settings-only option; while it is on, this switch (and Fn)
+    // cannot re-enable the camera, so turning ON warns instead of silently failing.
+    private void ToggleWebcam() => SetWebcamState(!_webcamOn, ChangeSource.Hotkey);
+
+    private void SetWebcamState(bool on, ChangeSource source, bool osd = true)
+    {
+        if (!_webcamSupported || !Writable) { ShowState(); return; }
+        try
+        {
+            if (!_simulate)
+            {
+                if (on && Ec.GetWebcamBlock())
+                {
+                    _osd.ShowProfile("MSI  ·  " + Lang.T("webcam_title"), Lang.T("webcam_blocked_warn"), Theme.Amber);
+                    return;
+                }
+                Ec.SetWebcam(on);
+            }
+            _webcamOn = on;
+            string read = "(simulate)";
+            if (!_simulate) { try { read = $"2E={Ec.ReadByte(0x2E):X2}"; } catch { read = Lang.T("log_read_fail"); } }
+            ChangeLog.Add(source, Lang.T("webcam_title") + ": " + Lang.T(on ? "st_on" : "st_off"), read);
+            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("webcam_title"),
+                Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // Advanced privacy option (Settings → System): locks the camera off below the Fn key.
+    private void SetWebcamBlockState(bool blocked)
+    {
+        if (!_webcamSupported || !Writable) { ShowState(); return; }
+        try
+        {
+            if (!_simulate)
+            {
+                Ec.SetWebcamBlock(blocked);
+                if (blocked) { Ec.SetWebcam(false); _webcamOn = false; }   // block implies off
+            }
+            else if (blocked) _webcamOn = false;
+            string read = "(simulate)";
+            if (!_simulate) { try { read = $"2F={Ec.ReadByte(0x2F):X2}"; } catch { read = Lang.T("log_read_fail"); } }
+            ChangeLog.Add(ChangeSource.Panel, Lang.T("webcam_block") + ": " + Lang.T(blocked ? "st_on" : "st_off"), read);
+            _osd.ShowProfile("MSI  ·  " + Lang.T("webcam_title"),
+                Lang.T(blocked ? "webcam_blocked" : "webcam_unblocked"), blocked ? Theme.Amber : Color.FromArgb(0x17, 0xC0, 0xEB));
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
@@ -658,7 +949,8 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // auto = the boost timer fired (#51); it only changes the on-screen wording.
-    private void SetCoolerBoostState(bool next, bool auto = false)
+    // osd = false lets a scene (#21) flip boost silently under its own single toast.
+    private void SetCoolerBoostState(bool next, bool auto = false, bool osd = true)
     {
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
         if (next == _coolerBoost) { UpdateCoolerBoostMenu(); return; }
@@ -695,7 +987,7 @@ public sealed class TrayContext : ApplicationContext
                 Lang.T("cooler_boost") + ": " + (next ? Lang.T("st_on") : Lang.T("st_off"))
                     + (auto ? "  ·  " + Lang.T("fb_auto_off") : ""),
                 read);
-            _osd.ShowProfile("MSI  ·  " + Lang.T("cooler_boost"),
+            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("cooler_boost"),
                 auto ? Lang.T("fb_auto_off") : Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
                 next ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             UpdateCoolerBoostMenu();
@@ -970,6 +1262,7 @@ public sealed class TrayContext : ApplicationContext
         _hotkeys.UnregisterAll();
         Reg("Overlay", ToggleOverlay);       // read-only, so both work even when EC writes are disabled
         Reg("OverlayLock", ToggleOverlayLock);
+        Reg("EcView", ShowEcViewer);         // live EC dump viewer - read-only diagnostics
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -978,6 +1271,22 @@ public sealed class TrayContext : ApplicationContext
         Reg("Cycle", () => Cycle(ChangeSource.Hotkey));
         Reg("CoolerBoost", ToggleCoolerBoost);
         Reg("PanicReset", PanicReset);
+        if (_kbdAddr != 0) Reg("KbdLight", CycleKbdLight);   // (#26) only when the model has the register
+        if (_webcamSupported) Reg("Webcam", ToggleWebcam);   // (#27)
+        foreach (var s in _settings.Scenes)                  // (#21) per-scene hotkeys ("Scene:<id>")
+        {
+            var scene = s;
+            Reg(scene.HotkeyKey, () => ApplyScene(scene, ChangeSource.Hotkey));
+        }
+    }
+
+    // Live EC viewer (Ctrl+Shift+E; also a button in the Ctrl+Shift+T test dialog): read-only
+    // 256-byte dump with change highlighting - lets an owner see which register reacts to an
+    // Fn key without diffing diagnostic zips.
+    private void ShowEcViewer()
+    {
+        if (_simulate || (!Known && !_telemetryOnly && string.IsNullOrEmpty(_firmware))) { ShowState(); return; }
+        EcViewForm.ShowSingleton();
     }
 
     // "Panic" hotkey: one press back to a safe stock state — Fan Boost off, Balanced profile.
@@ -992,6 +1301,8 @@ public sealed class TrayContext : ApplicationContext
         UpdateCoolerBoostMenu();
         SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey, applyCurve: false);   // panic = stock fans, no preset
         _settings.ClearActiveCurve();   // (#49) panic means "stock state" - don't restore the curve at next boot
+        // (#27) stock state includes a working camera: lift the hard block and re-enable the switch
+        if (_webcamSupported && !_simulate) { try { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); _webcamOn = true; } catch { } }
         ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub"));
         _osd.ShowProfile("MSI  ·  " + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
     }
@@ -1034,6 +1345,7 @@ public sealed class TrayContext : ApplicationContext
         SettingsChanged = () =>
         {
             ApplyHotkeys(); BuildMenu(); UpdateUi(_current);
+            ApplyTrayWheel();   // (#23) follow a just-edited wheel mode (install or remove the hook)
             // apply a just-edited refresh preference right away (no-op when disabled)
             ApplyRefreshForPower(SystemInformation.PowerStatus.PowerLineStatus);
             GameSessions.ApplyLimit(_settings.GameSessionKeep);   // a lowered keep-count trims at once
@@ -1053,6 +1365,19 @@ public sealed class TrayContext : ApplicationContext
         },
         CoolerBoost = () => _coolerBoost,
         SetCoolerBoost = on => SetCoolerBoostState(on),
+        KbdLevel = KbdLevel,                                        // (#26) -1 = no support on this model
+        SetKbdLevel = l => SetKbdLight(l, ChangeSource.Panel),
+        WebcamState = () => !_webcamSupported || !Writable ? -1 : _webcamOn ? 1 : 0,   // (#27)
+        SetWebcam = on => SetWebcamState(on, ChangeSource.Panel),
+        WebcamBlocked = () =>
+        {
+            if (!_webcamSupported || !Writable || _simulate) return false;
+            try { return Ec.GetWebcamBlock(); } catch { return false; }
+        },
+        SetWebcamBlock = SetWebcamBlockState,
+        RunScene = s => ApplyScene(s, ChangeSource.Panel),          // (#21)
+        HasFanCurve = () => _device?.FanCurve != null,
+        PanicReset = PanicReset,
         OverlayOn = () => OverlayVisible,
         SetOverlay = on => SetOverlay(on, osd: false),
         ApplyOverlaySettings = ApplyOverlaySettings,
@@ -1323,6 +1648,13 @@ public sealed class TrayContext : ApplicationContext
             bool cb = Ec.GetCoolerBoost(_device!);
             if (cb != _coolerBoost) { _coolerBoost = cb; UpdateCoolerBoostMenu(); }
 
+            // (#27) The Fn camera key flips the same EC bit — keep the Scenarios brick in sync.
+            if (_webcamSupported)
+            {
+                bool wc = Ec.GetWebcam();
+                if (wc != _webcamOn) { _webcamOn = wc; if (_main is { IsDisposed: false }) _main.RefreshActive(); }
+            }
+
             // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
             // Silent from Balanced, so don't re-detect — keep the profile the user chose.
             if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
@@ -1349,6 +1681,8 @@ public sealed class TrayContext : ApplicationContext
     private void ExitApp()
     {
         _poll.Stop();
+        _wheelTimer?.Stop();
+        _wheel?.Dispose();
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         FpsMonitor.Shutdown();   // stop the ETW session (also flushes an open game session)
         _tray.Visible = false;

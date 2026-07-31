@@ -24,6 +24,15 @@ public sealed class MainDeps
     public required Action<bool> SetAutoSwitch { get; init; }
     public required Func<bool> CoolerBoost { get; init; }          // current Cooler Boost (max fans) state
     public required Action<bool> SetCoolerBoost { get; init; }     // turn Cooler Boost on/off (gated on writable)
+    public required Func<int> KbdLevel { get; init; }              // (#26) backlight level 0-3, -1 = no support
+    public required Action<int> SetKbdLevel { get; init; }
+    public required Func<int> WebcamState { get; init; }           // (#27) 1 = on, 0 = off, -1 = no support
+    public required Action<bool> SetWebcam { get; init; }
+    public required Func<bool> WebcamBlocked { get; init; }        // (#27) hard block (0x2F) active
+    public required Action<bool> SetWebcamBlock { get; init; }
+    public required Action<SceneDef> RunScene { get; init; }       // (#21) apply a scene now
+    public required Func<bool> HasFanCurve { get; init; }          // model exposes editable fan-curve tables
+    public required Action PanicReset { get; init; }               // one press back to a safe stock state
     public required Action<Action<DeviceProfile>> WithEcWrite { get; init; }  // runs only if writable + not simulating
     public required Func<bool> OverlayOn { get; init; }
     public required Action<bool> SetOverlay { get; init; }

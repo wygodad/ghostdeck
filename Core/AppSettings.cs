@@ -38,6 +38,11 @@ public sealed class AppSettings
     public bool HotkeysEnabled { get; set; } = true;   // master on/off for all keyboard shortcuts (#9)
 
     // Which tray context-menu entries are shown; all default on (discussion #9).
+    // (#23) Tray-icon mouse actions (TrayAction / TrayWheelMode as int).
+    public int TrayClickLeft { get; set; } = (int)TrayAction.CycleProfile;
+    public int TrayClickMiddle { get; set; } = (int)TrayAction.FanBoost;
+    public int TrayWheelMode { get; set; } = (int)GhostDeck.TrayWheelMode.Profiles;
+
     public bool TrayShowStatus { get; set; } = true;
     public bool TrayShowFanCurve { get; set; } = true;
     public bool TrayShowModels { get; set; } = true;
@@ -164,6 +169,13 @@ public sealed class AppSettings
     public bool HasMetric(OverlayMetric m) => (OverlayMetrics & (int)m) != 0;
     public void SetMetric(OverlayMetric m, bool on) => OverlayMetrics = on ? OverlayMetrics | (int)m : OverlayMetrics & ~(int)m;
 
+    // (#21) sceny (makra ustawien); kolejnosc listy = kolejnosc kart i pozycji w menu tray
+    public List<SceneDef> Scenes { get; set; } = new();
+
+    // Ukryte elementy zakladki Scenariusze (klucze brickow: fanboost/overlay/charge/autoswitch/
+    // kbd/webcam/refresh/panic + "scenes" = cala sekcja scen). Pusta lista = wszystko widoczne.
+    public List<string> ScenHidden { get; set; } = new();
+
     // ostatnio otwarta subzakladka Ustawien (0 = Start/kafelki); wraca po restarcie aplikacji
     public int SettingsSubTab { get; set; }
 
@@ -248,6 +260,15 @@ public sealed class AppSettings
         void DefM(string k, uint mods, uint vk, string disp) { if (!Hotkeys.ContainsKey(k)) Hotkeys[k] = new HotkeyDef { Mods = mods, Vk = vk, Display = disp }; }
         DefM("Overlay",     CS, 0x4F, "Ctrl+Shift+O");   // 0x4F = 'O' — toggle gaming overlay
         DefM("OverlayLock", CS, 0x4C, "Ctrl+Shift+L");   // 0x4C = 'L' — lock/unlock overlay (drag vs click-through)
+        DefM("EcView",      CS, 0x45, "Ctrl+Shift+E");   // 0x45 = 'E' — live EC viewer; Ctrl+Shift+T stays the in-window test-tools shortcut
+
+        // (#26/#27) shipped with a binding but DISABLED - visible in Settings, opt-in with one toggle
+        void DefOff(string k, uint vk, string disp)
+        {
+            if (!Hotkeys.ContainsKey(k)) Hotkeys[k] = new HotkeyDef { Mods = CA, Vk = vk, Display = disp, Enabled = false };
+        }
+        DefOff("KbdLight", 0x75, "Ctrl+Alt+F6");   // F6 — cycle keyboard backlight
+        DefOff("Webcam",   0x76, "Ctrl+Alt+F7");   // F7 — webcam switch
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -257,6 +278,9 @@ public sealed class AppSettings
         }
         MigrateTo("Overlay", 0x4F, "Ctrl+Shift+O", new[] { (CA, 0x4Fu), (CA, 0x47u), (WA, 0x47u) });
         MigrateTo("OverlayLock", 0x4C, "Ctrl+Shift+L", new[] { (CA, 0x4Cu), (WA, 0x4Cu) });
+        // EC viewer briefly shipped on Ctrl+Shift+T, which shadowed the in-window test-tools
+        // shortcut (MainForm) globally - move any stored T binding to E.
+        MigrateTo("EcView", 0x45, "Ctrl+Shift+E", new[] { (CS, 0x54u) });
 
         // One-time migration: settings saved before v1.23 carry an OverlayMetrics bitmask without
         // the FPS bit, which would hide the new flagship metric (and never start the monitor from
@@ -273,9 +297,28 @@ public sealed class AppSettings
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
+        if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
+        if (!Enum.IsDefined(typeof(TrayAction), TrayClickMiddle)) TrayClickMiddle = (int)TrayAction.FanBoost;
+        if (!Enum.IsDefined(typeof(GhostDeck.TrayWheelMode), TrayWheelMode)) TrayWheelMode = (int)GhostDeck.TrayWheelMode.Profiles;
 
         // Curve presets sanity (hand-edited / imported files): no nameless or duplicate names,
         // never a Silent assignment (its power cap shares the fan byte), no dangling assignments.
+        // (#21) scenes sanity: no nameless scenes, unique ids, sane value ranges, and no
+        // orphaned per-scene hotkeys left behind by a deleted scene.
+        Scenes.RemoveAll(s => string.IsNullOrWhiteSpace(s.Name) || string.IsNullOrWhiteSpace(s.Id));
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Scenes.RemoveAll(s => !seenIds.Add(s.Id));
+        foreach (var s in Scenes)
+        {
+            if (s.KbdLight is { } kl && kl is < 0 or > 3) s.KbdLight = null;
+            if (s.ChargeLimit is { } cl && cl is not (0 or 60 or 80 or 100)) s.ChargeLimit = null;
+            if (s.RefreshHz is { } hz && hz is < 0 or > 1000) s.RefreshHz = null;
+            if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
+        }
+        foreach (var k in Hotkeys.Keys.Where(k => k.StartsWith("Scene:", StringComparison.OrdinalIgnoreCase)
+                                                  && !Scenes.Any(s => s.HotkeyKey.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
+            Hotkeys.Remove(k);
+
         CurvePresets.RemoveAll(p => string.IsNullOrWhiteSpace(p.Name));
         var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         CurvePresets.RemoveAll(p => !seenNames.Add(p.Name.Trim()));
@@ -303,6 +346,7 @@ public sealed class AppSettings
         TrayShowStatus = src.TrayShowStatus; TrayShowFanCurve = src.TrayShowFanCurve; TrayShowModels = src.TrayShowModels;
         TrayShowReport = src.TrayShowReport; TrayShowChangeLog = src.TrayShowChangeLog;
         TrayShowFeedback = src.TrayShowFeedback;
+        TrayClickLeft = src.TrayClickLeft; TrayClickMiddle = src.TrayClickMiddle; TrayWheelMode = src.TrayWheelMode;
         IconStyle = src.IconStyle;
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
@@ -344,6 +388,9 @@ public sealed class AppSettings
         foreach (var p in src.CurvePresets) CurvePresets.Add(p.Clone());
         ProfileCurves.Clear();
         foreach (var (k, v) in src.ProfileCurves) ProfileCurves[k] = v;
+        Scenes.Clear();
+        foreach (var s in src.Scenes) Scenes.Add(s.Clone());   // (#21)
+        ScenHidden = new List<string>(src.ScenHidden);
         EnsureDefaults();
     }
 
@@ -374,6 +421,7 @@ public sealed class AppSettings
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
             TrayShowReport = TrayShowReport, TrayShowChangeLog = TrayShowChangeLog,
             TrayShowFeedback = TrayShowFeedback,
+            TrayClickLeft = TrayClickLeft, TrayClickMiddle = TrayClickMiddle, TrayWheelMode = TrayWheelMode,
             IconStyle = IconStyle,
             IconTabs = new List<string>(IconTabs),
             ShowGrid = ShowGrid,
@@ -413,6 +461,8 @@ public sealed class AppSettings
         foreach (var (k, v) in Colors) c.Colors[k] = v;
         foreach (var p in CurvePresets) c.CurvePresets.Add(p.Clone());
         foreach (var (k, v) in ProfileCurves) c.ProfileCurves[k] = v;
+        foreach (var s in Scenes) c.Scenes.Add(s.Clone());   // (#21)
+        c.ScenHidden = new List<string>(ScenHidden);
         return c;
     }
 }
