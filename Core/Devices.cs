@@ -103,6 +103,50 @@ public static class Devices
     private static readonly FanCurveSpec ModernCurveVerified =
         new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true);
 
+    // ---------------------------------------------------------------------
+    // (#26) Keyboard-backlight level register, per firmware prefix. Generated from msi-ec's
+    // per-conf kbd_bl blocks (bl_state_address): write 0x80 | level (0-3 = off/low/mid/high),
+    // read the low 2 bits. Boards absent here have no EC-level brightness register in msi-ec -
+    // that includes the per-key RGB models (SteelSeries-controlled) and 158NIMS1, which msi-ec
+    // lists under two confs with contradicting kbd_bl data. Hardware-verified additions for
+    // boards outside msi-ec go here too (none yet).
+    private static readonly Dictionary<string, byte> KbdBacklightMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["13P3EMS1"] = 0xD3, ["13P5EMS1"] = 0xD3, ["13Q2EMS1"] = 0xD3, ["13Q3EMS1"] = 0xD3, ["14C4EMS1"] = 0xD3, ["14C6EMS1"] = 0xD3, ["14D2EMS1"] = 0xD3, ["14D3EMS1"] = 0xD3,
+        ["14F1EMS1"] = 0xD3, ["14J1IMS1"] = 0xD3, ["14L1EMS1"] = 0xD3, ["14N1EMS1"] = 0xD3, ["14N2EMS1"] = 0xD3, ["14P1IMS1"] = 0xD3, ["14QKIMS1"] = 0xD3, ["1552EMS1"] = 0xD3,
+        ["1581EMS1"] = 0xD3, ["1582EMS1"] = 0xD3, ["1583EMS1"] = 0xD3, ["1584EMS1"] = 0xD3, ["1584IMS1"] = 0xD3, ["1585EMS1"] = 0xD3, ["1585EMS2"] = 0xD3, ["158PIMS1"] = 0xD3,
+        ["1591EMS1"] = 0xD3, ["1592EMS1"] = 0xD3, ["1594EMS1"] = 0xD3, ["1596EMS1"] = 0xD3, ["159KIMS1"] = 0xD3, ["15A1EMS1"] = 0xD3, ["15A3EMS1"] = 0xD3, ["15H1IMS1"] = 0xD3,
+        ["15H2IMS1"] = 0xD3, ["15H5EMS1"] = 0xD3, ["15K1IMS1"] = 0xD3, ["16R6EMS1"] = 0xD3, ["16R7IMS1"] = 0xD3, ["16R8IMS1"] = 0xD3, ["16R8IMS2"] = 0xD3, ["16RKIMS1"] = 0xD3,
+        ["16RKIMS2"] = 0xD3, ["16S6EMS1"] = 0xD3, ["16S8EMS1"] = 0xD3, ["16V6EMS1"] = 0xD3, ["17L1EMS1"] = 0xD3, ["17L2EMS1"] = 0xD3, ["17L3EMS1"] = 0xD3, ["17L4EMS1"] = 0xD3,
+        ["17LNIMS1"] = 0xD3, ["17M1EMS2"] = 0xD3,
+        ["14C1EMS1"] = 0xF3, ["14D1EMS1"] = 0xF3, ["14DKEMS1"] = 0xF3, ["14DLEMS1"] = 0xF3, ["14JKEMS1"] = 0xF3, ["1551EMS1"] = 0xF3, ["155LEMS1"] = 0xF3, ["158KEMS1"] = 0xF3,
+        ["158MEMS1"] = 0xF3, ["15HKEMS1"] = 0xF3, ["16R1EMS1"] = 0xF3, ["16R3EMS1"] = 0xF3, ["16R4EMS1"] = 0xF3, ["16R4EMS2"] = 0xF3, ["16R5EMS1"] = 0xF3, ["16S1EMS1"] = 0xF3,
+        ["16S3EMS1"] = 0xF3, ["16U7EMS1"] = 0xF3, ["16V2EMS1"] = 0xF3, ["16W1EMS1"] = 0xF3, ["16W1EMS2"] = 0xF3, ["16W2EMS1"] = 0xF3, ["16WKEMS1"] = 0xF3, ["17E7EMS1"] = 0xF3,
+        ["17E8EMS1"] = 0xF3, ["17F2EMS1"] = 0xF3, ["17F3EMS1"] = 0xF3, ["17F3EMS2"] = 0xF3, ["17F4EMS2"] = 0xF3, ["17F5EMS1"] = 0xF3, ["17F6EMS1"] = 0xF3, ["17FKEMS1"] = 0xF3,
+    };
+
+    /// <summary>(#26) Keyboard-backlight register for this firmware, or 0 = not supported.</summary>
+    public static byte KbdBacklightFor(string firmware)
+    {
+        if (string.IsNullOrEmpty(firmware)) return 0;
+        return KbdBacklightMap.TryGetValue(FwPrefix(firmware), out var a) ? a : (byte)0;
+    }
+
+    // (#27) msi-ec documents the webcam switch (0x2E) and webcam block (0x2F) identically on
+    // every conf; only these boards are annotated as having no hardware webcam control at all.
+    private static readonly HashSet<string> NoWebcamCtrl = new(StringComparer.OrdinalIgnoreCase)
+        { "159KIMS1", "15H5EMS1", "13P5EMS1" };
+
+    /// <summary>(#27) Whether the EC webcam switch is expected to exist on this firmware.</summary>
+    public static bool WebcamSupported(string firmware) =>
+        !string.IsNullOrEmpty(firmware) && !NoWebcamCtrl.Contains(FwPrefix(firmware));
+
+    private static string FwPrefix(string firmware)
+    {
+        int dot = firmware.IndexOf('.');
+        return dot > 0 ? firmware[..dot] : firmware;
+    }
+
     public static readonly DeviceProfile[] All =
     {
         // ---------- TESTED ----------
@@ -175,7 +219,8 @@ public static class Devices
         // GPU 20/30/40/50/60/70) sits byte-for-byte at 0x72 / 0x8A — the shipped ModernCurve addresses.
         // RPM: 0xC9/0xCB carry plausible values in both dumps (e.g. 0x8E/0xD0 ≈ 3366/2298 RPM) — same
         // layout as the other tested G2 boards.
-        new() { Name = "MSI Raider GE76 12UE", FirmwarePrefixes = new[] { "17K4EMS1" }, Tier = Tier.Tested,
+        // Sold as both 12UE and 12UGS (same MS-17K4 board; the #47 owner's unit is a 12UGS).
+        new() { Name = "MSI Raider GE76 12UE / 12UGS", FirmwarePrefixes = new[] { "17K4EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "moragab1993", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/47" },
 
@@ -388,17 +433,21 @@ public static class Devices
         // Tested. Super battery: upstream msi-ec maps 0xEB for CONF_G2_10, but MSI Center on this AMD
         // board leaves 0xEB=00 even in Super Battery (same as the Crosshair / AMD Bravos), so we drop
         // the write and mirror what MSI Center actually does. RPM: 0xC9/0xCB vary per scenario
-        // (C8/C8 → 96/7D ≈ 2400-3800 RPM), the usual G2 layout. Curve not verified yet (no capture).
+        // (C8/C8 → 96/7D ≈ 2400-3800 RPM), the usual G2 layout. Fan curve VERIFIED (issue #55): the
+        // owner's wizard capture shows the MSI Center test curve exactly at 0x72 (CPU: 19 23 2D 37 41
+        // 4B) and 0x8A (GPU: 14 1E 28 32 3C 46), with 0xD4=8D — the shipped ModernCurve addresses.
         new() { Name = "MSI Raider A18 HX A7VIG", FirmwarePrefixes = new[] { "182KIMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "afk789", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50" },
 
         // Vector A18 HX A9WHG (182LIMS1) — owner dump (issue #54) shows the same picture as its Raider
         // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. RPM NOT added: 0xC9/0xCB
         // read the same constant in every scenario, so there is no evidence they are live tachs here.
-        // Stays Experimental until the owner confirms the three hardware checks.
-        new() { Name = "MSI Vector A18 HX A9WHG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Experimental,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null) },
+        // All three hardware checks confirmed by the owner (Silent quieter, Extreme ramps, switching
+        // stable in daily use) → promoted to Tested.
+        new() { Name = "MSI Vector A18 HX A9WHG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "Skullkidsrevenge", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54" },
 
         // G1 family (shift 0xF2 / fan 0xF4 / charge 0xEF) — older boards; super-batt addr unknown (null) unless noted.
         new() { Name = "MSI Prestige 14 A10SC", FirmwarePrefixes = new[] { "14C1EMS1" }, Tier = Tier.Experimental,
