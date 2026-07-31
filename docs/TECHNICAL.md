@@ -1282,12 +1282,21 @@ machines) or any WinRing0-class driver to reach the EC directly. Those sit on th
 vulnerable-driver lists; "GhostDeck never loads a kernel driver" is the project's core safety
 property (§12) and is worth more than the feature.
 
-**Is there a driver-free CONTROL path on such a board? No** - researched and closed. The
-reporter installed an older MSI Center (2.0.62, SDK `3.2025.1107.01`) on the same Delta 15 and
-fan control works there, which pins down how control reaches the EC when the WMI method
-interface is missing. Its stack: MSI Center UI -> `NamedPipeClientLib.dll` -> named pipe
-`\\.\pipe\MSI_SERVICE_2` -> MSI service -> ring-0 driver (WINIO `KernCoreLib64.sys` /
-WinRing0 / `MsIo64.sys`) -> EC ports `0x62`/`0x66`. Two candidate routes follow, both rejected:
+**How MSI's own software controls such a board.** The reporter installed an older MSI Center
+(2.0.62, SDK `3.2025.1107.01`, NBFoundation service `2.0.2511.0402`) on the same Delta 15, where
+fan control works, and had its files analysed. Established by that: the older build controls the
+hardware through its own service over the named pipe `\\.\pipe\MSI_SERVICE_2`
+(`NamedPipeClientLib.dll`, commands `Set_Fan`, `WMI2:GEC_REQ`/`GEC_RST`), and the machine has
+two ring-0 direct-access drivers loaded (`KernCoreLib64.sys` as service WINIO, `MsIo64.sys`),
+with WinRing0 port/MSR interfaces present inside `Sendevsvc.exe`. The reporter's conclusion, that
+the boost bit is written straight to EC ports `0x62`/`0x66` past WMI, rests on strings inside
+those binaries plus the driver list rather than on a live call trace, so treat the exact route as
+a strong inference; MSI ships the same drivers for firmware flashing and Live Update. It holds
+for an independent reason regardless: with no method interface in the firmware, every remaining
+route to the EC runs through ring-0. The boost register itself matches upstream msi-ec for this
+board (`CONF_G1_2`, `cooler_boost` address `0x98` bit 7), which is also GhostDeck's own value.
+
+Two routes for GhostDeck follow from that stack, both rejected:
 
 - *Speak MSI's named pipe.* Technically driver-free on our side, but it needs MSI Center
   installed and running - which contradicts the project's central promise of working with any
@@ -1297,9 +1306,24 @@ WinRing0 / `MsIo64.sys`) -> EC ports `0x62`/`0x66`. Two candidate routes follow,
   survived.
 - *Load or reuse a direct-I/O driver.* Rejected above.
 
-So on firmware without the WMI method interface, GhostDeck stays read-only (§39 telemetry) by
-design, and the practical answer for such owners is an MSI Center build that still drives the
-EC directly. Recorded so the question is not re-opened without new evidence.
+So on firmware without the method interface GhostDeck stays read-only by design, and the
+practical answer for such owners today is an older MSI Center build in which control still
+works.
+
+**One route is NOT yet ruled out: writing the vendor data blocks.** Those blocks are read in
+telemetry mode, but their MOF marks the value property writable - on the tested GE78HX,
+`MSI_CPU.CPU`, `MSI_AP.AP` and `MSI_System.System` all carry the `write` qualifier next to
+`read` and `WmiDataId`. In ACPI-WMI a writable data block means the firmware may also expose a
+set-block object beside the query one, and the reporter's own dump makes the stakes concrete:
+in `MSI_CPU`, indices 5-10 read `55 60 70 78 85 90` and indices 12-16 read `45 60 81 96 113`,
+which look like the temperature points and speeds of a fan curve, sitting right next to the live
+temperature at index 1. If those blocks accept writes on such a board, fan control without any
+driver would be possible exactly where the method interface is missing.
+
+This is a hypothesis, not a finding. What settles it, in this order: (1) a read-only check of the
+already decompiled firmware tables for a set-block object belonging to those block IDs, (2) only
+then, on a volunteer's machine and at their choice, an actual write. Until (1) comes back, the
+control question stays open rather than closed, and nothing in GhostDeck writes these blocks.
 
 ## 40. Fan Boost auto-off timer (v1.24.x, discussion #51)
 
