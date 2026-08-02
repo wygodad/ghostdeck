@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping extend **MSI Profile Switcher** to more models!
+        Thanks for helping extend **GhostDeck** to more models!
 
         The app only enables profile switching on **known-good EC firmwares**. To add yours,
         we need a few EC dumps. Everything requested below is **read-only** — no writes to your EC.
@@ -55,6 +55,8 @@ body:
         3. Run: `pwsh -ExecutionPolicy Bypass -File msi_ec_snapshot.ps1` (use `powershell` instead of `pwsh` if needed).
         4. At each prompt, set the MSI Center scenario (Silent / Balanced / Extreme / Super Battery) and press Enter.
         5. Paste the result here (it is also saved as `msi_ec_snapshot_results.txt`).
+
+        If your MSI Center has only 3 scenarios (no classic Silent), capture what it offers and mention it.
       render: text
     validations:
       required: true
