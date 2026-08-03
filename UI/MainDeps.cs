@@ -30,6 +30,13 @@ public sealed class MainDeps
     public required Action<bool> SetWebcam { get; init; }
     public required Func<bool> WebcamBlocked { get; init; }        // (#27) hard block (0x2F) active
     public required Action<bool> SetWebcamBlock { get; init; }
+    public required Func<int> FnLeft { get; init; }                // Fn key side: 1 = left, 0 = right, -1 = no support
+    public required Action<bool> SetFnLeft { get; init; }
+    public required Func<bool> WinLockOn { get; init; }            // software Windows-key lock (hook)
+    public required Action<bool> SetWinLock { get; init; }
+    public required Func<int> TouchpadState { get; init; }         // 1 = on, 0 = disabled, -1 = none
+    public required Action<bool> SetTouchpad { get; init; }
+    public required Action OpenScenSettings { get; init; }         // gear on Scenarios -> Settings visibility card (flashed)
     public required Action<SceneDef> RunScene { get; init; }       // (#21) apply a scene now
     public required Func<bool> HasFanCurve { get; init; }          // model exposes editable fan-curve tables
     public required Action PanicReset { get; init; }               // one press back to a safe stock state

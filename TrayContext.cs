@@ -51,6 +51,13 @@ public sealed class TrayContext : ApplicationContext
     private int _kbdSim;                       // simulated level when MSIPS_FORCE_FIRMWARE is set
     private bool _webcamSupported;             // (#27) EC webcam switch expected on this board
     private bool _webcamOn = true;             // cached switch state, kept in sync by Poll (Fn key changes it too)
+    private (byte Addr, bool Invert)? _fnSwap; // Fn/Win swap register (null = model not in the msi-ec map)
+    private bool _fnLeftSim;                   // simulated Fn side when MSIPS_FORCE_FIRMWARE is set
+    private readonly WinKeyLock _winLock = new();   // software Win-key lock (LL keyboard hook)
+    private string? _lastScheduleRule;         // schedule engine: rule active at the last check ("" = none)
+    private long _scheduleHoldUntil;           // Poll skips schedule checks briefly after resume (EC settle + restore order)
+    private int _lastBattPct = -1;             // battery rules: last seen percent (edge detection)
+    private bool _battLowFired, _battHighFired;
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
@@ -87,6 +94,7 @@ public sealed class TrayContext : ApplicationContext
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
         _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
         _webcamSupported = Known && Devices.WebcamSupported(_firmware);    // (#27)
+        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
         if (_webcamSupported && !_simulate) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
 
         DetectFirmwareChange();
@@ -148,6 +156,11 @@ public sealed class TrayContext : ApplicationContext
         }) { IsBackground = true }.Start();
 
         StartCliServer();
+
+        // Scene schedule: the active window applies at startup too, AFTER the restore logic
+        // above - so a boot inside "work hours" lands in the work scene, and the schedule
+        // deliberately outranks the restored profile/curve.
+        CheckSchedule(applyNow: true);
     }
 
     // ---------------- CLI pipe server ----------------
@@ -196,9 +209,15 @@ public sealed class TrayContext : ApplicationContext
             {
                 case CliKind.Status:
                 {
-                    HwSnapshot hw = default;
-                    if (Known) Ec.TryReadHw(_device!, out hw);
+                    var hw = ReadHwOrTelemetry();   // EC when known, else (#48) the vendor WMI blocks
                     var fs = FpsMonitor.Current;   // null unless the FPS monitor is on and a game presents
+                    var ps = SystemInformation.PowerStatus;
+                    int batt = ps.BatteryLifePercent is >= 0f and <= 1f ? (int)Math.Round(ps.BatteryLifePercent * 100) : -1;
+                    bool noBatt = (ps.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) != 0;
+                    int battMin = Perf.BatteryMinutesLeft();
+                    int wear = BatteryHealth.Read().WearPct;
+                    int kbdLvl = KbdLevel();
+                    int fnl = FnLeftState();
                     return "0|" + JsonSerializer.Serialize(new
                     {
                         running = true,
@@ -206,13 +225,26 @@ public sealed class TrayContext : ApplicationContext
                         firmware = _firmware,
                         tier = _device?.Tier.ToString() ?? "None",
                         writable = Writable,
+                        telemetry = _telemetryOnly,
                         profile = Known ? _current.ToString() : null,
                         fanBoost = _coolerBoost,
                         overlay = OverlayVisible,
+                        winLock = _winLock.Enabled,
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
                         refreshHz = Display.Current(),
+                        chargeLimit = _settings.ChargeLimit,
+                        kbdLight = kbdLvl >= 0 ? kbdLvl : (int?)null,
+                        webcam = _webcamSupported && Writable ? _webcamOn : (bool?)null,
+                        fnLeft = fnl >= 0 ? fnl == 1 : (bool?)null,
+                        hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
+                        touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
+                        batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
+                        batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
+                        batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
+                        batteryWearPct = wear >= 0 ? wear : (int?)null,
+                        disks = Perf.Disks().Select(dk => new { name = dk.Name, tempC = dk.TempC > 0 ? dk.TempC : (int?)null }).ToArray(),
                         fps = fs is { } f1 ? f1.Fps : (int?)null,
                         frameTimeMs = fs is { } f2 ? Math.Round(f2.FrameTimeMs, 1) : (double?)null,
                         game = fs is { } f3 ? f3.Process : null,
@@ -221,6 +253,50 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Overlay:
                     SetOverlay(cmd.Arg == "on", osd: false);
                     return "0|overlay: " + cmd.Arg;
+                case CliKind.Brightness:
+                {
+                    // Windows-level (WMI), independent of EC writability.
+                    int pct = int.Parse(cmd.Arg);
+                    Brightness.Set(pct);   // a throw lands in the outer catch -> "1|<message>"
+                    ChangeLog.Add(ChangeSource.Cli, Lang.T("bri_title") + ": " + pct + " %");
+                    return "0|brightness: " + pct;
+                }
+                case CliKind.WinLock:
+                    SetWinLockState(cmd.Arg == "on", ChangeSource.Cli, osd: false);
+                    return "0|win key lock: " + cmd.Arg;
+                case CliKind.HdrSwitch:
+                {
+                    // DisplayConfig API, independent of EC writability.
+                    if (!Hdr.Supported()) return "1|no HDR-capable display";
+                    bool on = cmd.Arg == "on";
+                    if (!Hdr.Set(on)) return "1|the display refused the HDR change";
+                    ChangeLog.Add(ChangeSource.Cli, $"HDR: {(on ? "on" : "off")}");
+                    return "0|hdr: " + cmd.Arg;
+                }
+                case CliKind.Touchpad:
+                {
+                    // Devnode switch, independent of EC writability.
+                    if (Touchpad.State() < 0) return "1|no precision touchpad found";
+                    Touchpad.Set(cmd.Arg == "on");   // a throw lands in the outer catch
+                    ChangeLog.Add(ChangeSource.Cli, Lang.T("tp_title") + ": " + cmd.Arg);
+                    if (_main is { IsDisposed: false }) _main.RefreshActive();
+                    return "0|touchpad: " + cmd.Arg;
+                }
+                case CliKind.Refresh:
+                {
+                    // Windows display API, independent of EC writability.
+                    var rates = Display.SupportedRates();
+                    if (rates.Count == 0) return "1|the display reports no switchable rates";
+                    int hz = cmd.Arg == "max" ? rates.Max() : int.Parse(cmd.Arg);
+                    if (!rates.Contains(hz)) return "1|unsupported rate: " + hz + " (supported: " + string.Join(", ", rates) + ")";
+                    int before = Display.Current();
+                    if (before != hz)
+                    {
+                        if (!Display.SetRefresh(hz)) return "1|the display refused the mode change";
+                        ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+                    }
+                    return "0|refresh rate: " + hz + " Hz";
+                }
             }
 
             if (!Writable) return "1|" + (Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
@@ -234,7 +310,10 @@ public sealed class TrayContext : ApplicationContext
                     return "0|profile set: " + _current;
                 case CliKind.FanBoost:
                     SetCoolerBoostState(cmd.Arg == "on");
-                    return "0|fan boost: " + cmd.Arg;
+                    // optional per-call auto-off (#51): replaces the timer the setter just armed
+                    if (cmd.Arg == "on" && cmd.Arg2.Length > 0 && int.TryParse(cmd.Arg2, out int fbSecs))
+                        ArmBoostTimer(true, fbSecs);
+                    return "0|fan boost: " + cmd.Arg + (cmd.Arg2.Length > 0 ? $" (auto-off in {cmd.Arg2} s)" : "");
                 case CliKind.Curve:
                     if (_device?.FanCurve is not { } fc) return "1|no fan-curve support on this model";
                     if (cmd.Arg.Equals("auto", StringComparison.OrdinalIgnoreCase)) { ApplyPresetFromTray(null); return "0|fan curve: stock"; }
@@ -249,12 +328,26 @@ public sealed class TrayContext : ApplicationContext
                     if (!_webcamSupported) return "1|no webcam control on this model";
                     SetWebcamState(cmd.Arg == "on", ChangeSource.Cli);
                     return "0|webcam: " + cmd.Arg;
+                case CliKind.FnSwap:
+                    if (_fnSwap == null) return "1|no Fn/Win swap register on this model";
+                    SetFnLeftState(cmd.Arg == "left", ChangeSource.Cli);
+                    return "0|fn key: " + cmd.Arg;
                 case CliKind.Scene:
                 {
                     var sc = _settings.Scenes.FirstOrDefault(x => x.Name.Equals(cmd.Arg, StringComparison.OrdinalIgnoreCase));
                     if (sc == null) return "1|scene not found: " + cmd.Arg;
                     ApplyScene(sc, ChangeSource.Cli);
                     return "0|scene applied: " + sc.Name;
+                }
+                case CliKind.Charge:
+                {
+                    int limit = int.Parse(cmd.Arg);
+                    _settings.ChargeLimit = limit;
+                    _settings.Save();
+                    TryApplyChargeLimit();   // logs the write itself; 0 = stop managing (no EC write)
+                    if (limit == 0) ChangeLog.Add(ChangeSource.Cli, Lang.T("st_charge") + ": " + Lang.T("st_off"));
+                    if (_main is { IsDisposed: false }) _main.RefreshActive();
+                    return "0|charge limit: " + (limit > 0 ? limit + " %" : "off (no longer managed)");
                 }
                 case CliKind.Panic:
                     PanicReset();
@@ -816,6 +909,73 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
+    /// <summary>Fn key side: 1 = left, 0 = right, -1 = no fn_win_swap register / not writable.</summary>
+    private int FnLeftState()
+    {
+        if (_fnSwap is not { } fs || !Writable) return -1;
+        if (_simulate) return _fnLeftSim ? 1 : 0;
+        try { return Ec.GetFnLeft(fs) ? 1 : 0; } catch { return -1; }
+    }
+
+    private void SetFnLeftState(bool left, ChangeSource source, bool osd = true)
+    {
+        if (_fnSwap is not { } fs || !Writable) { ShowState(); return; }
+        try
+        {
+            if (_simulate) _fnLeftSim = left;
+            else Ec.SetFnLeft(fs, left);
+            string name = Lang.T(left ? "fnswap_left" : "fnswap_right");
+            string read = "(simulate)";
+            if (!_simulate) { try { read = $"{fs.Addr:X2}={Ec.ReadByte(fs.Addr):X2}"; } catch { read = Lang.T("log_read_fail"); } }
+            ChangeLog.Add(source, Lang.T("fnswap_title") + ": " + name, read);
+            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fnswap_title"), name, Color.FromArgb(0x17, 0xC0, 0xEB));
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // ---------------- touchpad ----------------
+    // Device-level switch (CM devnode), independent of EC writability - works on any laptop.
+    private void ToggleTouchpad()
+    {
+        int st = Touchpad.State();
+        if (st < 0) { ShowState(); return; }
+        SetTouchpadState(st != 1, ChangeSource.Hotkey);
+    }
+
+    private void SetTouchpadState(bool on, ChangeSource source, bool osd = true)
+    {
+        try
+        {
+            Touchpad.Set(on);
+            ChangeLog.Add(source, Lang.T("tp_title") + ": " + Lang.T(on ? "st_on" : "st_off"));
+            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("tp_title"),
+                Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // ---------------- Windows-key lock ----------------
+    // Software feature (LL keyboard hook), independent of EC writability - works on any laptop.
+    private void ToggleWinLock() => SetWinLockState(!_winLock.Enabled, ChangeSource.Hotkey);
+
+    private void SetWinLockState(bool on, ChangeSource source, bool osd = true)
+    {
+        if (on == _winLock.Enabled) return;
+        _winLock.Set(on);
+        ChangeLog.Add(source, Lang.T("winlock_title") + ": " + Lang.T(on ? "st_on" : "st_off"));
+        if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("winlock_title"),
+            Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+    }
+
     // Hotkey: cycle like the Fn key does (off -> low -> mid -> high -> off).
     private void CycleKbdLight()
     {
@@ -850,9 +1010,20 @@ public sealed class TrayContext : ApplicationContext
                 if (before != hz && Display.SetRefresh(hz))
                     ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
             }
+            if (s.BrightnessPct is { } bp && Brightness.Supported)
+            {
+                try { Brightness.Set(bp); ChangeLog.Add(source, Lang.T("bri_title") + ": " + bp + " %"); } catch { }
+            }
+            if (s.Hdr is { } hd && Hdr.Supported() && Hdr.Enabled() != hd)
+            {
+                if (Hdr.Set(hd)) ChangeLog.Add(source, "HDR: " + Lang.T(hd ? "st_on" : "st_off"));
+            }
             if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
             if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
             if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
+            if (s.WinLock is { } wl) SetWinLockState(wl, source, osd: false);
+            if (s.Touchpad is { } tp && Touchpad.State() is >= 0 and var tst && (tst == 1) != tp)
+                SetTouchpadState(tp, source, osd: false);
 
             ChangeLog.Add(ChangeSource.Scene, string.Format(Lang.T("log_scene"), s.Name), s.Summary());
             // no glyph in the OSD title: the OSD's text renderer has no emoji fallback (tofu)
@@ -932,13 +1103,14 @@ public sealed class TrayContext : ApplicationContext
     // (tray, hotkey, Scenarios brick, CLI) and cancelled on any OFF - including a panic reset.
     private System.Windows.Forms.Timer? _boostTimer;
 
-    private void ArmBoostTimer(bool on)
+    private void ArmBoostTimer(bool on, int? overrideSeconds = null)
     {
         _boostTimer?.Stop();
         _boostTimer?.Dispose();
         _boostTimer = null;
-        if (!on || _settings.FanBoostSeconds <= 0) return;
-        int seconds = Math.Clamp(_settings.FanBoostSeconds, 10, 7200);
+        int cfg = overrideSeconds ?? _settings.FanBoostSeconds;   // per-call value: CLI --fanboost on <s>
+        if (!on || cfg <= 0) return;
+        int seconds = Math.Clamp(cfg, 10, 7200);
         _boostTimer = new System.Windows.Forms.Timer { Interval = seconds * 1000 };
         _boostTimer.Tick += (_, _) =>
         {
@@ -1093,7 +1265,11 @@ public sealed class TrayContext : ApplicationContext
         if (e.Mode != PowerModes.Resume) return;
         bool wantProfile = _settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && _profileBeforeSleep is { };
         bool wantCurve = _settings.RestoreCurveOnResume && _settings.CurveActive;   // (#49)
-        if (!wantProfile && !wantCurve) return;
+        bool wantSchedule = _settings.ScheduleEnabled;
+        // Poll would otherwise run the schedule check ~3 s after wake - before the EC settled
+        // and BEFORE the restore below, which would then overwrite the scheduled scene.
+        _scheduleHoldUntil = Environment.TickCount64 + 8000;
+        if (!wantProfile && !wantCurve && !wantSchedule) return;
         var want = _profileBeforeSleep;
         _ui?.Post(_ =>
         {
@@ -1106,6 +1282,7 @@ public sealed class TrayContext : ApplicationContext
                 if (wantProfile && AutoWritable && !_settings.AutoSwitchEnabled && want is { } w)
                     SetProfile(w, osd: true, ChangeSource.Restore, count: false);
                 TryRestoreCurve();   // after the profile, so its recipe can't overwrite the fan mode
+                CheckSchedule();     // last, so a window crossed during sleep outranks the restore
             };
             t.Start();
         }, null);
@@ -1263,6 +1440,8 @@ public sealed class TrayContext : ApplicationContext
         Reg("Overlay", ToggleOverlay);       // read-only, so both work even when EC writes are disabled
         Reg("OverlayLock", ToggleOverlayLock);
         Reg("EcView", ShowEcViewer);         // live EC dump viewer - read-only diagnostics
+        Reg("WinLock", ToggleWinLock);       // software hook, no EC needed
+        if (Touchpad.Present()) Reg("Touchpad", ToggleTouchpad);   // devnode switch, no EC needed
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -1294,6 +1473,9 @@ public sealed class TrayContext : ApplicationContext
     // custom fan curve (0x8D) and the Silent cap (0x1D), so no separate fan write is needed.
     private void PanicReset()
     {
+        // Software locks lift first - they must release even on hardware where EC writes are off.
+        SetWinLockState(false, ChangeSource.Hotkey, osd: false);
+        try { if (Touchpad.State() == 0) Touchpad.Set(true); } catch { }   // keyboard-only escape hatch
         if (!Writable) { ShowState(); return; }
         if (!_simulate) { try { Ec.SetCoolerBoost(_device!, false); } catch { } }
         _coolerBoost = false;
@@ -1375,6 +1557,13 @@ public sealed class TrayContext : ApplicationContext
             try { return Ec.GetWebcamBlock(); } catch { return false; }
         },
         SetWebcamBlock = SetWebcamBlockState,
+        FnLeft = FnLeftState,
+        SetFnLeft = left => SetFnLeftState(left, ChangeSource.Panel),
+        WinLockOn = () => _winLock.Enabled,
+        SetWinLock = on => SetWinLockState(on, ChangeSource.Panel),
+        TouchpadState = Touchpad.State,
+        SetTouchpad = on => SetTouchpadState(on, ChangeSource.Panel),
+        OpenScenSettings = () => { OpenMain(MainTab.Settings); _main!.FocusScenVisibility(); },
         RunScene = s => ApplyScene(s, ChangeSource.Panel),          // (#21)
         HasFanCurve = () => _device?.FanCurve != null,
         PanicReset = PanicReset,
@@ -1622,6 +1811,81 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // ---------------- poll: auto-switch + external sync ----------------
+    // ---------------- scene schedule + battery rules ----------------
+    // Both engines are EDGE-triggered: they act on transitions (a window begins, a threshold
+    // is crossed), never continuously - so a manual change in between is always respected.
+
+    private ScheduleRule? ActiveScheduleRule(DateTime now)
+    {
+        if (!_settings.ScheduleEnabled) return null;
+        foreach (var r in _settings.Schedules)          // list order = priority on overlap
+            if (r.Enabled && r.ActiveAt(now)) return r;
+        return null;
+    }
+
+    // applyNow = startup: apply the currently active window even without a transition.
+    private void CheckSchedule(bool applyNow = false)
+    {
+        var r = ActiveScheduleRule(DateTime.Now);
+        string id = r?.Id ?? "";
+        string prev = _lastScheduleRule ?? "";
+        _lastScheduleRule = id;
+        if (id.Length == 0 || (!applyNow && id == prev)) return;
+        var sc = _settings.Scenes.FirstOrDefault(s => s.Id.Equals(r!.SceneId, StringComparison.OrdinalIgnoreCase));
+        if (sc == null || !AutoWritable) return;        // automatic write - firmware guard applies
+        ChangeLog.Add(ChangeSource.Schedule, string.Format(Lang.T("log_schedule"), sc.Name, r!.Start, r.End));
+        ApplyScene(sc, ChangeSource.Schedule);
+    }
+
+    private void CheckBatteryRules()
+    {
+        if (!_settings.BattRulesEnabled) return;   // master switch for the whole feature
+        if (!_settings.BattLowEnabled && !_settings.BattHighEnabled) return;
+        var ps = SystemInformation.PowerStatus;
+        if ((ps.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) != 0) return;
+        if (ps.BatteryLifePercent is not (>= 0f and <= 1f)) return;
+        int pct = (int)Math.Round(ps.BatteryLifePercent * 100);
+        bool online = ps.PowerLineStatus == PowerLineStatus.Online;
+        int prev = _lastBattPct;
+        _lastBattPct = pct;
+        if (prev < 0) return;   // first sample is the baseline
+
+        // re-arm once the level moves 3 pp past the threshold again
+        if (_battLowFired && pct >= _settings.BattLowPct + 3) _battLowFired = false;
+        if (_battHighFired && pct <= _settings.BattHighPct - 3) _battHighFired = false;
+
+        if (_settings.BattLowEnabled && !online && !_battLowFired
+            && prev > _settings.BattLowPct && pct <= _settings.BattLowPct)
+        {
+            _battLowFired = true;
+            ChangeLog.Add(ChangeSource.Battery, string.Format(Lang.T("log_batt_low"), pct, _settings.BattLowPct));
+            RunBatteryAction(_settings.BattLowAction);
+        }
+        else if (_settings.BattHighEnabled && online && !_battHighFired
+            && prev < _settings.BattHighPct && pct >= _settings.BattHighPct)
+        {
+            _battHighFired = true;
+            ChangeLog.Add(ChangeSource.Battery, string.Format(Lang.T("log_batt_high"), pct, _settings.BattHighPct));
+            RunBatteryAction(_settings.BattHighAction);
+        }
+    }
+
+    private void RunBatteryAction(string action)
+    {
+        if (!AutoWritable) return;                      // automatic write - firmware guard applies
+        try
+        {
+            if (action.StartsWith("S:", StringComparison.OrdinalIgnoreCase))
+            {
+                var sc = _settings.Scenes.FirstOrDefault(s => s.Id.Equals(action[2..], StringComparison.OrdinalIgnoreCase));
+                if (sc != null) ApplyScene(sc, ChangeSource.Battery);
+            }
+            else if (action.StartsWith("P:", StringComparison.OrdinalIgnoreCase) && Enum.TryParse<ProfileId>(action[2..], out var pid))
+                SetProfile(pid, osd: true, ChangeSource.Battery);
+        }
+        catch { }
+    }
+
     private void Poll()
     {
         // Windows is going down: WMI already refuses every call, so stop polling the EC for good.
@@ -1639,6 +1903,9 @@ public sealed class TrayContext : ApplicationContext
             if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(power, osd: true);
             _lastPower = power;
         }
+
+        CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
+        if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
 
         if (!Writable) return;
 
@@ -1683,6 +1950,7 @@ public sealed class TrayContext : ApplicationContext
         _poll.Stop();
         _wheelTimer?.Stop();
         _wheel?.Dispose();
+        _winLock.Dispose();
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         FpsMonitor.Shutdown();   // stop the ETW session (also flushes an open game session)
         _tray.Visible = false;

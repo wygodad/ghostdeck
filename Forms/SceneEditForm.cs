@@ -23,7 +23,7 @@ public sealed class SceneEditForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MinimizeBox = MaximizeBox = ShowInTaskbar = false;
-        ClientSize = new Size(520, 200);   // height finalized after the rows are built
+        ClientSize = new Size(600, 200);   // height finalized after the rows are built
         BackColor = Theme.Surface;
         Icon = TrayIconFactory.AppIcon();
 
@@ -73,6 +73,20 @@ public sealed class SceneEditForm : Form
                 (on, i) => _scene.RefreshHz = on ? rates[i] : null);
         }
 
+        if (Brightness.Supported)
+        {
+            var briVals = Enumerable.Range(1, 20).Select(i => i * 5).ToArray();   // 5..100 %
+            var briItems = briVals.Select(v => v + " %").ToArray();
+            int bSel = Math.Clamp((int)Math.Round((scene.BrightnessPct ?? 50) / 5.0) - 1, 0, briVals.Length - 1);
+            Row(Lang.T("bri_title"), briItems, scene.BrightnessPct != null, bSel,
+                (on, i) => _scene.BrightnessPct = on ? briVals[i] : null);
+        }
+
+        if (Hdr.Supported())
+            Row("HDR", new[] { Lang.T("st_on"), Lang.T("st_off") },
+                scene.Hdr != null, scene.Hdr == true ? 0 : 1,
+                (on, i) => _scene.Hdr = on ? i == 0 : null);
+
         Row(Lang.T("overlay_title"), new[] { Lang.T("st_on"), Lang.T("st_off") },
             scene.Overlay != null, scene.Overlay == false ? 1 : 0,
             (on, i) => _scene.Overlay = on ? i == 0 : null);
@@ -93,6 +107,15 @@ public sealed class SceneEditForm : Form
                 scene.Webcam != null, scene.Webcam == false ? 1 : 0,
                 (on, i) => _scene.Webcam = on ? i == 0 : null);
 
+        Row(Lang.T("winlock_title"), new[] { Lang.T("st_on"), Lang.T("st_off") },
+            scene.WinLock != null, scene.WinLock == true ? 0 : 1,
+            (on, i) => _scene.WinLock = on ? i == 0 : null);
+
+        if (d.TouchpadState() >= 0)
+            Row(Lang.T("tp_title"), new[] { Lang.T("st_on"), Lang.T("st_off") },
+                scene.Touchpad != null, scene.Touchpad == false ? 1 : 0,
+                (on, i) => _scene.Touchpad = on ? i == 0 : null);
+
         Row(Lang.T("cooler_boost"), new[] { Lang.T("st_on"), Lang.T("st_off") },
             scene.FanBoost != null, scene.FanBoost == true ? 0 : 1,
             (on, i) => _scene.FanBoost = on ? i == 0 : null);
@@ -112,7 +135,7 @@ public sealed class SceneEditForm : Form
             foreach (var c in _commit) c();
             DialogResult = DialogResult.OK;
         };
-        ClientSize = new Size(520, _y + 52);
+        ClientSize = new Size(600, _y + 52);
         ok.Location = new Point(ClientSize.Width - 16 - 90 - 8 - ok.PreferredSize.Width, _y);
         cancel.Location = new Point(ClientSize.Width - 16 - cancel.PreferredSize.Width, _y);
         Controls.Add(ok);

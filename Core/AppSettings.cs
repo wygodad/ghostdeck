@@ -172,6 +172,22 @@ public sealed class AppSettings
     // (#21) sceny (makra ustawien); kolejnosc listy = kolejnosc kart i pozycji w menu tray
     public List<SceneDef> Scenes { get; set; } = new();
 
+    // Harmonogram scen: reguly czasowe (dni tygodnia + okno godzin -> scena); silnik jest
+    // zdarzeniowy (scena wchodzi na POCZATKU okna), pierwsza pasujaca regula wygrywa.
+    public bool ScheduleEnabled { get; set; }
+    public List<ScheduleRule> Schedules { get; set; } = new();
+
+    // Reguly poziomu baterii: dolna odpala przy przekroczeniu progu W DOL na rozladowaniu,
+    // gorna W GORE na ladowaniu; ponowne uzbrojenie 3 p.p. od progu. Akcja: "P:<ProfileId>"
+    // albo "S:<sceneId>". BattRulesEnabled = glowny wlacznik calej funkcji.
+    public bool BattRulesEnabled { get; set; }
+    public bool BattLowEnabled { get; set; }
+    public int BattLowPct { get; set; } = 30;
+    public string BattLowAction { get; set; } = "P:SuperBattery";
+    public bool BattHighEnabled { get; set; }
+    public int BattHighPct { get; set; } = 80;
+    public string BattHighAction { get; set; } = "P:Balanced";
+
     // Ukryte elementy zakladki Scenariusze (klucze brickow: fanboost/overlay/charge/autoswitch/
     // kbd/webcam/refresh/panic + "scenes" = cala sekcja scen). Pusta lista = wszystko widoczne.
     public List<string> ScenHidden { get; set; } = new();
@@ -269,6 +285,8 @@ public sealed class AppSettings
         }
         DefOff("KbdLight", 0x75, "Ctrl+Alt+F6");   // F6 — cycle keyboard backlight
         DefOff("Webcam",   0x76, "Ctrl+Alt+F7");   // F7 — webcam switch
+        DefOff("WinLock",  0x77, "Ctrl+Alt+F8");   // F8 — Windows-key lock (gaming)
+        DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -313,11 +331,35 @@ public sealed class AppSettings
             if (s.KbdLight is { } kl && kl is < 0 or > 3) s.KbdLight = null;
             if (s.ChargeLimit is { } cl && cl is not (0 or 60 or 80 or 100)) s.ChargeLimit = null;
             if (s.RefreshHz is { } hz && hz is < 0 or > 1000) s.RefreshHz = null;
+            if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
             if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
         }
         foreach (var k in Hotkeys.Keys.Where(k => k.StartsWith("Scene:", StringComparison.OrdinalIgnoreCase)
                                                   && !Scenes.Any(s => s.HotkeyKey.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             Hotkeys.Remove(k);
+
+        // Schedule sanity: unique ids, real times, days mask in range; a rule whose scene was
+        // deleted goes away with it (same policy as orphaned scene hotkeys above).
+        Schedules.RemoveAll(r => string.IsNullOrWhiteSpace(r.Id));
+        var seenSch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Schedules.RemoveAll(r => !seenSch.Add(r.Id));
+        Schedules.RemoveAll(r => !Scenes.Any(s => s.Id.Equals(r.SceneId, StringComparison.OrdinalIgnoreCase)));
+        foreach (var r in Schedules)
+        {
+            r.Days &= 0x7F;
+            if (ScheduleRule.MinutesOf(r.Start) < 0) r.Start = "08:00";
+            if (ScheduleRule.MinutesOf(r.End) < 0) r.End = "16:00";
+        }
+
+        // Battery rules sanity: thresholds stay inside 5-95, a broken action string falls back
+        // to its default profile; an action pointing at a deleted scene falls back too.
+        BattLowPct = Math.Clamp(BattLowPct, 5, 95);
+        BattHighPct = Math.Clamp(BattHighPct, 5, 95);
+        bool ValidAction(string a) =>
+            (a.StartsWith("P:", StringComparison.OrdinalIgnoreCase) && Enum.TryParse<ProfileId>(a[2..], out _)) ||
+            (a.StartsWith("S:", StringComparison.OrdinalIgnoreCase) && Scenes.Any(s => s.Id.Equals(a[2..], StringComparison.OrdinalIgnoreCase)));
+        if (!ValidAction(BattLowAction)) BattLowAction = "P:SuperBattery";
+        if (!ValidAction(BattHighAction)) BattHighAction = "P:Balanced";
 
         CurvePresets.RemoveAll(p => string.IsNullOrWhiteSpace(p.Name));
         var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -384,6 +426,12 @@ public sealed class AppSettings
         RestoreProfileOnResume = src.RestoreProfileOnResume;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
         FanBoostSeconds = src.FanBoostSeconds;
+        ScheduleEnabled = src.ScheduleEnabled;
+        Schedules.Clear();
+        foreach (var r in src.Schedules) Schedules.Add(r.Clone());
+        BattRulesEnabled = src.BattRulesEnabled;
+        BattLowEnabled = src.BattLowEnabled; BattLowPct = src.BattLowPct; BattLowAction = src.BattLowAction;
+        BattHighEnabled = src.BattHighEnabled; BattHighPct = src.BattHighPct; BattHighAction = src.BattHighAction;
         CurvePresets.Clear();
         foreach (var p in src.CurvePresets) CurvePresets.Add(p.Clone());
         ProfileCurves.Clear();
@@ -454,6 +502,10 @@ public sealed class AppSettings
             RestoreProfileOnResume = RestoreProfileOnResume,
             RestoreCurveOnResume = RestoreCurveOnResume,
             FanBoostSeconds = FanBoostSeconds,
+            ScheduleEnabled = ScheduleEnabled,
+            BattRulesEnabled = BattRulesEnabled,
+            BattLowEnabled = BattLowEnabled, BattLowPct = BattLowPct, BattLowAction = BattLowAction,
+            BattHighEnabled = BattHighEnabled, BattHighPct = BattHighPct, BattHighAction = BattHighAction,
             LastProfile = LastProfile,
             WinX = WinX, WinY = WinY, WinW = WinW, WinH = WinH, WinMaximized = WinMaximized,
         };
@@ -462,6 +514,7 @@ public sealed class AppSettings
         foreach (var p in CurvePresets) c.CurvePresets.Add(p.Clone());
         foreach (var (k, v) in ProfileCurves) c.ProfileCurves[k] = v;
         foreach (var s in Scenes) c.Scenes.Add(s.Clone());   // (#21)
+        foreach (var r in Schedules) c.Schedules.Add(r.Clone());
         c.ScenHidden = new List<string>(ScenHidden);
         return c;
     }

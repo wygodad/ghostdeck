@@ -258,6 +258,13 @@ public sealed class MainForm : Form
         _version.Location = new Point(ix - _version.Width - 14, (StripH - _version.Height) / 2);
     }
 
+    /// <summary>Gear on the Scenarios tab: jump to Settings → General and flash the visibility card.</summary>
+    public void FocusScenVisibility()
+    {
+        ShowTab(MainTab.Settings);
+        if (_pages.TryGetValue(MainTab.Settings, out var p) && p is SettingsPage sp) sp.FocusScenVisibility();
+    }
+
     public void ShowTab(MainTab tab)
     {
         _active = tab;

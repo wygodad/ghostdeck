@@ -13,7 +13,18 @@ public sealed class SegControl : Control
     public event Action<int>? SelectedChanged;
     public int Selected { get => _sel; set { _sel = value; Invalidate(); } }
 
-    public SegControl(string[] items, int sel) { _items = items; _sel = sel; DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; }
+    public SegControl(string[] items, int sel)
+    {
+        _items = items; _sel = sel; DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
+        // Labels must never touch the segment edges (min ~8 px of air per side): measure the
+        // widest label and make that the floor. MinimumSize also corrects any Size assigned
+        // later, and every host (FeatureBrick, CardSection, forms) positions by the real
+        // Width, so a control that grows past its requested size stays right-aligned.
+        int maxW = 0;
+        using var f = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        foreach (var it in items) maxW = Math.Max(maxW, TextRenderer.MeasureText(it, f).Width);
+        MinimumSize = new Size((maxW + 16) * items.Length, 0);
+    }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {

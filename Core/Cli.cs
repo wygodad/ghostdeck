@@ -4,9 +4,9 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Diag, HdrSwitch, Touchpad }
 
-public sealed record CliCommand(CliKind Kind, string Arg = "");
+public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
 /// <summary>
 /// Command-line interface (GhostDeck.exe --profile Silent, --status, ...) for scripts,
@@ -27,14 +27,22 @@ public static class Cli
         GhostDeck command line:
           GhostDeck.exe --profile <Silent|Balanced|Extreme|SuperBattery>
           GhostDeck.exe --cycle                 switch to the next profile
-          GhostDeck.exe --fanboost <on|off>     full fan speed on/off
+          GhostDeck.exe --fanboost <on|off> [seconds]   full fan speed; the optional auto-off (10-7200 s) needs the app running
           GhostDeck.exe --overlay <on|off>      gaming overlay (needs the app running)
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
+          GhostDeck.exe --refresh <hz|max>      panel refresh rate (works on any machine)
+          GhostDeck.exe --charge <60|80|100|off>   battery charge limit (off = stop managing)
           GhostDeck.exe --kbd <off|low|mid|high|0-3>   keyboard-backlight level (supported models)
           GhostDeck.exe --webcam <on|off>       EC-level webcam switch (same as the Fn camera key)
+          GhostDeck.exe --fnswap <left|right>   which side the Fn key is on (EC-level Fn/Win swap)
+          GhostDeck.exe --brightness <0-100>    internal-panel brightness (works on any machine)
+          GhostDeck.exe --hdr <on|off>          HDR / advanced color (HDR-capable displays)
+          GhostDeck.exe --touchpad <on|off>     enable/disable the precision touchpad (device level)
+          GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
           GhostDeck.exe --status                print the current state as JSON
+          GhostDeck.exe --diag [path.zip]       save the diagnostic zip (read-only, runs locally)
         Requires administrator rights (EC access), like the app itself.
         """;
 
@@ -48,7 +56,25 @@ public static class Cli
                 return Enum.TryParse<ProfileId>(Arg1(), true, out var id) ? new CliCommand(CliKind.Profile, id.ToString()) : null;
             case "--cycle": return new CliCommand(CliKind.Cycle);
             case "--fanboost":
-                return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.FanBoost, Arg1().ToLowerInvariant()) : null;
+            {
+                string fb = Arg1().ToLowerInvariant();
+                if (fb is not ("on" or "off")) return null;
+                string secs = "";
+                if (a.Length > 2)   // optional auto-off, only meaningful with "on"
+                {
+                    if (fb != "on" || !int.TryParse(a[2], out int s2) || s2 is < 10 or > 7200) return null;
+                    secs = s2.ToString();
+                }
+                return new CliCommand(CliKind.FanBoost, fb, secs);
+            }
+            case "--refresh":
+                if (Arg1().Equals("max", StringComparison.OrdinalIgnoreCase)) return new CliCommand(CliKind.Refresh, "max");
+                return int.TryParse(Arg1(), out int hz) && hz is > 0 and <= 1000 ? new CliCommand(CliKind.Refresh, hz.ToString()) : null;
+            case "--charge":
+                if (Arg1().ToLowerInvariant() == "off") return new CliCommand(CliKind.Charge, "0");
+                return int.TryParse(Arg1(), out int ch) && ch is 60 or 80 or 100 ? new CliCommand(CliKind.Charge, ch.ToString()) : null;
+            case "--diag":
+                return new CliCommand(CliKind.Diag, Arg1());   // optional output path
             case "--overlay":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
             case "--curve":
@@ -57,6 +83,16 @@ public static class Cli
                 return ParseKbdLevel(Arg1()) >= 0 ? new CliCommand(CliKind.Kbd, Arg1().ToLowerInvariant()) : null;
             case "--webcam":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Webcam, Arg1().ToLowerInvariant()) : null;
+            case "--fnswap":
+                return Arg1().ToLowerInvariant() is "left" or "right" ? new CliCommand(CliKind.FnSwap, Arg1().ToLowerInvariant()) : null;
+            case "--brightness":
+                return int.TryParse(Arg1(), out int bri) && bri is >= 0 and <= 100 ? new CliCommand(CliKind.Brightness, bri.ToString()) : null;
+            case "--winlock":
+                return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.WinLock, Arg1().ToLowerInvariant()) : null;
+            case "--hdr":
+                return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.HdrSwitch, Arg1().ToLowerInvariant()) : null;
+            case "--touchpad":
+                return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Touchpad, Arg1().ToLowerInvariant()) : null;
             case "--scene":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
             case "--panic": return new CliCommand(CliKind.Panic);
@@ -79,6 +115,10 @@ public static class Cli
         var cmd = Parse(args);
         if (cmd == null) { Console.WriteLine(Usage); return 2; }
         if (cmd.Kind == CliKind.Help) { Console.WriteLine(Usage); return 0; }
+
+        // The diagnostic zip always runs locally: it writes a file in the CALLER's directory
+        // and only does read-only collection, so there is nothing the live instance adds.
+        if (cmd.Kind == CliKind.Diag) return RunOneShot(cmd);
 
         // A running instance owns the tray/overlay state - forward to it over the pipe.
         if (TrySendToRunning(args, out string resp, out int code))
@@ -125,7 +165,27 @@ public static class Cli
                 {
                     HwSnapshot hw = default;
                     ProfileId? cur = null;
+                    bool telemetry = false;
                     if (dev != null) { Ec.TryReadHw(dev, out hw); cur = Ec.GetCurrent(dev); }
+                    else if (MsiTelemetry.Available())
+                    {
+                        // (#48) monitoring-only boards: temperatures come from the vendor WMI blocks
+                        telemetry = true;
+                        var t = MsiTelemetry.Read();
+                        hw = new HwSnapshot(t.CpuTemp, t.GpuTemp, 0, 0, 0, fw);
+                    }
+                    int? kbd = null; bool? webcam = null; bool? fnLeft = null;
+                    if (dev != null)
+                    {
+                        try { byte ka = Devices.KbdBacklightFor(fw); if (ka != 0) kbd = Ec.GetKbdBacklight(ka); } catch { }
+                        try { if (Devices.WebcamSupported(fw)) webcam = Ec.GetWebcam(); } catch { }
+                        try { if (Devices.FnWinSwapFor(fw) is { } fsw) fnLeft = Ec.GetFnLeft(fsw); } catch { }
+                    }
+                    var ps = SystemInformation.PowerStatus;
+                    int batt = ps.BatteryLifePercent is >= 0f and <= 1f ? (int)Math.Round(ps.BatteryLifePercent * 100) : -1;
+                    bool noBatt = (ps.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) != 0;
+                    int battMin = Perf.BatteryMinutesLeft();
+                    int wear = BatteryHealth.Read().WearPct;
                     Console.WriteLine(JsonSerializer.Serialize(new
                     {
                         running = false,
@@ -133,11 +193,23 @@ public static class Cli
                         firmware = fw,
                         tier = dev?.Tier.ToString() ?? "None",
                         writable,
+                        telemetry,
                         profile = cur?.ToString(),
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
                         refreshHz = Display.Current(),
+                        chargeLimit = settings.ChargeLimit,
+                        kbdLight = kbd,
+                        webcam,
+                        fnLeft,
+                        hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
+                        touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
+                        batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
+                        batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
+                        batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
+                        batteryWearPct = wear >= 0 ? wear : (int?)null,
+                        disks = Perf.Disks().Select(dk => new { name = dk.Name, tempC = dk.TempC > 0 ? dk.TempC : (int?)null }).ToArray(),
                     }));
                     return 0;
                 }
@@ -147,6 +219,70 @@ public static class Cli
                 case CliKind.Scene:
                     Console.WriteLine("scene control needs the GhostDeck app running");
                     return 1;
+                case CliKind.WinLock:
+                    // the hook lives inside the running process - a one-shot would exit and unhook
+                    Console.WriteLine("the Windows-key lock needs the GhostDeck app running");
+                    return 1;
+                case CliKind.Refresh:
+                {
+                    // Windows display API, no EC needed - works on unsupported hardware too.
+                    var rates = Display.SupportedRates();
+                    if (rates.Count == 0) { Console.WriteLine("the display reports no switchable rates"); return 1; }
+                    int hz = cmd.Arg == "max" ? rates.Max() : int.Parse(cmd.Arg);
+                    if (!rates.Contains(hz)) { Console.WriteLine($"unsupported rate: {hz} (supported: {string.Join(", ", rates)})"); return 1; }
+                    int before = Display.Current();
+                    if (before != hz)
+                    {
+                        if (!Display.SetRefresh(hz)) { Console.WriteLine("the display refused the mode change"); return 1; }
+                        ChangeLog.Load();
+                        ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+                    }
+                    Console.WriteLine($"refresh rate: {hz} Hz");
+                    return 0;
+                }
+                case CliKind.Diag:
+                {
+                    // Read-only collection; works on any machine (an EC failure is itself recorded).
+                    string path = cmd.Arg.Length > 0 ? cmd.Arg : $"ghostdeck-diagnostics-{DateTime.Now:yyyyMMdd-HHmm}.zip";
+                    string ver = typeof(Cli).Assembly.GetName().Version?.ToString(3) ?? "?";
+                    Diagnostics.Save(path, ver, fw, dev?.Name ?? "unsupported", dev?.Tier.ToString() ?? "None");
+                    Console.WriteLine("diagnostics saved: " + Path.GetFullPath(path));
+                    return 0;
+                }
+                case CliKind.Brightness:
+                {
+                    // Windows-level (WMI), no EC needed - works on unsupported hardware too.
+                    int pct = int.Parse(cmd.Arg);
+                    try { Brightness.Set(pct); }
+                    catch { Console.WriteLine("no brightness control (WMI) on this machine"); return 1; }
+                    ChangeLog.Load();
+                    ChangeLog.Add(ChangeSource.Cli, $"Brightness: {pct} %");
+                    Console.WriteLine($"brightness: {pct}");
+                    return 0;
+                }
+                case CliKind.HdrSwitch:
+                {
+                    // DisplayConfig API, no EC needed - works on unsupported hardware too.
+                    if (!Hdr.Supported()) { Console.WriteLine("no HDR-capable display"); return 1; }
+                    bool on = cmd.Arg == "on";
+                    if (!Hdr.Set(on)) { Console.WriteLine("the display refused the HDR change"); return 1; }
+                    ChangeLog.Load();
+                    ChangeLog.Add(ChangeSource.Cli, $"HDR: {(on ? "on" : "off")}");
+                    Console.WriteLine($"hdr: {cmd.Arg}");
+                    return 0;
+                }
+                case CliKind.Touchpad:
+                {
+                    // Devnode switch (admin, which the manifest guarantees) - no EC needed.
+                    if (Touchpad.State() < 0) { Console.WriteLine("no precision touchpad found"); return 1; }
+                    bool on = cmd.Arg == "on";
+                    try { Touchpad.Set(on); }
+                    catch (Exception ex) { Console.WriteLine($"touchpad change failed ({ex.Message})"); return 1; }
+                    ChangeLog.Load();
+                    ChangeLog.Add(ChangeSource.Cli, $"Touchpad: {(on ? "on" : "off")}");
+                    Console.WriteLine($"touchpad: {cmd.Arg}");
+                    return 0;
+                }
             }
 
             if (dev == null) { Console.WriteLine($"unsupported hardware (firmware: {(fw.Length > 0 ? fw : "unknown")})"); return 1; }
@@ -173,6 +309,12 @@ public static class Cli
                 }
                 case CliKind.FanBoost:
                 {
+                    if (cmd.Arg2.Length > 0)
+                    {
+                        // one-shot exits immediately, so nothing would fire the auto-off
+                        Console.WriteLine("the fan-boost timer needs the GhostDeck app running");
+                        return 1;
+                    }
                     bool on = cmd.Arg == "on";
                     Ec.SetCoolerBoost(dev, on);
                     if (!on)
@@ -224,6 +366,33 @@ public static class Cli
                     Ec.SetWebcam(on);
                     ChangeLog.Add(ChangeSource.Cli, $"Webcam: {(on ? "on" : "off")}");
                     Console.WriteLine($"webcam: {cmd.Arg}");
+                    return 0;
+                }
+                case CliKind.Charge:
+                {
+                    int limit = int.Parse(cmd.Arg);
+                    settings.ChargeLimit = limit;
+                    settings.Save();
+                    if (limit > 0)
+                    {
+                        Ec.SetChargeLimit(dev, limit);
+                        ChangeLog.Add(ChangeSource.Cli, $"Charge limit: {limit} %");
+                        Console.WriteLine($"charge limit: {limit} %");
+                    }
+                    else
+                    {
+                        // 0 = stop managing: the EC keeps its current threshold, we just stop re-asserting it
+                        ChangeLog.Add(ChangeSource.Cli, "Charge limit: off");
+                        Console.WriteLine("charge limit: off (no longer managed)");
+                    }
+                    return 0;
+                }
+                case CliKind.FnSwap:
+                {
+                    if (Devices.FnWinSwapFor(fw) is not { } fs) { Console.WriteLine("no Fn/Win swap register on this model"); return 1; }
+                    Ec.SetFnLeft(fs, cmd.Arg == "left");
+                    ChangeLog.Add(ChangeSource.Cli, $"Fn key: {cmd.Arg}");
+                    Console.WriteLine($"fn key: {cmd.Arg}");
                     return 0;
                 }
                 case CliKind.Panic:

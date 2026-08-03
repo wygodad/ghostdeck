@@ -207,6 +207,17 @@ public static class Ec
     public static bool GetWebcamBlock() => (ReadByte(WebcamBlockAddr) & WebcamMask) == 0;
     public static void SetWebcamBlock(bool blocked) => SetMaskedBit(WebcamBlockAddr, WebcamMask, !blocked);
 
+    // Fn/Windows key swap, msi-ec fn_win_swap: bit 4 at a per-family address with a per-family
+    // direction invert (Devices.FnWinSwapFor). Normalized like msi-ec's fn_key attribute:
+    // fn-left = !(raw bit ^ invert). Persisted by the EC itself, survives reboots.
+    private const byte FnWinSwapMask = 0x10;
+
+    public static bool GetFnLeft((byte Addr, bool Invert) fs) =>
+        !(((ReadByte(fs.Addr) & FnWinSwapMask) != 0) ^ fs.Invert);
+
+    public static void SetFnLeft((byte Addr, bool Invert) fs, bool left) =>
+        SetMaskedBit(fs.Addr, FnWinSwapMask, !left ^ fs.Invert);
+
     private static void SetMaskedBit(byte addr, byte mask, bool set)
     {
         using var inst = GetInstance();

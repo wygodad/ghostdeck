@@ -9,6 +9,7 @@ public enum ChangeSource
 {
     Startup, Hotkey, Tray, Panel, AutoAc, FanCurve, ExternalSync,
     ChargeLimit, CoolerBoost, Firmware, Test, Thermal, Cli, Display, Game, Restore, Scene,
+    Schedule, Battery,
 }
 
 public sealed record LogEntry(DateTime Time, ChangeSource Source, string Detail, string Result);
@@ -104,6 +105,8 @@ public static class ChangeLog
         ChangeSource.Game         => Lang.T("log_src_game"),
         ChangeSource.Restore      => Lang.T("log_src_restore"),
         ChangeSource.Scene        => Lang.T("log_src_scene"),
+        ChangeSource.Schedule     => Lang.T("log_src_schedule"),
+        ChangeSource.Battery      => Lang.T("log_src_battery"),
         _                         => s.ToString(),
     };
 

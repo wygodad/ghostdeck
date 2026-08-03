@@ -18,7 +18,7 @@ public sealed class SettingsPage : ThemedPage
         ("Extreme", "Extreme"), ("SuperBattery", "Super Battery"), ("Cycle", "Cycle"),
         ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
         ("PanicReset", "Panic reset"), ("KbdLight", "Keyboard backlight"), ("Webcam", "Webcam"),
-        ("EcView", "EC live view"),
+        ("EcView", "EC live view"), ("WinLock", "Windows key lock"), ("Touchpad", "Touchpad"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -41,6 +41,8 @@ public sealed class SettingsPage : ThemedPage
     private readonly Dictionary<string, List<Panel>> _swatches = new();
     private OverlaySettingsPanel? _overlayPanel;
     private SegControl? _themeSeg;             // kept to re-point after a theme change from the header button
+    private CardSection? _scenVisCard;         // "Scenarios tab" visibility card (flash target for the gear)
+    private static readonly Color FlashPink = Color.FromArgb(0xEC, 0x48, 0x99);   // highlight frame color
     private Label? _refreshNow;                // live current panel refresh rate (Settings → Power → Display)
     private Action? _syncRefreshMan;           // re-points the manual rate picker at the live rate
     private string _uiLang = Lang.CurrentCode; // language the form was built with
@@ -291,6 +293,121 @@ public sealed class SettingsPage : ThemedPage
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
         _gLeft[SubPower].Add(power);
 
+        // Scene schedule: different settings for work hours, nights and weekends. Rules are
+        // edited in a small dialog; the whole page rebuilds after a change (import pattern).
+        var sch = new CardSection(Lang.T("sch_grp"), "");   // MDL2 Calendar
+        var schInfo = new Label
+        {
+            Text = Lang.T("sch_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        };
+        sch.AddRow(null, schInfo);
+        sch.AddRow(Lang.T("sch_enable"), Toggle(D.Settings.ScheduleEnabled,
+            v => { D.Settings.ScheduleEnabled = v; D.SaveSettings(); }));
+        string[] dayAbbr;
+        try { dayAbbr = System.Globalization.CultureInfo.GetCultureInfo(Lang.CurrentCode).DateTimeFormat.AbbreviatedDayNames; }
+        catch { dayAbbr = System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.AbbreviatedDayNames; }
+        void RebuildAfterRules() { D.SaveSettings(); Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); }); }
+        for (int ri = 0; ri < D.Settings.Schedules.Count; ri++)
+        {
+            var r = D.Settings.Schedules[ri];
+            int idx = ri;
+            var scName = D.Settings.Scenes.FirstOrDefault(s => s.Id.Equals(r.SceneId, StringComparison.OrdinalIgnoreCase))?.Name ?? "?";
+            // common day sets get a name; anything else lists the abbreviations
+            string days = r.Days switch
+            {
+                0x7F => Lang.T("sch_daily"),
+                0x1F => Lang.T("sch_weekdays"),
+                0x60 => Lang.T("sch_weekend"),
+                _ => string.Join(" ", Enumerable.Range(0, 7).Where(i => (r.Days >> i & 1) != 0).Select(i => dayAbbr[(i + 1) % 7])),
+            };
+            var tg = new ToggleSwitch { Checked = r.Enabled };
+            tg.Toggled += v => { r.Enabled = v; D.SaveSettings(); };
+            // plain labels nested in a panel are NOT themed by CardSection - color explicitly;
+            // wide enough for the whole summary (user request: no truncation)
+            var lbl = new Label
+            {
+                Text = $"{scName} · {days} · {r.Start}-{r.End}", AutoEllipsis = true,
+                AutoSize = false, Size = new Size(330, 24), Font = new Font("Segoe UI", 9f),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Theme.Text, BackColor = Theme.Card,
+            };
+            // flat glyph hotspots like the scene cards (no boxed buttons), just this size
+            Button Mk(string glyph, Color? fixedColor = null)
+            {
+                var b = new Button
+                {
+                    Text = glyph, Size = new Size(30, 28), Font = new Font("Segoe UI", 10f),
+                    FlatStyle = FlatStyle.Flat, BackColor = Theme.Card,
+                    ForeColor = fixedColor ?? Theme.Muted, TabStop = false, Cursor = Cursors.Hand,
+                };
+                b.FlatAppearance.BorderSize = 0;
+                b.FlatAppearance.MouseOverBackColor = Theme.Card;
+                b.FlatAppearance.MouseDownBackColor = Theme.Card;
+                b.MouseEnter += (_, _) => { if (b.Enabled) b.ForeColor = fixedColor ?? Theme.Accent; };
+                b.MouseLeave += (_, _) => b.ForeColor = fixedColor ?? Theme.Muted;
+                return b;
+            }
+            var up = Mk("↑"); var down = Mk("↓"); var edit = Mk("✎"); var del = Mk("✕", Theme.Red);
+            up.Enabled = idx > 0;
+            down.Enabled = idx < D.Settings.Schedules.Count - 1;
+            void Move(int dir)
+            {
+                int j = idx + dir;
+                if (j < 0 || j >= D.Settings.Schedules.Count) return;
+                D.Settings.Schedules.RemoveAt(idx);
+                D.Settings.Schedules.Insert(j, r);
+                RebuildAfterRules();
+            }
+            up.Click += (_, _) => Move(-1);     // list order = priority on overlapping windows
+            down.Click += (_, _) => Move(1);
+            edit.Click += (_, _) =>
+            {
+                var copy = r.Clone();
+                using var dlg = new ScheduleRuleForm(D, copy);
+                if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+                r.SceneId = copy.SceneId; r.Days = copy.Days; r.Start = copy.Start; r.End = copy.End;
+                RebuildAfterRules();
+            };
+            del.Click += (_, _) => { D.Settings.Schedules.Remove(r); RebuildAfterRules(); };
+            var row = new Panel { Width = tg.Width + 8 + 330 + 8 + 4 * (30 + 4) - 4, Height = 32, BackColor = Theme.Card };
+            tg.Location = new Point(0, (row.Height - tg.Height) / 2);
+            lbl.Location = new Point(tg.Width + 8, (row.Height - lbl.Height) / 2);
+            int bx = tg.Width + 8 + 330 + 8;
+            foreach (var b in new[] { up, down, edit, del })
+            {
+                b.Location = new Point(bx, (row.Height - b.Height) / 2);
+                bx += b.Width + 4;
+                row.Controls.Add(b);
+            }
+            row.Controls.Add(tg); row.Controls.Add(lbl);
+            sch.AddRow(null, row);
+        }
+        if (D.Settings.Scenes.Count == 0)
+        {
+            var need = new Label
+            {
+                Text = Lang.T("sch_need_scene"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            sch.AddRow(null, need);
+        }
+        else
+        {
+            var add = new Button { Text = "+  " + Lang.T("sch_add"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+            Ui.StyleGhost(add);
+            add.Click += (_, _) =>
+            {
+                var nr = new ScheduleRule();
+                using var dlg = new ScheduleRuleForm(D, nr);
+                if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+                D.Settings.Schedules.Add(nr);
+                RebuildAfterRules();
+            };
+            sch.AddRow(null, add);
+        }
+        _gLeft[SubPower].Add(sch);
+
         // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
         // model. Pickers list only the modes the panel reports at its current resolution.
         var disp = new CardSection(Lang.T("set_grp_display"), "");
@@ -338,6 +455,13 @@ public sealed class SettingsPage : ThemedPage
         rBat.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnBattery = rBat.SelectedIndex <= 0 ? 0 : rates[rBat.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
         disp.AddRow(Lang.T("set_refresh_batt"), rBat);
         if (rates.Count == 0) rAc.Enabled = rBat.Enabled = false;   // enumeration failed - leave visible but inert
+        // HDR (advanced color) - same switch as Windows Settings → Display; only on capable
+        // panels (or with MSIPS_FORCE_HDR=1 for UI testing). Scenes/CLI share the state.
+        if (Hdr.Supported())
+            disp.AddRow("HDR", Toggle(Hdr.Enabled(), v =>
+            {
+                try { if (Hdr.Set(v)) ChangeLog.Add(ChangeSource.Panel, "HDR: " + Lang.T(v ? "st_on" : "st_off")); } catch { }
+            }));
         _gRight[SubPower].Add(disp);
 
         // (#51) Fan Boost auto-off: the one control users forget to switch back. Presets cover the
@@ -382,6 +506,59 @@ public sealed class SettingsPage : ThemedPage
         batt.AddRow(Lang.T("bh_wear"), BhVal(bh.WearPct >= 0 ? $"{bh.WearPct} %" : "—"));
         batt.AddRow(Lang.T("bh_cycles"), BhVal(bh.Cycles > 0 ? bh.Cycles.ToString() : "—"));
         _gRight[SubPower].Add(batt);
+
+        // Battery-level rules: e.g. below 30 % -> Super Battery, above 80 % -> Balanced.
+        // Direction-aware and edge-triggered (see TrayContext.CheckBatteryRules).
+        var brc = new CardSection(Lang.T("bat_rules_grp"), "");   // MDL2 LightningBolt
+        var brInfo = new Label
+        {
+            Text = Lang.T("bat_rules_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        };
+        brc.AddRow(null, brInfo);
+        // master switch for the whole feature - some people simply don't want it running
+        brc.AddRow(Lang.T("bat_enable"), Toggle(D.Settings.BattRulesEnabled,
+            v => { D.Settings.BattRulesEnabled = v; D.SaveSettings(); }));
+        var actionVals = Profiles.Order.Select(id => "P:" + Profiles.Get(id).Key)
+            .Concat(D.Settings.Scenes.Select(s => "S:" + s.Id)).ToArray();
+        var actionNames = Profiles.Order.Select(id => Profiles.Get(id).Label)
+            .Concat(D.Settings.Scenes.Select(s => "▶ " + s.Name)).ToArray();
+        var pctVals = Enumerable.Range(1, 19).Select(i => i * 5).ToArray();   // 5..95
+        Panel BattRow(bool low)
+        {
+            var tg = Toggle(low ? D.Settings.BattLowEnabled : D.Settings.BattHighEnabled, v =>
+            {
+                if (low) D.Settings.BattLowEnabled = v; else D.Settings.BattHighEnabled = v;
+                D.SaveSettings();
+            });
+            var pct = new ThemedComboBox { Width = 84 };
+            pct.Items.AddRange(pctVals.Select(v => (object)(v + " %")).ToArray());
+            pct.SelectedIndex = Math.Max(0, Array.IndexOf(pctVals, low ? D.Settings.BattLowPct : D.Settings.BattHighPct));
+            pct.SelectedIndexChanged += (_, _) =>
+            {
+                int v = pctVals[Math.Max(0, pct.SelectedIndex)];
+                if (low) D.Settings.BattLowPct = v; else D.Settings.BattHighPct = v;
+                D.SaveSettings();
+            };
+            var act = new ThemedComboBox { Width = 168 };
+            act.Items.AddRange(actionNames.Cast<object>().ToArray());
+            act.SelectedIndex = Math.Max(0, Array.IndexOf(actionVals, low ? D.Settings.BattLowAction : D.Settings.BattHighAction));
+            act.SelectedIndexChanged += (_, _) =>
+            {
+                string v = actionVals[Math.Max(0, act.SelectedIndex)];
+                if (low) D.Settings.BattLowAction = v; else D.Settings.BattHighAction = v;
+                D.SaveSettings();
+            };
+            var row = new Panel { Width = tg.Width + 8 + 84 + 8 + 168, Height = 30 };
+            tg.Location = new Point(0, (row.Height - tg.Height) / 2);
+            pct.Location = new Point(tg.Width + 8, (row.Height - pct.Height) / 2);
+            act.Location = new Point(tg.Width + 8 + 84 + 8, (row.Height - act.Height) / 2);
+            row.Controls.Add(tg); row.Controls.Add(pct); row.Controls.Add(act);
+            return row;
+        }
+        brc.AddRow(Lang.T("bat_below"), BattRow(true));
+        brc.AddRow(Lang.T("bat_above"), BattRow(false));
+        _gRight[SubPower].Add(brc);
 
         // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
         // the chosen time. Off by default — the user opts in.
@@ -500,9 +677,12 @@ public sealed class SettingsPage : ThemedPage
         if (Display.SupportedRates().Count > 1) VisRow("refresh", Lang.T("ref_title"));
         if (D.KbdLevel() >= 0) VisRow("kbd", Lang.T("kbd_title"));
         if (D.WebcamState() >= 0) VisRow("webcam", Lang.T("webcam_title"));
+        VisRow("winlock", Lang.T("winlock_title"));
+        if (D.TouchpadState() >= 0) VisRow("touchpad", Lang.T("tp_title"));
         VisRow("panic", Lang.T("hk_panic"));
         VisRow("scenes", Lang.T("scene_title"));
         _gLeft[SubGeneral].Add(scenVis);   // left column (user request; the right one is crowded)
+        _scenVisCard = scenVis;            // gear on the Scenarios tab jumps here and flashes it
 
         // Settings backup: export = a copy of settings.json, import = adopt the preferences from
         // such a file. Machine-local state survives an import (see AppSettings.ImportFrom).
@@ -571,6 +751,48 @@ public sealed class SettingsPage : ThemedPage
             _gLeft[SubSystem].Add(priv);
         }
 
+        // Windows-key lock + touchpad: the same switches as the Scenarios bricks, mirrored
+        // here so every input/device toggle also has a home in Settings (user request).
+        var wlCard = new CardSection(Lang.T("winlock_title"), "");   // MDL2 Lock
+        var wlInfo = new Label
+        {
+            Text = Lang.T("winlock_hint"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        };
+        wlCard.AddRow(null, wlInfo);
+        wlCard.AddRow(Lang.T("winlock_title"), Toggle(D.WinLockOn(), v => D.SetWinLock(v)));
+        _gLeft[SubSystem].Add(wlCard);
+
+        if (D.TouchpadState() >= 0)
+        {
+            var tpCard = new CardSection(Lang.T("tp_title"), "");   // MDL2 TouchPad
+            var tpInfo = new Label
+            {
+                Text = Lang.T("tp_hint"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            tpCard.AddRow(null, tpInfo);
+            tpCard.AddRow(Lang.T("tp_title"), Toggle(D.TouchpadState() == 1, v => D.SetTouchpad(v)));
+            _gLeft[SubSystem].Add(tpCard);
+        }
+
+        // Fn/Win key swap - EC-persisted layout switch (msi-ec fn_win_swap), only on mapped boards.
+        if (D.FnLeft() >= 0)
+        {
+            var fnCard = new CardSection(Lang.T("fnswap_grp"), "");
+            var fnInfo = new Label
+            {
+                Text = Lang.T("fnswap_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            var fnSeg = new SegControl(new[] { Lang.T("fnswap_left"), Lang.T("fnswap_right") },
+                D.FnLeft() == 1 ? 0 : 1) { Size = new Size(280, 34) };
+            fnSeg.SelectedChanged += i => D.SetFnLeft(i == 0);
+            fnCard.AddRow(null, fnInfo);
+            fnCard.AddRow(null, fnSeg);
+            _gRight[SubSystem].Add(fnCard);
+        }
+
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
         _hkToggles.Clear();
         _hkMaster = new ToggleSwitch { Checked = D.Settings.HotkeysEnabled };
@@ -598,7 +820,7 @@ public sealed class SettingsPage : ThemedPage
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             box.Location = new Point(tg.Width + 12, (row.Height - box.Height) / 2);
             row.Controls.Add(tg); row.Controls.Add(box);
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : label, row);
+            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : label, row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
@@ -680,45 +902,8 @@ public sealed class SettingsPage : ThemedPage
         if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
         try
         {
-            using var zip = ZipFile.Open(dlg.FileName, ZipArchiveMode.Create);
             var info = D.Status();
-            var sb = new StringBuilder();
-            sb.AppendLine("=== GhostDeck diagnostic package ===");
-            sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (read-only, no EC writes)");
-            sb.AppendLine($"App version: {D.AppVersion()}");
-            sb.AppendLine($"EC firmware: {(D.Firmware.Length > 0 ? D.Firmware : "-")}");
-            sb.AppendLine($"Detected model: {info.Device}   Tier: {info.TierText}");
-            sb.AppendLine($"Windows: {Environment.OSVersion.VersionString}   64-bit: {Environment.Is64BitOperatingSystem}");
-            sb.AppendLine();
-            sb.AppendLine("Contents: ec-dump.txt (read-only EC snapshot, or the exact error it produced),");
-            sb.AppendLine("settings.json, changelog.json, errors.log (only when it exists).");
-            AddZipText(zip, "report.txt", sb.ToString());
-
-            string dump;
-            try
-            {
-                var d = Ec.DumpAll();
-                var ds = new StringBuilder();
-                for (int r = 0; r < 256; r += 16)
-                {
-                    ds.Append($"{r:X2}: ");
-                    for (int i = 0; i < 16; i++) ds.Append($"{d[r + i]:X2} ");
-                    ds.AppendLine();
-                }
-                dump = ds.ToString();
-            }
-            catch (Exception ex)
-            {
-                dump = "EC dump failed: " + AppLifecycle.DescribeEcFailure(ex) + "\r\nRaw error: " + ex.Message;
-            }
-            AddZipText(zip, "ec-dump.txt", dump);
-            AddZipText(zip, "msi-wmi-blocks.txt", MsiTelemetry.Dump());   // (#48) telemetry-mode triage
-
-            foreach (var name in new[] { "settings.json", "changelog.json", "errors.log" })
-            {
-                var p = Path.Combine(AppSettings.Dir, name);
-                if (File.Exists(p)) zip.CreateEntryFromFile(p, name);
-            }
+            Diagnostics.Save(dlg.FileName, D.AppVersion(), D.Firmware, info.Device, info.TierText);
             MessageBox.Show(FindForm(), string.Format(Lang.T("rep_saved_to"), dlg.FileName), "GhostDeck",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -727,13 +912,6 @@ public sealed class SettingsPage : ThemedPage
             MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-    }
-
-    private static void AddZipText(ZipArchive zip, string name, string content)
-    {
-        var e = zip.CreateEntry(name);
-        using var w = new StreamWriter(e.Open());
-        w.Write(content);
     }
 
     // ---------------- settings backup ----------------
@@ -915,6 +1093,13 @@ public sealed class SettingsPage : ThemedPage
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
             }
         }
+    }
+
+    /// <summary>Open General and flash the Scenarios-visibility card so the user sees where it lives.</summary>
+    public void FocusScenVisibility()
+    {
+        SelectSub(SubGeneral, save: true);
+        _scenVisCard?.Flash(FlashPink, 30);
     }
 
     private ToggleSwitch Toggle(bool on, Action<bool> onChange)
@@ -1103,6 +1288,37 @@ public sealed class SettingsPage : ThemedPage
         private readonly Label _head;
         private readonly string _glyph;
         private readonly List<(Label? label, Control ctl)> _rows = new();
+        private Color? _flash;                                  // temporary highlight frame (gear jump)
+        private long _flashStart;
+        private int _flashMs;
+        private System.Windows.Forms.Timer? _flashTimer;
+
+        /// <summary>
+        /// Draw a colored 2 px frame that fades back to the normal border over the given time -
+        /// "here are the settings you asked for", without an abrupt cut at the end.
+        /// </summary>
+        public void Flash(Color color, int seconds)
+        {
+            _flash = color;
+            _flashStart = Environment.TickCount64;
+            _flashMs = seconds * 1000;
+            _flashTimer?.Stop();
+            _flashTimer?.Dispose();
+            _flashTimer = new System.Windows.Forms.Timer { Interval = 120 };   // repaint tick for the fade
+            _flashTimer.Tick += (_, _) =>
+            {
+                if (Environment.TickCount64 - _flashStart >= _flashMs) { _flashTimer!.Stop(); _flash = null; }
+                Invalidate();
+            };
+            _flashTimer.Start();
+            Invalidate();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _flashTimer?.Dispose();
+            base.Dispose(disposing);
+        }
 
         public CardSection(string title, string glyph = "")
         {
@@ -1176,9 +1392,21 @@ public sealed class SettingsPage : ThemedPage
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Theme.Card);
-            using var pen = new Pen(Theme.Border);
-            using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 10);
-            g.DrawPath(pen, path);
+            using (var pen = new Pen(Theme.Border))
+            using (var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 10))
+                g.DrawPath(pen, path);
+            if (_flash is { } fc)
+            {
+                // highlight frame on top of the normal border, alpha falling linearly to zero
+                float t = Math.Clamp((Environment.TickCount64 - _flashStart) / (float)Math.Max(1, _flashMs), 0f, 1f);
+                int a = (int)(255 * (1f - t));
+                if (a > 0)
+                {
+                    using var pen2 = new Pen(Color.FromArgb(a, fc), 2f);
+                    using var path2 = Theme.RoundRect(new RectangleF(1f, 1f, Width - 2, Height - 2), 10);
+                    g.DrawPath(pen2, path2);
+                }
+            }
 
             if (!string.IsNullOrEmpty(_glyph))
             {

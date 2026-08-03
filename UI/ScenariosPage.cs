@@ -22,6 +22,8 @@ public sealed class ScenariosPage : ThemedPage
     private readonly (string key, FeatureBrick b)[] _bricks;   // key -> Settings visibility (ScenHidden)
     private readonly List<SceneCard> _sceneCards = new();   // (#21)
     private readonly Button _addScene = new(), _addExamples = new();
+    private readonly Button _gear = new();                  // -> Settings visibility card (flashed)
+    private readonly ToolTip _gearTip = new();
     private int _headH, _subY, _bricksTop, _scenesHeadY;
     private Button? _panicBtn;
     private bool ScenesVisible => !D.Settings.ScenHidden.Contains("scenes");
@@ -98,6 +100,12 @@ public sealed class ScenariosPage : ThemedPage
         if (D.WebcamState() >= 0)   // (#27) EC-level webcam switch
             bricks.Add(("webcam", new FeatureBrick("webcam_title", "◉", "webcam_hint",
                                         () => D.WebcamState() == 1, v => D.SetWebcam(v))));
+        // Windows-key lock: software hook, works on any laptop (no EC involved)
+        bricks.Add(("winlock", new FeatureBrick("winlock_title", "⊞", "winlock_hint",
+                                    () => D.WinLockOn(), v => D.SetWinLock(v))));
+        if (D.TouchpadState() >= 0)   // devnode-level touchpad switch (precision touchpads)
+            bricks.Add(("touchpad", new FeatureBrick("tp_title", "▭", "tp_hint",
+                                        () => D.TouchpadState() == 1, v => D.SetTouchpad(v))));
         // panic reset: same safe-stock action as the hotkey; styled like the fan-curve
         // preset Delete button (filled red, white text, no border)
         var panicBtn = new Button { AutoSize = true, Padding = new Padding(12, 4, 12, 4) };
@@ -111,6 +119,26 @@ public sealed class ScenariosPage : ThemedPage
         bricks.Add(("panic", new FeatureBrick("hk_panic", "↺", panicBtn)));
         _bricks = bricks.ToArray();
         foreach (var (_, b) in _bricks) Controls.Add(b);
+
+        // Gear between the profile tiles and the bricks: jumps to Settings → General and
+        // flashes the "Scenarios tab" visibility card, so the switches are easy to find.
+        _gear.Text = "⚙";
+        _gear.Font = new Font("Segoe UI Symbol", 13f);
+        _gear.Size = new Size(42, 42);   // an easy click target (user feedback)
+        _gear.TextAlign = ContentAlignment.MiddleCenter;
+        _gear.FlatStyle = FlatStyle.Flat;
+        _gear.TabStop = false;
+        _gear.Cursor = Cursors.Hand;
+        _gear.FlatAppearance.BorderSize = 0;
+        _gear.BackColor = Theme.Surface;
+        _gear.ForeColor = Theme.Muted;
+        _gear.FlatAppearance.MouseOverBackColor = Theme.Surface;
+        _gear.FlatAppearance.MouseDownBackColor = Theme.Surface;
+        _gear.MouseEnter += (_, _) => _gear.ForeColor = Theme.Accent;
+        _gear.MouseLeave += (_, _) => _gear.ForeColor = Theme.Muted;
+        _gear.Click += (_, _) => D.OpenScenSettings();
+        _gearTip.SetToolTip(_gear, Lang.T("scen_gear_tip"));
+        Controls.Add(_gear);
 
         // (#21) scenes: add / example buttons + one card per scene (built in RebuildScenes)
         _addScene.Text = "+  " + Lang.T("scene_add");
@@ -142,7 +170,9 @@ public sealed class ScenariosPage : ThemedPage
                 run: () => D.RunScene(scene),
                 edit: () => EditScene(scene),
                 del: () => DeleteScene(scene),
-                move: d2 => MoveScene(scene, d2));
+                move: d2 => MoveScene(scene, d2),
+                profileColor: () => scene.Profile is { } p && Enum.TryParse<ProfileId>(p, out var pid)
+                    ? D.ColorOf(pid) : null);
             _sceneCards.Add(card);
             Controls.Add(card);
         }
@@ -263,6 +293,10 @@ public sealed class ScenariosPage : ThemedPage
         _refreshCombo?.Invalidate();
         foreach (var (_, b) in _bricks) b.ApplyTheme();
         foreach (var c in _sceneCards) c.Invalidate();
+        _gear.BackColor = Theme.Surface;
+        _gear.ForeColor = Theme.Muted;
+        _gear.FlatAppearance.MouseOverBackColor = Theme.Surface;
+        _gear.FlatAppearance.MouseDownBackColor = Theme.Surface;
         Ui.StyleGhost(_addScene);       // ghost styling reads Theme at call time
         Ui.StyleGhost(_addExamples);
         if (_panicBtn != null) { _panicBtn.BackColor = Theme.Red; _panicBtn.ForeColor = Color.White; }
@@ -284,7 +318,10 @@ public sealed class ScenariosPage : ThemedPage
         // Uniform feature bricks under the tiles (mockup W5 layout): two per row, three when
         // the window is wide enough for the 280 px segments to still fit. Bricks the user hid
         // (Settings → General → Scenarios tab) are skipped entirely.
-        _bricksTop = _headH + TileH + 24;
+        // the gear sits right-aligned in its own band between the tiles and the bricks,
+        // fully visible with breathing room above and below
+        _gear.Location = new Point(Pad + avail - _gear.Width, _headH + TileH + 6);
+        _bricksTop = _headH + TileH + 6 + _gear.Height + 10;
         int cols = avail >= 1080 ? 3 : 2;
         const int brickH = 82;
         int bw = (avail - Gap * (cols - 1)) / cols;
@@ -320,8 +357,11 @@ public sealed class ScenariosPage : ThemedPage
         int headFontH = new Font("Segoe UI", 13f, FontStyle.Bold).Height;
         int y = _scenesHeadY + headFontH + 12;
         int sCols = cols;
-        const int cardH = 74;
         int cw = (avail - Gap * (sCols - 1)) / sCols;
+        // Chips wrap, so cards can need more than the base height; every card gets the
+        // tallest one's height (user request: a row must not have uneven cards).
+        int cardH = 74;
+        foreach (var c2 in _sceneCards) cardH = Math.Max(cardH, c2.DesiredHeight(cw));
         for (int i = 0; i < _sceneCards.Count; i++)
         {
             int r = i / sCols, c = i % sCols;
@@ -439,6 +479,7 @@ public sealed class ScenariosPage : ThemedPage
         private readonly SceneDef _scene;
         private readonly Action _run, _edit, _del;
         private readonly Action<int> _move;
+        private readonly Func<Color?> _profileColor;   // scene's profile color (the pill uses it)
         private bool _hover;
         private int _hotHover = -1;          // which action hotspot the mouse is over
         private bool _armDelete;             // ✕ was clicked once; the next ✕ click deletes
@@ -446,9 +487,11 @@ public sealed class ScenariosPage : ThemedPage
         private const int HotW = 26, HotGap = 2, HotCount = 5;   // ▶ ↑ ↓ ✎ ✕
         private static readonly string[] HotGlyphs = { "▶", "↑", "↓", "✎", "✕" };
 
-        public SceneCard(SceneDef scene, Action run, Action edit, Action del, Action<int> move)
+        public SceneCard(SceneDef scene, Action run, Action edit, Action del, Action<int> move,
+                         Func<Color?> profileColor)
         {
             _scene = scene; _run = run; _edit = edit; _del = del; _move = move;
+            _profileColor = profileColor;
             DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
             _armTimer.Tick += (_, _) => Disarm();
 
@@ -503,6 +546,40 @@ public sealed class ScenariosPage : ThemedPage
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); }
         protected override void OnMouseLeave(EventArgs e) { _hover = false; _hotHover = -1; Disarm(); Invalidate(); }
 
+        // Chips layout (user pick over marquee/tooltip): every setting is its own pill, pills
+        // wrap to new lines, and the PAGE gives all cards the tallest card's height so a row
+        // of cards stays even. 16 px of horizontal air per chip obeys the padding rule;
+        // NameGap keeps the pills off the scene name, the whole block centers vertically.
+        private const int ChipH = 20, ChipGapX = 5, ChipGapY = 8, ChipPad = 16, NameGap = 12;
+
+        private int TextAreaWidth(int width) => width - 58 - HotCount * (HotW + HotGap) - 16;
+
+        // Chips sit BELOW the icon+name line and reclaim the icon column, so they start at
+        // the card's left padding and only stop before the action hotspots.
+        private int ChipAreaWidth(int width) => width - 12 - HotCount * (HotW + HotGap) - 16;
+
+        private int ChipLines(int tw)
+        {
+            using var f = new Font("Segoe UI", 8.5f);
+            int x = 0, lines = 1;
+            foreach (var p in _scene.SummaryParts())
+            {
+                int w = TextRenderer.MeasureText(p, f).Width + ChipPad;
+                if (x > 0 && x + w > tw) { lines++; x = 0; }
+                x += w + ChipGapX;
+            }
+            return lines;
+        }
+
+        /// <summary>Height this card needs at the given width (name line + wrapped chips).</summary>
+        public int DesiredHeight(int width)
+        {
+            int tw = Math.Max(40, ChipAreaWidth(width));
+            int lines = ChipLines(tw);
+            int nameH = new Font("Segoe UI", 10.5f, FontStyle.Bold).Height;
+            return Math.Max(74, 10 + nameH + 8 + lines * (ChipH + ChipGapY) - ChipGapY + 10);
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing) _armTimer.Dispose();
@@ -522,22 +599,67 @@ public sealed class ScenariosPage : ThemedPage
                 using var pen = new Pen(_armDelete ? Theme.Red : _hover ? Theme.Accent : Theme.Border, _hover || _armDelete ? 1.4f : 1f);
                 g.DrawPath(pen, path);
             }
-            // glyph box on the left (falls back to a play marker when the scene has no icon)
+            // icon + name pinned to the TOP line; chips below reclaim the icon column's width
             string glyph = _scene.Glyph.Length > 0 ? _scene.Glyph : "▶";
-            TextRenderer.DrawText(g, glyph, new Font("Segoe UI Emoji", 15f),
-                new Rectangle(12, 0, 40, Height), Theme.Accent,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
-            int tx = 58, tw = Width - tx - HotCount * (HotW + HotGap) - 16;
             var nameFont = new Font("Segoe UI", 10.5f, FontStyle.Bold);
-            var subFont = new Font("Segoe UI", 8.75f);
-            int nameH = nameFont.Height, subH = subFont.Height;
-            int top = (Height - nameH - 4 - subH) / 2;
-            TextRenderer.DrawText(g, _scene.Name, nameFont, new Rectangle(tx, top, tw, nameH),
+            int nameH = nameFont.Height;
+            const int top = 10;
+            TextRenderer.DrawText(g, glyph, new Font("Segoe UI Emoji", 15f),
+                new Rectangle(12, top - 6, 40, nameH + 12), Theme.Accent,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
+            TextRenderer.DrawText(g, _scene.Name, nameFont,
+                new Rectangle(58, top, Math.Max(20, TextAreaWidth(Width)), nameH),
                 Theme.Text, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
-            // armed delete replaces the summary with the confirm hint (amber), like the camera block
-            TextRenderer.DrawText(g, _armDelete ? Lang.T("scene_del_arm") : _scene.Summary(), subFont,
-                new Rectangle(tx, top + nameH + 4, tw, subH),
-                _armDelete ? Theme.Amber : Theme.Muted, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+
+            // chips center vertically in the space UNDER the name line
+            int tw = Math.Max(40, ChipAreaWidth(Width));
+            using var chipFont = new Font("Segoe UI", 8.5f);
+            var parts = _scene.SummaryParts();
+            int pillsH = (_armDelete || parts.Count == 0 ? 1 : ChipLines(tw)) * (ChipH + ChipGapY) - ChipGapY;
+            int areaTop = top + nameH + 4;
+            int cy = areaTop + Math.Max(4, (Height - areaTop - 8 - pillsH) / 2);
+            if (_armDelete)
+            {
+                // armed delete replaces the chips with the confirm hint (amber), like the camera block
+                TextRenderer.DrawText(g, Lang.T("scene_del_arm"), chipFont,
+                    new Rectangle(12, cy, tw, ChipH), Theme.Amber,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            }
+            else if (parts.Count == 0)
+            {
+                TextRenderer.DrawText(g, Lang.T("scene_empty_def"), chipFont,
+                    new Rectangle(12, cy, tw, ChipH), Theme.Muted,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            }
+            else
+            {
+                // one pill per setting; the profile pill (always first when set) uses the
+                // color assigned to that profile, so cards read like the tray icon does
+                bool hasProfile = _scene.Profile != null;
+                Color profC = _profileColor() ?? Theme.Accent;
+                int x = 0;
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    int w = TextRenderer.MeasureText(parts[i], chipFont).Width + ChipPad;
+                    if (x > 0 && x + w > tw) { x = 0; cy += ChipH + ChipGapY; }
+                    var cr = new RectangleF(12 + x, cy, w, ChipH);
+                    bool accent = hasProfile && i == 0;
+                    using (var path = Theme.RoundRect(cr, ChipH / 2f))
+                    {
+                        if (accent)
+                        {
+                            using var fill = new SolidBrush(Color.FromArgb(36, profC));
+                            g.FillPath(fill, path);
+                        }
+                        using var pen = new Pen(accent ? profC : Theme.Border);
+                        g.DrawPath(pen, path);
+                    }
+                    TextRenderer.DrawText(g, parts[i], chipFont, Rectangle.Round(cr),
+                        accent ? profC : Theme.Muted,
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                    x += w + ChipGapX;
+                }
+            }
             // action hotspots: ▶ run, ↑ ↓ reorder, ✎ edit, ✕ delete (armed = red)
             for (int i = 0; i < HotCount; i++)
             {
