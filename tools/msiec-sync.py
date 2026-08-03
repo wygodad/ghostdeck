@@ -59,6 +59,8 @@ CHARGE_EQUIV: set[tuple[int, int]] = {(0xD7, 0xEF)}
 NOSILENT_ACK: set[str] = {
     "16P5EMS1", "16U7EMS1", "1782EMS1", "17E7EMS1", "17E8EMS1", "17F2EMS1", "17F3EMS1",
     "17F3EMS2", "17F4EMS2", "17F5EMS1", "17F6EMS1", "17G1EMS1", "17G1EMS2", "17G3EMS1",
+    # report 2026-08-03 (#59): same no-Silent G1 confs, parked with the rest
+    "1799EMS1", "17E9EMS1", "17F4EMS1", "17H1EMS1",
 }
 
 

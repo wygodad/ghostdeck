@@ -141,6 +141,57 @@ public static class Devices
     public static bool WebcamSupported(string firmware) =>
         !string.IsNullOrEmpty(firmware) && !NoWebcamCtrl.Contains(FwPrefix(firmware));
 
+    // ---------------------------------------------------------------------
+    // Fn/Windows key swap register, per firmware prefix. Generated from msi-ec's per-conf
+    // fn_win_swap blocks: the bit is 4 on every conf; the address is 0xBF or 0xE8 and some
+    // families invert the direction. Normalized semantics follow msi-ec's fn_key attribute:
+    // (raw bit ^ invert) = 1 means the WIN key sits on the left (so Fn is on the right).
+    // Boards absent here have no fn_win_swap block in msi-ec (no cross-conf contradictions
+    // existed at generation time). 17S2IMS2 (same board as 17S1IMS1) is not listed in msi-ec
+    // and stays out until an owner verifies it.
+    private static readonly Dictionary<string, (byte Addr, bool Invert)> FnWinSwapMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // address 0xBF, invert=false
+        ["14C1EMS1"] = (0xBF, false), ["14JKEMS1"] = (0xBF, false), ["1551EMS1"] = (0xBF, false), ["16JFEMS1"] = (0xBF, false), ["16P5EMS1"] = (0xBF, false), ["16S3EMS1"] = (0xBF, false),
+        ["16U7EMS1"] = (0xBF, false), ["1782EMS1"] = (0xBF, false), ["1799EMS1"] = (0xBF, false), ["17E7EMS1"] = (0xBF, false), ["17E8EMS1"] = (0xBF, false), ["17E9EMS1"] = (0xBF, false),
+        ["17F2EMS1"] = (0xBF, false), ["17F3EMS1"] = (0xBF, false), ["17F3EMS2"] = (0xBF, false), ["17F4EMS1"] = (0xBF, false), ["17F4EMS2"] = (0xBF, false), ["17F5EMS1"] = (0xBF, false),
+        ["17F6EMS1"] = (0xBF, false), ["17FKEMS1"] = (0xBF, false), ["17G1EMS1"] = (0xBF, false), ["17G1EMS2"] = (0xBF, false), ["17G3EMS1"] = (0xBF, false), ["17H1EMS1"] = (0xBF, false),
+        // address 0xBF, invert=true
+        ["14D1EMS1"] = (0xBF, true), ["14DKEMS1"] = (0xBF, true), ["14DLEMS1"] = (0xBF, true), ["1541EMS1"] = (0xBF, true), ["1542EMS1"] = (0xBF, true), ["155LEMS1"] = (0xBF, true),
+        ["158KEMS1"] = (0xBF, true), ["158LEMS1"] = (0xBF, true), ["158MEMS1"] = (0xBF, true), ["15CKEMS1"] = (0xBF, true), ["15HKEMS1"] = (0xBF, true), ["16Q2EMS1"] = (0xBF, true),
+        ["16Q3EMS1"] = (0xBF, true), ["16Q4EMS1"] = (0xBF, true), ["16R1EMS1"] = (0xBF, true), ["16R3EMS1"] = (0xBF, true), ["16R4EMS1"] = (0xBF, true), ["16R4EMS2"] = (0xBF, true),
+        ["16R5EMS1"] = (0xBF, true), ["16S1EMS1"] = (0xBF, true), ["16V1EMS1"] = (0xBF, true), ["16V2EMS1"] = (0xBF, true), ["16V3EMS1"] = (0xBF, true), ["16W1EMS1"] = (0xBF, true),
+        ["16W1EMS2"] = (0xBF, true), ["16W2EMS1"] = (0xBF, true), ["16WKEMS1"] = (0xBF, true), ["17K2EMS1"] = (0xBF, true), ["17LLEMS1"] = (0xBF, true),
+        // address 0xE8, invert=false
+        ["13P3EMS1"] = (0xE8, false), ["13P5EMS1"] = (0xE8, false), ["13Q2EMS1"] = (0xE8, false), ["13Q3EMS1"] = (0xE8, false), ["14F1EMS1"] = (0xE8, false), ["14J1IMS1"] = (0xE8, false),
+        ["14K1EMS1"] = (0xE8, false), ["14K2EMS1"] = (0xE8, false), ["14L1EMS1"] = (0xE8, false), ["14N1EMS1"] = (0xE8, false), ["14N2EMS1"] = (0xE8, false), ["14P1IMS1"] = (0xE8, false),
+        ["14Q2EMS1"] = (0xE8, false), ["14QKIMS1"] = (0xE8, false), ["14T2EMS1"] = (0xE8, false), ["15A1EMS1"] = (0xE8, false), ["15A3EMS1"] = (0xE8, false), ["15Q3EMS1"] = (0xE8, false),
+        ["15QKIMS1"] = (0xE8, false),
+        // address 0xE8, invert=true
+        ["14C4EMS1"] = (0xE8, true), ["14C6EMS1"] = (0xE8, true), ["14D2EMS1"] = (0xE8, true), ["14D3EMS1"] = (0xE8, true), ["1543EMS1"] = (0xE8, true), ["1544EMS1"] = (0xE8, true),
+        ["1545IMS1"] = (0xE8, true), ["1552EMS1"] = (0xE8, true), ["1562EMS1"] = (0xE8, true), ["1563EMS1"] = (0xE8, true), ["1571EMS1"] = (0xE8, true), ["1572EMS1"] = (0xE8, true),
+        ["1581EMS1"] = (0xE8, true), ["1582EMS1"] = (0xE8, true), ["1583EMS1"] = (0xE8, true), ["1584EMS1"] = (0xE8, true), ["1584IMS1"] = (0xE8, true), ["1585EMS1"] = (0xE8, true),
+        ["1585EMS2"] = (0xE8, true), ["1587EMS1"] = (0xE8, true), ["158NIMS1"] = (0xE8, true), ["158PIMS1"] = (0xE8, true), ["1591EMS1"] = (0xE8, true), ["1592EMS1"] = (0xE8, true),
+        ["1594EMS1"] = (0xE8, true), ["1596EMS1"] = (0xE8, true), ["159KIMS1"] = (0xE8, true), ["15B1EMS1"] = (0xE8, true), ["15F2EMS1"] = (0xE8, true), ["15F3EMS1"] = (0xE8, true),
+        ["15F4EMS1"] = (0xE8, true), ["15F5EMS1"] = (0xE8, true), ["15FKIMS1"] = (0xE8, true), ["15FLIMS1"] = (0xE8, true), ["15FMIBA1"] = (0xE8, true), ["15G2EWS1"] = (0xE8, true),
+        ["15H1IMS1"] = (0xE8, true), ["15H2IMS1"] = (0xE8, true), ["15H4IMS1"] = (0xE8, true), ["15H5EMS1"] = (0xE8, true), ["15K1IMS1"] = (0xE8, true), ["15K2EMS1"] = (0xE8, true),
+        ["15M1IMS1"] = (0xE8, true), ["15M1IMS2"] = (0xE8, true), ["15M2IMS1"] = (0xE8, true), ["15M2IMS2"] = (0xE8, true), ["15M3EMS1"] = (0xE8, true), ["15P2EMS1"] = (0xE8, true),
+        ["15P3EMS1"] = (0xE8, true), ["15P4EMS1"] = (0xE8, true), ["16R6EMS1"] = (0xE8, true), ["16R7IMS1"] = (0xE8, true), ["16R8IMS1"] = (0xE8, true), ["16R8IMS2"] = (0xE8, true),
+        ["16RKIMS1"] = (0xE8, true), ["16RKIMS2"] = (0xE8, true), ["16S6EMS1"] = (0xE8, true), ["16S8EMS1"] = (0xE8, true), ["16V4EMS1"] = (0xE8, true), ["16V4EMS2"] = (0xE8, true),
+        ["16V5EMS1"] = (0xE8, true), ["16V6EMS1"] = (0xE8, true), ["17K3EMS1"] = (0xE8, true), ["17K4EMS1"] = (0xE8, true), ["17K5IMS1"] = (0xE8, true), ["17KKIMS1"] = (0xE8, true),
+        ["17L1EMS1"] = (0xE8, true), ["17L2EMS1"] = (0xE8, true), ["17L3EMS1"] = (0xE8, true), ["17L4EMS1"] = (0xE8, true), ["17L5EMS1"] = (0xE8, true), ["17L5EMS2"] = (0xE8, true),
+        ["17L7EMS1"] = (0xE8, true), ["17LNIMS1"] = (0xE8, true), ["17M1EMS1"] = (0xE8, true), ["17M1EMS2"] = (0xE8, true), ["17N1EMS1"] = (0xE8, true), ["17P1EMS1"] = (0xE8, true),
+        ["17P2EMS1"] = (0xE8, true), ["17Q1IMS1"] = (0xE8, true), ["17Q2IMS1"] = (0xE8, true), ["17S1IMS1"] = (0xE8, true), ["17S1IMS2"] = (0xE8, true), ["17S2IMS1"] = (0xE8, true),
+        ["17S3EMS1"] = (0xE8, true), ["17T2EMS1"] = (0xE8, true), ["1822EMS1"] = (0xE8, true), ["1824EMS1"] = (0xE8, true), ["182KIMS1"] = (0xE8, true), ["182LIMS1"] = (0xE8, true),
+    };
+
+    /// <summary>Fn/Win swap register (address + direction invert) for this firmware, or null.</summary>
+    public static (byte Addr, bool Invert)? FnWinSwapFor(string firmware)
+    {
+        if (string.IsNullOrEmpty(firmware)) return null;
+        return FnWinSwapMap.TryGetValue(FwPrefix(firmware), out var v) ? v : null;
+    }
+
     private static string FwPrefix(string firmware)
     {
         int dot = firmware.IndexOf('.');
@@ -234,9 +285,13 @@ public static class Devices
         // VERIFIED (issue #29): the owner ran the wizard and it found the test curve at exactly
         // 0x72 (CPU) / 0x8A (GPU) — the shipped addresses. A second owner's capture (issue #31)
         // independently matched the recipe 1:1.
-        new() { Name = "MSI Cyborg 15 A12VF", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
+        // A13VF (15K1IMS1.111-.113) owner-verified too (issue #57): all hardware checks pass,
+        // incl. the classic Silent cap, plus live RPM. Note for triage: MSI Center 2.0.72 on the
+        // A13VF ships only 3 scenarios — its "Silent" writes the super-battery state (D2=C2 +
+        // EB=0F), byte-identical to this recipe's Super Battery; Balanced/Extreme match 1:1.
+        new() { Name = "MSI Cyborg 15 A12VF / A13VF", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "hengeleng10-tech", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
+                Credit = "hengeleng10-tech, M-Essa11", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
 
         // Thin GF63 12VE (16R8IMS1) — owner per-scenario dump (issue #21) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
@@ -362,7 +417,9 @@ public static class Devices
         new() { Name = "MSI Prestige 14 AI Evo C1MG",       FirmwarePrefixes = new[] { "14N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 AI Studio C1UDXG",  FirmwarePrefixes = new[] { "14N2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 14 A13VF",               FirmwarePrefixes = new[] { "14P1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Venture 14 AI A2HMG",           FirmwarePrefixes = new[] { "14Q2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Venture A14 AI+ A3HMG",         FirmwarePrefixes = new[] { "14QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Prestige 14 Flip AI+ D3MTG",    FirmwarePrefixes = new[] { "14T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 A11M",                FirmwarePrefixes = new[] { "1552EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11SEK",            FirmwarePrefixes = new[] { "1562EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -389,6 +446,7 @@ public static class Devices
         new() { Name = "MSI Prestige A16 AI+ A3HMG",        FirmwarePrefixes = new[] { "159KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI Evo B1MG",       FirmwarePrefixes = new[] { "15A1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI+ Evo B2VMG",     FirmwarePrefixes = new[] { "15A3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Stealth 15M B12UE",             FirmwarePrefixes = new[] { "15B1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 Studio A13VG",       FirmwarePrefixes = new[] { "15F2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI Studio A1VFG",    FirmwarePrefixes = new[] { "15F4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -396,11 +454,16 @@ public static class Devices
         new() { Name = "MSI Stealth A16 AI+ A3XVFG / A3XVGG", FirmwarePrefixes = new[] { "15FKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth A16 AI+ A3XWHG",        FirmwarePrefixes = new[] { "15FLIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth A16 Mercedes AMG AI+ A3XWGG", FirmwarePrefixes = new[] { "15FMIBA1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI CreatorPro Z16HXStudio B13VJTO / B13VKTO", FirmwarePrefixes = new[] { "15G2EWS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B13M",                FirmwarePrefixes = new[] { "15H1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B12HW",               FirmwarePrefixes = new[] { "15H2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Modern 15 H B13M",              FirmwarePrefixes = new[] { "15H4IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Pulse 16 AI C1VGKG/C1VFKG",     FirmwarePrefixes = new[] { "15P3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG", FirmwarePrefixes = new[] { "15Q3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -408,8 +471,10 @@ public static class Devices
         new() { Name = "MSI Prestige 15 A11SCX",            FirmwarePrefixes = new[] { "16S6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 15 A12SC / A12UC",     FirmwarePrefixes = new[] { "16S8EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GS66 Stealth 11UE / 11UG",      FirmwarePrefixes = new[] { "16V4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI Creator 15 A11UE",              FirmwarePrefixes = new[] { "16V4EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth GS66 12UE / 12UGS",     FirmwarePrefixes = new[] { "16V5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15 A13V",               FirmwarePrefixes = new[] { "16V6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        new() { Name = "MSI GE76 Raider 10UG",              FirmwarePrefixes = new[] { "17K2EMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
