@@ -12,8 +12,10 @@ the UI language).
 - **Administrator rights.** EC access needs elevation, exactly like the app itself (the manifest
   requests it, so an elevated shell / scheduled task with *highest privileges* is required;
   a non-elevated caller gets a UAC prompt or a failure in non-interactive contexts).
-- Supported hardware for anything that writes (`--status` also works on unsupported machines and
-  reports `"writable": false`).
+- Supported hardware for anything that writes to the EC. `--status`, `--refresh`,
+  `--brightness`, `--hdr`, `--touchpad`, `--winlock` and `--diag` work on any machine (they
+  are Windows-level or read-only); `--status` reports `"writable": false` there, and on
+  monitoring-only boards (#48) it still returns temperatures with `"telemetry": true`.
 
 ## Execution model
 
@@ -22,8 +24,12 @@ the UI language).
 | **GhostDeck is running** (tray) | The command is forwarded over the local named pipe `GhostDeck_Cli` and executed **by the running instance** on its UI thread - identical code paths, safety gates (tier / experimental opt-in), OSD toasts and change-history entries as clicking the UI. |
 | **GhostDeck is not running** | One-shot mode: the process loads `settings.json`, detects the device, applies the same gates, talks to the EC directly, logs to the shared change history, and exits. Nothing stays resident. |
 
-The only commands that strictly need the running app are `--overlay` (the overlay is a window
-of that process) and `--scene` (scenes orchestrate app state like the overlay and hotkeys).
+The commands that strictly need the running app are `--overlay` (the overlay is a window of
+that process), `--scene` (scenes orchestrate app state like the overlay and hotkeys),
+`--winlock` (the keyboard hook lives in the running process) and the optional `--fanboost`
+auto-off timer (something has to stay alive to fire it). The opposite special case is
+`--diag`: it always runs locally in the calling process, so the zip lands in *your* current
+directory and it works even when the app can't start.
 
 ## Commands
 
@@ -31,14 +37,22 @@ of that process) and `--scene` (scenes orchestrate app state like the overlay an
 |---|---|---|
 | `--profile <Silent\|Balanced\|Extreme\|SuperBattery>` | Apply the profile recipe (+ the assigned fan-curve preset, if any) | `profile set: Silent` |
 | `--cycle` | Switch to the next profile in order | `profile set: <name>` |
-| `--fanboost on\|off` | Full fan speed on/off; `off` re-asserts the active profile's fan mode | `fan boost: on` |
+| `--fanboost on\|off [seconds]` | Full fan speed on/off; `off` re-asserts the active profile's fan mode. The optional seconds (10-7200) arm a one-off auto-off timer for this activation (**timer requires the app running**) | `fan boost: on (auto-off in 120 s)` |
 | `--curve "<preset>"` | Apply a saved fan-curve preset by name (case-insensitive). In Silent this switches to Balanced first (the Silent cap shares the fan byte) | `fan curve applied: <name>` |
 | `--curve auto` | Back to stock fan behaviour for the active profile | `fan curve: stock` |
 | `--scene "<name>"` | Apply a saved scene by name, case-insensitive (**requires the app running**) | `scene applied: <name>` |
+| `--refresh <hz\|max>` | Panel refresh rate; `max` picks the highest mode the panel reports. Windows display API - works on any laptop | `refresh rate: 240 Hz` |
+| `--charge <60\|80\|100\|off>` | Battery charge limit; `off` = stop managing (the EC keeps its current threshold, the app just stops re-asserting it) | `charge limit: 80 %` |
+| `--brightness <0-100>` | Internal-panel brightness (WMI, driver-free) - works on any laptop; external monitors are not covered | `brightness: 45` |
+| `--hdr <on\|off>` | HDR / advanced color on every HDR-capable display (DisplayConfig API, any machine) | `hdr: on` |
+| `--touchpad <on\|off>` | Enable/disable the precision touchpad at the device level (same operation as Device Manager; admin, any machine). The in-app hotkey and a panic reset always re-enable it | `touchpad: off` |
 | `--kbd <off\|low\|mid\|high\|0-3>` | Keyboard-backlight level (models with the EC brightness register) | `keyboard backlight: high` |
 | `--webcam on\|off` | EC-level webcam switch - same switch as the Fn camera key. Refused while the hard camera block (Settings → System → Privacy) is active | `webcam: off` |
+| `--fnswap <left\|right>` | Which side the Fn key is on - the EC-persisted Fn/Windows swap (boards in msi-ec's `fn_win_swap` map) | `fn key: left` |
+| `--winlock on\|off` | Block both Windows keys - software hook, any laptop (**requires the app running**) | `win key lock: on` |
 | `--overlay on\|off` | Show/hide the gaming overlay (**requires the app running**) | `overlay: on` |
-| `--panic` | Safe state: Fan Boost off, Balanced profile, fans on the automatic curve; also lifts the camera block and re-enables the webcam | `panic reset done` |
+| `--panic` | Safe state: Fan Boost off, Balanced profile, fans on the automatic curve; also lifts the camera block, re-enables the webcam and releases the Windows-key lock | `panic reset done` |
+| `--diag [path.zip]` | Save the one-zip diagnostic package (report, read-only EC dump or its exact failure, vendor WMI blocks, settings/changelog/errors). Always runs locally; default name `ghostdeck-diagnostics-<date>.zip` in the current directory | `diagnostics saved: <path>` |
 | `--status` | Print the current state as JSON (see below) | *(JSON document)* |
 | `--help` | Print usage | *(usage text)* |
 
@@ -59,13 +73,24 @@ of that process) and `--scene` (scenes orchestrate app state like the overlay an
   "firmware": "17S1IMS1.114",
   "tier": "Tested",
   "writable": true,
+  "telemetry": false,
   "profile": "Silent",
   "fanBoost": false,
   "overlay": true,
+  "winLock": false,
   "cpuTemp": 52, "gpuTemp": 46,
   "cpuFan": 34,  "gpuFan": 0,
   "cpuRpm": 2450, "gpuRpm": 0,
   "refreshHz": 240,
+  "chargeLimit": 80,
+  "kbdLight": null,
+  "webcam": true,
+  "fnLeft": false,
+  "hdr": false,
+  "touchpad": true,
+  "batteryPercent": 76, "batteryCharging": true,
+  "batteryMinutesLeft": null, "batteryWearPct": 9,
+  "disks": [ { "name": "Samsung MZVL21T0HCLR", "tempC": 41 }, { "name": "KINGSTON SKC3000", "tempC": 37 } ],
   "fps": 143, "frameTimeMs": 7.0, "game": "witcher3"
 }
 ```
@@ -77,12 +102,23 @@ of that process) and `--scene` (scenes orchestrate app state like the overlay an
 | `firmware` | string | EC firmware string (empty if unreadable, e.g. not elevated) |
 | `tier` | string | `Tested` / `Experimental` / `None` |
 | `writable` | bool | Whether writes are allowed (tier + experimental opt-in) |
+| `telemetry` | bool | `true` on monitoring-only boards (#48): temperatures come from the vendor WMI blocks, everything EC stays unavailable |
 | `profile` | string? | Active profile; `null` when unknown/unsupported |
-| `fanBoost`, `overlay` | bool | Only present when `running` is `true` |
+| `fanBoost`, `overlay`, `winLock` | bool | Only present when `running` is `true` |
 | `cpuTemp`, `gpuTemp` | int | °C, `0` = unknown |
 | `cpuFan`, `gpuFan` | int | fan duty %, `0` = unknown/stopped |
 | `cpuRpm`, `gpuRpm` | int | real RPM, `0` = unknown or no tach registers on this model |
 | `refreshHz` | int | current refresh rate of the primary display, `0` = unknown |
+| `chargeLimit` | int | the app's configured charge limit; `0` = not managed |
+| `kbdLight` | int? | backlight level 0-3; `null` = no EC brightness register on this model |
+| `webcam` | bool? | EC camera switch; `null` = no control on this model |
+| `fnLeft` | bool? | `true` = the Fn key is on the left; `null` = no `fn_win_swap` register mapped |
+| `hdr` | bool? | HDR (advanced color) state; `null` = no HDR-capable display |
+| `touchpad` | bool? | precision-touchpad devnode state; `null` = none found |
+| `batteryPercent`, `batteryCharging` | int? / bool? | `null` on machines without a battery |
+| `batteryMinutesLeft` | int? | Windows' runtime estimate; `null` on AC or when not reported |
+| `batteryWearPct` | int? | design-vs-full-charge wear; `null` when the firmware doesn't report capacities |
+| `disks` | array | `{ name, tempC }` per physical disk; `tempC` `null` when the drive doesn't report it. Empty when not elevated |
 | `fps`, `frameTimeMs`, `game` | int? / float? / string? | foreground game via the ETW FPS monitor; `null` when the monitor is off (overlay hidden, Gaming tab closed) or no game is presenting. Only present when `running` is `true` |
 
 ## Recipes

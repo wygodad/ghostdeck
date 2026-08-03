@@ -1165,6 +1165,11 @@ Known equivalences and acks encoded in the script:
 Stage 2 (not built): generating a ready PR instead of an issue - deliberately deferred until
 the report has earned trust, since these maps drive EC writes.
 
+First live report handled (#59, 2026-08-04): the 10 section-(a) prefixes were imported as
+Experimental (recognition ~145 firmware ids, 129 experimental), the four new no-Silent G1
+prefixes (1799/17E9/17F4/17H1EMS1 - same CONF_G1_1/9/10 families) joined `NOSILENT_ACK`,
+and the baseline was refreshed to 372 ids. The report format worked as designed.
+
 ## 37. One-click diagnostic package (v1.24.x, roadmap #30)
 
 Settings → System → Diagnostics → "Save diagnostic package…" builds one zip
@@ -1457,3 +1462,138 @@ hardware, the measurements proving that the Fn brightness levels are not reachab
 host, the documented hardware failure that makes blind opcode probing unacceptable, and what
 would be safe to build later. The EC-based backlight control that GhostDeck does ship stays
 in §42 above.
+
+## 47. Fn / Windows key swap (v1.26)
+
+msi-ec documents a `fn_win_swap` block in 21 confs: one bit that decides which physical
+position - Fn or the left Windows key - maps to which. The bit is **4 in every conf**; the
+address is `0xBF` (older G1-era families) or `0xE8` (G2), and some families **invert** the
+direction. `Devices.FnWinSwapMap` was generated from the msi-ec source the same way as the
+keyboard-backlight map (§42): per-conf `ALLOWED_FW` prefixes joined with the conf's
+`(address, invert)` pair - 162 prefixes, no cross-conf contradictions at generation time.
+
+Semantics follow msi-ec's `fn_key` sysfs attribute: **fn-left = !(raw bit ^ invert)**.
+The UI (Settings → System → Keyboard layout, shown only on mapped boards) is therefore a
+two-way position picker ("Fn on the left / right"), not a bare "swap" toggle - a toggle
+would need a per-model notion of "default", which the register does not express. Writes are
+a read-modify-write of bit 4 (`Ec.SetFnLeft`); the EC persists the setting itself across
+reboots, so the app never re-asserts it. CLI: `--fnswap left|right`.
+
+`17S2IMS2` (Raider GE78 HX 14V) is the same board as the tested `17S1IMS1` (§19.5) but does
+not appear in msi-ec at all, so it stays outside the map until an owner verifies the
+register - the Settings card simply does not show there.
+
+## 48. Windows-key lock (v1.26)
+
+A software feature, deliberately not EC: no MSI register disables the Windows keys, and the
+per-key-RGB keyboard controller is off limits (§46 / LIGHTING.md). Instead
+`Core/WinKeyLock.cs` installs a **WH_KEYBOARD_LL** hook that swallows `VK_LWIN`/`VK_RWIN`
+(key-down and key-up) while the lock is on.
+
+Rules carried over from the TrayWheel hook (§41): the hook lives on its **own message-loop
+thread** (a slow or UI-bound callback gets the hook silently dropped by Windows), and the
+hook is only installed while the feature is active. Install/uninstall happen **on the hook
+thread** (posted as `WM_APP` thread messages after a `PeekMessage` forces the queue into
+existence), so the hook handle is never touched cross-thread. Blocking is total by design -
+tracking "bare Win press" vs combos would leak Start-menu opens on release - which means
+**Win+L is blocked too** while active; Ctrl+Alt+Del is a Secure Attention Sequence and no
+hook can touch it. The description strings say exactly that.
+
+Because it is pure software, the feature ignores the Writable gate everywhere: the hotkey
+(`Ctrl+Alt+F8`, shipped disabled), the Scenarios brick, the scene field and `--winlock`
+(pipe only - a one-shot process would exit and unhook). **A panic reset always releases the
+lock**, before the EC gate, so it works even on unsupported hardware.
+
+## 49. Scene brightness + the v1.26 CLI catch-up
+
+**Brightness**: `Core/Brightness.cs` wraps `root\wmi` `WmiMonitorBrightness` (read) /
+`WmiMonitorBrightnessMethods.WmiSetBrightness` (write) - the internal panel only, no DDC/CI
+for external monitors. Support is probed once (the classes simply do not exist on desktops /
+external-only setups) and gates the scene-editor row. As a scene field it runs after the
+refresh-rate step (§44's ordering note: EC steps first, display steps after); as
+`--brightness` it works one-shot and on unsupported hardware, because nothing EC is
+involved.
+
+**CLI additions** (§27 stays the architecture reference): `--refresh <hz|max>` and
+`--brightness` sit before the writable gate on both paths (Windows-level); `--charge`
+mirrors the Settings action (persist + `TryApplyChargeLimit`; `off` stops managing without
+an EC write, matching the UI semantics); `--fanboost on <seconds>` re-arms the #51 timer
+with a per-call value (pipe only - one-shot has no process to fire it); `--diag` never goes
+over the pipe - it runs in the calling process so the zip lands in the caller's directory
+and works when the app cannot start (`Core/Diagnostics.cs` is the shared collector behind
+the Settings button and the CLI). `--status` gained battery / disks / charge-limit /
+kbd / webcam / fn-side / win-lock fields and a `telemetry` flag; the one-shot variant now
+falls back to the vendor WMI blocks (§39) on monitoring-only boards, matching what the
+running instance already reported.
+
+## 50. Scene schedule and battery-level rules (v1.26)
+
+Two automation engines, both deliberately **edge-triggered**: they act on transitions only
+(a time window begins, a battery threshold is crossed), never re-assert state continuously -
+so a manual change in between is always respected, and none of the three automations
+(AC/battery auto-switch, schedule, battery rules) can enter a fight: each fires on its own
+event and the last event wins. Both run inside the existing 3-second Poll and both gate
+their writes on AutoWritable (the firmware guard blocks automatic writes, §14).
+
+**Schedule** (`Core/Schedule.cs`, `AppSettings.Schedules` + `ScheduleEnabled`): a rule =
+weekday mask (bit 0 = Monday), `Start`/`End` "HH:mm" and a scene id. Overnight windows are
+legal (`Start > End`); the day is matched against the window's START day, so "Fri
+22:00-07:00" is Friday night into Saturday. On overlap the first matching rule in list
+order wins. The engine keeps the id of the rule that was active at the last check; when the
+active id CHANGES to a non-empty one, that rule's scene is applied (`ChangeSource.Schedule`,
+one log line with the window). Startup applies the currently active window (after the
+restore logic, which it deliberately outranks); resume waits for the same 6-second
+EC-settle timer as the profile/curve restore and runs after them, with Poll's schedule
+check suppressed for 8 s so the ordering cannot invert. Rules whose scene was deleted are
+pruned in EnsureDefaults, like orphaned scene hotkeys. UI: Settings → Power, rows with an
+enable toggle + a summary, edited in `Forms/ScheduleRuleForm` (scene combo, weekday chips,
+30-minute time grid); the page rebuilds after a change (the settings-import pattern).
+
+**Battery rules** (`AppSettings.BattLow*/BattHigh*`): two slots - below X % and above Y % -
+each with a threshold (5-95, step 5) and an action string, `P:<ProfileId>` or
+`S:<sceneId>`. Direction-aware: the low rule fires only on a downward crossing while
+discharging, the high rule only on an upward crossing while on AC, each once per crossing;
+re-armed when the level moves 3 pp past the threshold again. The first Poll sample is a
+baseline only, so a boot at 20 % does not instantly fire the low rule (no crossing was
+observed). A broken or orphaned action string falls back to its default profile in
+EnsureDefaults.
+
+## 51. HDR as a scene field (v1.26)
+
+`Core/Hdr.cs` wraps the DisplayConfig API: QueryDisplayConfig over the active paths, then
+`DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO` (9) per target for
+supported/enabled bits and `..._SET_ADVANCED_COLOR_STATE` (10) to flip - the same switch as
+Windows Settings → Display → HDR. Scene semantics are "one machine state": Set flips every
+capable path rather than picking monitors. The scene-editor row (label literally "HDR", not
+translated - a proper noun like "Hz") only shows when a capable path exists; ApplyScene
+changes it after the brightness step and only when the state differs. CLI `--hdr on|off`
+works one-shot and on unsupported models (no EC involved). The struct sizes are the
+documented 72-byte PATH_INFO / 64-byte MODE_INFO; both buffers are opaque beyond the
+target ids we read.
+
+## 52. Touchpad switch (v1.26)
+
+No MSI EC register exists for the touchpad, so this is the Device Manager operation done
+programmatically (`Core/Touchpad.cs`): enumerate HID interfaces (SetupDi*), open each with
+access 0 and read its top-level collection caps (HidP_GetCaps); the collection with usage
+page 0x0D, usage 0x05 IS the "HID-compliant touch pad" node; CM_Disable_DevNode /
+CM_Enable_DevNode flip it. Needs admin, which the app always has. The devnode id is
+resolved once and cached; a failed status read (driver reinstall) re-resolves. State() maps
+DN_STARTED → on and CM_PROB_DISABLED → off.
+
+Safety story (the hint text says all of it): the hotkey (`Ctrl+Alt+F9`, shipped disabled)
+works from the keyboard, and a **panic reset re-enables the touchpad** - both before any EC
+gate, so the escape hatches exist even on unsupported hardware. The device state persists
+across reboots (like Device Manager), which is why panic includes it. Brick, scene field,
+hotkey and `--touchpad on|off` (one-shot capable) all funnel through the same setter.
+
+## 53. Segmented-control minimum width and scene-card marquee (v1.26)
+
+Two UI rules from live feedback. (1) **Labels never touch a segment's edges**: SegControl
+measures its widest label in the constructor and enforces `MinimumSize = (widest + 16 px) *
+segments`. MinimumSize corrects any Size assigned later, and every host (FeatureBrick,
+CardSection rows, forms) positions by the real Width, so a grown control stays
+right-aligned. The same margin applies to any future pill/segment control. (2) **Scene
+cards marquee their summary**: a card only fits one line, so while hovered an overflowing
+summary slides through the clip (1.5 px / 30 ms, dwell at both ends, reset on leave); the
+armed-delete hint never scrolls. Non-hovered cards keep the ellipsis.

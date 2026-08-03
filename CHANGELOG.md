@@ -3,6 +3,74 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.26.0] - 2026-08-04
+### Added
+- **Cyborg 15 A13VF hardware-verified** ([#57](../../issues/57), thanks @M-Essa11) - the
+  `15K1IMS1` entry now covers the A13VF explicitly: all hardware checks confirmed on real
+  hardware (including the classic Silent cap that MSI Center 2.0.7x no longer offers) and
+  live fan RPM. Note for reporters: MSI Center 2.0.72 on this model ships only 3 scenarios -
+  its "Silent" is the super-battery state.
+- **Fn / Windows key swap** - swap the two keys in hardware on boards where msi-ec documents
+  the `fn_win_swap` register (162 firmware prefixes; bit 4 at `0xBF` or `0xE8` with a
+  per-family direction flag). A "Keyboard layout" card in Settings → System (shown only on
+  mapped boards) picks which side the Fn key sits on; the setting lives in the EC itself, so
+  it survives reboots. CLI: `--fnswap left|right`.
+- **Screen brightness in scenes** - a scene can now set the internal panel's brightness
+  (5-100 %, plain Windows WMI, driver-free), so "Gaming" can mean 80 % and "Travel" 25 %.
+  Also available as `--brightness <0-100>` in the CLI; both work on any laptop, supported
+  or not (external monitors are out of scope).
+- **Windows-key lock** - blocks both Windows keys so a game never loses focus to an
+  accidental Start menu: a brick on the Scenarios tab, a scene field, a hotkey shipped as
+  `Ctrl+Alt+F8` (disabled by default) and `--winlock on|off` in the CLI (needs the running
+  app). A low-level keyboard hook, no EC involved, works on any laptop. Fine print: Win+L
+  is blocked too while active, Ctrl+Alt+Del never is, and a **panic reset always lifts the
+  lock**.
+- **Scene schedule** - different settings for work hours, nights and weekends: rules
+  (weekdays + a time window, overnight ranges allowed) apply a scene when the window starts.
+  Edge-triggered by design - a manual change inside a window is respected; the active window
+  also applies at startup and after waking across a boundary. First matching rule wins;
+  managed in Settings → Power with a per-rule editor dialog.
+- **Battery-level rules** - e.g. below 30 % switch to Super Battery, above 80 % back to
+  Balanced. Two slots (below / above), each with a threshold and an action (any profile or
+  scene). Direction-aware: the lower rule fires only while discharging, the upper one only
+  while charging, once per crossing (re-armed 3 pp past the threshold) - so it never fights
+  you or the AC/battery auto-switch.
+- **HDR as a scene field** - a scene can switch HDR (advanced color) on or off, so "Gaming"
+  or "Movies" turns it on and "Work" turns it off. Also `--hdr on|off` in the CLI. Windows
+  DisplayConfig API - the row only shows on HDR-capable displays.
+- **Touchpad switch** - enable/disable the precision touchpad from a scene, a Scenarios
+  brick, a hotkey (`Ctrl+Alt+F9`, disabled by default) or `--touchpad on|off`. Device-level
+  (the same thing Device Manager does), so it works on any laptop; the hotkey and a panic
+  reset always re-enable it, and the hint says so.
+- **10 new experimental models from the weekly msi-ec sync** ([#59](../../issues/59)):
+  Venture 14 AI A2HMG, Prestige 14 Flip AI+ D3MTG, Stealth 15M B12UE, CreatorPro
+  Z16HXStudio B13V, Modern 15 H B13M, Cyborg 15 B13WFKG/B2RW, Venture A15 AI, GV62 8RD,
+  Creator 15 A11UE and GE76 Raider 10UG - recognition grows to ~145 firmware ids
+  (129 experimental). Four G1-era prefixes without a documented Silent fan value stay out
+  (our Silent/Balanced detection needs it).
+- **Scene cards show their settings as chips** - every setting the scene touches is its own
+  small pill (the profile pill highlighted), pills wrap to extra lines and all cards in the
+  grid share the tallest card's height - the whole scene is visible at a glance instead of
+  a truncated sentence.
+- **Gear shortcut on the Scenarios tab** - a small gear between the profile tiles and the
+  bricks jumps straight to Settings → General → "Scenarios tab" and highlights that card
+  with a colored frame for a while, so the "what is visible here" switches are easy to find.
+- **CLI catch-up** - the command line now covers everything the recent releases added:
+  `--refresh <hz|max>` (panel refresh rate, any machine), `--charge <60|80|100|off>`
+  (battery charge limit), `--fanboost on <seconds>` (a one-off auto-off timer, 10-7200 s,
+  needs the running app), `--diag [path.zip]` (the one-zip diagnostic package, headless -
+  works even when the UI won't start), and a much richer `--status` JSON: battery percent /
+  charging / minutes left / wear, per-disk temperatures, charge limit, keyboard-backlight
+  level, webcam state, Fn-key side, Windows-key lock, HDR, touchpad and a `telemetry` flag
+  on monitoring-only boards (one-shot `--status` now reads the vendor WMI blocks there too).
+
+### Fixed
+- **Segmented buttons never squeeze their labels against the edges any more** - every
+  segmented control now enforces a minimum width of its widest label plus breathing room
+  (seen on "Fn on the left/right" and the Hz picker in Settings → Power → Display).
+- **Scene editor window widened** (520 → 600 px) - long row labels no longer run into the
+  value combos.
+
 ## [1.25.0] - 2026-08-01
 ### Added
 - **Vector A18 HX A9WHG (`182LIMS1`) promoted to Tested** ([#54](../../issues/54), thanks

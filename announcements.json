@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1260-automation-input",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.25.0",
+    "title": "New release: scene schedule, battery rules, HDR, brightness, key & touchpad switches",
+    "title_pl": "Nowe wydanie: harmonogram scen, reguły baterii, HDR, jasność, przełączniki klawiszy i touchpada",
+    "body": "GhostDeck v1.26.0 is out. Scenes can now set screen brightness and HDR, and two new automations run them for you: a scene schedule (work hours, nights, weekends - overnight ranges fine) and battery-level rules (e.g. below 30 % go Super Battery, above 80 % back to Balanced), both edge-triggered so your manual changes are respected. New switches: a Windows-key lock for gaming, a device-level touchpad toggle and a hardware Fn/Win key swap on supported boards. Scene cards show every setting as a chip in the profile's color, and the CLI caught up with everything (--refresh, --charge, --brightness, --hdr, --touchpad, --winlock, --fnswap, --diag and a much richer --status). Recognition grows to ~145 models. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.26.0. Sceny ustawiają teraz też jasność ekranu i HDR, a dwie nowe automatyzacje uruchamiają je za Ciebie: harmonogram scen (godziny pracy, noce, weekendy - zakresy przez północ dozwolone) oraz reguły poziomu baterii (np. poniżej 30 % Super Battery, powyżej 80 % z powrotem Balanced), obie zdarzeniowe, więc ręczne zmiany są respektowane. Nowe przełączniki: blokada klawisza Windows do gier, wyłącznik touchpada na poziomie urządzenia i sprzętowa zamiana klawiszy Fn/Win na obsługiwanych płytach. Karty scen pokazują każde ustawienie jako pigułkę w kolorze profilu, a CLI dogonił wszystko (--refresh, --charge, --brightness, --hdr, --touchpad, --winlock, --fnswap, --diag i dużo bogatszy --status). Rozpoznawanie rośnie do ~145 modeli. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.26.0"
+  },
+  {
     "id": "2026-08-v1250-scenes-tray-backlight",
     "severity": "info",
     "minVersion": "1.0.0",
