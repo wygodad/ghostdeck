@@ -583,6 +583,12 @@ public sealed class SettingsPage : ThemedPage
 
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
+        // Signed model database (ModelDb): which data is in effect, and whether a newer
+        // downloaded version is waiting for the next start. Updated on the daily check.
+        string dbText = Devices.EffectiveDataVersion + (Devices.UsingOverride ? "  ·  " + Lang.T("modeldb_downloaded") : "");
+        if (ModelDb.PendingVersion() is { } pend) dbText += "  ·  " + string.Format(Lang.T("modeldb_pending"), pend);
+        var dbLabel = new Label { Text = dbText, AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+        upd.AddRow(Lang.T("set_modeldb"), dbLabel);
         _gLeft[SubSystem].Add(upd);
 
         // Tray context-menu visibility toggles (discussion #9); all default on.

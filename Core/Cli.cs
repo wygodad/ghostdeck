@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Diag, HdrSwitch, Touchpad }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Diag, HdrSwitch, Touchpad, DumpModels, VerifyModels }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -75,6 +75,14 @@ public static class Cli
                 return int.TryParse(Arg1(), out int ch) && ch is 60 or 80 or 100 ? new CliCommand(CliKind.Charge, ch.ToString()) : null;
             case "--diag":
                 return new CliCommand(CliKind.Diag, Arg1());   // optional output path
+            case "--dump-models":
+                // hidden maintainer/CI command: write the COMPILED model tables as canonical
+                // JSON (data/models.json). Byte-exact file output - never via the console.
+                return new CliCommand(CliKind.DumpModels, Arg1());
+            case "--verify-models":
+                // hidden CI command: parse the given file, re-dump it (round-trip must be
+                // byte-identical) and byte-compare against the compiled tables' dump.
+                return Arg1().Length > 0 ? new CliCommand(CliKind.VerifyModels, Arg1()) : null;
             case "--overlay":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
             case "--curve":
@@ -119,6 +127,30 @@ public static class Cli
         // The diagnostic zip always runs locally: it writes a file in the CALLER's directory
         // and only does read-only collection, so there is nothing the live instance adds.
         if (cmd.Kind == CliKind.Diag) return RunOneShot(cmd);
+
+        // The model-table dump must come from THIS exe's compiled tables, never the pipe.
+        if (cmd.Kind == CliKind.DumpModels)
+        {
+            string path = cmd.Arg.Length > 0 ? cmd.Arg : "models.json";
+            File.WriteAllBytes(path, ModelDb.Dump());
+            Console.WriteLine("model tables dumped: " + Path.GetFullPath(path));
+            return 0;
+        }
+        if (cmd.Kind == CliKind.VerifyModels)
+        {
+            byte[] file = File.ReadAllBytes(cmd.Arg);
+            if (!ModelDb.TryParse(file, out var parsed, out string err) || parsed == null)
+            {
+                Console.WriteLine("PARSE FAILED: " + err);
+                return 1;
+            }
+            bool roundtrip = ModelDb.DumpParsed(parsed).AsSpan().SequenceEqual(file);
+            bool matchesCode = ModelDb.Dump().AsSpan().SequenceEqual(file);
+            Console.WriteLine($"parse: OK ({parsed.Models.Length} models, dataVersion {parsed.DataVersion})");
+            Console.WriteLine("round-trip byte-identical: " + (roundtrip ? "OK" : "FAILED"));
+            Console.WriteLine("matches the compiled tables: " + (matchesCode ? "OK" : "FAILED"));
+            return roundtrip && matchesCode ? 0 : 1;
+        }
 
         // A running instance owns the tray/overlay state - forward to it over the pipe.
         if (TrySendToRunning(args, out string resp, out int code))

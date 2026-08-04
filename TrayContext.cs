@@ -1628,7 +1628,16 @@ public sealed class TrayContext : ApplicationContext
         {
             var res = await Updater.CheckAsync(current);
             var notices = await Notices.FetchAsync(current, _settings.SeenNoticeIds);
-            void Apply() { OnUpdateResult(res); OnNoticesResult(notices); }
+            // Signed model database (ModelDb): same daily cadence and privacy footprint as the
+            // update check. A valid, newer file is stored and takes effect on the next start;
+            // the change-log line is the only notification (no balloon - nothing is urgent).
+            int? db = await ModelDb.FetchUpdateAsync();
+            void Apply()
+            {
+                OnUpdateResult(res);
+                OnNoticesResult(notices);
+                if (db is { } v) ChangeLog.Add(ChangeSource.Startup, string.Format(Lang.T("log_modeldb"), v));
+            }
             if (ui != null) ui.Post(_ => Apply(), null);
             else Apply();
         });

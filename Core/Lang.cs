@@ -907,6 +907,11 @@ public static class Lang
         ["kbd_low"]        = new[] { "Low", "Niska", "Niedrig", "Faible", "Baja", "低", "Baixa", "Низкая" },
         ["kbd_mid"]        = new[] { "Mid", "Średnia", "Mittel", "Moyen", "Media", "中", "Média", "Средняя" },
         ["kbd_high"]       = new[] { "High", "Wysoka", "Hoch", "Élevé", "Alta", "高", "Alta", "Высокая" },
+        // signed model database (ModelDb)
+        ["set_modeldb"]    = new[] { "Model database", "Baza modeli", "Modell-Datenbank", "Base de modèles", "Base de modelos", "型号数据库", "Base de modelos", "База моделей" },
+        ["modeldb_downloaded"] = new[] { "updated", "zaktualizowana", "aktualisiert", "mise à jour", "actualizada", "已更新", "atualizada", "обновлена" },
+        ["modeldb_pending"] = new[] { "{0} after restart", "{0} po restarcie", "{0} nach Neustart", "{0} après redémarrage", "{0} tras reiniciar", "重启后 {0}", "{0} após reiniciar", "{0} после перезапуска" },
+        ["log_modeldb"]    = new[] { "Model database {0} downloaded - applies after a restart", "Pobrano bazę modeli {0} - zadziała po restarcie", "Modell-Datenbank {0} geladen - wirkt nach Neustart", "Base de modèles {0} téléchargée - active après redémarrage", "Base de modelos {0} descargada - se aplica tras reiniciar", "已下载型号数据库 {0} - 重启后生效", "Base de modelos {0} baixada - aplica após reiniciar", "База моделей {0} загружена - применится после перезапуска" },
         // Windows-key lock (software hook)
         ["winlock_title"]  = new[] { "Windows key lock", "Blokada klawisza Windows", "Windows-Taste sperren", "Verrou touche Windows", "Bloqueo tecla Windows", "Windows 键锁定", "Bloqueio da tecla Windows", "Блокировка клавиши Windows" },
         ["winlock_hint"]   = new[]

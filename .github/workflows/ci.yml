@@ -19,3 +19,27 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build
         run: dotnet build GhostDeck.csproj -c Release
+
+      # data/models.json must be exactly what the compiled tables dump (and must round-trip
+      # through the parser byte-for-byte) - the wire format can never drift from the code.
+      - name: Model database consistency
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "bin/Release/net8.0-windows/GhostDeck.exe" `
+               -ArgumentList "--verify-models","data/models.json" -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "data/models.json does not match the compiled tables - run --dump-models, re-sign (tools/sign-models.ps1) and commit" }
+          "models.json consistent"
+
+      # The committed signature must verify against the committed public key.
+      - name: Model database signature
+        shell: pwsh
+        run: |
+          $sha = [System.Security.Cryptography.HashAlgorithmName]::SHA256
+          $der = [System.Security.Cryptography.DSASignatureFormat]::Rfc3279DerSequence
+          $pub = [System.Security.Cryptography.ECDsa]::Create()
+          $n = 0
+          $pub.ImportSubjectPublicKeyInfo([Convert]::FromBase64String((Get-Content tools/model-signing.pub -Raw).Trim()), [ref]$n)
+          $data = [IO.File]::ReadAllBytes("data/models.json")
+          $sig = [Convert]::FromBase64String((Get-Content data/models.json.sig -Raw).Trim())
+          if (-not $pub.VerifyData($data, $sig, $sha, $der)) { throw "data/models.json.sig verification FAILED" }
+          "signature OK"
