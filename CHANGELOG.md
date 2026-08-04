@@ -3,6 +3,22 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.27.0] - 2026-08-04
+### Added
+- **Modern 14 C12M promoted to Tested** ([#61](../../issues/61), thanks @ping-myildirim) -
+  all three hardware checks confirmed on real hardware, and the fan curve is
+  hardware-verified as a single-fan board ([#60](../../issues/60)): the test curve sits
+  exactly at the shipped CPU table, the GPU table is a no-op, and the CPU fan RPM register
+  is live. 17 models tested.
+- **Model support without waiting for a release** - the app now checks (on the existing
+  daily check, same opt-out) for a **digitally signed model database** published in the
+  repo and uses it from the next start when it is newer than the built-in tables. A newly
+  verified model or fan curve can reach every user the same day. Safety first: the file is
+  signed with a key that exists only on the maintainer's machine (ECDSA P-256), the
+  signature is re-checked on every load, an older file is never accepted (anti-rollback),
+  and anything invalid silently falls back to the built-in tables - a bad download can
+  never break the app. Settings → System → Updates shows the database version in effect.
+
 ## [1.26.0] - 2026-08-04
 ### Added
 - **Cyborg 15 A13VF hardware-verified** ([#57](../../issues/57), thanks @M-Essa11) - the

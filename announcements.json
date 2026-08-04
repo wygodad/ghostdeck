@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1270-modeldb",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.26.0",
+    "title": "New release: model support arrives without waiting for updates",
+    "title_pl": "Nowe wydanie: wsparcie modeli przychodzi bez czekania na aktualizacje",
+    "body": "GhostDeck v1.27.0 is out. From now on, newly verified laptops and fan curves reach you within a day - the app fetches a digitally signed model database on its daily check and uses it from the next start. Everything is guarded: the signature is re-checked on every launch, older files are never accepted, and anything invalid falls back to the built-in tables, so a bad download can never break the app. Also: Modern 14 C12M is the 17th model confirmed on real hardware (thanks @ping-myildirim). Click Details for how it works.",
+    "body_pl": "Wyszło GhostDeck v1.27.0. Od teraz świeżo zweryfikowane laptopy i krzywe wentylatorów docierają do Ciebie w ciągu doby - aplikacja pobiera podpisaną cyfrowo bazę modeli przy dziennym sprawdzeniu i używa jej od następnego uruchomienia. Wszystko jest pilnowane: podpis jest sprawdzany przy każdym starcie, starsze pliki nigdy nie są przyjmowane, a cokolwiek niepoprawnego wraca do tabel wbudowanych - zły plik nie może zepsuć aplikacji. Do tego: Modern 14 C12M to 17. model potwierdzony na prawdziwym sprzęcie (dzięki @ping-myildirim). Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.27.0"
+  },
+  {
     "id": "2026-08-v1260-automation-input",
     "severity": "info",
     "minVersion": "1.0.0",
