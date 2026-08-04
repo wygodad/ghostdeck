@@ -69,6 +69,28 @@ public sealed class DeviceProfile
 
 public static class Devices
 {
+    // Version of the COMPILED tables below. Bump together with any model-data change; the
+    // generated data/models.json carries the same number (CI byte-compares a fresh dump
+    // against the committed file, so the two cannot drift). A downloaded database is used
+    // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
+    public const int DataVersion = 20260804;
+
+    // A signed, newer database downloaded from the repo (ModelDb.LoadOverride, applied once
+    // at startup by Program). Null = the compiled tables below are in effect.
+    private static ModelDb.Parsed? _override;
+
+    public static void ApplyOverride(ModelDb.Parsed parsed) => _override = parsed;
+    public static bool UsingOverride => _override != null;
+    public static int EffectiveDataVersion => _override?.DataVersion ?? DataVersion;
+
+    /// <summary>The database in effect: the downloaded override when active, else the compiled tables.</summary>
+    public static IReadOnlyList<DeviceProfile> All => _override?.Models ?? BuiltIn;
+
+    // Wire-format accessors for ModelDb.Dump (always the COMPILED tables, never the override).
+    internal static IReadOnlyDictionary<string, byte> KbdBacklightRef => KbdBacklightMap;
+    internal static IReadOnlyCollection<string> NoWebcamCtrlRef => NoWebcamCtrl;
+    internal static IReadOnlyDictionary<string, (byte Addr, bool Invert)> FnWinSwapRef => FnWinSwapMap;
+
     // Generic recipe set from documented msi-ec shift_mode + fan_mode (+ optional super_battery).
     // Used for EXPERIMENTAL models. Note: does NOT include our tested model's undocumented
     // 0x34 power-cap co-flag — so on these models "Silent" may not cap power the same way.
@@ -129,7 +151,8 @@ public static class Devices
     public static byte KbdBacklightFor(string firmware)
     {
         if (string.IsNullOrEmpty(firmware)) return 0;
-        return KbdBacklightMap.TryGetValue(FwPrefix(firmware), out var a) ? a : (byte)0;
+        var map = _override?.KbdBacklight ?? KbdBacklightMap;
+        return map.TryGetValue(FwPrefix(firmware), out var a) ? a : (byte)0;
     }
 
     // (#27) msi-ec documents the webcam switch (0x2E) and webcam block (0x2F) identically on
@@ -139,7 +162,7 @@ public static class Devices
 
     /// <summary>(#27) Whether the EC webcam switch is expected to exist on this firmware.</summary>
     public static bool WebcamSupported(string firmware) =>
-        !string.IsNullOrEmpty(firmware) && !NoWebcamCtrl.Contains(FwPrefix(firmware));
+        !string.IsNullOrEmpty(firmware) && !(_override?.NoWebcamCtrl ?? NoWebcamCtrl).Contains(FwPrefix(firmware));
 
     // ---------------------------------------------------------------------
     // Fn/Windows key swap register, per firmware prefix. Generated from msi-ec's per-conf
@@ -189,7 +212,8 @@ public static class Devices
     public static (byte Addr, bool Invert)? FnWinSwapFor(string firmware)
     {
         if (string.IsNullOrEmpty(firmware)) return null;
-        return FnWinSwapMap.TryGetValue(FwPrefix(firmware), out var v) ? v : null;
+        var map = _override?.FnWinSwap ?? FnWinSwapMap;
+        return map.TryGetValue(FwPrefix(firmware), out var v) ? v : null;
     }
 
     private static string FwPrefix(string firmware)
@@ -198,7 +222,7 @@ public static class Devices
         return dot > 0 ? firmware[..dot] : firmware;
     }
 
-    public static readonly DeviceProfile[] All =
+    internal static readonly DeviceProfile[] BuiltIn =
     {
         // ---------- TESTED ----------
         new()
@@ -365,6 +389,21 @@ public static class Devices
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Harsh3456D", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/44" },
 
+        // Modern 14 C12M (14J1IMS1) — owner per-scenario dump (issue #61, MSI Center 2.0.71)
+        // matches StdRecipes: shift 0xD2 C2/C1/C4 with 0xEB=0F in the eco step (this MSI Center
+        // generation labels that step "Silent" — the super-battery state, same as on the Cyborg
+        // A13VF, #57); the "Super Battery" column read C4, a scenario-selection artifact like
+        // issue #44, not a board quirk. All three hardware checks confirmed by the owner with
+        // OUR recipes (classic Silent C1+1D audibly quieter and lower power), so Tier.Tested.
+        // Fan curve VERIFIED (issue #60): the test curve sits exactly at the shipped 0x72;
+        // the GPU table stayed at family defaults — SINGLE-FAN board (iGPU Modern), like the
+        // Thin GF63 12VE. Fan RPM: 0xC9 reads 00 with the fan stopped and 0x51 (≈5900 RPM)
+        // under load in the Extreme capture — a live tach; no second fan, so no 0xCB.
+        new() { Name = "MSI Modern 14 C12M", FirmwarePrefixes = new[] { "14J1IMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified with { SingleFan = true },
+                Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "ping-myildirim", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/61" },
+
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
         new() { Name = "MSI Raider GE68HX 13V",          FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -410,7 +449,7 @@ public static class Devices
         new() { Name = "MSI Modern 14 B11M",                FirmwarePrefixes = new[] { "14D2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 B11MOU",              FirmwarePrefixes = new[] { "14D3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E14 Flip Evo A12MT",     FirmwarePrefixes = new[] { "14F1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Modern 14 C12M",                FirmwarePrefixes = new[] { "14J1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // moved to the Tested block above (issues #60 / #61) - Modern 14 C12M (14J1IMS1)
         new() { Name = "MSI Stealth 14 Studio A13VF",       FirmwarePrefixes = new[] { "14K1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 14 AI Studio A1VGG / A1VFG", FirmwarePrefixes = new[] { "14K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 H D13M",              FirmwarePrefixes = new[] { "14L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

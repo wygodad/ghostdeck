@@ -1,0 +1,6059 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 20260804,
+  "models": [
+    {
+      "name": "MSI Raider GE78HX 13V / 14V",
+      "prefixes": [
+        "17S1IMS1",
+        "17S2IMS2"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "wygodad",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/1",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0x34=0x01",
+          "0xEB=0x00",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0x34=0x01",
+          "0xEB=0x00",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0x34=0x00",
+          "0xEB=0x00",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0x34=0x01",
+          "0xEB=0x0F",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Crosshair A16 HX (D7W/D8W)",
+      "prefixes": [
+        "15PLIMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "cesarcamps",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/5",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Sword 16 HX B13V / B14V",
+      "prefixes": [
+        "15P2EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "skandy121",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/6",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE67 HX 12U",
+      "prefixes": [
+        "1545IMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "alibi90",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/14",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE76 12UE / 12UGS",
+      "prefixes": [
+        "17K4EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "moragab1993",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/47",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Cyborg 15 A12VF / A13VF",
+      "prefixes": [
+        "15K1IMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "hengeleng10-tech, M-Essa11",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/19",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Thin GF63 12VE",
+      "prefixes": [
+        "16R8IMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": true
+      },
+      "credit": "fwbvng",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/21",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Titan 18 HX Dragon Edition",
+      "prefixes": [
+        "1824EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "Mung-Bean-Monkey",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/23",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 15 B7ED",
+      "prefixes": [
+        "158PIMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "AnyTw",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/25",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF63 Thin 11UC / 11SC",
+      "prefixes": [
+        "16R6EMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "Qaron-makaron",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/30",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF66 11UE / 11UG",
+      "prefixes": [
+        "1581EMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "mewmrow",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/34",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 17 C7VE / D7VFK",
+      "prefixes": [
+        "17LNIMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "inokra",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/40",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Pulse/Katana 17 B13V/GK",
+      "prefixes": [
+        "17L5EMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "eaglent1",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/38",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Crosshair 16 HX AI D2XW",
+      "prefixes": [
+        "15P4EMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "Harsh3456D",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/44",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 C12M",
+      "prefixes": [
+        "14J1IMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": true
+      },
+      "credit": "ping-myildirim",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/61",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE68HX 13V",
+      "prefixes": [
+        "15M2IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GS66 Stealth",
+      "prefixes": [
+        "16V1EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF66",
+      "prefixes": [
+        "1582EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF76",
+      "prefixes": [
+        "17L1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GE66 Raider / GP66 Leopard",
+      "prefixes": [
+        "1543EMS1"
+      ],
+      "tier": "Experimental",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "krystian-pytlik",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/53",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GS65 Stealth",
+      "prefixes": [
+        "16Q4EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF65 Thin",
+      "prefixes": [
+        "16W2EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Vector GP68 HX 13V",
+      "prefixes": [
+        "15M1IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE68 HX 14VIG",
+      "prefixes": [
+        "15M1IMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE68 HX 14VGG",
+      "prefixes": [
+        "15M2IMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Vector 16 HX AI A2XWHG / A2XWIG",
+      "prefixes": [
+        "15M3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE78 HX 14VHG",
+      "prefixes": [
+        "17S1IMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE78 HX Smart Touchpad 13V",
+      "prefixes": [
+        "17S2IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Vector 17 HX AI A2XWHG",
+      "prefixes": [
+        "17S3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Summit E13 Flip A12MT",
+      "prefixes": [
+        "13P3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Summit 13 AI\u002B Evo A2VM",
+      "prefixes": [
+        "13P5EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 13 AI Evo A1MG",
+      "prefixes": [
+        "13Q2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 13 AI\u002B Evo A2VMG",
+      "prefixes": [
+        "13Q3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 14 A11SCX",
+      "prefixes": [
+        "14C4EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 14 Evo A12M",
+      "prefixes": [
+        "14C6EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 B11M",
+      "prefixes": [
+        "14D2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 B11MOU",
+      "prefixes": [
+        "14D3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Summit E14 Flip Evo A12MT",
+      "prefixes": [
+        "14F1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 14 Studio A13VF",
+      "prefixes": [
+        "14K1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 14 AI Studio A1VGG / A1VFG",
+      "prefixes": [
+        "14K2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 H D13M",
+      "prefixes": [
+        "14L1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 14 AI Evo C1MG",
+      "prefixes": [
+        "14N1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 14 AI Studio C1UDXG",
+      "prefixes": [
+        "14N2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Cyborg 14 A13VF",
+      "prefixes": [
+        "14P1IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Venture 14 AI A2HMG",
+      "prefixes": [
+        "14Q2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Venture A14 AI\u002B A3HMG",
+      "prefixes": [
+        "14QKIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 14 Flip AI\u002B D3MTG",
+      "prefixes": [
+        "14T2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Vector GP66 12UGS",
+      "prefixes": [
+        "1544EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 A11M",
+      "prefixes": [
+        "1552EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 15M A11SEK",
+      "prefixes": [
+        "1562EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 15M A11UEK",
+      "prefixes": [
+        "1563EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator Z16 A11UE",
+      "prefixes": [
+        "1571EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator Z16 A12U",
+      "prefixes": [
+        "1572EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Crosshair 15 B12UEZ / B12UGSZ",
+      "prefixes": [
+        "1583EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF66 12U",
+      "prefixes": [
+        "1584EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF66 12UDO",
+      "prefixes": [
+        "1584IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator M16 B13VF",
+      "prefixes": [
+        "1585EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana 15 B12VEK / B12VFK / B12VGK",
+      "prefixes": [
+        "1585EMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana 15 HX B14WEK",
+      "prefixes": [
+        "1587EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 15 C7V",
+      "prefixes": [
+        "158NIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "dmas-dll",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/27",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Summit E16 Flip A11UCT",
+      "prefixes": [
+        "1591EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Summit E16 Flip A12UCT / A12MT",
+      "prefixes": [
+        "1592EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 16 Studio A13VE",
+      "prefixes": [
+        "1594EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Summit E16 AI Studio A1VETG",
+      "prefixes": [
+        "1596EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige A16 AI\u002B A3HMG",
+      "prefixes": [
+        "159KIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 16 AI Evo B1MG",
+      "prefixes": [
+        "15A1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 16 AI\u002B Evo B2VMG",
+      "prefixes": [
+        "15A3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 15M B12UE",
+      "prefixes": [
+        "15B1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 16 Studio A13VG",
+      "prefixes": [
+        "15F2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 16 AI Studio A1VHG",
+      "prefixes": [
+        "15F3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 16 AI Studio A1VFG",
+      "prefixes": [
+        "15F4EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 16 AI A2HWFG",
+      "prefixes": [
+        "15F5EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth A16 AI\u002B A3XVFG / A3XVGG",
+      "prefixes": [
+        "15FKIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth A16 AI\u002B A3XWHG",
+      "prefixes": [
+        "15FLIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth A16 Mercedes AMG AI\u002B A3XWGG",
+      "prefixes": [
+        "15FMIBA1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI CreatorPro Z16HXStudio B13VJTO / B13VKTO",
+      "prefixes": [
+        "15G2EWS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 B13M",
+      "prefixes": [
+        "15H1IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 B12HW",
+      "prefixes": [
+        "15H2IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 H B13M",
+      "prefixes": [
+        "15H4IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 H AI C1MG",
+      "prefixes": [
+        "15H5EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Cyborg 15 AI A1VFK",
+      "prefixes": [
+        "15K2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Pulse 16 AI C1VGKG/C1VFKG",
+      "prefixes": [
+        "15P3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG",
+      "prefixes": [
+        "15Q3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Venture A15 AI A2HMG / A2HMTG",
+      "prefixes": [
+        "15QKIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GV62 8RD",
+      "prefixes": [
+        "16JFEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Thin GF63 12HW",
+      "prefixes": [
+        "16R7IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Thin 15 B12UCX / B12VE",
+      "prefixes": [
+        "16R8IMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Thin A15 B7VF",
+      "prefixes": [
+        "16RKIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Thin A15 B7VF",
+      "prefixes": [
+        "16RKIMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 15 A11SCX",
+      "prefixes": [
+        "16S6EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 15 A12SC / A12UC",
+      "prefixes": [
+        "16S8EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GS66 Stealth 11UE / 11UG",
+      "prefixes": [
+        "16V4EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator 15 A11UE",
+      "prefixes": [
+        "16V4EMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth GS66 12UE / 12UGS",
+      "prefixes": [
+        "16V5EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 15 A13V",
+      "prefixes": [
+        "16V6EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GE76 Raider 10UG",
+      "prefixes": [
+        "17K2EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GE76 Raider 11U / 11UH",
+      "prefixes": [
+        "17K3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider GE77 HX 12UGS",
+      "prefixes": [
+        "17K5IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Alpha 17 C7VF / C7VG",
+      "prefixes": [
+        "17KKIMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF76 11UC / 11UD",
+      "prefixes": [
+        "17L2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Crosshair 17 B12UGZ",
+      "prefixes": [
+        "17L3EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana GF76 12UC",
+      "prefixes": [
+        "17L4EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana 17 B12UCXK",
+      "prefixes": [
+        "17L5EMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Katana 17 HX B14WGK",
+      "prefixes": [
+        "17L7EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth GS76 11UG",
+      "prefixes": [
+        "17M1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator 17 B11UE",
+      "prefixes": [
+        "17M1EMS2"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator Z17 A12UGST",
+      "prefixes": [
+        "17N1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth GS77 12U",
+      "prefixes": [
+        "17P1EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 17 Studio A13VI",
+      "prefixes": [
+        "17P2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Titan GT77 12UHS",
+      "prefixes": [
+        "17Q1IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Titan GT77HX 13VH",
+      "prefixes": [
+        "17Q2IMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Sword 17 HX B14VGKG",
+      "prefixes": [
+        "17T2EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Titan 18 HX A14V",
+      "prefixes": [
+        "1822EMS1"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider A18 HX A7VIG",
+      "prefixes": [
+        "182KIMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "afk789",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/50",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Vector A18 HX A9WHG",
+      "prefixes": [
+        "182LIMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "Skullkidsrevenge",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/54",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 14 A10SC",
+      "prefixes": [
+        "14C1EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 B10MW",
+      "prefixes": [
+        "14D1EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 B4MW",
+      "prefixes": [
+        "14DKEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 B5M",
+      "prefixes": [
+        "14DLEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 14 C5M",
+      "prefixes": [
+        "14JKEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GE66 Raider 10SF",
+      "prefixes": [
+        "1541EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GP66 Leopard 10UG / 10UE / 10UH",
+      "prefixes": [
+        "1542EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 A10M",
+      "prefixes": [
+        "1551EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 A5M",
+      "prefixes": [
+        "155LEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 15 B5DD",
+      "prefixes": [
+        "158KEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Alpha 15 B5EE / B5EEK",
+      "prefixes": [
+        "158LEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 15 B5ED",
+      "prefixes": [
+        "158MEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Delta 15 A5EFK",
+      "prefixes": [
+        "15CKEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Modern 15 B7M",
+      "prefixes": [
+        "15HKEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GS65 Stealth Thin 8RE / 8RF",
+      "prefixes": [
+        "16Q2EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI P65 Creator 8RE",
+      "prefixes": [
+        "16Q3EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF63 8RC-249",
+      "prefixes": [
+        "16R1EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF63 Thin 9SC",
+      "prefixes": [
+        "16R3EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF63 Thin 10SCX / 10SCS",
+      "prefixes": [
+        "16R4EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF63 Thin 9SCSR",
+      "prefixes": [
+        "16R4EMS2"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF63 Thin 10U / 10SC",
+      "prefixes": [
+        "16R5EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI PS63 MODERN 8RD",
+      "prefixes": [
+        "16S1EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 15 A10SC",
+      "prefixes": [
+        "16S3EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator 15 A10SD",
+      "prefixes": [
+        "16V2EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D",
+          "0xD5=0x00"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D",
+          "0xD5=0x00"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D",
+          "0xD5=0x00"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D",
+          "0xD5=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI GS66 Stealth 10UE",
+      "prefixes": [
+        "16V3EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF65 Thin 9SE / 9SD",
+      "prefixes": [
+        "16W1EMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI GF65 Thin 10SCSXR / 10SD / 10SE",
+      "prefixes": [
+        "16W1EMS2"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 15 A4DDR",
+      "prefixes": [
+        "16WKEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Bravo 17 A4DDR / A4DDK",
+      "prefixes": [
+        "17FKEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Alpha 17 B5EEK",
+      "prefixes": [
+        "17LLEMS1"
+      ],
+      "tier": "Experimental",
+      "shiftMode": "0xF2",
+      "fanMode": "0xF4",
+      "chargeCtrl": "0xEF",
+      "recipes": {
+        "Silent": [
+          "0xF2=0xC1",
+          "0xF4=0x1D"
+        ],
+        "Balanced": [
+          "0xF2=0xC1",
+          "0xF4=0x0D"
+        ],
+        "Extreme": [
+          "0xF2=0xC4",
+          "0xF4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xF2=0xC2",
+          "0xF4=0x0D"
+        ]
+      }
+    }
+  ],
+  "maps": {
+    "kbdBacklight": {
+      "13P3EMS1": "0xD3",
+      "13P5EMS1": "0xD3",
+      "13Q2EMS1": "0xD3",
+      "13Q3EMS1": "0xD3",
+      "14C1EMS1": "0xF3",
+      "14C4EMS1": "0xD3",
+      "14C6EMS1": "0xD3",
+      "14D1EMS1": "0xF3",
+      "14D2EMS1": "0xD3",
+      "14D3EMS1": "0xD3",
+      "14DKEMS1": "0xF3",
+      "14DLEMS1": "0xF3",
+      "14F1EMS1": "0xD3",
+      "14J1IMS1": "0xD3",
+      "14JKEMS1": "0xF3",
+      "14L1EMS1": "0xD3",
+      "14N1EMS1": "0xD3",
+      "14N2EMS1": "0xD3",
+      "14P1IMS1": "0xD3",
+      "14QKIMS1": "0xD3",
+      "1551EMS1": "0xF3",
+      "1552EMS1": "0xD3",
+      "155LEMS1": "0xF3",
+      "1581EMS1": "0xD3",
+      "1582EMS1": "0xD3",
+      "1583EMS1": "0xD3",
+      "1584EMS1": "0xD3",
+      "1584IMS1": "0xD3",
+      "1585EMS1": "0xD3",
+      "1585EMS2": "0xD3",
+      "158KEMS1": "0xF3",
+      "158MEMS1": "0xF3",
+      "158PIMS1": "0xD3",
+      "1591EMS1": "0xD3",
+      "1592EMS1": "0xD3",
+      "1594EMS1": "0xD3",
+      "1596EMS1": "0xD3",
+      "159KIMS1": "0xD3",
+      "15A1EMS1": "0xD3",
+      "15A3EMS1": "0xD3",
+      "15H1IMS1": "0xD3",
+      "15H2IMS1": "0xD3",
+      "15H5EMS1": "0xD3",
+      "15HKEMS1": "0xF3",
+      "15K1IMS1": "0xD3",
+      "16R1EMS1": "0xF3",
+      "16R3EMS1": "0xF3",
+      "16R4EMS1": "0xF3",
+      "16R4EMS2": "0xF3",
+      "16R5EMS1": "0xF3",
+      "16R6EMS1": "0xD3",
+      "16R7IMS1": "0xD3",
+      "16R8IMS1": "0xD3",
+      "16R8IMS2": "0xD3",
+      "16RKIMS1": "0xD3",
+      "16RKIMS2": "0xD3",
+      "16S1EMS1": "0xF3",
+      "16S3EMS1": "0xF3",
+      "16S6EMS1": "0xD3",
+      "16S8EMS1": "0xD3",
+      "16U7EMS1": "0xF3",
+      "16V2EMS1": "0xF3",
+      "16V6EMS1": "0xD3",
+      "16W1EMS1": "0xF3",
+      "16W1EMS2": "0xF3",
+      "16W2EMS1": "0xF3",
+      "16WKEMS1": "0xF3",
+      "17E7EMS1": "0xF3",
+      "17E8EMS1": "0xF3",
+      "17F2EMS1": "0xF3",
+      "17F3EMS1": "0xF3",
+      "17F3EMS2": "0xF3",
+      "17F4EMS2": "0xF3",
+      "17F5EMS1": "0xF3",
+      "17F6EMS1": "0xF3",
+      "17FKEMS1": "0xF3",
+      "17L1EMS1": "0xD3",
+      "17L2EMS1": "0xD3",
+      "17L3EMS1": "0xD3",
+      "17L4EMS1": "0xD3",
+      "17LNIMS1": "0xD3",
+      "17M1EMS2": "0xD3"
+    },
+    "noWebcamCtrl": [
+      "13P5EMS1",
+      "159KIMS1",
+      "15H5EMS1"
+    ],
+    "fnWinSwap": {
+      "13P3EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "13P5EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "13Q2EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "13Q3EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14C1EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "14C4EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "14C6EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "14D1EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "14D2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "14D3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "14DKEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "14DLEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "14F1EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14J1IMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14JKEMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "14K1EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14K2EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14L1EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14N1EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14N2EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14P1IMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14Q2EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14QKIMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14T2EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "1541EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "1542EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "1543EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1544EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1545IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1551EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "1552EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "155LEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "1562EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1563EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1571EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1572EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1581EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1582EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1583EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1584EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1584IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1585EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1585EMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1587EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "158KEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "158LEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "158MEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "158NIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "158PIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1591EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1592EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1594EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1596EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "159KIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15A1EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "15A3EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "15B1EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15CKEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "15F2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15F3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15F4EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15F5EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15FKIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15FLIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15FMIBA1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15G2EWS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15H1IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15H2IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15H4IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15H5EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15HKEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "15K1IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15K2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15M1IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15M1IMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15M2IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15M2IMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15M3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15P2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15P3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15P4EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "15Q3EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "15QKIMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "16JFEMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "16P5EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "16Q2EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16Q3EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16Q4EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16R1EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16R3EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16R4EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16R4EMS2": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16R5EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16R6EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16R7IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16R8IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16R8IMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16RKIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16RKIMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16S1EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16S3EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "16S6EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16S8EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16U7EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "16V1EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16V2EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16V3EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16V4EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16V4EMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16V5EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16V6EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "16W1EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16W1EMS2": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16W2EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "16WKEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "1782EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "1799EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17E7EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17E8EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17E9EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F2EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F3EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F3EMS2": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F4EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F4EMS2": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F5EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17F6EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17FKEMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17G1EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17G1EMS2": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17G3EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17H1EMS1": {
+        "addr": "0xBF",
+        "invert": false
+      },
+      "17K2EMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "17K3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17K4EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17K5IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17KKIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L1EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L4EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L5EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L5EMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17L7EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17LLEMS1": {
+        "addr": "0xBF",
+        "invert": true
+      },
+      "17LNIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17M1EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17M1EMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17N1EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17P1EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17P2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17Q1IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17Q2IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17S1IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17S1IMS2": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17S2IMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17S3EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "17T2EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1822EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "1824EMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "182KIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      },
+      "182LIMS1": {
+        "addr": "0xE8",
+        "invert": true
+      }
+    }
+  }
+}
