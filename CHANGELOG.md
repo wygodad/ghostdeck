@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Tray temperature colours** now ship as brand cyan / amber / red instead of green / amber /
+  red. The digits carry a dark outline, which lets the lighter, more saturated set stay readable
+  on a light and a dark taskbar alike. Settings written by 1.28.0 that still hold the previous
+  three colours move over on the next start; any colour you picked yourself is left alone.
+
 ## [1.28.0] - 2026-08-05
 ### Added
 - **Temperature in the notification area** ([discussion #9](../../discussions/9), thanks

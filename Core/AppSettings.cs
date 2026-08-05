@@ -209,9 +209,15 @@ public sealed class AppSettings
     public bool TempTrayGpu { get; set; }
     public int TempTrayWarn { get; set; } = 70;
     public int TempTrayHot { get; set; } = 85;
-    public string TempTrayColorOk { get; set; } = "#16A34A";   // zielen 600 - czytelna na jasnym i ciemnym pasku
-    public string TempTrayColorWarn { get; set; } = "#D97706";   // bursztyn 600
-    public string TempTrayColorHot { get; set; } = "#DC2626";   // czerwien 600
+    // The shipped palette: brand cyan for normal, amber, red. The digits carry a dark outline
+    // (TrayIconFactory.TextIcon), which is what lets these lighter, more saturated colours stay
+    // readable on both a light and a dark taskbar.
+    public const string DefTempOk = "#3DE3FF", DefTempWarn = "#F5B301", DefTempHot = "#FF4D4F";
+    // Superseded in v1.28.1; see the migration in EnsureDefaults.
+    private const string OldTempOk = "#16A34A", OldTempWarn = "#D97706", OldTempHot = "#DC2626";
+    public string TempTrayColorOk { get; set; } = DefTempOk;
+    public string TempTrayColorWarn { get; set; } = DefTempWarn;
+    public string TempTrayColorHot { get; set; } = DefTempHot;
 
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
@@ -373,6 +379,12 @@ public sealed class AppSettings
         // to its default profile; an action pointing at a deleted scene falls back too.
         TempTrayWarn = Math.Clamp(TempTrayWarn, 40, 110);
         TempTrayHot = Math.Clamp(TempTrayHot, TempTrayWarn + 1, 120);
+        // Move settings written by 1.28.0 onto the new tray palette. Only the exact previous
+        // trio is moved, so any colour the user picked is left alone.
+        if (TempTrayColorOk == OldTempOk && TempTrayColorWarn == OldTempWarn && TempTrayColorHot == OldTempHot)
+        {
+            TempTrayColorOk = DefTempOk; TempTrayColorWarn = DefTempWarn; TempTrayColorHot = DefTempHot;
+        }
         BattLowPct = Math.Clamp(BattLowPct, 5, 95);
         BattHighPct = Math.Clamp(BattHighPct, 5, 95);
         bool ValidAction(string a) =>
