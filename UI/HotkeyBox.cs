@@ -49,7 +49,7 @@ public sealed class HotkeyBox : TextBox
     public void SetValue(HotkeyDef def)
     {
         Value = def.Clone();
-        Text = string.IsNullOrEmpty(Value.Display) ? "(brak)" : Value.Display;
+        Text = string.IsNullOrEmpty(Value.Display) ? Lang.T("hk_none") : Value.Display;
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -69,7 +69,7 @@ public sealed class HotkeyBox : TextBox
         if (key is Keys.Escape or Keys.Back or Keys.Delete)
         {
             Value = new HotkeyDef();
-            Text = "(brak)";
+            Text = Lang.T("hk_none");
             return;
         }
 

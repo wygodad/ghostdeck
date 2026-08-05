@@ -449,9 +449,9 @@ tooltip warns about this.
 
 ## 18. Supported model families (bulk import)
 
-Beyond the tested GE78HX, the app recognises **~134 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:
+Beyond the tested GE78HX, the app recognises **145 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:
 
-| | **G2 family** (~101) | **G1 family** (~33) |
+| | **G2 family** (110) | **G1 family** (35) |
 |---|---|---|
 | Shift mode | `0xD2` | `0xF2` |
 | Fan mode | `0xD4` | `0xF4` |
@@ -1166,7 +1166,7 @@ Stage 2 (not built): generating a ready PR instead of an issue - deliberately de
 the report has earned trust, since these maps drive EC writes.
 
 First live report handled (#59, 2026-08-04): the 10 section-(a) prefixes were imported as
-Experimental (recognition ~145 firmware ids, 129 experimental), the four new no-Silent G1
+Experimental (recognition 145 models, 128 experimental), the four new no-Silent G1
 prefixes (1799/17E9/17F4/17H1EMS1 - same CONF_G1_1/9/10 families) joined `NOSILENT_ACK`,
 and the baseline was refreshed to 372 ids. The report format worked as designed.
 

@@ -597,6 +597,7 @@ public static class Lang
 
         m["set_hotkeys"]    = new[] { "Keyboard shortcuts", "Skróty klawiszowe", "Tastenkürzel", "Raccourcis clavier", "Atajos de teclado", "键盘快捷键", "Atalhos de teclado", "Горячие клавиши" };
         m["hk_all"]         = new[] { "All shortcuts", "Wszystkie skróty", "Alle Kürzel", "Tous les raccourcis", "Todos los atajos", "所有快捷键", "Todos os atalhos", "Все клавиши" };
+        m["hk_none"]        = new[] { "(none)", "(brak)", "(keine)", "(aucun)", "(ninguno)", "（无）", "(nenhum)", "(нет)" };
         m["set_hint"]       = new[] { "Click a field and press a combo.  Esc / Delete = clear.", "Kliknij pole i wciśnij kombinację.  Esc / Delete = wyczyść.", "Feld anklicken und Kombination drücken.  Esc / Entf = löschen.", "Cliquez sur un champ et appuyez sur une combinaison.  Échap / Suppr = effacer.", "Haz clic en un campo y pulsa una combinación.  Esc / Supr = borrar.", "点击字段并按下组合键。Esc / Delete = 清除。", "Clique num campo e pressione uma combinação.  Esc / Delete = limpar.", "Нажмите поле и введите комбинацию.  Esc / Delete = очистить." };
         m["cycle"]          = new[] { "Cycle (next)", "Cykl (następny)", "Wechseln (nächstes)", "Cycle (suivant)", "Ciclo (siguiente)", "循环（下一个）", "Ciclo (próximo)", "Цикл (следующий)" };
         m["set_autostart"]  = new[] { "Start with Windows", "Uruchamiaj z Windowsem", "Mit Windows starten", "Démarrer avec Windows", "Iniciar con Windows", "随 Windows 启动", "Iniciar com o Windows", "Запускать с Windows" };
