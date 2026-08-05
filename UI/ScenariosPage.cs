@@ -304,6 +304,13 @@ public sealed class ScenariosPage : ThemedPage
 
     private void Relayout()
     {
+        // Manual layout inside an AutoScroll panel: WinForms keeps a child's Location in *client*
+        // coordinates and physically shifts children by the scroll delta, so content coordinates
+        // must be offset by AutoScrollPosition (which is <= 0). The hand-painted header keeps
+        // plain content coordinates - OnPaint translates by the same offset via ApplyScroll.
+        // Same rule as SettingsPage.Layout2; see docs/RENDERING.md.
+        int ox = AutoScrollPosition.X, oy = AutoScrollPosition.Y;
+
         // header height from real font metrics (DPI-safe)
         int titleH = new Font("Segoe UI", 18f, FontStyle.Bold).Height;
         int subH = new Font("Segoe UI", 10.5f).Height;
@@ -313,14 +320,14 @@ public sealed class ScenariosPage : ThemedPage
         int avail = ClientSize.Width - Pad * 2;
         int tw = (avail - Gap * 3) / 4;                 // 4 in a row
         for (int i = 0; i < _tiles.Length; i++)
-            _tiles[i].SetBounds(Pad + i * (tw + Gap), _headH, tw, TileH);
+            _tiles[i].SetBounds(Pad + i * (tw + Gap) + ox, _headH + oy, tw, TileH);
 
         // Uniform feature bricks under the tiles (mockup W5 layout): two per row, three when
         // the window is wide enough for the 280 px segments to still fit. Bricks the user hid
         // (Settings → General → Scenarios tab) are skipped entirely.
         // the gear sits right-aligned in its own band between the tiles and the bricks,
         // fully visible with breathing room above and below
-        _gear.Location = new Point(Pad + avail - _gear.Width, _headH + TileH + 6);
+        _gear.Location = new Point(Pad + avail - _gear.Width + ox, _headH + TileH + 6 + oy);
         _bricksTop = _headH + TileH + 6 + _gear.Height + 10;
         int cols = avail >= 1080 ? 3 : 2;
         const int brickH = 82;
@@ -336,7 +343,7 @@ public sealed class ScenariosPage : ThemedPage
         for (int i = 0; i < visBricks.Count; i++)
         {
             int r = i / cols, c = i % cols;
-            visBricks[i].SetBounds(Pad + c * (bw + Gap), _bricksTop + r * (brickH + Gap), bw, brickH);
+            visBricks[i].SetBounds(Pad + c * (bw + Gap) + ox, _bricksTop + r * (brickH + Gap) + oy, bw, brickH);
             rows = r + 1;
         }
         int bricksBottom = _bricksTop + rows * (brickH + Gap);
@@ -365,12 +372,12 @@ public sealed class ScenariosPage : ThemedPage
         for (int i = 0; i < _sceneCards.Count; i++)
         {
             int r = i / sCols, c = i % sCols;
-            _sceneCards[i].SetBounds(Pad + c * (cw + Gap), y + r * (cardH + Gap), cw, cardH);
+            _sceneCards[i].SetBounds(Pad + c * (cw + Gap) + ox, y + r * (cardH + Gap) + oy, cw, cardH);
         }
         if (_sceneCards.Count > 0) y += ((_sceneCards.Count + sCols - 1) / sCols) * (cardH + Gap);
         else y += new Font("Segoe UI", 9.5f).Height + 14;   // room for the empty-state hint text
-        _addScene.Location = new Point(Pad, y);
-        _addExamples.Location = new Point(Pad + _addScene.PreferredSize.Width + 10, y);
+        _addScene.Location = new Point(Pad + ox, y + oy);
+        _addExamples.Location = new Point(Pad + _addScene.PreferredSize.Width + 10 + ox, y + oy);
         int bottom = y + _addScene.PreferredSize.Height + 8;
         AutoScrollMinSize = new Size(820, bottom + 12);
     }

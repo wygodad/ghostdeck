@@ -125,6 +125,12 @@ Structure:
 Why the earlier attempt failed: it rendered into a plain 96-DPI `Bitmap` and blitted with
 `DrawImageUnscaled`, which rescaled to 134 DPI → the blurry/doubled text the buffered approach fixes.
 
+**The buffer is released when the page is hidden** (v1.28). It is sized to the whole scrollable
+content, roughly 6 MB at 1600x980, and pages are never disposed, so leaving it allocated meant
+carrying that for the rest of the session after one visit to Status. `VisibleChanged` calls
+`Canvas.ReleaseBuffer()` alongside stopping the live timer; `OnPaint` re-allocates when the buffer
+is null, so coming back costs exactly one render.
+
 **Sub-tabs on the canvas.** Status is split into three sub-pages — **Charts**, **EC bytes** and
 **Change log** — via a `SubTabs` child control placed on the canvas (like the "Full log…" button). The
 canvas is sized to the **active section only** (`SectionHeight(width, sub)`), and `Render` branches to
@@ -152,7 +158,9 @@ current position so focusing a child does **not** yank the page to the top.
   phantom gap. The fix was to make the title a child too.)
 - **Scenarios** ([`ScenariosPage`](../UI/ScenariosPage.cs)) — a hybrid: the header/labels and the settings
   card are hand-painted in `OnPaint (ApplyScroll)`, while the profile **tiles** and the feature
-  **bricks** (Fan Boost, overlay) are child `Control`s. Fine because it barely scrolls.
+  **bricks** (Fan Boost, overlay) are child `Control`s. This hybrid is exactly the mix the rules
+  below warn about, and it is what made the scroll-coordinate bug (§5.1) possible: painted parts
+  and child controls do not consume the scroll offset the same way.
 - **Fan curve** ([`FanCurvePage.cs`](../UI/FanCurvePage.cs)) — a custom-painted editable curve (drag
   points) plus a few child controls; short, no special caching needed.
 - **Models** ([`ModelsPage.cs`](../UI/ModelsPage.cs)) / **Report** ([`ReportPage.cs`](../UI/ReportPage.cs))
@@ -186,6 +194,44 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   `ThemedComboBox`, never a bare `ComboBox`, for any new select** (language, AC/battery profile, overlay
   position all use it).
 
+### 5.1 Child positions on an `AutoScroll` page are CLIENT coordinates (v1.28)
+
+The rule the layout code points at, and the one that is easiest to get wrong:
+
+- `OnPaint` + `ApplyScroll(g)` draws in **content** coordinates: the translate by
+  `AutoScrollPosition` is applied for you.
+- A child control's `Location` / `SetBounds` is in **client** coordinates: WinForms has ALREADY
+  shifted the child by the scroll delta, so writing a content coordinate there shifts it a second
+  time. Scrolled down 200 px, a card lands 200 px off and can overlap whatever is painted.
+
+So a `Relayout()` that runs while the page is scrolled must add the offset back:
+
+```csharp
+int ox = AutoScrollPosition.X, oy = AutoScrollPosition.Y;   // both <= 0
+...
+child.Location = new Point(x + ox, y + oy);                 // content coord -> client coord
+```
+
+Two more traps in the same family:
+
+- Read `AutoScrollPosition` ONCE at the top of the layout pass. It changes as controls move.
+- Never derive a content coordinate from a child's own bounds afterwards
+  (`_subTabs.Bottom` is already shifted); keep the content-coordinate cursor in a local.
+
+`SettingsPage.Layout2`, `ScenariosPage.Relayout` and `ReportPage.Relayout` all follow this.
+
+### 5.2 A sub-tab strip that does not fit shrinks, it does not scroll (v1.28)
+
+`SubTabs.FitTo(available)` is given the width the host can spare. If the full strip is wider, it
+drops to icons only, keeping the label on the ACTIVE segment and expanding the HOVERED one in
+place. Without it the strip simply overflowed and WinForms put a horizontal scrollbar under the
+whole page. Hovering changes the strip's width, so `SyncWidth()` re-clamps to the available width,
+otherwise expanding could push the scrollbar back. All three hosts (Settings, Status, Report) size
+their strip through `FitTo`; none uses `PreferredWidth` any more.
+
+Tooltips were the first attempt and were dropped: a tooltip is a separate window with a delay that
+covers the content, an inline label answers the same question immediately.
+
 ---
 
 ## 6. Rules of thumb (do / don't)
@@ -217,6 +263,15 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   "Deck" in `Theme.Accent`; hidden when the strip is too narrow). Windows/taskbar icons use the
   embedded multi-size `app.ico` via `TrayIconFactory.AppIcon()` — `ApplicationIcon` in the csproj
   only brands the exe file, it is NOT reachable at runtime, hence the `EmbeddedResource`.
+- **Number icons in the tray** (v1.28) — `TrayIconFactory.TextIcon(text, colour)` draws the CPU/GPU
+  temperature readouts. At 16x16 px every pixel counts, so: build the bitmap at
+  `GetSystemMetrics(SM_CXSMICON)` (the size the shell asks for, DPI-aware) instead of building
+  larger and letting the shell resample; add the digits to a `GraphicsPath`
+  (`AddString` + `GenericTypographic`) and fit `GetBounds()` to the icon, because `DrawString`
+  centres the font's line box and its ascender/descender/leading room costs about a third of the
+  height; and draw the dark edge as ONE stroked `DrawPath` (`LineJoin.Round`, pen `S/12`) rather
+  than 8 offset copies of the text. Measured ink height of "71": 10 → 13 px at 16 px, 14 → 19 px
+  at 24 px.
 - **Ring gauges** — `IconPainter.Ring` draws 40 arc tick segments clockwise from the top;
   lit ticks blend from the base colour toward white (`Mix`), unlit ticks use `Theme.Border`.
   Flat pen caps keep the ticks crisp; don't switch back to a single `DrawArc`.

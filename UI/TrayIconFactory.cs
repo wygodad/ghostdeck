@@ -14,6 +14,8 @@ namespace GhostDeck;
 public static class TrayIconFactory
 {
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
+    [DllImport("user32.dll")] private static extern int GetSystemMetrics(int nIndex);
+    private const int SM_CXSMICON = 49;   // the notification area's icon size, follows the DPI
 
     // brand colours of the original logotype outline / tiles
     private static readonly Color BrandCyan = Color.FromArgb(0x3D, 0xE3, 0xFF);
@@ -71,6 +73,56 @@ public static class TrayIconFactory
         {
             DestroyIcon(h);
         }
+    }
+
+    /// <summary>
+    /// A number as a notification-area icon (the temperature readouts, discussion #9). Two bold
+    /// digits are all that fits, so a value of 100 or more is drawn as "99+"; the caller picks the
+    /// colour from its own thresholds.
+    /// </summary>
+    public static Icon TextIcon(string text, Color fg)
+    {
+        // Render at the size the shell actually asks for. A bitmap built larger than that is
+        // resampled down by the shell, which costs more sharpness than the extra pixels buy.
+        int S = Math.Clamp(GetSystemMetrics(SM_CXSMICON), 16, 64);
+        using var bmp = new Bitmap(S, S);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.Transparent);
+            // Glyph outlines, not DrawString: a drawn string is placed inside the font's line box,
+            // which reserves room for ascenders, descenders and leading that digits never use, so
+            // at this size roughly a third of the icon goes to empty space. The path's own bounds
+            // are the digits themselves, which lets them fill the icon edge to edge.
+            using var path = new GraphicsPath();
+            using (var ff = new FontFamily("Segoe UI"))
+                path.AddString(text, ff, (int)FontStyle.Bold, 64f, PointF.Empty, StringFormat.GenericTypographic);
+            var b = path.GetBounds();
+            if (b.Width > 0 && b.Height > 0)
+            {
+                // The icon has no background of its own and the taskbar is light in one theme and
+                // dark in the other, so the digits carry a dark outline. Half of a stroke falls
+                // outside the path, hence the pen width (not twice it) as the margin.
+                float pen = Math.Max(1f, S / 12f);
+                float box = S - pen;
+                float k = Math.Min(box / b.Width, box / b.Height);
+                using var m = new Matrix();
+                m.Translate((S - b.Width * k) / 2f - b.X * k, (S - b.Height * k) / 2f - b.Y * k);
+                m.Scale(k, k, MatrixOrder.Prepend);
+                path.Transform(m);
+                using (var p = new Pen(Color.FromArgb(190, 0, 0, 0), pen) { LineJoin = LineJoin.Round })
+                    g.DrawPath(p, path);
+                using var brush = new SolidBrush(fg);
+                g.FillPath(brush, path);
+            }
+        }
+        IntPtr h2 = bmp.GetHicon();
+        try
+        {
+            using var tmp = Icon.FromHandle(h2);
+            return (Icon)tmp.Clone();
+        }
+        finally { DestroyIcon(h2); }
     }
 
     /// <summary>

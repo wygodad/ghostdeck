@@ -16,17 +16,71 @@ public static class Ec
 {
     private static string? _firmwareCache;
 
-    private static ManagementObject GetInstance()
+    // ---------------- shared WMI session ----------------
+    // Every EC call used to open its own session - a WQL query for MSI_ACPI plus a fresh
+    // Package_32 class - and the 3 s poll did that several times per tick for the life of the
+    // process. One session is reused instead. A cached COM object goes stale whenever the WMI
+    // provider host recycles (that happens during normal work, and on resume from sleep), so EVERY
+    // operation drops the session on any error and retries once on a fresh one: a caller can never
+    // get stuck talking to a dead session.
+    private static ManagementObject? _inst;
+    private static ManagementClass? _pkg;
+    // Monitor is re-entrant, so multi-byte operations can hold it for the whole recipe/dump while
+    // the per-byte primitives below take it again harmlessly.
+    private static readonly object _wmiLock = new();
+
+    private static (ManagementObject inst, ManagementClass pkg) SessionLocked()
     {
+        if (_inst != null && _pkg != null) return (_inst, _pkg);
         using var searcher = new ManagementObjectSearcher(@"root\wmi", "SELECT * FROM MSI_ACPI");
-        foreach (ManagementObject mo in searcher.Get())
-            return mo;
-        throw new InvalidOperationException("MSI_ACPI WMI interface not found.");
+        foreach (ManagementObject mo in searcher.Get()) { _inst = mo; break; }
+        if (_inst == null) throw new InvalidOperationException("MSI_ACPI WMI interface not found.");
+        _pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        return (_inst, _pkg);
     }
+
+    private static void DropLocked()
+    {
+        _inst?.Dispose(); _inst = null;
+        _pkg?.Dispose(); _pkg = null;
+    }
+
+    /// <summary>Force a reconnect on the next EC call (used after sleep/resume).</summary>
+    public static void DropSession() { lock (_wmiLock) DropLocked(); }
+
+    /// <summary>Run one EC operation on the shared session, healing a stale one exactly once.</summary>
+    private static T WithSession<T>(Func<ManagementObject, ManagementClass, T> body)
+    {
+        lock (_wmiLock)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    var (inst, pkg) = SessionLocked();
+                    return body(inst, pkg);
+                }
+                catch
+                {
+                    DropLocked();               // never keep a session that just failed
+                    if (attempt >= 1) throw;    // one rebuild+retry, then it is a real failure
+                }
+            }
+        }
+    }
+
+    private static void WithSession(Action<ManagementObject, ManagementClass> body) =>
+        WithSession<object?>((i, p) => { body(i, p); return null; });
+
+    /// <summary>Read one EC byte (own session handling).</summary>
+    private static byte ReadRaw(byte addr) => WithSession((inst, pkg) => ReadWith(inst, pkg, addr));
+
+    /// <summary>Write one EC byte (own session handling).</summary>
+    private static void WriteRaw(byte addr, byte val) => WithSession((inst, pkg) => WriteWith(inst, pkg, addr, val));
 
     private static void WriteWith(ManagementObject inst, ManagementClass pkg, byte addr, byte val)
     {
-        var p = pkg.CreateInstance();
+        using var p = pkg.CreateInstance();   // COM-backed, dispose instead of leaving it to the finalizer
         var bytes = new byte[32];
         bytes[0] = addr;
         bytes[1] = val;
@@ -38,7 +92,7 @@ public static class Ec
 
     private static byte ReadWith(ManagementObject inst, ManagementClass pkg, byte addr)
     {
-        var p = pkg.CreateInstance();
+        using var p = pkg.CreateInstance();   // COM-backed, dispose instead of leaving it to the finalizer
         var bytes = new byte[32];
         bytes[0] = addr;
         p["Bytes"] = bytes;
@@ -53,8 +107,7 @@ public static class Ec
     {
         try
         {
-            using var inst = GetInstance();
-            return ReadFirmware(inst);
+            return WithSession((inst, _) => ReadFirmware(inst));
         }
         catch { return ""; }
     }
@@ -71,10 +124,12 @@ public static class Ec
             for (int i = 2; i < b.Length && b[i] != 0; i++)
                 if (b[i] is >= 32 and < 127) sb.Append((char)b[i]);
             var s = sb.ToString();
+            // cache only what a completed call returned, empty string included (that is a real
+            // answer). A call that threw leaves the cache unset so a later tick can still fill it.
             _firmwareCache = s.Length >= 12 ? s[..12] : s;
+            return _firmwareCache;
         }
-        catch { _firmwareCache = ""; }
-        return _firmwareCache;
+        catch { return ""; }
     }
 
     /// <summary>
@@ -84,31 +139,22 @@ public static class Ec
     /// </summary>
     public static byte[] DumpAll(Action<int>? onByte = null)
     {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
         var dump = new byte[256];
         for (int i = 0; i < 256; i++)
         {
-            dump[i] = ReadWith(inst, pkg, (byte)i);
+            dump[i] = ReadRaw((byte)i);
             onByte?.Invoke(i);
         }
         return dump;
     }
 
-    public static byte ReadByte(byte addr)
-    {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        return ReadWith(inst, pkg, addr);
-    }
+    public static byte ReadByte(byte addr) => ReadRaw(addr);
 
     // READ-ONLY: read several EC addresses in one WMI session (for the Status byte matrix).
     public static byte[] ReadMany(byte[] addrs)
     {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
         var r = new byte[addrs.Length];
-        for (int i = 0; i < addrs.Length; i++) r[i] = ReadWith(inst, pkg, addrs[i]);
+        for (int i = 0; i < addrs.Length; i++) r[i] = ReadRaw(addrs[i]);
         return r;
     }
 
@@ -116,12 +162,10 @@ public static class Ec
     public static (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? ReadFanCurve(DeviceProfile dev)
     {
         if (dev.FanCurve is not { } fc) return null;
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
         int[] Read(byte baseAddr)
         {
             var arr = new int[fc.Points];
-            for (int i = 0; i < fc.Points; i++) arr[i] = ReadWith(inst, pkg, (byte)(baseAddr + i));
+            for (int i = 0; i < fc.Points; i++) arr[i] = ReadRaw((byte)(baseAddr + i));
             return arr;
         }
         return (Read(fc.CpuTempBase), Read(fc.CpuSpeedBase), Read(fc.GpuTempBase), Read(fc.GpuSpeedBase));
@@ -131,57 +175,47 @@ public static class Ec
     public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)
     {
         if (dev.FanCurve is not { } fc) return;
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
         void W(byte baseAddr, int[] vals)
         {
             for (int i = 0; i < fc.Points && i < vals.Length; i++)
-                WriteWith(inst, pkg, (byte)(baseAddr + i), (byte)Math.Clamp(vals[i], 0, 255));
+                WriteRaw((byte)(baseAddr + i), (byte)Math.Clamp(vals[i], 0, 255));
         }
-        W(fc.CpuTempBase, cpuTemp); W(fc.CpuSpeedBase, cpuSpeed);
-        // single-curve boards (e.g. GF63 12VE): the GPU tables are a dead field the firmware
-        // never reads - don't write them at all
-        if (!fc.SingleFan) { W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed); }
+        lock (_wmiLock)
+        {
+            W(fc.CpuTempBase, cpuTemp); W(fc.CpuSpeedBase, cpuSpeed);
+            // single-curve boards (e.g. GF63 12VE): the GPU tables are a dead field the firmware
+            // never reads - don't write them at all
+            if (!fc.SingleFan) { W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed); }
+        }
     }
 
-    public static void SetFanMode(DeviceProfile dev, byte value)
-    {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        WriteWith(inst, pkg, dev.FanMode, value);
-    }
+    public static void SetFanMode(DeviceProfile dev, byte value) => WriteRaw(dev.FanMode, value);
 
     public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
     {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        foreach (var (addr, val) in recipe)
-            WriteWith(inst, pkg, addr, val);
+        lock (_wmiLock)
+            foreach (var (addr, val) in recipe)
+                WriteRaw(addr, val);
     }
 
     public static void SetChargeLimit(DeviceProfile dev, int percent)
     {
         if (percent < 10 || percent > 100) return;
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        WriteWith(inst, pkg, dev.ChargeCtrl, (byte)(0x80 | percent));
+        WriteRaw(dev.ChargeCtrl, (byte)(0x80 | percent));
     }
 
     // Cooler Boost (max fans) — msi-ec bit 7 of 0x98. Read-modify-write so we touch only that bit.
-    public static bool GetCoolerBoost(DeviceProfile dev)
-    {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        return (ReadWith(inst, pkg, dev.CoolerBoost) & dev.CoolerBoostMask) != 0;
-    }
+    public static bool GetCoolerBoost(DeviceProfile dev) =>
+        (ReadRaw(dev.CoolerBoost) & dev.CoolerBoostMask) != 0;
 
     public static void SetCoolerBoost(DeviceProfile dev, bool on)
     {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        byte cur = ReadWith(inst, pkg, dev.CoolerBoost);
-        byte next = on ? (byte)(cur | dev.CoolerBoostMask) : (byte)(cur & ~dev.CoolerBoostMask);
-        WriteWith(inst, pkg, dev.CoolerBoost, next);
+        lock (_wmiLock)
+        {
+            byte cur = ReadRaw(dev.CoolerBoost);
+            byte next = on ? (byte)(cur | dev.CoolerBoostMask) : (byte)(cur & ~dev.CoolerBoostMask);
+            WriteRaw(dev.CoolerBoost, next);
+        }
     }
 
     // (#26) Keyboard-backlight level, 0-3 = off/low/mid/high. msi-ec kbd_bl: the register holds
@@ -189,12 +223,8 @@ public static class Ec
     // is per-family (0xF3 / 0xD3), resolved by Devices.KbdBacklightFor.
     public static int GetKbdBacklight(byte addr) => ReadByte(addr) & 0x03;
 
-    public static void SetKbdBacklight(byte addr, int level)
-    {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        WriteWith(inst, pkg, addr, (byte)(0x80 | Math.Clamp(level, 0, 3)));
-    }
+    public static void SetKbdBacklight(byte addr, int level) =>
+        WriteRaw(addr, (byte)(0x80 | Math.Clamp(level, 0, 3)));
 
     // (#27) Webcam switch + block, msi-ec 0x2E / 0x2F bit 1 (identical across every conf).
     // 0x2E is the same switch the Fn camera key flips: bit set = camera on the USB bus.
@@ -220,27 +250,26 @@ public static class Ec
 
     private static void SetMaskedBit(byte addr, byte mask, bool set)
     {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        byte cur = ReadWith(inst, pkg, addr);
-        byte next = set ? (byte)(cur | mask) : (byte)(cur & ~mask);
-        WriteWith(inst, pkg, addr, next);
+        lock (_wmiLock)
+        {
+            byte cur = ReadRaw(addr);
+            byte next = set ? (byte)(cur | mask) : (byte)(cur & ~mask);
+            WriteRaw(addr, next);
+        }
     }
 
     public static ProfileId GetCurrent(DeviceProfile dev)
     {
         try
         {
-            using var inst = GetInstance();
-            using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-            var shift = ReadWith(inst, pkg, dev.ShiftMode);
+            var shift = ReadRaw(dev.ShiftMode);
             if (shift == dev.ShiftTurboValue) return ProfileId.Extreme;
             if (shift == dev.ShiftEcoValue) return ProfileId.SuperBattery;
             // comfort shift -> Silent vs Balanced is told apart ONLY by the fan byte (0x34 is the
             // same in both). 0x1D = Silent; anything else (0x0D auto, or 0x8D custom curve) = Balanced.
             // This is correct by design: a custom curve overwrites 0x1D, which really does drop the
             // Silent power policy, so the machine genuinely becomes Balanced + custom fans.
-            return ReadWith(inst, pkg, dev.FanMode) == dev.FanSilentValue ? ProfileId.Silent : ProfileId.Balanced;
+            return ReadRaw(dev.FanMode) == dev.FanSilentValue ? ProfileId.Silent : ProfileId.Balanced;
         }
         catch { return ProfileId.Balanced; }
     }
@@ -265,24 +294,28 @@ public static class Ec
 
     private static HwSnapshot ReadHw(DeviceProfile dev)
     {
-        using var inst = GetInstance();
-        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-        int cpuT = ReadWith(inst, pkg, dev.CpuTemp);
-        int gpuT = ReadWith(inst, pkg, dev.GpuTemp);
-        // Fan duty is a raw PWM value whose ceiling can read slightly above 100; clamp for display.
-        int cpuF = Math.Min(100, (int)ReadWith(inst, pkg, dev.CpuFan));
-        int gpuF = Math.Min(100, (int)ReadWith(inst, pkg, dev.GpuFan));
-        int chg = ReadWith(inst, pkg, dev.ChargeCtrl) & 0x7F;
-        int cpuRpm = RpmFrom(inst, pkg, dev.CpuRpmAddr, dev.RpmConst);
-        int gpuRpm = RpmFrom(inst, pkg, dev.GpuRpmAddr, dev.RpmConst);
-        return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, ReadFirmware(inst), cpuRpm, gpuRpm);
+        // One lock for the whole sample: these reads belong to the same tick, and holding it keeps
+        // a scene/profile write from landing in the middle of them.
+        lock (_wmiLock)
+        {
+            int cpuT = ReadRaw(dev.CpuTemp);
+            int gpuT = ReadRaw(dev.GpuTemp);
+            // Fan duty is a raw PWM value whose ceiling can read slightly above 100; clamp for display.
+            int cpuF = Math.Min(100, (int)ReadRaw(dev.CpuFan));
+            int gpuF = Math.Min(100, (int)ReadRaw(dev.GpuFan));
+            int chg = ReadRaw(dev.ChargeCtrl) & 0x7F;
+            int cpuRpm = RpmFrom(dev.CpuRpmAddr, dev.RpmConst);
+            int gpuRpm = RpmFrom(dev.GpuRpmAddr, dev.RpmConst);
+            string fw = WithSession((inst, _) => ReadFirmware(inst));
+            return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, fw, cpuRpm, gpuRpm);
+        }
     }
 
     // MSI EC stores fan tach as a divisor: RPM = const / raw (raw 0 -> stopped).
-    private static int RpmFrom(ManagementObject inst, ManagementClass pkg, byte addr, int rpmConst)
+    private static int RpmFrom(byte addr, int rpmConst)
     {
         if (addr == 0) return 0;
-        int raw = ReadWith(inst, pkg, addr);
+        int raw = ReadRaw(addr);
         return raw > 0 ? rpmConst / raw : 0;
     }
 

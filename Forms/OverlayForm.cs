@@ -259,13 +259,15 @@ public sealed class OverlayForm : Form
             {
                 float bw = Math.Max(1.8f, 2.1f * U);
                 using var pen = new Pen(Color.FromArgb(240, accent), bw);
-                gf.DrawPath(pen, RoundPath(new RectangleF(bw / 2, bw / 2, w - bw, h - bw), radius));
+                using var bp = RoundPath(new RectangleF(bw / 2, bw / 2, w - bw, h - bw), radius);
+                gf.DrawPath(pen, bp);
                 DrawGrip(gf, accent);
             }
             else if (_settings.OverlayBgEnabled)
             {
                 using var pen = new Pen(Color.FromArgb(34, 255, 255, 255), 1f);
-                gf.DrawPath(pen, RoundPath(new RectangleF(0.5f, 0.5f, w - 1, h - 1), radius));
+                using var bp = RoundPath(new RectangleF(0.5f, 0.5f, w - 1, h - 1), radius);
+                gf.DrawPath(pen, bp);
             }
         }
 

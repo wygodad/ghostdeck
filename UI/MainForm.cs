@@ -203,7 +203,7 @@ public sealed class MainForm : Form
             if (asIcons.Contains(tab.ToString()))
             {
                 var gb = new GlyphButton { Size = new Size(40, 38), Glyph = glyph, Tag = tab };
-                gb.Click += (_, _) => ShowTab((MainTab)gb.Tag!);
+                gb.Click += (_, _) => ShowTab((MainTab)gb.Tag!, fromStrip: true);
                 _tip.SetToolTip(gb, Lang.T(key));
                 _strip.Controls.Add(gb);
                 _tabIcons.Add(gb);
@@ -227,7 +227,7 @@ public sealed class MainForm : Form
     private void AddTab(MainTab tab, string text, string glyph)
     {
         var b = new TabButton { Text = text, Glyph = glyph, Tag = tab };
-        b.Click += (_, _) => ShowTab((MainTab)b.Tag!);
+        b.Click += (_, _) => ShowTab((MainTab)b.Tag!, fromStrip: true);
         _tabs.Add(b);
         _strip.Controls.Add(b);
     }
@@ -265,8 +265,15 @@ public sealed class MainForm : Form
         if (_pages.TryGetValue(MainTab.Settings, out var p) && p is SettingsPage sp) sp.FocusScenVisibility();
     }
 
-    public void ShowTab(MainTab tab)
+    /// <summary>
+    /// Switch to a tab. <paramref name="fromStrip"/> is true only for clicks on the tab strip
+    /// itself: clicking the tab you are already on takes that page back to its own start view
+    /// (OnReenter). Deep links from the tray must NOT set it - they aim at a specific sub-page.
+    /// </summary>
+    public void ShowTab(MainTab tab, bool fromStrip = false)
     {
+        bool reenter = fromStrip && _active == tab
+                       && _pages.TryGetValue(tab, out var cur) && cur.Visible;
         _active = tab;
         if (!_pages.TryGetValue(tab, out var page))
         {
@@ -276,6 +283,7 @@ public sealed class MainForm : Form
         }
         foreach (var p in _pages.Values) p.Visible = p == page;
         page.OnEnter();
+        if (reenter) page.OnReenter();
         page.BringToFront();
         foreach (var b in _tabs) { b.Active = (MainTab)b.Tag! == tab; b.Invalidate(); }
         // Icon-only buttons must show where we are too: tabs collapsed to icons (per Settings →

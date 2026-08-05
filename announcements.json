@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1280-traytemp",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.27.0",
+    "title": "New release: temperature in the tray, and a lighter app in the background",
+    "title_pl": "Nowe wydanie: temperatura w zasobniku i lżejsza praca w tle",
+    "body": "GhostDeck v1.28.0 is out. CPU and GPU temperature can now sit next to the clock as their own icons, with your own thresholds and colours - off by default, in Settings > System. Two layout bugs are fixed: the horizontal scrollbar in Settings on smaller windows, and content drawn in the wrong place on Scenarios and Report after scrolling. The app is also lighter in the background: one shared WMI session instead of one per Embedded Controller read, the Status buffer released when that page is hidden, and tray mouse-wheel actions now opt-in on new installs. Click Details for the full tour.",
+    "body_pl": "Wyszło GhostDeck v1.28.0. Temperatura procesora i karty graficznej może teraz stać obok zegara jako osobne ikony, z Twoimi progami i kolorami - domyślnie wyłączone, w Ustawieniach > System. Naprawione dwa błędy układu: poziomy pasek przewijania w Ustawieniach przy mniejszym oknie oraz treść rysowana w złym miejscu w Scenariuszach i Raporcie po przewinięciu. Aplikacja jest też lżejsza w tle: jedna wspólna sesja WMI zamiast osobnej na każdy odczyt kontrolera, bufor Statusu zwalniany przy ukryciu strony i kółko myszy nad ikoną domyślnie wyłączone na nowych instalacjach. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.28.0"
+  },
+  {
     "id": "2026-08-v1270-modeldb",
     "severity": "info",
     "minVersion": "1.0.0",

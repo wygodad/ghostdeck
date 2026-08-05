@@ -166,15 +166,21 @@ public sealed class ReportPage : ThemedPage
 
     private void Relayout()
     {
+        // Content coordinates offset by AutoScrollPosition when they reach a child's Location -
+        // WinForms treats those as client coords and shifts children by the scroll delta, while
+        // OnPaint draws through ApplyScroll. Same rule as SettingsPage/ScenariosPage.
+        int ox = AutoScrollPosition.X, oy = AutoScrollPosition.Y;
         int titleH = new Font("Segoe UI", 18f, FontStyle.Bold).Height;
         _subTop = 24 + titleH + 18;
-        _subTabs.SetBounds(Pad, _subTop, _subTabs.PreferredWidth, _subTabs.Height);
+        _subTabs.SetBounds(Pad + ox, _subTop + oy, _subTabs.FitTo(ClientSize.Width - Pad * 2), _subTabs.Height);
 
-        if (_sub == 0) LayoutProfiles(_subTabs.Bottom + 26);
-        else LayoutCurve(_subTabs.Bottom + 26);
+        // NB: content coord, NOT _subTabs.Bottom - that one is already shifted by the scroll.
+        int top = _subTop + _subTabs.Height + 26;
+        if (_sub == 0) LayoutProfiles(top, ox, oy);
+        else LayoutCurve(top, ox, oy);
     }
 
-    private void LayoutProfiles(int top)
+    private void LayoutProfiles(int top, int ox, int oy)
     {
         // equal-width columns
         _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
@@ -187,27 +193,29 @@ public sealed class ReportPage : ThemedPage
         _contentTop = _introY + _introH + 18;
         _rowsTop = _contentTop + secH + 14;
 
-        _card.Location = new Point(Pad, _contentTop);
+        _card.Location = new Point(Pad + ox, _contentTop + oy);
         _card.SetWidth(_leftW);
 
         int ry = _rowsTop;
-        foreach (var r in _rows) { r.SetBounds(_rightX, ry, rightW, 52); ry += 60; }
+        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 52); ry += 60; }
         _barY = ry + 26;
         _instrTop = _barY + 58;
         var instrFont = new Font("Segoe UI", 11.5f, FontStyle.Bold);
         _instrH = TextRenderer.MeasureText(Lang.T("rep_all_done"), instrFont, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
         int capW = Math.Min(320, rightW - 180);
-        _capture.SetBounds(_rightX, _instrTop + _instrH + 18, capW, 44);
-        _restart.SetBounds(_rightX + capW + 10, _capture.Top, 170, 44);
+        int capY = _instrTop + _instrH + 18;      // content coord; children get + oy
+        _capture.SetBounds(_rightX + ox, capY + oy, capW, 44);
+        _restart.SetBounds(_rightX + capW + 10 + ox, capY + oy, 170, 44);
 
-        int leftBottom = _card.Bottom + 70;       // + firmware pill
-        int rightBottom = _capture.Bottom + 80;   // + wrapped saved-path line
+        // bottoms in CONTENT coords (child .Bottom is client-side once the page is scrolled)
+        int leftBottom = _contentTop + _card.Height + 70;   // + firmware pill
+        int rightBottom = capY + 44 + 80;                   // + wrapped saved-path line
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
 
     // Two-column layout mirroring the profiles flow: left = intro + info card + firmware pill,
     // right = section label + numbered steps + capture button + result.
-    private void LayoutCurve(int top)
+    private void LayoutCurve(int top, int ox, int oy)
     {
         _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
         _rightX = Pad + _leftW + Gutter;
@@ -217,7 +225,7 @@ public sealed class ReportPage : ThemedPage
         _curveTop = top;   // intro (left)
         _introH = TextRenderer.MeasureText(Lang.T("rep_curve_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
         _contentTop = _curveTop + _introH + 18;
-        _curveCard.Location = new Point(Pad, _contentTop);
+        _curveCard.Location = new Point(Pad + ox, _contentTop + oy);
         _curveCard.SetWidth(_leftW);
 
         // right column: section label + 5 steps + button
@@ -225,10 +233,10 @@ public sealed class ReportPage : ThemedPage
         _curveBtnY = _curveStepsTop + 34 * 5 + 18;
         _curveBarY = _curveBtnY + 62;
         int cbW = Math.Min(320, rightW - 180);
-        _curveBtn.SetBounds(_rightX, _curveBtnY, cbW, 44);
-        _curveRestart.SetBounds(_rightX + cbW + 10, _curveBtnY, 170, 44);
+        _curveBtn.SetBounds(_rightX + ox, _curveBtnY + oy, cbW, 44);
+        _curveRestart.SetBounds(_rightX + cbW + 10 + ox, _curveBtnY + oy, 170, 44);
 
-        int leftBottom = _curveCard.Bottom + 70;   // + firmware pill
+        int leftBottom = _contentTop + _curveCard.Height + 70;   // content coords (+ firmware pill)
         int rightBottom = _curveBarY + 80;
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }

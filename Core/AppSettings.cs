@@ -41,7 +41,10 @@ public sealed class AppSettings
     // (#23) Tray-icon mouse actions (TrayAction / TrayWheelMode as int).
     public int TrayClickLeft { get; set; } = (int)TrayAction.CycleProfile;
     public int TrayClickMiddle { get; set; } = (int)TrayAction.FanBoost;
-    public int TrayWheelMode { get; set; } = (int)GhostDeck.TrayWheelMode.Profiles;
+    // Default OFF: the wheel-over-the-tray-icon feature needs a system-wide WH_MOUSE_LL hook, so
+    // every mouse event in Windows would pass through our hook thread on a fresh install. Opt-in
+    // in Settings -> System -> Tray menu. Saved values are untouched (only new installs get None).
+    public int TrayWheelMode { get; set; } = (int)GhostDeck.TrayWheelMode.None;
 
     public bool TrayShowStatus { get; set; } = true;
     public bool TrayShowFanCurve { get; set; } = true;
@@ -194,6 +197,21 @@ public sealed class AppSettings
 
     // ostatnio otwarta subzakladka Ustawien (0 = Start/kafelki); wraca po restarcie aplikacji
     public int SettingsSubTab { get; set; }
+
+    // (discussion #9) Whether Settings always opens on the Start page instead of returning to
+    // wherever it was left. Default false = the behaviour so far.
+    public bool SettingsAlwaysStart { get; set; }
+
+    // (discussion #9) Separate CPU/GPU temperature icons in the tray - two of them, because a
+    // tray icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
+    // Warn, above = Hot. Off by default.
+    public bool TempTrayCpu { get; set; }
+    public bool TempTrayGpu { get; set; }
+    public int TempTrayWarn { get; set; } = 70;
+    public int TempTrayHot { get; set; } = 85;
+    public string TempTrayColorOk { get; set; } = "#16A34A";   // zielen 600 - czytelna na jasnym i ciemnym pasku
+    public string TempTrayColorWarn { get; set; } = "#D97706";   // bursztyn 600
+    public string TempTrayColorHot { get; set; } = "#DC2626";   // czerwien 600
 
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
@@ -353,6 +371,8 @@ public sealed class AppSettings
 
         // Battery rules sanity: thresholds stay inside 5-95, a broken action string falls back
         // to its default profile; an action pointing at a deleted scene falls back too.
+        TempTrayWarn = Math.Clamp(TempTrayWarn, 40, 110);
+        TempTrayHot = Math.Clamp(TempTrayHot, TempTrayWarn + 1, 120);
         BattLowPct = Math.Clamp(BattLowPct, 5, 95);
         BattHighPct = Math.Clamp(BattHighPct, 5, 95);
         bool ValidAction(string a) =>
@@ -439,6 +459,11 @@ public sealed class AppSettings
         Scenes.Clear();
         foreach (var s in src.Scenes) Scenes.Add(s.Clone());   // (#21)
         ScenHidden = new List<string>(src.ScenHidden);
+        SettingsAlwaysStart = src.SettingsAlwaysStart;
+        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu;
+        TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
+        TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
+        TempTrayColorHot = src.TempTrayColorHot;
         EnsureDefaults();
     }
 
@@ -516,6 +541,11 @@ public sealed class AppSettings
         foreach (var s in Scenes) c.Scenes.Add(s.Clone());   // (#21)
         foreach (var r in Schedules) c.Schedules.Add(r.Clone());
         c.ScenHidden = new List<string>(ScenHidden);
+        c.SettingsAlwaysStart = SettingsAlwaysStart;
+        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;
+        c.TempTrayWarn = TempTrayWarn; c.TempTrayHot = TempTrayHot;
+        c.TempTrayColorOk = TempTrayColorOk; c.TempTrayColorWarn = TempTrayColorWarn;
+        c.TempTrayColorHot = TempTrayColorHot;
         return c;
     }
 }

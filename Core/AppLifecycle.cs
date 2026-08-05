@@ -41,8 +41,8 @@ public static class AppLifecycle
 
     /// <summary>
     /// True for failures that only mean "WMI is momentarily out": nothing to fix, nothing worth
-    /// telling the user about. The caller skips that one read and tries again next time - each EC
-    /// call opens its own WMI connection, so the next one reconnects on its own.
+    /// telling the user about. The caller skips that one read and tries again next time - a failed
+    /// EC call drops the shared WMI session, so the next one reconnects on its own.
     /// </summary>
     public static bool IsTransient(Exception? ex)
     {

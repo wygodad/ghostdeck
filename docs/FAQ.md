@@ -31,6 +31,14 @@ Not supported, and it is a stated non-goal of the project. GhostDeck is a power,
 **Can it auto-clear RAM when I launch a game?**
 No, and it's not planned. "Freeing" RAM (trimming working sets or the standby list) doesn't really help modern games: Windows already evicts cached pages on demand, and dumping the standby list can actually *cause* stutter as that data gets re-read. It's also outside what GhostDeck is - an EC power/fan controller, not a system/RAM tweaker.
 
+**I turned on the temperature icons in the tray and nothing appeared.**
+They are there, Windows just hid them. Windows 11 puts every newly registered notification icon
+into the hidden overflow area (the `^` arrow next to the clock) until you say otherwise. Click the
+arrow, then drag the temperature icons down onto the taskbar and they stay there. The same happens
+to the GhostDeck ghost icon on a fresh install. If the overflow area has no temperature icons at
+all, check Settings -> System, card "Temperature in the tray": the card is hidden entirely on
+machines whose temperatures the app cannot read.
+
 **Is there any risk of damaging my laptop?**
 Very low. The app uses MSI's **official WMI interface** (the same channel MSI Center uses), writes only the exact register values MSI's own profiles use, and EC writes are **volatile** - a reboot resets the EC to firmware defaults (nothing is flashed). On an **unrecognized firmware it stays read-only** and writes nothing. The CPU also keeps its own hardware thermal protection that no EC write can disable. Experimental models are opt-in and write only documented mode registers.
 

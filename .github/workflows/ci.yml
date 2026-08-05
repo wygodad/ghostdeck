@@ -20,6 +20,11 @@ jobs:
       - name: Build
         run: dotnet build GhostDeck.csproj -c Release
 
+      # Every Lang.T key must ship in all 8 languages, with no duplicate keys (a duplicate is
+      # accepted silently by the dictionary indexer and quietly kills the earlier translations).
+      - name: Translations complete
+        run: python tools/lang-check.py
+
       # data/models.json must be exactly what the compiled tables dump (and must round-trip
       # through the parser byte-for-byte) - the wire format can never drift from the code.
       - name: Model database consistency

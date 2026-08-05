@@ -68,6 +68,11 @@ public sealed class SettingsPage : ThemedPage
         AutoScrollPosition = Point.Empty;   // each sub-page starts at its top
         ApplyVisibility();
         Layout2();
+        // Layout2 re-enters itself through Resize when a child resize creates the vertical
+        // scrollbar mid-pass (the overlay panel sets its own Width/Height), and the layout the
+        // AutoScrollMinSize setter asks for is then dropped. One settled pass from HERE - never
+        // from inside Layout2, which itself runs from Resize - recomputes the scroll extent.
+        PerformLayout();
         Invalidate();
     }
 
@@ -84,7 +89,17 @@ public sealed class SettingsPage : ThemedPage
         if (_overlayPanel != null) _overlayPanel.Visible = _cur == SubGaming;
     }
 
-    public override void OnEnter() { SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate(); }
+    public override void OnEnter()
+    {
+        // opt-in (discussion #9): land on the Start dashboard every time instead of resuming
+        // the sub-tab you left. FocusScenVisibility runs AFTER OnEnter, so the gear deep link
+        // from the Scenarios tab still wins - do not reorder those two.
+        if (D.Settings.SettingsAlwaysStart && _cur != SubHome) SelectSub(SubHome, save: false);
+        SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
+    }
+
+    /// <summary>Clicking the Settings tab while already on it goes back to the Start dashboard.</summary>
+    public override void OnReenter() => SelectSub(SubHome, save: true);
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
     // no re-layout here, which would reset the scroll position mid-edit.
     public override void LiveRefresh() { SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); }
@@ -180,6 +195,10 @@ public sealed class SettingsPage : ThemedPage
         int fullW = colW * 2 + Gutter;
         int top = TitleTop + _title.Height + 14;   // content coords throughout; offset applied at Location
 
+        // The strip does not fit at the minimum window size in any language - let it collapse to
+        // icons (the active one keeps its label, the hovered one expands in place) instead of
+        // pushing a horizontal scrollbar onto the whole page.
+        _subTabs.FitTo(ClientSize.Width - Pad * 2);
         _subTabs.Location = new Point(Pad + ox, top + oy);
         top += _subTabs.Height + 28;   // breathing room between the strip and the content
 
@@ -201,7 +220,7 @@ public sealed class SettingsPage : ThemedPage
             int rows = (_tiles.Count + cols - 1) / cols;
             int bottom = top + rows * (th + gap);
             if (_whatsNew != null) _whatsNew.Location = new Point(Pad + ox, bottom + oy);
-            AutoScrollMinSize = new Size(Pad * 2 + fullW, bottom + (_whatsNew?.Height ?? 0) + 16);
+            AutoScrollMinSize = new Size(0, bottom + (_whatsNew?.Height ?? 0) + 16);
             return;
         }
 
@@ -209,7 +228,7 @@ public sealed class SettingsPage : ThemedPage
         {
             _overlayPanel.Relayout(fullW);
             _overlayPanel.Location = new Point(Pad + ox, top + oy);
-            AutoScrollMinSize = new Size(Pad * 2 + fullW, top + _overlayPanel.Height + 20);
+            AutoScrollMinSize = new Size(0, top + _overlayPanel.Height + 20);
             return;
         }
 
@@ -218,7 +237,10 @@ public sealed class SettingsPage : ThemedPage
         foreach (var c in _gRight[_cur]) { c.Relayout(colW); c.Location = new Point(Pad + colW + Gutter + ox, yR + oy); yR += c.Height + 16; }
         // Setting AutoScrollMinSize after positioning lets WinForms clamp AutoScrollPosition to the new
         // content extent and shift the children by that same delta, keeping everything consistent.
-        AutoScrollMinSize = new Size(Pad * 2 + fullW, Math.Max(yL, yR) + 20);
+        // Width 0 = the horizontal extent comes from the children. Pinning it to Pad*2 + fullW made
+        // it exactly the client width, so the 17 px the vertical scrollbar takes was always enough
+        // to trip the horizontal one (the page had zero horizontal slack).
+        AutoScrollMinSize = new Size(0, Math.Max(yL, yR) + 20);
     }
 
     // ---------------- build ----------------
@@ -688,6 +710,19 @@ public sealed class SettingsPage : ThemedPage
         VisRow("panic", Lang.T("hk_panic"));
         VisRow("scenes", Lang.T("scene_title"));
         _gLeft[SubGeneral].Add(scenVis);   // left column (user request; the right one is crowded)
+
+        // (discussion #9) Settings can land on the Start dashboard every time instead of
+        // resuming the last sub-tab. Off by default = the behaviour people already know.
+        var navCard = new CardSection(Lang.T("set_grp_nav"), "");
+        var navInfo = new Label
+        {
+            Text = Lang.T("set_always_start_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        };
+        navCard.AddRow(null, navInfo);
+        navCard.AddRow(Lang.T("set_always_start"), Toggle(D.Settings.SettingsAlwaysStart,
+            v => { D.Settings.SettingsAlwaysStart = v; D.SaveSettings(); }));
+        _gRight[SubGeneral].Add(navCard);
         _scenVisCard = scenVis;            // gear on the Scenarios tab jumps here and flashes it
 
         // Settings backup: export = a copy of settings.json, import = adopt the preferences from
@@ -719,11 +754,65 @@ public sealed class SettingsPage : ThemedPage
         diag.AddRow(null, diagBtn);
         _gRight[SubSystem].Add(diag);
 
+        // (discussion #9) Temperature readouts in the notification area - two separate icons,
+        // because a tray icon is 16x16 px at 100% scaling: room for two bold digits, not two
+        // values. Hidden on machines we cannot read temperatures from.
+        if (D.Status().Known || D.Hw().CpuTemp > 0)
+        {
+            var tt = new CardSection(Lang.T("temptray_grp"), "");
+            var ttInfo = new Label
+            {
+                Text = Lang.T("temptray_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            tt.AddRow(null, ttInfo);
+            tt.AddRow(Lang.T("st_cpu_temp"), Toggle(D.Settings.TempTrayCpu,
+                v => { D.Settings.TempTrayCpu = v; D.SaveSettings(); D.SettingsChanged(); }));
+            tt.AddRow(Lang.T("st_gpu_temp"), Toggle(D.Settings.TempTrayGpu,
+                v => { D.Settings.TempTrayGpu = v; D.SaveSettings(); D.SettingsChanged(); }));
+            var warnVals = new[] { 50, 55, 60, 65, 70, 75, 80 };
+            var warn = Combo(warnVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(warnVals, D.Settings.TempTrayWarn)));
+            warn.SelectedIndexChanged += (_, _) =>
+            {
+                D.Settings.TempTrayWarn = warnVals[Math.Max(0, warn.SelectedIndex)];
+                if (D.Settings.TempTrayHot <= D.Settings.TempTrayWarn) D.Settings.TempTrayHot = D.Settings.TempTrayWarn + 10;
+                D.SaveSettings(); D.SettingsChanged();
+            };
+            tt.AddRow(Lang.T("temptray_warn"), warn);
+            var hotVals = new[] { 75, 80, 85, 90, 95, 100 };
+            var hot = Combo(hotVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(hotVals, D.Settings.TempTrayHot)));
+            hot.SelectedIndexChanged += (_, _) =>
+            {
+                D.Settings.TempTrayHot = Math.Max(D.Settings.TempTrayWarn + 1, hotVals[Math.Max(0, hot.SelectedIndex)]);
+                D.SaveSettings(); D.SettingsChanged();
+            };
+            tt.AddRow(Lang.T("temptray_hot"), hot);
+            tt.AddRow(null, ColorRow(
+                (Lang.T("temptray_ok"), () => D.Settings.TempTrayColorOk, v => D.Settings.TempTrayColorOk = v),
+                (Lang.T("temptray_warn_c"), () => D.Settings.TempTrayColorWarn, v => D.Settings.TempTrayColorWarn = v),
+                (Lang.T("temptray_hot_c"), () => D.Settings.TempTrayColorHot, v => D.Settings.TempTrayColorHot = v)));
+            var ttReset = new Button { Text = Lang.T("temptray_reset"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+            Ui.StyleGhost(ttReset);
+            ttReset.Click += (_, _) =>
+            {
+                var def = new AppSettings();
+                D.Settings.TempTrayColorOk = def.TempTrayColorOk;
+                D.Settings.TempTrayColorWarn = def.TempTrayColorWarn;
+                D.Settings.TempTrayColorHot = def.TempTrayColorHot;
+                D.Settings.TempTrayWarn = def.TempTrayWarn;
+                D.Settings.TempTrayHot = def.TempTrayHot;
+                D.SaveSettings(); D.SettingsChanged();
+                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // swatches + combos follow
+            };
+            tt.AddRow(null, ttReset);
+            _gRight[SubSystem].Add(tt);
+        }
+
         // (#27) Advanced privacy option: hard camera block (0x2F) - locks the camera off below
         // the Fn key and the Scenarios switch until lifted here (or by a panic reset).
         if (D.WebcamState() >= 0)
         {
-            var priv = new CardSection(Lang.T("set_grp_privacy"), "");
+            var priv = new CardSection(Lang.T("set_grp_privacy"), "");
             var privInfo = new Label
             {
                 Text = "⚠  " + Lang.T("webcam_block_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
@@ -785,7 +874,7 @@ public sealed class SettingsPage : ThemedPage
         // Fn/Win key swap - EC-persisted layout switch (msi-ec fn_win_swap), only on mapped boards.
         if (D.FnLeft() >= 0)
         {
-            var fnCard = new CardSection(Lang.T("fnswap_grp"), "");
+            var fnCard = new CardSection(Lang.T("fnswap_grp"), "");
             var fnInfo = new Label
             {
                 Text = Lang.T("fnswap_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
@@ -796,18 +885,22 @@ public sealed class SettingsPage : ThemedPage
             fnSeg.SelectedChanged += i => D.SetFnLeft(i == 0);
             fnCard.AddRow(null, fnInfo);
             fnCard.AddRow(null, fnSeg);
-            _gRight[SubSystem].Add(fnCard);
+            _gLeft[SubSystem].Add(fnCard);
         }
 
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
+        // Second card so BOTH columns of the Hotkeys group are used: fixed actions on the
+        // left, per-scene shortcuts on the right (the right half of a wide window used to
+        // stay empty). Added only when at least one scene exists.
+        var hkScenes = new CardSection(Lang.T("scene_title"), "");
         _hkToggles.Clear();
         _hkMaster = new ToggleSwitch { Checked = D.Settings.HotkeysEnabled };
         _hkMaster.Toggled += v => { D.Settings.HotkeysEnabled = v; UpdateHotkeyRowsEnabled(); D.SaveSettings(); D.SettingsChanged(); };
         hk.AddRow(Lang.T("hk_all"), _hkMaster);   // master on/off (#9), default on
         // static actions + one row per scene (#21); scene rows label with the scene's name
-        var hkRows = Acts.ToList();
-        foreach (var s in D.Settings.Scenes) hkRows.Add((s.HotkeyKey, s.Name));
-        foreach (var (key, label) in hkRows)
+        var hkRows = Acts.Select(a => (a.key, a.label, scene: false)).ToList();
+        foreach (var s in D.Settings.Scenes) hkRows.Add((s.HotkeyKey, s.Name, true));
+        foreach (var (key, label, isScene) in hkRows)
         {
             var box = new HotkeyBox { Width = 200, AutoSize = false, Height = 28 };   // fixed height so the row panel doesn't clip it
             box.SetValue(D.Settings.Hotkeys.TryGetValue(key, out var hd) ? hd : new HotkeyDef());
@@ -826,13 +919,14 @@ public sealed class SettingsPage : ThemedPage
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             box.Location = new Point(tg.Width + 12, (row.Height - box.Height) / 2);
             row.Controls.Add(tg); row.Controls.Add(box);
-            hk.AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : label, row);
+            (isScene ? hkScenes : hk).AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : label, row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
         reset.Click += (_, _) => ResetHotkeys();
         hk.AddRow(null, reset);
         _gLeft[SubHotkeys].Add(hk);
+        if (D.Settings.Scenes.Count > 0) _gRight[SubHotkeys].Add(hkScenes);
         UpdateHotkeyRowsEnabled();
 
         // Application icon: visual tiles; clicking one applies it immediately (#9).
@@ -1108,6 +1202,45 @@ public sealed class SettingsPage : ThemedPage
         _scenVisCard?.Flash(FlashPink, 30);
     }
 
+    /// <summary>
+    /// A row of colour swatches; clicking one opens the picker and stores the new hex.
+    /// A FlowLayoutPanel that sizes ITSELF to its buttons - a hand-sized Panel kept clipping
+    /// their bottom edge, and an auto-sizing container cannot get that wrong.
+    /// </summary>
+    private Control ColorRow(params (string label, Func<string> get, Action<string> set)[] items)
+    {
+        var row = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            FlowDirection = FlowDirection.LeftToRight,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+        };
+        foreach (var (label, get, set) in items)
+        {
+            var b = new Button { Text = label, AutoSize = false, Size = new Size(96, 30), Margin = new Padding(0, 0, 8, 0) };
+            Ui.StyleGhost(b);
+            void Paint()
+            {
+                try { b.ForeColor = ColorTranslator.FromHtml(get()); } catch { b.ForeColor = Theme.Text; }
+            }
+            Paint();
+            b.Click += (_, _) =>
+            {
+                using var dlg = new ColorDialog { FullOpen = true };
+                try { dlg.Color = ColorTranslator.FromHtml(get()); } catch { }
+                if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+                set(ColorTranslator.ToHtml(dlg.Color));
+                Paint();
+                D.SaveSettings(); D.SettingsChanged();
+            };
+            row.Controls.Add(b);
+        }
+        return row;
+    }
+
     private ToggleSwitch Toggle(bool on, Action<bool> onChange)
     {
         var t = new ToggleSwitch { Checked = on };
@@ -1373,7 +1506,20 @@ public sealed class SettingsPage : ThemedPage
             foreach (var (l, ctl) in _rows)
             {
                 if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
-                if (ctl is FlowLayoutPanel fp) { fp.BackColor = Theme.Card; foreach (Control _ in fp.Controls) { } }
+                if (ctl is FlowLayoutPanel fp)
+                {
+                    fp.BackColor = Theme.Card;
+                    // Refresh the surface/border of nested buttons, but NEVER their ForeColor -
+                    // on the colour swatches that is the user's chosen colour, not a theme colour.
+                    foreach (Control child in fp.Controls)
+                        if (child is Button swatch)
+                        {
+                            swatch.BackColor = Theme.Surface;
+                            swatch.FlatAppearance.BorderColor = Theme.BorderStrong;
+                            swatch.FlatAppearance.MouseOverBackColor = Theme.AccentSoft;
+                            swatch.FlatAppearance.MouseDownBackColor = Theme.RowAlt;
+                        }
+                }
                 // value labels (battery health) = Text; "muted"-tagged notes (diagnostics blurb) = Muted
                 if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : vl.Tag as string == "warn" ? Theme.Amber : Theme.Text; vl.BackColor = Theme.Card; }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }

@@ -3,6 +3,46 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.28.0] - 2026-08-05
+### Added
+- **Temperature in the notification area** ([discussion #9](../../discussions/9), thanks
+  @its475) - optional CPU and GPU readouts as their own tray icons, next to the profile
+  ghost. Two separate icons because a tray icon is 16x16 px at 100 % scaling: room for two
+  bold digits, not for two values. Both are off by default and each can be enabled on its
+  own in Settings → System, card "Temperature in the tray", together with the warning/hot
+  thresholds (default 70 °C / 85 °C) and the three colours. The card appears on recognised models
+  and on any machine currently reporting a CPU temperature. Note: Windows puts new tray icons in
+  the overflow area at first, so drag them onto the taskbar to keep them in sight.
+- **Settings can always open on Start** - an option for people who prefer the dashboard as
+  the entry point every time instead of returning to the sub-tab they left. Settings → General,
+  card "Navigation"; off by default.
+- **Clicking the tab you are already on resets the page** - Settings goes back to Start,
+  Status back to its first sub-tab, so there is a one-click way home from anywhere.
+
+### Fixed
+- **Horizontal scrollbar in Settings on smaller screens**
+  ([discussion #9](../../discussions/9)): switching to a sub-tab whose strip did not fit
+  pushed a scrollbar onto the whole page. The strip now falls back to icons only when it cannot fit, keeping the label on the tab
+  you are on and expanding the one under the cursor in place. At the minimum window size the
+  full strip does not fit in 7 of the 8 languages (Chinese is the only one that does), so this
+  affected everyone with a narrow window, not just one language.
+- **Scenarios and Report drew in the wrong place after scrolling** - both pages positioned
+  their content in client coordinates while the scroll offset had already been applied, so
+  cards and buttons landed shifted (and could overlap) once the page was scrolled.
+- Gaming overlay: the rounded border path was not released after painting.
+
+### Changed
+- **One WMI session instead of one per call** - every EC read/write used to open its own
+  connection to the MSI WMI interface, several times per 3-second tick for the life of the
+  process. The session is now created once and shared. Any failure drops it and retries on
+  a fresh one, so a WMI provider restart or waking from sleep still recovers by itself.
+- **Memory** - the Status page's offscreen buffer (~6 MB at 1600x980) is released when the
+  page is hidden and re-rendered on demand, and the translation tables are built in chunks
+  so the JIT no longer has to hold one enormous method.
+- **Tray mouse-wheel actions are now opt-in on new installs** - the feature needs a
+  system-wide mouse hook, so every mouse event in Windows passes through it. Existing
+  settings are untouched; Settings → System → Tray menu turns it on.
+
 ## [1.27.0] - 2026-08-04
 ### Added
 - **Modern 14 C12M promoted to Tested** ([#61](../../issues/61), thanks @ping-myildirim) -

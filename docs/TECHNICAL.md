@@ -1648,3 +1648,154 @@ file (explicit testing hook, like MSIPS_FORCE_FIRMWARE).
 `pwsh tools/sign-models.ps1`, commit both files, push - users have it within a day. The
 next exe release compiles the same tables in, so the override retires automatically
 (equal versions = compiled wins).
+
+---
+
+## 55. One shared WMI session (v1.28)
+
+Every EC call opened its own session: a WQL query for `MSI_ACPI` plus a fresh `Package_32`
+`ManagementClass`, both thrown away when the call returned. The 3-second poll did that several
+times per tick for the life of the process, and so did every scene, hotkey and CLI action.
+
+`Ec` now keeps ONE `(ManagementObject inst, ManagementClass pkg)` pair, built on first use.
+
+The reason it was per-call in the first place is real and had to be preserved: a cached COM
+object goes stale whenever WMI recycles its provider host (§32 - that happens during normal
+work, not just at shutdown) or the machine resumes from sleep, and a permanently stale session
+would silently stop all EC access for the rest of the session. That is why the session is
+wrapped rather than merely cached:
+
+```csharp
+private static T WithSession<T>(Func<ManagementObject, ManagementClass, T> body)
+{
+    lock (_wmiLock)
+        for (int attempt = 0; ; attempt++)
+            try { var (inst, pkg) = SessionLocked(); return body(inst, pkg); }
+            catch { DropLocked(); if (attempt >= 1) throw; }
+}
+```
+
+Three properties follow, and all three are load-bearing:
+
+1. **Any** failure drops the session - there is no error path that can leave a dead session
+   cached, so no caller has to remember to call a reset.
+2. One rebuild + retry means a provider-host recycle is invisible to the caller: the first
+   attempt fails on the stale handle, the second runs on a fresh one. Without it, every
+   recycle would cost a lost sample where the old code lost nothing.
+3. A second consecutive failure is a real failure and propagates unchanged, so `TryReadHw`,
+   `GetCurrent` and `AppLifecycle.Report` behave exactly as before.
+
+`Ec.DropSession()` is public for the one case the wrapper cannot see coming: `PowerModes.Resume`
+drops it up front instead of spending the first post-wake read discovering the session died.
+
+**Locking.** `_wmiLock` is a plain `Monitor`, so it is re-entrant. The per-byte primitives take
+it, and multi-byte operations take it around the whole sequence: `Apply` (a profile recipe),
+`WriteFanCurve`, the read-modify-write pairs (`SetCoolerBoost`, `SetMaskedBit` - Fan Boost,
+webcam, fn/win swap) and `ReadHw` (one tick's sample). The long read loops - `DumpAll` (256
+bytes), `ReadMany`, `ReadFanCurve` - deliberately do NOT hold it for the whole run: they take it
+per byte, so a background dump can never block a UI-thread read for a second or more. Reads do
+not change EC state, so interleaving them costs nothing.
+
+A lock is required, not optional: `SampleHw` runs on a thread-pool thread while `Poll` reads on
+the UI thread, and a single `ManagementObject` cannot serve both at once.
+
+**`_firmwareCache`** caches whatever a completed `Get_EC` returned, empty string included - that
+is a real answer for a board that reports nothing. A call that threw no longer writes the cache,
+so a transient failure cannot pin the firmware string to empty for the rest of the session.
+
+---
+
+## 56. Sub-tab strip that shrinks instead of scrolling (v1.28, discussion #9)
+
+Reported: on a smaller screen, moving from Settings → Start to another sub-tab put a horizontal
+scrollbar under the whole page.
+
+The strip does not fit at the minimum window size in 7 of the 8 languages. What it is measured
+against is `ClientSize.Width - Pad * 2` with `Pad = 28`, so at the 900x620 minimum window
+(client 867 after the frame and the vertical scrollbar) the budget is **811 px**, not 867.
+`SubTabs.MeasureFull()` for the Settings strip, same fonts and constants, at 96 DPI:
+
+| | en | pl | de | fr | es | zh | pt | ru |
+|---|---|---|---|---|---|---|---|---|
+| full strip (px) | 842 | 863 | 899 | 925 | 854 | 715 | 834 | 895 |
+| over budget | +31 | +52 | +88 | +114 | +43 | fits | +23 | +84 |
+
+Chinese is the only one that fits, its labels being the shortest by a wide margin. English
+overflows by the least, 31 px, which is why the report read as language-specific; it is not.
+
+`SubTabs.FitTo(available)` is called with the width the page can give. If `MeasureFull()`
+exceeds it, the strip switches to icons only, with two exceptions that keep it usable: the
+ACTIVE segment always keeps its label (you can always see where you are), and the segment under
+the cursor expands to icon + label in place, collapsing again on leave. Hovering therefore
+changes the strip's own width, so `SyncWidth()` re-clamps it to `_avail` - expanding can never
+push the scrollbar back.
+
+Tooltips were tried first and rejected: a tooltip is a separate window that appears after a
+delay and covers the content, whereas an inline label answers the same question immediately.
+
+## 57. Tray temperature icons (v1.28, discussion #9)
+
+CPU and GPU temperature can be shown in the notification area as two additional `NotifyIcon`s
+beside the profile ghost. Two icons, not one, because at 100 % scaling a tray icon is 16x16 px:
+that is room for two bold digits, not for two values with labels. Values at 100 °C and above
+render as `99+`.
+
+`TrayIconFactory.TextIcon` has 16 px to work with, so all of it has to reach the digits. Three
+things decide how large they end up, and the naive version loses on all three:
+
+- **Bitmap size.** Building at 32 px and letting the shell resample down blurs the result. The
+  bitmap is created at `GetSystemMetrics(SM_CXSMICON)` instead, which is the size the shell
+  actually asks for and follows the DPI (16 px at 100 %, 24 px at 150 %).
+- **Text vs glyph outlines.** `DrawString` places the text inside the font's line box, which
+  reserves space for ascenders, descenders and leading that digits never occupy, and
+  `MeasureString` reports that padded box. Centring on it wastes roughly a third of the height.
+  The digits are added to a `GraphicsPath` (`AddString` with `GenericTypographic`) and
+  `GetBounds()` returns the ink itself, which can then be fitted to the icon.
+- **The dark edge.** The icon has no background of its own and the taskbar is light in one theme
+  and dark in the other, so the digits need a dark edge. A halo drawn as 8 offset copies of the
+  text costs a full pixel ring at this size; a single `DrawPath` with a `pen` of `S/12` and
+  `LineJoin.Round` gives the same legibility and only half of the stroke falls outside the glyph,
+  so the fitted box is `S - pen`, not `S - 2*pen`.
+
+Measured ink height of "71": 10 px → 13 px at a 16 px icon, 14 px → 19 px at 24 px.
+
+Both are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
+in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card
+from "Tray menu" (`set_grp_tray`, the mouse actions). `ApplyTempTray` gates on the rendered TEXT, not the raw
+temperature, so an unchanged reading does not rebuild the icon; the previous `Icon` is disposed
+only AFTER the new one is assigned, because disposing it while the shell still references it
+flashes a blank icon.
+
+The card is built behind `D.Status().Known || D.Hw().CpuTemp > 0`, i.e. it shows on any recognised
+model and on an unrecognised one that is currently reporting a CPU temperature. The test runs when
+the Settings page is built, so on an unrecognised board the sampling has to be live before Settings
+is opened for the first time.
+
+Worth repeating wherever this feature is described: Windows files every newly registered
+notification icon into the hidden overflow area, so the first thing a user sees after switching it
+on is nothing at all until they drag the icons onto the taskbar.
+
+---
+
+## 58. Translation gate in CI (v1.28)
+
+The project rule is that every `Lang.T` key ships in all 8 languages (en/pl/de/fr/es/zh/pt/ru),
+never an English-only fallback. That rule used to depend on whoever edited `Core/Lang.cs`
+remembering it. `tools/lang-check.py` checks it mechanically and `.github/workflows/ci.yml` runs
+it on every push, so a missing translation fails the build instead of shipping.
+
+It enforces two things:
+
+- **8 non-empty entries per key.** A short array is a missing language, and the app would fall
+  back to English for that string.
+- **No duplicate keys.** The collection-initializer syntax accepts a repeated key silently: the
+  later entry wins and the earlier translations become dead code. That is how `set_check_updates`
+  ended up defined twice, which this check found and which the same change removed.
+
+Current state: 537 keys x 8 languages.
+
+`Core/Lang.cs` itself was split in the same change. One initializer holding every entry made a
+single enormous method that the JIT had to compile in one piece on first use; the map is now
+built by twelve `L00..L11` methods called from `Build()`. Same data, same order, same keys - the
+split was verified by dumping the key/value set before and after and comparing.
+

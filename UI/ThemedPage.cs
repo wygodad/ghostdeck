@@ -28,6 +28,12 @@ public abstract class ThemedPage : UserControl
         if (D.Settings.ShowGrid) Ui.DrawGrid(e.Graphics, ClientRectangle);
     }
     public virtual void OnEnter() { }
+
+    /// <summary>
+    /// The user clicked the tab they are already on. Pages with sub-tabs use it to go back to
+    /// their own start view, so the tab icon doubles as a "home" button (discussion #9).
+    /// </summary>
+    public virtual void OnReenter() { }
     // Lightweight refresh after external state changes (profile/cooler/overlay). Unlike OnEnter it must
     // NOT re-run layout — a re-layout on a scrolled page (Settings) yanks the scroll position to the top.
     public virtual void LiveRefresh() { }

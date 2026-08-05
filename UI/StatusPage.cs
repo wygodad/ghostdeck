@@ -102,7 +102,16 @@ public sealed class StatusPage : ThemedPage
         _canvas.Controls.Add(_logBtn);
 
         _timer.Tick += (_, _) => RefreshAsync();
-        VisibleChanged += (_, _) => { if (Visible) { Relayout(); _timer.Start(); } else _timer.Stop(); UpdateFpsViewer(); };
+        // Hidden page: stop the timer AND drop the offscreen buffer. It is sized to the whole
+        // scrollable content (measured 6.4 MB at 1600x980) and, since pages are never disposed,
+        // it would otherwise stay allocated for the rest of the session. OnPaint re-renders when
+        // the buffer is null, so re-opening costs one render.
+        VisibleChanged += (_, _) =>
+        {
+            if (Visible) { Relayout(); _timer.Start(); }
+            else { _timer.Stop(); _canvas.ReleaseBuffer(); }
+            UpdateFpsViewer();
+        };
         ClientSizeChanged += (_, _) => Relayout();
         ChangeLog.Changed += OnLogChanged;
 
@@ -199,7 +208,7 @@ public sealed class StatusPage : ThemedPage
     private void Relayout()
     {
         if (_canvas == null) return;
-        _statusTabs.Size = new Size(_statusTabs.PreferredWidth, _statusTabs.Height);
+        _statusTabs.Size = new Size(_statusTabs.FitTo(ClientSize.Width - 24), _statusTabs.Height);
         _canvas.Width = ClientSize.Width;
         _canvas.Height = Math.Max(SectionHeight(_canvas.Width, _statusSub), ClientSize.Height);
     }
@@ -242,6 +251,9 @@ public sealed class StatusPage : ThemedPage
     private const int RecentLogRows = 16;
 
     // Paint the cached snapshot immediately (instant tab switch) and refresh in the background.
+    /// <summary>Clicking the Status tab while already on it goes back to the first sub-tab.</summary>
+    public override void OnReenter() => _statusTabs.SetActive(0, raise: true);
+
     public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 4; _histRange.Visible = _histExport.Visible = _statusSub == 1; _sessPick.Visible = _sessExport.Visible = _statusSub == 2; if (_statusSub == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
     public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
     protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; UpdateFpsViewer(); } base.Dispose(disposing); }
@@ -301,6 +313,14 @@ public sealed class StatusPage : ThemedPage
 
         protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); _p.HistMouse(e.Location); }
         protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _p.HistMouse(null); }
+
+        /// <summary>Free the offscreen buffer (the page is hidden); OnPaint rebuilds it on demand.</summary>
+        internal void ReleaseBuffer()
+        {
+            _buf?.Dispose();
+            _buf = null;
+            _bufW = _bufH = 0;
+        }
 
         protected override void Dispose(bool disposing) { if (disposing) _buf?.Dispose(); base.Dispose(disposing); }
     }

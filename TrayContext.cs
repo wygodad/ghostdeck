@@ -9,6 +9,11 @@ namespace GhostDeck;
 public sealed class TrayContext : ApplicationContext
 {
     private readonly NotifyIcon _tray = new();
+    // (discussion #9) Optional CPU/GPU temperature readouts in the notification area. Two icons,
+    // because at 100% scaling an icon is 16x16 px - room for two bold digits, not for two values.
+    private NotifyIcon? _cpuTray, _gpuTray;
+    private Icon? _cpuTrayIcon, _gpuTrayIcon;
+    private string _cpuTrayText = "", _gpuTrayText = "";
     private readonly OsdForm _osd = new();
     private readonly HotkeyManager _hotkeys = new();
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
@@ -1263,6 +1268,7 @@ public sealed class TrayContext : ApplicationContext
             return;
         }
         if (e.Mode != PowerModes.Resume) return;
+        Ec.DropSession();   // the WMI session from before sleep is gone; reconnect on the next read
         bool wantProfile = _settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && _profileBeforeSleep is { };
         bool wantCurve = _settings.RestoreCurveOnResume && _settings.CurveActive;   // (#49)
         bool wantSchedule = _settings.ScheduleEnabled;
@@ -1528,6 +1534,7 @@ public sealed class TrayContext : ApplicationContext
         {
             ApplyHotkeys(); BuildMenu(); UpdateUi(_current);
             ApplyTrayWheel();   // (#23) follow a just-edited wheel mode (install or remove the hook)
+            SyncTempTrays();    // drop a temperature icon the user just switched off
             // apply a just-edited refresh preference right away (no-op when disabled)
             ApplyRefreshForPower(SystemInformation.PowerStatus.PowerLineStatus);
             GameSessions.ApplyLimit(_settings.GameSessionKeep);   // a lowered keep-count trims at once
@@ -1763,10 +1770,61 @@ public sealed class TrayContext : ApplicationContext
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
                     (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
+                if (_settings.TempTrayCpu || _settings.TempTrayGpu) ui?.Post(_ => UpdateTempTrays(hw), null);
             }
             catch { }
             finally { Interlocked.Exchange(ref _thermalBusy, 0); }
         });
+    }
+
+    /// <summary>
+    /// Refresh the temperature icons. Rebuilt only when the displayed TEXT changes (a new icon
+    /// every 3 s would be ~1200 GDI icons an hour for nothing), and the previous icon is always
+    /// disposed AFTER the new one is assigned - the same order UpdateUi uses for the main icon.
+    /// </summary>
+    private void UpdateTempTrays(HwSnapshot hw)
+    {
+        ApplyTempTray(ref _cpuTray, ref _cpuTrayIcon, ref _cpuTrayText,
+            _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"));
+        ApplyTempTray(ref _gpuTray, ref _gpuTrayIcon, ref _gpuTrayText,
+            _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"));
+    }
+
+    private void ApplyTempTray(ref NotifyIcon? icon, ref Icon? current, ref string shown,
+                               bool wanted, int temp, string label)
+    {
+        if (!wanted || temp <= 0)
+        {
+            if (icon != null) { icon.Visible = false; icon.Dispose(); icon = null; }
+            current?.Dispose(); current = null; shown = "";
+            return;
+        }
+        string text = temp >= 100 ? "99+" : temp.ToString();
+        icon ??= new NotifyIcon { ContextMenuStrip = _tray.ContextMenuStrip, Visible = true };
+        icon.Text = $"{label} {temp} °C";
+        if (text == shown) return;                       // nothing to redraw
+        var next = TrayIconFactory.TextIcon(text, TempTrayColor(temp));
+        icon.Icon = next;
+        current?.Dispose();
+        current = next;
+        shown = text;
+    }
+
+    private Color TempTrayColor(int temp)
+    {
+        string hex = temp >= _settings.TempTrayHot ? _settings.TempTrayColorHot
+                   : temp >= _settings.TempTrayWarn ? _settings.TempTrayColorWarn
+                   : _settings.TempTrayColorOk;
+        try { return ColorTranslator.FromHtml(hex); } catch { return Color.White; }
+    }
+
+    /// <summary>Settings changed the on/off state - drop an icon that is no longer wanted.</summary>
+    private void SyncTempTrays()
+    {
+        if (!_settings.TempTrayCpu && _cpuTray != null)
+        { _cpuTray.Visible = false; _cpuTray.Dispose(); _cpuTray = null; _cpuTrayIcon?.Dispose(); _cpuTrayIcon = null; _cpuTrayText = ""; }
+        if (!_settings.TempTrayGpu && _gpuTray != null)
+        { _gpuTray.Visible = false; _gpuTray.Dispose(); _gpuTray = null; _gpuTrayIcon?.Dispose(); _gpuTrayIcon = null; _gpuTrayText = ""; }
     }
 
     private void OnThermalSample(HwSnapshot hw)
@@ -1968,6 +2026,9 @@ public sealed class TrayContext : ApplicationContext
         _overlay?.Close();
         _report?.Close();
         _osd.Dispose();
+        if (_cpuTray != null) { _cpuTray.Visible = false; _cpuTray.Dispose(); }
+        if (_gpuTray != null) { _gpuTray.Visible = false; _gpuTray.Dispose(); }
+        _cpuTrayIcon?.Dispose(); _gpuTrayIcon?.Dispose();
         _tray.Dispose();
         _currentIcon?.Dispose();
         ExitThread();

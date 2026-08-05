@@ -12,10 +12,11 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 ## Features
 
-- 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**; Settings is organized into **icon sub-tabs** (a Start page with tiles + General / Power / Notifications / Gaming / Hotkeys / System) and reopens on the sub-tab you used last
+- 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**; Settings is organized into **icon sub-tabs** (a Start page with tiles + General / Power / Notifications / Gaming / Hotkeys / System) and reopens on the sub-tab you used last (or always on Start, your choice). On a narrow window the sub-tab strip shrinks to icons instead of pushing a scrollbar, and clicking the tab you are already on takes you back to its first page
 - 🎬 **Scenes** - one-click macros that set any mix of **profile + fan-curve preset + refresh rate + screen brightness + HDR + overlay + charge limit + keyboard backlight + webcam + Windows-key lock + touchpad + Fan Boost** in a single stroke ("Gaming": Extreme, 240 Hz, 80 % brightness, HDR on · "Work": Silent, 60 Hz, 45 %, HDR off). Run them from cards on the Scenarios tab, the tray menu, a **per-scene hotkey**, the tray scroll wheel or the CLI (`--scene "Name"`); an example set is one click away
 - ⏰ **Scene schedule** - different settings for **work hours, nights and weekends**: rules (weekdays + a time window, overnight ranges fine) apply a scene when the window starts, also right after boot. Edge-triggered, so your manual tweaks inside a window are respected; first matching rule wins (Settings → Power)
 - 🔋 **Battery-level rules** - e.g. **below 30 % → Super Battery, above 80 % → Balanced**: two direction-aware thresholds (the low one fires while discharging, the high one while charging, once per crossing), each running any profile or scene (Settings → Power)
+- 🌡️ **Temperature in the tray** *(opt-in)* - show CPU and/or GPU temperature as their own icons next to the profile ghost, with your own warning / hot thresholds and colours
 - 🖱️ **Tray-icon mouse actions** - **scroll the wheel** over the tray icon to switch profiles (or scenes / backlight), **middle-click** for Fan Boost; left, middle and wheel are all configurable in Settings (open a tab, toggle overlay, panic reset, …)
 - ⌨️ Global, **rebindable** hotkeys (default `Ctrl+Alt+F1–F4`, `Ctrl+Alt+P` = cycle)
 - 💡 **Keyboard-backlight level** (off / low / mid / high) on supported models (single-colour keyboards, per msi-ec's register map; per-key RGB laptops keep their own Fn key - [why](docs/LIGHTING.md)) - a brick on Scenarios, a cycle hotkey, a wheel mode, a CLI switch and a scene field; follows the Fn key
@@ -69,6 +70,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Global **rebindable** hotkeys | Limited² | ✅ |
 | Scenes (one-click multi-setting macros) | ❌ | ✅ *(profile + curve + Hz + overlay + more)* |
 | Tray-icon wheel / middle-click actions | ❌ | ✅ *(configurable)* |
+| CPU / GPU temperature in the notification area | ❌ | ✅ *(opt-in, own thresholds + colours)* |
 | Keyboard-backlight level (EC register) | ✅ | ✅ *(supported single-colour models)* |
 | Webcam switch + hard camera block | ✅ *(switch)* | ✅ *(switch + firmware-level block)* |
 | Screen brightness as part of a scene | ❌ | ✅ |
@@ -118,7 +120,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
 | **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
 | ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
-| **Settings → Power** - charge limit, scene schedule, battery-level rules, battery health, Fan Boost auto-off timer, refresh rate and HDR | **Settings → System** - tray-icon mouse actions, camera privacy block, Windows-key lock, touchpad, Fn/Win keyboard layout, diagnostics, backup |
+| **Settings → Power** - charge limit, scene schedule, battery-level rules, battery health, Fan Boost auto-off timer, refresh rate and HDR | **Settings → System** - tray-icon mouse actions, tray temperature icons, camera privacy block, Windows-key lock, touchpad, Fn/Win keyboard layout, diagnostics, backup |
 | ![Settings Hotkeys](docs/images/settings_hotkeys.png) | ![Updates](docs/images/updates.png) |
 | **Settings → Hotkeys** - every action rebindable, including one shortcut per scene | **Updates** - one-click install, 20 releases with download counts and inline notes |
 | ![Report my model](docs/images/report_my_model.png) | ![Models](docs/images/models.png) |
@@ -127,6 +129,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Fan curve** - drag a custom CPU/GPU fan curve (manual fan control) | **Status (EC bytes)** - live profile-byte matrix, legend and fan-curve tables |
 | ![Change log](docs/images/change_log.png) | ![Fan Boost timer](docs/images/fanboost_timer_osd.png) |
 | **Change log** - full history of profile switches and EC writes | **Fan Boost auto-off** - the OSD note when the boost timer hands the fans back |
+| ![Temperature in the tray](docs/images/tray-temps.png) | ![Compact sub-tabs](docs/images/subtabs-compact.png) |
+| **Temperature in the tray** - CPU and GPU as their own icons next to the clock, colour by your own thresholds | **Narrow window** - the sub-tab strip drops to icons instead of pushing a scrollbar; the tab you are on keeps its label |
 
 ## Download
 
