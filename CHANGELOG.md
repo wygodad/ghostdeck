@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Katana 15 HX B14WEK promoted to Tested** ([#63](../../issues/63), thanks
+  @zajebistylukasz-beep) - the per-scenario capture matches the shipped recipe byte for byte and
+  all three hardware checks are confirmed, so the model leaves the experimental opt-in. Its fan
+  curve is hardware-verified on both fans ([#64](../../issues/64)) and the fan tachometers at
+  `0xC9` / `0xCB` are live, so Status now shows RPM for it. 18 models tested.
+
 ### Changed
 - **Tray temperature colours** now ship as brand cyan / amber / red instead of green / amber /
   red. The digits carry a dark outline, which lets the lighter, more saturated set stay readable

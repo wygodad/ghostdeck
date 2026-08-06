@@ -73,7 +73,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260804;
+    public const int DataVersion = 20260806;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride, applied once
     // at startup by Program). Null = the compiled tables below are in effect.
@@ -470,7 +470,14 @@ public static class Devices
         new() { Name = "MSI Katana GF66 12UDO",             FirmwarePrefixes = new[] { "1584IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator M16 B13VF",             FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 15 B12VEK / B12VFK / B12VGK", FirmwarePrefixes = new[] { "1585EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Katana 15 HX B14WEK",           FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Katana 15 HX B14WEK (1587EMS1) - owner per-scenario snapshot (issue #63) matches StdRecipes
+        // 1:1: shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery.
+        // All three hardware checks confirmed by the owner, so Tested. Fan curve VERIFIED (issue #64)
+        // on BOTH fans: the test curve sits byte-for-byte at 0x72 and 0x8A, and the temperature tables
+        // at 0x69 / 0x81 are ascending. RPM 0xC9/0xCB vary per scenario (A3/90/81/88 = 2930-3710 RPM).
+        new() { Name = "MSI Katana 15 HX B14WEK", FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "zajebistylukasz-beep", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63" },
         // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
         // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
         // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register

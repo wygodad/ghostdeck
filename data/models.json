@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260804,
+  "dataVersion": 20260806,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / 14V",
@@ -2278,7 +2278,9 @@
       "prefixes": [
         "1587EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2286,9 +2288,11 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
+      "credit": "zajebistylukasz-beep",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/63",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
