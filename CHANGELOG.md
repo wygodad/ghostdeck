@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.29.0] - 2026-08-07
 ### Added
 - **Model-database updates apply without restarting** and are checked far more often. The
   database is now fetched at every start, when you open the Models tab, and from a new
@@ -23,6 +23,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   red. The digits carry a dark outline, which lets the lighter, more saturated set stay readable
   on a light and a dark taskbar alike. Existing settings keep whatever colours they hold; the
   "Default colours" button applies the new set.
+
+### Fixed
+- **The unassigned-hotkey placeholder showed Polish text in every language.** Settings → Hotkeys
+  now says "(none)" in the language you picked.
+- **Scene cards** kept a fixed gap under the scene name instead of squeezing the chips against it
+  once a card carried two rows of them.
 
 ## [1.28.0] - 2026-08-05
 ### Added

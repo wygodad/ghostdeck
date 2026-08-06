@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1290-modeldb-live",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.28.0",
+    "title": "New release: model updates arrive while the app is running",
+    "title_pl": "Nowe wydanie: aktualizacje modeli docierają w trakcie pracy aplikacji",
+    "body": "GhostDeck v1.29.0 is out. The signed model database no longer waits for a restart, or for a daily window: it is checked at every start, when you open the Models tab, and from a Check now button in Settings > System > Updates and in the Models footer. A newer database goes live straight away, so a laptop that was just confirmed on real hardware stops being experimental without you closing anything. The one exception is an open fan-curve editor, where the update waits until you leave it rather than changing the register layout mid-edit. Also in this release: Katana 15 HX B14WEK is the 18th model confirmed on real hardware, and the unassigned-hotkey placeholder no longer shows Polish text in other languages. Click Details for the full tour.",
+    "body_pl": "Wyszło GhostDeck v1.29.0. Podpisana baza modeli nie czeka już na restart ani na dobowe okno: jest sprawdzana przy każdym uruchomieniu, przy wejściu na zakładkę Modele oraz przyciskiem w Ustawieniach > System > Aktualizacje i w stopce Modeli. Nowsza baza wchodzi w życie od razu, więc laptop właśnie potwierdzony na sprzęcie przestaje być eksperymentalny bez zamykania czegokolwiek. Wyjątkiem jest otwarty edytor krzywej wentylatora, gdzie aktualizacja czeka, zamiast zmieniać układ rejestrów w trakcie edycji. W tym wydaniu także: Katana 15 HX B14WEK jako 18. model potwierdzony na sprzęcie oraz poprawka polskiego tekstu w polu skrótu klawiszowego w pozostałych językach. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.29.0"
+  },
+  {
     "id": "2026-08-v1280-traytemp",
     "severity": "info",
     "minVersion": "1.0.0",
