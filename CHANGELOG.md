@@ -5,6 +5,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Model-database updates apply without restarting** and are checked far more often. The
+  database is now fetched at every start, when you open the Models tab, and from a new
+  **Check now** button in Settings → System → Updates, instead of once a day alongside the
+  release check. A newer database goes live immediately: the Models tab, the tier gates, fan
+  RPM and the fan-curve layout all follow without closing the app. The one exception is an open
+  fan-curve editor with the switch on, where the update waits until you leave it rather than
+  changing the register layout under an edit in progress.
 - **Katana 15 HX B14WEK promoted to Tested** ([#63](../../issues/63), thanks
   @zajebistylukasz-beep) - the per-scenario capture matches the shipped recipe byte for byte and
   all three hardware checks are confirmed, so the model leaves the experimental opt-in. Its fan

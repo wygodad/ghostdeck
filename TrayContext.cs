@@ -19,7 +19,13 @@ public sealed class TrayContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
 
     private AppSettings _settings;
-    private readonly DeviceProfile? _device;
+    // NOT readonly: a downloaded model database can be applied while the app runs, which
+    // re-resolves this and everything derived from it (see TryApplyModelDb).
+    private DeviceProfile? _device;
+    // >0 while a composed EC operation is running. A model-database swap in the middle of one
+    // would mix registers from two generations, so it waits.
+    private int _ecBusy;
+    private ModelDb.Parsed? _pendingDb;   // swap deferred until the gate opens
     private readonly string _firmware;
     private readonly bool _simulate;   // MSIPS_FORCE_FIRMWARE set -> UI preview, no EC writes
     private ProfileId _current;
@@ -136,6 +142,7 @@ public sealed class TrayContext : ApplicationContext
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
         _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
         MaybeCheckForUpdates();
+        MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
 
         // Pre-create the main window HIDDEN shortly after startup: the form, its pages and all
         // their native handles are built off-screen, so the first open (and every tab) shows
@@ -772,6 +779,7 @@ public sealed class TrayContext : ApplicationContext
     private void SetProfile(ProfileId id, bool osd, ChangeSource source, bool count = true, bool applyCurve = true)
     {
         if (!Writable) { ShowState(); return; }
+        using var _ec = EcBusy();
         try
         {
             if (_simulate)
@@ -851,6 +859,7 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyPresetFromTray(string? name, bool osd = true)
     {
         if (!Writable || _device?.FanCurve is not { } fc) { ShowState(); return; }
+        using var _ec = EcBusy();
         try
         {
             if (name == null)
@@ -996,6 +1005,7 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyScene(SceneDef s, ChangeSource source)
     {
         if (!Writable) { ShowState(); return; }
+        using var _ec = EcBusy();
         try
         {
             if (s.Profile is { } pn && Enum.TryParse<ProfileId>(pn, out var pid))
@@ -1131,6 +1141,7 @@ public sealed class TrayContext : ApplicationContext
     {
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
         if (next == _coolerBoost) { UpdateCoolerBoostMenu(); return; }
+        using var _ec = EcBusy();
         try
         {
             string read = "(simulate)";
@@ -1304,6 +1315,7 @@ public sealed class TrayContext : ApplicationContext
         if (_current == ProfileId.Silent) return;   // a curve would drop Silent's power cap (shared byte)
         var s = _settings;
         if (s.CurveCpuTemp.Length != fc.Points || s.CurveCpuSpeed.Length != fc.Points) return;
+        using var _ec = EcBusy();
         if (!fc.SingleFan && (s.CurveGpuTemp.Length != fc.Points || s.CurveGpuSpeed.Length != fc.Points)) return;
         try
         {
@@ -1530,6 +1542,8 @@ public sealed class TrayContext : ApplicationContext
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),
         CheckNoticesNow = CheckNoticesNow,
+        CheckModelDbNow = cb => MaybeCheckModelDb(force: true, done: cb),
+        PollModelDb = () => MaybeCheckModelDb(),
         SettingsChanged = () =>
         {
             ApplyHotkeys(); BuildMenu(); UpdateUi(_current);
@@ -1635,20 +1649,109 @@ public sealed class TrayContext : ApplicationContext
         {
             var res = await Updater.CheckAsync(current);
             var notices = await Notices.FetchAsync(current, _settings.SeenNoticeIds);
-            // Signed model database (ModelDb): same daily cadence and privacy footprint as the
-            // update check. A valid, newer file is stored and takes effect on the next start;
-            // the change-log line is the only notification (no balloon - nothing is urgent).
-            int? db = await ModelDb.FetchUpdateAsync();
             void Apply()
             {
                 OnUpdateResult(res);
                 OnNoticesResult(notices);
-                if (db is { } v) ChangeLog.Add(ChangeSource.Startup, string.Format(Lang.T("log_modeldb"), v));
             }
             if (ui != null) ui.Post(_ => Apply(), null);
             else Apply();
         });
     }
+
+    // ---------------- signed model database ----------------
+    // Kept apart from the release check on purpose. This one is a static file on the CDN with no
+    // request limit, so it can be checked at every start and when the user opens the Models tab;
+    // the release check goes to the rate-limited GitHub API and stays on its 24 h window.
+    private const int ModelDbDebounceMinutes = 15;
+
+    /// <summary>
+    /// Fetch a newer signed database and put it in effect. <paramref name="force"/> is the
+    /// Settings button: it skips the debounce and reports back through <paramref name="done"/>
+    /// (version applied, 0 = already current, -1 = failed, -2 = downloaded but deferred).
+    /// </summary>
+    private void MaybeCheckModelDb(bool force = false, Action<int>? done = null)
+    {
+        if (!force)
+        {
+            if (!_settings.UpdateCheckEnabled) { done?.Invoke(0); return; }
+            if (DateTime.UtcNow - _settings.LastModelDbCheckUtc < TimeSpan.FromMinutes(ModelDbDebounceMinutes))
+            { done?.Invoke(0); return; }
+        }
+        var ui = _ui;
+        Task.Run(async () =>
+        {
+            int? fetched;
+            try { fetched = await ModelDb.FetchUpdateAsync(); }
+            catch (Exception ex) { AppLifecycle.Report(ex, "model-db fetch"); done?.Invoke(-1); return; }
+
+            void Apply()
+            {
+                _settings.LastModelDbCheckUtc = DateTime.UtcNow;
+                _settings.Save();
+                if (fetched is not { } v) { done?.Invoke(0); return; }   // nothing newer on the server
+                if (ModelDb.LoadOverride() is { } parsed && TryApplyModelDb(parsed))
+                {
+                    ChangeLog.Add(ChangeSource.Startup, string.Format(Lang.T("log_modeldb"), v));
+                    done?.Invoke(v);
+                }
+                else done?.Invoke(-2);   // valid and stored, but a curve edit or an EC write is in flight
+            }
+            if (ui != null) ui.Post(_ => Apply(), null);
+            else Apply();
+        });
+    }
+
+    /// <summary>
+    /// Put a downloaded database in effect NOW. UI thread only. Returns false when it is not
+    /// newer, or when the moment is unsafe - then it is parked in <c>_pendingDb</c> and retried
+    /// as soon as the gate opens.
+    /// </summary>
+    private bool TryApplyModelDb(ModelDb.Parsed p)
+    {
+        if (p.DataVersion <= Devices.EffectiveDataVersion) return false;
+        // A composed EC operation reads the profile several times; the fan-curve editor holds its
+        // own copy of the register layout and writes on every mouse-up. Swapping under either
+        // would mix two generations of addresses in one write.
+        if (_ecBusy > 0 || (_main is { IsDisposed: false } && _main.CurveEditorHot))
+        {
+            _pendingDb = p;
+            return false;
+        }
+        if (!Devices.ApplyOverride(p)) return false;
+
+        _device = Devices.Detect(_firmware);
+        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
+        _webcamSupported = Known && Devices.WebcamSupported(_firmware);
+        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        _telemetryOnly = !Known && !_simulate && MsiTelemetry.Available();
+        // captured from the OLD fan-mode register, meaningless against the new tables
+        _fanBeforeBoost = null;
+        if (Known && !_simulate) { try { _current = Ec.GetCurrent(_device!); } catch { } }
+
+        BuildMenu();
+        UpdateUi(_current);
+        _main?.OnDeviceDbChanged();
+        return true;
+    }
+
+    /// <summary>Called when an EC operation finishes, or the curve editor stops being hot.</summary>
+    private void DrainPendingDb()
+    {
+        if (_pendingDb is not { } p) return;
+        _pendingDb = null;
+        if (!TryApplyModelDb(p)) _pendingDb ??= p;   // still not safe: keep waiting
+    }
+
+    /// <summary>Scope guard for a composed EC operation (several Ec.* calls that belong together).</summary>
+    private readonly struct EcScope : IDisposable
+    {
+        private readonly TrayContext _t;
+        public EcScope(TrayContext t) { _t = t; t._ecBusy++; }
+        public void Dispose() { _t._ecBusy--; if (_t._ecBusy == 0) _t.DrainPendingDb(); }
+    }
+
+    private EcScope EcBusy() => new(this);
 
     private void OnUpdateResult(Updater.Result? res)
     {
@@ -1737,6 +1840,7 @@ public sealed class TrayContext : ApplicationContext
     {
         if (AutoWritable && !_simulate && _settings.ChargeLimit is 60 or 80 or 100)
         {
+            using var _ec = EcBusy();
             try
             {
                 Ec.SetChargeLimit(_device!, _settings.ChargeLimit);
@@ -1960,6 +2064,7 @@ public sealed class TrayContext : ApplicationContext
 
         SampleHw();   // reads only; also works on non-writable (Experimental locked) models
         UpdateTrayText();   // battery-time suffix follows discharge state (#15)
+        DrainPendingDb();   // a swap parked by a busy EC write or an open curve editor
 
         // Power-transition actions live BEFORE the Writable gate: the refresh-rate switch is
         // not an EC write and must work on every machine. Profile auto-switch keeps its gates.

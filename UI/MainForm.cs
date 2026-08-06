@@ -356,6 +356,17 @@ public sealed class MainForm : Form
         if (_pages.TryGetValue(_active, out var p) && p.Visible) p.LiveRefresh();
     }
 
+    /// <summary>True while the fan-curve editor is actively driving the EC (see FanCurvePage).</summary>
+    public bool CurveEditorHot =>
+        _pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fc && fc.CurveHot;
+
+    /// <summary>A newer model database went live: let every page re-read what it derived from it.</summary>
+    public void OnDeviceDbChanged()
+    {
+        foreach (var p in _pages.Values) p.OnDeviceDbChanged();
+        Invalidate(true);
+    }
+
     /// <summary>Show an announcement banner at the top of the window (marks it seen immediately).</summary>
     public void ShowNotice(string title, string body, string? url, Action onSeen)
         => _banner.ShowNotice(title, body, url, onSeen);

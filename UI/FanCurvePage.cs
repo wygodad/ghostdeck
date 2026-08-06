@@ -19,8 +19,10 @@ public sealed class FanCurvePage : ThemedPage
     private static readonly int[] DefCpuT = { 0, 50, 57, 64, 70, 76 }, DefCpuS = { 0, 40, 48, 60, 75, 89 };
     private static readonly int[] DefGpuT = { 0, 50, 55, 60, 65, 70 }, DefGpuS = { 0, 48, 60, 70, 82, 93 };
 
-    private readonly DeviceProfile? _dev;
-    private readonly FanCurveSpec? _fc;
+    // NOT readonly: a model database applied while the app runs re-points both. The swap is
+    // deferred while CurveHot is true, so they never change under an active editing session.
+    private DeviceProfile? _dev;
+    private FanCurveSpec? _fc;
     private int[] _cpuT, _cpuS, _gpuT, _gpuS;
     private bool _loaded;
     private bool _loading;   // background first-load in flight
@@ -733,4 +735,20 @@ public sealed class FanCurvePage : ThemedPage
             g.DrawEllipse(ring, pts[i].X - r, pts[i].Y - r, r * 2, r * 2);
         }
     }
+    /// <summary>
+    /// True while this page is actively driving the EC: visible with the curve switch on, so
+    /// every mouse-up writes the tables. A model-database swap waits for this to go false,
+    /// because the page holds its own copy of the register layout and the point values.
+    /// </summary>
+    public bool CurveHot => Visible && _enable.Checked;
+
+    public override void OnDeviceDbChanged()
+    {
+        _dev = Devices.Detect(D.Firmware);
+        _fc = _dev?.FanCurve;
+        _loaded = false;              // re-read the points from the new addresses on next entry
+        if (Visible) OnEnter();
+        Invalidate();
+    }
+
 }

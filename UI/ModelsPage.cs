@@ -14,14 +14,17 @@ namespace GhostDeck;
 public sealed class ModelsPage : ThemedPage
 {
     private const int Pad = 28;
-    private readonly DeviceProfile? _detected;
-    private readonly List<DeviceProfile> _all;
+    // Rebuilt by OnDeviceDbChanged: the page is created once and cached, and it is pre-warmed
+    // shortly after launch, so a database downloaded later would never show without this.
+    private DeviceProfile? _detected;
+    private List<DeviceProfile> _all;
     private List<DeviceProfile> _rows;
 
     private readonly Panel _scrollHost = new() { AutoScroll = true };
     private readonly Table _table;
     private readonly TextBox _search = new();
     private readonly Button _verify = new();
+    private readonly Button _dbCheck = new();   // fetch the signed model database now
     private readonly Panel _footer = new();
     private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 8000 };
 
@@ -29,10 +32,7 @@ public sealed class ModelsPage : ThemedPage
     {
         AutoScroll = false;   // the inner _scrollHost scrolls the table; the header stays fixed
         _detected = Devices.Detect(d.Firmware);
-        _all = Devices.All
-            .OrderBy(x => x.Tier == Tier.Tested ? 0 : (x.ShiftMode == 0xF2 ? 2 : 1))
-            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        _all = BuildCatalogue();
         _rows = _all;
 
         _table = new Table(this);
@@ -57,6 +57,36 @@ public sealed class ModelsPage : ThemedPage
         _tip.SetToolTip(_verify, Lang.T("models_verify_desc"));
         _footer.Controls.Add(_verify);
 
+        // The catalogue is exactly what this button refreshes, so it belongs next to it.
+        Ui.StyleGhost(_dbCheck);
+        _dbCheck.Text = Lang.T("modeldb_check");
+        _dbCheck.AutoSize = false;
+        _dbCheck.Click += (_, _) =>
+        {
+            _dbCheck.Enabled = false;
+            _dbCheck.Text = Lang.T("modeldb_checking");
+            LayoutBits();
+            D.CheckModelDbNow(code =>
+            {
+                if (IsDisposed || _dbCheck.IsDisposed) return;
+                void Show()
+                {
+                    _dbCheck.Enabled = true;
+                    _dbCheck.Text = Lang.T("modeldb_check");
+                    _tip.SetToolTip(_dbCheck, code switch
+                    {
+                        > 0 => string.Format(Lang.T("modeldb_applied"), code),
+                        -1  => Lang.T("modeldb_failed"),
+                        -2  => Lang.T("modeldb_deferred"),
+                        _   => Lang.T("modeldb_current"),
+                    });
+                    LayoutBits();
+                }
+                if (InvokeRequired) BeginInvoke(Show); else Show();
+            });
+        };
+        _footer.Controls.Add(_dbCheck);
+
         ClientSizeChanged += (_, _) => LayoutBits();
     }
 
@@ -65,13 +95,31 @@ public sealed class ModelsPage : ThemedPage
         var g = e.Graphics;
         g.Clear(Theme.Surface);
         using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, 0, 0, _footer.Width, 0);
-        int legendRight = _verify.Left - 20;
+        int legendRight = _dbCheck.Left - 20;
         TextRenderer.DrawText(g, Lang.T("mdl_legend"), FLegend,
             new Rectangle(Pad, 10, Math.Max(60, legendRight - Pad), _footer.Height - 16), Theme.Muted,
             TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak);
     }
 
-    public override void OnEnter() { StyleSearch(); LayoutBits(); Invalidate(); _table.Invalidate(); }
+    private static List<DeviceProfile> BuildCatalogue() =>
+        Devices.All
+            .OrderBy(x => x.Tier == Tier.Tested ? 0 : (x.ShiftMode == 0xF2 ? 2 : 1))
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    public override void OnEnter()
+    {
+        D.PollModelDb();               // debounced; the tab is where people look for this
+        StyleSearch(); LayoutBits(); Invalidate(); _table.Invalidate();
+    }
+
+    public override void OnDeviceDbChanged()
+    {
+        _detected = Devices.Detect(D.Firmware);
+        _all = BuildCatalogue();
+        ApplyFilter();                 // keeps whatever is typed in the search box
+        LayoutBits(); Invalidate(); _table.Invalidate();
+    }
     public override void ApplyTheme()
     {
         base.ApplyTheme();
@@ -127,6 +175,8 @@ public sealed class ModelsPage : ThemedPage
         _footer.SetBounds(0, ClientSize.Height - footerH, ClientSize.Width, footerH);
         int vw = TextRenderer.MeasureText(_verify.Text, _verify.Font).Width + 44, vh = 42;
         _verify.SetBounds(_footer.Width - Pad - vw, (footerH - vh) / 2, vw, vh);
+        int dw = TextRenderer.MeasureText(_dbCheck.Text, _dbCheck.Font).Width + 32;
+        _dbCheck.SetBounds(_verify.Left - 12 - dw, (footerH - vh) / 2, dw, vh);
 
         _scrollHost.SetBounds(0, hb, ClientSize.Width, Math.Max(0, ClientSize.Height - hb - footerH));
         _footer.Invalidate();

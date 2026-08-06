@@ -18,6 +18,11 @@ public sealed class MainDeps
     public required Func<string> AppVersion { get; init; }
     public required Action SaveSettings { get; init; }
     public required Action CheckNoticesNow { get; init; }   // manual "Check now" also surfaces announcements
+    // Model database, two entry points. The button forces a fetch and reports back: >0 = applied
+    // that version, 0 = already current, -1 = failed, -2 = valid but deferred (the curve editor
+    // or an EC write is busy). The Models tab only nudges, and is debounced.
+    public required Action<Action<int>> CheckModelDbNow { get; init; }
+    public required Action PollModelDb { get; init; }
     public required Action SettingsChanged { get; init; }     // tray rebuilds menu / hotkeys
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100

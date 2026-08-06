@@ -100,6 +100,9 @@ public sealed class SettingsPage : ThemedPage
 
     /// <summary>Clicking the Settings tab while already on it goes back to the Start dashboard.</summary>
     public override void OnReenter() => SelectSub(SubHome, save: true);
+
+    public override void OnDeviceDbChanged() =>
+        Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // the model-database row and the tier gates
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
     // no re-layout here, which would reset the scroll position mid-edit.
     public override void LiveRefresh() { SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); }
@@ -605,12 +608,61 @@ public sealed class SettingsPage : ThemedPage
 
         var upd = new CardSection(Lang.T("set_grp_updates"), "");
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
-        // Signed model database (ModelDb): which data is in effect, and whether a newer
-        // downloaded version is waiting for the next start. Updated on the daily check.
-        string dbText = Devices.EffectiveDataVersion + (Devices.UsingOverride ? "  ·  " + Lang.T("modeldb_downloaded") : "");
-        if (ModelDb.PendingVersion() is { } pend) dbText += "  ·  " + string.Format(Lang.T("modeldb_pending"), pend);
-        var dbLabel = new Label { Text = dbText, AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
-        upd.AddRow(Lang.T("set_modeldb"), dbLabel);
+        // Signed model database (ModelDb): which data is in effect, plus a manual fetch. The
+        // check runs on its own cadence (every start, on the Models tab, and this button), so
+        // the row also reports the result of the last press.
+        var dbLabel = new Label { AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+        // The status of the last press goes on its OWN full-width note row. Appending it to the
+        // value label grew the right-aligned row control until it ran off the card.
+        // Idle it collapses to zero height, so the card shows no empty gap. AutoSize is what
+        // gives it a height, hence the toggle (Visible is useless here: a child of a form that is
+        // not shown yet reports false, which would break the layout during construction).
+        var dbNote = new Label { AutoSize = false, Size = new Size(1, 0), Font = new Font("Segoe UI", 9f), Tag = "muted" };
+        void SyncDbLabel(string? note = null)
+        {
+            dbLabel.Text = Devices.EffectiveDataVersion
+                         + (Devices.UsingOverride ? "  ·  " + Lang.T("modeldb_downloaded") : "");
+            if (ModelDb.PendingVersion() is { } pend)
+                dbLabel.Text += "  ·  " + string.Format(Lang.T("modeldb_pending"), pend);
+            dbNote.Text = note ?? "";
+            if (note == null) { dbNote.AutoSize = false; dbNote.Size = new Size(1, 0); }
+            else dbNote.AutoSize = true;
+            Layout2();   // the note changes the card height; re-measure instead of overlapping
+        }
+        var dbCheck = new Button { Text = Lang.T("modeldb_check"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(dbCheck);
+        dbCheck.Click += (_, _) =>
+        {
+            dbCheck.Enabled = false;
+            SyncDbLabel(Lang.T("modeldb_checking"));
+            D.CheckModelDbNow(code =>
+            {
+                if (IsDisposed || dbLabel.IsDisposed) return;
+                void Show()
+                {
+                    dbCheck.Enabled = true;
+                    SyncDbLabel(code switch
+                    {
+                        > 0  => string.Format(Lang.T("modeldb_applied"), code),
+                        -1   => Lang.T("modeldb_failed"),
+                        -2   => Lang.T("modeldb_deferred"),
+                        _    => Lang.T("modeldb_current"),
+                    });
+                }
+                if (InvokeRequired) BeginInvoke(Show); else Show();
+            });
+        };
+        var dbRow = new FlowLayoutPanel
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = Padding.Empty,
+        };
+        dbLabel.Margin = new Padding(0, 8, 14, 0);
+        dbRow.Controls.Add(dbLabel);
+        dbRow.Controls.Add(dbCheck);
+        upd.AddRow(Lang.T("set_modeldb"), dbRow);
+        upd.AddRow(null, dbNote);
+        SyncDbLabel();
         _gLeft[SubSystem].Add(upd);
 
         // Tray context-menu visibility toggles (discussion #9); all default on.
@@ -1512,6 +1564,14 @@ public sealed class SettingsPage : ThemedPage
                     // Refresh the surface/border of nested buttons, but NEVER their ForeColor -
                     // on the colour swatches that is the user's chosen colour, not a theme colour.
                     foreach (Control child in fp.Controls)
+                    {
+                        // nested value labels follow the same Tag convention as row labels
+                        if (child is Label nl)
+                        {
+                            nl.ForeColor = nl.Tag as string == "muted" ? Theme.Muted
+                                         : nl.Tag as string == "warn" ? Theme.Amber : Theme.Text;
+                            nl.BackColor = Theme.Card;
+                        }
                         if (child is Button swatch)
                         {
                             swatch.BackColor = Theme.Surface;
@@ -1519,6 +1579,7 @@ public sealed class SettingsPage : ThemedPage
                             swatch.FlatAppearance.MouseOverBackColor = Theme.AccentSoft;
                             swatch.FlatAppearance.MouseDownBackColor = Theme.RowAlt;
                         }
+                    }
                 }
                 // value labels (battery health) = Text; "muted"-tagged notes (diagnostics blurb) = Muted
                 if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : vl.Tag as string == "warn" ? Theme.Amber : Theme.Text; vl.BackColor = Theme.Card; }

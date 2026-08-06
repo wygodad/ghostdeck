@@ -68,6 +68,11 @@ public sealed class AppSettings
 
     public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases (+ ogloszenia)
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
+    // The model database has its OWN timestamp. It is a static file on the CDN with no request
+    // limit, so it can be checked far more often than the release check, which goes to the
+    // rate-limited GitHub API. Sharing one field also meant a manual release check silently
+    // cancelled the next model-database fetch.
+    public DateTime LastModelDbCheckUtc { get; set; } = DateTime.MinValue;
     public List<string> SeenNoticeIds { get; set; } = new();           // ktore ogloszenia (announcements.json) juz pokazano
 
     public bool DarkMode { get; set; } = true;                         // ciemny motyw domyslnie (brand ghostdeck.dev)
@@ -501,6 +506,7 @@ public sealed class AppSettings
             IconTabs = new List<string>(IconTabs),
             ShowGrid = ShowGrid,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
+            LastModelDbCheckUtc = LastModelDbCheckUtc,
             SeenNoticeIds = new List<string>(SeenNoticeIds),
             DarkMode = DarkMode,
             LastFirmware = LastFirmware,

@@ -37,6 +37,10 @@ public abstract class ThemedPage : UserControl
     // Lightweight refresh after external state changes (profile/cooler/overlay). Unlike OnEnter it must
     // NOT re-run layout — a re-layout on a scrolled page (Settings) yanks the scroll position to the top.
     public virtual void LiveRefresh() { }
+
+    /// <summary>The model database changed while the app was running: re-read anything derived
+    /// from Devices (the detected profile, the fan-curve layout, the catalogue).</summary>
+    public virtual void OnDeviceDbChanged() { }
     public virtual void ApplyTheme() { BackColor = Theme.Surface; Invalidate(true); }
 
     /// <summary>Translate painting to honour the scroll offset (call at the top of OnPaint).</summary>

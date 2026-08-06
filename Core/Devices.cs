@@ -75,11 +75,23 @@ public static class Devices
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
     public const int DataVersion = 20260806;
 
-    // A signed, newer database downloaded from the repo (ModelDb.LoadOverride, applied once
-    // at startup by Program). Null = the compiled tables below are in effect.
-    private static ModelDb.Parsed? _override;
+    // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
+    // compiled tables below are in effect. Volatile because it is applied on the UI thread and
+    // read from the sampling and page-refresh threads.
+    private static volatile ModelDb.Parsed? _override;
 
-    public static void ApplyOverride(ModelDb.Parsed parsed) => _override = parsed;
+    /// <summary>
+    /// Put a downloaded database in effect. Returns false when it is not newer than what is
+    /// already effective: the anti-rollback lives HERE because the database is applied from
+    /// several places (startup, the periodic check, the Models tab, the Settings button) and two
+    /// of them racing must never walk the tables backwards.
+    /// </summary>
+    public static bool ApplyOverride(ModelDb.Parsed parsed)
+    {
+        if (parsed.DataVersion <= EffectiveDataVersion) return false;
+        _override = parsed;
+        return true;
+    }
     public static bool UsingOverride => _override != null;
     public static int EffectiveDataVersion => _override?.DataVersion ?? DataVersion;
 

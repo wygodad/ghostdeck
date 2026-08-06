@@ -1003,8 +1003,14 @@ public static class Lang
         };
         m["set_modeldb"]    = new[] { "Model database", "Baza modeli", "Modell-Datenbank", "Base de modèles", "Base de modelos", "型号数据库", "Base de modelos", "База моделей" };
         m["modeldb_downloaded"] = new[] { "updated", "zaktualizowana", "aktualisiert", "mise à jour", "actualizada", "已更新", "atualizada", "обновлена" };
-        m["modeldb_pending"] = new[] { "{0} after restart", "{0} po restarcie", "{0} nach Neustart", "{0} après redémarrage", "{0} tras reiniciar", "重启后 {0}", "{0} após reiniciar", "{0} после перезапуска" };
-        m["log_modeldb"]    = new[] { "Model database {0} downloaded - applies after a restart", "Pobrano bazę modeli {0} - zadziała po restarcie", "Modell-Datenbank {0} geladen - wirkt nach Neustart", "Base de modèles {0} téléchargée - active après redémarrage", "Base de modelos {0} descargada - se aplica tras reiniciar", "已下载型号数据库 {0} - 重启后生效", "Base de modelos {0} baixada - aplica após reiniciar", "База моделей {0} загружена - применится после перезапуска" };
+        m["modeldb_pending"] = new[] { "{0} waiting", "{0} czeka", "{0} wartet", "{0} en attente", "{0} en espera", "{0} 等待中", "{0} aguardando", "{0} ожидает" };
+        m["log_modeldb"]    = new[] { "Model database updated to {0}", "Baza modeli zaktualizowana do {0}", "Modell-Datenbank auf {0} aktualisiert", "Base de modèles mise à jour vers {0}", "Base de modelos actualizada a {0}", "型号数据库已更新到 {0}", "Base de modelos atualizada para {0}", "База моделей обновлена до {0}" };
+        m["modeldb_check"] = new[] { "Check now", "Sprawdź teraz", "Jetzt prüfen", "Vérifier", "Comprobar ahora", "立即检查", "Verificar agora", "Проверить" };
+        m["modeldb_checking"] = new[] { "Checking…", "Sprawdzam…", "Prüfe…", "Vérification…", "Comprobando…", "检查中…", "Verificando…", "Проверка…" };
+        m["modeldb_current"] = new[] { "Already up to date", "Już aktualna", "Bereits aktuell", "Déjà à jour", "Ya actualizada", "已是最新", "Já atualizada", "Уже актуальна" };
+        m["modeldb_applied"] = new[] { "Updated to {0}", "Zaktualizowano do {0}", "Auf {0} aktualisiert", "Mis à jour vers {0}", "Actualizada a {0}", "已更新到 {0}", "Atualizada para {0}", "Обновлена до {0}" };
+        m["modeldb_failed"] = new[] { "Could not check", "Nie udało się sprawdzić", "Prüfung fehlgeschlagen", "Vérification impossible", "No se pudo comprobar", "检查失败", "Não foi possível verificar", "Не удалось проверить" };
+        m["modeldb_deferred"] = new[] { "Downloaded - applies when the fan-curve editor is closed", "Pobrano - zadziała po zamknięciu edytora krzywej", "Geladen - wirkt, sobald der Lüfterkurven-Editor geschlossen ist", "Téléchargée - active à la fermeture de l'éditeur de courbe", "Descargada - se aplica al cerrar el editor de curva", "已下载 - 关闭风扇曲线编辑器后生效", "Baixada - aplica ao fechar o editor de curva", "Загружена - применится после закрытия редактора кривой" };
         // Windows-key lock (software hook)
         m["winlock_title"]  = new[] { "Windows key lock", "Blokada klawisza Windows", "Windows-Taste sperren", "Verrou touche Windows", "Bloqueo tecla Windows", "Windows 键锁定", "Bloqueio da tecla Windows", "Блокировка клавиши Windows" };
         m["winlock_hint"]   = new[]

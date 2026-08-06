@@ -34,7 +34,7 @@ public sealed class StatusPage : ThemedPage
 
     private readonly Button _test = new();
     private readonly Button _logBtn = new();
-    private readonly DeviceProfile? _dev;
+    private DeviceProfile? _dev;   // re-pointed by OnDeviceDbChanged
     private byte[] _live = Array.Empty<byte>();    // [shift, 0x34, 0xEB, fan]
     private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
     private HwSnapshot _hw;                        // last EC/hw snapshot, refreshed off the UI thread
@@ -1211,4 +1211,12 @@ public sealed class StatusPage : ThemedPage
         if (t.TotalMinutes >= 1) return $"{t.Minutes} min";
         return $"{t.Seconds} s";
     }
+    public override void OnDeviceDbChanged()
+    {
+        _dev = Devices.Detect(D.Firmware);
+        _live = Array.Empty<byte>();
+        _curve = null;                       // the byte matrix and curve tables move with the layout
+        Relayout(); _canvas?.Rebuild(); Invalidate();
+    }
+
 }

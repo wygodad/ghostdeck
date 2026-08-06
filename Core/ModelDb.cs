@@ -320,7 +320,7 @@ public static class ModelDb
                 AppLifecycle.Report(new InvalidDataException(error), "model-db");
                 return null;
             }
-            return parsed.DataVersion > Devices.DataVersion ? parsed : null;   // anti-rollback
+            return parsed.DataVersion > Devices.EffectiveDataVersion ? parsed : null;   // anti-rollback
         }
         catch (Exception ex)
         {

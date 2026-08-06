@@ -1635,13 +1635,12 @@ failure = silent fallback to the compiled tables plus an errors.log line; a bad 
 can never break the app. Every map lookup (`Devices.All`, kbd backlight, webcam,
 fn/win swap) transparently prefers the override.
 
-**Updates** ride the existing daily check (same `UpdateCheckEnabled` opt-out, same
-plain-GET privacy footprint as announcements). A stored update takes effect on the NEXT
-start - hot-swapping the device profile under a running EC session is deliberately not
-attempted. The Settings → System → Updates card shows the effective dataVersion, whether
-an override is active, and a downloaded version waiting for a restart; the change log gets
-one line when a new database is stored. `MSIPS_MODELS_JSON=<path>` loads an unsigned local
-file (explicit testing hook, like MSIPS_FORCE_FIRMWARE).
+**Updates run on their own cadence** (§59), separate from the release check, and a valid
+newer database is applied **while the app runs**. The Settings → System → Updates card shows
+the effective dataVersion, whether an override is active, a version waiting for the gate,
+and a **Check now** button; the change log gets one line when a database goes live.
+`MSIPS_MODELS_JSON=<path>` loads an unsigned local file (explicit testing hook, like
+MSIPS_FORCE_FIRMWARE).
 
 **Release flow for a model change:** edit `Devices.cs`, bump `Devices.DataVersion`
 (date-serial), build, `GhostDeck.exe --dump-models data/models.json`,
@@ -1798,4 +1797,90 @@ Current state: 537 keys x 8 languages.
 single enormous method that the JIT had to compile in one piece on first use; the map is now
 built by twelve `L00..L11` methods called from `Build()`. Same data, same order, same keys - the
 split was verified by dumping the key/value set before and after and comparing.
+
+---
+
+## 59. Model database applied without a restart (v1.29)
+
+### 59.1 Its own cadence
+
+The model database used to ride the 24-hour release check. It no longer does, and the reason is
+the endpoint, not the feature: the release check goes to `api.github.com`, which allows
+**60 unauthenticated requests per hour per IP address**, while the database is a static file on
+`raw.githubusercontent.com`, which carries no rate-limit headers at all and serves 5 KB gzipped
+instead of 133 KB. Measured, not assumed.
+
+A conditional request does not change that arithmetic on the API side: a `304 Not Modified`
+still increments `X-RateLimit-Used` for unauthenticated callers. That behaviour is
+authenticated-only, and the app deliberately ships no token.
+
+So the two are split. `LastUpdateCheckUtc` keeps gating the release check and announcements, and
+the database gets `LastModelDbCheckUtc` with a 15-minute debounce. It is fetched:
+
+- at every start,
+- when the Models tab is opened (debounced),
+- from the **Check now** button in Settings → System → Updates (skips the debounce, and reports
+  the outcome in the row: applied / already current / failed / deferred).
+
+Sharing one timestamp had a side effect worth recording: a manual release check wrote
+`LastUpdateCheckUtc` and thereby cancelled the next start's database fetch.
+
+### 59.2 Why a live swap needs a gate at all
+
+Nothing in this app owns "an EC transaction". A profile switch is five or more independent `Ec.*`
+calls, a scene a dozen, and each of them re-reads the device profile. Exchanging the tables
+between two of those calls writes registers from one generation of the database with values from
+another.
+
+The exposure is narrower than it sounds. Across the 145 shipped models, the only fields that ever
+differ from the class defaults are `shiftMode` / `fanMode` / `chargeCtrl` (the 35 G1-family
+boards), the RPM addresses, tier, credit, the recipes and the fan-curve block, and all 110 curve
+specs are byte-identical apart from the single-fan flag. The realistic wrong-write is therefore
+one specific correction: moving a firmware prefix between the G1 and G2 register families. That
+is rare, and it is exactly the correction a user wants applied promptly rather than next release.
+
+### 59.3 The gate
+
+`TrayContext._ecBusy` counts composed EC operations. `EcScope` (a `using` guard) increments it
+around `SetProfile`, `ApplyPresetFromTray`, `ApplyScene`, `SetCoolerBoostState`, `TryRestoreCurve`
+and `TryApplyChargeLimit`. All of them run on the UI thread, so the counter needs no interlocking.
+
+`Ec._wmiLock` is deliberately NOT used for this. It is the wrong altitude: `SetProfile` alone
+enters and leaves it five times, and it is private to `Ec`.
+
+`TryApplyModelDb` runs on the UI thread and refuses when `_ecBusy > 0` or the fan-curve editor is
+hot, parking the database in `_pendingDb`. `DrainPendingDb` retries when the last scope closes and
+on every 3-second poll, so a deferral always resolves without user action.
+
+When the swap does happen it re-derives EVERYTHING captured from the tables, not just the profile:
+`_device`, `_kbdAddr`, `_webcamSupported`, `_fnSwap`, `_telemetryOnly`, and it clears
+`_fanBeforeBoost`, which is a byte sampled from the old fan-mode register and would otherwise be
+restored into a possibly different one.
+
+### 59.4 The one case that always defers
+
+**The fan-curve editor with its switch on.** That is not an in-flight operation but a persistent
+condition: the page holds its own `FanCurveSpec`, its own four point arrays read from the old
+addresses, and a handler that writes on every mouse-up. There is no instant during such a session
+at which a swap is coherent, and re-reading under the user's fingers would discard unsaved
+dragging. `MainForm.CurveEditorHot` reports it; the swap waits, silently, and lands when the
+switch goes off or the page is left.
+
+With the switch off the page is refreshed like any other.
+
+### 59.5 Making it visible
+
+`ThemedPage.OnDeviceDbChanged()` is fanned out by `MainForm` to every page. Without it the feature
+would be invisible: `ModelsPage` builds its catalogue in the constructor and is pre-warmed shortly
+after launch, so its list predates any download. It rebuilds and re-runs the search filter;
+`FanCurvePage` re-points its spec and forces a re-read; `StatusPage` drops the byte matrix and
+curve tables; `SettingsPage` rebuilds so the database row and the tier gates follow.
+
+### 59.6 Anti-rollback
+
+`Devices.ApplyOverride` now refuses anything not strictly newer than `EffectiveDataVersion` and
+returns a bool. The guard moved there because the database is applied from four places instead of
+one, and two of them racing must never walk the tables backwards. `ModelDb.LoadOverride` compares
+against `EffectiveDataVersion` too, so repeated calls during one run do not re-offer what is
+already live.
 

@@ -25,8 +25,11 @@ public static class Ec
     // get stuck talking to a dead session.
     private static ManagementObject? _inst;
     private static ManagementClass? _pkg;
-    // Monitor is re-entrant, so multi-byte operations can hold it for the whole recipe/dump while
-    // the per-byte primitives below take it again harmlessly.
+    // Monitor is re-entrant, so an operation that must not be cut in half (a profile recipe, a
+    // curve write, a read-modify-write, one poll sample) holds it for its whole run while the
+    // per-byte primitives below take it again harmlessly. The long read loops - DumpAll, ReadMany,
+    // ReadFanCurve, RpmScan - deliberately do NOT: they take it per byte, so a 256-byte dump on a
+    // background thread cannot block a UI-thread read for a second.
     private static readonly object _wmiLock = new();
 
     private static (ManagementObject inst, ManagementClass pkg) SessionLocked()
