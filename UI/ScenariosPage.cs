@@ -557,7 +557,7 @@ public sealed class ScenariosPage : ThemedPage
         // wrap to new lines, and the PAGE gives all cards the tallest card's height so a row
         // of cards stays even. 16 px of horizontal air per chip obeys the padding rule;
         // NameGap keeps the pills off the scene name, the whole block centers vertically.
-        private const int ChipH = 20, ChipGapX = 5, ChipGapY = 8, ChipPad = 16, NameGap = 12;
+        private const int ChipH = 20, ChipGapX = 5, ChipGapY = 8, ChipPad = 16, NameGap = 14;
 
         private int TextAreaWidth(int width) => width - 58 - HotCount * (HotW + HotGap) - 16;
 
@@ -584,7 +584,7 @@ public sealed class ScenariosPage : ThemedPage
             int tw = Math.Max(40, ChipAreaWidth(width));
             int lines = ChipLines(tw);
             int nameH = new Font("Segoe UI", 10.5f, FontStyle.Bold).Height;
-            return Math.Max(74, 10 + nameH + 8 + lines * (ChipH + ChipGapY) - ChipGapY + 10);
+            return Math.Max(74, 10 + nameH + NameGap + lines * (ChipH + ChipGapY) - ChipGapY + 10);
         }
 
         protected override void Dispose(bool disposing)
@@ -623,8 +623,8 @@ public sealed class ScenariosPage : ThemedPage
             using var chipFont = new Font("Segoe UI", 8.5f);
             var parts = _scene.SummaryParts();
             int pillsH = (_armDelete || parts.Count == 0 ? 1 : ChipLines(tw)) * (ChipH + ChipGapY) - ChipGapY;
-            int areaTop = top + nameH + 4;
-            int cy = areaTop + Math.Max(4, (Height - areaTop - 8 - pillsH) / 2);
+            int areaTop = top + nameH + NameGap;
+            int cy = areaTop + Math.Max(0, (Height - areaTop - 10 - pillsH) / 2);
             if (_armDelete)
             {
                 // armed delete replaces the chips with the confirm hint (amber), like the camera block
