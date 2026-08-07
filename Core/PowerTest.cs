@@ -33,9 +33,24 @@ public static class PowerTest
     // coping at all, so the run stops instead of sitting at the ceiling for another minute.
     private const int HotCeiling = 99;
     private const int HotSamplesToAbort = 5;
+    // Below this share of the machine, or with a sample this far from its second, the load was not
+    // the only thing running and the comparison stops meaning what it says.
+    private const int OwnShareFloor = 85;
+    private const int SlowSampleMs = 3000;
 
+    /// <summary>
+    /// One second of the loaded run. <see cref="Ms"/> is the MEASURED gap since the previous
+    /// sample, and <see cref="Work"/> is already divided by it: the loop waits a second and then
+    /// reads the controller, so the gap is never exactly a second, and a slow read would otherwise
+    /// show up as a burst of computation. A GPU that has powered down reports its whole block as
+    /// zeros, which is why <see cref="GpuTemp"/> being 0 means "no reading", not "cold".
+    /// <see cref="Own"/> is this process's share of the machine's total CPU capacity over that
+    /// interval. The comparison only means something if the load had the machine to itself, and
+    /// the load threads run below normal priority, so anything else that wants the CPU wins and
+    /// the work column ends up describing the competition rather than the profile.
+    /// </summary>
     public readonly record struct Sample(
-        int Sec, int CpuTemp, int GpuTemp, int CpuFan, int GpuFan,
+        int Sec, int Ms, int Own, int CpuTemp, int GpuTemp, int CpuFan, int GpuFan,
         int CpuRpm, int GpuRpm, int ClockMhz, int GpuUsage, long Work);
 
     public sealed record Phase(
@@ -221,7 +236,10 @@ public static class PowerTest
     {
         var samples = new List<Sample>(LoadSeconds);
         int hot = 0;
-        long lastWork = 0;
+        long lastWork = 0, lastMs = 0;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        using var self = System.Diagnostics.Process.GetCurrentProcess();
+        var lastCpu = self.TotalProcessorTime;
         using var load = new CpuLoad(threads);
 
         for (int s = 1; s <= LoadSeconds; s++)
@@ -231,14 +249,20 @@ public static class PowerTest
             try { Wait(1000, ct); }
             catch (OperationCanceledException) { aborted = "cancelled"; break; }
 
+            long nowMs = clock.ElapsedMilliseconds;
             long work = load.Iterations;
+            var cpu = self.TotalProcessorTime;
+            int ms = (int)Math.Max(1, nowMs - lastMs);
+            int own = (int)Math.Round((cpu - lastCpu).TotalMilliseconds / (ms * (double)threads) * 100);
             // A refused WMI read is a MISSING second, not a cold, stopped, zero-RPM one. Recording
             // the defaulted struct would pull every average down and, worse, clear the hot counter.
-            if (!Ec.TryReadHw(dev, out var hw)) { lastWork = work; continue; }
+            if (!Ec.TryReadHw(dev, out var hw)) { lastWork = work; lastMs = nowMs; lastCpu = cpu; continue; }
 
-            var sample = new Sample(s, hw.CpuTemp, hw.GpuTemp, hw.CpuFan, hw.GpuFan,
-                hw.CpuRpm, hw.GpuRpm, Perf.CpuClockMhz(), Perf.GpuUsage(), work - lastWork);
-            lastWork = work;
+            var sample = new Sample(s, ms, Math.Clamp(own, 0, 999),
+                hw.CpuTemp, hw.GpuTemp, hw.CpuFan, hw.GpuFan,
+                hw.CpuRpm, hw.GpuRpm, Perf.CpuClockMhz(), Perf.GpuUsage(),
+                (work - lastWork) * 1000 / ms);
+            lastWork = work; lastMs = nowMs; lastCpu = cpu;
             samples.Add(sample);
 
             Report(pr, step, steps, name, "load", s / (double)LoadSeconds,
@@ -373,7 +397,7 @@ public static class PowerTest
 
         // ---- the comparison this whole thing exists for ----
         sb.AppendLine("--- Steady state ---");
-        sb.AppendLine("Profile        shift fan  CPU C  GPU C  CPU%  GPU%  CPU rpm  GPU rpm  CPU MHz  work    n");
+        sb.AppendLine("Profile        shift fan  CPU C  GPU C  CPU%  GPU%  CPU rpm  GPU rpm  CPU MHz  MHz range    work  own    n  gpu");
         double baseWork = 0;
         foreach (var p in r.Phases)
             if (p.Name == ProfileId.Balanced.ToString()) baseWork = AvgL(Steady(p.Samples).Select(s => s.Work));
@@ -382,28 +406,63 @@ public static class PowerTest
         {
             var st = Steady(samples);
             if (st.Length == 0) { sb.AppendLine($"{name,-14} (not measured)"); return; }
+            // A discrete GPU can power down under a CPU-only load, and the controller then reports
+            // its temperature, duty and tachometer as zeros. Averaging those in would invent a
+            // 34 C graphics chip, so the GPU columns only count the seconds it was awake.
+            var gpu = st.Where(x => x.GpuTemp > 0).ToArray();
+            string G(Func<Sample, int> pick) => gpu.Length == 0 ? "--" : Avg(gpu.Select(pick)).ToString("F0");
+
             string shift = dump.Length == 256 ? dump[dev.ShiftMode].ToString("X2") : "--";
             string fan = dump.Length == 256 ? dump[dev.FanMode].ToString("X2") : "--";
             double work = AvgL(st.Select(s => s.Work));
             string idx = baseWork > 0 ? (work / baseWork * 100).ToString("F0") : "--";
+            string range = $"{st.Min(x => x.ClockMhz)}-{st.Max(x => x.ClockMhz)}";
             sb.AppendLine($"{name,-14} {shift,-5} {fan,-4} " +
-                          $"{Avg(st.Select(s => s.CpuTemp)),5:F0}  {Avg(st.Select(s => s.GpuTemp)),5:F0}  " +
-                          $"{Avg(st.Select(s => s.CpuFan)),4:F0}  {Avg(st.Select(s => s.GpuFan)),4:F0}  " +
-                          $"{Avg(st.Select(s => s.CpuRpm)),7:F0}  {Avg(st.Select(s => s.GpuRpm)),7:F0}  " +
-                          $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {idx,4}  {st.Length,3}");
+                          $"{Avg(st.Select(s => s.CpuTemp)),5:F0}  {G(s => s.GpuTemp),5}  " +
+                          $"{Avg(st.Select(s => s.CpuFan)),4:F0}  {G(s => s.GpuFan),4}  " +
+                          $"{Avg(st.Select(s => s.CpuRpm)),7:F0}  {G(s => s.GpuRpm),7}  " +
+                          $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {range,-11}  {idx,4}  {Avg(st.Select(s => s.Own)),3:F0}  {st.Length,3}  {gpu.Length,3}");
         }
 
         foreach (var p in r.Phases) Row(p.Name, p.Samples, p.Dump);
         if (r.Fourth is { Accepted: true } f4) Row(f4.Name, f4.Samples, f4.DumpLoaded);
         sb.AppendLine();
-        sb.AppendLine($"work = CPU work completed per second in the steady window, Balanced = 100.");
+        sb.AppendLine("work = CPU work completed per second in the steady window, Balanced = 100.");
         sb.AppendLine($"n = seconds actually averaged. Fewer than {SteadySeconds} means the phase was cut short");
         sb.AppendLine("(cancelled, unplugged, too hot, or seconds dropped by a refused controller read),");
         sb.AppendLine("so that row may include the ramp and is not a steady state.");
+        sb.AppendLine("gpu = of those seconds, how many had a readable GPU. A discrete GPU powers down under a");
+        sb.AppendLine("CPU-only load and reports zeros, so the GPU columns count only the seconds it was awake;");
+        sb.AppendLine("a low gpu count next to a full n is that, not a cool graphics chip.");
+        sb.AppendLine("MHz range = lowest and highest clock inside the window. A wide range means the firmware");
+        sb.AppendLine("is cycling between two power states, and then the average depends on where the window fell.");
         sb.AppendLine("shift and fan are read back at the END of each phase. A row whose bytes do not match");
         sb.AppendLine("the recipe below was disturbed while it ran (tray menu, hotkey or command line).");
+        sb.AppendLine("own = how much of the whole machine's CPU capacity this process had. The load threads run");
+        sb.AppendLine("below normal priority, so anything else that wants the CPU takes it first and the work");
+        sb.AppendLine("column then describes the competition, not the profile. Near 100 is a clean run.");
         sb.AppendLine("A CPU MHz or work column that does not drop in Silent means the Silent fan value");
         sb.AppendLine("does not cap power on this board, whatever the fan noise does.");
+
+        // A run on a busy machine produces confident numbers that are simply wrong, which is the
+        // one failure this whole feature exists to avoid. Say so at the top of the file, loudly.
+        var noisy = r.Phases
+            .Select(p => (p.Name, St: Steady(p.Samples)))
+            .Where(x => x.St.Length > 0)
+            .Select(x => (x.Name, Own: Avg(x.St.Select(s => s.Own)), Slow: x.St.Max(s => s.Ms)))
+            .Where(x => x.Own < OwnShareFloor || x.Slow > SlowSampleMs)
+            .ToArray();
+        if (noisy.Length > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("!! THE MACHINE WAS NOT IDLE. Treat the work column as unreliable and re-run !!");
+            foreach (var x in noisy)
+                sb.AppendLine($"   {x.Name,-14} had {x.Own:F0} % of the CPU" +
+                              (x.Slow > SlowSampleMs ? $", and one sample took {x.Slow / 1000.0:F1} s instead of 1 s" : ""));
+            sb.AppendLine("   Something outside GhostDeck was using the processor: a virus scan of a freshly");
+            sb.AppendLine("   downloaded file is the usual one, and it can run for minutes after the download.");
+            sb.AppendLine("   Close what you can, leave the machine alone for a few minutes, and run it again.");
+        }
         sb.AppendLine();
         sb.AppendLine("--- Bytes written for each profile ---");
         foreach (var p in r.Phases)
@@ -426,7 +485,8 @@ public static class PowerTest
         }
 
         // ---- raw material ----
-        sb.AppendLine("--- Per-second samples (sec, CPU C, GPU C, CPU%, GPU%, CPU rpm, GPU rpm, MHz, GPU load%, work) ---");
+        sb.AppendLine("--- Per-second samples (sec, ms since the previous one, own% of the machine,");
+        sb.AppendLine("    CPU C, GPU C, CPU fan%, GPU fan%, CPU rpm, GPU rpm, MHz, GPU load%, work per second) ---");
         foreach (var p in r.Phases) Samples(p.Name, p.Samples);
         if (r.Fourth is { } fs && fs.Samples.Length > 0) Samples(fs.Name, fs.Samples);
 
@@ -435,7 +495,7 @@ public static class PowerTest
             sb.AppendLine();
             sb.AppendLine($"[{name}]");
             foreach (var s in samples)
-                sb.AppendLine($"{s.Sec,3}  {s.CpuTemp,3}  {s.GpuTemp,3}  {s.CpuFan,3}  {s.GpuFan,3}  " +
+                sb.AppendLine($"{s.Sec,3}  {s.Ms,5}  {s.Own,3}  {s.CpuTemp,3}  {s.GpuTemp,3}  {s.CpuFan,3}  {s.GpuFan,3}  " +
                               $"{s.CpuRpm,5}  {s.GpuRpm,5}  {s.ClockMhz,5}  {s.GpuUsage,3}  {s.Work,12}");
         }
 
@@ -467,12 +527,22 @@ public static class PowerTest
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Whether something outside the app was taking the processor while the run measured it.
+    /// The numbers still describe something, just not the profile, so this has to reach the page
+    /// and not only the bottom of a text file nobody opens before pasting it.
+    /// </summary>
+    public static bool WasBusy(Result r) =>
+        r.Phases.Select(p => Steady(p.Samples)).Where(st => st.Length > 0)
+         .Any(st => Avg(st.Select(s => s.Own)) < OwnShareFloor || st.Max(s => s.Ms) > SlowSampleMs);
+
     /// <summary>One-line verdict for the page and the issue title.</summary>
     public static string Summary(Result r)
     {
         if (r.Aborted != null) return string.Format(Lang.T("pt_res_aborted"), r.Aborted);
-        if (r.Fourth is not { } f) return Lang.T("pt_res_done");
-        if (!f.Accepted) return string.Format(Lang.T("pt_res_refused"), f.Name);
-        return string.Format(Lang.T(f.Cleared ? "pt_res_accepted" : "pt_res_stuck"), f.Name);
+        string busy = WasBusy(r) ? Lang.T("pt_res_busy") + "  " : "";
+        if (r.Fourth is not { } f) return busy + Lang.T("pt_res_done");
+        if (!f.Accepted) return busy + string.Format(Lang.T("pt_res_refused"), f.Name);
+        return busy + string.Format(Lang.T(f.Cleared ? "pt_res_accepted" : "pt_res_stuck"), f.Name);
     }
 }

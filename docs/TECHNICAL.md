@@ -2011,6 +2011,51 @@ the envelope is stated in the code and on screen rather than assumed:
 - **Closing the window stops the run**, and app exit stops it and waits up to six seconds for the
   restore, because that restore runs on a background thread the process would otherwise kill.
 
+### 60.6 What the first run on real hardware changed
+
+The reference board (`17S1IMS1`, GE78HX 13V) answered the question the whole feature exists for:
+Silent holds **2764 MHz and 69 % of Balanced's delivered work**, against 4145 MHz and 100 %.
+`0xD4 = 0x1D` really does cap power there, by about a third. The PDH clock estimate and the work
+counter are independent of each other and landed within three points (66.7 % against 69 %), which
+is the closest thing to a self-check this measurement has.
+
+That run also exposed three defects the design had not anticipated, all fixed in 1.30.1:
+
+- **The tachometer is a divisor**, so catching the register between updates (raw `2`) yields 239,000
+  RPM. This was never specific to the test: `Ec.RpmFrom` feeds Status and the overlay too. Values
+  past a physically possible fan speed are now reported as no reading.
+- **A discrete GPU powers down under a CPU-only load**, and the controller then reports its whole
+  block as zeros. Averaging those in produced a 34 °C GPU. The GPU columns count only the seconds
+  it was awake, and the report says how many those were.
+- **The sample interval is not a second.** The loop waits a second and *then* reads the controller,
+  so a slow read inflated that second's work figure. Each sample now carries its measured gap and
+  the work figure is a rate, not a raw delta.
+
+A fourth observation needed no fix, only exposure: this board **cycles between two power states**
+under sustained load (about 4950 MHz for twenty seconds, then about 3400 for twenty). A tail window
+can land on either side of that, so the table now prints the lowest and highest clock in the window
+next to the average.
+
+### 60.7 The measurement has to know when it was cheated
+
+The second run on the same machine, minutes after the first, put Silent at **37** instead of 69
+while its clock barely moved. Two measures that had agreed to within three points now disagreed by
+half, and the new `ms` column said why: the sampler was held off for up to **53 seconds** at a
+stretch, and the first seventeen "seconds" of the Silent phase covered 323 seconds of wall clock.
+Something outside the app owned the processor. A virus scanner working through a freshly downloaded
+163 MB executable is the obvious candidate, and it keeps working long after the download finishes.
+
+This is the failure mode the whole feature exists to prevent, arriving through the back door: not a
+missing number, but a **confident wrong one**. The load threads run at `BelowNormal` precisely so
+the window keeps repainting, which means anything at normal priority wins, the work column collapses
+and the clock does not, because the clock reports what the processor is doing for *somebody*.
+
+So every sample now records this process's share of the machine, from `TotalProcessorTime` against
+elapsed time times the thread count. A steady window averaging below **85 %**, or containing a
+sample more than **3 s** from its second, marks the run: `PowerTest.WasBusy` puts it on the page's
+results line in amber, and `BuildReport` prints a block above the table telling the reader to
+re-run rather than trust it. Near 100 % is what a clean run looks like.
+
 Two things are recorded rather than refused, because they change what the numbers mean without
 making them invalid: **Fan Boost** being on at the start (it flattens every fan and temperature
 column) and a **short steady window**. The report prints the Fan Boost state in its header and an

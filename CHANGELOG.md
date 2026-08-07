@@ -3,6 +3,33 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.30.1] - 2026-08-07
+### Fixed
+- **Fan RPM could read as tens of thousands.** The tachometer register is a divisor, so catching it
+  between updates (a raw value of 2) turned into 239,000 RPM in Status, in the gaming overlay and in
+  a power-test report. Anything past what a laptop fan can physically do is now reported as no
+  reading instead of as a number. Found by the first power-test run on real hardware ([#72](../../issues/72)).
+- **The power test's GPU columns counted seconds when there was no GPU to read.** A discrete GPU
+  powers down under a CPU-only load and the controller then reports its whole block as zeros;
+  averaging those in produced a 34 °C graphics chip next to a 60 °C one. The GPU columns now count
+  only the seconds it was awake, and a new **gpu** column says how many those were.
+- **The power test assumed exactly one second between samples.** It waits a second and then reads
+  the controller, so the gap is always a little more, and a slow read was reported as a burst of
+  computation. Each sample now carries the measured gap and the work figure is divided by it.
+
+### Added
+- **The power test says so when the machine was not idle.** Its load threads run below normal
+  priority, so anything else wanting the processor takes it first, and the comparison then describes
+  that other work rather than the profiles. Every second now records how much of the machine the
+  test actually had; a run that got too little, or whose sampling was held off, is called out on the
+  results line and at the top of the report instead of handing over confident numbers about the
+  wrong thing. A virus scanner working through a freshly downloaded file is the usual cause, and it
+  cost a real run 60 % of the machine and stalled one sample for 53 seconds.
+- The power-test table shows the **lowest and highest CPU clock** inside the steady window. A board
+  cycling between two power states averages differently depending on where the window falls, and
+  that is now visible instead of hidden ([#72](../../issues/72) shows 3400-4950 MHz in Balanced).
+- The `power-test` label the report form asks for now exists, so those reports arrive labelled.
+
 ## [1.30.0] - 2026-08-07
 ### Added
 - **Power test**, a third wizard under Report / verify (⚑), measures your profiles instead of

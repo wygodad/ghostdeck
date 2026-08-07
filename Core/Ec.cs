@@ -318,12 +318,19 @@ public static class Ec
         }
     }
 
-    // MSI EC stores fan tach as a divisor: RPM = const / raw (raw 0 -> stopped).
+    // MSI EC stores fan tach as a divisor: RPM = const / raw (raw 0 -> stopped). A raw value in the
+    // low single digits is not a fan speed, it is the register caught between updates: raw 2 reads
+    // as 239000 RPM, and that lands in Status, the overlay and a power-test report as if it meant
+    // something. Past what a laptop fan can physically do we report nothing instead.
+    private const int MaxPlausibleRpm = 12000;
+
     private static int RpmFrom(byte addr, int rpmConst)
     {
         if (addr == 0) return 0;
         int raw = ReadRaw(addr);
-        return raw > 0 ? rpmConst / raw : 0;
+        if (raw == 0) return 0;
+        int rpm = rpmConst / raw;
+        return rpm <= MaxPlausibleRpm ? rpm : 0;
     }
 
     /// <summary>

@@ -1030,8 +1030,9 @@ public sealed class ReportPage : ThemedPage
         if (_ptResult is { } r && !_ptRunning)
         {
             // Green only for a clean run: a probe that was accepted but did NOT clear is the one
-            // outcome that leaves a value set, so it must not read as success.
-            var col = r.Aborted != null ? Theme.Amber
+            // outcome that leaves a value set, and a run the machine was busy during produced
+            // numbers about the wrong thing. Neither may read as success.
+            var col = r.Aborted != null || PowerTest.WasBusy(r) ? Theme.Amber
                     : r.Fourth is null or { Accepted: true, Cleared: true } ? Theme.Green
                     : Theme.Amber;
             string verdict = PowerTest.Summary(r);
