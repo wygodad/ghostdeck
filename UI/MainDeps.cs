@@ -46,6 +46,13 @@ public sealed class MainDeps
     public required Func<bool> HasFanCurve { get; init; }          // model exposes editable fan-curve tables
     public required Action PanicReset { get; init; }               // one press back to a safe stock state
     public required Action<Action<DeviceProfile>> WithEcWrite { get; init; }  // runs only if writable + not simulating
+    public required Func<bool> Simulating { get; init; }        // MSIPS_FORCE_FIRMWARE preview: EC writes are skipped
+    // Holds the model-database swap gate for a long composed EC operation (the power test). Create
+    // and dispose it on the UI thread - it is the same counter the tray's own write paths use.
+    public required Func<IDisposable> EcSession { get; init; }
+    // Re-assert the fan curve the settings record as live. Anything that rewrites the fan-mode byte
+    // (a profile recipe) drops it, and a curve applied from the editor has no preset to fall back on.
+    public required Action RestoreActiveCurve { get; init; }
     public required Func<bool> OverlayOn { get; init; }
     public required Action<bool> SetOverlay { get; init; }
     public required Action ApplyOverlaySettings { get; init; }   // re-read overlay options after a settings edit

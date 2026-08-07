@@ -371,6 +371,10 @@ Each profile is just a specific combination (verified by diffing full EC dumps o
 
 The key fact: **Silent and Balanced differ in `0x34`? No — they differ ONLY in `0xD4`** (`1D` vs `0D`). Every other byte, `0x34` included, is identical between them. This is central to the fan-curve story below.
 
+Three shift values cover the four profiles, and on most boards that is the whole set. Some newer
+boards accept a **fourth** value in the same register, which their MSI Center build presents as a
+switch inside the top scenario rather than as a scenario of its own; see §60.
+
 ### 17.2 Fan mode values (`0xD4`)
 
 | Value | Meaning |
@@ -623,7 +627,7 @@ distinct installed family, so this is a genuine weight step *lighter* than `Font
 lift legibility without making the labels shout over the values. Values/header stay `Bold` either way.
 The toggle lives in the overlay **Options** group and is reset by "Restore defaults".
 
-## 21. Sub-tabs and the two report/verify flows
+## 21. Sub-tabs and the report/verify flows
 
 **Sub-tabs (`SubTabs.cs`).** A reusable themed segmented control that splits a page into a few
 sub-pages without adding top-level tabs. It's a child control that raises `Changed(int)`; the host
@@ -634,12 +638,14 @@ re-lays-out and shows only the active sub-page. Used in two places:
   curve tables) and `Change log`. `SectionHeight(width, sub)` sizes the canvas to the active section
   only, and `Render` branches to `RenderBytes` / `RenderLog` (charts is the default). Content starts at
   a fixed `SecTop` below the title + sub-tab bar; the "Full log…" button is only shown on the log sub-page.
-- **Report** — split into `Profiles` (the existing 4-scenario capture) and `Fan curve` (below).
+- **Report** — split into `Profiles` (the existing 4-scenario capture), `Fan curve` (below) and
+  `Power test` (§60, the only one of the three that writes, and the only one that does not need
+  MSI Center).
 
 **Report is an icon, not a tab.** To free space in the main strip, Report was moved out of the tab row
 to a `⚑` glyph button on the right (next to the theme toggle). `MainForm.ShowReport(sub)` deep-links a
 sub-tab; the Models page ("Verify my model" CTA) opens sub 0, the Fan-curve page ("Report fan curve")
-opens sub 1, and the tray groups both under a "Report / verify" submenu.
+opens sub 1, and the tray groups all three under a "Report / verify" submenu.
 
 **Fan-curve verification by tracer (`ReportPage`, `curve-support.yml`).** MSI Center only exposes the
 curve editor in **Extreme Performance**, so the wizard guides the user there, then asks them to set a
@@ -1884,3 +1890,147 @@ one, and two of them racing must never walk the tables backwards. `ModelDb.LoadO
 against `EffectiveDataVersion` too, so repeated calls during one run do not re-offer what is
 already live.
 
+
+---
+
+## 60. Power test and the fourth shift mode (v1.30)
+
+### 60.1 Why a third report wizard
+
+The two existing wizards read. `Report / verify → Profiles` captures the EC once per MSI Center
+scenario, `→ Fan curve` locates the curve tables with a tracer curve. Both need MSI Center
+installed as the reference, and neither can answer the question the model-support form actually
+turns on: **does Silent do anything on this board?** The form asks the owner to judge it, and the
+options it offers are "seen in HWiNFO64, or clearly quieter by ear". That is an impression, and
+impressions are what several reports have come back with.
+
+On recent machines it is worse than an impression, it is unobtainable. MSI Center 2.0.7x ships no
+Silent scenario at all (§11 of the model-report notes), so a reporter on that version cannot produce
+a capture of the state our Silent recipe writes, and neither can we ask them to. `2631EMS1` is the
+first entry added under exactly those conditions: five dumps, `0xD4` never once reading the Silent
+fan value, and no msi-ec entry to fall back on.
+
+`Report / verify → Power test` measures instead. It applies the Silent, Balanced and Extreme
+recipes in turn, lets each settle, then runs the same synthetic all-core load for a minute while
+sampling once a second: CPU and GPU temperature, both fan duty values, both tachometers, the PDH
+clock estimate, GPU load, and the number of load iterations completed in that second. The last 25
+samples of each phase are averaged into one comparison table. It needs no MSI Center.
+
+The iteration count is the one figure that is not a sensor. Its absolute value means nothing; the
+**ratio between phases** is a direct measure of delivered compute, normalised in the report to
+Balanced = 100. A board whose Silent column shows the same clock and the same work as Balanced has
+a Silent fan value that does not cap power, whatever the fan noise does, and that is exactly the
+tier-promotion question stated as a number.
+
+Package power would be the cleanest signal and is deliberately still absent: reading it needs MSR
+access, which means a kernel driver, which is the line this project does not cross (§21). The
+clock estimate and the work ratio are the driver-free stand-ins.
+
+### 60.2 The fourth shift value
+
+`0xD2` takes three values across the four profiles (§17.1). Captures from newer boards show a
+fourth: `2631EMS1` (Stealth 16 AI+ B3WI) reports `0xC5` where the other three are `0xC1` / `0xC4` /
+`0xC2`, and the vendor software presents it as a switch inside its top scenario rather than as a
+fifth scenario. The value is not the same everywhere, so it is per-model data, not a constant:
+
+```csharp
+public sealed record FourthModeSpec(string Name, byte ShiftValue);
+public FourthModeSpec? FourthMode { get; init; }   // on DeviceProfile, null = none known
+```
+
+It rides the signed model database like everything else (§59), as an optional `fourthMode` object:
+
+```json
+"fourthMode": { "name": "Apex", "shiftValue": "0xC5" }
+```
+
+Optional in both directions: a database written before the key existed simply omits it, and a
+client that predates it never reads it. `ModelDb.Validate` rejects a fourth value that collides
+with any of the three the profiles already write, because that would make `Ec.GetCurrent` report
+the wrong profile and let the probe below "test" an ordinary mode.
+
+`Ec.GetCurrent` maps the fourth value to `Extreme`. The value sits on top of the turbo state rather
+than beside it, so reporting it as a variant of Extreme is the honest answer, and without the
+mapping the comfort branch would claim it and the 3 s poll would log a profile change every time
+the vendor software set that mode.
+
+Nothing writes the fourth value as a feature. It is data plus a probe, and stays that way until the
+probe answers the questions below.
+
+### 60.3 The probe, and its control pair
+
+Whether a captured value can be **set from outside** the vendor software is not something a capture
+can show. Four questions need a sequence, not a photograph: does the register accept the write, does
+anything else move with it, does it clear on the way back, and does it change anything measurable.
+
+The run answers them in order. In Extreme, after settling: dump, wait 3 s, dump again. Those two
+idle dumps are a **control pair**, and every address that differs between them is drifting on its
+own (sensors, tachometers, timers). Only then is the shift register written, and after another 3 s
+a third dump is taken. The addresses that differ between the second and third dump, **minus the
+drift set**, are what the write actually moved. Without the control pair that list is a dozen
+sensor readings and the answer is buried.
+
+The register is read back after the write (accepted or refused) and again after the revert (cleared
+or still set). A refused value skips the loaded run: the answer is already in, and a minute of load
+would add nothing.
+
+### 60.4 The safety envelope
+
+This is the only place in the app that writes an EC value which is not part of a profile recipe, so
+the envelope is stated in the code and on screen rather than assumed:
+
+- **Only the model's own addresses.** The three profile recipes plus the model's shift register, and
+  the curve tables, because the restore goes through the normal profile path and that re-applies an
+  assigned fan curve. All of them are listed on the page, computed from the model, before consent.
+- **Only the database's value.** The fourth value comes from `FourthMode`, never from a constant or
+  a scan. A board without one runs the three profiles and stops.
+- **Consent is explicit**, an unticked box blocks the start, and the reason for any other refusal
+  (no model, experimental writes off, on battery, preview mode) is shown instead of a dead button.
+- **Mains only, and it keeps checking.** On battery the firmware caps power by itself and every
+  measurement would be meaningless, so `PowerTest.Blocked` refuses before the run, and the sampler
+  re-reads the power source every second and stops the run if the charger comes out mid-way. A
+  report that says AC means AC for its whole length.
+- **Restored three ways.** `PowerTest` re-applies the starting profile's recipe in its own `finally`
+  (plus the raw shift byte, when the machine was already sitting in its fourth mode, which is not any
+  of the four profiles). The page then calls the normal `SetProfile` path, and finally
+  `MainDeps.RestoreActiveCurve`, because a curve applied straight from the editor has no preset name
+  and the per-profile preset cannot bring it back. Cancel takes the same path. EC writes are volatile
+  in any case, so a restart returns firmware defaults.
+- **The write and its revert are one unit.** Cancel is honoured everywhere except between writing the
+  fourth value and reverting it: those waits are deliberately not cancellable, so no cancel can leave
+  the register holding a value the user did not ask for, and the readbacks either side are not lost.
+- **A thermal stop.** Five consecutive samples at 99 °C or above end the run and mark the report
+  incomplete, rather than holding the ceiling for another minute.
+- **The tray stops writing.** `Poll` returns early while `_ecBusy > 0` (and the Fan Boost auto-off
+  timer re-arms instead of firing), so the AC/battery switch, the battery rules and the scene
+  schedule cannot land a profile change in the middle of a phase. Without that, the run's own writes
+  also came back as `log_external` entries, once per phase.
+- **The model database is pinned for the run.** The page holds the same `_ecBusy` gate (§59) through
+  `MainDeps.EcSession`, so a newer database cannot swap the register map between the write and the
+  restore. It applies as soon as the run ends.
+- **Closing the window stops the run**, and app exit stops it and waits up to six seconds for the
+  restore, because that restore runs on a background thread the process would otherwise kill.
+
+Two things are recorded rather than refused, because they change what the numbers mean without
+making them invalid: **Fan Boost** being on at the start (it flattens every fan and temperature
+column) and a **short steady window**. The report prints the Fan Boost state in its header and an
+`n` column with the number of seconds actually averaged, so a phase cut short by a cancel, an unplug,
+the thermal stop or a refused controller read cannot be read as a steady state. A refused read is
+dropped rather than recorded: `Ec.TryReadHw` returns a zeroed snapshot on failure, and averaging that
+in would drag every column down and, worse, silently rearm the thermal counter.
+
+`Ec.Apply` is used directly rather than `SetProfile`, deliberately: `SetProfile` also applies the
+profile's assigned fan-curve preset, which would overwrite the fan byte and destroy the Silent
+comparison the test exists to make.
+
+### 60.5 Where it lives
+
+`Core/PowerTest.cs` holds the measurement, the load generator and the report builder, with no UI
+references at all; `UI/ReportPage.cs` adds the third sub-tab and the progress rendering. The report
+is written in **invariant English** even when the app is localised, because it is read on GitHub
+and not by its author. It is copied to the clipboard, saved next to the other two reports, and
+opens `power-test.yml` prefilled.
+
+The load threads run at `BelowNormal` priority so the window keeps repainting. That costs the same
+in every phase and therefore cancels out of the comparison, which is the only property the ratio
+needs.

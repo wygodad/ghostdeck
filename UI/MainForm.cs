@@ -50,7 +50,9 @@ public sealed class MainForm : Form
         // reopen; hide instead (the app lives in the tray). App exit still closes it for real.
         FormClosing += (_, e) =>
         {
-            if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); }
+            // Closing the window is the only way to dismiss a running power test, and there is no
+            // other UI for it once hidden - so stop it rather than leaving the fans at full speed.
+            if (e.CloseReason == CloseReason.UserClosing) { StopPowerTest(wait: false); e.Cancel = true; Hide(); }
         };
 
         // Hidden developer entry to the EC test/discovery tools (Ctrl+Shift+T). See docs/TECHNICAL.md §12.
@@ -337,11 +339,17 @@ public sealed class MainForm : Form
         foreach (Control ch in c.Controls) ForceHandles(ch);
     }
 
-    /// <summary>Open the Report page on a given sub-tab (0 = profiles, 1 = fan curve). Deep-linked from Models / Fan curve.</summary>
+    /// <summary>Open the Report page on a given sub-tab (0 = profiles, 1 = fan curve, 2 = power test). Deep-linked from Models / Fan curve / the tray.</summary>
     public void ShowReport(int sub)
     {
         ShowTab(MainTab.Report);
         if (_pages.TryGetValue(MainTab.Report, out var p) && p is ReportPage rp) rp.SetSubTab(sub);
+    }
+
+    /// <summary>Stop a running power test (window closing, or app exit - see ReportPage.StopPowerTest).</summary>
+    public void StopPowerTest(bool wait)
+    {
+        if (_pages.TryGetValue(MainTab.Report, out var p) && p is ReportPage rp) rp.StopPowerTest(wait);
     }
 
     /// <summary>Open Status on the Gaming sub-tab. Deep-linked from the session-report popup.</summary>

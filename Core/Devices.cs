@@ -19,6 +19,17 @@ public sealed record FanCurveSpec(
                               // is never written (it is a dead field on such boards, see #22)
 
 /// <summary>
+/// An extra value the shift-mode register accepts on some boards, on top of the three the four
+/// profiles use. MSI Center presents it as a switch inside its top performance scenario rather
+/// than as a fifth scenario, and the value differs per board, which is why it lives here and not
+/// in a constant. Only the value is recorded, because a per-scenario capture proves only that:
+/// whether the register accepts it from outside MSI Center, and what else moves with it, is what
+/// the Power test measures. <see cref="Name"/> is the label the vendor's own software shows, kept
+/// so a report is recognisable to its owner. Null on a DeviceProfile = no such value known.
+/// </summary>
+public sealed record FourthModeSpec(string Name, byte ShiftValue);
+
+/// <summary>
 /// Per-model EC definition: firmware match, EC addresses, per-profile recipes, and a tier.
 /// Tested = verified on real hardware. Experimental = built from msi-ec's documented
 /// shift/fan registers but NOT verified (the "Silent" power-cap behaviour is unconfirmed).
@@ -55,6 +66,10 @@ public sealed class DeviceProfile
     public byte ShiftTurboValue { get; init; } = 0xC4;
     public byte ShiftEcoValue { get; init; } = 0xC2;
 
+    // A fourth shift-mode value this board is known to accept (captured from the vendor software),
+    // or null. Nothing writes it yet - it is what the Power test probes. See FourthModeSpec.
+    public FourthModeSpec? FourthMode { get; init; }
+
     // Community attribution (Models tab "Thanks" column): GitHub login of the person whose
     // report/verification backs this entry, and the issue to link as a thank-you.
     public string Credit { get; init; } = "";
@@ -73,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260806;
+    public const int DataVersion = 20260807;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -571,6 +586,23 @@ public static class Devices
         new() { Name = "MSI Vector A18 HX A9WHG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Skullkidsrevenge", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54" },
+
+        // Stealth 16 AI+ B3WI (2631EMS1) - the first board in this table with a documented FOURTH
+        // shift-mode value. It is NOT in msi-ec's conf table, so every address below comes from the
+        // owner's own captures (issues #66 / #67), not from the driver.
+        //   0xD2 across the four captures: C1, C4, C2 (with 0xEB=0F beside it) and C5. The first three
+        //   are the comfort / turbo / eco values StdRecipes already writes, so the standard G2 recipe
+        //   applies unchanged. C5 is the extra value, recorded in FourthMode.
+        //   0xD4 read 0D in all four captures and 8D in the curve capture, so the Silent fan value
+        //   0x1D is assumed from the family, not observed here - that is exactly what Power test measures.
+        //   Fan curve VERIFIED: the wizard found the MSI Center test curve byte-for-byte at 0x72 (CPU:
+        //   19 23 2D 37 41 4B) and 0x8A (GPU: 14 1E 28 32 3C 46) - the shipped ModernCurve addresses.
+        //   RPM: 0xC9/0xCB read C6 / E2 (~2400 / ~2100 RPM at 478000/raw) in the capture where the fans
+        //   were spinning, and 00 / 00 in the idle captures - live tachs at the family addresses.
+        new() { Name = "MSI Stealth 16 AI+ B3WI", FirmwarePrefixes = new[] { "2631EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                FourthMode = new FourthModeSpec("Apex", 0xC5),
+                Credit = "SteppinStone", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/66" },
 
         // G1 family (shift 0xF2 / fan 0xF4 / charge 0xEF) — older boards; super-batt addr unknown (null) unless noted.
         new() { Name = "MSI Prestige 14 A10SC", FirmwarePrefixes = new[] { "14C1EMS1" }, Tier = Tier.Experimental,

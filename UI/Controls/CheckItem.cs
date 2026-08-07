@@ -18,6 +18,8 @@ public sealed class CheckItem : Control
         SetStyle(ControlStyles.Selectable, false);
     }
     public bool Checked { get => _on; set { _on = value; Invalidate(); } }
+    /// <summary>Let a long label wrap instead of being cut with an ellipsis (caller sizes the height).</summary>
+    public bool Wrap { get; set; }
     private static readonly Font F = new("Segoe UI", 10.5f);
     private int Box => (int)Math.Ceiling(18 * DeviceDpi / 96f);   // DPI-aware box size
     public int PreferredWidth => Box + 10 + TextRenderer.MeasureText(Text, F).Width + 6;
@@ -37,6 +39,7 @@ public sealed class CheckItem : Control
         }
         else using (var pen = new Pen(Theme.BorderStrong, 1.4f)) g.DrawPath(pen, path);
         TextRenderer.DrawText(g, Text, F, new Rectangle(b + 10, 0, Width - b - 10, Height), Theme.Text,
-            TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left |
+            (Wrap ? TextFormatFlags.WordBreak : TextFormatFlags.EndEllipsis));
     }
 }

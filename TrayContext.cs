@@ -588,7 +588,7 @@ public sealed class TrayContext : ApplicationContext
             menu.Items.Add(models);
         }
 
-        // Grouped "Report / verify" submenu: my model (profiles) + fan curve.
+        // Grouped "Report / verify" submenu: my model (profiles) + fan curve + power test.
         if (_settings.TrayShowReport)
         {
             var report = new ToolStripMenuItem(Lang.T("tray_report"));
@@ -596,8 +596,11 @@ public sealed class TrayContext : ApplicationContext
             reportModel.Click += (_, _) => OpenReportTab(0);
             var reportCurve = new ToolStripMenuItem(Lang.T("tray_report_curve"));
             reportCurve.Click += (_, _) => OpenReportTab(1);
+            var reportPower = new ToolStripMenuItem(Lang.T("subtab_power"));
+            reportPower.Click += (_, _) => OpenReportTab(2);
             report.DropDownItems.Add(reportModel);
             report.DropDownItems.Add(reportCurve);
+            report.DropDownItems.Add(reportPower);
             menu.Items.Add(report);
         }
 
@@ -1129,6 +1132,9 @@ public sealed class TrayContext : ApplicationContext
         _boostTimer = new System.Windows.Forms.Timer { Interval = seconds * 1000 };
         _boostTimer.Tick += (_, _) =>
         {
+            // Turning the fans down in the middle of a composed EC operation would change what that
+            // operation is measuring or writing. Wait for it instead of dropping the auto-off.
+            if (_ecBusy > 0) return;
             ArmBoostTimer(false);
             if (_coolerBoost) SetCoolerBoostState(false, auto: true);
         };
@@ -1310,8 +1316,21 @@ public sealed class TrayContext : ApplicationContext
     // after resume, once the profile logic has settled. Same gates as every automatic write.
     private void TryRestoreCurve()
     {
-        if (!_settings.RestoreCurveOnResume || !_settings.CurveActive) return;
-        if (!AutoWritable || _simulate || _device?.FanCurve is not { } fc) return;
+        if (!_settings.RestoreCurveOnResume || !AutoWritable) return;
+        RestoreActiveCurve();
+    }
+
+    /// <summary>
+    /// Re-assert the curve the settings record as live. Anything that rewrites the fan-mode byte
+    /// drops it, and a curve applied straight from the editor carries no preset name, so the
+    /// per-profile preset in <see cref="ApplyAssignedCurve"/> cannot bring it back. Used by the
+    /// startup/resume restore above (behind its opt-in) and by the power test, whose profile
+    /// recipes necessarily overwrite that byte.
+    /// </summary>
+    private void RestoreActiveCurve()
+    {
+        if (!_settings.CurveActive) return;
+        if (!Writable || _simulate || _device?.FanCurve is not { } fc) return;
         if (_current == ProfileId.Silent) return;   // a curve would drop Silent's power cap (shared byte)
         var s = _settings;
         if (s.CurveCpuTemp.Length != fc.Points || s.CurveCpuSpeed.Length != fc.Points) return;
@@ -1602,6 +1621,9 @@ public sealed class TrayContext : ApplicationContext
                 try { act(_device); } catch { }
             }
         },
+        Simulating = () => _simulate,
+        EcSession = () => EcBusy(),
+        RestoreActiveCurve = RestoreActiveCurve,
     };
 
     private MainForm EnsureMain()
@@ -2066,6 +2088,12 @@ public sealed class TrayContext : ApplicationContext
         UpdateTrayText();   // battery-time suffix follows discharge state (#15)
         DrainPendingDb();   // a swap parked by a busy EC write or an open curve editor
 
+        // A composed EC operation owns the controller. The tray's own writes hold this scope inside
+        // one synchronous UI-thread call, so the only thing that can be in flight when the timer
+        // ticks is a long run like the power test - and during one, the automatic engines below
+        // would fight it and the re-detection would report its phases as external changes.
+        if (_ecBusy > 0) return;
+
         // Power-transition actions live BEFORE the Writable gate: the refresh-rate switch is
         // not an EC write and must work on every machine. Profile auto-switch keeps its gates.
         var power = SystemInformation.PowerStatus.PowerLineStatus;
@@ -2127,6 +2155,9 @@ public sealed class TrayContext : ApplicationContext
         FpsMonitor.Shutdown();   // stop the ETW session (also flushes an open game session)
         _tray.Visible = false;
         _hotkeys.Dispose();
+        // A power test restores the controller on a background thread; ExitThread would kill it
+        // mid-sequence, so give that restore a bounded chance to finish before the window goes.
+        if (_main is { IsDisposed: false }) _main.StopPowerTest(wait: true);
         _main?.Close();
         _overlay?.Close();
         _report?.Close();

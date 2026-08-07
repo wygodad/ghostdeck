@@ -33,13 +33,34 @@ public sealed class ReportPage : ThemedPage
     private int _lastPct = -1;
     private float _barValue;
     private string? _savedPath;
-    private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH;
+    private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH, _capY;
     private static readonly Font IntroFont = new("Segoe UI", 10.5f);
 
-    // ---- sub-tabs: 0 = profiles (default), 1 = fan curve ----
-    private readonly SubTabs _subTabs = new(Lang.T("subtab_profiles"), Lang.T("subtab_curve"));
+    // ---- sub-tabs: 0 = profiles (default), 1 = fan curve, 2 = power test ----
+    private readonly SubTabs _subTabs = new(Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"));
     private int _sub;
     private int _subTop;
+
+    // ---- power test (the only sub-tab that writes; see Core/PowerTest.cs) ----
+    private readonly Button _ptStart = new();
+    private readonly Button _ptSecondary = new();     // Cancel while running, Start over once there is a result
+    private readonly CheckItem _ptConsent = new(Lang.T("pt_consent"), false);
+    private InfoCardT _ptCard = null!;
+    private readonly StepRowT[] _ptRows;
+    private CancellationTokenSource? _ptCts;
+    private Task<PowerTest.Result>? _ptTask;   // kept so app exit can wait for the EC restore
+    private bool _ptRunning;
+    private PowerTest.Result? _ptResult;
+    private string? _ptSavedPath;
+    private string _ptLive = "", _ptStage = "";
+    private string? _ptMsg;                           // blocked reason / missing consent / EC failure
+    private int _ptStep, _ptSteps = 1;
+    private float _ptBar;
+    private int _ptTop, _ptRowsTop, _ptBtnY, _ptBarY, _ptWritesY, _ptWritesH, _ptConsentY;
+    private static readonly Font WritesFont = new("Consolas", 11f, FontStyle.Bold);
+
+    /// <summary>The model definition in effect right now (follows a live model-database swap).</summary>
+    private DeviceProfile? Dev => Devices.Detect(D.Firmware);
 
     // ---- fan-curve verification flow ----
     // The user sets these exact, distinctive speeds in MSI Center (Extreme → Advanced). We read the EC
@@ -72,14 +93,14 @@ public sealed class ReportPage : ThemedPage
         _curveBtn.Click += OnCurveCapture;
         Controls.Add(_curveBtn);
 
-        _curveCard = new InfoCardT("⚠", new (string, string?)[]
+        _curveCard = new InfoCardT("", new (string, string?)[]
         {
             (Lang.T("rep_curve_warn"), null),
             (Lang.T("rep_curve_why"), null),
         }, _leftW);
         Controls.Add(_curveCard);
 
-        _card = new InfoCardT("ⓘ", new (string, string?)[]
+        _card = new InfoCardT("", new (string, string?)[]
         {
             (Lang.T("rep_need_msi"), null),
             (Lang.T("rep_msi_tip"), null),
@@ -121,16 +142,51 @@ public sealed class ReportPage : ThemedPage
         Controls.Add(_restart);
         Controls.Add(_curveRestart);
 
+        // ---- power test ----
+        _ptCard = new InfoCardT("", new (string, string?)[]
+        {
+            (Lang.T("pt_warn_write"), null),
+            (Lang.T("pt_warn_fourth"), null),
+            (Lang.T("pt_warn_heat"), null),
+            (Lang.T("pt_warn_restore"), null),
+        }, _leftW);
+        Controls.Add(_ptCard);
+
+        // Silent / Balanced / Extreme, then the board's fourth mode (hidden when it has none),
+        // then the restore. Labels are filled in by RefreshPowerRows, which follows the model.
+        _ptRows = new StepRowT[PtRowCount];
+        for (int i = 0; i < _ptRows.Length; i++)
+        {
+            _ptRows[i] = new StepRowT(i + 1, "", Theme.Accent);
+            Controls.Add(_ptRows[i]);
+        }
+
+        Ui.StylePrimary(_ptStart);
+        _ptStart.Click += OnPowerStart;
+        Controls.Add(_ptStart);
+        Ui.StyleGhost(_ptSecondary);
+        _ptSecondary.Click += OnPowerSecondary;
+        Controls.Add(_ptSecondary);
+        // Ticking the box answers whatever the page was complaining about, so the complaint goes.
+        _ptConsent.Toggled += _ => { _ptMsg = null; SyncPower(); Invalidate(); };
+        Controls.Add(_ptConsent);
+
         _anim.Tick += (_, _) => OnAnim();
         Resize += (_, _) => Relayout();
         RefreshSteps();
+        RefreshPowerRows();
         SyncSub();
     }
 
-    /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve). Used by deep links.</summary>
+    // Silent + Balanced + Extreme + fourth mode + restore. The fourth row is hidden on boards
+    // whose database entry records no fourth shift value.
+    private const int PtRowCount = 5;
+    private const int PtRestoreRow = 4;
+
+    /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve, 2 = power test). Used by deep links.</summary>
     public void SetSubTab(int sub)
     {
-        _sub = Math.Clamp(sub, 0, 1);
+        _sub = Math.Clamp(sub, 0, 2);
         _subTabs.SetActive(_sub);
         SyncSub(); Relayout(); Invalidate();
     }
@@ -138,18 +194,34 @@ public sealed class ReportPage : ThemedPage
     // Show only the active sub-tab's controls (the rest are hand-painted, gated in OnPaint).
     private void SyncSub()
     {
-        bool prof = _sub == 0;
+        bool prof = _sub == 0, curve = _sub == 1, power = _sub == 2;
         _card.Visible = prof;
         foreach (var r in _rows) r.Visible = prof;
         _capture.Visible = prof;
         _restart.Visible = prof && _step > 0;
-        _curveBtn.Visible = !prof;
-        _curveRestart.Visible = !prof && _curveDump != null;
-        _curveCard.Visible = !prof;
-        if (!prof) RefreshCurve();
+        _curveBtn.Visible = curve;
+        _curveRestart.Visible = curve && _curveDump != null;
+        _curveCard.Visible = curve;
+        _ptCard.Visible = power;
+        _ptStart.Visible = power;
+        _ptConsent.Visible = power && !_ptRunning;
+        for (int i = 0; i < _ptRows.Length; i++) _ptRows[i].Visible = power && PtRowShown(i);
+        if (curve) RefreshCurve();
+        if (power) { RefreshPowerRows(); SyncPower(); } else _ptSecondary.Visible = false;
     }
 
-    public override void OnEnter() { Relayout(); RefreshSteps(); SyncSub(); Invalidate(); }
+    public override void OnEnter()
+    {
+        // A refusal ("plug the charger in") is answered by leaving and coming back, so it should not
+        // survive that. A run in progress keeps whatever it is saying.
+        if (!_ptRunning) _ptMsg = null;
+        Relayout(); RefreshSteps(); SyncSub(); Invalidate();
+    }
+
+    // A newer model database can add (or correct) the fourth shift value while the page is open.
+    // Rebuilding the checklist is all that is needed; a run in progress holds the swap gate, so
+    // this can never land mid-test.
+    public override void OnDeviceDbChanged() { RefreshPowerRows(); SyncSub(); Relayout(); Invalidate(); }
 
     public override void ApplyTheme()
     {
@@ -161,6 +233,11 @@ public sealed class ReportPage : ThemedPage
         Ui.StyleGhost(_restart);
         Ui.StyleGhost(_curveRestart);
         _curveCard.ApplyTheme();
+        Ui.StylePrimary(_ptStart);
+        Ui.StyleGhost(_ptSecondary);
+        _ptCard.ApplyTheme();
+        RefreshPowerRows();
+        _ptConsent.Invalidate();
         _subTabs.Invalidate();
     }
 
@@ -177,7 +254,8 @@ public sealed class ReportPage : ThemedPage
         // NB: content coord, NOT _subTabs.Bottom - that one is already shifted by the scroll.
         int top = _subTop + _subTabs.Height + 26;
         if (_sub == 0) LayoutProfiles(top, ox, oy);
-        else LayoutCurve(top, ox, oy);
+        else if (_sub == 1) LayoutCurve(top, ox, oy);
+        else LayoutPower(top, ox, oy);
     }
 
     private void LayoutProfiles(int top, int ox, int oy)
@@ -203,7 +281,7 @@ public sealed class ReportPage : ThemedPage
         var instrFont = new Font("Segoe UI", 11.5f, FontStyle.Bold);
         _instrH = TextRenderer.MeasureText(Lang.T("rep_all_done"), instrFont, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
         int capW = Math.Min(320, rightW - 180);
-        int capY = _instrTop + _instrH + 18;      // content coord; children get + oy
+        int capY = _capY = _instrTop + _instrH + 18;      // content coord; children get + oy
         _capture.SetBounds(_rightX + ox, capY + oy, capW, 44);
         _restart.SetBounds(_rightX + capW + 10 + ox, capY + oy, 170, 44);
 
@@ -250,19 +328,15 @@ public sealed class ReportPage : ThemedPage
         TextRenderer.DrawText(g, Lang.T("menu_report"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
         if (_sub == 1) { PaintCurve(g); return; }
+        if (_sub == 2) { PaintPower(g); return; }
 
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
         // left: intro under title, info card (child) already placed, firmware pill below it
         TextRenderer.DrawText(g, Lang.T("rep_intro"), IntroFont,
             new Rectangle(Pad, _introY, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
-        var pill = new RectangleF(Pad, _card.Bottom + 14, _leftW, 44);
-        using (var path = Theme.RoundRect(pill, 11))
-        { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
-        var lf = new Font("Segoe UI", 10f);
-        TextRenderer.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-        int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware) ? "—" : D.Firmware, new Font("Consolas", 11f, FontStyle.Bold),
-            new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+        // content coord, NOT _card.Bottom - a child's Bottom already carries the scroll offset,
+        // and OnPaint adds it again through ApplyScroll (see docs/RENDERING.md §5.1)
+        PaintFirmwarePill(g, _contentTop + _card.Height + 14);
 
         // right: section label
         TextRenderer.DrawText(g, Lang.T("rep_section"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
@@ -286,7 +360,7 @@ public sealed class ReportPage : ThemedPage
             new Rectangle(_rightX, _instrTop, rightW, _instrH + 6), done ? Theme.Green : Theme.Text, TextFormatFlags.WordBreak);
         if (done && _savedPath != null)
             TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _savedPath), new Font("Segoe UI", 9f),
-                new Rectangle(_rightX, _capture.Bottom + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
+                new Rectangle(_rightX, _capY + 44 + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
     }
 
     // =================================================================
@@ -305,14 +379,7 @@ public sealed class ReportPage : ThemedPage
         // ---- left column: intro + info card (child) + firmware pill ----
         TextRenderer.DrawText(g, Lang.T("rep_curve_intro"), IntroFont,
             new Rectangle(Pad, _curveTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
-        var pill = new RectangleF(Pad, _curveCard.Bottom + 14, _leftW, 44);
-        using (var path = Theme.RoundRect(pill, 11))
-        { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
-        var lf = new Font("Segoe UI", 10f);
-        TextRenderer.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-        int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware) ? "—" : D.Firmware, new Font("Consolas", 11f, FontStyle.Bold),
-            new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+        PaintFirmwarePill(g, _contentTop + _curveCard.Height + 14);
 
         // ---- right column: section label + numbered steps ----
         TextRenderer.DrawText(g, Lang.T("rep_curve_steps"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
@@ -509,7 +576,13 @@ public sealed class ReportPage : ThemedPage
     }
 
     private void EnsureAnim() { if (!_anim.Enabled) _anim.Start(); }
-    private void OnAnim() { bool busy = _capturing; foreach (var r in _rows) busy |= r.Animate(); if (!busy) _anim.Stop(); }
+    private void OnAnim()
+    {
+        bool busy = _capturing || _ptRunning;
+        foreach (var r in _rows) busy |= r.Animate();
+        foreach (var r in _ptRows) busy |= r.Animate();
+        if (!busy) _anim.Stop();
+    }
 
     // ---- capture ----
     private void OnCapture(object? sender, EventArgs e)
@@ -568,7 +641,16 @@ public sealed class ReportPage : ThemedPage
         try { Process.Start(new ProcessStartInfo(BuildIssueUrl()) { UseShellExecute = true }); } catch { }
     }
 
-    protected override void Dispose(bool disposing) { if (disposing) _anim.Dispose(); base.Dispose(disposing); }
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _anim.Dispose();
+            // A power test outlives a tab switch on purpose, but not the window closing.
+            try { _ptCts?.Cancel(); } catch { }
+        }
+        base.Dispose(disposing);
+    }
 
     // ---- report building (read-only) ----
     private string ModelName() { var s = D.Status(); return s.Known ? s.Device : ""; }
@@ -652,19 +734,360 @@ public sealed class ReportPage : ThemedPage
     }
 
     // =================================================================
+    //  power test sub-tab
+    // =================================================================
+    // The one part of the app that writes an EC value outside a profile recipe. Everything it may
+    // touch is listed on screen before it starts, the fourth-mode value comes from the model
+    // database rather than the code, and the profile that was live when the run began is restored
+    // through the normal path afterwards. Measurement and report live in Core/PowerTest.cs.
+
+    private bool PtRowShown(int i) => i != 3 || Dev?.FourthMode != null;
+
+    private void RefreshPowerRows()
+    {
+        var dev = Dev;
+        string[] labels =
+        {
+            Profiles.Get(ProfileId.Silent).Label,
+            Profiles.Get(ProfileId.Balanced).Label,
+            Profiles.Get(ProfileId.Extreme).Label,
+            dev?.FourthMode?.Name ?? "",
+            Lang.T("pt_row_restore"),
+        };
+        Color[] tints =
+        {
+            Theme.Profile(D.ColorOf(ProfileId.Silent)),
+            Theme.Profile(D.ColorOf(ProfileId.Balanced)),
+            Theme.Profile(D.ColorOf(ProfileId.Extreme)),
+            Theme.Accent, Theme.Accent,
+        };
+        // How far the run actually got. A cancelled or aborted run must not tick steps that never
+        // ran, which is the difference between "we measured this" and "we did not".
+        int reached = _ptResult switch
+        {
+            null => 0,
+            { Aborted: null } => _ptRows.Length,
+            { } r => r.Phases.Length + (r.Fourth != null ? 1 : 0),
+        };
+
+        // PowerTest counts steps over the rows that are SHOWN, so a board without a fourth mode
+        // maps its restore step onto row 4 even though row 3 is hidden. The visible numbering
+        // follows the same counter, otherwise such a board would show 1, 2, 3, 5.
+        int shown = -1;
+        for (int i = 0; i < _ptRows.Length; i++)
+        {
+            _ptRows[i].Label = labels[i];
+            _ptRows[i].Tint = tints[i];
+            if (!PtRowShown(i)) { _ptRows[i].SetState(false, false); continue; }
+            shown++;
+            _ptRows[i].Number = shown + 1;
+            // The restore is the one step that runs even on the paths that skipped everything else.
+            bool done = _ptRunning ? shown < _ptStep
+                                   : _ptResult != null && (i == PtRestoreRow || shown < reached);
+            _ptRows[i].SetState(done, _ptRunning && shown == _ptStep);
+        }
+        EnsureAnim();
+    }
+
+    private void SyncPower()
+    {
+        bool done = _ptResult != null && !_ptRunning;
+        _ptStart.Text = done ? Lang.T("rep_finish") : Lang.T("pt_start");
+        // While a run is in flight Cancel is the only thing left to do, so Start goes away rather
+        // than sitting there swallowing clicks (LayoutPower then gives Cancel the primary slot).
+        _ptStart.Visible = _sub == 2 && !_ptRunning;
+        _ptConsent.Visible = _sub == 2 && !_ptRunning && _ptResult == null;
+        _ptSecondary.Visible = _sub == 2 && (_ptRunning || done);
+        _ptSecondary.Text = _ptRunning ? Lang.T("pt_cancel") : Lang.T("rep_restart");
+    }
+
+    /// <summary>
+    /// Stop a run from outside the page. The window is only ever hidden, not closed, so Dispose is
+    /// not a reliable place for this. On app exit the caller waits: PowerTest's restore runs on a
+    /// background thread that the process would otherwise kill mid-sequence.
+    /// </summary>
+    public void StopPowerTest(bool wait)
+    {
+        if (!_ptRunning) return;
+        try { _ptCts?.Cancel(); } catch { }
+        if (wait) { try { _ptTask?.Wait(6000); } catch { } }
+    }
+
+    // Every address the run may write, from the model's own tables. The recipes are the run itself;
+    // the curve tables belong here too, because the restore goes through the normal profile path
+    // and that re-applies whatever fan curve is assigned to the profile it returns to.
+    private string PtWriteList(DeviceProfile? dev)
+    {
+        if (dev == null) return "—";
+        var addrs = new SortedSet<byte> { dev.ShiftMode, dev.FanMode };
+        foreach (var id in new[] { ProfileId.Silent, ProfileId.Balanced, ProfileId.Extreme })
+            foreach (var (a, _) in dev.Recipes[id]) addrs.Add(a);
+        if (dev.FanCurve is { } fc)
+            foreach (var b in fc.SingleFan
+                         ? new[] { fc.CpuTempBase, fc.CpuSpeedBase }
+                         : new[] { fc.CpuTempBase, fc.CpuSpeedBase, fc.GpuTempBase, fc.GpuSpeedBase })
+                for (int i = 0; i < fc.Points; i++) addrs.Add((byte)(b + i));
+        return string.Join("   ", addrs.Select(a => $"0x{a:X2}"));
+    }
+
+    private void OnPowerSecondary(object? sender, EventArgs e)
+    {
+        if (_ptRunning) { _ptCts?.Cancel(); return; }
+        _ptResult = null; _ptSavedPath = null; _ptMsg = null; _ptBar = 0; _ptStep = 0; _ptLive = ""; _ptStage = "";
+        _ptConsent.Checked = false;
+        RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
+    }
+
+    private async void OnPowerStart(object? sender, EventArgs e)
+    {
+        if (_ptRunning) return;
+        if (_ptResult != null) { OpenPowerIssue(); return; }
+
+        var dev = Dev;
+        string? blocked = PowerTest.Blocked(dev, D.Writable(), D.Simulating());
+        if (blocked != null) { _ptMsg = blocked; Invalidate(); return; }
+        if (!_ptConsent.Checked) { _ptMsg = Lang.T("pt_need_consent"); Invalidate(); return; }
+
+        _ptRunning = true;
+        _ptMsg = null; _ptSavedPath = null; _ptBar = 0; _ptStep = 0; _ptStage = ""; _ptLive = "";
+        _ptSteps = PowerTest.StepCount(dev!);
+        _ptCts = new CancellationTokenSource();
+        RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
+
+        // The profile to come back to, and the gate that keeps a model-database swap from changing
+        // the register map underneath a run that is halfway through writing it.
+        var back = D.Current();
+        using var gate = D.EcSession();
+        try
+        {
+            var sink = new Progress<PowerTest.Progress>(OnPowerProgress);
+            _ptTask = PowerTest.RunAsync(dev!, D.AppVersion(), D.Firmware, sink, _ptCts.Token);
+            _ptResult = await _ptTask;
+            PreparePowerReport(dev!);
+        }
+        catch (Exception ex)
+        {
+            _ptMsg = string.Format(Lang.T("rep_read_fail"), AppLifecycle.DescribeEcFailure(ex));
+        }
+        finally
+        {
+            _ptRunning = false;
+            _ptCts?.Dispose(); _ptCts = null;
+            _ptTask = null;
+            _ptStep = _ptSteps - 1;
+            _ptBar = 1;
+            try { D.SetProfile(back); } catch { }
+            // A curve applied from the editor carries no preset name, so the profile path above
+            // does not bring it back. The phase recipes necessarily overwrote the fan mode byte.
+            try { D.RestoreActiveCurve(); } catch { }
+            RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
+        }
+    }
+
+    private void OnPowerProgress(PowerTest.Progress p)
+    {
+        _ptStep = p.StepIndex;
+        _ptSteps = Math.Max(1, p.StepCount);
+        _ptStage = p.Stage;
+        _ptLive = p.Live;
+        // Settling takes the first fifth of a step's bar so the load does not appear to restart it.
+        double within = p.Stage switch
+        {
+            "settle" => 0.2 * p.Fraction,
+            "load" => 0.2 + 0.8 * p.Fraction,
+            _ => p.Fraction,
+        };
+        _ptBar = (float)Math.Clamp((p.StepIndex + within) / _ptSteps, 0, 1);
+        RefreshPowerRows();
+        Invalidate();
+    }
+
+    private void PreparePowerReport(DeviceProfile dev)
+    {
+        if (_ptResult is not { } r) return;
+        string report = PowerTest.BuildReport(r, dev);
+        try { Clipboard.SetText(report); } catch { }
+        try
+        {
+            string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string fwTag = string.IsNullOrEmpty(D.Firmware) ? "unknown" : D.Firmware.Replace('.', '_');
+            _ptSavedPath = Path.Combine(dir, $"ghostdeck-power-test-{fwTag}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+            File.WriteAllText(_ptSavedPath, report, new UTF8Encoding(false));
+        }
+        catch { _ptSavedPath = null; }
+    }
+
+    private void OpenPowerIssue()
+    {
+        try { Process.Start(new ProcessStartInfo(BuildPowerIssueUrl()) { UseShellExecute = true }); } catch { }
+    }
+
+    private string BuildPowerIssueUrl()
+    {
+        var r = _ptResult;
+        string title = $"[Power] {ModelName()} ({D.Firmware})";
+        // Like the other two wizards: the paste field is deliberately NOT prefilled, because the
+        // full report is on the clipboard and reloading a prefilled URL would wipe what was pasted.
+        return RepoUrl + "/issues/new?template=power-test.yml&labels=power-test"
+            + "&title=" + Uri.EscapeDataString(title)
+            + "&model=" + Uri.EscapeDataString(ModelName())
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware)
+            + "&verdict=" + Uri.EscapeDataString(r == null ? "" : PowerTest.Summary(r));
+    }
+
+    private void LayoutPower(int top, int ox, int oy)
+    {
+        _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
+        _rightX = Pad + _leftW + Gutter;
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
+        int secH = new Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
+
+        _ptTop = top;
+        _introH = TextRenderer.MeasureText(Lang.T("pt_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
+        _contentTop = _ptTop + _introH + 18;
+        _ptCard.Location = new Point(Pad + ox, _contentTop + oy);
+        _ptCard.SetWidth(_leftW);
+        _ptWritesY = _contentTop + _ptCard.Height + 16;
+        // Boards with curve tables list around thirty addresses, which is several lines.
+        _ptWritesH = TextRenderer.MeasureText(PtWriteList(Dev), WritesFont,
+            new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
+
+        _ptRowsTop = _contentTop + secH + 14;
+        int ry = _ptRowsTop;
+        for (int i = 0; i < _ptRows.Length; i++)
+        {
+            _ptRows[i].SetBounds(_rightX + ox, ry + oy, rightW, 52);
+            if (PtRowShown(i)) ry += 60;
+        }
+        // The consent sentence is long in every language and must never be cut, so it wraps across
+        // the whole column and everything below it follows its measured height.
+        _ptConsentY = ry + 8;
+        int boxW = (int)Math.Ceiling(18 * DeviceDpi / 96f) + 10;
+        int consentH = Math.Max((int)Math.Ceiling(26 * DeviceDpi / 96f),
+            TextRenderer.MeasureText(_ptConsent.Text, new Font("Segoe UI", 10.5f),
+                new Size(Math.Max(40, rightW - boxW - 6), 0), TextFormatFlags.WordBreak).Height + 8);
+        _ptConsent.Wrap = true;
+        _ptConsent.SetBounds(_rightX + ox, _ptConsentY + oy, rightW, consentH);
+
+        _ptBtnY = _ptConsentY + consentH + 16;
+        int bw = Math.Min(320, rightW - 180);
+        // While running, Cancel takes the primary slot because Start is hidden.
+        if (_ptRunning) _ptSecondary.SetBounds(_rightX + ox, _ptBtnY + oy, bw, 44);
+        else
+        {
+            _ptStart.SetBounds(_rightX + ox, _ptBtnY + oy, bw, 44);
+            _ptSecondary.SetBounds(_rightX + bw + 10 + ox, _ptBtnY + oy, 170, 44);
+        }
+        _ptBarY = _ptBtnY + 60;
+
+        // bottoms in CONTENT coords (a child's .Bottom is client-side once the page is scrolled)
+        int leftBottom = _ptWritesY + 20 + _ptWritesH + 14 + 44;   // address block + firmware pill
+        int rightBottom = _ptBarY + 180;                // bar + live line + verdict + saved path + message
+        AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
+    }
+
+    private void PaintPower(Graphics g)
+    {
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
+        var dev = Dev;
+        var secFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+
+        // ---- left column: intro + warning card (child) + the exact addresses + firmware pill ----
+        TextRenderer.DrawText(g, Lang.T("pt_intro"), IntroFont,
+            new Rectangle(Pad, _ptTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        TextRenderer.DrawText(g, Lang.T("pt_writes"), secFont, new Point(Pad, _ptWritesY), Theme.Muted);
+        TextRenderer.DrawText(g, PtWriteList(dev), WritesFont,
+            new Rectangle(Pad, _ptWritesY + 20, _leftW, _ptWritesH + 4), Theme.Accent,
+            TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        PaintFirmwarePill(g, _ptWritesY + 20 + _ptWritesH + 14);
+
+        // ---- right column: checklist label ----
+        TextRenderer.DrawText(g, Lang.T("pt_steps"), secFont, new Point(_rightX, _contentTop), Theme.Muted);
+
+        int y = _ptBarY;
+        if (_ptRunning)
+        {
+            string stage = _ptStage switch
+            {
+                "settle" => Lang.T("pt_stage_settle"),
+                "load" => Lang.T("pt_stage_load"),
+                "write" => Lang.T("pt_stage_write"),
+                "revert" => Lang.T("pt_stage_revert"),
+                _ => Lang.T("pt_stage_read"),
+            };
+            TextRenderer.DrawText(g, stage + (_ptLive.Length > 0 ? "   " + _ptLive : ""),
+                new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, y - 4), Theme.Accent);
+            var track = new RectangleF(_rightX, y + 20, rightW, 12);
+            using (var path = Theme.RoundRect(track, 6))
+            { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
+            using (var path = Theme.RoundRect(new RectangleF(_rightX, y + 20, Math.Max(12, rightW * _ptBar), 12), 6))
+            { using var b = new SolidBrush(Theme.Accent); g.FillPath(b, path); }
+            y += 48;
+        }
+
+        // ---- right column: verdict, then whatever needs saying ----
+        if (_ptResult is { } r && !_ptRunning)
+        {
+            // Green only for a clean run: a probe that was accepted but did NOT clear is the one
+            // outcome that leaves a value set, so it must not read as success.
+            var col = r.Aborted != null ? Theme.Amber
+                    : r.Fourth is null or { Accepted: true, Cleared: true } ? Theme.Green
+                    : Theme.Amber;
+            string verdict = PowerTest.Summary(r);
+            var vf = new Font("Segoe UI", 11.5f, FontStyle.Bold);
+            int vh = TextRenderer.MeasureText(verdict, vf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, verdict, vf, new Rectangle(_rightX, y, rightW, vh + 6), col,
+                TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            y += vh + 10;
+            if (_ptSavedPath != null)
+            {
+                TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _ptSavedPath), new Font("Segoe UI", 9f),
+                    new Rectangle(_rightX, y, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
+                y += 46;
+            }
+        }
+
+        if (_ptMsg != null)
+            TextRenderer.DrawText(g, _ptMsg, new Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
+                Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+    }
+
+    // The firmware pill closes the left column on every sub-tab.
+    private void PaintFirmwarePill(Graphics g, int y)
+    {
+        var pill = new RectangleF(Pad, y, _leftW, 44);
+        using (var path = Theme.RoundRect(pill, 11))
+        { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
+        var lf = new Font("Segoe UI", 10f);
+        TextRenderer.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+        int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
+        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware) ? "—" : D.Firmware, new Font("Consolas", 11f, FontStyle.Bold),
+            new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent,
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+    }
+
+    // =================================================================
     //  themed custom controls
     // =================================================================
     private sealed class StepRowT : Control
     {
         private const int StatusW = 150, Circle = 26, Cx = 28;
-        private readonly int _num;
-        private readonly string _name;
+        private int _num;
+        private string _name;
         public Color Tint;
         private bool _done, _current;
         private float _doneA, _glowA;
 
         public StepRowT(int num, string name, Color color)
         { _num = num; _name = name; Tint = color; DoubleBuffered = true; ResizeRedraw = true; }
+
+        /// <summary>The power test names its rows from the model database, which can change at runtime.</summary>
+        public string Label { set { if (_name == value) return; _name = value; Invalidate(); } }
+
+        /// <summary>Numbering follows the rows actually shown, so a hidden row leaves no gap.</summary>
+        public int Number { set { if (_num == value) return; _num = value; Invalidate(); } }
 
         public void SetState(bool done, bool current) { _done = done; _current = current; Invalidate(); }
 
@@ -724,6 +1147,7 @@ public sealed class ReportPage : ThemedPage
     private sealed class InfoCardT : Control
     {
         private const int LeftPad = 46, RightPad = 18, TopPad = 15;
+        private static readonly Font IconFont = new("Segoe MDL2 Assets", 13f);
         private readonly string _icon;
         private readonly (string text, string? url)[] _items;
         private readonly List<(Rectangle rect, string text)> _paras = new();
@@ -785,7 +1209,12 @@ public sealed class ReportPage : ThemedPage
             var (bg, bd, fg) = Colors();
             var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
             using (var path = Theme.RoundRect(r, 12)) { using var b = new SolidBrush(bg); g.FillPath(b, path); using var p = new Pen(bd); g.DrawPath(p, path); }
-            TextRenderer.DrawText(g, _icon, new Font("Segoe UI", 13f, FontStyle.Bold), new Rectangle(14, TopPad - 1, 26, 22), fg, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+            // Segoe MDL2 like the rest of the app's icons, and a MEASURED box: the fixed 22 px it
+            // used to get is shorter than the glyph as soon as the display scales past 100 %, and
+            // GDI clips the difference away.
+            int ih = TextRenderer.MeasureText(_icon, IconFont, Size.Empty, TextFormatFlags.NoPadding).Height;
+            TextRenderer.DrawText(g, _icon, IconFont, new Rectangle(12, TopPad, 30, ih + 2), fg,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
             foreach (var (rect, text) in _paras)
                 TextRenderer.DrawText(g, text, _font, rect, fg, TextFormatFlags.WordBreak | TextFormatFlags.Top | TextFormatFlags.Left);
         }

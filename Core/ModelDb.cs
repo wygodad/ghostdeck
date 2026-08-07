@@ -141,6 +141,15 @@ public static class ModelDb
             w.WriteBoolean("singleFan", fc.SingleFan);
             w.WriteEndObject();
         }
+        // Optional: a database written before this key existed simply omits it, and a client that
+        // predates it ignores the key it does not read - the format degrades in both directions.
+        if (d.FourthMode is { } fm)
+        {
+            w.WriteStartObject("fourthMode");
+            w.WriteString("name", fm.Name);
+            w.WriteString("shiftValue", Hex(fm.ShiftValue));
+            w.WriteEndObject();
+        }
         if (d.Credit.Length > 0) w.WriteString("credit", d.Credit);
         if (d.CreditUrl.Length > 0) w.WriteString("creditUrl", d.CreditUrl);
         // recipes always explicit ("0xAA=0xVV" pairs) - the file is generated, never hand-edited
@@ -221,6 +230,11 @@ public static class ModelDb
                 fc.GetProperty("points").GetInt32(),
                 fc.GetProperty("verified").GetBoolean(),
                 fc.GetProperty("singleFan").GetBoolean());
+        FourthModeSpec? fourth = null;
+        if (m.TryGetProperty("fourthMode", out var fm))
+            fourth = new FourthModeSpec(
+                fm.GetProperty("name").GetString() ?? "",
+                ParseByte(fm.GetProperty("shiftValue").GetString()));
         return new DeviceProfile
         {
             Name = m.GetProperty("name").GetString() ?? "",
@@ -242,6 +256,7 @@ public static class ModelDb
             ShiftTurboValue = B("shiftTurboValue", Def.ShiftTurboValue),
             ShiftEcoValue = B("shiftEcoValue", Def.ShiftEcoValue),
             FanCurve = curve,
+            FourthMode = fourth,
             Credit = m.TryGetProperty("credit", out var cr) ? cr.GetString() ?? "" : "",
             CreditUrl = m.TryGetProperty("creditUrl", out var cu) ? cu.GetString() ?? "" : "",
             Recipes = recipes,
@@ -272,6 +287,15 @@ public static class ModelDb
             foreach (var id in Profiles.Order)
                 if (!d.Recipes.TryGetValue(id, out var r) || r.Length == 0) { error = d.Name + ": missing recipe " + id; return false; }
             if (d.FanCurve is { } fc && fc.Points is < 1 or > 16) { error = d.Name + ": bad curve points"; return false; }
+            if (d.FourthMode is { } fm)
+            {
+                if (string.IsNullOrWhiteSpace(fm.Name)) { error = d.Name + ": fourth mode without a name"; return false; }
+                // It has to be a FOURTH value. Colliding with one of the three the profiles use would
+                // make the app report the wrong profile and let the Power test "probe" an ordinary mode.
+                if (fm.ShiftValue == d.ShiftTurboValue || fm.ShiftValue == d.ShiftEcoValue ||
+                    d.Recipes.Values.Any(r => r.Any(p => p.addr == d.ShiftMode && p.val == fm.ShiftValue)))
+                { error = d.Name + ": fourth mode duplicates a profile shift value"; return false; }
+            }
         }
         return true;
     }

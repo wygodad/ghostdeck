@@ -3,6 +3,33 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.30.0] - 2026-08-07
+### Added
+- **Power test**, a third wizard under Report / verify (⚑), measures your profiles instead of
+  asking you to judge them by ear. The same all-core load runs in Silent, Balanced and Extreme
+  while temperatures, both fan duty values, both tachometers, the CPU clock and the work the
+  processor actually completes are sampled every second; the last 25 seconds of each phase become
+  one comparison table. Whether Silent really caps power stops being an impression and becomes a
+  column. Unlike the other two wizards it needs **no MSI Center**. About five minutes, mains power
+  and an explicit tick required, every address it may write listed before you start, and your
+  profile restored at the end (also by Cancel).
+- **Fourth performance mode, recorded and probed.** Some newer boards accept a fourth value in the
+  shift register, which their MSI Center build shows as a switch inside the top scenario rather
+  than as a scenario of its own. The signed model database can now carry that value per model, and
+  the Power test probes it: it writes the value, reads the register back, compares two idle dumps
+  taken beforehand so sensor drift can be subtracted from whatever moved with the write, runs the
+  same load, then reverts and reads back again. Nothing writes it as a feature yet - this release
+  gathers the evidence that would justify one.
+- **MSI Stealth 16 AI+ B3WI** (`2631EMS1`) recognised, experimental
+  ([#66](../../issues/66), [#67](../../issues/67), thanks @SteppinStone). The fan curve is
+  hardware-verified at the shipped addresses, the fan tachometers are live so Status shows RPM, and
+  its fourth shift value `0xC5` is the first one in the database. 146 models recognised.
+
+### Fixed
+- **A board's fourth shift value no longer reads as the wrong profile.** With the value recorded,
+  the app reports it as Extreme, so the 3 s poll stops logging a profile change whenever the vendor
+  software sets that mode.
+
 ## [1.29.0] - 2026-08-07
 ### Added
 - **Model-database updates apply without restarting** and are checked far more often. The

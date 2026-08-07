@@ -2,7 +2,7 @@
 
 > Auto-generated from [`Devices.cs`](../Core/Devices.cs) - the single source of truth. Do not edit by hand; regenerate when models change.
 
-**145 laptop models** are recognised: **18 tested** on real hardware (MSI Raider GE78HX / Vector GP78HX 13V/14V; MSI Crosshair A16 HX D7W/D8W; MSI Sword 16 HX B13V/B14V; MSI Raider GE67 HX 12U; MSI Cyborg 15 A12VF / A13VF; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Bravo 15 B7ED; MSI Bravo 17 C7VE/D7VFK; MSI GF63 Thin 11UC/11SC; MSI Katana GF66 11UE/11UG; MSI Pulse/Katana 17 B13V/GK; MSI Katana 15 HX B14WEK; MSI Crosshair 16 HX AI D2XW; MSI Raider GE76 12UE/12UGS; MSI Raider A18 HX A7VIG; MSI Vector A18 HX A9WHG; MSI Modern 14 C12M) and **127 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
+**146 laptop models** are recognised: **18 tested** on real hardware (MSI Raider GE78HX / Vector GP78HX 13V/14V; MSI Crosshair A16 HX D7W/D8W; MSI Sword 16 HX B13V/B14V; MSI Raider GE67 HX 12U; MSI Cyborg 15 A12VF / A13VF; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Bravo 15 B7ED; MSI Bravo 17 C7VE/D7VFK; MSI GF63 Thin 11UC/11SC; MSI Katana GF66 11UE/11UG; MSI Pulse/Katana 17 B13V/GK; MSI Katana 15 HX B14WEK; MSI Crosshair 16 HX AI D2XW; MSI Raider GE76 12UE/12UGS; MSI Raider A18 HX A7VIG; MSI Vector A18 HX A9WHG; MSI Modern 14 C12M) and **128 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
 
 Column meaning:
 
@@ -12,7 +12,7 @@ Column meaning:
 - **Super Battery** - whether the model exposes a super-battery throttle register.
 - **RPM** - whether the fan-tachometer registers are known (so real fan RPM is shown), with their addresses. Verified only where hardware/dumps confirmed them.
 
-Own an experimental model and can confirm it works (or doesn't)? Use the in-app **Report my model...** wizard (tray menu / Status window) or open a [Model support request](../../../issues/new?template=model-support.yml).
+Own an experimental model and can confirm it works (or doesn't)? Use the in-app **Report my model...** wizard (tray menu / Status window) or open a [Model support request](../../../issues/new?template=model-support.yml). The **Power test** sub-tab beside it measures the profiles instead of asking you to judge them by ear, and needs no MSI Center; see [TECHNICAL.md](TECHNICAL.md) §60.
 
 | Model | EC firmware | Family | Status | Fan curve | Super Battery | RPM |
 |---|---|---|---|---|---|---|
@@ -101,6 +101,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Stealth 16 AI A2HWFG | `15F5EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth 16 AI Studio A1VFG | `15F4EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth 16 AI Studio A1VHG | `15F3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
+| MSI Stealth 16 AI+ B3WI | `2631EMS1` | G2 | &#9887;&#65039; experimental | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Stealth 16 Studio A13VG | `15F2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth 17 Studio A13VI | `17P2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth A16 AI+ A3XVFG / A3XVGG | `15FKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1300-power-test",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.29.0",
+    "title": "New release: measure your profiles instead of guessing",
+    "title_pl": "Nowe wydanie: zmierz swoje profile, zamiast zgadywać",
+    "body": "GhostDeck v1.30.0 is out. A third wizard under Report / verify, Power test, runs the same all-core load in Silent, Balanced and Extreme and samples temperatures, fan speed, fan RPM, CPU clock and the work the processor actually completes every second, so the question every model report used to ask you to judge by ear becomes a table of numbers. It needs no MSI Center, takes about five minutes, states every address it may write before it starts, and restores your profile at the end. Some newer boards accept a fourth performance value in the profile register, which their MSI Center shows as a switch inside the top scenario; the model database can now carry that value and the test probes whether it can be set from outside. Also: MSI Stealth 16 AI+ B3WI recognised, 146 models in total. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.30.0. Trzeci kreator w Raporcie, Test mocy, uruchamia to samo obciążenie wszystkich rdzeni w profilach SILENT, BALANCED i EXTREME, a co sekundę próbkuje temperatury, obroty wentylatorów, zegar procesora i pracę faktycznie wykonaną, więc pytanie, które dotąd zgłoszenie modelu kazało oceniać na ucho, staje się tabelą liczb. Nie wymaga MSI Center, trwa około pięciu minut, przed startem wypisuje każdy adres, jaki może zapisać, i na koniec przywraca Twój profil. Niektóre nowsze płyty przyjmują czwartą wartość wydajności w rejestrze profilu, którą ich MSI Center pokazuje jako przełącznik w najwyższym scenariuszu; baza modeli może ją teraz przechowywać, a test sprawdza, czy da się ją ustawić z zewnątrz. Do tego: rozpoznany MSI Stealth 16 AI+ B3WI, razem 146 modeli. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.30.0"
+  },
+  {
     "id": "2026-08-v1290-modeldb-live",
     "severity": "info",
     "minVersion": "1.0.0",

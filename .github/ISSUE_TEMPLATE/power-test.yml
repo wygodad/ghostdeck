@@ -1,0 +1,82 @@
+name: Power test result
+description: Send the measured comparison of the power profiles on your MSI laptop
+title: "[Power] <your model> (<EC firmware>)"
+labels: ["power-test"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for measuring instead of guessing.
+
+        This form is filled in for you by the app: **Report / verify (⚑) → Power test → Start the test**.
+        It runs the same load in each profile, samples the controller once a second, and on a board that
+        has a fourth performance value it also probes whether that value can be set from outside MSI
+        Center. The run takes about five minutes, the laptop gets hot and loud while it works, and your
+        profile is restored at the end.
+
+        Unlike the other two forms, this one does **not** need MSI Center installed.
+
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      description: Exact model (sticker on the bottom, or MSI Center).
+      placeholder: MSI ...
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: EC firmware
+      description: From the app → Status → "EC firmware" (e.g. 2631EMS1.110).
+      placeholder: xxxxEMS1.xxx
+    validations:
+      required: true
+
+  - type: input
+    id: verdict
+    attributes:
+      label: Verdict (from the app)
+      description: The one-line result the app showed when the run finished.
+      placeholder: e.g. Apex was accepted and cleared cleanly.
+
+  - type: textarea
+    id: report
+    attributes:
+      label: Full power-test report
+      description: |
+        The app copies the whole report to your clipboard and saves it to a file on your Desktop.
+        Paste it here with Ctrl+V. It contains the steady-state table, the per-second samples and the
+        EC dumps taken before, during and after the run.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: What MSI Center offers on your machine (optional, very helpful)
+      description: |
+        A screenshot of the scenario list is ideal - drag the image straight into this box. What we
+        cannot see from the registers is how the vendor software presents them: how many scenarios
+        there are, what they are called, and whether the extra performance mode is a switch inside
+        the top scenario rather than a scenario of its own.
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything you noticed (optional)
+      description: |
+        Throttling, a black screen, fans that stayed loud after the run, a profile that did not come
+        back - anything the numbers would not show.
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The laptop was on mains power for the whole run.
+          required: true
+        - label: I understand the test writes to the Embedded Controller and that EC writes are at my own risk.
+          required: true

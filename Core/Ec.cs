@@ -267,6 +267,10 @@ public static class Ec
         {
             var shift = ReadRaw(dev.ShiftMode);
             if (shift == dev.ShiftTurboValue) return ProfileId.Extreme;
+            // A board's fourth shift value sits on top of the turbo state rather than beside it, so
+            // it reports as Extreme. Without this the comfort branch below would claim it, and the
+            // 3 s poll would log a profile change every time the vendor software set that mode.
+            if (dev.FourthMode is { } fm && shift == fm.ShiftValue) return ProfileId.Extreme;
             if (shift == dev.ShiftEcoValue) return ProfileId.SuperBattery;
             // comfort shift -> Silent vs Balanced is told apart ONLY by the fan byte (0x34 is the
             // same in both). 0x1D = Silent; anything else (0x0D auto, or 0x8D custom curve) = Balanced.
