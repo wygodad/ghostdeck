@@ -2056,6 +2056,41 @@ sample more than **3 s** from its second, marks the run: `PowerTest.WasBusy` put
 results line in amber, and `BuildReport` prints a block above the table telling the reader to
 re-run rather than trust it. Near 100 % is what a clean run looks like.
 
+Detection was not enough. Across the first four runs on the reference board, **three were spoiled**,
+and the worst of them put Extreme below Balanced, which cannot happen. Detecting that afterwards
+still costs the owner five minutes of hot fans and a report they have to throw away. So the run now
+**refuses to start on a busy machine**: `GetSystemTimes` sampled over three seconds before a single
+byte is written, and above **15 %** already in use the run returns with `PreBusyPct` set, having
+written nothing. Three seconds against five minutes. The page treats such a result as "not a
+report": no file, no clipboard, no issue button, because nothing was measured.
+
+The warning card also says, in all eight languages, to leave the machine alone while the test runs.
+That was the single instruction deciding whether the numbers mean anything, and it was missing.
+
+### 60.8 The test was starving the service it reads through
+
+One run showed sampling gaps of up to **44 seconds** while `own` sat at **95 %**. Those two facts
+cannot both mean "something else took the processor", and the correlation across the three phases
+settled it: the phase holding 95 % waited 44 s per reading and ran for eleven minutes, the one
+holding 93 % waited 34 s, and the one that happened to hold only **89 % never waited at all**. More
+of the machine meant longer waits.
+
+Every EC read is a WMI call, and the provider service needs a processor to answer on. Saturating
+all of them leaves it nothing, whatever thread priorities say, because the caller is blocked on a
+service that cannot be scheduled. Two logical processors are now left out of the load
+(`LoadThreadHeadroom`). They cost the same in every phase, so the ratio is untouched, and the
+longest wait on the reference board fell from 44 s to under 5 s.
+
+Two consequences followed. The loop counted **samples**, not seconds, so a slow reading stretched
+the phase with it: sixty samples at forty seconds each is not a minute. Phases are bounded by the
+clock now, and a slow controller costs samples rather than time. And because a phase can therefore
+hold anywhere from 13 to 60 samples, `Sample.Sec` carries **elapsed seconds** rather than a sample
+number, or the steady window would be cut from the wrong quantity and swallow the ramp.
+
+A slow reading is also no longer reported as "the machine was not idle". It is this test's own
+doing, it costs samples and not accuracy, and pointing the reader at imaginary other software was
+the opposite of useful.
+
 A shortfall shared equally by every phase cancels out of the ratio the table prints, so the third
 condition is the one that actually matters: an **uneven** share bends the comparison itself. Each
 phase's share is compared against Balanced's, and past **4 %** of difference the block names the

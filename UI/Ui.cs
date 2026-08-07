@@ -145,11 +145,25 @@ internal static class Ui
     /// </summary>
     public static bool CopyText(string text)
     {
+        // SetText REFUSES an empty string, so the old code was a guaranteed no-op there.
+        // SetDataObject accepts it and would hand the shell an empty payload, wiping whatever the
+        // user had copied. Nothing to copy means leave the clipboard alone.
+        if (string.IsNullOrEmpty(text)) return false;
+
         try { Clipboard.SetDataObject(text, true, 10, 120); }
         catch { return false; }
-        // Best effort confirmation. A read that fails on its own does not disprove the write, so
-        // only a clipboard that demonstrably holds something else counts as a failure.
-        try { if (Clipboard.ContainsText() && Clipboard.GetText() != text) return false; }
+
+        // Best effort confirmation, and deliberately asymmetric. Reading straight back after the
+        // flush often returns an empty string even though the write worked, so an empty or
+        // unreadable clipboard is treated as no evidence. Only text that is demonstrably
+        // SOMETHING ELSE proves the report did not land. Reading through GetText rather than
+        // ContainsText matters: a clobber with non-text data leaves ContainsText false, which
+        // would have short-circuited a genuine failure into a reported success.
+        try
+        {
+            string back = Clipboard.GetText();
+            if (back.Length > 0 && back != text) return false;
+        }
         catch { }
         return true;
     }

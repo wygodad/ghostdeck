@@ -3,6 +3,55 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.30.3] - 2026-08-07
+### Fixed
+- **The steady window is carved out of time, not out of sample numbers.** A phase that manages
+  twenty-two readings across its minute has a window of the last twenty-five seconds, roughly nine
+  of them, and the ramp at the start of the phase stays out of it where it belongs.
+- **A phase could run for eleven minutes instead of one.** The load loop counted samples rather than
+  seconds, and each sample waits a second and then reads the controller. When a controller read
+  took forty seconds the phase stretched with it, so a run that promises about five minutes took
+  more than twenty while the report still claimed sixty seconds per profile. Phases are now bounded
+  by the clock; a slow read costs samples, which the **n** column already reports, and nothing else.
+- **The test was starving the service it reads through.** Every controller read goes via the WMI
+  provider, which needs a processor to answer on, and the load was taking all of them: the phase
+  that held 95 % of the machine waited up to forty-four seconds for one reading, while the phase
+  that happened to hold only 89 % never waited at all. Two logical processors are now left out of
+  the load. They cost the same in every phase, so the comparison is unchanged.
+- **A slow controller reading was reported as "the machine was not idle".** It is the opposite:
+  the test's own load causes it. It now has its own note saying so, instead of sending the reader
+  hunting for other software.
+- **"Copy all" on an empty change log wiped the clipboard.** The retrying copy added in 1.30.2
+  accepts an empty string where the old call refused it, so an empty log replaced whatever the user
+  had copied instead of doing nothing.
+- **A failed clipboard copy could be drawn below the scrollable area of the page**, so the one
+  person who needed to read that warning was the one who could not reach it. All three report
+  wizards now reserve room for it, and it appears even when the file write failed as well.
+- **Cancelling during the new idle check** ended the run by reporting a controller-read failure,
+  blaming the MSI interface for something the user did on purpose.
+- **A refused run still put the machine back**, writing the profile recipe, logging a change and
+  flashing the overlay for a run that never touched the controller and said so.
+- **A refusal verdict stayed on screen** and stacked with whatever the next attempt reported.
+- **Fan RPM averages counted rejected readings as a stopped fan.** The plausibility gate added in
+  1.30.1 returns 0, which already meant "stopped", so one rejected reading in a window pulled the
+  printed figure down.
+- **The steady window was 25 samples rather than 25 seconds**, so dropped controller reads widened
+  it silently while the report still claimed a full window. The work and share figures are also
+  weighted by the interval each was actually measured over, instead of counting a long starved
+  second the same as a short clean one.
+- **The idle check ignored the fourth-mode phase**, so contamination confined to that phase left the
+  verdict green.
+
+### Added
+- **The power test checks the machine is idle before it writes anything.** Three seconds of
+  measuring how busy the computer already is, and if more than 15 % of it is spoken for the run
+  refuses and says by how much. Catching a busy machine up front costs three seconds; catching it
+  afterwards costs five minutes of hot fans and a report that has to be thrown away. Three runs out
+  of four during development were spoiled this way, one of them badly enough that Extreme appeared
+  to deliver less work than Balanced.
+- The warning card now says plainly to **leave the machine alone while the test runs**, which is the
+  one instruction that decides whether the numbers mean anything and was missing.
+
 ## [1.30.2] - 2026-08-07
 ### Fixed
 - **A report could silently fail to reach the clipboard.** Every report wizard copies its result and

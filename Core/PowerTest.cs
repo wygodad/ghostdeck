@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace GhostDeck;
@@ -40,7 +41,19 @@ public static class PowerTest
     // A shortfall shared equally by every phase cancels out of the ratio the table reports. An
     // UNEVEN one does not: it bends the comparison itself, which is the only thing the table is
     // for. Past this much difference against the baseline phase, say so and say which way.
-    private const double MaxShareSkew = 0.04;
+    private const double MaxShareSkew = 0.08;
+    // Measured before anything is written. Catching a busy machine here costs three seconds;
+    // catching it afterwards costs five minutes of hot fans and a report that has to be thrown
+    // away, which is what happened to three runs out of four while this was being built.
+    private const int PreflightSeconds = 3;
+    private const int BusyBeforeStartPct = 15;
+    // Two logical processors are left out of the load. Every EC read goes through the WMI provider
+    // service, which needs a core to answer on, and saturating literally all of them starves it:
+    // measured on the reference board, the phase that kept 95 % of the machine waited up to 44 s
+    // for one read and ran for eleven minutes, while the phase that happened to keep only 89 %
+    // never waited at all. The two spare threads cost the same in every phase, so the ratio the
+    // table reports is untouched, and the sampler gets its answers back in about a second.
+    private const int LoadThreadHeadroom = 2;
 
     /// <summary>
     /// One second of the loaded run. <see cref="Ms"/> is the MEASURED gap since the previous
@@ -54,6 +67,9 @@ public static class PowerTest
     /// the work column ends up describing the competition rather than the profile.
     /// </summary>
     public readonly record struct Sample(
+        // Elapsed seconds into the loaded phase, NOT a sample number. The phase is bounded by the
+        // clock, so a slow controller yields fewer samples across the same minute, and the steady
+        // window has to be carved out of TIME or it swallows the ramp.
         int Sec, int Ms, int Own, int CpuTemp, int GpuTemp, int CpuFan, int GpuFan,
         int CpuRpm, int GpuRpm, int ClockMhz, int GpuUsage, long Work);
 
@@ -80,7 +96,12 @@ public static class PowerTest
     public sealed record Result(
         DateTime Started, string AppVersion, string Firmware, string Model, string Tier,
         bool OnAc, bool FanBoost, int Threads, ProfileId StartProfile, byte StartShift,
-        byte[] DumpBefore, Phase[] Phases, FourthProbe? Fourth, string? Aborted);
+        byte[] DumpBefore, Phase[] Phases, FourthProbe? Fourth, string? Aborted,
+        // >0 = refused before writing anything, because the machine was already this busy.
+        int PreBusyPct = 0,
+        // Whether a single EC write happened. The caller restores the machine only when it did,
+        // and "nothing was written" has to be true when the report says it.
+        bool Wrote = false);
 
     /// <summary>Where the run is, for the page's progress bar and live line.</summary>
     public readonly record struct Progress(
@@ -110,6 +131,23 @@ public static class PowerTest
         var started = DateTime.Now;
         bool onAc = OnAc();
 
+        // Nothing has been written yet, so refusing here is free. Five minutes of load on a machine
+        // that is already busy produces a report whose work column describes the other program.
+        Report(pr, 0, steps, "", "check", 0, "");
+        Result Nothing(string? why, int busy) => new(
+            started, appVersion, firmware, dev.Name, dev.Tier.ToString(), onAc, false, threads,
+            ProfileId.Balanced, 0, Array.Empty<byte>(), Array.Empty<Phase>(), null, why, busy);
+
+        int preBusy;
+        // Cancel is live from the moment the page shows its Cancel button, which is before this
+        // wait. Letting it escape would fault the task and the page would blame the WMI interface
+        // for something the user did on purpose.
+        try { preBusy = MachineBusy(ct); }
+        catch (OperationCanceledException) { return Nothing("cancelled", 0); }
+
+        if (preBusy > BusyBeforeStartPct)
+            return Nothing($"the machine was already {preBusy} % busy before the run started, so nothing was written", preBusy);
+
         Report(pr, 0, steps, "", "dump", 0, "");
         // Captured before anything is written: the run ends by putting this back, and the report
         // states which profile the machine was in when it started. The raw shift byte is kept as
@@ -123,6 +161,7 @@ public static class PowerTest
         // validity, and turning it off would be a write the consent screen did not list.
         bool boost = false;
         try { boost = Ec.GetCoolerBoost(dev); } catch { }
+        bool wrote = false;
 
         try
         {
@@ -133,7 +172,7 @@ public static class PowerTest
                 string name = id.ToString();
                 var recipe = dev.Recipes[id];
 
-                try { Ec.Apply(recipe); }
+                try { Ec.Apply(recipe); wrote = true; }
                 catch (Exception ex) { aborted = $"could not apply the {name} recipe: {ex.Message}"; break; }
                 Settle(pr, i, steps, name, SettleSeconds, ct);
 
@@ -153,17 +192,22 @@ public static class PowerTest
             // Belt and braces: put the shift and fan registers back to the state the run found,
             // straight away, without waiting for the caller's restore. The caller then re-applies
             // through the normal path so the fan curve comes back too.
-            try
+            // Nothing to put back if nothing was ever written.
+            if (wrote)
             {
-                Ec.Apply(dev.Recipes[startProfile]);
-                if (dev.FourthMode is { } fm4 && startShift == fm4.ShiftValue)
-                    Ec.Apply(new[] { (dev.ShiftMode, startShift) });
+                try
+                {
+                    Ec.Apply(dev.Recipes[startProfile]);
+                    if (dev.FourthMode is { } fm4 && startShift == fm4.ShiftValue)
+                        Ec.Apply(new[] { (dev.ShiftMode, startShift) });
+                }
+                catch { }
             }
-            catch { }
         }
 
         return new Result(started, appVersion, firmware, dev.Name, dev.Tier.ToString(),
-            onAc, boost, threads, startProfile, startShift, before, phases.ToArray(), fourth, aborted);
+            onAc, boost, threads, startProfile, startShift, before, phases.ToArray(), fourth, aborted,
+            0, wrote);
     }
 
     // ---------------- fourth-mode probe ----------------
@@ -244,9 +288,9 @@ public static class PowerTest
         var clock = System.Diagnostics.Stopwatch.StartNew();
         using var self = System.Diagnostics.Process.GetCurrentProcess();
         var lastCpu = self.TotalProcessorTime;
-        using var load = new CpuLoad(threads);
+        using var load = new CpuLoad(Math.Max(1, threads - LoadThreadHeadroom));
 
-        for (int s = 1; s <= LoadSeconds; s++)
+        for (int s = 1; clock.ElapsedMilliseconds < LoadSeconds * 1000; s++)
         {
             // Cancel ends the phase rather than unwinding it: the seconds already measured are
             // worth keeping, and the caller promises the report holds whatever was measured.
@@ -262,14 +306,14 @@ public static class PowerTest
             // the defaulted struct would pull every average down and, worse, clear the hot counter.
             if (!Ec.TryReadHw(dev, out var hw)) { lastWork = work; lastMs = nowMs; lastCpu = cpu; continue; }
 
-            var sample = new Sample(s, ms, Math.Clamp(own, 0, 999),
+            var sample = new Sample((int)(nowMs / 1000), ms, Math.Clamp(own, 0, 999),
                 hw.CpuTemp, hw.GpuTemp, hw.CpuFan, hw.GpuFan,
                 hw.CpuRpm, hw.GpuRpm, Perf.CpuClockMhz(), Perf.GpuUsage(),
                 (work - lastWork) * 1000 / ms);
             lastWork = work; lastMs = nowMs; lastCpu = cpu;
             samples.Add(sample);
 
-            Report(pr, step, steps, name, "load", s / (double)LoadSeconds,
+            Report(pr, step, steps, name, "load", clock.ElapsedMilliseconds / (LoadSeconds * 1000.0),
                 $"{hw.CpuTemp} °C  ·  {hw.CpuFan} %  ·  {sample.ClockMhz} MHz");
 
             // Losing mains mid-run does not spoil one number, it spoils every number after it:
@@ -306,6 +350,25 @@ public static class PowerTest
 
     private static bool OnAc() =>
         SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetSystemTimes(out long idle, out long kernel, out long user);
+
+    /// <summary>
+    /// How much of the machine is ALREADY in use, sampled over a few seconds before a single byte
+    /// is written. Kernel time includes idle on Windows, so the busy fraction is what is left of it.
+    /// Returns -1 when the call is unavailable, which is treated as "cannot tell, carry on".
+    /// </summary>
+    private static int MachineBusy(CancellationToken ct)
+    {
+        if (!GetSystemTimes(out long i0, out long k0, out long u0)) return -1;
+        Wait(PreflightSeconds * 1000, ct);
+        if (!GetSystemTimes(out long i1, out long k1, out long u1)) return -1;
+        double total = (k1 - k0) + (u1 - u0);
+        if (total <= 0) return -1;
+        return (int)Math.Round(Math.Clamp((total - (i1 - i0)) / total, 0, 1) * 100);
+    }
 
     /// <summary>Whether a run may start, and why not when it may not (already localised).</summary>
     public static string? Blocked(DeviceProfile? dev, bool writable, bool simulating)
@@ -377,9 +440,20 @@ public static class PowerTest
     // ---------------- report ----------------
 
     private static double Avg(IEnumerable<int> v) { var l = v.ToList(); return l.Count == 0 ? 0 : l.Average(); }
-    private static double AvgL(IEnumerable<long> v) { var l = v.ToList(); return l.Count == 0 ? 0 : l.Average(); }
 
-    private static Sample[] Steady(Sample[] s) => s.Length <= SteadySeconds ? s : s[^SteadySeconds..];
+    /// <summary>
+    /// Mean of a per-second RATE, weighted by the second it was actually measured over. A plain
+    /// mean would let a long, starved interval count the same as a short clean one, which is
+    /// exactly the case the figure is supposed to expose.
+    /// </summary>
+    private static double AvgRate(Sample[] s, Func<Sample, double> pick)
+    {
+        long ms = s.Sum(x => (long)x.Ms);
+        return ms <= 0 ? 0 : s.Sum(x => pick(x) * x.Ms) / ms;
+    }
+
+    private static Sample[] Steady(Sample[] s) =>
+        s.Length == 0 ? s : s.Where(x => x.Sec > s[^1].Sec - SteadySeconds).ToArray();
 
     public static string BuildReport(Result r, DeviceProfile dev)
     {
@@ -405,8 +479,9 @@ public static class PowerTest
         string startExtra = dev.FourthMode is { } sfm && r.StartShift == sfm.ShiftValue ? $" + {sfm.Name}" : "";
         sb.AppendLine($"State when the run started (restored afterwards): {r.StartProfile}{startExtra}" +
                       $"  (0x{dev.ShiftMode:X2} = 0x{r.StartShift:X2})");
-        sb.AppendLine($"Load: {r.Threads} threads, {LoadSeconds} s after {SettleSeconds} s of settling; " +
-                      $"the figures below average the last {SteadySeconds} s");
+        sb.AppendLine($"Load: {Math.Max(1, r.Threads - LoadThreadHeadroom)} threads on {r.Threads} logical processors " +
+                      $"({LoadThreadHeadroom} left free so the controller can still be read), {LoadSeconds} s per profile " +
+                      $"after {SettleSeconds} s of settling; the figures below average the last {SteadySeconds} s");
         if (r.Aborted != null) sb.AppendLine($"RUN DID NOT COMPLETE: {r.Aborted}");
         sb.AppendLine();
 
@@ -415,7 +490,7 @@ public static class PowerTest
         sb.AppendLine("Profile        shift fan  CPU C  GPU C  CPU%  GPU%  CPU rpm  GPU rpm  CPU MHz  MHz range    work  own    n  gpu");
         double baseWork = 0;
         foreach (var p in r.Phases)
-            if (p.Name == ProfileId.Balanced.ToString()) baseWork = AvgL(Steady(p.Samples).Select(s => s.Work));
+            if (p.Name == ProfileId.Balanced.ToString()) baseWork = AvgRate(Steady(p.Samples), s => s.Work);
 
         void Row(string name, Sample[] samples, byte[] dump)
         {
@@ -426,26 +501,33 @@ public static class PowerTest
             // 34 C graphics chip, so the GPU columns only count the seconds it was awake.
             var gpu = st.Where(x => x.GpuTemp > 0).ToArray();
             string G(Func<Sample, int> pick) => gpu.Length == 0 ? "--" : Avg(gpu.Select(pick)).ToString("F0");
+            // A tachometer reading the app rejected as implausible comes back as 0, the same value
+            // as a stopped fan. Averaging those in would report a fan slower than it ever ran.
+            string R(Sample[] src, Func<Sample, int> pick)
+            {
+                var v = src.Where(x => pick(x) > 0).Select(pick).ToArray();
+                return v.Length == 0 ? "--" : Avg(v).ToString("F0");
+            }
 
             string shift = dump.Length == 256 ? dump[dev.ShiftMode].ToString("X2") : "--";
             string fan = dump.Length == 256 ? dump[dev.FanMode].ToString("X2") : "--";
-            double work = AvgL(st.Select(s => s.Work));
+            double work = AvgRate(st, s => s.Work);
             string idx = baseWork > 0 ? (work / baseWork * 100).ToString("F0") : "--";
             string range = $"{st.Min(x => x.ClockMhz)}-{st.Max(x => x.ClockMhz)}";
             sb.AppendLine($"{name,-14} {shift,-5} {fan,-4} " +
                           $"{Avg(st.Select(s => s.CpuTemp)),5:F0}  {G(s => s.GpuTemp),5}  " +
                           $"{Avg(st.Select(s => s.CpuFan)),4:F0}  {G(s => s.GpuFan),4}  " +
-                          $"{Avg(st.Select(s => s.CpuRpm)),7:F0}  {G(s => s.GpuRpm),7}  " +
-                          $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {range,-11}  {idx,4}  {Avg(st.Select(s => s.Own)),3:F0}  {st.Length,3}  {gpu.Length,3}");
+                          $"{R(st, s => s.CpuRpm),7}  {R(gpu, s => s.GpuRpm),7}  " +
+                          $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {range,-11}  {idx,4}  {AvgRate(st, s => s.Own),3:F0}  {st.Length,3}  {gpu.Length,3}");
         }
 
         foreach (var p in r.Phases) Row(p.Name, p.Samples, p.Dump);
         if (r.Fourth is { Accepted: true } f4) Row(f4.Name, f4.Samples, f4.DumpLoaded);
         sb.AppendLine();
         sb.AppendLine("work = CPU work completed per second in the steady window, Balanced = 100.");
-        sb.AppendLine($"n = seconds actually averaged. Fewer than {SteadySeconds} means the phase was cut short");
-        sb.AppendLine("(cancelled, unplugged, too hot, or seconds dropped by a refused controller read),");
-        sb.AppendLine("so that row may include the ramp and is not a steady state.");
+        sb.AppendLine($"n = samples inside that {SteadySeconds} s window. Fewer than {SteadySeconds} of them means the");
+        sb.AppendLine("controller was answering slowly or the phase was cut short (cancelled, unplugged, too hot);");
+        sb.AppendLine("a handful of samples still describes the window, a couple of them does not.");
         sb.AppendLine("gpu = of those seconds, how many had a readable GPU. A discrete GPU powers down under a");
         sb.AppendLine("CPU-only load and reports zeros, so the GPU columns count only the seconds it was awake;");
         sb.AppendLine("a low gpu count next to a full n is that, not a cool graphics chip.");
@@ -455,7 +537,8 @@ public static class PowerTest
         sb.AppendLine("the recipe below was disturbed while it ran (tray menu, hotkey or command line).");
         sb.AppendLine("own = how much of the whole machine's CPU capacity this process had. The load threads run");
         sb.AppendLine("below normal priority, so anything else that wants the CPU takes it first and the work");
-        sb.AppendLine("column then describes the competition, not the profile. Near 100 is a clean run.");
+        sb.AppendLine($"column then describes the competition, not the profile. A clean run sits a little under");
+        sb.AppendLine($"100, because {LoadThreadHeadroom} of the logical processors are deliberately left out of the load.");
         sb.AppendLine("A CPU MHz or work column that does not drop in Silent means the Silent fan value");
         sb.AppendLine("does not cap power on this board, whatever the fan noise does.");
 
@@ -467,10 +550,7 @@ public static class PowerTest
             sb.AppendLine();
             sb.AppendLine("!! THE MACHINE WAS NOT IDLE. Treat the work column as unreliable and re-run !!");
             foreach (var l in loads)
-                sb.AppendLine($"   {l.Name,-14} had {l.Own,5:F1} % of the CPU" +
-                              (l.SlowestMs > SlowSampleMs
-                                  ? $", and one sample took {l.SlowestMs / 1000.0:F1} s instead of 1 s"
-                                  : ""));
+                sb.AppendLine($"   {l.Name,-14} had {l.Own,5:F1} % of the CPU");
 
             // An equal shortfall cancels out of the ratio; an uneven one does not. Name the phases
             // whose share differed from the baseline's, and which way it pushed their work column,
@@ -486,9 +566,26 @@ public static class PowerTest
                               $"{off} % {(skew < 1 ? "LOWER" : "HIGHER")} than an even run would give.");
             }
 
-            sb.AppendLine("   Something outside GhostDeck was using the processor: a virus scan of a freshly");
-            sb.AppendLine("   downloaded file is the usual one, and it can run for minutes after the download.");
-            sb.AppendLine("   Close what you can, leave the machine alone for a few minutes, and run it again.");
+            sb.AppendLine("   Something outside GhostDeck was using the processor. Working on the machine while");
+            sb.AppendLine("   the test runs is the usual cause and a browser is enough on its own; a virus scan of");
+            sb.AppendLine("   a freshly downloaded file is the other, and it keeps going for minutes afterwards.");
+            sb.AppendLine("   Leave the machine alone for the five minutes and run it again.");
+        }
+
+        // Separate from the block above on purpose. A slow controller answer is not other software
+        // competing for the machine, it is this test's own all-core load leaving the WMI provider
+        // nothing to answer on, so calling it "not idle" would send the reader looking for a
+        // culprit that is not there. It costs samples, never accuracy: every figure is a rate over
+        // the interval it was actually measured across.
+        var slow = Loads(r).Where(l => l.SlowestMs > SlowSampleMs).ToArray();
+        if (slow.Length > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Note: the controller was slow to answer while the load ran.");
+            foreach (var l in slow)
+                sb.AppendLine($"   {l.Name,-14} waited up to {l.SlowestMs / 1000.0:F1} s for one reading");
+            sb.AppendLine("   That is this test starving the service it reads through, not other software.");
+            sb.AppendLine("   It costs samples (see the n column), not accuracy.");
         }
         sb.AppendLine();
         sb.AppendLine("--- Bytes written for each profile ---");
@@ -562,8 +659,7 @@ public static class PowerTest
     public static bool WasBusy(Result r)
     {
         var loads = Loads(r);
-        return loads.Any(l => l.Own < OwnShareFloor || l.SlowestMs > SlowSampleMs
-                              || Math.Abs(Skew(loads, l) - 1) > MaxShareSkew);
+        return loads.Any(l => l.Own < OwnShareFloor || Math.Abs(Skew(loads, l) - 1) > MaxShareSkew);
     }
 
     /// <summary>How much of the machine each phase actually got, and its worst sampling gap.</summary>
@@ -571,8 +667,11 @@ public static class PowerTest
 
     private static PhaseLoad[] Loads(Result r) =>
         r.Phases.Select(p => (p.Name, St: Steady(p.Samples)))
+                .Concat(r.Fourth is { Accepted: true } f
+                            ? new[] { (f.Name, St: Steady(f.Samples)) }
+                            : Array.Empty<(string Name, Sample[] St)>())
                 .Where(x => x.St.Length > 0)
-                .Select(x => new PhaseLoad(x.Name, Avg(x.St.Select(s => s.Own)), x.St.Max(s => s.Ms)))
+                .Select(x => new PhaseLoad(x.Name, AvgRate(x.St, s => s.Own), x.St.Max(s => s.Ms)))
                 .ToArray();
 
     /// <summary>A phase's share against the baseline phase's: 1 = they competed on equal terms.</summary>
@@ -585,6 +684,7 @@ public static class PowerTest
     /// <summary>One-line verdict for the page and the issue title.</summary>
     public static string Summary(Result r)
     {
+        if (r.PreBusyPct > 0) return string.Format(Lang.T("pt_res_prebusy"), r.PreBusyPct);
         if (r.Aborted != null) return string.Format(Lang.T("pt_res_aborted"), r.Aborted);
         string busy = WasBusy(r) ? Lang.T("pt_res_busy") + "  " : "";
         if (r.Fourth is not { } f) return busy + Lang.T("pt_res_done");

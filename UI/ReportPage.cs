@@ -65,6 +65,13 @@ public sealed class ReportPage : ThemedPage
     /// <summary>The model definition in effect right now (follows a live model-database swap).</summary>
     private DeviceProfile? Dev => Devices.Detect(D.Firmware);
 
+    /// <summary>
+    /// A report exists only when a phase was actually measured. A run refused on a busy machine,
+    /// or cancelled before the first phase finished, produces a Result carrying a reason and
+    /// nothing else, and must not offer a file, a clipboard copy or a GitHub form.
+    /// </summary>
+    private bool PtHasReport => _ptResult is { Phases.Length: > 0 };
+
     // ---- fan-curve verification flow ----
     // The user sets these exact, distinctive speeds in MSI Center (Extreme → Advanced). We read the EC
     // back and search the full dump for the sequences: finding them locates the per-model curve tables.
@@ -290,7 +297,7 @@ public sealed class ReportPage : ThemedPage
 
         // bottoms in CONTENT coords (child .Bottom is client-side once the page is scrolled)
         int leftBottom = _contentTop + _card.Height + 70;   // + firmware pill
-        int rightBottom = capY + 44 + 80;                   // + wrapped saved-path line
+        int rightBottom = capY + 44 + 80 + (_copied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
 
@@ -318,7 +325,7 @@ public sealed class ReportPage : ThemedPage
         _curveRestart.SetBounds(_rightX + cbW + 10 + ox, _curveBtnY + oy, 170, 44);
 
         int leftBottom = _contentTop + _curveCard.Height + 70;   // content coords (+ firmware pill)
-        int rightBottom = _curveBarY + 80;
+        int rightBottom = _curveBarY + 80 + (_curveCopied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
 
@@ -539,6 +546,7 @@ public sealed class ReportPage : ThemedPage
             File.WriteAllText(_curveSavedPath, report, new UTF8Encoding(false));
         }
         catch { _curveSavedPath = null; }
+        Relayout();   // the clipboard warning changes how much room the page needs
     }
 
     private void FinishCurve()
@@ -632,6 +640,7 @@ public sealed class ReportPage : ThemedPage
             File.WriteAllText(_savedPath, report, new UTF8Encoding(false));
         }
         catch { _savedPath = null; }
+        Relayout();   // the clipboard warning changes how much room the page needs
         Invalidate();
     }
 
@@ -782,7 +791,7 @@ public sealed class ReportPage : ThemedPage
             _ptRows[i].Number = shown + 1;
             // The restore is the one step that runs even on the paths that skipped everything else.
             bool done = _ptRunning ? shown < _ptStep
-                                   : _ptResult != null && (i == PtRestoreRow || shown < reached);
+                                   : PtHasReport && (i == PtRestoreRow || shown < reached);
             _ptRows[i].SetState(done, _ptRunning && shown == _ptStep);
         }
         EnsureAnim();
@@ -790,12 +799,12 @@ public sealed class ReportPage : ThemedPage
 
     private void SyncPower()
     {
-        bool done = _ptResult != null && !_ptRunning;
+        bool done = PtHasReport && !_ptRunning;
         _ptStart.Text = done ? Lang.T("rep_finish") : Lang.T("pt_start");
         // While a run is in flight Cancel is the only thing left to do, so Start goes away rather
         // than sitting there swallowing clicks (LayoutPower then gives Cancel the primary slot).
         _ptStart.Visible = _sub == 2 && !_ptRunning;
-        _ptConsent.Visible = _sub == 2 && !_ptRunning && _ptResult == null;
+        _ptConsent.Visible = _sub == 2 && !_ptRunning && !PtHasReport;
         _ptSecondary.Visible = _sub == 2 && (_ptRunning || done);
         _ptSecondary.Text = _ptRunning ? Lang.T("pt_cancel") : Lang.T("rep_restart");
     }
@@ -840,7 +849,7 @@ public sealed class ReportPage : ThemedPage
     private async void OnPowerStart(object? sender, EventArgs e)
     {
         if (_ptRunning) return;
-        if (_ptResult != null) { OpenPowerIssue(); return; }
+        if (PtHasReport) { OpenPowerIssue(); return; }
 
         var dev = Dev;
         string? blocked = PowerTest.Blocked(dev, D.Writable(), D.Simulating());
@@ -848,7 +857,8 @@ public sealed class ReportPage : ThemedPage
         if (!_ptConsent.Checked) { _ptMsg = Lang.T("pt_need_consent"); Invalidate(); return; }
 
         _ptRunning = true;
-        _ptMsg = null; _ptSavedPath = null; _ptBar = 0; _ptStep = 0; _ptStage = ""; _ptLive = "";
+        _ptResult = null;   // only a refusal can survive to here, and it must not stack with what follows
+        _ptMsg = null; _ptSavedPath = null; _ptCopied = true; _ptBar = 0; _ptStep = 0; _ptStage = ""; _ptLive = "";
         _ptSteps = PowerTest.StepCount(dev!);
         _ptCts = new CancellationTokenSource();
         RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
@@ -862,7 +872,11 @@ public sealed class ReportPage : ThemedPage
             var sink = new Progress<PowerTest.Progress>(OnPowerProgress);
             _ptTask = PowerTest.RunAsync(dev!, D.AppVersion(), D.Firmware, sink, _ptCts.Token);
             _ptResult = await _ptTask;
-            PreparePowerReport(dev!);
+            if (PtHasReport) PreparePowerReport(dev!);
+        }
+        catch (OperationCanceledException)
+        {
+            // The user's own doing, and nothing was measured. Saying anything would be noise.
         }
         catch (Exception ex)
         {
@@ -875,10 +889,17 @@ public sealed class ReportPage : ThemedPage
             _ptTask = null;
             _ptStep = _ptSteps - 1;
             _ptBar = 1;
-            try { D.SetProfile(back); } catch { }
-            // A curve applied from the editor carries no preset name, so the profile path above
-            // does not bring it back. The phase recipes necessarily overwrote the fan mode byte.
-            try { D.RestoreActiveCurve(); } catch { }
+            // Only put the machine back if the run actually moved it. A refused or cancelled
+            // pre-flight wrote nothing, and "restoring" it would write the recipe, log a profile
+            // change and flash the OSD for a run that never started. A missing result means the
+            // path threw, where a write may well have happened, so that one does restore.
+            if (_ptResult is null or { Wrote: true })
+            {
+                try { D.SetProfile(back); } catch { }
+                // A curve applied from the editor carries no preset name, so the profile path above
+                // does not bring it back. The phase recipes necessarily overwrote the fan mode byte.
+                try { D.RestoreActiveCurve(); } catch { }
+            }
             RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
         }
     }
@@ -894,6 +915,7 @@ public sealed class ReportPage : ThemedPage
         {
             "settle" => 0.2 * p.Fraction,
             "load" => 0.2 + 0.8 * p.Fraction,
+            "check" => 0,
             _ => p.Fraction,
         };
         _ptBar = (float)Math.Clamp((p.StepIndex + within) / _ptSteps, 0, 1);
@@ -982,7 +1004,7 @@ public sealed class ReportPage : ThemedPage
 
         // bottoms in CONTENT coords (a child's .Bottom is client-side once the page is scrolled)
         int leftBottom = _ptWritesY + 20 + _ptWritesH + 14 + 44;   // address block + firmware pill
-        int rightBottom = _ptBarY + 180;                // bar + live line + verdict + saved path + message
+        int rightBottom = _ptBarY + 180 + (_ptCopied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
 
@@ -1013,6 +1035,7 @@ public sealed class ReportPage : ThemedPage
                 "load" => Lang.T("pt_stage_load"),
                 "write" => Lang.T("pt_stage_write"),
                 "revert" => Lang.T("pt_stage_revert"),
+                "check" => Lang.T("pt_stage_check"),
                 _ => Lang.T("pt_stage_read"),
             };
             TextRenderer.DrawText(g, stage + (_ptLive.Length > 0 ? "   " + _ptLive : ""),
@@ -1052,20 +1075,31 @@ public sealed class ReportPage : ThemedPage
     // pasting whatever happened to be there already. Returns the height it used.
     private int PaintSaved(Graphics g, int x, int y, int w, string? path, bool copied)
     {
-        if (path == null) return 0;
-        string saved = string.Format(Lang.T("rep_saved_to"), path);
-        var sf = new Font("Segoe UI", 9f);
-        int sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
-        TextRenderer.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
-        if (copied) return sh + 6;
-
+        int sh = 0;
+        if (path != null)
+        {
+            string saved = string.Format(Lang.T("rep_saved_to"), path);
+            var sf = new Font("Segoe UI", 9f);
+            sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
+            sh += 6;
+        }
+        // Deliberately NOT tied to the path: a run that lost the clipboard AND the file is the one
+        // case where saying nothing would leave the user pasting whatever was there before.
+        if (copied) return sh;
         var wf = new Font("Segoe UI", 10f, FontStyle.Bold);
         string warn = Lang.T("rep_clip_fail");
-        int wh = TextRenderer.MeasureText(warn, wf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
-        TextRenderer.DrawText(g, warn, wf, new Rectangle(x, y + sh + 8, w, wh + 4), Theme.Amber,
+        int wh = ClipWarnHeight(w);
+        TextRenderer.DrawText(g, warn, wf, new Rectangle(x, y + sh + 2, w, wh), Theme.Amber,
             TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
-        return sh + 14 + wh;
+        return sh + wh + 6;
     }
+
+    // Layout has to reserve this too, or the warning lands below the scrollable area and the one
+    // person who needs to read it is the one who cannot reach it.
+    private static int ClipWarnHeight(int w) =>
+        TextRenderer.MeasureText(Lang.T("rep_clip_fail"), new Font("Segoe UI", 10f, FontStyle.Bold),
+            new Size(Math.Max(40, w), 0), TextFormatFlags.WordBreak).Height + 10;
 
     // The firmware pill closes the left column on every sub-tab.
     private void PaintFirmwarePill(Graphics g, int y)
