@@ -37,6 +37,10 @@ public static class PowerTest
     // the only thing running and the comparison stops meaning what it says.
     private const int OwnShareFloor = 85;
     private const int SlowSampleMs = 3000;
+    // A shortfall shared equally by every phase cancels out of the ratio the table reports. An
+    // UNEVEN one does not: it bends the comparison itself, which is the only thing the table is
+    // for. Past this much difference against the baseline phase, say so and say which way.
+    private const double MaxShareSkew = 0.04;
 
     /// <summary>
     /// One second of the loaded run. <see cref="Ms"/> is the MEASURED gap since the previous
@@ -379,6 +383,17 @@ public static class PowerTest
 
     public static string BuildReport(Result r, DeviceProfile dev)
     {
+        // The report is read on GitHub, not in the reporter's locale, so it is written in invariant
+        // English throughout. Without this a Polish machine emits "13,9 s" and "81,0 %" into an
+        // otherwise English file, and anything parsing it later has to guess the separator.
+        var culture = System.Threading.Thread.CurrentThread.CurrentCulture;
+        System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        try { return BuildReportCore(r, dev); }
+        finally { System.Threading.Thread.CurrentThread.CurrentCulture = culture; }
+    }
+
+    private static string BuildReportCore(Result r, DeviceProfile dev)
+    {
         var sb = new StringBuilder();
         sb.AppendLine("=== GhostDeck - power test report ===");
         sb.AppendLine($"Generated: {r.Started:yyyy-MM-dd HH:mm}");
@@ -446,19 +461,31 @@ public static class PowerTest
 
         // A run on a busy machine produces confident numbers that are simply wrong, which is the
         // one failure this whole feature exists to avoid. Say so at the top of the file, loudly.
-        var noisy = r.Phases
-            .Select(p => (p.Name, St: Steady(p.Samples)))
-            .Where(x => x.St.Length > 0)
-            .Select(x => (x.Name, Own: Avg(x.St.Select(s => s.Own)), Slow: x.St.Max(s => s.Ms)))
-            .Where(x => x.Own < OwnShareFloor || x.Slow > SlowSampleMs)
-            .ToArray();
-        if (noisy.Length > 0)
+        if (WasBusy(r))
         {
+            var loads = Loads(r);
             sb.AppendLine();
             sb.AppendLine("!! THE MACHINE WAS NOT IDLE. Treat the work column as unreliable and re-run !!");
-            foreach (var x in noisy)
-                sb.AppendLine($"   {x.Name,-14} had {x.Own:F0} % of the CPU" +
-                              (x.Slow > SlowSampleMs ? $", and one sample took {x.Slow / 1000.0:F1} s instead of 1 s" : ""));
+            foreach (var l in loads)
+                sb.AppendLine($"   {l.Name,-14} had {l.Own,5:F1} % of the CPU" +
+                              (l.SlowestMs > SlowSampleMs
+                                  ? $", and one sample took {l.SlowestMs / 1000.0:F1} s instead of 1 s"
+                                  : ""));
+
+            // An equal shortfall cancels out of the ratio; an uneven one does not. Name the phases
+            // whose share differed from the baseline's, and which way it pushed their work column,
+            // rather than quietly "correcting" a number nobody could then check.
+            foreach (var l in loads)
+            {
+                if (l.Name == ProfileId.Balanced.ToString()) continue;
+                double skew = Skew(loads, l);
+                if (Math.Abs(skew - 1) <= MaxShareSkew) continue;
+                int off = (int)Math.Round(Math.Abs(1 - skew) * 100);
+                sb.AppendLine($"   {l.Name} did not get the same share as Balanced ({l.Own:F1} % against " +
+                              $"{loads.First(x => x.Name == ProfileId.Balanced.ToString()).Own:F1} %), so its work column reads about " +
+                              $"{off} % {(skew < 1 ? "LOWER" : "HIGHER")} than an even run would give.");
+            }
+
             sb.AppendLine("   Something outside GhostDeck was using the processor: a virus scan of a freshly");
             sb.AppendLine("   downloaded file is the usual one, and it can run for minutes after the download.");
             sb.AppendLine("   Close what you can, leave the machine alone for a few minutes, and run it again.");
@@ -532,9 +559,28 @@ public static class PowerTest
     /// The numbers still describe something, just not the profile, so this has to reach the page
     /// and not only the bottom of a text file nobody opens before pasting it.
     /// </summary>
-    public static bool WasBusy(Result r) =>
-        r.Phases.Select(p => Steady(p.Samples)).Where(st => st.Length > 0)
-         .Any(st => Avg(st.Select(s => s.Own)) < OwnShareFloor || st.Max(s => s.Ms) > SlowSampleMs);
+    public static bool WasBusy(Result r)
+    {
+        var loads = Loads(r);
+        return loads.Any(l => l.Own < OwnShareFloor || l.SlowestMs > SlowSampleMs
+                              || Math.Abs(Skew(loads, l) - 1) > MaxShareSkew);
+    }
+
+    /// <summary>How much of the machine each phase actually got, and its worst sampling gap.</summary>
+    private sealed record PhaseLoad(string Name, double Own, int SlowestMs);
+
+    private static PhaseLoad[] Loads(Result r) =>
+        r.Phases.Select(p => (p.Name, St: Steady(p.Samples)))
+                .Where(x => x.St.Length > 0)
+                .Select(x => new PhaseLoad(x.Name, Avg(x.St.Select(s => s.Own)), x.St.Max(s => s.Ms)))
+                .ToArray();
+
+    /// <summary>A phase's share against the baseline phase's: 1 = they competed on equal terms.</summary>
+    private static double Skew(PhaseLoad[] loads, PhaseLoad p)
+    {
+        var baseline = loads.FirstOrDefault(x => x.Name == ProfileId.Balanced.ToString());
+        return baseline == null || baseline.Own <= 0 ? 1 : p.Own / baseline.Own;
+    }
 
     /// <summary>One-line verdict for the page and the issue title.</summary>
     public static string Summary(Result r)

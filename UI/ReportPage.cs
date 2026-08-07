@@ -33,6 +33,9 @@ public sealed class ReportPage : ThemedPage
     private int _lastPct = -1;
     private float _barValue;
     private string? _savedPath;
+    // Whether the report reached the clipboard. The whole flow tells the user to paste it, so a
+    // failed copy has to be said out loud rather than leaving them to paste whatever was there.
+    private bool _copied, _curveCopied, _ptCopied;
     private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH, _capY;
     private static readonly Font IntroFont = new("Segoe UI", 10.5f);
 
@@ -358,9 +361,7 @@ public sealed class ReportPage : ThemedPage
                             : string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " — " + string.Format(Lang.T("rep_set_scenario"), Steps[_step].msiName);
         TextRenderer.DrawText(g, instr, new Font("Segoe UI", 11.5f, FontStyle.Bold),
             new Rectangle(_rightX, _instrTop, rightW, _instrH + 6), done ? Theme.Green : Theme.Text, TextFormatFlags.WordBreak);
-        if (done && _savedPath != null)
-            TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _savedPath), new Font("Segoe UI", 9f),
-                new Rectangle(_rightX, _capY + 44 + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
+        if (done) PaintSaved(g, _rightX, _capY + 44 + 10, rightW, _savedPath, _copied);
     }
 
     // =================================================================
@@ -410,9 +411,7 @@ public sealed class ReportPage : ThemedPage
             var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
             TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
-            if (_curveSavedPath != null)
-                TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _curveSavedPath), new Font("Segoe UI", 9f),
-                    new Rectangle(_rightX, _curveBarY + mh + 10, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
+            PaintSaved(g, _rightX, _curveBarY + mh + 10, rightW, _curveSavedPath, _curveCopied);
         }
     }
 
@@ -530,7 +529,7 @@ public sealed class ReportPage : ThemedPage
     private void PrepareCurveReport()
     {
         string report = BuildCurveReport();
-        try { Clipboard.SetText(report); } catch { }
+        _curveCopied = Ui.CopyText(report);
         try
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -623,7 +622,7 @@ public sealed class ReportPage : ThemedPage
     private void PrepareReport()
     {
         string report = BuildReport();
-        try { Clipboard.SetText(report); } catch { }
+        _copied = Ui.CopyText(report);
         try
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -906,7 +905,7 @@ public sealed class ReportPage : ThemedPage
     {
         if (_ptResult is not { } r) return;
         string report = PowerTest.BuildReport(r, dev);
-        try { Clipboard.SetText(report); } catch { }
+        _ptCopied = Ui.CopyText(report);
         try
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -1041,17 +1040,31 @@ public sealed class ReportPage : ThemedPage
             TextRenderer.DrawText(g, verdict, vf, new Rectangle(_rightX, y, rightW, vh + 6), col,
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             y += vh + 10;
-            if (_ptSavedPath != null)
-            {
-                TextRenderer.DrawText(g, string.Format(Lang.T("rep_saved_to"), _ptSavedPath), new Font("Segoe UI", 9f),
-                    new Rectangle(_rightX, y, rightW, 60), Theme.Muted, TextFormatFlags.WordBreak);
-                y += 46;
-            }
+            y += PaintSaved(g, _rightX, y, rightW, _ptSavedPath, _ptCopied) + 8;
         }
 
         if (_ptMsg != null)
             TextRenderer.DrawText(g, _ptMsg, new Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
                 Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+    }
+
+    // Where the report went, and - when the clipboard refused it - the line that stops the user
+    // pasting whatever happened to be there already. Returns the height it used.
+    private int PaintSaved(Graphics g, int x, int y, int w, string? path, bool copied)
+    {
+        if (path == null) return 0;
+        string saved = string.Format(Lang.T("rep_saved_to"), path);
+        var sf = new Font("Segoe UI", 9f);
+        int sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
+        TextRenderer.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
+        if (copied) return sh + 6;
+
+        var wf = new Font("Segoe UI", 10f, FontStyle.Bold);
+        string warn = Lang.T("rep_clip_fail");
+        int wh = TextRenderer.MeasureText(warn, wf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
+        TextRenderer.DrawText(g, warn, wf, new Rectangle(x, y + sh + 8, w, wh + 4), Theme.Amber,
+            TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+        return sh + 14 + wh;
     }
 
     // The firmware pill closes the left column on every sub-tab.

@@ -134,4 +134,23 @@ internal static class Ui
         TextRenderer.DrawText(g, text, font, Rectangle.Round(r), fg,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
+
+    /// <summary>
+    /// Put text on the clipboard and say whether it got there. <c>Clipboard.SetText</c> throws
+    /// outright whenever another process has the clipboard open, which is common and momentary, and
+    /// every report flow used to swallow that in an empty catch. The file was still written, but the
+    /// clipboard kept the PREVIOUS report, so a Ctrl+V pasted the wrong run into an issue and
+    /// nothing on screen said otherwise. SetDataObject's retry loop is the documented answer to
+    /// that error; copy: true also flushes the data so it survives the app closing.
+    /// </summary>
+    public static bool CopyText(string text)
+    {
+        try { Clipboard.SetDataObject(text, true, 10, 120); }
+        catch { return false; }
+        // Best effort confirmation. A read that fails on its own does not disprove the write, so
+        // only a clipboard that demonstrably holds something else counts as a failure.
+        try { if (Clipboard.ContainsText() && Clipboard.GetText() != text) return false; }
+        catch { }
+        return true;
+    }
 }

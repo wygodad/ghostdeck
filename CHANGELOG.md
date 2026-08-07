@@ -3,6 +3,26 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.30.2] - 2026-08-07
+### Fixed
+- **A report could silently fail to reach the clipboard.** Every report wizard copies its result and
+  then tells you to paste it into a GitHub issue, but Windows refuses the clipboard outright
+  whenever another program is holding it open, and that failure was swallowed. The file was still
+  written correctly, the clipboard kept the **previous** report, and a paste sent the wrong run to
+  an issue with nothing on screen saying so. This happened on a real report. The write now retries,
+  and if it still cannot get there the page says so and points at the saved file instead of claiming
+  a copy that did not happen. Applies to all three report wizards, the interim report dialog and the
+  change-log window.
+
+### Changed
+- **The power test reports uneven CPU shares, not just low ones.** A shortfall shared equally by
+  every phase cancels out of the ratio the table prints; an uneven one does not, and bends the
+  comparison itself. A phase that got a different share of the machine than Balanced is now named
+  along with how far, and which way, that pushes its work column. On the run that prompted this,
+  Silent held 81 % against Balanced's 88 %, which accounts for its 65 where a clean run gives 69.
+- The power-test report is written in **invariant English** throughout. On a machine with a comma
+  decimal separator it was emitting "13,9 s" and "81,0 %" into an otherwise English file.
+
 ## [1.30.1] - 2026-08-07
 ### Fixed
 - **Fan RPM could read as tens of thousands.** The tachometer register is a divisor, so catching it

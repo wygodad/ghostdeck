@@ -100,7 +100,7 @@ public sealed class LogForm : Form
         close.Click += (_, _) => Close();
         var copy = new Button { Text = Lang.T("log_copy_all"), AutoSize = true, Padding = new Padding(14, 6, 14, 6), Margin = new Padding(6, 0, 0, 0) };
         Ui.StyleGhost(copy);
-        copy.Click += (_, _) => { try { Clipboard.SetText(ChangeLog.ToText()); } catch { } };
+        copy.Click += (_, _) => Ui.CopyText(ChangeLog.ToText());
         var clear = new Button { Text = Lang.T("log_clear"), AutoSize = true, Padding = new Padding(14, 6, 14, 6), Margin = new Padding(6, 0, 0, 0) };
         Ui.StyleGhost(clear);
         clear.Click += (_, _) =>
@@ -153,6 +153,6 @@ public sealed class LogForm : Form
         var sb = new System.Text.StringBuilder();
         foreach (ListViewItem it in _list.SelectedItems)
             sb.AppendLine(string.Join("\t", it.SubItems.Cast<ListViewItem.ListViewSubItem>().Select(s => s.Text)));
-        try { Clipboard.SetText(sb.ToString()); } catch { }
+        Ui.CopyText(sb.ToString());
     }
 }

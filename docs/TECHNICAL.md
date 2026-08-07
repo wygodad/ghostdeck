@@ -2056,6 +2056,14 @@ sample more than **3 s** from its second, marks the run: `PowerTest.WasBusy` put
 results line in amber, and `BuildReport` prints a block above the table telling the reader to
 re-run rather than trust it. Near 100 % is what a clean run looks like.
 
+A shortfall shared equally by every phase cancels out of the ratio the table prints, so the third
+condition is the one that actually matters: an **uneven** share bends the comparison itself. Each
+phase's share is compared against Balanced's, and past **4 %** of difference the block names the
+phase, the two shares and which way that pushes its work column. The run that prompted this held
+Silent at 81 % against Balanced's 88 %, which is 8 % low, and its work column read 65 where the
+clean run gave 69. The report states the bias rather than correcting for it: a corrected figure
+would be one nobody downstream could check.
+
 Two things are recorded rather than refused, because they change what the numbers mean without
 making them invalid: **Fan Boost** being on at the start (it flattens every fan and temperature
 column) and a **short steady window**. The report prints the Fan Boost state in its header and an

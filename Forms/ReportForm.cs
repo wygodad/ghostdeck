@@ -352,7 +352,7 @@ public sealed class ReportForm : Form
     private void PrepareReport()
     {
         string report = BuildReport();
-        try { Clipboard.SetText(report); } catch { }
+        Ui.CopyText(report);
 
         try
         {
