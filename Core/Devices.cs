@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260807;
+    public const int DataVersion = 20260808;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -459,7 +459,20 @@ public static class Devices
         new() { Name = "MSI Vector GP68 HX 13V",            FirmwarePrefixes = new[] { "15M1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Raider GE68 HX 14VIG",          FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Raider GE68 HX 14VGG",          FirmwarePrefixes = new[] { "15M2IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Vector 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Vector 16 HX AI (15M3EMS1) - the first model promoted on a MEASUREMENT rather than on its
+        // owner's judgement. The Power test (issue #74) answers all three hardware checks with
+        // numbers: Silent holds 84 % of Balanced's delivered work at 4728 MHz against 5432 and
+        // 56 C against 69, so the Silent fan value caps power here as well as quietening the fans;
+        // Extreme reaches 111 % at 6306 MHz, 93 C and 100 % fan; and every phase read its own
+        // recipe back unchanged across a run that restored the starting profile.
+        //   RPM: 0xC9/0xCB move monotonically with fan duty across four states in that run's dumps
+        //   (idle B2/B2, Silent B0/B0, Balanced 88/87, Extreme 51/52 = 2685, 2715, 3514, 5901 RPM),
+        //   which a constant cannot do.
+        //   Curve VERIFIED (issue #70): the owner set the test curve in MSI Center, which was
+        //   installed at the time, and the wizard found it at the shipped 0x72 / 0x8A.
+        new() { Name = "MSI Vector 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "xulu19861102-hub", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         new() { Name = "MSI Raider GE78 HX 14VHG",          FirmwarePrefixes = new[] { "17S1IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Raider GE78 HX Smart Touchpad 13V", FirmwarePrefixes = new[] { "17S2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Vector 17 HX AI A2XWHG",        FirmwarePrefixes = new[] { "17S3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
