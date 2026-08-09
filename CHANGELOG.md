@@ -3,6 +3,56 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.31.0] - 2026-08-10
+### Added
+- **The power test loads the graphics chip as well as the processor.** A processor-only load answers
+  only half the question: on a thin chassis it never reaches the ceiling the top profile already
+  grants, so a mode above that one has nothing to show, and a budget the two chips share stays
+  invisible. The discrete adapter is now loaded for the whole run, started before the first settle so
+  temperatures stabilise with it going, and identical in every phase. The report header states which
+  adapter it was, or that the run had the processor only, because the two cannot be compared with
+  each other. Nothing is drawn and nothing is read back; if a device cannot be created the run
+  continues on the processor alone. On the reference board the profiles grew *more* distinguishable:
+  Extreme against Silent went from 1.82× to 1.98× once both chips were asking for power.
+- **The power test measures its baseline twice.** BALANCED runs once at the start and once more at
+  the end, with every other phase in between, and the repeat row is normalised to the first one - so
+  its work column is the drift of the whole run. A machine that finished as fast as it started prints
+  100 and the comparison stands; a run carried by heat soak or by the running order says so itself
+  instead of pretending. The report gained a "Baseline check" section that spells the verdict out.
+- **MSI Vector 16 HX AI A2XWHG / A2XWIG (`15M3EMS1`) is now tested**, the first model promoted on a
+  measurement rather than on its owner's judgement. The power test answered all three hardware checks
+  with numbers: Silent holds 84 % of Balanced's delivered work at 4728 MHz against 5432 and 56 °C
+  against 69, so the Silent fan value caps power there and not just fan noise; Extreme reaches 111 %
+  at 6306 MHz; and the dumps show the tachometers alive across four fan states, so real fan RPM is
+  shown. Thanks to **@xulu19861102-hub** ([#74](https://github.com/wygodad/ghostdeck/issues/74)).
+- **Report / verify opens on a start screen.** Three tiles say what each test answers, what it needs
+  (the first two need MSI Center as an independent reference, the power test needs nothing) and
+  whether it writes anything, so the choice explains itself before any wizard starts. The sub-tab
+  strip gained icons and a Start segment that brings the overview back.
+- **Status shows the graphics core clock next to its ceiling** ("GPU clock: 2280 MHz · 73 %"),
+  read from Windows itself with no vendor software - the same interface Task Manager uses. The share
+  of the ceiling is the point: a busy card sitting well under it is the firmware holding it there,
+  which is exactly what a performance profile changes. A ? dot opens a bubble explaining the figure,
+  and names the adapter.
+- **Help bubbles you can actually read.** The circled ? next to a control now opens a themed bubble
+  on click and it stays until you click again, replacing the system tooltip that styled itself and
+  vanished mid-sentence. Same behaviour on Scenarios, Status and the Models table header.
+
+### Fixed
+- **Switching the UI language now updates every caption in place.** The main tab strip, the sub-tab
+  bars on Status and Report and the export buttons kept the old language until a restart, because
+  their captions are captured when the controls are built; a language change now rebuilds them.
+- **The power test's work meter no longer drifts on its own.** The load kernel reseeds its arithmetic
+  every block, so every block is identical work; before, the state carried across blocks and the
+  throughput swung by up to half over a fixed cycle, which could move the work column by several
+  points depending on where the steady window fell in the cycle.
+
+### Changed
+- **The thermal stop watches the graphics chip too**, now that the run deliberately heats it. A
+  sensor that is not present reads zero and never trips it.
+- **The consent card names both chips** and the run now takes about seven minutes (four measured
+  phases plus the probe) instead of five.
+
 ## [1.30.3] - 2026-08-07
 ### Fixed
 - **The steady window is carved out of time, not out of sample numbers.** A phase that manages

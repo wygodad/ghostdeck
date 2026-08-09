@@ -334,3 +334,34 @@ The pattern:
 
 Same idea applies to any future hover effect on a `BufferedGraphics` surface: bake the static
 scene, overlay the dynamic bits per paint, and make the control double-buffered.
+
+## 10. Click-open help bubbles (v1.31: HelpPopup / HelpDot)
+
+`UI/Controls/HelpPopup.cs` replaces the system `ToolTip` wherever a control needs a paragraph of
+explanation rather than a label. The system tooltip fails that job three ways: it styles itself
+from the OS instead of the theme, it opens on hover so it covers the thing being pointed at, and it
+takes itself away after a few seconds. The bubble opens on **click** on a `HelpDot` (the circled
+"?"), stays until dismissed (a click anywhere, or the same dot again), and is drawn with the app''s
+own card fill, accent border and text colours.
+
+Implementation notes, in case it ever needs touching:
+
+- It is a `ToolStripDropDown` **hosting a control** (`ToolStripControlHost` around a private
+  `Card`). The dropdown class is used purely for its window behaviour - a top-level surface that
+  shows without stealing focus and closes itself on an outside click. The hosted control is what
+  gives it a size and painting: an *itemless* dropdown lays itself out to nothing, which shows up
+  as a popup that "opens" invisibly and eats the next click.
+- One bubble at a time, tracked statically. Clicking the dot of an open bubble must read as
+  "close", but the outside-click close may already have run before that click arrives - so a close
+  by the same owner within 250 ms suppresses the reopen instead of toggling twice.
+- Placement hangs under the anchor and runs left, clamped to the screen''s working area, flipping
+  above when there is no room below - so a dot near the right edge never pushes the bubble
+  off-screen.
+- `HelpDot` is a 22 px control (hand cursor, no tab stop) with a static `Render(g, rect)` for the
+  hand-painted pages: the Status canvas and the Models table draw the same dot into their own
+  surface and hit-test it themselves, so the dot looks identical whether it is a control or paint.
+- Texts are supplied by `TextProvider` at click time, not captured at construction, so a language
+  change (TECHNICAL.md §21a) or a live value is always current.
+
+Used on: Scenarios feature bricks, the Models table''s Super Battery column header, and the Status
+GPU-clock tile (TECHNICAL.md §61).

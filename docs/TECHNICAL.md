@@ -640,7 +640,18 @@ re-lays-out and shows only the active sub-page. Used in two places:
   a fixed `SecTop` below the title + sub-tab bar; the "Full log…" button is only shown on the log sub-page.
 - **Report** — split into `Profiles` (the existing 4-scenario capture), `Fan curve` (below) and
   `Power test` (§60, the only one of the three that writes, and the only one that does not need
-  MSI Center).
+  MSI Center). Since v1.31 the strip carries glyphs and a fourth, leading `Start` segment: the page
+  opens on a start screen of three tiles saying what each test answers, what it needs and whether it
+  writes, because the difference (two are comparisons against MSI Center, one is a measurement that
+  needs nothing) kept having to be explained in issues. Picking a tile activates the matching
+  segment; the strip's `SetLabels` swaps captions in place on a language change (§21a).
+
+**Language changes at runtime (§21a).** Text painted through `Lang.T` follows the language on the
+next paint by itself; text *captured* into controls at construction (tab captions, sub-tab labels,
+button text) does not. `MainForm.SyncStrip` therefore tracks the language it built the strip with
+and, on drift, rebuilds the tab buttons and broadcasts `ThemedPage.OnLanguageChanged()` to every
+page; Status and Report re-label their `SubTabs` (`SetLabels`) and re-derive captured captions
+there. Pages created after the switch are simply built in the new language.
 
 **Report is an icon, not a tab.** To free space in the main strip, Report was moved out of the tab row
 to a `⚑` glyph button on the right (next to the theme toggle). `MainForm.ShowReport(sub)` deep-links a
@@ -2111,10 +2122,78 @@ in would drag every column down and, worse, silently rearm the thermal counter.
 profile's assigned fan-curve preset, which would overwrite the fan byte and destroy the Silent
 comparison the test exists to make.
 
+### 60.9 Loading the graphics chip as well
+
+A processor-only load answers only half the question. On the Stealth 16 AI+ (`2631EMS1`) a clean run
+returned Silent 120, Balanced 100, Extreme 120 and the fourth mode 120: the top mode and the mode
+above it delivered the same processor work. On a thin chassis a processor-only load never reaches the
+ceiling Extreme already grants, so a mode that raises that ceiling further has nothing to show. If the
+raised budget is one the two chips share, the only way to see it is to be asking both for work.
+
+So the run loads the discrete graphics chip for its whole duration, started before the first settle so
+temperatures stabilise with it already going, and identical in every phase - it has to be, or the
+comparison between phases measures the load rather than the profile. `Core/GpuLoad.cs` creates a
+Direct3D 11 device on the adapter with the most dedicated memory, compiles a small arithmetic compute
+shader, and dispatches it into a buffer nothing ever reads. No window, no swap chain, nothing drawn.
+Every call goes through raw vtable pointers, so the app takes no dependency on a graphics package for
+one file. Failure anywhere leaves `Active` false and the run continues on the processor alone; the
+report header states which of the two it had, because a report without that line cannot be compared
+with one from a machine where the graphics load never started.
+
+Two properties of this are worth recording, because both are easy to get wrong in a way that still
+appears to work.
+
+**The vtable indices include inherited methods.** `ID3D11Device` derives straight from `IUnknown`, so
+its own methods start at slot 3. `ID3D11DeviceContext` derives from `ID3D11DeviceChild`, which adds
+four methods of its own, so its methods sit four slots further along: `Dispatch` is 41, not 37. An
+index that is wrong by a constant offset calls a real function with the wrong arguments, which is an
+access violation inside an elevated process, not a returned error code. `tools/` has no generator for
+these; they are counted off the published interface definitions.
+
+**Dispatch size is calibrated, and the calibration needs two points.** Submitting work is not free, so
+many small dispatches burn a processor core feeding the driver - on the reference board a naive loop
+cost **1.7 cores**, which is precisely the kind of self-inflicted competition §60.8 exists to prevent.
+Large dispatches cost almost nothing to submit but must still finish well inside the display driver's
+watchdog, which resets a device whose work takes seconds. The target is 30 ms, roughly sixty times the
+margin that watchdog needs, and the size is calibrated at startup so the same target holds on a weak
+integrated chip and a fast discrete one alike. Timing a single small dispatch would not give that:
+most of a small dispatch is the fixed cost of submitting it and of noticing the marker come back, and
+scaling that fixed cost picks a size several times too small. Two sizes give a slope, and the slope is
+the part that depends on how much work was asked for. Three event queries are kept in flight so the
+chip never idles while the thread sleeps waiting for the oldest one, since a sleep can overshoot by
+more than a whole dispatch. On the reference board this holds the adapter at **100 %** and about
+**100 W** while the feeding thread costs **0.02 of one core**.
+
+The thermal ceiling now watches both chips, since the run deliberately heats the graphics side too. A
+sensor that is not present reads zero and so never trips it.
+
+### 60.10 The baseline is measured twice, and the load is the same work every second (v1.31)
+
+Two changes with the same purpose: a comparison is only as good as its reference.
+
+**The kernel reseeds every block.** The load is floating-point arithmetic in 50 000-iteration
+blocks, and the two accumulators now start every block from the same seeds, so every block is
+identical work. When the state carried across blocks instead, the accumulators drifted through a
+long fixed cycle (about 9.2 billion iterations per thread between wrap-arounds) and the per-second
+throughput swung by up to half of its mean over it. All threads start together, so the swings added
+up rather than averaging out, and where the 25-second steady window fell inside that cycle could
+move a phase's work figure by several points - a faster phase walks the cycle faster, so the
+windows never sampled the same stretch. Measured on an idle machine, the same kernel read up to
+9.3 % apart from itself between two window placements before, 4.7 % after.
+
+**BALANCED runs twice, opening and closing the run.** The repeat is a real, fully loaded phase with
+every other phase between it and the first, and its work column is normalised to the *first*
+Balanced rather than shown raw - so the row prints the drift of the whole run, and the report's
+"Baseline check" section says it in words: 100 means the machine finished as fast as it started;
+a big gap means heat soak or the running order carried the table, and the run says so itself. The
+case that motivated it: a Creator Z17 run (#77) sat at 94-95 °C in all three phases and read
+Silent *above* Balanced - order, not profiles. Cost: one more settle + load, about 75 s.
+
 ### 60.5 Where it lives
 
-`Core/PowerTest.cs` holds the measurement, the load generator and the report builder, with no UI
-references at all; `UI/ReportPage.cs` adds the third sub-tab and the progress rendering. The report
+`Core/PowerTest.cs` holds the measurement, the processor load and the report builder, with no UI
+references at all; `Core/GpuLoad.cs` holds the graphics load and is the only file in the app that
+touches a graphics API; `UI/ReportPage.cs` adds the third sub-tab and the progress rendering. The report
 is written in **invariant English** even when the app is localised, because it is read on GitHub
 and not by its author. It is copied to the clipboard, saved next to the other two reports, and
 opens `power-test.yml` prefilled.
@@ -2122,3 +2201,36 @@ opens `power-test.yml` prefilled.
 The load threads run at `BelowNormal` priority so the window keeps repainting. That costs the same
 in every phase and therefore cancels out of the comparison, which is the only property the ratio
 needs.
+
+## 61. GPU telemetry without vendor software (v1.31)
+
+Status shows the discrete card's core clock next to that clock's ceiling ("GPU clock:
+2280 MHz · 73 %"). The share is the point, not the absolute number: under load, a card sitting
+well below its own ceiling is being held there by firmware, and that hold is exactly what a
+performance profile moves. It is the same story a wattage would tell, from a source that does not
+need anything installed.
+
+`Core/GpuTelemetry.cs` is the only place that reads it, over `D3DKMTQueryAdapterInfo` from
+gdi32.dll - the interface Task Manager itself uses. The adapter is picked by most dedicated memory
+(DXGI `EnumAdapters1`/`GetDesc1`, the same rule as the power test's load in §60.9), then two query
+codes from the Windows SDK's `d3dkmthk.h` supply the data: `KMTQAITYPE_NODEPERFDATA` (61) for the
+engine's clock and ceiling, `KMTQAITYPE_ADAPTERPERFDATA` (62) for temperature. Engine ordinals are
+the driver's own numbering, so the node that carries the core clock is found (first one reporting a
+ceiling), not assumed.
+
+Three deliberate choices:
+
+- **No watts.** The power field this interface exposes is tenths of a percent of the adapter's own
+  limit, not a wattage, and the driver it was measured against returns zero for it. PL1/PL2 are
+  worse: they live in an MSR, and `RDMSR` is kernel-mode only - every tool that shows them ships a
+  signed kernel driver, which this app deliberately does not.
+- **An idle card keeps its tile.** A discrete GPU powers itself down when nothing uses it and stops
+  answering; the tile then shows a dash rather than disappearing, because a tile that comes and
+  goes reads as the app breaking. The adapter handle is only reopened after ~20 consecutive empty
+  samples (a driver restart), and the ceiling is remembered - it is a property of the card.
+- **Explained in place.** The ? dot on the tile opens the app's help bubble (RENDERING.md §5) with
+  the adapter's name and what the share means; a second text covers the powered-down case.
+
+Readings are cached ~700 ms behind one lock, so the 1 s Status tick and the overlay share one
+query. Everything degrades to "tile absent" - no adapter, no gdi32 answer, no clock - and nothing
+throws past `Read()`.

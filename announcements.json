@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1310-gpu-load",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.30.3",
+    "title": "New release: the power test now loads the GPU too, and checks itself",
+    "title_pl": "Nowe wydanie: test mocy obciąża też kartę graficzną i sam się sprawdza",
+    "body": "GhostDeck v1.31.0 is out. The Power test now loads the discrete graphics chip alongside the processor, because on many boards the two share one power budget and a CPU-only load cannot see a profile that moves it; on the reference board the profiles became more distinguishable, not less. The test also measures its baseline twice: BALANCED opens and closes the run, and the repeat row prints the drift of the whole run, so a result carried by heat soak or running order says so itself. Report / verify opens on a start screen that says what each of the three tests answers and what it needs. Status gains the GPU core clock against its own ceiling, read from Windows with no vendor software, with a click-open bubble that explains the figure - the same readable bubbles now back every ? in the app. Switching the UI language updates all captions in place. And the Vector 16 HX AI (15M3EMS1) is the 19th model confirmed on real hardware, the first promoted on a measurement. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.31.0. Test mocy obciąża teraz dedykowaną kartę graficzną równolegle z procesorem, bo na wielu płytach oba układy dzielą jeden budżet mocy i obciążenie samego procesora nie zobaczy profilu, który ten budżet przesuwa; na płycie referencyjnej profile stały się łatwiejsze do rozróżnienia, nie trudniejsze. Test mierzy też swój punkt odniesienia dwa razy: BALANCED otwiera i zamyka przebieg, a wiersz powtórki pokazuje dryf całego przebiegu, więc wynik niesiony nagrzaniem albo kolejnością sam to mówi. Raport otwiera się na ekranie startowym, który tłumaczy, na co odpowiada każdy z trzech testów i czego wymaga. Status zyskuje zegar rdzenia karty na tle jej pułapu, czytany z Windows bez oprogramowania producenta, z klikaną chmurką wyjaśniającą wartość - te same czytelne chmurki stoją teraz za każdym pytajnikiem w aplikacji. Zmiana języka interfejsu podmienia wszystkie napisy od ręki. A Vector 16 HX AI (15M3EMS1) to 19. model potwierdzony na sprzęcie, pierwszy awansowany na podstawie pomiaru. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.31.0"
+  },
+  {
     "id": "2026-08-v1300-power-test",
     "severity": "info",
     "minVersion": "1.0.0",
