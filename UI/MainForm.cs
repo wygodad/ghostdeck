@@ -215,15 +215,25 @@ public sealed class MainForm : Form
         _iconTabsApplied = string.Join(",", asIcons.OrderBy(s => s));
     }
 
-    /// <summary>Re-applies the tab/icon split after a settings change (no-op when unchanged).</summary>
+    private string _langApplied = Lang.CurrentCode;
+
+    /// <summary>
+    /// Re-applies the tab strip after a settings change (no-op when nothing relevant changed).
+    /// Two things invalidate it: the tab/icon split, and the UI language - the buttons carry
+    /// their captions, so a language switch has to rebuild them or the strip keeps the old one.
+    /// </summary>
     public void SyncStrip()
     {
+        bool langDrift = _langApplied != Lang.CurrentCode;
         string want = string.Join(",", _d.Settings.IconTabs.OrderBy(s => s));
-        if (want == _iconTabsApplied) return;
+        if (!langDrift && want == _iconTabsApplied) return;
+        _langApplied = Lang.CurrentCode;
         BuildTabs();
         LayoutStrip();
         foreach (var b in _tabs) b.Active = (MainTab)b.Tag! == _active;
         _strip.Invalidate(true);
+        // Pages hold captured captions of their own (sub-tab bars, buttons); let each refresh its.
+        if (langDrift) foreach (var p in _pages.Values) p.OnLanguageChanged();
     }
 
     private void AddTab(MainTab tab, string text, string glyph)

@@ -91,6 +91,18 @@ public sealed class SubTabs : Control
         return w;
     }
 
+    /// <summary>
+    /// Swap the labels in place (same count, same order) - the language changed. Glyphs and the
+    /// active segment stay; only the text and the measured widths follow.
+    /// </summary>
+    public void SetLabels(string[] labels)
+    {
+        if (labels.Length != _labels.Length) return;
+        Array.Copy(labels, _labels, labels.Length);
+        Width = Math.Min(_avail, Measure());
+        Invalidate();
+    }
+
     /// <summary>Programmatic selection. Set <paramref name="raise"/> to fire <see cref="Changed"/>.</summary>
     public void SetActive(int i, bool raise = false)
     {

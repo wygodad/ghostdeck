@@ -222,7 +222,12 @@ public sealed class StatusPage : ThemedPage
         if (sub == 0)
         {
             int ring = RingSize(width);
-            int cardTop = SecTop + ring + 68 + 54 + 14 + 54 + 40;
+            // rings, then three stacked 54px rows (RPM/clock, battery/GPU load/VRAM, storage), and
+            // the graphics-clock tile adds a fourth on the right when Windows reports a card
+            int subY3 = SecTop + ring + 68 + 54 + 14 + 54 + 14;
+            int rightH = GpuTelemetry.Read().Ok ? 54 * 2 + 14 : 54;
+            int storageH = Math.Max(54, Perf.Disks().Count * 58);
+            int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
             return cardTop + RowH * Rows.Length + 14 + 40;
         }
         if (sub == 1)
@@ -256,6 +261,18 @@ public sealed class StatusPage : ThemedPage
 
     public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 4; _histRange.Visible = _histExport.Visible = _statusSub == 1; _sessPick.Visible = _sessExport.Visible = _statusSub == 2; if (_statusSub == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
     public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
+    public override void OnLanguageChanged()
+    {
+        _statusTabs.SetLabels(new[]
+        {
+            Lang.T("st_sub_charts"), Lang.T("st_sub_history"), Lang.T("st_sub_gaming"),
+            Lang.T("st_sub_bytes"), Lang.T("st_sub_log"),
+        });
+        _histExport.Text = Lang.T("st_hist_export");
+        _sessExport.Text = Lang.T("st_hist_export");
+        _canvas.Rebuild();
+    }
+
     protected override void Dispose(bool disposing) { if (disposing) { _timer.Dispose(); ChangeLog.Changed -= OnLogChanged; UpdateFpsViewer(); } base.Dispose(disposing); }
 
     // The page is painted by an inner canvas sized to the full content height; WinForms scrolls that
@@ -311,8 +328,23 @@ public sealed class StatusPage : ThemedPage
             _p.DrawHistCursor(e.Graphics);   // cheap per-paint overlay (crosshair on the history charts)
         }
 
-        protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); _p.HistMouse(e.Location); }
-        protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _p.HistMouse(null); }
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            _p.HistMouse(e.Location);
+            _p.ChartsMouse(this, e.Location);
+        }
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _p.HistMouse(null);
+            _p.ChartsMouse(this, null);
+        }
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left) _p.ChartsClick(e.Location);
+        }
 
         /// <summary>Free the offscreen buffer (the page is hidden); OnPaint rebuilds it on demand.</summary>
         internal void ReleaseBuffer()
@@ -367,12 +399,24 @@ public sealed class StatusPage : ThemedPage
             new Rectangle(ramX, subY, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
         DrawBar(g, new RectangleF(ramX + 20, subY + 36, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
 
-        // Framed metric counter (shared by the RPM / clock / GPU / VRAM / battery boxes).
+        // Framed metric counter (shared by the RPM / clock / GPU / VRAM / battery boxes). Box width
+        // comes from the ring grid, so a label that carries two values has to step down a size or
+        // two to fit rather than be cut off at both ends.
         void MetricBox(RectangleF box, string text)
         {
             Ui.FillCard(g, box);
-            TextRenderer.DrawText(g, text, new Font("Segoe UI", 11.5f, FontStyle.Bold),
-                Rectangle.Round(box), Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            var r = Rectangle.Round(box);
+            r.Inflate(-10, 0);
+            Font f = new("Segoe UI", 11.5f, FontStyle.Bold);
+            for (float pt = 11.5f; pt > 8.5f && TextRenderer.MeasureText(g, text, f).Width > r.Width; )
+            {
+                f.Dispose();
+                pt -= 0.5f;
+                f = new Font("Segoe UI", pt, FontStyle.Bold);
+            }
+            TextRenderer.DrawText(g, text, f, r, Theme.Text,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            f.Dispose();
         }
         void RpmUnder(int i, int rpm, string label)
             => MetricBox(new RectangleF(X(i) + 14, subY, ring - 28, subH),
@@ -445,12 +489,40 @@ public sealed class StatusPage : ThemedPage
                 }
             }
         }
-        // battery-time box spans two ring slots so the full label fits (user request)
+        // Right of the storage panel, two wide boxes stacked: the graphics clock and the battery
+        // time. Both span two ring slots, because both carry a label plus two values and the
+        // one-slot boxes above are only wide enough for one.
+        int wideW = (X(3) - X(2)) + ring - 28;
+        int subY4 = subY3 + subH + 14;
+
+        // The graphics clock is shown with its share of the card's own ceiling, because that share
+        // is what a power profile actually moves: a busy card sitting well under its ceiling is the
+        // firmware holding it there. Windows supplies this with no vendor software installed.
+        var gt = GpuTelemetry.Read();
+        _gpuHelpBtn = RectangleF.Empty;
+        if (gt.Ok)
+        {
+            // The tile keeps its place whether or not the card is awake. A card that has powered
+            // itself down reports no clock, and a dash says that; a tile that came and went would
+            // read as the app breaking.
+            var box = new RectangleF(X(2) + 14, subY3, wideW, subH);
+            MetricBox(box, $"{Lang.T("st_gpu_clock")}: " +
+                (gt.Mhz <= 0 ? "— MHz"
+                 : gt.MaxMhz > 0 ? $"{gt.Mhz} MHz · {gt.Percent} %"
+                 : $"{gt.Mhz} MHz"));
+            _gpuHelpText = gt.MaxMhz > 0 && gt.Mhz > 0
+                ? string.Format(Lang.T("st_gpu_clock_tip"), gt.Name, gt.Mhz, gt.MaxMhz, gt.Percent)
+                : string.Format(Lang.T("st_gpu_clock_tip_idle"), gt.Name);
+            _gpuHelpBtn = new RectangleF(box.Right - 32, box.Y + (subH - 22) / 2f, 22, 22);
+            HelpDot.Render(g, _gpuHelpBtn);
+        }
+
         int bm = Perf.BatteryMinutesLeft();
-        MetricBox(new RectangleF(X(2) + 14, subY3, (X(3) - X(2)) + ring - 28, subH),
+        MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),
             $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "—"));
 
-        int cardTop = subY3 + Math.Max(storageH, subH) + 40;
+        int rightH = gt.Ok ? subH * 2 + 14 : subH;
+        int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
         // (#48) telemetry-only machines: say plainly why the fan rings and controls are dead
         if (info.Telemetry)
         {
@@ -475,6 +547,18 @@ public sealed class StatusPage : ThemedPage
                 new Rectangle(Pad, y, avail - 22, rowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
             y += rowH;
         }
+    }
+
+    // The help dot on this page is painted rather than laid out, because the whole sub-tab is one
+    // buffered canvas. It draws and behaves exactly like the ones on the Scenarios page: the same
+    // circle, and the same bubble.
+    private RectangleF _gpuHelpBtn;
+    private string _gpuHelpText = "";
+
+    private void ChartsClick(Point p)
+    {
+        if (_statusSub != 0 || _gpuHelpBtn.IsEmpty || !_gpuHelpBtn.Contains(p)) return;
+        HelpPopup.Toggle(_canvas, Rectangle.Round(_gpuHelpBtn), _gpuHelpText, this);
     }
 
     // ---- sub-tab 2: profile-byte matrix + legend + live fan-curve tables ----
@@ -891,6 +975,13 @@ public sealed class StatusPage : ThemedPage
                 new Rectangle(Pad, ry, avail - 22, GmRowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
             ry += GmRowH;
         }
+    }
+
+    private void ChartsMouse(Control owner, Point? p)
+    {
+        bool onDot = _statusSub == 0 && p is { } pt && _gpuHelpBtn.Contains(pt);
+        var want = onDot ? Cursors.Hand : Cursors.Default;
+        if (owner.Cursor != want) owner.Cursor = want;
     }
 
     // Cursor tracking for the history charts (mouse over the canvas). Only stores the point and

@@ -38,6 +38,13 @@ public abstract class ThemedPage : UserControl
     // NOT re-run layout — a re-layout on a scrolled page (Settings) yanks the scroll position to the top.
     public virtual void LiveRefresh() { }
 
+    /// <summary>
+    /// The UI language changed while the app was running. Text painted through Lang.T follows by
+    /// itself on the next paint; this hook is for text captured into controls at construction
+    /// (sub-tab labels, button captions), which would otherwise stay in the old language.
+    /// </summary>
+    public virtual void OnLanguageChanged() { }
+
     /// <summary>The model database changed while the app was running: re-read anything derived
     /// from Devices (the detected profile, the fan-curve layout, the catalogue).</summary>
     public virtual void OnDeviceDbChanged() { }

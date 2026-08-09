@@ -226,7 +226,6 @@ public sealed class ModelsPage : ThemedPage
     {
         private readonly ModelsPage _p;
         private Rectangle _sbHeaderRect;
-        private bool _tipOn;
         private readonly List<(Rectangle rect, string url)> _creditRects = new();
 
         public Table(ModelsPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
@@ -239,18 +238,20 @@ public sealed class ModelsPage : ThemedPage
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            bool over = _sbHeaderRect.Contains(e.Location);
-            if (over && !_tipOn) { _tipOn = true; _p.Tip.Show(Lang.T("mdl_sb_tip"), this, e.X + 14, e.Y + 16, 8000); }
-            else if (!over && _tipOn) { _tipOn = false; _p.Tip.Hide(this); }
-            Cursor = _creditRects.Any(c => c.rect.Contains(e.Location)) ? Cursors.Hand : Cursors.Default;
+            Cursor = _sbHeaderRect.Contains(e.Location) || _creditRects.Any(c => c.rect.Contains(e.Location))
+                ? Cursors.Hand : Cursors.Default;
             base.OnMouseMove(e);
         }
-        protected override void OnMouseLeave(EventArgs e) { if (_tipOn) { _tipOn = false; _p.Tip.Hide(this); } base.OnMouseLeave(e); }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
+            if (_sbHeaderRect.Contains(e.Location))
+            {
+                HelpPopup.Toggle(this, _sbHeaderRect, Lang.T("mdl_sb_tip"), this);
+                return;
+            }
             foreach (var (rect, url) in _creditRects)
                 if (rect.Contains(e.Location))
                 {
@@ -288,9 +289,10 @@ public sealed class ModelsPage : ThemedPage
                 TextRenderer.DrawText(g, headers[c], FHead, new Rectangle(cx[c], 8, ColW(c), HeadH - 8), Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
 
+            // The column needs a sentence of explanation, so it gets the app's standard help dot:
+            // click to open the bubble, click again (or anywhere) to dismiss.
             int sbTextW = TextRenderer.MeasureText(headers[5], FHead).Width;
-            var qRect = new Rectangle(cx[5] + sbTextW + 5, 6, 22, HeadH - 6);
-            TextRenderer.DrawText(g, "ⓘ", FIcon, qRect, Theme.Accent, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            HelpDot.Render(g, new RectangleF(cx[5] + sbTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
             _sbHeaderRect = new Rectangle(cx[5], 0, sbTextW + 30, HeadH);
 
             int ry = HeadH;

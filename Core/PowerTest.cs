@@ -101,7 +101,10 @@ public static class PowerTest
         int PreBusyPct = 0,
         // Whether a single EC write happened. The caller restores the machine only when it did,
         // and "nothing was written" has to be true when the report says it.
-        bool Wrote = false);
+        bool Wrote = false,
+        // Whether the discrete graphics chip was loaded too, and which one. Without this the
+        // report cannot be compared against one from a machine where that load never started.
+        bool GpuLoaded = false, string GpuAdapter = "");
 
     /// <summary>Where the run is, for the page's progress bar and live line.</summary>
     public readonly record struct Progress(
@@ -111,8 +114,23 @@ public static class PowerTest
     private static readonly ProfileId[] Order =
         { ProfileId.Silent, ProfileId.Balanced, ProfileId.Extreme };
 
-    /// <summary>Steps shown in the page's checklist: one per profile, the probe, and the restore.</summary>
-    public static int StepCount(DeviceProfile dev) => Order.Length + (dev.FourthMode != null ? 1 : 0) + 1;
+    /// <summary>
+    /// BALANCED is measured a second time, last, after everything else. Every other number in the
+    /// table is a percentage of the FIRST BALANCED, so anything that made the machine slower over
+    /// the course of the run - a chassis that soaked up heat, a firmware limit tightening as it did
+    /// - moved all of those numbers together, and nothing in a single-baseline report can tell the
+    /// reader that happened. Measuring the baseline again at the end turns that drift into a number
+    /// on the page: the repeat row's work column IS the drift, because it is normalised to the
+    /// first one. 100 means the run held; 92 means it finished 8 % slower than it started, and
+    /// differences of that size between profiles are then not safe to read as profile differences.
+    /// </summary>
+    public const string RepeatSuffix = " (repeat)";
+
+    /// <summary>Drift at or beyond this, in percent, gets an explicit warning rather than a note.</summary>
+    private const int DriftWarnPct = 5;
+
+    /// <summary>Steps in the page's checklist: one per profile, the probe, the repeated baseline, the restore.</summary>
+    public static int StepCount(DeviceProfile dev) => Order.Length + (dev.FourthMode != null ? 1 : 0) + 2;
 
     public static Task<Result> RunAsync(
         DeviceProfile dev, string appVersion, string firmware,
@@ -163,6 +181,12 @@ public static class PowerTest
         try { boost = Ec.GetCoolerBoost(dev); } catch { }
         bool wrote = false;
 
+        // Held for the whole run, started before the first settle so temperatures stabilise with it
+        // already going. A processor-only load can miss a profile that raises a budget the two chips
+        // share, and it must be identical in every phase or the comparison between them means
+        // nothing. If it cannot come up, the run continues and the report says so.
+        using var gpu = new GpuLoad();
+
         try
         {
             for (int i = 0; i < Order.Length && aborted == null; i++)
@@ -182,6 +206,22 @@ public static class PowerTest
 
             if (aborted == null && dev.FourthMode is { } fm)
                 fourth = Probe(dev, fm, pr, Order.Length, steps, threads, ct, ref aborted);
+
+            // Last, so the drift it reports covers everything the table above compares.
+            if (aborted == null)
+            {
+                int step = Order.Length + (dev.FourthMode != null ? 1 : 0);
+                string name = ProfileId.Balanced + RepeatSuffix;
+                var recipe = dev.Recipes[ProfileId.Balanced];
+                try { Ec.Apply(recipe); wrote = true; }
+                catch (Exception ex) { aborted = $"could not re-apply the {ProfileId.Balanced} recipe: {ex.Message}"; }
+                if (aborted == null)
+                {
+                    Settle(pr, step, steps, name, SettleSeconds, ct);
+                    var samples = Loaded(dev, pr, step, steps, name, threads, ct, ref aborted);
+                    phases.Add(new Phase(name, recipe, samples, SafeDump()));
+                }
+            }
         }
         catch (OperationCanceledException)
         {
@@ -207,7 +247,7 @@ public static class PowerTest
 
         return new Result(started, appVersion, firmware, dev.Name, dev.Tier.ToString(),
             onAc, boost, threads, startProfile, startShift, before, phases.ToArray(), fourth, aborted,
-            0, wrote);
+            0, wrote, gpu.Active, gpu.Adapter);
     }
 
     // ---------------- fourth-mode probe ----------------
@@ -320,10 +360,14 @@ public static class PowerTest
             // the firmware caps power on battery, which is exactly why the run refuses to start there.
             if (!OnAc()) { aborted = $"the charger was unplugged during {name}"; break; }
 
-            hot = hw.CpuTemp >= HotCeiling ? hot + 1 : 0;
+            // The run heats the graphics chip as well, so the ceiling watches both. A sensor that is
+            // not there reads zero and so never trips it.
+            bool cpuHot = hw.CpuTemp >= HotCeiling, gpuHot = hw.GpuTemp >= HotCeiling;
+            hot = cpuHot || gpuHot ? hot + 1 : 0;
             if (hot >= HotSamplesToAbort)
             {
-                aborted = $"CPU stayed at {HotCeiling} °C or above for {HotSamplesToAbort} s during {name}";
+                string which = cpuHot && gpuHot ? "CPU and GPU" : cpuHot ? "CPU" : "GPU";
+                aborted = $"{which} stayed at {HotCeiling} °C or above for {HotSamplesToAbort} s during {name}";
                 break;
             }
         }
@@ -415,9 +459,17 @@ public static class PowerTest
 
         private void Spin()
         {
-            double x = 1.0000001, y = 0.9999999;
+            double x = 0, y = 0;
             while (!_stop)
             {
+                // Seeded per block, so every block is identical work. Carrying x and y across blocks
+                // lets y climb by a fixed factor until it wraps at 1e12, which takes 9.21e9 iterations
+                // and therefore a fixed number of ITERATIONS rather than of seconds. Throughput drifts
+                // across that cycle, the cycle lands differently in a fast phase than in a slow one,
+                // and the steady window then averages a different part of it in each phase. Measured
+                // on the reference board, that alone moved a 25 s window by 9 % with no laptop
+                // involved; reseeding brings it under 5 %.
+                x = 1.0000001; y = 0.9999999;
                 for (int i = 0; i < Block; i++)
                 {
                     x = x * y + 1e-9;
@@ -482,6 +534,7 @@ public static class PowerTest
         sb.AppendLine($"Load: {Math.Max(1, r.Threads - LoadThreadHeadroom)} threads on {r.Threads} logical processors " +
                       $"({LoadThreadHeadroom} left free so the controller can still be read), {LoadSeconds} s per profile " +
                       $"after {SettleSeconds} s of settling; the figures below average the last {SteadySeconds} s");
+        sb.AppendLine($"Graphics load: {(r.GpuLoaded ? $"ON, {r.GpuAdapter}" : "OFF - processor only, so a profile that only lifts a graphics or shared budget would not show here")}");
         if (r.Aborted != null) sb.AppendLine($"RUN DID NOT COMPLETE: {r.Aborted}");
         sb.AppendLine();
 
@@ -521,8 +574,12 @@ public static class PowerTest
                           $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {range,-11}  {idx,4}  {AvgRate(st, s => s.Own),3:F0}  {st.Length,3}  {gpu.Length,3}");
         }
 
-        foreach (var p in r.Phases) Row(p.Name, p.Samples, p.Dump);
+        // The repeated baseline belongs at the bottom, after the probe: it is the last thing measured
+        // and it describes the whole run above it, not the profile next to it.
+        var repeat = r.Phases.FirstOrDefault(p => p.Name.EndsWith(RepeatSuffix));
+        foreach (var p in r.Phases.Where(p => !p.Name.EndsWith(RepeatSuffix))) Row(p.Name, p.Samples, p.Dump);
         if (r.Fourth is { Accepted: true } f4) Row(f4.Name, f4.Samples, f4.DumpLoaded);
+        if (repeat != null) Row(repeat.Name, repeat.Samples, repeat.Dump);
         sb.AppendLine();
         sb.AppendLine("work = CPU work completed per second in the steady window, Balanced = 100.");
         sb.AppendLine($"n = samples inside that {SteadySeconds} s window. Fewer than {SteadySeconds} of them means the");
@@ -541,6 +598,39 @@ public static class PowerTest
         sb.AppendLine($"100, because {LoadThreadHeadroom} of the logical processors are deliberately left out of the load.");
         sb.AppendLine("A CPU MHz or work column that does not drop in Silent means the Silent fan value");
         sb.AppendLine("does not cap power on this board, whatever the fan noise does.");
+
+        // ---- did the machine hold still long enough for the table above to mean anything? ----
+        if (repeat != null && baseWork > 0)
+        {
+            double endWork = AvgRate(Steady(repeat.Samples), s => s.Work);
+            sb.AppendLine();
+            sb.AppendLine("--- Baseline check ---");
+            if (endWork <= 0)
+            {
+                sb.AppendLine("BALANCED was re-run at the end but produced no usable window, so the run cannot say");
+                sb.AppendLine("whether it drifted. Read the differences above as approximate.");
+            }
+            else
+            {
+                int drift = (int)Math.Round((endWork - baseWork) / baseWork * 100);
+                int size = Math.Abs(drift);
+                sb.AppendLine("BALANCED is measured twice, once at the start and once at the end, with every other");
+                sb.AppendLine("phase in between. The repeat row is normalised to the first one, so its work column is");
+                sb.AppendLine("the drift of the whole run: 100 means the machine finished as fast as it started.");
+                sb.AppendLine($"Measured: the run ended {size} % {(drift < 0 ? "SLOWER" : "FASTER")} than it started.");
+                if (size >= DriftWarnPct)
+                {
+                    sb.AppendLine($"That is {DriftWarnPct} % or more, so differences between profiles smaller than {size} % are NOT");
+                    sb.AppendLine("safe to read as profile differences. A machine already at its temperature limit gets");
+                    sb.AppendLine("slower as the run goes on, and every phase pays for the ones before it. Ordering here");
+                    sb.AppendLine("(Silent, Balanced, Extreme) can then look like a ranking when it is only a running order.");
+                }
+                else
+                {
+                    sb.AppendLine("That is small, so the comparison above is not being carried by the running order.");
+                }
+            }
+        }
 
         // A run on a busy machine produces confident numbers that are simply wrong, which is the
         // one failure this whole feature exists to avoid. Say so at the top of the file, loudly.

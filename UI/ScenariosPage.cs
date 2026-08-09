@@ -693,7 +693,6 @@ public sealed class ScenariosPage : ThemedPage
         private readonly ToggleSwitch? _toggle;
         private readonly Control _right;
         private readonly HelpDot? _help;
-        private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 15000, ReshowDelay = 100 };
         private bool _hover;
 
         public FeatureBrick(string labelKey, string glyph, string tipKey, Func<bool> get, Action<bool> set)
@@ -704,8 +703,8 @@ public sealed class ScenariosPage : ThemedPage
             var toggle = new ToggleSwitch { Checked = get() };
             toggle.Toggled += v => set(v);
             _toggle = toggle; _right = toggle;
-            _help = new HelpDot();
-            _tip.SetToolTip(_help, Ui.Wrap(Lang.T(tipKey), 46));
+            // Read at click time so a language change while the window is open is picked up.
+            _help = new HelpDot { TextProvider = () => Lang.T(tipKey) };
             Controls.Add(_right);
             Controls.Add(_help);
             Resize += (_, _) => LayoutInner();
@@ -760,22 +759,6 @@ public sealed class ScenariosPage : ThemedPage
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         }
 
-        protected override void Dispose(bool disposing) { if (disposing) _tip.Dispose(); base.Dispose(disposing); }
     }
 
-    /// <summary>Circled "?" help marker; shows an explanatory tooltip on hover (used by feature bricks).</summary>
-    private sealed class HelpDot : Control
-    {
-        public HelpDot() { DoubleBuffered = true; ResizeRedraw = true; Size = new Size(22, 22); Cursor = Cursors.Help; }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.Clear(Parent?.BackColor ?? Theme.Card);
-            using (var pen = new Pen(Theme.Muted, 1.4f))
-                g.DrawEllipse(pen, 1f, 1f, Width - 2f, Height - 2f);
-            using var f = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-            Ui.CenterGlyph(g, "?", f, Theme.Muted, new RectangleF(0, 0, Width, Height));
-        }
-    }
 }

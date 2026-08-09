@@ -39,10 +39,20 @@ public sealed class ReportPage : ThemedPage
     private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH, _capY;
     private static readonly Font IntroFont = new("Segoe UI", 10.5f);
 
-    // ---- sub-tabs: 0 = profiles (default), 1 = fan curve, 2 = power test ----
-    private readonly SubTabs _subTabs = new(Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"));
+    // ---- sub-tabs: segment 0 is the start screen, segments 1..3 map to _sub 0..2 ----
+    // (_sub keeps its 0 = profiles / 1 = curve / 2 = power meaning everywhere else on the page)
+    private readonly SubTabs _subTabs = new(
+        new[] { Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power") },
+        new[] { "\uE80F", "\uE8AB", "\uE9D2", "\uE945" });
     private int _sub;
     private int _subTop;
+    // The page opens on a start screen that says what the three tests are for and which one to
+    // run; picking a tile (or a sub-tab) leaves it, and the Start segment brings it back.
+    private bool _landing = true;
+    private readonly Rectangle[] _landCards = new Rectangle[3];
+    private int _landHover = -1;
+    private int _landIntroY, _landCardsY, _landTitleY, _landI3Y, _landColW;
+    private bool _landTwoCol;
 
     // ---- power test (the only sub-tab that writes; see Core/PowerTest.cs) ----
     private readonly Button _ptStart = new();
@@ -95,7 +105,12 @@ public sealed class ReportPage : ThemedPage
 
     public ReportPage(MainDeps d) : base(d)
     {
-        _subTabs.Changed += i => { _sub = i; SyncSub(); Relayout(); Invalidate(); };
+        _subTabs.Changed += i =>
+        {
+            _landing = i == 0;
+            if (i > 0) _sub = i - 1;
+            SyncSub(); Relayout(); Invalidate();
+        };
         Controls.Add(_subTabs);
 
         Ui.StylePrimary(_curveBtn);
@@ -196,15 +211,16 @@ public sealed class ReportPage : ThemedPage
     /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve, 2 = power test). Used by deep links.</summary>
     public void SetSubTab(int sub)
     {
+        _landing = false;
         _sub = Math.Clamp(sub, 0, 2);
-        _subTabs.SetActive(_sub);
+        _subTabs.SetActive(_sub + 1);
         SyncSub(); Relayout(); Invalidate();
     }
 
     // Show only the active sub-tab's controls (the rest are hand-painted, gated in OnPaint).
     private void SyncSub()
     {
-        bool prof = _sub == 0, curve = _sub == 1, power = _sub == 2;
+        bool prof = !_landing && _sub == 0, curve = !_landing && _sub == 1, power = !_landing && _sub == 2;
         _card.Visible = prof;
         foreach (var r in _rows) r.Visible = prof;
         _capture.Visible = prof;
@@ -232,6 +248,16 @@ public sealed class ReportPage : ThemedPage
     // Rebuilding the checklist is all that is needed; a run in progress holds the swap gate, so
     // this can never land mid-test.
     public override void OnDeviceDbChanged() { RefreshPowerRows(); SyncSub(); Relayout(); Invalidate(); }
+
+    public override void OnLanguageChanged()
+    {
+        _subTabs.SetLabels(new[]
+        {
+            Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"),
+        });
+        // Button captions and checklist rows are re-derived by the same refreshes OnEnter uses.
+        RefreshSteps(); RefreshCurve(); RefreshPowerRows(); SyncSub(); Relayout(); Invalidate();
+    }
 
     public override void ApplyTheme()
     {
@@ -263,10 +289,163 @@ public sealed class ReportPage : ThemedPage
 
         // NB: content coord, NOT _subTabs.Bottom - that one is already shifted by the scroll.
         int top = _subTop + _subTabs.Height + 26;
-        if (_sub == 0) LayoutProfiles(top, ox, oy);
+        if (_landing) LayoutLanding(top);
+        else if (_sub == 0) LayoutProfiles(top, ox, oy);
         else if (_sub == 1) LayoutCurve(top, ox, oy);
         else LayoutPower(top, ox, oy);
     }
+
+    // =================================================================
+    //  start screen
+    // =================================================================
+    private static readonly Font LandTitleF = new("Segoe UI", 14f, FontStyle.Bold);
+    private static readonly Font LandQF = new("Segoe UI", 11.5f, FontStyle.Bold);
+    private static readonly Font LandDF = new("Segoe UI", 10f);
+    private static readonly Font LandFootF = new("Segoe UI", 9f, FontStyle.Bold);
+    private static readonly Font LandGlyphF = new("Segoe MDL2 Assets", 16f);
+    private static readonly string[] LandGlyphs = { "\uE8AB", "\uE9D2", "\uE945" };
+    private const int LandPad = 20, LandGap = 14, LandIconBox = 42;
+
+    private static string LandIntro12 => Lang.T("rep_home_intro1") + "\n\n" + Lang.T("rep_home_intro2");
+    private static string LandQ(int i) => Lang.T(i == 0 ? "rep_home_q1" : i == 1 ? "rep_home_q2" : "rep_home_q3");
+    private static string LandD(int i) => Lang.T(i == 0 ? "rep_home_d1" : i == 1 ? "rep_home_d2" : "rep_home_d3");
+    private static string LandF(int i) => Lang.T(i == 2 ? "rep_home_f_power" : "rep_home_f_read");
+    private string LandTitle(int i) => Lang.T(i == 0 ? "subtab_profiles" : i == 1 ? "subtab_curve" : "subtab_power");
+
+    private void LayoutLanding(int top)
+    {
+        int avail = ClientSize.Width - Pad * 2;
+        static int Measure(string s, int w) =>
+            TextRenderer.MeasureText(s, IntroFont, new Size(w, 0), TextFormatFlags.WordBreak).Height;
+
+        _landTitleY = top;
+        _landIntroY = top + LandTitleF.Height + 12;
+        // A maximised window gives the intro a line length nobody can read, so past ~1000 px the
+        // two long paragraphs sit side by side and the short third one runs under both.
+        _landTwoCol = avail >= 1000;
+        _landColW = _landTwoCol ? (avail - Gutter) / 2 : avail;
+        int i12H = _landTwoCol
+            ? Math.Max(Measure(Lang.T("rep_home_intro1"), _landColW), Measure(Lang.T("rep_home_intro2"), _landColW))
+            : Measure(LandIntro12, avail);
+        _landI3Y = _landIntroY + i12H + 28;
+        _landCardsY = _landI3Y + Measure(Lang.T("rep_home_intro3"), avail) + 26;
+
+        // Three equal tiles side by side; stacked once they would drop under a readable width.
+        bool row = avail >= 3 * 300 + 2 * LandGap;
+        int cardW = row ? (avail - 2 * LandGap) / 3 : avail;
+        int innerW = cardW - LandPad * 2;
+
+        // Same height for all three, decided by the tallest: a ragged row reads as three
+        // unrelated boxes rather than one choice.
+        int bodyH = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            int qH = TextRenderer.MeasureText(LandQ(i), LandQF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
+            int dH = TextRenderer.MeasureText(LandD(i), LandDF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
+            int fH = TextRenderer.MeasureText(LandF(i), LandFootF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
+            bodyH = Math.Max(bodyH, qH + 10 + dH + 16 + fH);
+        }
+        int cardH = LandPad + LandIconBox + 14 + bodyH + LandPad;
+
+        for (int i = 0; i < 3; i++)
+            _landCards[i] = row
+                ? new Rectangle(Pad + i * (cardW + LandGap), _landCardsY, cardW, cardH)
+                : new Rectangle(Pad, _landCardsY + i * (cardH + LandGap), cardW, cardH);
+
+        int bottom = row ? _landCardsY + cardH : _landCardsY + 3 * cardH + 2 * LandGap;
+        AutoScrollMinSize = new Size(Pad * 2 + 3 * 300 + 2 * LandGap, bottom + 40);
+    }
+
+    private void PaintLanding(Graphics g)
+    {
+        int avail = ClientSize.Width - Pad * 2;
+        TextRenderer.DrawText(g, Lang.T("rep_home_title"), LandTitleF, new Point(Pad, _landTitleY), Theme.Text);
+        int introH = _landI3Y - _landIntroY;
+        if (_landTwoCol)
+        {
+            TextRenderer.DrawText(g, Lang.T("rep_home_intro1"), IntroFont,
+                new Rectangle(Pad, _landIntroY, _landColW, introH), Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.WordBreak);
+            TextRenderer.DrawText(g, Lang.T("rep_home_intro2"), IntroFont,
+                new Rectangle(Pad + _landColW + Gutter, _landIntroY, _landColW, introH), Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        }
+        else
+        {
+            TextRenderer.DrawText(g, LandIntro12, IntroFont,
+                new Rectangle(Pad, _landIntroY, avail, introH), Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        }
+        TextRenderer.DrawText(g, Lang.T("rep_home_intro3"), IntroFont,
+            new Rectangle(Pad, _landI3Y, avail, _landCardsY - _landI3Y), Theme.Text,
+            TextFormatFlags.Left | TextFormatFlags.WordBreak);
+
+        for (int i = 0; i < 3; i++)
+        {
+            var r = _landCards[i];
+            bool hover = i == _landHover;
+            Ui.FillCard(g, r);
+            if (hover)
+            {
+                using var path = Theme.RoundRect(new RectangleF(r.X + 0.7f, r.Y + 0.7f, r.Width - 1.4f, r.Height - 1.4f), 8);
+                using var pen = new Pen(Theme.Accent, 1.4f);
+                g.DrawPath(pen, path);
+            }
+
+            // icon in a rounded frame, the same treatment as the Settings start screen
+            var iconR = new Rectangle(r.X + LandPad, r.Y + LandPad, LandIconBox, LandIconBox);
+            using (var ip = Theme.RoundRect(new RectangleF(iconR.X + 0.5f, iconR.Y + 0.5f, iconR.Width - 1, iconR.Height - 1), 8))
+            using (var ap = new Pen(Theme.Accent, 1.7f))
+                g.DrawPath(ap, ip);
+            Ui.CenterGlyph(g, LandGlyphs[i], LandGlyphF, Theme.Accent, iconR);
+
+            TextRenderer.DrawText(g, LandTitle(i), new Font("Segoe UI", 12f, FontStyle.Bold),
+                new Rectangle(iconR.Right + 14, iconR.Y, r.Width - LandIconBox - LandPad * 2 - 14, LandIconBox),
+                Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+            int innerW = r.Width - LandPad * 2;
+            int y = iconR.Bottom + 14;
+            int qH = TextRenderer.MeasureText(LandQ(i), LandQF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, LandQ(i), LandQF, new Rectangle(r.X + LandPad, y, innerW, qH + 2),
+                hover ? Theme.Accent : Theme.Text, TextFormatFlags.WordBreak);
+            y += qH + 10;
+            TextRenderer.DrawText(g, LandD(i), LandDF,
+                new Rectangle(r.X + LandPad, y, innerW, r.Bottom - LandPad - y), Theme.Muted, TextFormatFlags.WordBreak);
+
+            int fH = TextRenderer.MeasureText(LandF(i), LandFootF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, LandF(i), LandFootF,
+                new Rectangle(r.X + LandPad, r.Bottom - LandPad - fH, innerW, fH + 2), Theme.Faint, TextFormatFlags.WordBreak);
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (!_landing) return;
+        var p = ContentPoint(e.Location);
+        int h = -1;
+        for (int i = 0; i < 3; i++) if (_landCards[i].Contains(p)) { h = i; break; }
+        if (h != _landHover) { _landHover = h; Cursor = h >= 0 ? Cursors.Hand : Cursors.Default; Invalidate(); }
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        if (_landHover != -1) { _landHover = -1; Cursor = Cursors.Default; Invalidate(); }
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (!_landing || e.Button != MouseButtons.Left) return;
+        var p = ContentPoint(e.Location);
+        for (int i = 0; i < 3; i++)
+            if (_landCards[i].Contains(p)) { _subTabs.SetActive(i + 1, raise: true); return; }
+    }
+
+    // The landing rectangles live in content coordinates; mouse events arrive in client ones.
+    private Point ContentPoint(Point client) =>
+        new(client.X - AutoScrollPosition.X, client.Y - AutoScrollPosition.Y);
 
     private void LayoutProfiles(int top, int ox, int oy)
     {
@@ -337,6 +516,7 @@ public sealed class ReportPage : ThemedPage
 
         TextRenderer.DrawText(g, Lang.T("menu_report"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
+        if (_landing) { PaintLanding(g); return; }
         if (_sub == 1) { PaintCurve(g); return; }
         if (_sub == 2) { PaintPower(g); return; }
 
