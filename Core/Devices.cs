@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260808;
+    public const int DataVersion = 20260810;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -442,11 +442,13 @@ public static class Devices
         // GE66 Raider / GP66 Leopard (1543EMS1) — owner dump from a GP66 Leopard 11UG (issue #52)
         // matches StdRecipes 1:1 including 0xEB=0F only in Super Battery. Fan curve VERIFIED
         // (issue #53): the test curve sits byte-for-byte at 0x72 / 0x8A. RPM 0xC9/0xCB vary per
-        // scenario (A0/BC/B0/BC ≈ 2500-3000 RPM). Tier stays Experimental until the owner confirms
-        // the Extreme hardware check (the other two passed).
-        new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Experimental,
+        // scenario (A0/BC/B0/BC ≈ 2500-3000 RPM). Extreme confirmed by MEASUREMENT (issue #52):
+        // HWiNFO package-power logs show our Extreme and MSI Center's Extreme reaching the same
+        // power, which was the last open hardware check. (The same logs show MSI Center's Balanced
+        // holding a higher PL1 than ours - under investigation in #52, does not gate the tier.)
+        new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "krystian-pytlik", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/53" },
+                Credit = "krystian-pytlik", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/52" },
 
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
         new() { Name = "MSI GS65 Stealth", FirmwarePrefixes = new[] { "16Q4EMS1" }, Tier = Tier.Experimental,
@@ -470,8 +472,14 @@ public static class Devices
         //   which a constant cannot do.
         //   Curve VERIFIED (issue #70): the owner set the test curve in MSI Center, which was
         //   installed at the time, and the wizard found it at the shipped 0x72 / 0x8A.
+        //   Fourth value C5 (issue #75): the owner's per-scenario capture on MSI Center 2.0.48
+        //   shows the vendor's own Extreme Performance writing 0xD2 = C5, the value measured as
+        //   C4's superior on the Stealth 16 AI+. Recorded so the app reads that state as Extreme
+        //   instead of logging a change every poll, and so the Power test probes it. Named after
+        //   what it is here - the value MSI Center itself writes - not after Stealth's "Apex".
         new() { Name = "MSI Vector 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
                 Credit = "xulu19861102-hub", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         new() { Name = "MSI Raider GE78 HX 14VHG",          FirmwarePrefixes = new[] { "17S1IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Raider GE78 HX Smart Touchpad 13V", FirmwarePrefixes = new[] { "17S2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -572,7 +580,11 @@ public static class Devices
         new() { Name = "MSI Katana 17 HX B14WGK",           FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth GS76 11UG",             FirmwarePrefixes = new[] { "17M1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator 17 B11UE",              FirmwarePrefixes = new[] { "17M1EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Creator Z17 A12UGST",           FirmwarePrefixes = new[] { "17N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Creator Z17 (17N1EMS1) — fan curve VERIFIED (issue #77): tracer speeds set in MSI Center
+        // sit byte-for-byte at the shipped 0x72 / 0x8A. Tier stays Experimental: the same report's
+        // power test ran thermally saturated (94-95 C in every phase), so Silent is unconfirmed.
+        new() { Name = "MSI Creator Z17 A12UGST",           FirmwarePrefixes = new[] { "17N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "oscarschulzbongert-oss", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/77" },
         new() { Name = "MSI Stealth GS77 12U",              FirmwarePrefixes = new[] { "17P1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 17 Studio A13VI",       FirmwarePrefixes = new[] { "17P2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Titan GT77 12UHS",              FirmwarePrefixes = new[] { "17Q1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
