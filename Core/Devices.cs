@@ -138,6 +138,21 @@ public static class Devices
         };
     }
 
+    // TEST BUILD ONLY (#52), never for main: replicates MSI Center's 0xD6 per scenario on the
+    // GP66 Leopard, where the owner's HWiNFO logs show MSI Center's Balanced holding PL1 at
+    // 57-71 W against our steady 30 W while both write the same 0xD2. 0xD6 is the one
+    // configuration byte in the owner's per-scenario dumps where Balanced differs from Silent
+    // (03 vs 05), so this build writes it everywhere MSI Center does: 03 in Balanced, 05 in the
+    // rest. If the owner's PL1 jumps, it is the byte; if not, the difference is not set through
+    // the controller.
+    private static Dictionary<ProfileId, (byte, byte)[]> Gp66TestRecipes()
+    {
+        var r = StdRecipes(0xD2, 0xD4, 0xEB);
+        foreach (var id in r.Keys.ToArray())
+            r[id] = r[id].Append(((byte)0xD6, id == ProfileId.Balanced ? (byte)0x03 : (byte)0x05)).ToArray();
+        return r;
+    }
+
     // Modern-family fan-curve layout (same as the tested 17S1IMS1). The same fixed table addresses
     // (CPU temp 0x6A/speed 0x72, GPU temp 0x82/speed 0x8A) are what MControlCenter reads/writes for the
     // whole G2 family (src/operate.cpp), so they are practice-confirmed, not guessed. Verified = false is
@@ -447,7 +462,7 @@ public static class Devices
         // power, which was the last open hardware check. (The same logs show MSI Center's Balanced
         // holding a higher PL1 than ours - under investigation in #52, does not gate the tier.)
         new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = Gp66TestRecipes(),
                 Credit = "krystian-pytlik", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/52" },
 
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
