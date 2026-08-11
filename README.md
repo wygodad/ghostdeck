@@ -1,5 +1,7 @@
 # GhostDeck - for MSI laptops
 
+![GhostDeck - one byte brings Silent back](docs/images/banner.svg)
+
 <sub>*(formerly “MSI Profile Switcher” - renamed to keep the project clearly independent of MSI; see [docs/ABOUT_THE_NAME.md](docs/ABOUT_THE_NAME.md))*</sub>
 
 A lightweight, **independent** Windows **tray app** to switch MSI laptop power profiles - **Silent / Balanced / Extreme / Super Battery** - instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile.
@@ -9,6 +11,8 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 > ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific - read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
 📋 **146 MSI models recognised** - **18 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, Cyborg 15, both GF63 Thins, Raider GE76 12UE/12UGS, Raider A18 HX, Vector A18 HX, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V, Katana 15 HX B14WEK, Modern 14 C12M), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+
+![Silent, Balanced, Extreme, Super Battery - the profiles MSI Center dropped](docs/images/banner-profiles.svg)
 
 ## Features
 
@@ -56,6 +60,8 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - ⬇️ **In-app updates** - a daily update check (can be disabled) with a tray notification, plus **one-click install from the Updates tab**: it downloads the new release, shows a progress bar and restarts itself on the new version (the previous `.exe` is kept as a `.bak` and cleaned up on next start); falls back to the download page if the download fails. The tab also lists the **last 20 releases with download counts and full release notes readable inline** (click an entry to expand), and recovers from a lost connection on its own (retry button + automatic re-check)
 - 🔏 **Digitally signed releases** - every `GhostDeck.exe` published since v1.24.0 carries a verified publisher signature ("WYGODA DAWID FENIX INSPIRE"), so Windows can confirm who built it and that nobody tampered with it - see [Download](#download) for what that means in practice
 - 📣 **Announcements & feedback** - occasional in-app notices (tray balloon + a dismissible banner) fetched read-only from the repo on the same daily check; a **Send feedback…** tray entry opens GitHub Discussions. No data is collected by the app (a plain download, same privacy footprint as the update check); both can be turned off with the update-check toggle
+
+![Keep it cool. Keep it quiet. Keep control.](docs/images/banner-thermal.svg)
 
 ## Comparison with MSI software
 
@@ -109,6 +115,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 
 > The comparison is against **MSI Center 2.0** (the version that dropped Silent). This app is an **unofficial, independent** project - **not affiliated with, endorsed, sponsored or supported by MSI**. "MSI", "MSI Center" and "Cooler Boost" are trademarks of Micro-Star International Co., Ltd.; they are used here only descriptively to state compatibility.
 
+![GhostDeck](docs/images/banner-hologram.svg)
+
 ## Screenshots
 
 | | |
@@ -151,6 +159,8 @@ It's a single, self-contained file - no install, no .NET runtime needed. Run it 
 
 **A `GhostDeck.exe` v1.24.0+ without this signature is not an official build - don't run it.**
 
+![Power & fan control for MSI laptops - no kernel driver](docs/images/banner-glitch.svg)
+
 ## Supported models
 
 Each model is **✅ tested** (verified on real hardware) or **⚗️ experimental** (built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps but not yet verified - the "Silent" power-cap behaviour is unconfirmed). On an **unrecognized firmware** the app runs **read-only** (Status works, writes disabled), so it never writes wrong registers on an untested machine.
@@ -172,6 +182,8 @@ The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`
 **No MSI Center on the machine?** The third sub-tab, **Power test**, needs none. It runs the same all-core load in Silent, Balanced and Extreme, samples the controller every second, and hands you a comparison table: whether Silent really caps power, and what Extreme actually buys you, in numbers rather than impressions. On a board whose entry records a fourth performance value it also probes whether that value can be set from outside MSI Center. It takes about five minutes, the laptop gets hot and loud while it works, and your profile comes back at the end. Details in [docs/TECHNICAL.md](docs/TECHNICAL.md) §60.
 
 Prefer to do it by hand? Open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
+
+![ghostdeck --profile silent](docs/images/banner-terminal.svg)
 
 ## CLI / automation
 
