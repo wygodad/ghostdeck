@@ -18,6 +18,7 @@ public sealed class MainForm : Form
     private readonly ToolTip _tip = new();
     private readonly Label _version = new();
     private MainTab _active = MainTab.Scenarios;
+    private readonly System.Windows.Forms.Timer _dispDebounce = new() { Interval = 600 };
 
     public MainForm(MainDeps d)
     {
@@ -41,6 +42,14 @@ public sealed class MainForm : Form
         Theme.Changed += OnThemeChanged;
         FormClosing += (_, _) => SaveBounds();
         FormClosed += (_, _) => Theme.Changed -= OnThemeChanged;
+
+        // Display topology changes (dock/undock, "second screen only", resolution switches)
+        // invalidate the rate lists built into the pages. The event fires on the UI thread and
+        // also for the app's OWN SetRefresh calls, so the reaction is debounced and each page
+        // checks whether anything it derives from Display actually changed before rebuilding.
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnSysDisplayChanged;
+        _dispDebounce.Tick += (_, _) => OnDisplayTopologyChanged();
+        FormClosed += (_, _) => { Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnSysDisplayChanged; _dispDebounce.Dispose(); };
 
         ApplyThemeChrome();
         ShowTab(MainTab.Scenarios);
@@ -383,6 +392,45 @@ public sealed class MainForm : Form
     {
         foreach (var p in _pages.Values) p.OnDeviceDbChanged();
         Invalidate(true);
+    }
+
+    private void OnSysDisplayChanged(object? s, EventArgs e) { _dispDebounce.Stop(); _dispDebounce.Start(); }
+
+    /// <summary>
+    /// Debounced display-settings change. The Scenarios rate brick lives in readonly fields, so
+    /// when it no longer matches the panel the whole page is recreated (hidden pages get their
+    /// handles forced like EnsureWarm does, keeping the next visit flash-free); every other page
+    /// refreshes its display-derived state through OnDisplayChanged.
+    /// </summary>
+    private void OnDisplayTopologyChanged()
+    {
+        // A modal of ours is pumping (scene editor, schedule rule, ...) or a scene-card menu
+        // is open: rebuilding pages now would strand the dialog's/menu's closures on disposed
+        // controls, so keep re-arming until the interaction ends. Timer ticks are dispatched
+        // by the modal pump too, which is exactly what lets this retry work.
+        if ((Form.ActiveForm is { } af && af != this) ||
+            (_pages.TryGetValue(MainTab.Scenarios, out var busy) && busy is ScenariosPage b && b.UiBusy))
+        {
+            _dispDebounce.Stop();
+            _dispDebounce.Start();
+            return;
+        }
+        _dispDebounce.Stop();
+        if (_pages.TryGetValue(MainTab.Scenarios, out var p) && p is ScenariosPage s && s.RefreshTopologyChanged())
+        {
+            bool active = _active == MainTab.Scenarios && s.Visible;
+            _host.Controls.Remove(s);
+            _pages.Remove(MainTab.Scenarios);
+            s.Dispose();
+            var page = CreatePage(MainTab.Scenarios);
+            _pages[MainTab.Scenarios] = page;
+            _host.Controls.Add(page);
+            // A quiet swap, not ShowTab: this runs off a background system event, so it must
+            // not steal foreground (Activate) or replay tab-click side effects.
+            if (active) { page.Visible = true; page.OnEnter(); page.BringToFront(); }
+            else { page.Visible = false; ForceHandles(page); }
+        }
+        foreach (var q in _pages.Values) q.OnDisplayChanged();
     }
 
     /// <summary>Show an announcement banner at the top of the window (marks it seen immediately).</summary>

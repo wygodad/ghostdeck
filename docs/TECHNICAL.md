@@ -855,8 +855,56 @@ works on every machine, including unrecognised firmware.
 Safety rails: only the **frequency** is changed (resolution and colour depth are copied from the
 current mode); only modes the panel **actually reports** at the current resolution are ever
 requested (`SupportedRates()` filters `EnumDisplaySettings` by the current width/height/bpp);
-`CDS_UPDATEREGISTRY` persists the choice like the Windows Settings page would. v1 touches the
-**primary display only** - external monitors are left alone.
+`CDS_UPDATEREGISTRY` persists the choice like the Windows Settings page would.
+
+**Targeting (#69).** All three entry points (`Current` / `SupportedRates` / `SetRefresh`) act on
+the laptop's **built-in panel**, not on "the primary display". `QueryDisplayConfig` (active paths
+only) is scanned for a target whose `outputTechnology` is embedded - `INTERNAL` (0x80000000),
+`DISPLAYPORT_EMBEDDED` (11), `UDI_EMBEDDED` (13) or `LVDS` (6) - and that path's source is
+translated to its GDI device name (`DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME` →
+`viewGdiDeviceName`, e.g. `\\.\DISPLAY1`), which user32 accepts as the `deviceName` argument.
+The connector type is the reliable "is this the laptop screen" signal: GDI device numbering and
+the primary flag both move around with docking, the output technology never does. Resolution
+happens fresh on every call (dock/undock remaps devices; calls are user-driven or ride the
+AC/battery transition, so there is nothing worth caching). With no active internal path (lid
+closed in clamshell mode, desktops) the device name stays `null`, which user32 treats as the
+primary display. The Settings → Power card names the display being controlled
+(`Display.Target()`); `DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME` supplies the panel's EDID
+name when the panel reports one - many laptop panels do not, so the label falls back to a
+localized "built-in panel" line. Scenes, the CLI and `--status` share the same choke point, so
+a scene edited while docked stores the panel's rates, not the external monitor's.
+
+The built UI follows topology changes live: MainForm listens to
+`SystemEvents.DisplaySettingsChanged` (debounced 600 ms - the event also fires for the app's
+own `SetRefresh`) and broadcasts `ThemedPage.OnDisplayChanged`. The Settings Display card
+rebuilds only when the mode list or the resolved target actually changed (its snapshot is
+`_dispRates`/`_dispTarget`), so a plain rate switch never yanks the scroll position; the
+Scenarios rate brick lives in readonly fields, so when `RefreshTopologyChanged()` reports a
+mismatch MainForm recreates the whole page (hidden recreations get `ForceHandles`, keeping the
+next visit flash-free).
+
+Scene rates carry a display identity: the editor stores `SceneDef.RefreshTarget` =
+`monitorDevicePath` (from `DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME`) of the display whose
+rate list it offered, and `SetRefresh(hz, expectedPath)` refuses the change when the resolved
+target is a different physical display - a scene saved against an external monitor never
+retunes the panel after undocking, and a panel scene never retunes an external in
+second-screen-only mode. In the primary-display fallback the identity is read off the primary
+path, recognised by its (0,0) desktop origin (trusted only when the driver set `DM_POSITION`).
+The guard is best effort: a null identity on either side (older scenes, a display that reports
+no path) leaves it open, and a rate the current target does not report is still refused softly
+while the rest of the scene continues.
+
+What the identifier is: `monitorDevicePath` is the monitor's device-interface path, e.g.
+`\\?\DISPLAY#AUO18B8#5&2f...#{e6f07b5f-...}` - it encodes the EDID manufacturer/product id
+plus the connector instance, so it stays stable for the same monitor on the same port across
+reboots and re-plugs, and changes when the monitor moves to a different port (the scene then
+skips its rate; re-saving the scene re-binds it). Lifecycle of the field
+(`SceneDef.RefreshTarget`, JSON-persisted, null on scenes saved by older versions): the scene
+editor stamps it in the same callback that sets `RefreshHz` (`Display.TargetPath()`), the
+example scenes stamp it at creation, and the settings sanity pass clears it whenever
+`RefreshHz` ends up null, so the identity always travels with the rate. In clone/duplicate
+mode both paths share one GDI source, so the identity is whichever target enumerates first -
+worst case the scene's rate is skipped, never applied to the wrong screen.
 
 Wiring: `AppSettings.RefreshSwitchEnabled` (opt-in) + `RefreshOnAC` / `RefreshOnBattery`
 (Hz, 0 = don't change; pickers in Settings → Power). `TrayContext.ApplyRefreshForPower` runs on

@@ -48,6 +48,11 @@ public abstract class ThemedPage : UserControl
     /// <summary>The model database changed while the app was running: re-read anything derived
     /// from Devices (the detected profile, the fan-curve layout, the catalogue).</summary>
     public virtual void OnDeviceDbChanged() { }
+
+    /// <summary>The display topology changed while the app was running (dock/undock, display-mode
+    /// switch, resolution change): re-read anything derived from Display (rate lists, the
+    /// controlled-display label). Debounced by MainForm.</summary>
+    public virtual void OnDisplayChanged() { }
     public virtual void ApplyTheme() { BackColor = Theme.Surface; Invalidate(true); }
 
     /// <summary>Translate painting to honour the scroll offset (call at the top of OnPaint).</summary>

@@ -45,6 +45,8 @@ public sealed class SettingsPage : ThemedPage
     private static readonly Color FlashPink = Color.FromArgb(0xEC, 0x48, 0x99);   // highlight frame color
     private Label? _refreshNow;                // live current panel refresh rate (Settings → Power → Display)
     private Action? _syncRefreshMan;           // re-points the manual rate picker at the live rate
+    private List<int> _dispRates = new();      // snapshot the Display card was built from...
+    private (bool Internal, string? Name) _dispTarget;   // ...compared in OnDisplayChanged
     private string _uiLang = Lang.CurrentCode; // language the form was built with
     private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
 
@@ -103,6 +105,20 @@ public sealed class SettingsPage : ThemedPage
 
     public override void OnDeviceDbChanged() =>
         Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // the model-database row and the tier gates
+
+    // The Display card is a snapshot of the target's mode list; a display-mode switch
+    // (dock/undock, "second screen only") invalidates it, so rebuild - but ONLY then: the
+    // app's own SetRefresh also raises the system event, and a full rebuild would yank the
+    // scroll position out from under the click that caused it.
+    public override void OnDisplayChanged()
+    {
+        if (Display.SupportedRates().SequenceEqual(_dispRates) && Display.Target() == _dispTarget)
+        {
+            SyncExternal();
+            return;
+        }
+        Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+    }
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
     // no re-layout here, which would reset the scroll position mid-edit.
     public override void LiveRefresh() { SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); }
@@ -440,6 +456,19 @@ public sealed class SettingsPage : ThemedPage
         // live current panel rate first, so the switch rows below have a reference point
         _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
         disp.AddRow(Lang.T("set_refresh_now"), _refreshNow);
+        // which display the controls act on: the built-in panel when one is active, the
+        // primary display otherwise (#69); EDID name appended when the panel reports one
+        var target = Display.Target();
+        _dispRates = rates; _dispTarget = target;   // snapshot compared in OnDisplayChanged
+        var targetInfo = new Label
+        {
+            Text = target.Internal
+                ? Lang.T("ref_panel_internal") + (target.Name is null ? "" : " · " + target.Name)
+                : Lang.T("ref_panel_primary"),
+            AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        };
+        disp.AddRow(null, targetInfo);
         // manual rate switch, same control as the Scenarios brick: a segmented button group
         // when the panel reports a handful of modes, a combo when there are many
         var manRates = Display.SupportedRates();

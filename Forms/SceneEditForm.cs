@@ -70,7 +70,7 @@ public sealed class SceneEditForm : Form
             var rateItems = rates.Select(r => r + " Hz").ToArray();
             int rSel = scene.RefreshHz is { } hz ? Math.Max(0, rates.IndexOf(hz)) : rates.Count - 1;
             Row(Lang.T("ref_title"), rateItems, scene.RefreshHz != null, rSel,
-                (on, i) => _scene.RefreshHz = on ? rates[i] : null);
+                (on, i) => { _scene.RefreshHz = on ? rates[i] : null; _scene.RefreshTarget = on ? Display.TargetPath() : null; });
         }
 
         if (Brightness.Supported)

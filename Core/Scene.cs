@@ -21,6 +21,10 @@ public sealed class SceneDef
     public string? Profile { get; set; }           // ProfileId name
     public string? CurvePreset { get; set; }       // "" = back to stock profile fans, else preset name
     public int? RefreshHz { get; set; }
+    // monitorDevicePath of the display RefreshHz was chosen for (set by the editor); the apply
+    // path skips the rate when the resolved target is a DIFFERENT physical display, so a scene
+    // saved against an external monitor never retunes the panel. Null (older scenes) = no guard.
+    public string? RefreshTarget { get; set; }
     public int? BrightnessPct { get; set; }        // internal-panel brightness 0-100 (WMI)
     public bool? Hdr { get; set; }                 // HDR / advanced color (DisplayConfig)
     public bool? Overlay { get; set; }

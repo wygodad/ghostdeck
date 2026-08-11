@@ -356,6 +356,7 @@ public sealed class AppSettings
             if (s.KbdLight is { } kl && kl is < 0 or > 3) s.KbdLight = null;
             if (s.ChargeLimit is { } cl && cl is not (0 or 60 or 80 or 100)) s.ChargeLimit = null;
             if (s.RefreshHz is { } hz && hz is < 0 or > 1000) s.RefreshHz = null;
+            if (s.RefreshHz is null) s.RefreshTarget = null;   // the identity travels with the rate
             if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
             if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
         }

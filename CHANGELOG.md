@@ -3,6 +3,22 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Fixed
+- **Refresh-rate controls follow the laptop panel, not the primary display.** With an external
+  monitor set as primary, the Power page listed and changed the monitor's rates instead of the
+  panel's, and the same targeting fed scenes, the AC/battery auto-switch, `--refresh` and
+  `--status`. All of them act on the built-in panel: among the active display paths the one whose
+  connector is embedded (internal / eDP / LVDS) names the device, resolved fresh on every call so
+  docking cannot stale it; with no active internal panel (lid closed, desktops) the primary
+  display is used. The Power card gained a line naming the display being controlled, with the
+  panel's EDID name when it reports one. The Power card and the Scenarios rate brick also follow
+  display-mode switches live (dock/undock, "second screen only") instead of waiting for an app
+  restart. Scenes remember WHICH physical display their rate was chosen for and skip it when
+  that display is not the one being controlled - a scene saved against an external monitor
+  never retunes the laptop panel after undocking
+  ([#69](https://github.com/wygodad/ghostdeck/issues/69)).
+
 ## [1.31.0] - 2026-08-10
 ### Added
 - **The power test loads the graphics chip as well as the processor.** A processor-only load answers

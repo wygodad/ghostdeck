@@ -1025,7 +1025,7 @@ public sealed class TrayContext : ApplicationContext
             if (s.RefreshHz is { } hz && hz > 0)
             {
                 int before = Display.Current();
-                if (before != hz && Display.SetRefresh(hz))
+                if (before != hz && Display.SetRefresh(hz, s.RefreshTarget))
                     ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
             }
             if (s.BrightnessPct is { } bp && Brightness.Supported)

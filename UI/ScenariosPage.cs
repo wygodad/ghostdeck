@@ -35,6 +35,25 @@ public sealed class ScenariosPage : ThemedPage
         ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
     }
 
+    private int _openMenus;   // scene-card context menus currently open (see UiBusy)
+
+    /// <summary>A scene-card menu is open: its item closures target THIS instance, so MainForm
+    /// must postpone recreating the page until the menu closes.</summary>
+    public bool UiBusy => _openMenus > 0;
+
+    /// <summary>
+    /// True when the target display's mode list no longer matches the rate brick built at
+    /// construction (display-mode switch, dock/undock). The brick sits in readonly fields, so
+    /// MainForm reacts by recreating this page. Lists with fewer than two rates never build a
+    /// brick, so they compare as "no brick needed".
+    /// </summary>
+    public bool RefreshTopologyChanged()
+    {
+        var now = Display.SupportedRates();
+        if (now.Count <= 1) return _rates.Count > 0;
+        return !now.SequenceEqual(_rates);
+    }
+
     // Follow the current panel rate (a scene, the AC/battery switch or Windows may change it).
     private void SyncRefreshBrick()
     {
@@ -175,6 +194,11 @@ public sealed class ScenariosPage : ThemedPage
                     ? D.ColorOf(pid) : null);
             _sceneCards.Add(card);
             Controls.Add(card);
+            if (card.ContextMenuStrip is { } m)   // UiBusy: MainForm must not recreate this page under an open card menu
+            {
+                m.Opened += (_, _) => _openMenus++;
+                m.Closed += (_, _) => _openMenus = Math.Max(0, _openMenus - 1);
+            }
         }
         _addExamples.Visible = D.Settings.Scenes.Count == 0;
         Relayout();
@@ -230,6 +254,7 @@ public sealed class ScenariosPage : ThemedPage
         var rates = Display.SupportedRates();
         int maxHz = rates.Count > 0 ? rates.Max() : 0;
         int lowHz = rates.Contains(60) ? 60 : (rates.Count > 0 ? rates.Min() : 0);
+        string? hzTarget = Display.TargetPath();   // the rates above belong to this display
         bool kbd = D.KbdLevel() >= 0;
         var list = D.Settings.Scenes;
         int curHz = Display.Current();
@@ -239,17 +264,18 @@ public sealed class ScenariosPage : ThemedPage
             Profile = D.Current().ToString(),
             Overlay = D.OverlayOn(),
             RefreshHz = curHz > 0 ? curHz : null,
+            RefreshTarget = curHz > 0 ? hzTarget : null,
             ChargeLimit = D.Settings.ChargeLimit is 60 or 80 or 100 ? D.Settings.ChargeLimit : 0,
             KbdLight = D.KbdLevel() >= 0 ? D.KbdLevel() : null,
             Webcam = D.WebcamState() >= 0 ? D.WebcamState() == 1 : null,
             CurvePreset = D.Settings.CurveActive && D.Settings.CurveName.Length > 0 ? D.Settings.CurveName : null,
         });
         list.Add(new SceneDef { Name = "Gaming", Glyph = "🎮", Profile = "Extreme", Overlay = true,
-                                RefreshHz = maxHz > 0 ? maxHz : null });
+                                RefreshHz = maxHz > 0 ? maxHz : null, RefreshTarget = maxHz > 0 ? hzTarget : null });
         list.Add(new SceneDef { Name = Lang.T("scene_example_work"), Glyph = "💼", Profile = "Silent", Overlay = false,
-                                RefreshHz = lowHz > 0 ? lowHz : null, ChargeLimit = 80 });
+                                RefreshHz = lowHz > 0 ? lowHz : null, RefreshTarget = lowHz > 0 ? hzTarget : null, ChargeLimit = 80 });
         list.Add(new SceneDef { Name = Lang.T("scene_example_travel"), Glyph = "✈", Profile = "SuperBattery", Overlay = false,
-                                RefreshHz = lowHz > 0 ? lowHz : null, KbdLight = kbd ? 0 : null });
+                                RefreshHz = lowHz > 0 ? lowHz : null, RefreshTarget = lowHz > 0 ? hzTarget : null, KbdLight = kbd ? 0 : null });
         D.SaveSettings();
         D.SettingsChanged();
         RebuildScenes();
