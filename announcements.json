@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1320-display-target",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.31.0",
+    "title": "New release: refresh controls follow YOUR panel, and \"unsupported\" finally says why",
+    "title_pl": "Nowe wydanie: odświeżanie celuje w TWOJĄ matrycę, a \"unsupported\" wreszcie mówi dlaczego",
+    "body": "GhostDeck v1.32.0 is out. Every refresh-rate control now targets the laptop's built-in panel: with an external monitor set as primary, the Power card, scenes, the AC/battery auto-switch and --refresh no longer retune the wrong screen, the card names the display it controls, and the page follows dock/undock and display-mode switches live. Scenes additionally remember WHICH physical display their rate was chosen for and skip it elsewhere, so a scene saved against an external monitor never retunes the panel after undocking. At startup the app now says WHY there is no EC control instead of one generic \"unsupported\": a fresh Windows install missing the MSI WMI schema is named as such, with the one-time MSI Center installation as the fix, a momentary WMI failure retries itself instead of playing dead until a restart, and diagnostic packages gained wmi-interface.txt, which answers the whole question from one zip. The new MSI-WMI-SCHEMA.md documents that dependency end to end, with measurements. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.32.0. Każda kontrolka odświeżania celuje teraz we wbudowaną matrycę laptopa: przy monitorze zewnętrznym ustawionym jako główny karta Zasilanie, sceny, automat AC/bateria i --refresh nie przestawiają już złego ekranu, karta podpisuje, którym ekranem steruje, a strona na żywo nadąża za dokowaniem i zmianami trybu wyświetlania. Sceny dodatkowo pamiętają, DLA KTÓREGO fizycznego ekranu wybrano ich odświeżanie, i pomijają je gdzie indziej - scena zapisana dla monitora zewnętrznego nigdy nie przestawi matrycy po odpięciu. Na starcie aplikacja mówi wreszcie, DLACZEGO nie ma sterowania EC, zamiast jednego \"unsupported\": świeża instalacja Windows bez schematu WMI MSI jest nazwana wprost, z jednorazową instalacją MSI Center jako naprawą, chwilowa czkawka WMI ponawia się sama zamiast udawać martwą do restartu, a pakiety diagnostyczne zyskały wmi-interface.txt, który odpowiada na całe pytanie z jednego zipa. Nowy dokument MSI-WMI-SCHEMA.md opisuje tę zależność od końca do końca, z pomiarami. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.32.0"
+  },
+  {
     "id": "2026-08-v1310-gpu-load",
     "severity": "info",
     "minVersion": "1.0.0",

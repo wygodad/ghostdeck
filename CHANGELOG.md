@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.32.0] - 2026-08-11
 ### Changed
 - **Model database:** the `158NIMS1` entry now names both machines MSI ships that board in -
   **Bravo 15 C7V and Katana A15 AI B8VG** - and gained live fan-RPM addresses (`0xC9`/`0xCB`)
