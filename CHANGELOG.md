@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **`docs/SUPPORTED_MODELS.md` is now generated from the code.** The hidden CLI
+  `--dump-supported-md` writes the whole page from the compiled model tables, and CI fails
+  whenever the committed file - or the README model counters - drifts from the code, so a
+  model promotion can no longer leave the docs stale.
+
+### Fixed
+- **Models tab: boards with a single fan tachometer no longer show a bogus `/0x00` GPU
+  address** in the RPM column (e.g. Modern 14 C12M).
+
 ## [1.32.0] - 2026-08-11
 ### Changed
 - **Model database:** the `158NIMS1` entry now names both machines MSI ships that board in -

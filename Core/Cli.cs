@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Diag, HdrSwitch, Touchpad, DumpModels, VerifyModels }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Diag, HdrSwitch, Touchpad, DumpModels, VerifyModels, DumpSupportedMd }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -83,6 +83,10 @@ public static class Cli
                 // hidden CI command: parse the given file, re-dump it (round-trip must be
                 // byte-identical) and byte-compare against the compiled tables' dump.
                 return Arg1().Length > 0 ? new CliCommand(CliKind.VerifyModels, Arg1()) : null;
+            case "--dump-supported-md":
+                // hidden maintainer/CI command: write docs/SUPPORTED_MODELS.md from the
+                // compiled tables. Byte-exact file output - never via the console.
+                return new CliCommand(CliKind.DumpSupportedMd, Arg1());
             case "--overlay":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
             case "--curve":
@@ -134,6 +138,13 @@ public static class Cli
             string path = cmd.Arg.Length > 0 ? cmd.Arg : "models.json";
             File.WriteAllBytes(path, ModelDb.Dump());
             Console.WriteLine("model tables dumped: " + Path.GetFullPath(path));
+            return 0;
+        }
+        if (cmd.Kind == CliKind.DumpSupportedMd)
+        {
+            string path = cmd.Arg.Length > 0 ? cmd.Arg : "SUPPORTED_MODELS.md";
+            File.WriteAllBytes(path, SupportedModelsDoc.Generate());
+            Console.WriteLine("supported-models doc dumped: " + Path.GetFullPath(path));
             return 0;
         }
         if (cmd.Kind == CliKind.VerifyModels)

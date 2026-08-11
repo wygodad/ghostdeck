@@ -328,7 +328,9 @@ public sealed class ModelsPage : ThemedPage
                 bool sb = m.Recipes.TryGetValue(ProfileId.SuperBattery, out var sr) && sr.Any(x => x.val == 0x0F);
                 string sbStr = sb ? "✓" : "—";
 
-                string rpm = m.CpuRpmAddr != 0 ? $"✓ 0x{m.CpuRpmAddr:X2}/0x{m.GpuRpmAddr:X2}" : "—";
+                string rpm = m.CpuRpmAddr == 0 ? "—"
+                    : m.GpuRpmAddr == 0 ? $"✓ 0x{m.CpuRpmAddr:X2}"   // single-tach boards (iGPU)
+                    : $"✓ 0x{m.CpuRpmAddr:X2}/0x{m.GpuRpmAddr:X2}";
                 string fw = string.Join(", ", m.FirmwarePrefixes);
 
                 Cell(g, cx, 0, ry, ColW(0), m.Name, FCell, Theme.Text);

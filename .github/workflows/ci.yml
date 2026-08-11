@@ -48,3 +48,34 @@ jobs:
           $sig = [Convert]::FromBase64String((Get-Content data/models.json.sig -Raw).Trim())
           if (-not $pub.VerifyData($data, $sig, $sha, $der)) { throw "data/models.json.sig verification FAILED" }
           "signature OK"
+
+      # docs/SUPPORTED_MODELS.md must be exactly what the compiled tables generate - the
+      # hand-maintained table went stale on model promotions before this guard existed.
+      # Line endings are normalised: the generator writes LF, checkout may materialise CRLF.
+      - name: Supported-models doc consistency
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "bin/Release/net8.0-windows/GhostDeck.exe" `
+               -ArgumentList "--dump-supported-md","fresh-supported.md" -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "--dump-supported-md failed" }
+          $fresh = ([IO.File]::ReadAllText("fresh-supported.md")) -replace "`r`n", "`n"
+          $repo  = ([IO.File]::ReadAllText("docs/SUPPORTED_MODELS.md")) -replace "`r`n", "`n"
+          if ($fresh -cne $repo) { throw "docs/SUPPORTED_MODELS.md does not match the compiled tables - run --dump-supported-md docs/SUPPORTED_MODELS.md and commit" }
+          "SUPPORTED_MODELS.md consistent"
+
+      # The README counters are prose, so they cannot be regenerated - but they CAN be
+      # cross-checked against the generated doc (two promotions once left them stale).
+      - name: README model counters
+        shell: pwsh
+        run: |
+          $doc = [IO.File]::ReadAllText("fresh-supported.md")
+          if ($doc -notmatch '\*\*(\d+) laptop models\*\* are recognised: \*\*(\d+) tested\*\*') { throw "counter pattern missing in the generated doc" }
+          $total = $Matches[1]; $tested = $Matches[2]
+          $readme = [IO.File]::ReadAllText("README.md")
+          foreach ($needle in @("**$total MSI models recognised**",
+                                "**$tested models confirmed on real hardware**",
+                                "**$total models** are recognised",
+                                "all $total models")) {
+            if (-not $readme.Contains($needle)) { throw "README counter stale: '$needle' not found" }
+          }
+          "README counters consistent ($total models / $tested tested)"
