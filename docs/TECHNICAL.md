@@ -110,6 +110,10 @@ Instead of fighting drivers, we checked **how MSI Center talks to the firmware**
 ### 5.1 Discovering the classes
 In `root\wmi` there is a family of **`MSI_*`** classes: `MSI_ACPI`, `MSI_AP`, `MSI_CPU`, `MSI_Power`, `MSI_System`, `MSI_Device`, `MSI_Software`.
 
+> Where these class definitions come from - a signed MSI resource DLL deployed with MSI
+> Center, which is why a fresh Windows install lacks them until MSI Center is installed
+> once - is covered in §62 and [MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md).
+
 ### 5.2 MSI_ACPI methods
 Instance: `ACPI\PNP0C14\0_0`. Methods include:
 ```
@@ -2282,3 +2286,64 @@ Three deliberate choices:
 Readings are cached ~700 ms behind one lock, so the 1 s Status tick and the overlay share one
 query. Everything degrades to "tile absent" - no adapter, no gdi32 answer, no clock - and nothing
 throws past `Read()`.
+
+---
+
+## 62. The MSI WMI schema layer (discussion #56)
+
+The `MSI_*` classes of §5 do not exist on a generic clean Windows install. Windows publishes
+an ACPI-WMI interface as a WMI class only when it has the class **schema** (a compiled MOF),
+and on MSI laptops that schema is not carried by the firmware - it is deployed by MSI's own
+software. The user-facing summary with sources lives in
+[MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md); this section records the engineering facts.
+
+**Mechanism (verified on the GE78HX, 2026-08-11).** `root\wmi:WDMClassesOfDriver` maps
+`MSI_ACPI` (and 16 sibling classes, including `Package_32`) to
+`C:\WINDOWS\sysWOW64\msiapcfg.dll[MofResource]`, and
+`HKLM\SYSTEM\CurrentControlSet\Services\WmiAcpi\MofImagePath` points at the same DLL. That is
+Microsoft's documented resource-DLL mechanism for `wmiacpi.sys` ("Publishing a WMI Schema" /
+"Setting the MofImagePath Registry Value"; the WMI ACPI WDK sample does exactly this). The
+DLL is a 16 kB resource-only file, Authenticode-signed by Micro-Star International. It is
+deployed at runtime by the "MSI Foundation Service" (package: MSI NBFoundation Service,
+installed together with MSI Center); the service binaries carry verify-and-redeploy logic
+(`CheckMSIAPCFG`, `MofImagePath` strings), and no installer database tracks the SysWOW64
+copy - neither Windows Installer components nor the package's own Inno uninstall log.
+
+**Firmware does not carry the BMOF.** The DSDT declares the `_WDG` interface (GUID
+`ABBC0F6E-8EA1-11D1-00A0-C90629100000`) and implements the AML methods, but the compiled MOF
+describing the classes ships only with MSI software (confirmed by the msi-ec project,
+discussion #98, and consistent with the Linux `msi-wmi-platform` docs, which had to decode
+the schema from the Windows DLL). A byte-scan of the DSDT does find a BMOF signature, but it
+belongs to other vendor blocks (DSarDev/TestDev), not `MSI_ACPI` - do not repeat that false
+trail.
+
+**Measured boundaries (all on the GE78HX, snapshots archived privately):**
+
+- All three MSI services stopped (`MSI_Center_Service`, `MSI Foundation Service`,
+  `Sendevsvc`): `Get_EC` and the full app keep working. The transport is `wmiacpi.sys`, not
+  MSI's services.
+- MSI Center (Store app), MSI Center SDK and MSI NBFoundation Service fully uninstalled
+  (the SDK uninstaller cascades and removes NBFoundation too; zero MSI software left,
+  services deregistered): the DLL, the registry value and the registered classes survive,
+  and the app works across reboots.
+- MSI's own "MSI Center Cleaner Master" (their FAQ-4147 cleanup tool): before/after
+  snapshots identical - the schema deployment is untouched.
+- Reinstalling MSI Center from the Store restores the packages and services; the newer
+  NBFoundation accepted the already-deployed DLL unchanged (same SHA-256).
+
+Conclusion for support and docs: **a one-time MSI Center installation is the requirement**;
+running MSI Center is not. Residual risk: with everything MSI uninstalled no guardian
+service remains, so a future Windows upgrade or WMI-repository rebuild could orphan the
+schema; the fix is the same one-time installation.
+
+**The mirror case.** #48 (Delta 15 A5EFK) is the opposite failure: the schema is present
+(the DLL describes the whole platform on every machine with MSI software), but the firmware
+`_WDG` lacks the `MSI_ACPI` GUID, so every call returns `NotSupported`. Schema and firmware
+implementation must both be present; either can be missing independently.
+
+**Deliberate non-goal.** GhostDeck does not bundle `msiapcfg.dll`, does not write
+`MofImagePath` and does not `mofcomp` anything. HandheldCompanion demonstrates the deploy
+path works (it ships this DLL for the MSI Claw), but redistributing an MSI-signed system
+component has unresolved licensing, and the supported fix - install MSI Center once - is
+trivial. GhostDeck's job is to detect and name the state (see the firmware-probe work) rather
+than mutate the system.
