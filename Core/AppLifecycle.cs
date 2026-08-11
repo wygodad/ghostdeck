@@ -74,6 +74,8 @@ public static class AppLifecycle
     {
         ManagementException { ErrorCode: ManagementStatus.NotSupported } => Lang.T("ec_err_unsupported"),
         ManagementException { ErrorCode: ManagementStatus.AccessDenied } => Lang.T("ec_err_denied"),
+        // class not registered at all - the fresh-Windows case from discussion #56
+        ManagementException { ErrorCode: ManagementStatus.InvalidClass or ManagementStatus.NotFound } => Lang.T("ec_err_missing"),
         InvalidOperationException => Lang.T("ec_err_missing"),
         _ => ex?.Message ?? "",
     };

@@ -415,7 +415,7 @@ public sealed class ScenariosPage : ThemedPage
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var info = D.Status();
         TextRenderer.DrawText(g, Lang.T("scen_title"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
-        string sub = info.Device + (string.IsNullOrEmpty(D.Firmware) ? "" : "  ·  " + D.Firmware);
+        string sub = info.Device + (string.IsNullOrEmpty(D.Firmware()) ? "" : "  ·  " + D.Firmware());
         TextRenderer.DrawText(g, sub, new Font("Segoe UI", 10.5f), new Point(Pad, _subY), Theme.Muted);
         // (the tier badge lives in the header strip now, next to the version)
 

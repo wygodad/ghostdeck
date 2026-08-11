@@ -26,7 +26,10 @@ public sealed class TrayContext : ApplicationContext
     // would mix registers from two generations, so it waits.
     private int _ecBusy;
     private ModelDb.Parsed? _pendingDb;   // swap deferred until the gate opens
-    private readonly string _firmware;
+    private string _firmware;                       // startup probe result; a successful retry may fill it in
+    private FirmwareProbeStatus _probeStatus;       // WHY there is no EC control (drives the unsupported subtitle)
+    private int _probeRetries;
+    private System.Windows.Forms.Timer? _probeTimer;
     private readonly bool _simulate;   // MSIPS_FORCE_FIRMWARE set -> UI preview, no EC writes
     private ProfileId _current;
     private Icon? _currentIcon;
@@ -94,8 +97,21 @@ public sealed class TrayContext : ApplicationContext
 
         var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
         _simulate = !string.IsNullOrEmpty(forced);
-        _firmware = _simulate ? forced! : Ec.ReadFirmware();
+        var probe = _simulate ? new FirmwareProbe(FirmwareProbeStatus.Success, forced!, null) : Ec.ProbeFirmware();
+        _probeStatus = probe.Status;
+        _firmware = probe.Firmware;
         _device = Devices.Detect(_firmware);
+        // A hard startup failure finally lands in errors.log (#56 was undiagnosable from logs);
+        // a transient one gets a bounded retry - one WMI hiccup at launch used to leave the app
+        // "unsupported" until the process was restarted.
+        // ClassMissing/InstanceMissing are EXPECTED, fully classified states (fresh Windows,
+        // non-MSI hardware) - the diag package's wmi-interface.txt names them; logging the raw
+        // exception on every launch would only drip noise into errors.log.
+        if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.AccessDenied
+                          or FirmwareProbeStatus.Other)
+            AppLifecycle.Report(probe.Error, "ec-startup:" + probe.Status);
+        if (!_simulate && probe.Status is FirmwareProbeStatus.TransientFailure or FirmwareProbeStatus.EmptyPayload)
+            ArmProbeRetry();
         // (#48) No EC interface for this firmware? The vendor WMI data blocks may still report
         // live temperatures - that turns a dead app into a working thermometer. Probed once.
         // MSIPS_FORCE_FIRMWARE=telemetry simulates this state on a normal machine (UI preview only)
@@ -436,9 +452,88 @@ public sealed class TrayContext : ApplicationContext
     {
         if (Writable) ShowOsd(_current);
         else if (Known) _osd.ShowProfile("MSI  ·  " + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
-        else _osd.ShowProfile("MSI  ·  " + Lang.T("unsupported_title"),
-                              string.IsNullOrEmpty(_firmware) ? Lang.T("unsupported_sub") : _firmware + " · " + Lang.T("unsupported_sub"),
-                              Color.Gray);
+        else _osd.ShowProfile("MSI  ·  " + Lang.T("unsupported_title"), ProbeSubtitle(), Color.Gray);
+    }
+
+    /// <summary>
+    /// One line naming WHY there is no EC control, shown under "unsupported". A single generic
+    /// message used to cover a missing schema, a refusing firmware and a plain unknown model -
+    /// which made reports like discussion #56 undiagnosable without a round of scripts.
+    /// </summary>
+    private string ProbeSubtitle() => _probeStatus switch
+    {
+        FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing => Lang.T("fw_schema_missing"),
+        FirmwareProbeStatus.NotSupported => Lang.T("ec_err_unsupported"),
+        FirmwareProbeStatus.AccessDenied => Lang.T("ec_err_denied"),
+        FirmwareProbeStatus.TransientFailure or FirmwareProbeStatus.EmptyPayload when _probeTimer != null
+            => Lang.T("fw_probe_retrying"),
+        FirmwareProbeStatus.TransientFailure or FirmwareProbeStatus.EmptyPayload or FirmwareProbeStatus.Other
+            => Lang.T("fw_probe_failed"),
+        _ => string.IsNullOrEmpty(_firmware) ? Lang.T("unsupported_sub") : _firmware + " · " + Lang.T("unsupported_sub"),
+    };
+
+    // ---------------- startup probe retry ----------------
+
+    /// <summary>
+    /// Probe again a few times after a transient WMI failure (or an empty first answer) at
+    /// launch. On success, rebuild everything derived from the firmware string - the same
+    /// recompute a model-database swap does - so the app comes alive without a restart.
+    /// </summary>
+    private void ArmProbeRetry()
+    {
+        _probeTimer = new System.Windows.Forms.Timer { Interval = 10_000 };
+        _probeTimer.Tick += (_, _) =>
+        {
+            var probe = Ec.ProbeFirmware();
+            _probeStatus = probe.Status;
+            if (probe.Status == FirmwareProbeStatus.Success)
+            {
+                DisarmProbeRetry();
+                _firmware = probe.Firmware;
+                // detect BEFORE the rebuild: the acknowledge menu item and the warning balloon
+                // only exist when the flag is set by the time BuildMenu runs
+                DetectFirmwareChange();
+                RedetectFromFirmware();
+                if (_firmwareChanged) ShowFirmwareWarning();
+                if (AutoWritable) TryApplyChargeLimit();
+                // deliberately minimal beyond this point: profile restore / schedules catch up
+                // through the normal Poll cadence rather than replaying the ctor chain here
+                ShowState();
+            }
+            else if (++_probeRetries >= 3)
+            {
+                DisarmProbeRetry();
+                // wrap: the raw error is either transient (which Report drops by design) or null
+                // (EmptyPayload) - but the EXHAUSTION of the retry is a hard fact worth a log line
+                AppLifecycle.Report(new TimeoutException(
+                    "EC startup probe still " + probe.Status + " after retries", probe.Error),
+                    "ec-startup-retry");
+                BuildMenu(); UpdateUi(_current);   // the subtitle may have shifted (retrying -> failed)
+            }
+        };
+        _probeTimer.Start();
+    }
+
+    private void DisarmProbeRetry() { _probeTimer?.Stop(); _probeTimer?.Dispose(); _probeTimer = null; }
+
+    /// <summary>Recompute everything derived from _firmware after a successful late probe.
+    /// Sibling of the recompute in TryApplyModelDb (which additionally handles curve state).</summary>
+    private void RedetectFromFirmware()
+    {
+        _device = Devices.Detect(_firmware);
+        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
+        _webcamSupported = Known && Devices.WebcamSupported(_firmware);
+        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        _telemetryOnly = !Known && MsiTelemetry.Available();
+        if (Known)
+        {
+            try { _current = Ec.GetCurrent(_device!); } catch { }
+            try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { }
+            if (_webcamSupported) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
+        }
+        BuildMenu();
+        UpdateUi(_current);
+        _main?.OnDeviceDbChanged();
     }
 
     // ---------------- menu ----------------
@@ -1557,7 +1652,7 @@ public sealed class TrayContext : ApplicationContext
         SetProfile = id => SetProfile(id, osd: true, ChangeSource.Panel),
         Writable = () => Writable,
         ColorOf = id => _settings.ColorFor(id),
-        Firmware = _firmware,
+        Firmware = () => _firmware,
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),
         CheckNoticesNow = CheckNoticesNow,
@@ -2148,6 +2243,7 @@ public sealed class TrayContext : ApplicationContext
     private void ExitApp()
     {
         _poll.Stop();
+        DisarmProbeRetry();
         _wheelTimer?.Stop();
         _wheel?.Dispose();
         _winLock.Dispose();

@@ -1245,14 +1245,41 @@ public static class Lang
             "Acesso negado à interface WMI da MSI. Execute o GhostDeck como administrador.",
             "Доступ к интерфейсу WMI MSI запрещён. Запустите GhostDeck от имени администратора." };
         m["ec_err_missing"] = new[] {
-            "MSI's WMI interface (MSI_ACPI) was not found on this machine - it is present on MSI laptops only.",
-            "Nie znaleziono interfejsu WMI MSI (MSI_ACPI) na tym komputerze - występuje tylko w laptopach MSI.",
-            "Die MSI-WMI-Schnittstelle (MSI_ACPI) wurde nicht gefunden - sie existiert nur auf MSI-Laptops.",
-            "L'interface WMI MSI (MSI_ACPI) est introuvable - elle n'existe que sur les portables MSI.",
-            "No se encontró la interfaz WMI de MSI (MSI_ACPI): solo existe en portátiles MSI.",
-            "未找到 MSI 的 WMI 接口 (MSI_ACPI)，该接口仅存在于 MSI 笔记本上。",
-            "A interface WMI da MSI (MSI_ACPI) não foi encontrada - ela existe apenas em notebooks MSI.",
-            "Интерфейс WMI MSI (MSI_ACPI) не найден - он есть только в ноутбуках MSI." };
+            "MSI's WMI interface (MSI_ACPI) was not found. On an MSI laptop this usually means a fresh Windows install without the MSI WMI schema - installing MSI Center once adds it (see the FAQ). On other machines the interface simply does not exist.",
+            "Nie znaleziono interfejsu WMI MSI (MSI_ACPI). Na laptopie MSI zwykle oznacza to świeżą instalację Windows bez schematu WMI MSI - jednorazowa instalacja MSI Center go doda (patrz FAQ). Na innych komputerach ten interfejs po prostu nie występuje.",
+            "Die MSI-WMI-Schnittstelle (MSI_ACPI) wurde nicht gefunden. Auf einem MSI-Laptop bedeutet das meist eine frische Windows-Installation ohne das MSI-WMI-Schema - eine einmalige MSI-Center-Installation fügt es hinzu (siehe FAQ). Auf anderen Rechnern existiert die Schnittstelle schlicht nicht.",
+            "L'interface WMI MSI (MSI_ACPI) est introuvable. Sur un portable MSI, cela signifie généralement une installation Windows fraîche sans le schéma WMI MSI - une installation unique de MSI Center l'ajoute (voir FAQ). Sur d'autres machines, cette interface n'existe tout simplement pas.",
+            "No se encontró la interfaz WMI de MSI (MSI_ACPI). En un portátil MSI esto suele indicar una instalación limpia de Windows sin el esquema WMI de MSI: instalar MSI Center una vez lo añade (ver FAQ). En otras máquinas esta interfaz simplemente no existe.",
+            "未找到 MSI 的 WMI 接口 (MSI_ACPI)。在 MSI 笔记本上这通常意味着全新安装的 Windows 缺少 MSI WMI 架构，安装一次 MSI Center 即可添加（见 FAQ）。在其他电脑上该接口本就不存在。",
+            "A interface WMI da MSI (MSI_ACPI) não foi encontrada. Em um notebook MSI isso geralmente indica uma instalação limpa do Windows sem o esquema WMI da MSI - instalar o MSI Center uma vez o adiciona (ver FAQ). Em outras máquinas essa interface simplesmente não existe.",
+            "Интерфейс WMI MSI (MSI_ACPI) не найден. На ноутбуке MSI это обычно означает чистую установку Windows без схемы WMI MSI - однократная установка MSI Center добавит её (см. FAQ). На других компьютерах этот интерфейс просто отсутствует." };
+        m["fw_schema_missing"] = new[] {
+            "MSI WMI interface is not registered - installing MSI Center once adds it (see FAQ)",
+            "Interfejs WMI MSI nie jest zarejestrowany - jednorazowa instalacja MSI Center go doda (patrz FAQ)",
+            "MSI-WMI-Schnittstelle nicht registriert - einmalige MSI-Center-Installation fügt sie hinzu (siehe FAQ)",
+            "Interface WMI MSI non enregistrée - une installation unique de MSI Center l'ajoute (voir FAQ)",
+            "La interfaz WMI de MSI no está registrada: instalar MSI Center una vez la añade (ver FAQ)",
+            "未注册 MSI WMI 接口，安装一次 MSI Center 即可添加（见 FAQ）",
+            "A interface WMI da MSI não está registrada - instalar o MSI Center uma vez a adiciona (ver FAQ)",
+            "Интерфейс WMI MSI не зарегистрирован - однократная установка MSI Center добавит его (см. FAQ)" };
+        m["fw_probe_failed"] = new[] {
+            "EC firmware could not be read",
+            "Nie udało się odczytać firmware EC",
+            "EC-Firmware konnte nicht gelesen werden",
+            "Impossible de lire le firmware EC",
+            "No se pudo leer el firmware del EC",
+            "无法读取 EC 固件",
+            "Não foi possível ler o firmware do EC",
+            "Не удалось прочитать прошивку EC" };
+        m["fw_probe_retrying"] = new[] {
+            "WMI temporarily unavailable - retrying...",
+            "WMI chwilowo niedostępne - ponawiam...",
+            "WMI vorübergehend nicht verfügbar - neuer Versuch...",
+            "WMI temporairement indisponible - nouvel essai...",
+            "WMI no disponible temporalmente: reintentando...",
+            "WMI 暂时不可用，正在重试...",
+            "WMI temporariamente indisponível - tentando novamente...",
+            "WMI временно недоступен - повторяю попытку..." };
         m["rep_step"]       = new[] { "Step {0} of {1}", "Krok {0} z {1}", "Schritt {0} von {1}", "Étape {0} sur {1}", "Paso {0} de {1}", "第 {0} / {1} 步", "Etapa {0} de {1}", "Шаг {0} из {1}" };
         m["rep_set_scenario"] = new[] {
             "In MSI Center set the scenario to: {0}, then click Capture.",

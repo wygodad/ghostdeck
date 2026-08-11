@@ -60,7 +60,7 @@ public sealed class StatusPage : ThemedPage
 
     public StatusPage(MainDeps d) : base(d)
     {
-        _dev = Devices.Detect(d.Firmware);
+        _dev = Devices.Detect(d.Firmware());
         _canvas = new Canvas(this) { Location = new Point(0, 0) };
         Controls.Add(_canvas);
 
@@ -1304,7 +1304,7 @@ public sealed class StatusPage : ThemedPage
     }
     public override void OnDeviceDbChanged()
     {
-        _dev = Devices.Detect(D.Firmware);
+        _dev = Devices.Detect(D.Firmware());
         _live = Array.Empty<byte>();
         _curve = null;                       // the byte matrix and curve tables move with the layout
         Relayout(); _canvas?.Rebuild(); Invalidate();

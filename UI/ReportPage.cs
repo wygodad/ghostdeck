@@ -73,7 +73,7 @@ public sealed class ReportPage : ThemedPage
     private static readonly Font WritesFont = new("Consolas", 11f, FontStyle.Bold);
 
     /// <summary>The model definition in effect right now (follows a live model-database swap).</summary>
-    private DeviceProfile? Dev => Devices.Detect(D.Firmware);
+    private DeviceProfile? Dev => Devices.Detect(D.Firmware());
 
     /// <summary>
     /// A report exists only when a phase was actually measured. A run refused on a busy machine,
@@ -633,7 +633,7 @@ public sealed class ReportPage : ThemedPage
         _curveDump = dump;
         _curveCpuAt = FindTracer(dump, CpuTracer);
         _curveGpuAt = FindTracer(dump, GpuTracer);
-        var fcs = Devices.Detect(D.Firmware)?.FanCurve;
+        var fcs = Devices.Detect(D.Firmware())?.FanCurve;
         if (_curveCpuAt >= 0 && _curveGpuAt >= 0)
         {
             _curveMatch = fcs != null && _curveCpuAt == fcs.CpuSpeedBase && _curveGpuAt == fcs.GpuSpeedBase;
@@ -655,7 +655,7 @@ public sealed class ReportPage : ThemedPage
             _curveMatch = false;
             // Common cause: the Advanced curve isn't the live EC state (e.g. the laptop is in Silent), so the
             // tables hold the default curve, not the test values. Detect that and say so, instead of "not found".
-            var dev = Devices.Detect(D.Firmware);
+            var dev = Devices.Detect(D.Firmware());
             byte adv = dev?.FanCurve?.AdvancedModeValue ?? 0x8D;
             bool inAdvanced = dev != null && dump[dev.FanMode] == adv;
             _curveMsg = inAdvanced ? Lang.T("rep_curve_notfound") : Lang.T("rep_curve_notadvanced");
@@ -684,7 +684,7 @@ public sealed class ReportPage : ThemedPage
         sb.AppendLine("=== GhostDeck — fan-curve verification report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {D.AppVersion()}");
-        sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware) ? "(unknown)" : D.Firmware)}");
+        sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}");
         sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
         sb.AppendLine();
         sb.AppendLine("Test curve set in MSI Center (Extreme → Advanced):");
@@ -697,7 +697,7 @@ public sealed class ReportPage : ThemedPage
             string gpuPart = _curveGpuAt >= 0 ? $"GPU speed table @ 0x{_curveGpuAt:X2}"
                                               : "GPU test curve not found (single-fan model or Fan 2 not set)";
             sb.AppendLine($"Located in EC dump:  {cpuPart}   {gpuPart}");
-            var fc = Devices.Detect(D.Firmware)?.FanCurve;
+            var fc = Devices.Detect(D.Firmware())?.FanCurve;
             if (fc != null) sb.AppendLine($"Shipped map for this model:  CPU 0x{fc.CpuSpeedBase:X2}  GPU 0x{fc.GpuSpeedBase:X2}  → {(_curveMatch ? "MATCH" : "DIFFERENT")}");
             else sb.AppendLine("Shipped map for this model:  (none — model not recognised)");
         }
@@ -721,7 +721,7 @@ public sealed class ReportPage : ThemedPage
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string fwTag = string.IsNullOrEmpty(D.Firmware) ? "unknown" : D.Firmware.Replace('.', '_');
+            string fwTag = string.IsNullOrEmpty(D.Firmware()) ? "unknown" : D.Firmware().Replace('.', '_');
             _curveSavedPath = Path.Combine(dir, $"ghostdeck-curve-report-{fwTag}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
             File.WriteAllText(_curveSavedPath, report, new UTF8Encoding(false));
         }
@@ -736,7 +736,7 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildCurveIssueUrl()
     {
-        string title = $"[Curve] {ModelName()} ({D.Firmware})";
+        string title = $"[Curve] {ModelName()} ({D.Firmware()})";
         string suffix = _curveMatch ? " (matches shipped map)" : " (differs from shipped map)";
         string found =
             _curveCpuAt >= 0 && _curveGpuAt >= 0 ? $"CPU @ 0x{_curveCpuAt:X2}, GPU @ 0x{_curveGpuAt:X2}" + suffix
@@ -748,7 +748,7 @@ public sealed class ReportPage : ThemedPage
         return RepoUrl + "/issues/new?template=curve-support.yml&labels=curve-support"
             + "&title=" + Uri.EscapeDataString(title)
             + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware)
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware())
             + "&found=" + Uri.EscapeDataString(found);
     }
 
@@ -815,7 +815,7 @@ public sealed class ReportPage : ThemedPage
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string fwTag = string.IsNullOrEmpty(D.Firmware) ? "unknown" : D.Firmware.Replace('.', '_');
+            string fwTag = string.IsNullOrEmpty(D.Firmware()) ? "unknown" : D.Firmware().Replace('.', '_');
             _savedPath = Path.Combine(dir, $"msi-model-report-{fwTag}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
             File.WriteAllText(_savedPath, report, new UTF8Encoding(false));
         }
@@ -849,7 +849,7 @@ public sealed class ReportPage : ThemedPage
         sb.AppendLine("=== MSI Profile Switcher — model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {D.AppVersion()}");
-        sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware) ? "(unknown)" : D.Firmware)}");
+        sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}");
         sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
         sb.AppendLine();
         sb.AppendLine("--- Diff: addresses that change between scenarios ---");
@@ -910,13 +910,13 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildIssueUrl()
     {
-        string title = $"[Model] {ModelName()} ({D.Firmware})";
+        string title = $"[Model] {ModelName()} ({D.Firmware()})";
         // NB: the paste field (id "fulldump") is deliberately NOT prefilled — the full report is on the
         // clipboard / saved to file, and any reload of a prefilled URL would wipe what the user pasted.
         string Base() => RepoUrl + "/issues/new?template=model-support.yml&labels=model-support"
             + "&title=" + Uri.EscapeDataString(title)
             + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware);
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware());
         string url = Base() + "&snapshot=" + Uri.EscapeDataString(BuildSnapshot());
         return url.Length > 7000 ? Base() : url;
     }
@@ -1050,7 +1050,7 @@ public sealed class ReportPage : ThemedPage
         try
         {
             var sink = new Progress<PowerTest.Progress>(OnPowerProgress);
-            _ptTask = PowerTest.RunAsync(dev!, D.AppVersion(), D.Firmware, sink, _ptCts.Token);
+            _ptTask = PowerTest.RunAsync(dev!, D.AppVersion(), D.Firmware(), sink, _ptCts.Token);
             _ptResult = await _ptTask;
             if (PtHasReport) PreparePowerReport(dev!);
         }
@@ -1112,7 +1112,7 @@ public sealed class ReportPage : ThemedPage
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string fwTag = string.IsNullOrEmpty(D.Firmware) ? "unknown" : D.Firmware.Replace('.', '_');
+            string fwTag = string.IsNullOrEmpty(D.Firmware()) ? "unknown" : D.Firmware().Replace('.', '_');
             _ptSavedPath = Path.Combine(dir, $"ghostdeck-power-test-{fwTag}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
             File.WriteAllText(_ptSavedPath, report, new UTF8Encoding(false));
         }
@@ -1127,13 +1127,13 @@ public sealed class ReportPage : ThemedPage
     private string BuildPowerIssueUrl()
     {
         var r = _ptResult;
-        string title = $"[Power] {ModelName()} ({D.Firmware})";
+        string title = $"[Power] {ModelName()} ({D.Firmware()})";
         // Like the other two wizards: the paste field is deliberately NOT prefilled, because the
         // full report is on the clipboard and reloading a prefilled URL would wipe what was pasted.
         return RepoUrl + "/issues/new?template=power-test.yml&labels=power-test"
             + "&title=" + Uri.EscapeDataString(title)
             + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware)
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware())
             + "&verdict=" + Uri.EscapeDataString(r == null ? "" : PowerTest.Summary(r));
     }
 
@@ -1291,7 +1291,7 @@ public sealed class ReportPage : ThemedPage
         TextRenderer.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware) ? "—" : D.Firmware, new Font("Consolas", 11f, FontStyle.Bold),
+        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "—" : D.Firmware(), new Font("Consolas", 11f, FontStyle.Bold),
             new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
     }

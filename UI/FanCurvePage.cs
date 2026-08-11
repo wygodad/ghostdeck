@@ -50,7 +50,7 @@ public sealed class FanCurvePage : ThemedPage
     public FanCurvePage(MainDeps d) : base(d)
     {
         AutoScroll = false;
-        _dev = Devices.Detect(d.Firmware);
+        _dev = Devices.Detect(d.Firmware());
         _fc = _dev?.FanCurve;
         _cpuT = (int[])DefCpuT.Clone(); _cpuS = (int[])DefCpuS.Clone();
         _gpuT = (int[])DefGpuT.Clone(); _gpuS = (int[])DefGpuS.Clone();
@@ -347,7 +347,7 @@ public sealed class FanCurvePage : ThemedPage
         var p = SelectedPreset();
         if (p == null) return;
         string json = JsonSerializer.Serialize(p, new JsonSerializerOptions { WriteIndented = true });
-        string body = $"Model: {(_dev?.Name ?? "unknown")}\nFirmware: {D.Firmware}\nApp: {D.AppVersion()}\n\n```json\n{json}\n```\n";
+        string body = $"Model: {(_dev?.Name ?? "unknown")}\nFirmware: {D.Firmware()}\nApp: {D.AppVersion()}\n\n```json\n{json}\n```\n";
         string url = "https://github.com/wygodad/ghostdeck/discussions/new?category=fan-curves"
                    + "&title=" + Uri.EscapeDataString("Fan curve preset: " + p.Name)
                    + "&body=" + Uri.EscapeDataString(body);
@@ -744,7 +744,7 @@ public sealed class FanCurvePage : ThemedPage
 
     public override void OnDeviceDbChanged()
     {
-        _dev = Devices.Detect(D.Firmware);
+        _dev = Devices.Detect(D.Firmware());
         _fc = _dev?.FanCurve;
         _loaded = false;              // re-read the points from the new addresses on next entry
         if (Visible) OnEnter();

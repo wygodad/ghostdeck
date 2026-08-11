@@ -1084,7 +1084,7 @@ public sealed class SettingsPage : ThemedPage
         try
         {
             var info = D.Status();
-            Diagnostics.Save(dlg.FileName, D.AppVersion(), D.Firmware, info.Device, info.TierText);
+            Diagnostics.Save(dlg.FileName, D.AppVersion(), D.Firmware(), info.Device, info.TierText);
             MessageBox.Show(FindForm(), string.Format(Lang.T("rep_saved_to"), dlg.FileName), "GhostDeck",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -1482,7 +1482,7 @@ public sealed class SettingsPage : ThemedPage
                 x += cw + 26;
             }
 
-            string meta = D.Firmware.Length > 0 ? D.Firmware + "      ·      GhostDeck v" + D.AppVersion() : "GhostDeck v" + D.AppVersion();
+            string meta = D.Firmware().Length > 0 ? D.Firmware() + "      ·      GhostDeck v" + D.AppVersion() : "GhostDeck v" + D.AppVersion();
             TextRenderer.DrawText(g, meta, MetaF, new Point(x, cy - MetaF.Height / 2), Theme.Muted, F);
 
             // right side: update chip only when the daily check found something newer

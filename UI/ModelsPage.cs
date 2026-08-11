@@ -31,7 +31,7 @@ public sealed class ModelsPage : ThemedPage
     public ModelsPage(MainDeps d) : base(d)
     {
         AutoScroll = false;   // the inner _scrollHost scrolls the table; the header stays fixed
-        _detected = Devices.Detect(d.Firmware);
+        _detected = Devices.Detect(d.Firmware());
         _all = BuildCatalogue();
         _rows = _all;
 
@@ -115,7 +115,7 @@ public sealed class ModelsPage : ThemedPage
 
     public override void OnDeviceDbChanged()
     {
-        _detected = Devices.Detect(D.Firmware);
+        _detected = Devices.Detect(D.Firmware());
         _all = BuildCatalogue();
         ApplyFilter();                 // keeps whatever is typed in the search box
         LayoutBits(); Invalidate(); _table.Invalidate();
@@ -201,13 +201,13 @@ public sealed class ModelsPage : ThemedPage
         int y = 24 + FTitle.Height + 14;
         if (_detected is { } det)
         {
-            string sub = Lang.T("mdl_you") + ":  " + det.Name + "   ·   " + D.Firmware;
+            string sub = Lang.T("mdl_you") + ":  " + det.Name + "   ·   " + D.Firmware();
             TextRenderer.DrawText(g, sub, FSub, new Rectangle(Pad, y, avail - _search.Width - 20, FSub.Height), Theme.Text,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
         else
         {
-            string sub = string.Format(Lang.T("mdl_unknown"), string.IsNullOrEmpty(D.Firmware) ? "?" : D.Firmware);
+            string sub = string.Format(Lang.T("mdl_unknown"), string.IsNullOrEmpty(D.Firmware()) ? "?" : D.Firmware());
             TextRenderer.DrawText(g, sub, FSub, new Point(Pad, y), Color.FromArgb(0xB0, 0x4A, 0x3A));
         }
         y += FSub.Height + 10;

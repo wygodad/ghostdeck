@@ -9,6 +9,24 @@ public readonly record struct HwSnapshot(
     int CpuRpm = 0, int GpuRpm = 0);
 
 /// <summary>
+/// Verdict of the startup firmware identification. Success only says the firmware STRING was
+/// read - whether the model database knows it is decided by the caller (Devices.Detect).
+/// </summary>
+public enum FirmwareProbeStatus
+{
+    Success,
+    ClassMissing,     // MSI_ACPI schema not registered - fresh Windows install (discussion #56)
+    InstanceMissing,  // class registered but no instance behind it
+    NotSupported,     // interface present, firmware refuses the call (issue #48)
+    AccessDenied,
+    EmptyPayload,     // Get_EC answered but carried no firmware string
+    TransientFailure, // WMI momentarily out, failed twice on a fresh session - retry later
+    Other,
+}
+
+public readonly record struct FirmwareProbe(FirmwareProbeStatus Status, string Firmware, Exception? Error);
+
+/// <summary>
 /// EC access via MSI WMI (root\wmi MSI_ACPI): Get_Data / Set_Data, Package_32 buffer.
 /// Bytes[0]=address; write Bytes[1]=value; read -> result in Bytes[1]. Requires admin.
 /// </summary>
@@ -106,33 +124,56 @@ public static class Ec
         return ((byte[])outPkg["Bytes"])[1];
     }
 
-    public static string ReadFirmware()
+    public static string ReadFirmware() => ProbeFirmware().Firmware;
+
+    /// <summary>
+    /// Firmware identification with an explicit verdict instead of a swallowed "".
+    /// Classification runs on the exception that escapes WithSession AFTER its one
+    /// rebuild+retry, so TransientFailure means "failed twice on a fresh session" - the
+    /// right trigger for a delayed retry, while single blips never surface at all.
+    /// </summary>
+    public static FirmwareProbe ProbeFirmware()
     {
         try
         {
-            return WithSession((inst, _) => ReadFirmware(inst));
+            string s = WithSession((inst, _) => ReadFirmware(inst));
+            return new FirmwareProbe(
+                s.Length > 0 ? FirmwareProbeStatus.Success : FirmwareProbeStatus.EmptyPayload, s, null);
         }
-        catch { return ""; }
+        catch (Exception ex)
+        {
+            var status = ex switch
+            {
+                ManagementException { ErrorCode: ManagementStatus.InvalidClass or ManagementStatus.NotFound }
+                    => FirmwareProbeStatus.ClassMissing,
+                InvalidOperationException => FirmwareProbeStatus.InstanceMissing,
+                ManagementException { ErrorCode: ManagementStatus.NotSupported } => FirmwareProbeStatus.NotSupported,
+                ManagementException { ErrorCode: ManagementStatus.AccessDenied } => FirmwareProbeStatus.AccessDenied,
+                COMException com when (uint)com.HResult == 0x80070005 => FirmwareProbeStatus.AccessDenied,
+                _ when AppLifecycle.IsTransient(ex) => FirmwareProbeStatus.TransientFailure,
+                _ => FirmwareProbeStatus.Other,
+            };
+            return new FirmwareProbe(status, "", ex);
+        }
     }
 
     private static string ReadFirmware(ManagementObject inst)
     {
         if (_firmwareCache != null) return _firmwareCache;
-        try
-        {
-            using var outParams = inst.InvokeMethod("Get_EC", null, null);
-            var pkg = (ManagementBaseObject)outParams["Data"];
-            var b = (byte[])pkg["Bytes"];
-            var sb = new StringBuilder();
-            for (int i = 2; i < b.Length && b[i] != 0; i++)
-                if (b[i] is >= 32 and < 127) sb.Append((char)b[i]);
-            var s = sb.ToString();
-            // cache only what a completed call returned, empty string included (that is a real
-            // answer). A call that threw leaves the cache unset so a later tick can still fill it.
-            _firmwareCache = s.Length >= 12 ? s[..12] : s;
-            return _firmwareCache;
-        }
-        catch { return ""; }
+        using var outParams = inst.InvokeMethod("Get_EC", null, null);
+        var pkg = (ManagementBaseObject)outParams["Data"];
+        var b = (byte[])pkg["Bytes"];
+        var sb = new StringBuilder();
+        for (int i = 2; i < b.Length && b[i] != 0; i++)
+            if (b[i] is >= 32 and < 127) sb.Append((char)b[i]);
+        var s = sb.ToString();
+        if (s.Length > 12) s = s[..12];
+        // cache only a non-empty answer: an empty payload stays retryable (the probe reports
+        // it as EmptyPayload), and a call that threw leaves the cache unset so a later tick
+        // can still fill it. Exceptions escape to the caller - the probe classifies them and
+        // the per-tick path (TryReadHw) already swallows them.
+        if (s.Length > 0) _firmwareCache = s;
+        return s;
     }
 
     /// <summary>

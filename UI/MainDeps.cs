@@ -14,7 +14,9 @@ public sealed class MainDeps
     public required Action<ProfileId> SetProfile { get; init; }
     public required Func<bool> Writable { get; init; }
     public required Func<ProfileId, Color> ColorOf { get; init; }
-    public required string Firmware { get; init; }
+    // A getter, not a captured string: the startup probe may fill the firmware in a few
+    // seconds late (transient-WMI retry), and pages re-detect via this on OnDeviceDbChanged.
+    public required Func<string> Firmware { get; init; }
     public required Func<string> AppVersion { get; init; }
     public required Action SaveSettings { get; init; }
     public required Action CheckNoticesNow { get; init; }   // manual "Check now" also surfaces announcements
