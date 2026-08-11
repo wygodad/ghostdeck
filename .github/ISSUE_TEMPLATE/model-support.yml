@@ -25,6 +25,15 @@ body:
       required: true
 
   - type: input
+    id: actual-model
+    attributes:
+      label: Actual model (if different)
+      description: The app pre-fills the model it DETECTED. MSI ships some boards in more than one model, so if your laptop's real name differs from the field above, write it here (issue #80 is such a case).
+      placeholder: e.g. MSI Katana A15 AI B8VG
+    validations:
+      required: false
+
+  - type: input
     id: firmware
     attributes:
       label: EC firmware
