@@ -75,10 +75,11 @@ ships only with MSI Center.
 
 ## Why GhostDeck does not deploy the schema itself
 
-Technically it could: the mechanism is a documented Microsoft standard, and at least one
+Technically it could: the mechanism is a documented Microsoft standard, at least one
 open-source project (HandheldCompanion, for the MSI Claw) bundles this exact DLL, writes
-`MofImagePath` and restarts the ACPI-WMI device to make the classes appear. GhostDeck
-deliberately does not do this:
+`MofImagePath` and restarts the ACPI-WMI device to make the classes appear, and a community
+repository (xchwarze/msi) goes further still and redistributes the whole NBFoundation
+package extracted from official installers. GhostDeck deliberately does neither:
 
 - redistributing an MSI-signed system component raises licensing questions the project
   cannot resolve;
@@ -112,3 +113,5 @@ MSI schema file is a passive data resource - a class description, not executable
   the same interface documented from the kernel side
 - [Valkirie/HandheldCompanion](https://github.com/Valkirie/HandheldCompanion) - the project
   that bundles and deploys the DLL for the MSI Claw
+- [xchwarze/msi](https://github.com/xchwarze/msi) - community redistribution of the
+  NBFoundation package extracted from official installers
