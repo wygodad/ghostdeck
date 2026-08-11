@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- **Model database:** the `158NIMS1` entry now names both machines MSI ships that board in -
+  **Bravo 15 C7V and Katana A15 AI B8VG** - and gained live fan-RPM addresses (`0xC9`/`0xCB`)
+  from the Katana owner's capture. Reaches existing installs through the signed model
+  database, no update needed ([#80](https://github.com/wygodad/ghostdeck/issues/80)).
+
+### Added
+- **The startup EC probe says WHY there is no control instead of one generic "unsupported".**
+  The app now distinguishes: the MSI WMI schema not being registered at all (fresh Windows
+  installs - the message points to the one-time MSI Center installation, see
+  [docs/MSI-WMI-SCHEMA.md](docs/MSI-WMI-SCHEMA.md)), a firmware that refuses the interface,
+  denied access, an empty firmware answer, and a transient WMI failure - the last one is
+  retried automatically for about half a minute, so one WMI hiccup at launch no longer leaves
+  the app dead until a restart. Hard startup failures are recorded in errors.log, and the
+  diagnostic package gained `wmi-interface.txt`: the probe verdict, schema registration and
+  its source file (with signer), `MofImagePath` and the ACPI-WMI devices - the questions that
+  used to take a round of scripts per report
+  ([#56](https://github.com/wygodad/ghostdeck/discussions/56)).
+
 ### Fixed
 - **Refresh-rate controls follow the laptop panel, not the primary display.** With an external
   monitor set as primary, the Power page listed and changed the monitor's rates instead of the

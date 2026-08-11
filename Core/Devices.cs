@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260810;
+    public const int DataVersion = 20260811;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -529,10 +529,13 @@ public static class Devices
         // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
         // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
         // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register
-        // (null). Stays Experimental until the owner confirms the hardware checks.
-        new() { Name = "MSI Bravo 15 C7V", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Experimental,
-                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "dmas-dll", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27" },
+        // (null). Stays Experimental until an owner confirms the hardware checks.
+        // MSI ships the same 158N board in the Katana A15 AI B8VG (issue #80): that owner's
+        // per-scenario capture matches this entry byte for byte (0xD2 C1/C1/C4/C2,
+        // 0xD4 1D/0D/0D/0D, 0xEB pinned to 00), with live RPM at 0xC9/0xCB.
+        new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "dmas-dll, Lofre", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27" },
         new() { Name = "MSI Summit E16 Flip A11UCT",        FirmwarePrefixes = new[] { "1591EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E16 Flip A12UCT / A12MT", FirmwarePrefixes = new[] { "1592EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 Studio A13VE",      FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

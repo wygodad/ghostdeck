@@ -45,7 +45,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Creator 15 A11UE | `16V4EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI GE76 Raider 10UG | `17K2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI Alpha 17 C7VF / C7VG | `17KKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Bravo 15 C7V | `158NIMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &mdash; | &mdash; |
+| MSI Bravo 15 C7V / Katana A15 AI B8VG | `158NIMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Creator 17 B11UE | `17M1EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator M16 B13VF | `1585EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator Z16 A11UE | `1571EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

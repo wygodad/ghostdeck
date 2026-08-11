@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260810,
+  "dataVersion": 20260811,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / 14V",
@@ -2325,11 +2325,13 @@
       }
     },
     {
-      "name": "MSI Bravo 15 C7V",
+      "name": "MSI Bravo 15 C7V / Katana A15 AI B8VG",
       "prefixes": [
         "158NIMS1"
       ],
       "tier": "Experimental",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2340,7 +2342,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "dmas-dll",
+      "credit": "dmas-dll, Lofre",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/27",
       "recipes": {
         "Silent": [
