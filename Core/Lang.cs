@@ -929,6 +929,7 @@ public static class Lang
         m["mdl_c_rpm"]      = new[] { "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM" };
         m["mdl_curve_edit"] = new[] { "editable", "edytowalna", "editierbar", "modifiable", "editable", "可编辑", "editável", "редактируемая" };
         m["mdl_curve_prev"] = new[] { "unverified", "niezweryfikowany", "unbestätigt", "non vérifiée", "sin verificar", "未验证", "não verificada", "не проверена" };
+        m["mdl_curve_vopt"] = new[] { "verified (opt-in)", "zweryfikowana (opt-in)", "bestätigt (Opt-in)", "vérifiée (opt-in)", "verificada (opt-in)", "已验证（需启用）", "verificada (opt-in)", "проверена (opt-in)" };
         m["mdl_sb_tip"]     = new[] {
             "Super Battery\nWhether the model has a dedicated super-battery\nregister (deepest power/battery throttle).\nAffects the Super Battery profile.",
             "Super Battery\nCzy model ma dedykowany rejestr super-baterii\n(najgłębszy throttle mocy/baterii).\nWpływa na profil Super Battery.",

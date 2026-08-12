@@ -10,6 +10,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   whenever the committed file - or the README model counters - drifts from the code, so a
   model promotion can no longer leave the docs stale.
 
+### Changed
+- **Models tab: an owner-verified curve on a not-yet-tested model now reads "verified
+  (opt-in)"** instead of plain "editable" - the same distinction the supported-models table
+  makes, so the app and the docs tell one story.
+
 ### Fixed
 - **Models tab: boards with a single fan tachometer no longer show a bogus `/0x00` GPU
   address** in the RPM column (e.g. Modern 14 C12M).

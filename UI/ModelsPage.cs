@@ -320,7 +320,9 @@ public sealed class ModelsPage : ThemedPage
                 string curve; Color curveCol;
                 if (m.FanCurve is { } fc)
                 {
-                    if (fc.Verified) { curve = "✓ " + Lang.T("mdl_curve_edit"); curveCol = Theme.Green; }
+                    // Same distinction as docs/SUPPORTED_MODELS.md: a verified curve on a model
+                    // still awaiting its profile checks is editable only after the opt-in.
+                    if (fc.Verified) { curve = "✓ " + Lang.T(tested ? "mdl_curve_edit" : "mdl_curve_vopt"); curveCol = Theme.Green; }
                     else { curve = "◉ " + Lang.T("mdl_curve_prev"); curveCol = Theme.Accent; }
                 }
                 else { curve = "—"; curveCol = Theme.Muted; }
