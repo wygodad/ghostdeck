@@ -50,6 +50,10 @@ public sealed class TrayContext : ApplicationContext
     private DateTime? _tempOverSince;          // when CPU/GPU first crossed the thermal-alert threshold
     private DateTime _lastTempAlert = DateTime.MinValue;
     private int _thermalBusy;                  // 1 while a background EC temperature read is in flight
+    private DateTime? _ssdOverSince;           // when the hottest disk first crossed the SSD-alert threshold
+    private DateTime _lastSsdAlert = DateTime.MinValue;
+    private DateTime _lastSsdSampleAt = DateTime.MinValue;   // gap detection: a pause restarts the dwell
+    private int _ssdBusy;                      // 1 while a background disk-temperature read is in flight
     private ToolStripMenuItem? _coolerItem;
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
@@ -127,6 +131,11 @@ public sealed class TrayContext : ApplicationContext
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
 
+        // A trip that ended while the app was off reverts before the first apply. The balloon
+        // waits until the tray icon is in the shell - ShowBalloonTip is a silent no-op before.
+        string? travelEnded = null;
+        if (_settings.TravelUntil != DateTime.MinValue && DateTime.Now >= _settings.TravelUntil)
+            travelEnded = EndTravel(notify: false);
         if (AutoWritable) TryApplyChargeLimit();
 
         BuildMenu();
@@ -152,6 +161,13 @@ public sealed class TrayContext : ApplicationContext
 
         ShowState();
         if (_firmwareChanged) ShowFirmwareWarning();
+        if (travelEnded != null)
+        {
+            _balloonUrl = null;
+            _tray.BalloonTipTitle = Lang.T("set_travel");
+            _tray.BalloonTipText = travelEnded;
+            _tray.ShowBalloonTip(8000);
+        }
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
@@ -370,12 +386,26 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Charge:
                 {
                     int limit = int.Parse(cmd.Arg);
+                    if (limit != _settings.ChargeLimit) CancelTravelOnManualLimit();
                     _settings.ChargeLimit = limit;
                     _settings.Save();
                     TryApplyChargeLimit();   // logs the write itself; 0 = stop managing (no EC write)
                     if (limit == 0) ChangeLog.Add(ChangeSource.Cli, Lang.T("st_charge") + ": " + Lang.T("st_off"));
                     if (_main is { IsDisposed: false }) _main.RefreshActive();
                     return "0|charge limit: " + (limit > 0 ? limit + " %" : "off (no longer managed)");
+                }
+                case CliKind.Travel:
+                {
+                    int days = int.Parse(cmd.Arg);
+                    if (days <= 0)
+                    {
+                        if (_settings.TravelUntil == DateTime.MinValue) return "0|travel mode is not active";
+                        EndTravel(notify: false);
+                        return "0|travel mode: off";
+                    }
+                    StartTravel(days);
+                    // fixed format on purpose: CLI output is machine-readable, same as the one-shot path
+                    return $"0|travel mode: 100 % until {_settings.TravelUntil:yyyy-MM-dd}";
                 }
                 case CliKind.Panic:
                     PanicReset();
@@ -1112,9 +1142,16 @@ public sealed class TrayContext : ApplicationContext
                 ApplyPresetFromTray(cp.Length == 0 ? null : cp, osd: false);
             if (s.FanBoost is { } fb && fb != _coolerBoost)
                 SetCoolerBoostState(fb, osd: false);
-            if (s.ChargeLimit is { } cl)
+            // Schedule/battery-rule scenes must not defeat an active travel mode: the limit is
+            // skipped and the pending revert survives. A scene run by hand is an explicit choice.
+            if (s.ChargeLimit is { } cl &&
+                !(source is ChangeSource.Schedule or ChangeSource.Battery && _settings.TravelUntil != DateTime.MinValue))
             {
-                if (_settings.ChargeLimit != cl) { _settings.ChargeLimit = cl; _settings.Save(); }
+                if (_settings.ChargeLimit != cl)
+                {
+                    CancelTravelOnManualLimit();
+                    _settings.ChargeLimit = cl; _settings.Save();
+                }
                 TryApplyChargeLimit();
             }
             if (s.RefreshHz is { } hz && hz > 0)
@@ -1384,10 +1421,11 @@ public sealed class TrayContext : ApplicationContext
         bool wantProfile = _settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && _profileBeforeSleep is { };
         bool wantCurve = _settings.RestoreCurveOnResume && _settings.CurveActive;   // (#49)
         bool wantSchedule = _settings.ScheduleEnabled;
+        bool wantCharge = _settings.ChargeLimit is 60 or 80 or 100;
         // Poll would otherwise run the schedule check ~3 s after wake - before the EC settled
         // and BEFORE the restore below, which would then overwrite the scheduled scene.
         _scheduleHoldUntil = Environment.TickCount64 + 8000;
-        if (!wantProfile && !wantCurve && !wantSchedule) return;
+        if (!wantProfile && !wantCurve && !wantSchedule && !wantCharge) return;
         var want = _profileBeforeSleep;
         _ui?.Post(_ =>
         {
@@ -1400,6 +1438,7 @@ public sealed class TrayContext : ApplicationContext
                 if (wantProfile && AutoWritable && !_settings.AutoSwitchEnabled && want is { } w)
                     SetProfile(w, osd: true, ChangeSource.Restore, count: false);
                 TryRestoreCurve();   // after the profile, so its recipe can't overwrite the fan mode
+                if (wantCharge) TryApplyChargeLimit();   // hibernation can drop the EC threshold; same byte again is harmless
                 CheckSchedule();     // last, so a window crossed during sleep outranks the restore
             };
             t.Start();
@@ -1670,9 +1709,15 @@ public sealed class TrayContext : ApplicationContext
         StartReportWizard = OpenReport,
         SetChargeLimit = limit =>
         {
+            if (limit != _settings.ChargeLimit) CancelTravelOnManualLimit();
             _settings.ChargeLimit = limit;
             _settings.Save();
             TryApplyChargeLimit();
+        },
+        SetTravelDays = days =>
+        {
+            if (days <= 0) EndTravel(notify: false);
+            else StartTravel(days);
         },
         SetAutoSwitch = on =>
         {
@@ -1969,6 +2014,62 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
+    // ---------------- charge-limit travel mode ----------------
+    // One-shot override: charge to 100 % until a date, then the previous limit comes back on
+    // its own. Any explicit charge-limit change (UI, CLI, scene) cancels the pending revert -
+    // the user took over.
+
+    private void StartTravel(int days)
+    {
+        if (_settings.TravelUntil == DateTime.MinValue)
+            _settings.TravelPrevLimit = _settings.ChargeLimit;   // re-stamping while active keeps the original
+        // Full days from NOW, not calendar midnights: "1 day" picked at 23:50 must not end
+        // ten minutes later.
+        _settings.TravelUntil = DateTime.Now.AddDays(days);
+        _settings.ChargeLimit = 100;
+        _settings.Save();
+        TryApplyChargeLimit();
+        ChangeLog.Add(ChangeSource.ChargeLimit,
+            string.Format(Lang.T("log_travel_on"), _settings.TravelUntil.ToShortDateString()));
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+    }
+
+    /// <summary>Returns the "ended" text so the ctor can balloon it later (icon not in the shell yet).</summary>
+    private string? EndTravel(bool notify)
+    {
+        if (_settings.TravelUntil == DateTime.MinValue) return null;
+        int back = _settings.TravelPrevLimit;
+        _settings.TravelUntil = DateTime.MinValue;
+        _settings.ChargeLimit = back;
+        _settings.Save();
+        TryApplyChargeLimit();   // no-op when back == 0: stop managing, the EC keeps its threshold
+        string text = string.Format(Lang.T("log_travel_off"), back > 0 ? back + " %" : Lang.T("st_off"));
+        ChangeLog.Add(ChangeSource.ChargeLimit, text);
+        if (notify)
+        {
+            _balloonUrl = null;
+            _tray.BalloonTipTitle = Lang.T("set_travel");
+            _tray.BalloonTipText = text;
+            _tray.ShowBalloonTip(8000);
+        }
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+        return text;
+    }
+
+    private void CheckTravelMode()
+    {
+        if (_settings.TravelUntil != DateTime.MinValue && DateTime.Now >= _settings.TravelUntil)
+            EndTravel(notify: true);
+    }
+
+    /// <summary>The user set a limit themselves - a pending travel revert would undo their choice.</summary>
+    private void CancelTravelOnManualLimit()
+    {
+        if (_settings.TravelUntil == DateTime.MinValue) return;
+        _settings.TravelUntil = DateTime.MinValue;   // the caller saves settings right after
+        ChangeLog.Add(ChangeSource.ChargeLimit, Lang.T("log_travel_cancel"));
+    }
+
     // ---------------- background HW sampler (history + thermal alert) ----------------
     // One EC read per 3 s poll, off the UI thread (same reasoning as the Status page's
     // RefreshAsync). Every sample lands in the local HwHistory ring buffer (Status -> History
@@ -2014,17 +2115,21 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyTempTray(ref NotifyIcon? icon, ref Icon? current, ref string shown,
                                bool wanted, int temp, string label)
     {
-        if (!wanted || temp <= 0)
+        if (!wanted)
         {
             if (icon != null) { icon.Visible = false; icon.Dispose(); icon = null; }
             current?.Dispose(); current = null; shown = "";
             return;
         }
-        string text = temp >= 100 ? "99+" : temp.ToString();
+        // A sleeping dGPU reports no temperature. Show "--" instead of hiding the icon: a
+        // vanishing icon reads as a bug and makes the neighbouring tray icons jump around.
+        // Deliberately none of the user's Ok/Warn/Hot colours, so a dash never reads as "fine".
+        bool noReading = temp <= 0;
+        string text = noReading ? "--" : temp >= 100 ? "99+" : temp.ToString();
         icon ??= new NotifyIcon { ContextMenuStrip = _tray.ContextMenuStrip, Visible = true };
-        icon.Text = $"{label} {temp} °C";
+        icon.Text = noReading ? $"{label} --" : $"{label} {temp} °C";
         if (text == shown) return;                       // nothing to redraw
-        var next = TrayIconFactory.TextIcon(text, TempTrayColor(temp));
+        var next = TrayIconFactory.TextIcon(text, noReading ? Theme.Faint : TempTrayColor(temp));
         icon.Icon = next;
         current?.Dispose();
         current = next;
@@ -2063,6 +2168,53 @@ public sealed class TrayContext : ApplicationContext
         _osd.ShowProfile("MSI  ·  " + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
         _balloonUrl = null;
         _tray.BalloonTipTitle = Lang.T("ta_alert_title");
+        _tray.BalloonTipText = text;
+        _tray.ShowBalloonTip(8000);
+        ChangeLog.Add(ChangeSource.Thermal, text);
+    }
+
+    // ---------------- SSD temperature alert ----------------
+    // Disk temperatures come from Windows storage APIs (Perf.Disks, cached 10 s), not the EC,
+    // so this works on every machine including unrecognised firmware. Disk heat moves slowly
+    // and one hot blip is not an alert, hence a fixed dwell instead of a second setting.
+    private const int SsdAlertDwellSeconds = 30;
+
+    private void SampleSsd()
+    {
+        if (!_settings.SsdAlertEnabled) { _ssdOverSince = null; return; }
+        if (Interlocked.Exchange(ref _ssdBusy, 1) != 0) return;
+        var ui = _ui;
+        Task.Run(() =>
+        {
+            try
+            {
+                string name = ""; int max = -1;
+                foreach (var d in Perf.Disks())
+                    if (d.TempC > max) { max = d.TempC; name = d.Name; }
+                if (max > 0) ui?.Post(_ => OnSsdSample(name, max), null);
+            }
+            catch { }
+            finally { Interlocked.Exchange(ref _ssdBusy, 0); }
+        });
+    }
+
+    private void OnSsdSample(string name, int temp)
+    {
+        if (!_settings.SsdAlertEnabled) return;
+        var now = DateTime.Now;
+        // A gap in samples (sleep, the toggle off and on, drives briefly not reporting)
+        // restarts the dwell - a stale start time would let a single hot blip alert instantly.
+        if (now - _lastSsdSampleAt > TimeSpan.FromSeconds(60)) _ssdOverSince = null;
+        _lastSsdSampleAt = now;
+        if (temp < _settings.SsdAlertDegrees) { _ssdOverSince = null; return; }
+        _ssdOverSince ??= now;
+        if ((now - _ssdOverSince.Value).TotalSeconds < SsdAlertDwellSeconds) return;
+        if (now - _lastSsdAlert < ThermalCooldown) return;
+        _lastSsdAlert = now;
+        string text = string.Format(Lang.T("ssd_alert_text"), name, temp, _settings.SsdAlertDegrees);
+        _osd.ShowProfile("MSI  ·  " + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
+        _balloonUrl = null;
+        _tray.BalloonTipTitle = Lang.T("ssd_alert_title");
         _tray.BalloonTipText = text;
         _tray.ShowBalloonTip(8000);
         ChangeLog.Add(ChangeSource.Thermal, text);
@@ -2180,6 +2332,7 @@ public sealed class TrayContext : ApplicationContext
         if (AppLifecycle.ShuttingDown) { _poll.Stop(); return; }
 
         SampleHw();   // reads only; also works on non-writable (Experimental locked) models
+        SampleSsd();  // reads only; storage APIs, so it works even on unrecognised firmware
         UpdateTrayText();   // battery-time suffix follows discharge state (#15)
         DrainPendingDb();   // a swap parked by a busy EC write or an open curve editor
 
@@ -2199,6 +2352,7 @@ public sealed class TrayContext : ApplicationContext
             _lastPower = power;
         }
 
+        CheckTravelMode();     // travel date passed -> previous charge limit comes back
         CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
         if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
 

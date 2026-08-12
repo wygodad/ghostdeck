@@ -48,6 +48,8 @@ public sealed class SettingsPage : ThemedPage
     private List<int> _dispRates = new();      // snapshot the Display card was built from...
     private (bool Internal, string? Name) _dispTarget;   // ...compared in OnDisplayChanged
     private string _uiLang = Lang.CurrentCode; // language the form was built with
+    private bool _builtTravelOn;               // travel/charge snapshot the Power card was built from...
+    private int _builtCharge;                  // ...compared in SyncTravelRow (rebuild only on a real change)
     private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
 
     public SettingsPage(MainDeps d) : base(d)
@@ -97,7 +99,36 @@ public sealed class SettingsPage : ThemedPage
         // the sub-tab you left. FocusScenVisibility runs AFTER OnEnter, so the gear deep link
         // from the Scenarios tab still wins - do not reorder those two.
         if (D.Settings.SettingsAlwaysStart && _cur != SubHome) SelectSub(SubHome, save: false);
-        SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
+        SyncTravelRow(); SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
+    }
+
+    // Thin themed rule between unrelated option groups inside one card (the Notifications
+    // card hosts three of them). Reads Theme at paint time, so a theme switch needs no rewiring.
+    private sealed class SepLine : Control
+    {
+        public SepLine()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            Height = 9;
+            TabStop = false;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(Theme.Card);
+            using var p = new Pen(Theme.Border);
+            int y = Height / 2;
+            e.Graphics.DrawLine(p, 0, y, Width, y);
+        }
+    }
+
+    // Travel mode and the charge limit can change outside this page (CLI, a scene, the expiry
+    // itself) and the Power-card rows are a build-time snapshot - rebuild when it went stale.
+    private void SyncTravelRow()
+    {
+        if (_builtTravelOn == (D.Settings.TravelUntil != DateTime.MinValue) &&
+            _builtCharge == D.Settings.ChargeLimit) return;
+        Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
     }
 
     /// <summary>Clicking the Settings tab while already on it goes back to the Start dashboard.</summary>
@@ -121,7 +152,7 @@ public sealed class SettingsPage : ThemedPage
     }
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
     // no re-layout here, which would reset the scroll position mid-edit.
-    public override void LiveRefresh() { SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); }
+    public override void LiveRefresh() { SyncTravelRow(); SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); }
 
     // The Start page is a dashboard: every tile carries a live third line with the group's
     // current values, so all of it must be re-read whenever the page shows or state changes.
@@ -315,8 +346,60 @@ public sealed class SettingsPage : ThemedPage
         // ---- Power group: battery card + display card ----
         var power = new CardSection(Lang.T("set_grp_power"), "");
         var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" }, Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit))) { Size = new Size(280, 34) };
-        charge.SelectedChanged += i => D.SetChargeLimit(ChargeVals[i]);
+        charge.SelectedChanged += i =>
+        {
+            bool wasTravel = D.Settings.TravelUntil != DateTime.MinValue;
+            D.SetChargeLimit(ChargeVals[i]);
+            // a manual limit cancels a pending travel revert - flip the travel row back too
+            if (wasTravel && D.Settings.TravelUntil == DateTime.MinValue)
+                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+        };
         power.AddRow(Lang.T("set_charge"), charge);
+
+        // Travel mode: one-shot "charge to 100% until a date", then the previous limit comes
+        // back on its own. State lives in TravelUntil, so the picker only chooses the length.
+        bool travelOn = D.Settings.TravelUntil != DateTime.MinValue;
+        _builtTravelOn = travelOn;                    // snapshot for SyncTravelRow
+        _builtCharge = D.Settings.ChargeLimit;
+        var travelBtn = new Button { Text = Lang.T(travelOn ? "travel_stop" : "travel_start"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+        Ui.StyleGhost(travelBtn);
+        // the help dot rides in a flow panel with the button, so it shows in both states
+        Control WithTravelHelp(Control main)
+        {
+            var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
+            main.Margin = new Padding(0);
+            flow.Controls.Add(main);
+            flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T("travel_help"), Margin = new Padding(6, 4, 0, 0) });
+            return flow;
+        }
+        if (!travelOn)
+        {
+            int[] travelDays = { 3, 7, 14, 30 };
+            var travelSel = Combo(travelDays.Select(x => string.Format(Lang.T("travel_days_fmt"), x)).ToArray(), 1);
+            travelBtn.Click += (_, _) =>
+            {
+                D.SetTravelDays(travelDays[Math.Max(0, travelSel.SelectedIndex)]);
+                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+            };
+            power.AddRow(Lang.T("set_travel"), travelSel);
+            power.AddRow("", WithTravelHelp(travelBtn));
+        }
+        else
+        {
+            var travelNote = new Label
+            {
+                Text = string.Format(Lang.T("travel_note"), D.Settings.TravelUntil.ToShortDateString()),
+                AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            travelBtn.Click += (_, _) =>
+            {
+                D.SetTravelDays(0);
+                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+            };
+            power.AddRow(Lang.T("set_travel"), WithTravelHelp(travelBtn));
+            power.AddRow(null, travelNote);
+        }
         power.AddRow(Lang.T("set_autoswitch"), Toggle(D.Settings.AutoSwitchEnabled, v => D.SetAutoSwitch(v)));
         var ac = Combo(Profiles.Order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(D.Settings.ProfileOnAC));
         ac.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnAC = Profiles.Get(Profiles.Order[ac.SelectedIndex]).Key; D.SaveSettings(); };
@@ -627,11 +710,37 @@ public sealed class SettingsPage : ThemedPage
         var secsCombo = Combo(secVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(secVals, D.Settings.TempAlertSeconds)));
         secsCombo.SelectedIndexChanged += (_, _) => { D.Settings.TempAlertSeconds = secVals[Math.Max(0, secsCombo.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ta_time"), secsCombo);
+        // SSD alert: same opt-in pattern, but the data comes from Windows storage APIs
+        // (Perf.Disks), not the EC. Dwell is fixed (30 s) - disk heat moves slowly.
+        alerts.AddRow(null, new SepLine());
+        alerts.AddRow(Lang.T("ssd_enable"), Toggle(D.Settings.SsdAlertEnabled, v => { D.Settings.SsdAlertEnabled = v; D.SaveSettings(); }));
+        int[] ssdVals = { 55, 60, 65, 70, 75, 80 };
+        var ssdDeg = Combo(ssdVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(ssdVals, D.Settings.SsdAlertDegrees)));
+        ssdDeg.SelectedIndexChanged += (_, _) => { D.Settings.SsdAlertDegrees = ssdVals[Math.Max(0, ssdDeg.SelectedIndex)]; D.SaveSettings(); };
+        alerts.AddRow(Lang.T("ssd_threshold"), ssdDeg);
         // How long OSD toasts stay fully visible; the temperature alert enforces a 5 s minimum.
+        alerts.AddRow(null, new SepLine());
         int[] osdVals = Enumerable.Range(1, 15).ToArray();
         var osdCombo = Combo(osdVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(osdVals, D.Settings.OsdSeconds)));
         osdCombo.SelectedIndexChanged += (_, _) => { D.Settings.OsdSeconds = osdVals[Math.Max(0, osdCombo.SelectedIndex)]; D.SaveSettings(); D.SettingsChanged(); };
         alerts.AddRow(Lang.T("set_osd_secs"), osdCombo);
+        // One button back to stock: with three alert groups in one card (and more to come),
+        // undoing an experiment by hand means remembering six values.
+        var alertsReset = new Button { Text = Lang.T("set_defaults"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+        Ui.StyleGhost(alertsReset);
+        alertsReset.Click += (_, _) =>
+        {
+            var d = new AppSettings();
+            D.Settings.TempAlertEnabled = d.TempAlertEnabled;
+            D.Settings.TempAlertDegrees = d.TempAlertDegrees;
+            D.Settings.TempAlertSeconds = d.TempAlertSeconds;
+            D.Settings.SsdAlertEnabled = d.SsdAlertEnabled;
+            D.Settings.SsdAlertDegrees = d.SsdAlertDegrees;
+            D.Settings.OsdSeconds = d.OsdSeconds;
+            D.SaveSettings(); D.SettingsChanged();
+            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+        };
+        alerts.AddRow("", alertsReset);
         _gLeft[SubNotif].Add(alerts);
         // (the game-session report options live in the Gaming-overlay panel, next to the feature)
 
@@ -1571,6 +1680,8 @@ public sealed class SettingsPage : ThemedPage
                 // card's current width instead of a fixed MaximumSize
                 if (l == null && ctl is Label note && note.Tag as string is "muted" or "warn")
                     note.MaximumSize = new Size(width - pad * 2, 0);
+                // group separators stretch with the card
+                if (l == null && ctl is SepLine sep) sep.Width = width - pad * 2;
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
                 if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
                 int cx = l != null ? Width - pad - ctl.Width : pad;

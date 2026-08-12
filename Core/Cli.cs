@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Diag, HdrSwitch, Touchpad, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, DumpModels, VerifyModels, DumpSupportedMd }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -32,6 +32,7 @@ public static class Cli
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
           GhostDeck.exe --refresh <hz|max>      panel refresh rate (works on any machine)
           GhostDeck.exe --charge <60|80|100|off>   battery charge limit (off = stop managing)
+          GhostDeck.exe --travel <days|off>     charge to 100% for a trip; the previous limit returns after <days> (1-90)
           GhostDeck.exe --kbd <off|low|mid|high|0-3>   keyboard-backlight level (supported models)
           GhostDeck.exe --webcam <on|off>       EC-level webcam switch (same as the Fn camera key)
           GhostDeck.exe --fnswap <left|right>   which side the Fn key is on (EC-level Fn/Win swap)
@@ -73,6 +74,9 @@ public static class Cli
             case "--charge":
                 if (Arg1().ToLowerInvariant() == "off") return new CliCommand(CliKind.Charge, "0");
                 return int.TryParse(Arg1(), out int ch) && ch is 60 or 80 or 100 ? new CliCommand(CliKind.Charge, ch.ToString()) : null;
+            case "--travel":
+                if (Arg1().ToLowerInvariant() == "off") return new CliCommand(CliKind.Travel, "0");
+                return int.TryParse(Arg1(), out int td) && td is >= 1 and <= 90 ? new CliCommand(CliKind.Travel, td.ToString()) : null;
             case "--diag":
                 return new CliCommand(CliKind.Diag, Arg1());   // optional output path
             case "--dump-models":
@@ -199,6 +203,21 @@ public static class Cli
         string fw = Ec.ReadFirmware();
         var dev = Devices.Detect(fw);
         bool writable = dev != null && (dev.Tier == Tier.Tested || settings.ExperimentalEnabled);
+
+        // A travel mode whose date passed is caught up on any one-shot invocation - without the
+        // tray app running there is no poll to do it. --diag keeps its read-only promise.
+        if (cmd.Kind != CliKind.Diag && settings.TravelUntil != DateTime.MinValue && DateTime.Now >= settings.TravelUntil)
+        {
+            int back = settings.TravelPrevLimit;
+            settings.TravelUntil = DateTime.MinValue;
+            settings.ChargeLimit = back;
+            settings.Save();
+            if (back > 0 && writable && dev != null)
+            {
+                try { Ec.SetChargeLimit(dev, back); } catch { }
+            }
+            ChangeLog.Add(ChangeSource.Cli, $"Travel mode: ended (limit {(back > 0 ? back + " %" : "off")})");
+        }
 
         try
         {
@@ -414,6 +433,12 @@ public static class Cli
                 case CliKind.Charge:
                 {
                     int limit = int.Parse(cmd.Arg);
+                    // an explicit limit dissolves a pending travel-mode revert (the user took over)
+                    if (limit != settings.ChargeLimit && settings.TravelUntil != DateTime.MinValue)
+                    {
+                        settings.TravelUntil = DateTime.MinValue;
+                        ChangeLog.Add(ChangeSource.Cli, "Travel mode cancelled (limit changed manually)");
+                    }
                     settings.ChargeLimit = limit;
                     settings.Save();
                     if (limit > 0)
@@ -427,6 +452,33 @@ public static class Cli
                         // 0 = stop managing: the EC keeps its current threshold, we just stop re-asserting it
                         ChangeLog.Add(ChangeSource.Cli, "Charge limit: off");
                         Console.WriteLine("charge limit: off (no longer managed)");
+                    }
+                    return 0;
+                }
+                case CliKind.Travel:
+                {
+                    int days = int.Parse(cmd.Arg);
+                    if (days > 0)
+                    {
+                        if (settings.TravelUntil == DateTime.MinValue)
+                            settings.TravelPrevLimit = settings.ChargeLimit;   // re-stamping while active keeps the original
+                        settings.TravelUntil = DateTime.Now.AddDays(days);   // full days from now, not calendar midnights
+                        settings.ChargeLimit = 100;
+                        settings.Save();
+                        Ec.SetChargeLimit(dev, 100);
+                        ChangeLog.Add(ChangeSource.Cli, $"Travel mode: 100 % until {settings.TravelUntil:yyyy-MM-dd}");
+                        Console.WriteLine($"travel mode: 100 % until {settings.TravelUntil:yyyy-MM-dd}");
+                    }
+                    else
+                    {
+                        if (settings.TravelUntil == DateTime.MinValue) { Console.WriteLine("travel mode is not active"); return 0; }
+                        int back = settings.TravelPrevLimit;
+                        settings.TravelUntil = DateTime.MinValue;
+                        settings.ChargeLimit = back;
+                        settings.Save();
+                        if (back > 0) Ec.SetChargeLimit(dev, back);   // 0 = stop managing, the EC keeps its threshold
+                        ChangeLog.Add(ChangeSource.Cli, $"Travel mode: off (limit {(back > 0 ? back + " %" : "off")})");
+                        Console.WriteLine($"travel mode: off ({(back > 0 ? "limit " + back + " %" : "no longer managed")})");
                     }
                     return 0;
                 }

@@ -63,6 +63,11 @@ public sealed class AppSettings
     public string ProfileOnBattery { get; set; } = "Silent";
 
     public int ChargeLimit { get; set; } = 0;                          // 0 = nie zmieniaj; inaczej 60/80/100
+
+    // ---- Charge-limit travel mode: charge to 100% until the date below, then TravelPrevLimit
+    // comes back on its own. MinValue = not active. Any explicit limit change cancels it.
+    public DateTime TravelUntil { get; set; } = DateTime.MinValue;
+    public int TravelPrevLimit { get; set; }
     public bool StatusOnTop { get; set; } = false;                     // okno Status "zawsze na wierzchu"
     public bool ExperimentalEnabled { get; set; } = false;             // pozwol na zapis dla modeli Experimental
 
@@ -83,6 +88,11 @@ public sealed class AppSettings
     public bool TempAlertEnabled { get; set; } = false;                // user opts in explicitly
     public int TempAlertDegrees { get; set; } = 90;                    // alert threshold (max of CPU/GPU, °C)
     public int TempAlertSeconds { get; set; } = 10;                    // must stay above threshold this long
+
+    // ---- SSD temperature alert: same opt-in pattern. Data comes from Windows storage APIs
+    // (Perf.Disks), not the EC, so it works on every machine incl. unrecognised firmware.
+    public bool SsdAlertEnabled { get; set; } = false;
+    public int SsdAlertDegrees { get; set; } = 70;                     // hottest disk, °C
 
     public int OsdSeconds { get; set; } = 3;                           // how long OSD toasts stay visible (1-15 s)
 
@@ -337,6 +347,8 @@ public sealed class AppSettings
         // Sanity for hand-edited / imported files: keep the thermal-alert numbers in a sane band.
         if (TempAlertDegrees is < 60 or > 105) TempAlertDegrees = 90;
         if (TempAlertSeconds is < 3 or > 120) TempAlertSeconds = 10;
+        if (SsdAlertDegrees is < 45 or > 90) SsdAlertDegrees = 70;
+        if (TravelPrevLimit is not (0 or 60 or 80 or 100)) TravelPrevLimit = 0;
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
@@ -425,6 +437,10 @@ public sealed class AppSettings
         ProfileOnAC = src.ProfileOnAC;
         ProfileOnBattery = src.ProfileOnBattery;
         ChargeLimit = src.ChargeLimit;
+        // Travel mode is machine state (this battery, this trip): the import adopts the file's
+        // charge limit, so a revert pending from before the import no longer applies.
+        TravelUntil = DateTime.MinValue;
+        TravelPrevLimit = 0;
         StatusOnTop = src.StatusOnTop;
         ExperimentalEnabled = src.ExperimentalEnabled;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
@@ -432,6 +448,8 @@ public sealed class AppSettings
         TempAlertEnabled = src.TempAlertEnabled;
         TempAlertDegrees = src.TempAlertDegrees;
         TempAlertSeconds = src.TempAlertSeconds;
+        SsdAlertEnabled = src.SsdAlertEnabled;
+        SsdAlertDegrees = src.SsdAlertDegrees;
         OsdSeconds = src.OsdSeconds;
         RefreshSwitchEnabled = src.RefreshSwitchEnabled;
         RefreshOnAC = src.RefreshOnAC;
@@ -514,7 +532,11 @@ public sealed class AppSettings
             TempAlertEnabled = TempAlertEnabled,
             TempAlertDegrees = TempAlertDegrees,
             TempAlertSeconds = TempAlertSeconds,
+            SsdAlertEnabled = SsdAlertEnabled,
+            SsdAlertDegrees = SsdAlertDegrees,
             OsdSeconds = OsdSeconds,
+            TravelUntil = TravelUntil,
+            TravelPrevLimit = TravelPrevLimit,
             RefreshSwitchEnabled = RefreshSwitchEnabled,
             RefreshOnAC = RefreshOnAC,
             RefreshOnBattery = RefreshOnBattery,

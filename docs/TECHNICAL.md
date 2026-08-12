@@ -2359,3 +2359,61 @@ path works (it ships this DLL for the MSI Claw), but redistributing an MSI-signe
 component has unresolved licensing, and the supported fix - install MSI Center once - is
 trivial. GhostDeck's job is to detect and name the state (see the firmware-probe work) rather
 than mutate the system.
+
+## 63. SSD temperature alert and charge-limit travel mode
+
+**SSD alert** (Settings → Notifications; off by default). The 3-second tray poll asks
+`Perf.Disks()` for the hottest drive (the same 10-second-cached path Status and the overlay
+already use: `MSFT_StorageReliabilityCounter`, then the temperature IOCTL, then the NVMe
+SMART log) and raises the same OSD + balloon + change-history alert the CPU/GPU alert uses.
+Differences from the CPU/GPU alert, and why:
+
+- **Fixed 30 s dwell instead of a second setting.** Disk heat moves slowly - a single hot
+  reading is a burst write, not a condition. The threshold (55-80 °C, default 70) is the
+  only knob.
+- **Runs outside every EC gate.** The data comes from Windows storage APIs, so the alert
+  works on locked Experimental models, telemetry-only boards and unrecognised firmware.
+  Same 5-minute cool-down constant as the thermal alert.
+- Drives that report no sensor land at `TempC = -1` in `Perf.Disks()` and are skipped.
+- **A gap in samples restarts the dwell.** The dwell start is wall-clock, so sleep, the
+  toggle going off and on, or drives briefly not reporting would leave a stale timestamp
+  and let a single hot blip alert instantly; a >60 s pause between processed samples
+  clears it.
+
+**Travel mode** (Settings → Power; `--travel <days|off>`). One-shot override of the charge
+limit: `TravelPrevLimit` remembers the current limit, the limit becomes 100 %, and
+`TravelUntil` (`MinValue` = off) says when the previous limit returns. The stamp is
+`Now + N` full days, not calendar midnights - "1 day" picked at 23:50 must not end ten
+minutes later. Design decisions:
+
+- **The revert fires on an edge, it is not a standing rule.** `CheckTravelMode()` in the
+  poll acts once when the date passes - and once at startup, before the regular
+  charge-limit apply, so a trip that ended while the app was off reverts cleanly - then
+  re-applies the previous limit through the same `TryApplyChargeLimit()` gate as every
+  other automatic write. The startup revert's balloon is deferred until the tray icon is
+  in the shell (`ShowBalloonTip` before that is a silent no-op - same ordering rule as the
+  firmware warning).
+- **A one-shot CLI invocation catches the expiry up too**: without the tray app running
+  there is no poll, so `RunOneShot` checks `TravelUntil` before executing any command
+  (except `--diag`, which keeps its read-only promise). A scheduled-task user who only
+  ever runs one-shot commands still gets the revert.
+- **Any explicit limit change cancels the pending revert** - the Settings segment, the
+  Scenarios brick, a scene RUN BY HAND that carries a charge limit, the CLI. The user took
+  over; a revert days later would undo a choice they made deliberately. The cancel is
+  logged. Scenes applied AUTOMATICALLY (schedule, battery rules) are the opposite case:
+  while travel mode is active they skip their charge-limit field entirely, so a weekday
+  schedule cannot silently kill a trip's 100 % on Monday morning.
+- **Re-picking a length while active keeps the original `TravelPrevLimit`** - extending a
+  trip must not turn "the limit from before the trip" into "100 %".
+- **Settings import cancels travel mode.** The imported file's charge limit takes effect,
+  and a revert stamped on another machine or battery has no meaning here.
+- The UI is a picker + button, not a stateful combo: the state is a date, so a duration
+  dropdown cannot represent "active" once a day has passed. While active the row shows an
+  end-now button and a note with the return date. The row is a build-time snapshot, so
+  `SyncTravelRow()` (OnEnter + LiveRefresh) rebuilds the page when the travel state or the
+  limit changed outside it (CLI, scene, the expiry itself).
+
+**Charge limit after resume.** The resume timer (the same 6-second shot that restores the
+profile and curve) now re-asserts the charge limit when one is set - hibernation can drop
+the EC threshold on some boards, and re-writing the same byte is harmless (§19.7 reasoning).
+Ordered before the schedule check, so a scene window entered during sleep still outranks it.

@@ -319,6 +319,9 @@ public static class Lang
         m["log_read_fail"]    = new[] { "readback failed", "odczyt nieudany", "Rücklesen fehlgeschlagen", "relecture échouée", "relectura fallida", "回读失败", "releitura falhou", "ошибка чтения" };
         m["log_err"]          = new[] { "error", "błąd", "Fehler", "erreur", "error", "错误", "erro", "ошибка" };
         m["log_charge"]       = new[] { "Charge limit {0}%", "Limit ładowania {0}%", "Ladelimit {0}%", "Limite de charge {0}%", "Límite de carga {0}%", "充电限制 {0}%", "Limite de carga {0}%", "Лимит заряда {0}%" };
+        m["log_travel_on"]    = new[] { "Travel mode: 100% until {0}", "Tryb podróży: 100% do {0}", "Reisemodus: 100% bis {0}", "Mode voyage : 100% jusqu'au {0}", "Modo viaje: 100% hasta {0}", "旅行模式：100% 直到 {0}", "Modo viagem: 100% até {0}", "Режим поездки: 100% до {0}" };
+        m["log_travel_off"]   = new[] { "Travel mode ended, charge limit back to {0}", "Tryb podróży zakończony, limit ładowania znów {0}", "Reisemodus beendet, Ladelimit wieder {0}", "Mode voyage terminé, limite de charge de nouveau {0}", "Modo viaje terminado, límite de carga de nuevo {0}", "旅行模式已结束，充电限制恢复为 {0}", "Modo viagem terminado, limite de carga de volta a {0}", "Режим поездки завершён, лимит заряда снова {0}" };
+        m["log_travel_cancel"]= new[] { "Travel mode cancelled (limit changed manually)", "Tryb podróży anulowany (limit zmieniony ręcznie)", "Reisemodus abgebrochen (Limit manuell geändert)", "Mode voyage annulé (limite modifiée manuellement)", "Modo viaje cancelado (límite cambiado manualmente)", "旅行模式已取消（已手动更改限制）", "Modo viagem cancelado (limite alterado manualmente)", "Режим поездки отменён (лимит изменён вручную)" };
         m["log_external"]     = new[] { "External change: {0} → {1}", "Zmiana zewnętrzna: {0} → {1}", "Externe Änderung: {0} → {1}", "Changement externe : {0} → {1}", "Cambio externo: {0} → {1}", "外部更改：{0} → {1}", "Alteração externa: {0} → {1}", "Внешнее изменение: {0} → {1}" };
         m["log_curve_on"]     = new[] { "Custom fan curve ON", "Własna krzywa wentylatora WŁ.", "Eigene Lüfterkurve EIN", "Courbe perso ACTIVÉE", "Curva personalizada ACT.", "自定义风扇曲线 开", "Curva personalizada LIG.", "Своя кривая ВКЛ" };
         m["log_curve_off"]    = new[] { "Custom fan curve off", "Własna krzywa wentylatora WYŁ.", "Eigene Lüfterkurve AUS", "Courbe perso désactivée", "Curva personalizada des.", "自定义风扇曲线 关", "Curva personalizada DESL.", "Своя кривая ВЫКЛ" };
@@ -344,6 +347,20 @@ public static class Lang
         m["ta_time"]         = new[] { "For at least", "Przez co najmniej", "Für mindestens", "Pendant au moins", "Durante al menos", "持续至少", "Por pelo menos", "Не менее" };
         m["ta_alert_title"]  = new[] { "High temperature", "Wysoka temperatura", "Hohe Temperatur", "Température élevée", "Temperatura alta", "温度过高", "Temperatura alta", "Высокая температура" };
         m["set_osd_secs"]    = new[] { "OSD display time", "Czas wyświetlania OSD", "OSD-Anzeigedauer", "Durée d'affichage de l'OSD", "Duración del OSD", "OSD 显示时长", "Duração do OSD", "Время показа OSD" };
+        m["ssd_enable"]      = new[] { "SSD temperature alert", "Alert temperatury SSD", "SSD-Temperaturwarnung", "Alerte de température SSD", "Alerta de temperatura del SSD", "SSD 温度警报", "Alerta de temperatura do SSD", "Оповещение о температуре SSD" };
+        m["ssd_threshold"]   = new[] { "SSD threshold", "Próg SSD", "SSD-Schwelle", "Seuil SSD", "Umbral del SSD", "SSD 阈值", "Limite do SSD", "Порог SSD" };
+        m["ssd_alert_title"] = new[] { "SSD running hot", "Wysoka temperatura SSD", "SSD läuft heiß", "SSD en surchauffe", "SSD sobrecalentado", "SSD 温度过高", "SSD superaquecido", "Высокая температура SSD" };
+        m["ssd_alert_text"]  = new[]
+        {
+            "{0}: {1}°C (above {2}°C)",
+            "{0}: {1}°C (powyżej {2}°C)",
+            "{0}: {1}°C (über {2}°C)",
+            "{0} : {1}°C (au-dessus de {2}°C)",
+            "{0}: {1}°C (por encima de {2}°C)",
+            "{0}：{1}°C（超过 {2}°C）",
+            "{0}: {1}°C (acima de {2}°C)",
+            "{0}: {1}°C (выше {2}°C)"
+        };
 
         // ---- generic dialog buttons ----
         m["gen_ok"]     = new[] { "OK", "OK", "OK", "OK", "Aceptar", "确定", "OK", "ОК" };
@@ -629,6 +646,25 @@ public static class Lang
         m["set_tab_as_icon"] = new[] { "{0} — as an icon on the right", "{0} - jako ikona po prawej", "{0} — als Symbol rechts", "{0} — en icône à droite", "{0} — como icono a la derecha", "{0} — 显示为右侧图标", "{0} — como ícone à direita", "{0} — значком справа" };
         m["set_charge"]     = new[] { "Battery charge limit", "Limit ładowania baterii", "Akkuladelimit", "Limite de charge batterie", "Límite de carga", "电池充电限制", "Limite de carga", "Лимит заряда батареи" };
         m["charge_dont"]    = new[] { "Don't change", "Nie zmieniaj", "Nicht ändern", "Ne pas changer", "No cambiar", "不更改", "Não alterar", "Не менять" };
+        m["set_travel"]     = new[] { "Travel mode", "Tryb podróży", "Reisemodus", "Mode voyage", "Modo viaje", "旅行模式", "Modo viagem", "Режим поездки" };
+        // ru uses the abbreviation "дн." on purpose: the full word declines with the number
+        // (3 дня / 7 дней) and one fixed form would be wrong for part of the picker options.
+        m["travel_days_fmt"]= new[] { "{0} days", "{0} dni", "{0} Tage", "{0} jours", "{0} días", "{0} 天", "{0} dias", "{0} дн." };
+        m["travel_note"]    = new[] { "Charge limit 100% until {0}", "Limit ładowania 100% do {0}", "Ladelimit 100% bis {0}", "Limite de charge 100% jusqu'au {0}", "Límite de carga 100% hasta {0}", "充电限制 100% 直到 {0}", "Limite de carga 100% até {0}", "Лимит заряда 100% до {0}" };
+        m["travel_start"]   = new[] { "Start travel mode", "Rozpocznij tryb podróży", "Reisemodus starten", "Démarrer le mode voyage", "Iniciar modo viaje", "开始旅行模式", "Iniciar modo viagem", "Включить режим поездки" };
+        m["travel_stop"]    = new[] { "End travel mode", "Zakończ tryb podróży", "Reisemodus beenden", "Terminer le mode voyage", "Terminar modo viaje", "结束旅行模式", "Terminar modo viagem", "Завершить режим поездки" };
+        m["travel_help"]    = new[]
+        {
+            "Charges the battery to 100% for a trip. After the chosen number of days the previous limit comes back on its own; if the app was off, it catches up at the next start. Changing the limit by hand (here, in Scenarios, in a scene or from the CLI) cancels the pending return. The limit is also re-applied after every wake.",
+            "Ładuje baterię do 100% na czas wyjazdu. Po wybranej liczbie dni poprzedni limit wraca sam; jeśli aplikacja była wyłączona, nadrobi to przy najbliższym starcie. Ręczna zmiana limitu (tutaj, w Scenariuszach, w scenie albo z CLI) anuluje oczekujący powrót. Limit jest też ponownie zapisywany po każdym wybudzeniu.",
+            "Lädt den Akku für eine Reise auf 100%. Nach der gewählten Anzahl von Tagen kehrt das vorherige Limit von selbst zurück; war die App aus, holt sie es beim nächsten Start nach. Eine manuelle Änderung des Limits (hier, in Szenarien, in einer Szene oder über die CLI) bricht die geplante Rückkehr ab. Das Limit wird auch nach jedem Aufwachen neu gesetzt.",
+            "Charge la batterie à 100% pour un voyage. Après le nombre de jours choisi, la limite précédente revient d'elle-même ; si l'application était fermée, elle rattrape au prochain démarrage. Un changement manuel de la limite (ici, dans Scénarios, dans une scène ou via la CLI) annule le retour en attente. La limite est aussi réappliquée après chaque réveil.",
+            "Carga la batería al 100% para un viaje. Tras el número de días elegido, el límite anterior vuelve por sí solo; si la aplicación estaba cerrada, lo hace en el siguiente inicio. Un cambio manual del límite (aquí, en Escenarios, en una escena o por CLI) cancela el retorno pendiente. El límite también se reaplica tras cada reanudación.",
+            "为旅行将电池充至 100%。选定天数过后，之前的限制会自动恢复；即使应用当时未运行，也会在下次启动时补上。手动更改限制（此处、场景页、场景或命令行）会取消待恢复的设置。每次唤醒后也会重新应用限制。",
+            "Carrega a bateria a 100% para uma viagem. Após o número de dias escolhido, o limite anterior volta sozinho; se a aplicação estava fechada, é aplicado no próximo arranque. Uma alteração manual do limite (aqui, em Cenários, numa cena ou via CLI) cancela o retorno pendente. O limite também é reaplicado após cada retoma.",
+            "Заряжает батарею до 100% на время поездки. По истечении выбранного числа дней прежний лимит вернётся сам; если приложение было закрыто, это произойдёт при следующем запуске. Ручное изменение лимита (здесь, в Сценариях, в сцене или через CLI) отменяет ожидающий возврат. Лимит также повторно применяется после каждого пробуждения."
+        };
+        m["set_defaults"]   = new[] { "Restore defaults", "Przywróć domyślne", "Standardwerte wiederherstellen", "Restaurer les valeurs par défaut", "Restaurar valores predeterminados", "恢复默认设置", "Restaurar padrões", "Восстановить по умолчанию" };
         m["set_autoswitch"] = new[] { "Auto-switch AC / battery", "Auto-przełączanie zasilacz / bateria", "Auto-Wechsel Netz / Akku", "Bascule auto secteur / batterie", "Cambio auto CA / batería", "电源/电池自动切换", "Troca auto tomada / bateria", "Автопереключение сеть / батарея" };
         m["on_ac"]          = new[] { "On AC", "Na zasilaczu", "Am Netz", "Sur secteur", "Con CA", "接通电源", "Na tomada", "От сети" };
         m["on_battery"]     = new[] { "On battery", "Na baterii", "Im Akku", "Sur batterie", "Con batería", "使用电池", "Na bateria", "От батареи" };
