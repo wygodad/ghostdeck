@@ -40,11 +40,11 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🌀 **Fan curve editor** - drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced - the app warns and switches for you. **Single-fan-curve boards** (where MSI Center shows one slider, e.g. Thin GF63 12VE) automatically get a single full-width curve editor, and the unused GPU tables are never written
 - 🗂️ **Fan-curve presets** - save curves under a name, switch them from the editor or the tray menu, **assign a preset per profile** (auto-applied on every switch; Silent stays stock), and **export / import / share** presets as JSON - a Share button opens a prefilled GitHub Discussion with your model and curve
 - 📈 **History charts** - local trend of CPU/GPU temperature, fan duty, fan RPM and **game FPS** over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
-- ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on [seconds]`, `--curve "<preset>"`, `--scene "<name>"`, `--refresh 240`, `--charge 80`, `--brightness 45`, `--hdr on`, `--touchpad off`, `--kbd high`, `--webcam off`, `--fnswap left`, `--winlock on`, `--panic`, `--diag` and `--status` (rich JSON: temps, fans/RPM, battery, disks, states) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
+- ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on [seconds]`, `--curve "<preset>"`, `--scene "<name>"`, `--refresh 240`, `--charge 80`, `--travel 7`, `--brightness 45`, `--hdr on`, `--touchpad off`, `--kbd high`, `--webcam off`, `--fnswap left`, `--winlock on`, `--panic`, `--diag` and `--status` (rich JSON: temps, fans/RPM, battery, disks, states) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
 - 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*, with an optional **auto-off timer** (30 s to 15 min, or your own value) so a quick cooling blast never turns into a forgotten hurricane
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
 - 🛡️ **Firmware-change guard** - after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
-- 🌡️ **Temperature alert** *(opt-in)* - an OSD toast + tray notification when the CPU or GPU stays above a chosen threshold (70-100 °C) for a chosen time (5-60 s), with a cool-down between alerts and an entry in the change history; the **OSD display time is adjustable** (1-15 s, alerts stay up at least 5 s)
+- 🌡️ **Temperature alert** *(opt-in)* - an OSD toast + tray notification when the CPU or GPU stays above a chosen threshold (70-100 °C) for a chosen time (5-60 s), with a cool-down between alerts and an entry in the change history; the **OSD display time is adjustable** (1-15 s, alerts stay up at least 5 s). A separate **SSD temperature alert** *(opt-in)* watches the hottest drive (55-80 °C) through the Windows storage APIs, so it works on every machine - even unsupported models
 - 🆘 **Panic reset hotkey** (default `Ctrl+Alt+F10`) - one press returns the machine to a safe stock state: Fan Boost off, Balanced profile, fans back on the automatic curve
 - 💾 **Settings backup** - export every preference (colors, hotkeys, rules, overlay, alerts) to a JSON file and import it after a reinstall or on another machine; machine-specific state (firmware guard, window position) stays local
 - 🌡️ **Temperatures even on unsupported firmware** - a few MSI models ship firmware without MSI's EC control interface (GhostDeck used to be dead there); the app now falls back to MSI's WMI sensor blocks and still shows live **CPU/GPU temperature** in Status and the overlay, while saying plainly that profiles, fan curves and the charge limit are unavailable on that machine
@@ -53,7 +53,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
 - ♻️ **Startup / wake restore** *(opt-in, Settings → Power)* - the EC resets to factory state on every cold boot (and sometimes wakes in Super Battery on its own); GhostDeck can re-assert both your **profile** and your **custom fan curve** a few seconds after startup and resume, so the machine always comes back exactly as you left it
 - 🖥️ **Refresh-rate auto-switch** *(opt-in)* - drop the panel to 60 Hz on battery and jump back to 144/240 Hz on AC, automatically; pickers list only the modes your panel reports and always target the **built-in panel**, even with an external monitor set as primary. Pure Windows display API, so it works on **every** laptop - even unrecognised models
-- 🔋 **Battery charge limit** (60 / 80 / 100 %) plus a **battery health panel** (design vs full-charge capacity, wear %, charge cycles) in Settings → Power
+- 🔋 **Battery charge limit** (60 / 80 / 100 %) with a **travel mode** - one click charges to 100 % for a trip and the previous limit returns automatically after 3-30 days - plus a **battery health panel** (design vs full-charge capacity, wear %, charge cycles) in Settings → Power
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
 - 🗄️ **Signed model-database updates** - support for newly verified models and fan curves arrives **without waiting for a release**: the app fetches a **digitally signed** model database from the repo at every start, when you open the Models tab, or on demand from Settings → System, and applies it straight away when it is newer. Signature verified on every load, older files rejected, anything invalid falls back to the built-in tables - a bad download can never break the app
@@ -73,6 +73,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Balanced / Extreme / Super Battery modes | ✅ | ✅ |
 | Full fan speed (Fan Boost / MSI Cooler Boost) | ✅ | ✅ *(+ auto-off timer)* |
 | Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
+| Charge-limit travel mode (auto-revert after a trip) | ❌ | ✅ *(3-30 days, CLI 1-90)* |
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
 | Global **rebindable** hotkeys | Limited² | ✅ |
 | Scenes (one-click multi-setting macros) | ❌ | ✅ *(profile + curve + Hz + overlay + more)* |
@@ -92,6 +93,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Live EC profile-byte view / transparency | ❌ | ✅ |
 | Change & EC-write history log | ❌ | ✅ |
 | Temperature alert (threshold + duration) | ❌ | ✅ *(opt-in, OSD + tray)* |
+| SSD temperature alert | ❌ | ✅ *(opt-in)* |
 | Panic reset hotkey (back to a safe stock state) | ❌ | ✅ *(Ctrl+Alt+F10)* |
 | Settings backup (export / import) | ❌ | ✅ |
 | Fan-curve presets + per-profile auto-apply | ❌ | ✅ *(share/import as JSON)* |
@@ -130,7 +132,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
 | **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
 | ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
-| **Settings → Power** - charge limit, scene schedule, battery-level rules, battery health, Fan Boost auto-off timer, refresh rate and HDR | **Settings → System** - tray-icon mouse actions, tray temperature icons, camera privacy block, Windows-key lock, touchpad, Fn/Win keyboard layout, diagnostics, backup |
+| **Settings → Power** - charge limit with travel mode, scene schedule, battery-level rules, battery health, Fan Boost auto-off timer, refresh rate and HDR | **Settings → System** - tray-icon mouse actions, tray temperature icons, camera privacy block, Windows-key lock, touchpad, Fn/Win keyboard layout, diagnostics, backup |
 | ![Settings Hotkeys](docs/images/settings_hotkeys.png) | ![Updates](docs/images/updates.png) |
 | **Settings → Hotkeys** - every action rebindable, including one shortcut per scene | **Updates** - one-click install, 20 releases with download counts and inline notes |
 | ![Report my model](docs/images/report_my_model.png) | ![Models](docs/images/models.png) |
@@ -143,6 +145,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Change log** - full history of profile switches and EC writes | **Fan Boost auto-off** - the OSD note when the boost timer hands the fans back |
 | ![Temperature in the tray](docs/images/tray-temps.png) | ![Compact sub-tabs](docs/images/subtabs-compact.png) |
 | **Temperature in the tray** - CPU and GPU as their own icons next to the clock, colour by your own thresholds | **Narrow window** - the sub-tab strip drops to icons instead of pushing a scrollbar; the tab you are on keeps its label |
+| ![Settings Notifications](docs/images/settings_notifications.png) | ![Travel mode](docs/images/travel_mode.png) |
+| **Settings → Notifications** - CPU/GPU and SSD temperature alerts with their own thresholds, OSD display time and one-click restore defaults | **Travel mode** - charge to 100 % for a trip; the previous limit returns on its own after the chosen number of days |
 
 ## Download
 
@@ -197,6 +201,7 @@ GhostDeck.exe --curve "My quiet"      # apply a saved fan-curve preset ("auto" =
 GhostDeck.exe --scene "Gaming"        # apply a saved scene (needs the app running)
 GhostDeck.exe --refresh max           # panel refresh rate (a number or "max"; any laptop)
 GhostDeck.exe --charge 80             # battery charge limit (60/80/100, "off" = stop managing)
+GhostDeck.exe --travel 7              # charge to 100% for a trip; the previous limit returns after 7 days ("off" = end now)
 GhostDeck.exe --brightness 45         # internal-panel brightness (any laptop)
 GhostDeck.exe --hdr on                # HDR / advanced color (HDR-capable displays)
 GhostDeck.exe --touchpad off          # precision touchpad, device level (any laptop)

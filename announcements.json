@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1330-travel-ssd",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.32.0",
+    "title": "New release: travel mode for the charge limit, and an SSD temperature alert",
+    "title_pl": "Nowe wydanie: tryb podróży dla limitu ładowania i alert temperatury SSD",
+    "body": "GhostDeck v1.33.0 is out. Travel mode charges the battery to 100% for a trip and brings your previous limit back on its own after the chosen number of days - if the app was off at the time, it catches up at the next start, and any manual limit change simply cancels the pending return; the CLI grew --travel <days|off>. A new opt-in SSD temperature alert watches the hottest drive through Windows storage APIs, so it works on every machine, including models without EC control. Also: the Notifications card gained visual groups and a one-click restore-defaults, the travel row explains itself in a click-open bubble, the charge limit is re-applied after every wake (hibernation could silently drop it on some boards), and a sleeping GPU now shows -- in its tray icon instead of the icon vanishing. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.33.0. Tryb podróży ładuje baterię do 100% na czas wyjazdu i sam przywraca poprzedni limit po wybranej liczbie dni - jeśli aplikacja była wtedy wyłączona, nadrobi to przy najbliższym starcie, a każda ręczna zmiana limitu po prostu anuluje oczekujący powrót; CLI zyskało --travel <dni|off>. Nowy opcjonalny alert temperatury SSD pilnuje najcieplejszego dysku przez API Windows, więc działa na każdej maszynie, także bez sterowania EC. Do tego: karta Powiadomienia zyskała wizualne grupy i przycisk przywracania domyślnych, wiersz trybu podróży tłumaczy się sam w klikanej chmurce, limit ładowania jest ponownie zapisywany po każdym wybudzeniu (hibernacja potrafiła go po cichu zgubić), a uśpiona karta graficzna pokazuje w trayu -- zamiast znikającej ikony. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.33.0"
+  },
+  {
     "id": "2026-08-v1320-display-target",
     "severity": "info",
     "minVersion": "1.0.0",

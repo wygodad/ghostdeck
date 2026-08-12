@@ -3,14 +3,31 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.33.0] - 2026-08-12
 ### Added
+- **SSD temperature alert** *(opt-in, Settings → Notifications)* - an OSD toast + tray
+  notification when the hottest drive stays above a chosen threshold (55-80 °C) for 30 s,
+  with the same 5-minute cool-down as the CPU/GPU alert. Disk temperatures come from the
+  Windows storage APIs, so the alert works on every machine, including unsupported firmware.
+- **Charge-limit travel mode** (Settings → Power; CLI `--travel <days|off>`) - one click
+  charges the battery to 100 % for a trip and the previous limit comes back on its own after
+  the chosen number of days (3/7/14/30 in the UI, 1-90 via CLI). Any manual charge-limit
+  change cancels the pending revert; ending the mode early restores the previous limit
+  immediately.
 - **`docs/SUPPORTED_MODELS.md` is now generated from the code.** The hidden CLI
   `--dump-supported-md` writes the whole page from the compiled model tables, and CI fails
   whenever the committed file - or the README model counters - drifts from the code, so a
   model promotion can no longer leave the docs stale.
 
 ### Changed
+- **The charge limit is re-asserted a few seconds after resume** - hibernation can drop the
+  EC's charge threshold on some boards; re-writing the same byte is harmless.
+- **Tray temperature icons: a sleeping discrete GPU now shows `--`** instead of its icon
+  vanishing - a disappearing icon read as a bug and made the neighbouring tray icons jump
+  around. The dash uses a muted colour, so it is never mistaken for a good temperature.
+- **Settings → Notifications: the alert groups are visually separated** and a "Restore
+  defaults" button resets the whole card in one click; the travel-mode row gained an
+  in-app help bubble explaining the automatic return of the previous limit.
 - **Models tab: an owner-verified curve on a not-yet-tested model now reads "verified
   (opt-in)"** instead of plain "editable" - the same distinction the supported-models table
   makes, so the app and the docs tell one story.
