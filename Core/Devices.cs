@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260811;
+    public const int DataVersion = 20260812;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -431,6 +431,19 @@ public static class Devices
                 Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "ping-myildirim", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/61" },
 
+        // Pulse 16 AI C1VGKG/C1VFKG (15P3EMS1) - owner per-scenario dump (issue #68, MSI Center 2.0.48,
+        // i.e. the last lineup with the classic Silent scenario) matches StdRecipes 1:1: shift 0xD2
+        // C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery; charge limit
+        // alive at 0xD7 (E4 = active at 100%). All three hardware checks confirmed by the owner, and
+        // the power test (issue #85) proves the Silent cap outright: 59% of Balanced's work at 2954 vs
+        // 5007 MHz, with the profile bytes read back intact after every phase. Fan curve VERIFIED on
+        // both fans (issue #84): the test curve (CPU 25/35/45/55/65/75, GPU 20/30/40/50/60/70) sits
+        // byte-for-byte at the shipped 0x72 / 0x8A. Fan RPM at 0xC9/0xCB, single-byte divisors
+        // (9D/9C = ~3044/3064 RPM in Silent, both varying per scenario and alive under load).
+        new() { Name = "MSI Pulse 16 AI C1VGKG/C1VFKG", FirmwarePrefixes = new[] { "15P3EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "migecko", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/68" },
+
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
         new() { Name = "MSI Raider GE68HX 13V",          FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -557,7 +570,6 @@ public static class Devices
         new() { Name = "MSI Modern 15 H B13M",              FirmwarePrefixes = new[] { "15H4IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Pulse 16 AI C1VGKG/C1VFKG",     FirmwarePrefixes = new[] { "15P3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG", FirmwarePrefixes = new[] { "15Q3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },

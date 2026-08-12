@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260811,
+  "dataVersion": 20260812,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / 14V",
@@ -602,6 +602,49 @@
       },
       "credit": "ping-myildirim",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/61",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Pulse 16 AI C1VGKG/C1VFKG",
+      "prefixes": [
+        "15P3EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "migecko",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/68",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3147,45 +3190,6 @@
       "name": "MSI Cyborg 15 AI A1VFK",
       "prefixes": [
         "15K2EMS1"
-      ],
-      "tier": "Experimental",
-      "fanCurve": {
-        "advancedModeValue": "0x8D",
-        "cpuTempBase": "0x69",
-        "cpuSpeedBase": "0x72",
-        "gpuTempBase": "0x81",
-        "gpuSpeedBase": "0x8A",
-        "points": 6,
-        "verified": false,
-        "singleFan": false
-      },
-      "recipes": {
-        "Silent": [
-          "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
-        ],
-        "Balanced": [
-          "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
-        ],
-        "Extreme": [
-          "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
-        ],
-        "SuperBattery": [
-          "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
-        ]
-      }
-    },
-    {
-      "name": "MSI Pulse 16 AI C1VGKG/C1VFKG",
-      "prefixes": [
-        "15P3EMS1"
       ],
       "tier": "Experimental",
       "fanCurve": {

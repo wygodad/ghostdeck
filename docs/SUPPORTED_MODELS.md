@@ -2,7 +2,7 @@
 
 > Auto-generated from [`Devices.cs`](../Core/Devices.cs) - the single source of truth. Do not edit by hand: regenerate with `GhostDeck.exe --dump-supported-md docs/SUPPORTED_MODELS.md` (CI fails when this file drifts from the code).
 
-**146 laptop models** are recognised: **20 tested** on real hardware (MSI Bravo 15 B7ED; MSI Bravo 17 C7VE / D7VFK; MSI Crosshair 16 HX AI D2XW; MSI Crosshair A16 HX (D7W/D8W); MSI Cyborg 15 A12VF / A13VF; MSI GE66 Raider / GP66 Leopard; MSI GF63 Thin 11UC / 11SC; MSI Katana 15 HX B14WEK; MSI Katana GF66 11UE / 11UG; MSI Modern 14 C12M; MSI Pulse/Katana 17 B13V/GK; MSI Raider A18 HX A7VIG; MSI Raider GE67 HX 12U; MSI Raider GE76 12UE / 12UGS; MSI Raider GE78HX 13V / 14V; MSI Sword 16 HX B13V / B14V; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Vector 16 HX AI A2XWHG / A2XWIG; MSI Vector A18 HX A9WHG) and **126 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
+**146 laptop models** are recognised: **21 tested** on real hardware (MSI Bravo 15 B7ED; MSI Bravo 17 C7VE / D7VFK; MSI Crosshair 16 HX AI D2XW; MSI Crosshair A16 HX (D7W/D8W); MSI Cyborg 15 A12VF / A13VF; MSI GE66 Raider / GP66 Leopard; MSI GF63 Thin 11UC / 11SC; MSI Katana 15 HX B14WEK; MSI Katana GF66 11UE / 11UG; MSI Modern 14 C12M; MSI Pulse 16 AI C1VGKG/C1VFKG; MSI Pulse/Katana 17 B13V/GK; MSI Raider A18 HX A7VIG; MSI Raider GE67 HX 12U; MSI Raider GE76 12UE / 12UGS; MSI Raider GE78HX 13V / 14V; MSI Sword 16 HX B13V / B14V; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Vector 16 HX AI A2XWHG / A2XWIG; MSI Vector A18 HX A9WHG) and **125 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
 
 Column meaning:
 
@@ -26,6 +26,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Katana 15 HX B14WEK | `1587EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Katana GF66 11UE / 11UG | `1581EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &mdash; |
 | MSI Modern 14 C12M | `14J1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
+| MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse/Katana 17 B13V/GK | `17L5EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Raider GE67 HX 12U | `1545IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
@@ -82,7 +83,6 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Prestige 16 AI+ Evo B2VMG | `15A3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige 16 Studio A13VE | `1594EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige A16 AI+ A3HMG | `159KIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE68 HX 14VGG | `15M2IMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE68 HX 14VIG | `15M1IMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE68HX 13V | `15M2IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- Model database: MSI Pulse 16 AI C1VGKG/C1VFKG (`15P3EMS1`) promoted to **Tested**, with live fan RPM (`0xC9`/`0xCB`) and the fan curve verified on both fans - all three hardware checks plus a power test and a curve capture from the owner (#68, #84, #85, thanks @migecko). Ships through the signed model database, no app update needed.
+
 ## [1.33.0] - 2026-08-12
 ### Added
 - **SSD temperature alert** *(opt-in, Settings → Notifications)* - an OSD toast + tray
