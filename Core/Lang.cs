@@ -604,6 +604,7 @@ public static class Lang
         m["upd_download"]   = new[] { "Download", "Pobierz", "Herunterladen", "Télécharger", "Descargar", "下载", "Baixar", "Скачать" };
         m["upd_history"]    = new[] { "Release history", "Historia wydań", "Versionsverlauf", "Historique des versions", "Historial de versiones", "发布历史", "Histórico de versões", "История версий" };
         m["upd_details"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробности" };
+        m["upd_wiki"]       = new[] { "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki" };
         m["upd_offline"]    = new[] { "Couldn't reach GitHub. Check your connection and try again.", "Nie udało się połączyć z GitHub. Sprawdź połączenie i spróbuj ponownie.", "GitHub nicht erreichbar. Verbindung prüfen und erneut versuchen.", "Impossible de joindre GitHub. Vérifiez la connexion et réessayez.", "No se pudo conectar con GitHub. Revisa la conexión e inténtalo de nuevo.", "无法连接 GitHub。请检查网络后重试。", "Não foi possível acessar o GitHub. Verifique a conexão e tente novamente.", "Не удалось подключиться к GitHub. Проверьте соединение и повторите." };
         m["upd_retry"]      = new[] { "Try again", "Spróbuj ponownie", "Erneut versuchen", "Réessayer", "Reintentar", "重试", "Tentar novamente", "Повторить" };
         m["upd_downloads"]  = new[] { "Downloads: {0}", "Pobrania: {0}", "Downloads: {0}", "Téléchargements : {0}", "Descargas: {0}", "下载次数：{0}", "Downloads: {0}", "Загрузки: {0}" };

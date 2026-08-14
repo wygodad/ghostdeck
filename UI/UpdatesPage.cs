@@ -327,6 +327,7 @@ public sealed class UpdatesPage : ThemedPage
 
         private readonly Updater.ReleaseInfo _r;
         private readonly Button _details = new();
+        private readonly Button _wiki = new();     // illustrated what's-new tour on the wiki
         private readonly List<Note> _notes;                       // full formatted notes
         private readonly List<(string text, bool bold)> _preview; // collapsed two-liner
         private bool _open;
@@ -351,6 +352,16 @@ public sealed class UpdatesPage : ThemedPage
             _details.Padding = new Padding(10, 2, 10, 2);
             _details.Click += (_, _) => { try { Process.Start(new ProcessStartInfo(_r.Url) { UseShellExecute = true }); } catch { } };
             Controls.Add(_details);
+
+            _wiki.AutoSize = true;
+            _wiki.Padding = new Padding(10, 2, 10, 2);
+            _wiki.Click += (_, _) =>
+            {
+                string ver = (_r.Tag ?? "").TrimStart('v', 'V');
+                if (ver.Length == 0) return;
+                try { Process.Start(new ProcessStartInfo("https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-" + ver) { UseShellExecute = true }); } catch { }
+            };
+            Controls.Add(_wiki);
             Restyle();
 
             Click += (_, _) => Toggle();
@@ -362,11 +373,18 @@ public sealed class UpdatesPage : ThemedPage
         {
             Ui.StyleGhost(_details);
             _details.Text = Lang.T("upd_details") + "  ↗";
+            Ui.StyleGhost(_wiki);
+            _wiki.Text = Lang.T("upd_wiki") + "  ↗";
+            _wiki.Visible = !string.IsNullOrEmpty(_r.Tag);   // the wiki page name derives from the tag
             PlaceButton();
             Invalidate();
         }
 
-        private void PlaceButton() => _details.Location = new Point(Width - 16 - _details.Width, 9);
+        private void PlaceButton()
+        {
+            _details.Location = new Point(Width - 16 - _details.Width, 9);
+            _wiki.Location = new Point(_details.Left - 8 - _wiki.Width, 9);
+        }
 
         protected override void OnResize(EventArgs e)
         {
@@ -419,7 +437,7 @@ public sealed class UpdatesPage : ThemedPage
             string dl = string.Format(Lang.T("upd_downloads"), _r.Downloads.ToString("N0"));
             int dateW = TextRenderer.MeasureText(g, date, MetaF, Size.Empty, F).Width;
             int dlW = TextRenderer.MeasureText(g, dl, MetaF, Size.Empty, F).Width;
-            int metaX = _details.Left - 14 - dateW - dlW;
+            int metaX = (_wiki.Visible ? _wiki.Left : _details.Left) - 14 - dateW - dlW;
             if (metaX > 32 + TextRenderer.MeasureText(g, title, TitleF, Size.Empty, F).Width + 10)
             {
                 TextRenderer.DrawText(g, date, MetaF, new Point(metaX, TitleY + 3), Theme.Muted, F);
