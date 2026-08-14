@@ -12,6 +12,11 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 📋 **146 MSI models recognised** - **22 models confirmed on real hardware** by their owners (GE78HX/Vector boards, Crosshair A16 HX, Crosshair 16 HX AI, Sword 16 HX, GE67 HX, GE66 Raider / GP66 Leopard, Cyborg 15, both GF63 Thins, Raider GE76 12UE/12UGS, Raider A18 HX, Vector A18 HX, Vector 16 HX AI, Titan 18 HX Dragon, Bravo 15 B7ED, Bravo 17, Katana GF66 11U, Pulse/Katana 17 B13V, Katana 15 HX B14WEK, Modern 14 C12M, Pulse 16 AI C1V, Creator M16 / Pulse 15 / Katana 15 B13V), the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
+> [!TIP]
+> **❓ Five minutes well spent: the [FAQ](docs/FAQ.md).** Honest, sourced answers to the questions everyone asks sooner or later: [why there is no watt slider](docs/FAQ.md#can-i-set-an-exact-wattage-a-power-slider--pl1--pl2) - and the one real route to get one - [running GhostDeck next to MSI Center](docs/FAQ.md#why-dont-my-changes-show-up-in-msi-center-can-i-run-both), [why the MUX switch needs a reboot on every brand](docs/FAQ.md#can-ghostdeck-switch-the-mux---discrete-gpu-direct-mode-独显直连) (and what is quietly cooking there…), [whether any of this can damage your laptop](docs/FAQ.md#is-there-any-risk-of-damaging-my-laptop), and [what to do when an antivirus grumbles](docs/FAQ.md#my-antivirus--virustotal-flags-ghostdeckexe---is-it-malware).
+>
+> **[→ Browse the full FAQ](docs/FAQ.md)**
+
 ![Silent, Balanced, Extreme, Super Battery - the profiles MSI Center dropped](docs/images/banner-profiles.svg)
 
 ## Features
