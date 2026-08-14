@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260812;
+    public const int DataVersion = 20260814;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -444,6 +444,22 @@ public static class Devices
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "migecko", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/68" },
 
+        // Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK (1585EMS1) - one board, three
+        // market names, discovered via the "Actual model" report field. Promoted on paired reports:
+        // #90 (Pulse 15 B13VGK, MSI Center 2.0.48 = the last lineup with the classic Silent
+        // scenario) delivered full per-scenario dumps matching StdRecipes 1:1 - shift 0xD2
+        // C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D with the real Silent value, 0xEB=0F only in Super
+        // Battery; #89 (Katana 15 B13UDXK, MSI Center 2.0.72 - its "Silent" column shows the known
+        // ECO-Silent/Super Battery artifact) confirmed all three hardware checks. Curve tables hold
+        // the family-standard layout (structural only, no test curve captured - NOT curve-verified).
+        // Fan tachometers exist but as 16-BIT PAIRS 0xC8:0xC9 / 0xCA:0xCB (a single-byte read would
+        // show ~10000 rpm garbage), so RPM stays off until the app grows the wide-tach format
+        // (second carrier after 17L5EMS1).
+        new() { Name = "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK",
+                FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Punssama & Gangan-Lin", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/90" },
+
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
         new() { Name = "MSI Raider GE68HX 13V",          FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -529,7 +545,6 @@ public static class Devices
         new() { Name = "MSI Crosshair 15 B12UEZ / B12UGSZ", FirmwarePrefixes = new[] { "1583EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF66 12U",               FirmwarePrefixes = new[] { "1584EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF66 12UDO",             FirmwarePrefixes = new[] { "1584IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Creator M16 B13VF",             FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 15 B12VEK / B12VFK / B12VGK", FirmwarePrefixes = new[] { "1585EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Katana 15 HX B14WEK (1587EMS1) - owner per-scenario snapshot (issue #63) matches StdRecipes
         // 1:1: shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery.

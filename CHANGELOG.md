@@ -4,7 +4,11 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- Updates tab: each release entry gained a **Wiki** button next to Details, opening the illustrated "What's new" tour for that version on the project wiki.
+
 ### Changed
+- Model database: `1585EMS1` promoted to **Tested** and renamed to **MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK** - one board sold under three names, found via the report form's "Actual model" field. Byte-perfect per-scenario dumps from one owner plus all three hardware checks from another (#89, #90, thanks @Punssama and @Gangan-Lin). Fan RPM stays off for now: this board reports tachometers as 16-bit register pairs, a format the app will learn separately. Ships through the signed model database.
 - Model database: MSI Pulse 16 AI C1VGKG/C1VFKG (`15P3EMS1`) promoted to **Tested**, with live fan RPM (`0xC9`/`0xCB`) and the fan curve verified on both fans - all three hardware checks plus a power test and a curve capture from the owner (#68, #84, #85, thanks @migecko). Ships through the signed model database, no app update needed.
 
 ## [1.33.0] - 2026-08-12

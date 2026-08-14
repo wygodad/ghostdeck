@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260812,
+  "dataVersion": 20260814,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / 14V",
@@ -645,6 +645,47 @@
       },
       "credit": "migecko",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/68",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK",
+      "prefixes": [
+        "1585EMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "Punssama \u0026 Gangan-Lin",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/90",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2211,45 +2252,6 @@
       "name": "MSI Katana GF66 12UDO",
       "prefixes": [
         "1584IMS1"
-      ],
-      "tier": "Experimental",
-      "fanCurve": {
-        "advancedModeValue": "0x8D",
-        "cpuTempBase": "0x69",
-        "cpuSpeedBase": "0x72",
-        "gpuTempBase": "0x81",
-        "gpuSpeedBase": "0x8A",
-        "points": 6,
-        "verified": false,
-        "singleFan": false
-      },
-      "recipes": {
-        "Silent": [
-          "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
-        ],
-        "Balanced": [
-          "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
-        ],
-        "Extreme": [
-          "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
-        ],
-        "SuperBattery": [
-          "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
-        ]
-      }
-    },
-    {
-      "name": "MSI Creator M16 B13VF",
-      "prefixes": [
-        "1585EMS1"
       ],
       "tier": "Experimental",
       "fanCurve": {
