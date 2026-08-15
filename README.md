@@ -4,7 +4,14 @@
 
 <sub>*(formerly “MSI Profile Switcher” - renamed to keep the project clearly independent of MSI; see [docs/ABOUT_THE_NAME.md](docs/ABOUT_THE_NAME.md))*</sub>
 
-A lightweight, **independent** Windows **tray app** to switch MSI laptop power profiles - **Silent / Balanced / Extreme / Super Battery** - instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile.
+[![Digitally signed releases](https://img.shields.io/badge/releases-digitally%20signed-2ea043?logo=windows&logoColor=white)](#digitally-signed-releases)
+[![Latest release](https://img.shields.io/github/v/release/wygodad/ghostdeck?label=latest&color=3c7dff)](https://github.com/wygodad/ghostdeck/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/wygodad/ghostdeck/total?color=3c7dff)](https://github.com/wygodad/ghostdeck/releases)
+[![No kernel driver](https://img.shields.io/badge/kernel%20driver-none-2ea043)](#how-it-works)
+[![15 languages](https://img.shields.io/badge/UI-15%20languages-8d63ff)](#features)
+[![License](https://img.shields.io/github/license/wygodad/ghostdeck?color=98a0ae)](LICENSE)
+
+A lightweight, **independent** Windows **tray app** to switch MSI laptop power profiles - **Silent / Balanced / Extreme / Super Battery** - instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile. **Every release is a digitally signed `GhostDeck.exe`** - Windows shows the verified publisher instead of "Unknown", and a tampered file fails the check ([details](#digitally-signed-releases)).
 
 Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to the Embedded Controller (EC) through MSI's own **WMI interface**, carried by Windows' built-in ACPI driver - **no kernel driver, no disabling of Windows security** - and it does not need MSI Center running. One prerequisite on a freshly installed Windows: MSI Center must be installed **once** to deploy the MSI WMI schema Windows needs (it can be uninstalled afterwards) - see **[docs/MSI-WMI-SCHEMA.md](docs/MSI-WMI-SCHEMA.md)**.
 
@@ -39,7 +46,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🎮 **Detachable gaming overlay (HUD)** - a small always-on-top panel with **FPS / frametime**, temps / fan RPM / profile / load / GPU% / VRAM / clocks / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
 - 🎯 **FPS & frametime of any game** - measured **driver-free** from Windows' own ETW `Present` events (the same source Intel PresentMon uses): no DLL injection, nothing touches the game, **anti-cheat-safe**. Live FPS + frametime in the overlay, and a **Status → Gaming** tab with a 60 s frametime chart (stutter markers), 1% lows and a stutter counter. The monitor runs **only** while the overlay or the Gaming tab is open - zero idle cost
 - 🏁 **Game-session report** - when a game exits, GhostDeck pairs the FPS story with the EC story nobody else has: *"1 h 42 min · avg 87 FPS · 1% low 54 · CPU max 91 °C"* in a sleek **borderless popup** (frametime sparkline included) with one-click **save as PNG** and **data export (JSON/CSV)**, plus a summary card on Status → Gaming and a change-history entry
-- 🌍 **8 languages** - EN / PL / DE / FR / ES / 中文 / PT-BR / RU
+- 🌍 **15 languages** - EN / PL / DE / FR / ES / 中文（简体） / PT-BR / RU / 日本語 / 한국어 / 中文（繁體） / TR / VI / ID / IT - native-speaker corrections welcome as pull requests ([Core/Lang.cs](Core/Lang.cs))
 - 🎨 Custom color per profile
 - 📊 **Status** - live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage & **approx. clock**, **GPU load % / VRAM**, RAM, **battery %**, plus **NVMe/SSD temperature**, **estimated battery time left**, the **GPU core clock against its own ceiling** (a busy card held under its ceiling *is* the firmware limiting it - read from Windows itself, no vendor software, with a click-open ? bubble naming the adapter) and a live **EC profile-byte matrix** (what each profile writes vs. the current values). Extra metrics are read **driver-free** (Windows PDH/WMI - no kernel driver, anti-cheat-safe)
 - 🌀 **Fan curve editor** - drag a custom CPU/GPU curve and run it on **Balanced / Extreme / Super Battery** (MSI Center only allows one in Extreme); fully reversible. *Silent is the exception:* its power cap lives in the same EC byte the curve needs, so turning a curve on in Silent necessarily leaves Silent for Balanced - the app warns and switches for you. **Single-fan-curve boards** (where MSI Center shows one slider, e.g. Thin GF63 12VE) automatically get a single full-width curve editor, and the unused GPU tables are never written
@@ -159,6 +166,8 @@ Grab the latest **`GhostDeck.exe`** from the [**Releases**](../../releases) page
 It's a single, self-contained file - no install, no .NET runtime needed. Run it and approve the UAC prompt (EC access requires administrator).
 
 **Requirements:** Windows 11 or Windows 10, **64-bit (x64) only** - there is no 32-bit or ARM64 build. No .NET install needed (the runtime ships inside the exe). Profile, fan and EC features need an **MSI laptop**; on any other machine, or on an unrecognised firmware, the app starts read-only.
+
+### Digitally signed releases
 
 **Every release since v1.24.0 is digitally signed.** In plain terms: before publishing, the exe gets a cryptographic seal tied to the developer's registered business, verified by Microsoft (Azure Artifact Signing). That gives you three guarantees:
 
