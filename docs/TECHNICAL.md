@@ -306,7 +306,7 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 
 **Features:**
 - Tray icon (color = active profile), menu with 4 profiles, left-click = cycle.
-- **8 languages** (EN/PL/DE/FR/ES/中文/PT-BR/RU) — "Language" menu + dropdown in Settings.
+- **15 languages** (EN/PL/DE/FR/ES/中文简体/PT-BR/RU + since v1.34 日本語/한국어/中文繁體/TR/VI/ID/IT) — "Language" menu + dropdown in Settings.
 - **Per-profile color** — 12 swatches (Settings → Colors); affects the OSD and the icon.
 - **Global hotkeys**, rebindable (default Ctrl+Alt+F1–F4 + Ctrl+Alt+P).
 - **OSD** "MSI · PROFILE" (profile color, no focus stealing, fade-out).
@@ -1859,20 +1859,22 @@ on is nothing at all until they drag the icons onto the taskbar.
 
 ## 58. Translation gate in CI (v1.28)
 
-The project rule is that every `Lang.T` key ships in all 8 languages (en/pl/de/fr/es/zh/pt/ru),
-never an English-only fallback. That rule used to depend on whoever edited `Core/Lang.cs`
+The project rule is that every `Lang.T` key ships in ALL supported languages - 8 at the time
+(en/pl/de/fr/es/zh/pt/ru), 15 since v1.34 (plus ja/ko/zh-TW/tr/vi/id/it, see §64) - never an
+English-only fallback. That rule used to depend on whoever edited `Core/Lang.cs`
 remembering it. `tools/lang-check.py` checks it mechanically and `.github/workflows/ci.yml` runs
 it on every push, so a missing translation fails the build instead of shipping.
 
 It enforces two things:
 
-- **8 non-empty entries per key.** A short array is a missing language, and the app would fall
-  back to English for that string.
+- **One non-empty entry per key per language** (the count is the `LANGS` constant in the script,
+  bumped together with `Lang.Codes`). A short array is a missing language, and the app would
+  fall back to English for that string.
 - **No duplicate keys.** The collection-initializer syntax accepts a repeated key silently: the
   later entry wins and the earlier translations become dead code. That is how `set_check_updates`
   ended up defined twice, which this check found and which the same change removed.
 
-Current state: 537 keys x 8 languages.
+State at the time: 537 keys x 8 languages; v1.34: 612 keys x 15.
 
 `Core/Lang.cs` itself was split in the same change. One initializer holding every entry made a
 single enormous method that the JIT had to compile in one piece on first use; the map is now
@@ -2417,3 +2419,34 @@ minutes later. Design decisions:
 profile and curve) now re-asserts the charge limit when one is set - hibernation can drop
 the EC threshold on some boards, and re-writing the same byte is harmless (§19.7 reasoning).
 Ordered before the schedule check, so a scene window entered during sleep still outranks it.
+
+## 64. Seven more languages: ja / ko / zh-TW / tr / vi / id / it (v1.34)
+
+The UI ships in 15 languages from v1.34: the original eight (en/pl/de/fr/es/zh/pt/ru) plus
+Japanese, Korean, Traditional Chinese (Taiwan usage), Turkish, Vietnamese, Indonesian and
+Italian. Why these seven: East Asia (Japan, Korea, Taiwan - MSI's home market) is where the
+brand sells most outside China and had zero coverage; Turkey and Vietnam are large, young MSI
+markets that already show up in issue reports; Indonesia is the biggest South-East-Asian market;
+Italian rounds out Western Europe. Simplified Chinese was relabelled 中文（简体） so the two
+Chinese entries are distinguishable in the picker.
+
+**Mechanics.** `Lang.Codes` / `Lang.Names` gained seven entries at the END - every translation
+array is positional, so existing indices 0-7 are load-bearing and never move. `zh-TW` is used
+as the code because it is a real .NET culture name: `CultureInfo.GetCultureInfo(Lang.CurrentCode)`
+(weekday abbreviations in the schedule editor) works unchanged. `tools/lang-check.py` guards
+`LANGS = 15`. Nothing else in the code assumes a language count (`Lang.Codes.Length` everywhere).
+
+**How the strings were produced.** All 612 keys were exported to JSON, translated by language
+models in 7 chunks per language with a fixed brief (protected proper names - GhostDeck, MSI Center,
+Fan Boost, the four profile names, HWiNFO etc. - stay untranslated; placeholders `{0}`-`{3}`
+and `\n` verbatim; target length ≤ ~1.3x English because the UI has fixed-width controls;
+one term per concept), then each language went through a separate native-quality review pass
+that edited the files in place (40-67 fixes per language: terminology unification, register,
+Taiwan vocabulary for zh-TW, `%{0}` ordering for Turkish, over-length labels). The merged
+strings were then appended to `Core/Lang.cs` by script (`lang_merge.py`, kept outside the
+repo), so formatting and comments of the file survived. Native-speaker corrections are welcome
+as pull requests - the strings are plain arrays in `Core/Lang.cs`, position = language index.
+
+**Layout check.** The sub-tab strip (§56) shrinks to icons when captions do not fit, so the
+longer languages (tr, vi, id, it) degrade the same way de/fr already do; CJK captions are
+shorter than English. Tray tooltips stay under the 127-character NotifyIcon limit in all 15.

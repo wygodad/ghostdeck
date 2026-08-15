@@ -1,6 +1,6 @@
 """Guards the translation invariant in Core/Lang.cs, mechanically, on every push.
 
-The project rule is that EVERY Lang.T key ships in all 8 languages (en/pl/de/fr/es/zh/pt/ru) -
+The project rule is that EVERY Lang.T key ships in all 15 languages (en/pl/de/fr/es/zh/pt/ru/ja/ko/zh-TW/tr/vi/id/it) -
 never an English-only fallback. That rule used to rely on whoever edited the file noticing;
 this script checks it instead. It also catches duplicate keys, which the dictionary's indexer
 syntax accepts silently (the later entry wins and the earlier translations become dead code -
@@ -14,7 +14,7 @@ import os
 import re
 import sys
 
-LANGS = 8
+LANGS = 15
 BACKSLASH = chr(92)
 QUOTE = chr(34)
 PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Core", "Lang.cs")

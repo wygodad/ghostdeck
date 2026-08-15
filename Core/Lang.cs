@@ -3,9 +3,13 @@ namespace GhostDeck;
 /// <summary>Prosta lokalizacja. Kolejnosc jezykow = indeksy w tablicach.</summary>
 public static class Lang
 {
-    // indeks: 0 en, 1 pl, 2 de, 3 fr, 4 es, 5 zh, 6 pt, 7 ru
-    public static readonly string[] Codes = { "en", "pl", "de", "fr", "es", "zh", "pt", "ru" };
-    public static readonly string[] Names = { "English", "Polski", "Deutsch", "Français", "Español", "中文", "Português (BR)", "Русский" };
+    // indeks: 0 en, 1 pl, 2 de, 3 fr, 4 es, 5 zh (Simplified), 6 pt, 7 ru,
+    //         8 ja, 9 ko, 10 zh-TW (Traditional, Taiwan), 11 tr, 12 vi, 13 id, 14 it
+    // New languages are APPENDED - existing indices are load-bearing (settings store the code,
+    // but every array below is positional). "zh-TW" is a real CultureInfo name, so weekday
+    // abbreviations and similar culture lookups work unchanged.
+    public static readonly string[] Codes = { "en", "pl", "de", "fr", "es", "zh", "pt", "ru", "ja", "ko", "zh-TW", "tr", "vi", "id", "it" };
+    public static readonly string[] Names = { "English", "Polski", "Deutsch", "Français", "Español", "中文（简体）", "Português (BR)", "Русский", "日本語", "한국어", "中文（繁體）", "Türkçe", "Tiếng Việt", "Bahasa Indonesia", "Italiano" };
 
     private static int _idx = 0;
 
@@ -27,9 +31,9 @@ public static class Lang
     // The translation table used to be ONE collection initializer with 500+ entries.
     // A method that large costs a surprising amount to JIT at startup (measured: 13.6 ms
     // and ~16 MB of private bytes for 71 KB of actual strings), which a tray app pays on
-    // every launch. The entries are unchanged and still one per line, all 8 languages
+    // every launch. The entries are unchanged and still one per line, all 15 languages
     // together - they are just filled in by a handful of smaller methods.
-    // tools/lang-check.py verifies on every push that each key still has all 8.
+    // tools/lang-check.py verifies on every push that each key still has all 15.
     private static readonly Dictionary<string, string[]> Map = Build();
 
     private static Dictionary<string, string[]> Build()
@@ -54,12 +58,12 @@ public static class Lang
     private static void L00(Dictionary<string, string[]> m)
     {
         // ---- sub-tabs ----
-        m["subtab_start"]    = new[] { "Start", "Start", "Start", "Accueil", "Inicio", "开始", "Início", "Начало" };
-        m["subtab_profiles"] = new[] { "Profiles", "Profile", "Profile", "Profils", "Perfiles", "配置文件", "Perfis", "Профили" };
-        m["subtab_curve"]    = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe du ventilateur", "Curva del ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора" };
-        m["st_sub_charts"]   = new[] { "Charts", "Wykresy", "Diagramme", "Graphiques", "Gráficos", "图表", "Gráficos", "Графики" };
-        m["st_sub_bytes"]    = new[] { "EC bytes", "Bajty EC", "EC-Bytes", "Octets EC", "Bytes EC", "EC 字节", "Bytes EC", "Байты EC" };
-        m["st_sub_log"]      = new[] { "Change log", "Historia zmian", "Änderungen", "Journal", "Registro", "更改记录", "Alterações", "Журнал" };
+        m["subtab_start"]    = new[] { "Start", "Start", "Start", "Accueil", "Inicio", "开始", "Início", "Начало", "スタート", "시작", "開始", "Başlangıç", "Bắt đầu", "Mulai", "Inizio" };
+        m["subtab_profiles"] = new[] { "Profiles", "Profile", "Profile", "Profils", "Perfiles", "配置文件", "Perfis", "Профили", "プロファイル", "프로필", "設定檔", "Profiller", "Hồ sơ", "Profil", "Profili" };
+        m["subtab_curve"]    = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe du ventilateur", "Curva del ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора", "ファンカーブ", "팬 곡선", "風扇曲線", "Fan eğrisi", "Đường cong quạt", "Kurva kipas", "Curva ventole" };
+        m["st_sub_charts"]   = new[] { "Charts", "Wykresy", "Diagramme", "Graphiques", "Gráficos", "图表", "Gráficos", "Графики", "グラフ", "차트", "圖表", "Grafikler", "Biểu đồ", "Grafik", "Grafici" };
+        m["st_sub_bytes"]    = new[] { "EC bytes", "Bajty EC", "EC-Bytes", "Octets EC", "Bytes EC", "EC 字节", "Bytes EC", "Байты EC", "EC バイト", "EC 바이트", "EC 位元組", "EC baytları", "Byte EC", "Byte EC", "Byte EC" };
+        m["st_sub_log"]      = new[] { "Change log", "Historia zmian", "Änderungen", "Journal", "Registro", "更改记录", "Alterações", "Журнал", "変更ログ", "변경 기록", "變更記錄", "Değişiklik günlüğü", "Nhật ký thay đổi", "Log perubahan", "Registro" };
 
         // ---- report: fan-curve verification flow ----
         m["rep_curve_intro"]   = new[]
@@ -71,7 +75,14 @@ public static class Lang
             "Ayuda a verificar las direcciones de la curva del ventilador de tu modelo. Configura en MSI Center exactamente la curva de prueba de abajo y luego captura — la leemos del EC (solo lectura), la localizamos y preparamos un informe de GitHub.",
             "帮助验证你机型的风扇曲线地址。在 MSI Center 中精确设置下面的测试曲线，然后采集——我们会从 EC 读回（只读）并定位它，随后生成 GitHub 报告。",
             "Ajude a verificar os endereços da curva da ventoinha do seu modelo. Defina no MSI Center exatamente a curva de teste abaixo e capture — lemos de volta do EC (somente leitura), localizamos e preparamos um relatório no GitHub.",
-            "Помогите проверить адреса кривой вентилятора для вашей модели. Задайте в MSI Center точно указанную ниже тестовую кривую, затем снимите — мы считаем её из EC (только чтение), найдём и подготовим отчёт на GitHub."
+            "Помогите проверить адреса кривой вентилятора для вашей модели. Задайте в MSI Center точно указанную ниже тестовую кривую, затем снимите — мы считаем её из EC (только чтение), найдём и подготовим отчёт на GitHub.",
+            "お使いのモデルのファンカーブアドレス確認にご協力ください。MSI Center で下記のテストカーブを正確に設定してからキャプチャすると、EC から読み取り（読み取り専用）して位置を特定し、GitHub レポートを準備します。",
+            "사용 중인 모델의 팬 곡선 주소 확인을 도와주세요. 아래 테스트 곡선을 MSI Center에서 정확히 설정한 뒤 캡처하면, EC에서 읽어(읽기 전용) 위치를 찾고 GitHub 보고서를 준비합니다.",
+            "協助驗證你的機型的風扇曲線位址。在 MSI Center 中精確設定下方的測試曲線，然後擷取——我們會從 EC 讀回（唯讀）並定位它，接著產生 GitHub 報告。",
+            "Modelinizin fan eğrisi adreslerini doğrulamamıza yardım edin. Aşağıdaki test eğrisini MSI Center'da birebir ayarlayın, sonra yakalayın — EC'den (salt okunur) geri okuyup konumunu buluruz ve bir GitHub raporu hazırlarız.",
+            "Giúp xác minh địa chỉ đường cong quạt cho model của bạn. Đặt đúng đường cong thử nghiệm bên dưới trong MSI Center, rồi ghi lại — chúng tôi đọc lại từ EC (chỉ đọc), định vị nó và soạn báo cáo GitHub.",
+            "Bantu verifikasi alamat kurva kipas untuk model Anda. Atur kurva uji persis seperti di bawah di MSI Center, lalu tangkap — kami membacanya kembali dari EC (hanya baca), menemukannya, lalu menyiapkan laporan GitHub.",
+            "Aiuta a verificare gli indirizzi della curva ventole per il tuo modello. Imposta in MSI Center la curva di test esatta qui sotto, poi acquisisci: la rileggiamo dall'EC (sola lettura), la localizziamo e prepariamo un report GitHub."
         };
         m["rep_curve_warn"] = new[]
         {
@@ -82,9 +93,16 @@ public static class Lang
             "MSI Center solo permite editar la curva en modo Extreme Performance. Cambia primero a ese perfil.",
             "MSI Center 仅允许在 Extreme Performance 模式下编辑风扇曲线。请先切换到该配置文件。",
             "O MSI Center só permite editar a curva no modo Extreme Performance. Mude primeiro para esse perfil.",
-            "MSI Center позволяет редактировать кривую только в режиме Extreme Performance. Сначала переключитесь на этот профиль."
+            "MSI Center позволяет редактировать кривую только в режиме Extreme Performance. Сначала переключитесь на этот профиль.",
+            "MSI Center でファンカーブを編集できるのは Extreme Performance のみです。先にそのプロファイルへ切り替えてください。",
+            "MSI Center는 Extreme Performance에서만 팬 곡선 편집을 허용합니다. 먼저 해당 프로필로 전환하세요.",
+            "MSI Center 僅允許在 Extreme Performance 模式下編輯風扇曲線。請先切換到該設定檔。",
+            "MSI Center fan eğrisini yalnızca Extreme Performance'ta düzenlemenize izin verir. Önce o profile geçin.",
+            "MSI Center chỉ cho phép sửa đường cong quạt ở Extreme Performance. Hãy chuyển sang hồ sơ đó trước.",
+            "MSI Center hanya mengizinkan pengeditan kurva kipas di Extreme Performance. Pindah ke profil itu dulu.",
+            "MSI Center permette di modificare la curva ventole solo in Extreme Performance. Passa prima a quel profilo."
         };
-        m["rep_curve_steps"] = new[] { "STEPS", "KROKI", "SCHRITTE", "ÉTAPES", "PASOS", "步骤", "PASSOS", "ШАГИ" };
+        m["rep_curve_steps"] = new[] { "STEPS", "KROKI", "SCHRITTE", "ÉTAPES", "PASOS", "步骤", "PASSOS", "ШАГИ", "手順", "단계", "步驟", "ADIMLAR", "CÁC BƯỚC", "LANGKAH", "PASSI" };
         m["rep_curve_why"] = new[]
         {
             "The values are deliberately unusual, so we can find exactly where MSI Center wrote them in the EC and confirm the curve addresses for your model.",
@@ -94,7 +112,14 @@ public static class Lang
             "Los valores son deliberadamente inusuales para poder encontrar exactamente dónde los escribió MSI Center en el EC y confirmar las direcciones de la curva de tu modelo.",
             "这些数值刻意与众不同，便于我们准确找到 MSI Center 在 EC 中写入的位置，并确认你机型的曲线地址。",
             "Os valores são propositalmente incomuns, para encontrarmos exatamente onde o MSI Center os gravou no EC e confirmar os endereços da curva do seu modelo.",
-            "Значения намеренно необычные, чтобы мы могли точно найти, куда MSI Center записал их в EC, и подтвердить адреса кривой для вашей модели."
+            "Значения намеренно необычные, чтобы мы могли точно найти, куда MSI Center записал их в EC, и подтвердить адреса кривой для вашей модели.",
+            "値は意図的に珍しいものにしています。MSI Center が EC のどこに書き込んだかを正確に見つけ、お使いのモデルのカーブアドレスを確認するためです。",
+            "값은 의도적으로 특이하게 정했습니다. MSI Center가 EC에 기록한 위치를 정확히 찾아 이 모델의 곡선 주소를 확인하기 위해서입니다.",
+            "這些數值刻意與眾不同，方便我們準確找到 MSI Center 在 EC 中寫入的位置，並確認你機型的曲線位址。",
+            "Değerler bilerek sıra dışıdır; böylece MSI Center'ın bunları EC'de tam nereye yazdığını bulup modelinizin eğri adreslerini doğrulayabiliriz.",
+            "Các giá trị được chọn cố ý khác thường, để chúng tôi tìm chính xác nơi MSI Center ghi vào EC và xác nhận địa chỉ đường cong cho model của bạn.",
+            "Nilainya sengaja dibuat tidak biasa agar kami dapat menemukan persis di mana MSI Center menulisnya di EC dan mengonfirmasi alamat kurva untuk model Anda.",
+            "I valori sono volutamente insoliti, così possiamo trovare esattamente dove MSI Center li ha scritti nell'EC e confermare gli indirizzi della curva per il tuo modello."
         };
         m["rep_curve_s1"] = new[]
         {
@@ -105,7 +130,14 @@ public static class Lang
             "Cambia el portátil al perfil Extreme Performance (Features → Extreme Performance).",
             "将笔记本切换到 Extreme Performance 配置文件（Features → Extreme Performance）。",
             "Mude o notebook para o perfil Extreme Performance (Features → Extreme Performance).",
-            "Переключите ноутбук в профиль Extreme Performance (Features → Extreme Performance)."
+            "Переключите ноутбук в профиль Extreme Performance (Features → Extreme Performance).",
+            "ノートPCを Extreme Performance プロファイルに切り替えます（Features → Extreme Performance）。",
+            "노트북을 Extreme Performance 프로필로 전환합니다 (Features → Extreme Performance).",
+            "將筆電切換到 Extreme Performance 設定檔（Features → Extreme Performance）。",
+            "Dizüstünü Extreme Performance profiline alın (Features → Extreme Performance).",
+            "Chuyển laptop sang hồ sơ Extreme Performance (Features → Extreme Performance).",
+            "Alihkan laptop ke profil Extreme Performance (Features → Extreme Performance).",
+            "Passa il laptop al profilo Extreme Performance (Features → Extreme Performance)."
         };
         m["rep_curve_s2"] = new[]
         {
@@ -116,7 +148,14 @@ public static class Lang
             "Abre Advanced (el engranaje) → pestaña Fan Speed → modo Advanced.",
             "打开 Advanced（齿轮图标）→ Fan Speed 选项卡 → Advanced 模式。",
             "Abra Advanced (a engrenagem) → aba Fan Speed → modo Advanced.",
-            "Откройте Advanced (шестерёнка) → вкладка Fan Speed → режим Advanced."
+            "Откройте Advanced (шестерёнка) → вкладка Fan Speed → режим Advanced.",
+            "Advanced（歯車アイコン）→ Fan Speed タブ → Advanced モードを開きます。",
+            "Advanced(톱니바퀴 아이콘) → Fan Speed 탭 → Advanced 모드를 엽니다.",
+            "開啟 Advanced（齒輪圖示）→ Fan Speed 分頁 → Advanced 模式。",
+            "Advanced'i (dişli simgesi) → Fan Speed sekmesi → Advanced modunu açın.",
+            "Mở Advanced (biểu tượng bánh răng) → thẻ Fan Speed → chế độ Advanced.",
+            "Buka Advanced (ikon roda gigi) → tab Fan Speed → mode Advanced.",
+            "Apri Advanced (icona ingranaggio) → scheda Fan Speed → modalità Advanced."
         };
         m["rep_curve_s3"] = new[]
         {
@@ -127,7 +166,14 @@ public static class Lang
             "Ajusta el ventilador 1 (CPU) a, en orden: 25, 35, 45, 55, 65, 75 %.",
             "将风扇 1（CPU）依次设为：25、35、45、55、65、75 %。",
             "Defina o ventilador 1 (CPU), em ordem: 25, 35, 45, 55, 65, 75 %.",
-            "Задайте вентилятор 1 (CPU) по порядку: 25, 35, 45, 55, 65, 75 %."
+            "Задайте вентилятор 1 (CPU) по порядку: 25, 35, 45, 55, 65, 75 %.",
+            "Fan 1（CPU）を順に 25、35、45、55、65、75 % に設定します。",
+            "팬 1(CPU)을 순서대로 25, 35, 45, 55, 65, 75 %로 설정합니다.",
+            "將風扇 1（CPU）依序設為：25、35、45、55、65、75 %。",
+            "Fan 1'i (CPU) sırayla şu değerlere ayarlayın: 25, 35, 45, 55, 65, 75 %.",
+            "Đặt Fan 1 (CPU) theo thứ tự các giá trị: 25, 35, 45, 55, 65, 75 %.",
+            "Atur Fan 1 (CPU) ke nilai berikut, berurutan: 25, 35, 45, 55, 65, 75 %.",
+            "Imposta Fan 1 (CPU) su questi valori, in ordine: 25, 35, 45, 55, 65, 75 %."
         };
         m["rep_curve_s4"] = new[]
         {
@@ -138,7 +184,14 @@ public static class Lang
             "Ajusta el ventilador 2 (GPU) a, en orden: 20, 30, 40, 50, 60, 70 %.",
             "将风扇 2（GPU）依次设为：20、30、40、50、60、70 %。",
             "Defina o ventilador 2 (GPU), em ordem: 20, 30, 40, 50, 60, 70 %.",
-            "Задайте вентилятор 2 (GPU) по порядку: 20, 30, 40, 50, 60, 70 %."
+            "Задайте вентилятор 2 (GPU) по порядку: 20, 30, 40, 50, 60, 70 %.",
+            "Fan 2（GPU）を順に 20、30、40、50、60、70 % に設定します。",
+            "팬 2(GPU)를 순서대로 20, 30, 40, 50, 60, 70 %로 설정합니다.",
+            "將風扇 2（GPU）依序設為：20、30、40、50、60、70 %。",
+            "Fan 2'yi (GPU) sırayla şu değerlere ayarlayın: 20, 30, 40, 50, 60, 70 %.",
+            "Đặt Fan 2 (GPU) theo thứ tự các giá trị: 20, 30, 40, 50, 60, 70 %.",
+            "Atur Fan 2 (GPU) ke nilai berikut, berurutan: 20, 30, 40, 50, 60, 70 %.",
+            "Imposta Fan 2 (GPU) su questi valori, in ordine: 20, 30, 40, 50, 60, 70 %."
         };
         m["rep_curve_s5"] = new[]
         {
@@ -149,37 +202,72 @@ public static class Lang
             "Haz clic en Save en MSI Center, vuelve aquí y pulsa «Capturar y escanear».",
             "在 MSI Center 点击 Save，返回此处并点击“采集并扫描”。",
             "Clique em Save no MSI Center, volte aqui e pressione “Capturar e analisar”.",
-            "Нажмите Save в MSI Center, вернитесь сюда и нажмите «Снять и просканировать»."
+            "Нажмите Save в MSI Center, вернитесь сюда и нажмите «Снять и просканировать».",
+            "MSI Center で Save をクリックし、ここに戻って「キャプチャしてスキャン」を押します。",
+            "MSI Center에서 Save를 클릭한 뒤 여기로 돌아와 “캡처 및 스캔”을 누릅니다.",
+            "在 MSI Center 按一下 Save，返回此處並按下「擷取並掃描」。",
+            "MSI Center'da Save'e tıklayın, buraya dönüp “Yakala ve tara”ya basın.",
+            "Nhấn Save trong MSI Center, quay lại đây và nhấn “Thu thập & quét”.",
+            "Klik Save di MSI Center, kembali ke sini dan tekan “Tangkap & pindai”.",
+            "Fai clic su Save in MSI Center, torna qui e premi \"Acquisisci e analizza\"."
         };
-        m["rep_curve_capture"] = new[] { "Capture & scan", "Zbierz i skanuj", "Erfassen und scannen", "Capturer et analyser", "Capturar y escanear", "采集并扫描", "Capturar e analisar", "Снять и просканировать" };
-        m["rep_curve_finish"]  = new[] { "Open GitHub report", "Otwórz zgłoszenie GitHub", "GitHub-Bericht öffnen", "Ouvrir le rapport GitHub", "Abrir informe de GitHub", "打开 GitHub 报告", "Abrir relatório no GitHub", "Открыть отчёт на GitHub" };
+        m["rep_curve_capture"] = new[] { "Capture & scan", "Zbierz i skanuj", "Erfassen und scannen", "Capturer et analyser", "Capturar y escanear", "采集并扫描", "Capturar e analisar", "Снять и просканировать", "キャプチャしてスキャン", "캡처 및 스캔", "擷取並掃描", "Yakala ve tara", "Thu thập & quét", "Tangkap & pindai", "Acquisisci e analizza" };
+        m["rep_curve_finish"]  = new[] { "Open GitHub report", "Otwórz zgłoszenie GitHub", "GitHub-Bericht öffnen", "Ouvrir le rapport GitHub", "Abrir informe de GitHub", "打开 GitHub 报告", "Abrir relatório no GitHub", "Открыть отчёт на GitHub", "GitHub レポートを開く", "GitHub 보고서 열기", "開啟 GitHub 報告", "GitHub raporunu aç", "Mở báo cáo GitHub", "Buka laporan GitHub", "Apri report GitHub" };
         m["rep_curve_found"]   = new[]
         {
             "Test curve found — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Znaleziono krzywą testową — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
             "Testkurve gefunden — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Courbe de test trouvée — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
             "Curva de prueba encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "已找到测试曲线 — CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
-            "Curva de teste encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Тестовая кривая найдена — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}."
+            "Curva de teste encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Тестовая кривая найдена — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "テストカーブを検出 — CPU @ 0x{0:X2}、GPU @ 0x{1:X2}。",
+            "테스트 곡선 발견 — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "已找到測試曲線 — CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
+            "Test eğrisi bulundu — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Đã tìm thấy đường cong kiểm thử — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Kurva uji ditemukan — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Curva di test trovata — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}."
         };
         m["rep_curve_match"]   = new[]
         {
             "Matches the shipped map — this model's curve can be marked verified.", "Zgodne z mapą w aplikacji — krzywą tego modelu można oznaczyć jako zweryfikowaną.",
             "Stimmt mit der mitgelieferten Zuordnung überein — die Kurve dieses Modells kann als verifiziert markiert werden.", "Correspond à la carte fournie — la courbe de ce modèle peut être marquée comme vérifiée.",
             "Coincide con el mapa incluido — la curva de este modelo puede marcarse como verificada.", "与内置映射一致——该机型的曲线可标记为已验证。",
-            "Corresponde ao mapa incluído — a curva deste modelo pode ser marcada como verificada.", "Совпадает со встроенной картой — кривую этой модели можно отметить как проверенную."
+            "Corresponde ao mapa incluído — a curva deste modelo pode ser marcada como verificada.", "Совпадает со встроенной картой — кривую этой модели можно отметить как проверенную.",
+            "内蔵マップと一致 — このモデルのカーブは検証済みにできます。",
+            "내장 맵과 일치 — 이 모델의 곡선을 검증됨으로 표시할 수 있습니다.",
+            "與內建對應表一致——此機型的曲線可標記為已驗證。",
+            "Yerleşik haritayla eşleşiyor — bu modelin eğrisi doğrulanmış olarak işaretlenebilir.",
+            "Khớp với bản đồ đi kèm — đường cong của model này có thể đánh dấu là đã xác minh.",
+            "Cocok dengan peta bawaan — kurva model ini dapat ditandai terverifikasi.",
+            "Corrisponde alla mappa integrata — la curva di questo modello può dirsi verificata."
         };
         m["rep_curve_nomatch"] = new[]
         {
             "Differs from the shipped map — sending the addresses for review.", "Różni się od mapy w aplikacji — wysyłam adresy do przeglądu.",
             "Weicht von der mitgelieferten Zuordnung ab — Adressen werden zur Prüfung gesendet.", "Diffère de la carte fournie — envoi des adresses pour examen.",
             "Difiere del mapa incluido — enviando las direcciones para revisión.", "与内置映射不同——正在发送地址以供审核。",
-            "Difere do mapa incluído — enviando os endereços para revisão.", "Отличается от встроенной карты — отправляю адреса на проверку."
+            "Difere do mapa incluído — enviando os endereços para revisão.", "Отличается от встроенной карты — отправляю адреса на проверку.",
+            "内蔵マップと不一致 — アドレスをレビュー用に送信します。",
+            "내장 맵과 다름 — 검토를 위해 주소를 보냅니다.",
+            "與內建對應表不同——正在傳送位址以供審核。",
+            "Yerleşik haritadan farklı — adresler inceleme için gönderiliyor.",
+            "Khác với bản đồ đi kèm — đang gửi địa chỉ để xem xét.",
+            "Berbeda dari peta bawaan — mengirim alamat untuk ditinjau.",
+            "Diversa dalla mappa integrata — invio degli indirizzi per la revisione."
         };
         m["rep_curve_notfound"]= new[]
         {
             "Couldn't locate the test curve. Send the dump anyway so we can map it (did you Save in MSI Center?).", "Nie udało się znaleźć krzywej testowej. Wyślij zrzut mimo to (czy na pewno kliknięto Save w MSI Center?).",
             "Testkurve nicht gefunden. Sende den Dump trotzdem, damit wir sie zuordnen können (in MSI Center gespeichert?).", "Impossible de localiser la courbe de test. Envoyez quand même le vidage pour qu'on la cartographie (avez-vous cliqué sur Save dans MSI Center ?).",
             "No se pudo localizar la curva de prueba. Envía el volcado de todos modos para mapearla (¿guardaste en MSI Center?).", "未能定位测试曲线。仍请发送转储以便我们映射（是否在 MSI Center 点击了 Save？）。",
-            "Não foi possível localizar a curva de teste. Envie o despejo mesmo assim para mapearmos (você clicou em Save no MSI Center?).", "Не удалось найти тестовую кривую. Всё равно отправьте дамп, чтобы мы её сопоставили (нажали Save в MSI Center?)."
+            "Não foi possível localizar a curva de teste. Envie o despejo mesmo assim para mapearmos (você clicou em Save no MSI Center?).", "Не удалось найти тестовую кривую. Всё равно отправьте дамп, чтобы мы её сопоставили (нажали Save в MSI Center?).",
+            "テストカーブが見つかりません。マッピングのためダンプを送信してください（MSI Center で Save しましたか？）。",
+            "테스트 곡선을 찾지 못했습니다. 매핑할 수 있도록 덤프를 그대로 보내주세요 (MSI Center에서 Save를 눌렀나요?).",
+            "無法定位測試曲線。仍請傳送傾印以便我們對應（是否已在 MSI Center 按一下 Save？）。",
+            "Test eğrisi bulunamadı. Haritalayabilmemiz için dökümü yine de gönderin (MSI Center'da Save'e tıkladınız mı?).",
+            "Không định vị được đường cong kiểm thử. Vẫn hãy gửi bản dump để chúng tôi ánh xạ (bạn đã nhấn Save trong MSI Center chưa?).",
+            "Kurva uji tidak ditemukan. Tetap kirim dump agar kami dapat memetakannya (sudah klik Save di MSI Center?).",
+            "Curva di test non trovata. Invia comunque il dump così possiamo mapparla (hai premuto Save in MSI Center?)."
         };
         m["rep_curve_cpuonly"] = new[]
         {
@@ -190,7 +278,14 @@ public static class Lang
             "Curva de prueba de CPU encontrada en 0x{0:X2}; sin curva de GPU en el volcado - modelo de un solo ventilador (un deslizador en MSI Center) o Fan 2 sin configurar.",
             "在 0x{0:X2} 找到 CPU 测试曲线；转储中没有 GPU 测试曲线 - 单风扇机型（MSI Center 只有一个滑块）或未设置风扇 2。",
             "Curva de teste da CPU encontrada em 0x{0:X2}; sem curva de GPU no despejo - modelo com uma ventoinha (um controle no MSI Center) ou Fan 2 não definido.",
-            "Тестовая кривая CPU найдена по адресу 0x{0:X2}; кривой GPU в дампе нет - модель с одним вентилятором (один ползунок в MSI Center) или Fan 2 не задан."
+            "Тестовая кривая CPU найдена по адресу 0x{0:X2}; кривой GPU в дампе нет - модель с одним вентилятором (один ползунок в MSI Center) или Fan 2 не задан.",
+            "CPU テストカーブを 0x{0:X2} で検出。ダンプに GPU テストカーブなし - 単一ファンモデル（MSI Center のスライダーが1つ）または Fan 2 未設定。",
+            "0x{0:X2}에서 CPU 테스트 곡선 발견. 덤프에 GPU 테스트 곡선 없음 - 단일 팬 모델(MSI Center 슬라이더 1개)이거나 팬 2가 설정되지 않았습니다.",
+            "在 0x{0:X2} 找到 CPU 測試曲線；傾印中沒有 GPU 測試曲線 - 單風扇機型（MSI Center 只有一個滑桿）或未設定風扇 2。",
+            "CPU test eğrisi 0x{0:X2} adresinde bulundu; dökümde GPU test eğrisi yok - tek fanlı model (MSI Center'da tek kaydırıcı) veya Fan 2 ayarlanmamış.",
+            "Thấy đường cong kiểm thử CPU tại 0x{0:X2}; không có đường cong GPU trong bản dump - model một quạt (một thanh trượt trong MSI Center) hoặc chưa đặt Fan 2.",
+            "Kurva uji CPU ditemukan di 0x{0:X2}; tidak ada kurva uji GPU di dump - model satu kipas (satu slider di MSI Center) atau Fan 2 belum diatur.",
+            "Curva di test CPU trovata a 0x{0:X2}; nessuna curva di test GPU nel dump - modello a ventola singola (un solo cursore in MSI Center) o Fan 2 non impostata."
         };
         m["rep_curve_gpuonly"] = new[]
         {
@@ -201,7 +296,14 @@ public static class Lang
             "Curva de prueba de GPU encontrada en 0x{0:X2}; la curva de prueba de CPU no se encontró en el volcado.",
             "在 0x{0:X2} 找到 GPU 测试曲线；转储中未找到 CPU 测试曲线。",
             "Curva de teste da GPU encontrada em 0x{0:X2}; a curva de teste da CPU não foi encontrada no despejo.",
-            "Тестовая кривая GPU найдена по адресу 0x{0:X2}; тестовая кривая CPU в дампе не найдена."
+            "Тестовая кривая GPU найдена по адресу 0x{0:X2}; тестовая кривая CPU в дампе не найдена.",
+            "GPU テストカーブを 0x{0:X2} で検出。ダンプに CPU テストカーブは見つかりませんでした。",
+            "0x{0:X2}에서 GPU 테스트 곡선 발견. 덤프에서 CPU 테스트 곡선을 찾지 못했습니다.",
+            "在 0x{0:X2} 找到 GPU 測試曲線；傾印中未找到 CPU 測試曲線。",
+            "GPU test eğrisi 0x{0:X2} adresinde bulundu; dökümde CPU test eğrisi bulunamadı.",
+            "Thấy đường cong kiểm thử GPU tại 0x{0:X2}; không tìm thấy đường cong kiểm thử CPU trong bản dump.",
+            "Kurva uji GPU ditemukan di 0x{0:X2}; kurva uji CPU tidak ditemukan di dump.",
+            "Curva di test GPU trovata a 0x{0:X2}; la curva di test CPU non è stata trovata nel dump."
         };
         m["rep_curve_notadvanced"]= new[]
         {
@@ -212,7 +314,14 @@ public static class Lang
             "La curva avanzada no está activa ahora — tu portátil está en otro perfil, así que el EC aún tiene la curva por defecto. Cambia a Extreme Performance, configura la curva (Advanced) en MSI Center, haz clic en Save, quédate en Extreme y captura de nuevo.",
             "高级风扇曲线当前未激活——你的笔记本处于其他配置文件，因此 EC 中仍是默认曲线。请切换到 Extreme Performance，在 MSI Center 设置 Advanced 曲线，点击 Save 并保持在 Extreme，然后重新采集。",
             "A curva avançada não está ativa agora — seu notebook está em outro perfil, então o EC ainda tem a curva padrão. Mude para Extreme Performance, defina a curva (Advanced) no MSI Center, clique em Save, permaneça no Extreme e capture novamente.",
-            "Расширенная кривая сейчас не активна — ноутбук в другом профиле, поэтому в EC всё ещё стандартная кривая. Переключитесь на Extreme Performance, задайте кривую (Advanced) в MSI Center, нажмите Save, оставайтесь в Extreme и снимите ещё раз."
+            "Расширенная кривая сейчас не активна — ноутбук в другом профиле, поэтому в EC всё ещё стандартная кривая. Переключитесь на Extreme Performance, задайте кривую (Advanced) в MSI Center, нажмите Save, оставайтесь в Extreme и снимите ещё раз.",
+            "Advanced ファンカーブは現在有効ではありません — 別のプロファイル中のため、EC はまだ既定カーブのままです。Extreme Performance に切り替え、MSI Center で Advanced カーブを設定して Save をクリックし、Extreme のまま再度キャプチャしてください。",
+            "Advanced 팬 곡선이 현재 활성 상태가 아닙니다 — 노트북이 다른 프로필에 있어 EC에 아직 기본 곡선이 있습니다. Extreme Performance로 전환하고 MSI Center에서 Advanced 곡선을 설정한 뒤 Save를 클릭하고, Extreme을 유지한 채 다시 캡처하세요.",
+            "進階風扇曲線目前未啟用——你的筆電處於其他設定檔，因此 EC 中仍是預設曲線。請切換到 Extreme Performance，在 MSI Center 設定 Advanced 曲線，按一下 Save 並保持在 Extreme，然後重新擷取。",
+            "Advanced fan eğrisi şu anda etkin değil — dizüstünüz başka bir profilde, bu yüzden EC hâlâ varsayılan eğriyi tutuyor. Extreme Performance'a geçin, MSI Center'da Advanced eğrisini ayarlayın, Save'e tıklayın ve Extreme'de kalın, sonra yeniden yakalayın.",
+            "Đường cong quạt Advanced hiện không hoạt động — laptop đang ở hồ sơ khác nên EC vẫn giữ đường cong mặc định. Hãy chuyển sang Extreme Performance, đặt đường cong Advanced trong MSI Center, nhấn Save, giữ nguyên Extreme rồi thu thập lại.",
+            "Kurva kipas Advanced saat ini tidak aktif — laptop Anda berada di profil lain, sehingga EC masih menyimpan kurva default. Pindah ke Extreme Performance, atur kurva Advanced di MSI Center, klik Save, tetap di Extreme, lalu tangkap lagi.",
+            "La curva ventole Advanced non è attiva ora — il laptop è in un altro profilo, quindi l'EC contiene ancora la curva predefinita. Passa a Extreme Performance, imposta la curva Advanced in MSI Center, fai clic su Save, resta in Extreme e acquisisci di nuovo."
         };
 
         // ---- Models: verify CTA ----
@@ -225,131 +334,138 @@ public static class Lang
             "Los modelos experimentales funcionan pero no están confirmados por hardware. Una captura de solo lectura de 2 minutos permite promover tu modelo a Probado.",
             "实验性机型可用，但未经硬件确认。2 分钟的只读采集即可将你的机型提升为“已测试”。",
             "Modelos experimentais funcionam, mas não são confirmados por hardware. Uma captura somente-leitura de 2 minutos permite promover seu modelo para Testado.",
-            "Экспериментальные модели работают, но не подтверждены на железе. Двухминутное снятие (только чтение) позволит повысить вашу модель до «Проверено»."
+            "Экспериментальные модели работают, но не подтверждены на железе. Двухминутное снятие (только чтение) позволит повысить вашу модель до «Проверено».",
+            "実験的モデルは動作しますが、ハードウェア未確認です。2分間の読み取り専用キャプチャで、テスト済みに昇格できます。",
+            "실험적 모델은 작동하지만 하드웨어로 확인되지 않았습니다. 2분짜리 읽기 전용 캡처로 모델을 '테스트됨'으로 승격할 수 있습니다.",
+            "實驗性機型可用，但未經硬體確認。2 分鐘的唯讀擷取即可將你的機型提升為「已測試」。",
+            "Deneysel modeller çalışır ancak donanımda doğrulanmamıştır. 2 dakikalık salt okunur bir yakalama, modelinizi Test Edildi'ye yükseltmemizi sağlar.",
+            "Model thử nghiệm hoạt động được nhưng chưa được xác nhận trên phần cứng. Một lần thu thập chỉ đọc 2 phút giúp nâng model của bạn lên Đã kiểm thử.",
+            "Model eksperimental berfungsi tetapi belum dikonfirmasi di perangkat keras. Penangkapan hanya baca selama 2 menit memungkinkan kami menaikkan model Anda ke Teruji.",
+            "I modelli sperimentali funzionano ma non sono confermati su hardware. Bastano 2 minuti di acquisizione in sola lettura per promuovere il tuo modello a Testato."
         };
-        m["models_verify_btn"]   = new[] { "Verify my model", "Zweryfikuj mój model", "Modell verifizieren", "Vérifier mon modèle", "Verificar mi modelo", "验证我的机型", "Verificar meu modelo", "Проверить мою модель" };
+        m["models_verify_btn"]   = new[] { "Verify my model", "Zweryfikuj mój model", "Modell verifizieren", "Vérifier mon modèle", "Verificar mi modelo", "验证我的机型", "Verificar meu modelo", "Проверить мою модель", "モデルを検証", "내 모델 검증", "驗證我的機型", "Modelimi doğrula", "Xác minh model của tôi", "Verifikasi model saya", "Verifica modello" };
 
         // ---- Fan curve: report button ----
-        m["fc_report_curve"] = new[] { "Report fan curve", "Zgłoś krzywą", "Lüfterkurve melden", "Signaler la courbe", "Reportar la curva", "报告风扇曲线", "Reportar a curva", "Сообщить о кривой" };
+        m["fc_report_curve"] = new[] { "Report fan curve", "Zgłoś krzywą", "Lüfterkurve melden", "Signaler la courbe", "Reportar la curva", "报告风扇曲线", "Reportar a curva", "Сообщить о кривой", "ファンカーブを報告", "팬 곡선 보고", "回報風扇曲線", "Fan eğrisini bildir", "Báo cáo đường cong quạt", "Laporkan kurva kipas", "Segnala curva ventole" };
 
         // ---- tray: grouped report submenu ----
-        m["tray_report"]       = new[] { "Report / verify", "Zgłoś / zweryfikuj", "Melden / verifizieren", "Signaler / vérifier", "Reportar / verificar", "报告 / 验证", "Reportar / verificar", "Сообщить / проверить" };
-        m["tray_report_model"] = new[] { "My model…", "Mój model…", "Mein Modell…", "Mon modèle…", "Mi modelo…", "我的机型…", "Meu modelo…", "Моя модель…" };
-        m["tray_report_curve"] = new[] { "Fan curve…", "Krzywą wentylatora…", "Lüfterkurve…", "Courbe du ventilateur…", "Curva del ventilador…", "风扇曲线…", "Curva da ventoinha…", "Кривая вентилятора…" };
+        m["tray_report"]       = new[] { "Report / verify", "Zgłoś / zweryfikuj", "Melden / verifizieren", "Signaler / vérifier", "Reportar / verificar", "报告 / 验证", "Reportar / verificar", "Сообщить / проверить", "報告 / 検証", "보고 / 검증", "回報 / 驗證", "Bildir / doğrula", "Báo cáo / xác minh", "Laporkan / verifikasi", "Segnala / verifica" };
+        m["tray_report_model"] = new[] { "My model…", "Mój model…", "Mein Modell…", "Mon modèle…", "Mi modelo…", "我的机型…", "Meu modelo…", "Моя модель…", "マイモデル…", "내 모델…", "我的機型…", "Modelim…", "Model của tôi…", "Model saya…", "Il mio modello…" };
+        m["tray_report_curve"] = new[] { "Fan curve…", "Krzywą wentylatora…", "Lüfterkurve…", "Courbe du ventilateur…", "Curva del ventilador…", "风扇曲线…", "Curva da ventoinha…", "Кривая вентилятора…", "ファンカーブ…", "팬 곡선…", "風扇曲線…", "Fan eğrisi…", "Đường cong quạt…", "Kurva kipas…", "Curva ventole…" };
 
-        m["menu_settings"]  = new[] { "Settings", "Ustawienia", "Einstellungen", "Paramètres", "Configuración", "设置", "Configurações", "Настройки" };
-        m["menu_status"]    = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Состояние" };
-        m["menu_panel"]     = new[] { "Open panel", "Otwórz panel", "Panel öffnen", "Ouvrir le panneau", "Abrir panel", "打开面板", "Abrir painel", "Открыть панель" };
+        m["menu_settings"]  = new[] { "Settings", "Ustawienia", "Einstellungen", "Paramètres", "Configuración", "设置", "Configurações", "Настройки", "設定", "설정", "設定", "Ayarlar", "Cài đặt", "Pengaturan", "Impostazioni" };
+        m["menu_status"]    = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Состояние", "ステータス", "상태", "狀態", "Durum", "Trạng thái", "Status", "Stato" };
+        m["menu_panel"]     = new[] { "Open panel", "Otwórz panel", "Panel öffnen", "Ouvrir le panneau", "Abrir panel", "打开面板", "Abrir painel", "Открыть панель", "パネルを開く", "패널 열기", "開啟面板", "Paneli aç", "Mở bảng điều khiển", "Buka panel", "Apri pannello" };
 
         // ---- Fan Boost (max fans) — generic name; the MSI "Cooler Boost" trademark is only referenced once, in the README ----
-        m["cooler_boost"]     = new[] { "Fan Boost (max fans)", "Fan Boost (maks. wentylatory)", "Fan Boost (max. Lüfter)", "Fan Boost (ventilo max)", "Fan Boost (ventiladores máx.)", "Fan Boost（风扇全速）", "Fan Boost (ventoinhas máx.)", "Fan Boost (макс. вентиляторы)" };
-        m["cooler_boost_on"]  = new[] { "Max fans ON", "Maks. obroty WŁ.", "Max. Lüfter EIN", "Ventilo max ACTIVÉ", "Ventiladores máx. ACT.", "风扇全速 开", "Ventoinhas máx. LIG.", "Макс. обороты ВКЛ" };
-        m["cooler_boost_off"] = new[] { "Max fans off", "Maks. obroty WYŁ.", "Max. Lüfter AUS", "Ventilo max désactivé", "Ventiladores máx. des.", "风扇全速 关", "Ventoinhas máx. DESL.", "Макс. обороты ВЫКЛ" };
-        m["cooler_boost_hint"]= new[] { "Force full fan speed regardless of profile. When turned off, the fans spin down gradually (can take 10–25 s).", "Wymuś pełne obroty wentylatorów niezależnie od profilu. Po wyłączeniu wentylatory zwalniają stopniowo (może to potrwać 10–25 s).", "Volle Lüfterdrehzahl unabhängig vom Profil erzwingen. Nach dem Ausschalten drehen die Lüfter allmählich herunter (kann 10–25 s dauern).", "Forcer la vitesse max des ventilateurs quel que soit le profil. À l'arrêt, les ventilateurs ralentissent progressivement (10–25 s).", "Forzar ventiladores al máximo sin importar el perfil. Al desactivar, bajan de forma gradual (puede tardar 10–25 s).", "无视配置文件强制风扇全速。关闭后风扇会逐渐降速（约 10–25 秒）。", "Forçar ventoinhas no máximo independentemente do perfil. Ao desligar, desaceleram gradualmente (pode levar 10–25 s).", "Принудительно макс. обороты независимо от профиля. При выключении вентиляторы снижают обороты постепенно (10–25 с)." };
-        m["cooler_boost_short"]= new[] { "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost" };
-        m["scen_features"]    = new[] { "Features", "Funkcje", "Funktionen", "Fonctions", "Funciones", "功能", "Funções", "Функции" };
+        m["cooler_boost"]     = new[] { "Fan Boost (max fans)", "Fan Boost (maks. wentylatory)", "Fan Boost (max. Lüfter)", "Fan Boost (ventilo max)", "Fan Boost (ventiladores máx.)", "Fan Boost（风扇全速）", "Fan Boost (ventoinhas máx.)", "Fan Boost (макс. вентиляторы)", "Fan Boost（ファン最大）", "Fan Boost (최대 팬)", "Fan Boost（風扇全速）", "Fan Boost (maks. fan)", "Fan Boost (quạt tối đa)", "Fan Boost (kipas maks)", "Fan Boost (ventole al max)" };
+        m["cooler_boost_on"]  = new[] { "Max fans ON", "Maks. obroty WŁ.", "Max. Lüfter EIN", "Ventilo max ACTIVÉ", "Ventiladores máx. ACT.", "风扇全速 开", "Ventoinhas máx. LIG.", "Макс. обороты ВКЛ", "ファン最大 オン", "최대 팬 켜짐", "風扇全速 開", "Maks. fan AÇIK", "Quạt tối đa BẬT", "Kipas maks AKTIF", "Ventole al max ON" };
+        m["cooler_boost_off"] = new[] { "Max fans off", "Maks. obroty WYŁ.", "Max. Lüfter AUS", "Ventilo max désactivé", "Ventiladores máx. des.", "风扇全速 关", "Ventoinhas máx. DESL.", "Макс. обороты ВЫКЛ", "ファン最大 オフ", "최대 팬 꺼짐", "風扇全速 關", "Maks. fan kapalı", "Quạt tối đa tắt", "Kipas maks mati", "Ventole al max off" };
+        m["cooler_boost_hint"]= new[] { "Force full fan speed regardless of profile. When turned off, the fans spin down gradually (can take 10–25 s).", "Wymuś pełne obroty wentylatorów niezależnie od profilu. Po wyłączeniu wentylatory zwalniają stopniowo (może to potrwać 10–25 s).", "Volle Lüfterdrehzahl unabhängig vom Profil erzwingen. Nach dem Ausschalten drehen die Lüfter allmählich herunter (kann 10–25 s dauern).", "Forcer la vitesse max des ventilateurs quel que soit le profil. À l'arrêt, les ventilateurs ralentissent progressivement (10–25 s).", "Forzar ventiladores al máximo sin importar el perfil. Al desactivar, bajan de forma gradual (puede tardar 10–25 s).", "无视配置文件强制风扇全速。关闭后风扇会逐渐降速（约 10–25 秒）。", "Forçar ventoinhas no máximo independentemente do perfil. Ao desligar, desaceleram gradualmente (pode levar 10–25 s).", "Принудительно макс. обороты независимо от профиля. При выключении вентиляторы снижают обороты постепенно (10–25 с).", "プロファイルに関係なくファンを全速にします。オフにするとファンは徐々に減速します（10–25 秒ほど）。", "프로필과 관계없이 팬을 최대 속도로 강제합니다. 끄면 팬이 서서히 느려집니다 (10–25초 소요 가능).", "無視設定檔強制風扇全速。關閉後風扇會逐漸降速（約 10–25 秒）。", "Profilden bağımsız olarak tam fan hızını zorlar. Kapatıldığında fanlar kademeli olarak yavaşlar (10–25 sn sürebilir).", "Buộc quạt chạy hết tốc độ bất kể hồ sơ. Khi tắt, quạt giảm tốc dần (có thể mất 10–25 giây).", "Paksa kecepatan kipas penuh apa pun profilnya. Saat dimatikan, kipas melambat secara bertahap (bisa 10–25 dtk).", "Forza le ventole al massimo indipendentemente dal profilo. Allo spegnimento rallentano gradualmente (può richiedere 10–25 s)." };
+        m["cooler_boost_short"]= new[] { "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost" };
+        m["scen_features"]    = new[] { "Features", "Funkcje", "Funktionen", "Fonctions", "Funciones", "功能", "Funções", "Функции", "機能", "기능", "功能", "Özellikler", "Tính năng", "Fitur", "Funzioni" };
 
         // ---- gaming overlay ----
-        m["overlay_title"]    = new[] { "Gaming overlay", "Nakładka do gier", "Gaming-Overlay", "Overlay de jeu", "Overlay de juego", "游戏悬浮窗", "Overlay de jogo", "Игровой оверлей" };
-        m["overlay_hint"]     = new[] { "Detachable always-on-top mini panel with temps, fan RPM and profile — for gaming. Drag to move; toggle with the hotkey. Options in Settings.", "Odczepiany, zawsze-na-wierzchu mini panel z temperaturami, obrotami i profilem — do grania. Przeciągnij, by przesunąć; przełącz skrótem. Opcje w Ustawieniach.", "Abnehmbares Mini-Panel (immer im Vordergrund) mit Temperaturen, Lüfter-RPM und Profil — fürs Gaming. Zum Verschieben ziehen; per Hotkey umschalten. Optionen in den Einstellungen.", "Mini-panneau détachable toujours au premier plan (températures, RPM, profil) — pour le jeu. Glisser pour déplacer ; raccourci pour afficher. Options dans les Réglages.", "Mini panel desacoplable siempre visible con temperaturas, RPM y perfil — para juegos. Arrastra para mover; alterna con el atajo. Opciones en Ajustes.", "可拆卸的置顶小面板，显示温度、风扇转速和配置文件——为游戏而生。拖动移动；快捷键切换。选项在设置中。", "Mini-painel destacável sempre no topo com temperaturas, RPM e perfil — para jogos. Arraste para mover; alterne com o atalho. Opções nas Definições.", "Открепляемая мини-панель поверх окон: температуры, обороты, профиль — для игр. Перетаскивайте мышью; переключение горячей клавишей. Настройки в разделе Настройки." };
-        m["set_grp_overlay"]  = new[] { "Gaming overlay", "Nakładka do gier", "Gaming-Overlay", "Overlay de jeu", "Overlay de juego", "游戏悬浮窗", "Overlay de jogo", "Игровой оверлей" };
-        m["ov_show"]          = new[] { "Show overlay", "Pokaż nakładkę", "Overlay anzeigen", "Afficher l'overlay", "Mostrar overlay", "显示悬浮窗", "Mostrar overlay", "Показать оверлей" };
-        m["ov_layout"]        = new[] { "Layout", "Układ", "Layout", "Disposition", "Diseño", "布局", "Layout", "Вид" };
-        m["ov_layout_card"]   = new[] { "Card", "Karta", "Karte", "Carte", "Tarjeta", "卡片", "Cartão", "Карта" };
-        m["ov_layout_bar"]    = new[] { "Bar", "Pasek", "Leiste", "Barre", "Barra", "条形", "Barra", "Панель" };
+        m["overlay_title"]    = new[] { "Gaming overlay", "Nakładka do gier", "Gaming-Overlay", "Overlay de jeu", "Overlay de juego", "游戏悬浮窗", "Overlay de jogo", "Игровой оверлей", "ゲームオーバーレイ", "게이밍 오버레이", "遊戲覆蓋層", "Oyun katmanı", "Lớp phủ chơi game", "Overlay gaming", "Overlay di gioco" };
+        m["overlay_hint"]     = new[] { "Detachable always-on-top mini panel with temps, fan RPM and profile — for gaming. Drag to move; toggle with the hotkey. Options in Settings.", "Odczepiany, zawsze-na-wierzchu mini panel z temperaturami, obrotami i profilem — do grania. Przeciągnij, by przesunąć; przełącz skrótem. Opcje w Ustawieniach.", "Abnehmbares Mini-Panel (immer im Vordergrund) mit Temperaturen, Lüfter-RPM und Profil — fürs Gaming. Zum Verschieben ziehen; per Hotkey umschalten. Optionen in den Einstellungen.", "Mini-panneau détachable toujours au premier plan (températures, RPM, profil) — pour le jeu. Glisser pour déplacer ; raccourci pour afficher. Options dans les Réglages.", "Mini panel desacoplable siempre visible con temperaturas, RPM y perfil — para juegos. Arrastra para mover; alterna con el atajo. Opciones en Ajustes.", "可拆卸的置顶小面板，显示温度、风扇转速和配置文件——为游戏而生。拖动移动；快捷键切换。选项在设置中。", "Mini-painel destacável sempre no topo com temperaturas, RPM e perfil — para jogos. Arraste para mover; alterne com o atalho. Opções nas Definições.", "Открепляемая мини-панель поверх окон: температуры, обороты, профиль — для игр. Перетаскивайте мышью; переключение горячей клавишей. Настройки в разделе Настройки.", "温度、ファン RPM、プロファイルを表示する切り離し可能な最前面ミニパネル — ゲーム向け。ドラッグで移動、ホットキーで切替。オプションは設定にあります。", "온도, 팬 RPM, 프로필을 표시하는 분리형 최상위 미니 패널 — 게임용. 드래그로 이동, 단축키로 전환. 옵션은 설정에서.", "可分離的置頂迷你面板，顯示溫度、風扇轉速和設定檔——專為遊戲設計。拖曳移動；用快速鍵切換。選項在設定中。", "Sıcaklık, fan RPM ve profili gösteren, ayrılabilir, her zaman üstte mini panel — oyun için. Sürükleyerek taşıyın; kısayolla açıp kapatın. Seçenekler Ayarlar'da.", "Bảng nhỏ tách rời luôn nổi trên cùng, hiển thị nhiệt độ, RPM quạt và hồ sơ — dành cho chơi game. Kéo để di chuyển; bật/tắt bằng phím tắt. Tùy chọn trong Cài đặt.", "Panel mini terpisah yang selalu di atas dengan suhu, RPM kipas, dan profil — untuk gaming. Seret untuk memindahkan; alihkan dengan hotkey. Opsi di Pengaturan.", "Mini pannello staccabile sempre in primo piano con temperature, RPM ventole e profilo, per il gaming. Trascina per spostarlo; attiva con la scorciatoia. Opzioni in Impostazioni." };
+        m["set_grp_overlay"]  = new[] { "Gaming overlay", "Nakładka do gier", "Gaming-Overlay", "Overlay de jeu", "Overlay de juego", "游戏悬浮窗", "Overlay de jogo", "Игровой оверлей", "ゲームオーバーレイ", "게이밍 오버레이", "遊戲覆蓋層", "Oyun katmanı", "Lớp phủ chơi game", "Overlay gaming", "Overlay di gioco" };
+        m["ov_show"]          = new[] { "Show overlay", "Pokaż nakładkę", "Overlay anzeigen", "Afficher l'overlay", "Mostrar overlay", "显示悬浮窗", "Mostrar overlay", "Показать оверлей", "オーバーレイを表示", "오버레이 표시", "顯示覆蓋層", "Katmanı göster", "Hiện lớp phủ", "Tampilkan overlay", "Mostra overlay" };
+        m["ov_layout"]        = new[] { "Layout", "Układ", "Layout", "Disposition", "Diseño", "布局", "Layout", "Вид", "レイアウト", "레이아웃", "版面", "Düzen", "Bố cục", "Tata letak", "Layout" };
+        m["ov_layout_card"]   = new[] { "Card", "Karta", "Karte", "Carte", "Tarjeta", "卡片", "Cartão", "Карта", "カード", "카드", "卡片", "Kart", "Thẻ", "Kartu", "Riquadro" };
+        m["ov_layout_bar"]    = new[] { "Bar", "Pasek", "Leiste", "Barre", "Barra", "条形", "Barra", "Панель", "バー", "바", "橫條", "Çubuk", "Thanh", "Bilah", "Barra" };
     }
 
     private static void L01(Dictionary<string, string[]> m)
     {
-        m["ov_opacity"]       = new[] { "Content opacity", "Przezroczystość treści", "Deckkraft Inhalt", "Opacité du contenu", "Opacidad contenido", "内容不透明度", "Opacidade do conteúdo", "Прозрачность содержимого" };
-        m["ov_bg_opacity"]    = new[] { "Background opacity", "Przezroczystość tła", "Deckkraft Hintergrund", "Opacité du fond", "Opacidad de fondo", "背景不透明度", "Opacidade do fundo", "Прозрачность фона" };
-        m["ov_scale"]         = new[] { "Size", "Rozmiar", "Größe", "Taille", "Tamaño", "大小", "Tamanho", "Размер" };
-        m["ov_clickthrough"]  = new[] { "Lock position (click-through, can't drag)", "Zablokuj pozycję (klik-through, bez przeciągania)", "Position sperren (klick-durchlässig, kein Ziehen)", "Verrouiller (clic traversant, non déplaçable)", "Bloquear posición (clic pasante, sin arrastrar)", "锁定位置（点击穿透，不可拖动）", "Bloquear posição (clique-através, sem arrastar)", "Заблокировать (сквозные клики, без перетаскивания)" };
-        m["ov_lock_menu"]     = new[] { "Lock overlay position", "Zablokuj pozycję nakładki", "Overlay-Position sperren", "Verrouiller l'overlay", "Bloquear posición del overlay", "锁定悬浮窗位置", "Bloquear posição do overlay", "Заблокировать оверлей" };
-        m["ov_locked"]        = new[] { "Locked · click-through", "Zablokowana · klik-through", "Gesperrt · klick-durchlässig", "Verrouillé · clic traversant", "Bloqueado · clic pasante", "已锁定 · 点击穿透", "Bloqueado · clique-através", "Заблокирована · сквозные клики" };
-        m["ov_unlocked"]      = new[] { "Unlocked · drag to move", "Odblokowana · przeciągnij", "Entsperrt · zum Verschieben ziehen", "Déverrouillé · glisser pour déplacer", "Desbloqueado · arrastra para mover", "已解锁 · 拖动移动", "Desbloqueado · arraste para mover", "Разблокирована · перетащите" };
-        m["ov_ontop"]         = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au premier plan", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон" };
-        m["ov_accent"]        = new[] { "Accent = profile colour", "Akcent = kolor profilu", "Akzent = Profilfarbe", "Accent = couleur du profil", "Acento = color del perfil", "强调色 = 配置文件颜色", "Destaque = cor do perfil", "Акцент = цвет профиля" };
-        m["ov_bold"]          = new[] { "Bold text", "Pogrubiony tekst", "Fetter Text", "Texte en gras", "Texto en negrita", "粗体文字", "Texto em negrito", "Жирный текст" };
-        m["ov_metrics"]       = new[] { "What to show", "Co pokazywać", "Was anzeigen", "Quoi afficher", "Qué mostrar", "显示内容", "O que mostrar", "Что показывать" };
-        m["ov_position"]      = new[] { "Position", "Pozycja", "Position", "Position", "Posición", "位置", "Posição", "Позиция" };
-        m["ov_options"]       = new[] { "Options", "Opcje", "Optionen", "Options", "Opciones", "选项", "Opções", "Опции" };
-        m["ov_hotkey"]        = new[] { "Shortcut — show/hide", "Skrót — pokaż/ukryj", "Kürzel — ein/aus", "Raccourci — afficher/masquer", "Atajo — mostrar/ocultar", "快捷键 — 显示/隐藏", "Atalho — mostrar/ocultar", "Клавиша — показать/скрыть" };
-        m["ov_drag_hint"]     = new[] { "or drag with the mouse", "lub przeciągnij myszą", "oder mit der Maus ziehen", "ou glisser à la souris", "o arrastra con el ratón", "或用鼠标拖动", "ou arraste com o rato", "или перетащите мышью" };
-        m["ov_pos_pick"]      = new[] { "Corners…", "Rogi…", "Ecken…", "Coins…", "Esquinas…", "边角…", "Cantos…", "Углы…" };
-        m["ov_pos_tl"]        = new[] { "↖ Top-left", "↖ Lewy górny", "↖ Oben links", "↖ Haut gauche", "↖ Sup. izq.", "↖ 左上", "↖ Sup. esq.", "↖ Сверху слева" };
-        m["ov_pos_tr"]        = new[] { "↗ Top-right", "↗ Prawy górny", "↗ Oben rechts", "↗ Haut droite", "↗ Sup. der.", "↗ 右上", "↗ Sup. dir.", "↗ Сверху справа" };
-        m["ov_pos_bl"]        = new[] { "↙ Bottom-left", "↙ Lewy dolny", "↙ Unten links", "↙ Bas gauche", "↙ Inf. izq.", "↙ 左下", "↙ Inf. esq.", "↙ Снизу слева" };
-        m["ov_pos_br"]        = new[] { "↘ Bottom-right", "↘ Prawy dolny", "↘ Unten rechts", "↘ Bas droite", "↘ Inf. der.", "↘ 右下", "↘ Inf. dir.", "↘ Снизу справа" };
-        m["ov_m_temp"]        = new[] { "CPU / GPU temp", "Temp. CPU / GPU", "CPU-/GPU-Temp.", "Temp. CPU / GPU", "Temp. CPU / GPU", "CPU / GPU 温度", "Temp. CPU / GPU", "Темп. CPU / GPU" };
-        m["ov_m_rpm"]         = new[] { "Fan RPM", "Obroty (RPM)", "Lüfter-RPM", "RPM ventilos", "RPM ventilador", "风扇转速", "RPM ventoinha", "Обороты" };
-        m["ov_m_fanpct"]      = new[] { "Fan %", "Wentylatory (%)", "Lüfter %", "Ventilo %", "Ventilador %", "风扇 %", "Ventoinha %", "Вентил. %" };
-        m["ov_m_profile"]     = new[] { "Active profile", "Aktywny profil", "Aktives Profil", "Profil actif", "Perfil activo", "当前配置文件", "Perfil ativo", "Активный профиль" };
-        m["ov_m_cooler"]      = new[] { "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost" };
-        m["ov_m_load"]        = new[] { "CPU load", "Obciążenie CPU", "CPU-Last", "Charge CPU", "Carga CPU", "CPU 占用", "Carga CPU", "Загрузка CPU" };
-        m["ov_m_ram"]         = new[] { "RAM", "RAM", "RAM", "RAM", "RAM", "内存", "RAM", "ОЗУ" };
-        m["ov_m_gpuusage"]    = new[] { "GPU load", "Użycie GPU", "GPU-Last", "Charge GPU", "Carga GPU", "GPU 占用", "Carga GPU", "Загрузка GPU" };
-        m["ov_m_vram"]        = new[] { "VRAM", "VRAM", "VRAM", "VRAM", "VRAM", "显存", "VRAM", "Видеопамять" };
-        m["ov_m_cpuclock"]    = new[] { "CPU clock", "Zegar CPU", "CPU-Takt", "Fréq. CPU", "Reloj CPU", "CPU 频率", "Clock CPU", "Частота CPU" };
-        m["ov_bg"]            = new[] { "Background", "Tło", "Hintergrund", "Arrière-plan", "Fondo", "背景", "Fundo", "Фон" };
-        m["ov_bg_color"]      = new[] { "Background colour", "Kolor tła", "Hintergrundfarbe", "Couleur de fond", "Color de fondo", "背景颜色", "Cor de fundo", "Цвет фона" };
-        m["ov_restore"]       = new[] { "Restore defaults", "Przywróć domyślne", "Standard wiederherstellen", "Réinitialiser", "Restaurar valores", "恢复默认", "Restaurar padrões", "Сбросить" };
-        m["ov_m_charge"]      = new[] { "Charge limit", "Limit ładowania", "Ladelimit", "Limite de charge", "Límite de carga", "充电限制", "Limite de carga", "Лимит заряда" };
-        m["ov_m_battery"]     = new[] { "Battery %", "Bateria %", "Akku %", "Batterie %", "Batería %", "电量 %", "Bateria %", "Батарея %" };
-        m["ov_lock_row"]      = new[] { "Lock position", "Zablokuj pozycję", "Position sperren", "Verrouiller la position", "Bloquear posición", "锁定位置", "Bloquear posição", "Заблокировать позицию" };
-        m["ov_note"]          = new[] { "Shows over borderless / windowed-fullscreen games. Exclusive fullscreen may hide it.", "Widoczna w grach borderless / windowed-fullscreen. Tryb exclusive fullscreen może ją ukryć.", "Sichtbar bei randlosen / Fenster-Vollbild-Spielen. Exklusives Vollbild kann es verdecken.", "Visible sur les jeux sans bordure / plein écran fenêtré. Le plein écran exclusif peut le masquer.", "Visible en juegos sin bordes / pantalla completa en ventana. La pantalla completa exclusiva puede ocultarlo.", "在无边框/窗口化全屏游戏中可见。独占全屏可能会隐藏它。", "Visível em jogos sem bordas / ecrã inteiro em janela. O ecrã inteiro exclusivo pode ocultá-lo.", "Виден в играх без рамки / оконный полноэкранный. Эксклюзивный полноэкранный может скрыть его." };
+        m["ov_opacity"]       = new[] { "Content opacity", "Przezroczystość treści", "Deckkraft Inhalt", "Opacité du contenu", "Opacidad contenido", "内容不透明度", "Opacidade do conteúdo", "Прозрачность содержимого", "内容の不透明度", "내용 불투명도", "內容不透明度", "İçerik opaklığı", "Độ mờ nội dung", "Opasitas konten", "Opacità contenuto" };
+        m["ov_bg_opacity"]    = new[] { "Background opacity", "Przezroczystość tła", "Deckkraft Hintergrund", "Opacité du fond", "Opacidad de fondo", "背景不透明度", "Opacidade do fundo", "Прозрачность фона", "背景の不透明度", "배경 불투명도", "背景不透明度", "Arka plan opaklığı", "Độ mờ nền", "Opasitas latar", "Opacità sfondo" };
+        m["ov_scale"]         = new[] { "Size", "Rozmiar", "Größe", "Taille", "Tamaño", "大小", "Tamanho", "Размер", "サイズ", "크기", "大小", "Boyut", "Kích thước", "Ukuran", "Dimensione" };
+        m["ov_clickthrough"]  = new[] { "Lock position (click-through, can't drag)", "Zablokuj pozycję (klik-through, bez przeciągania)", "Position sperren (klick-durchlässig, kein Ziehen)", "Verrouiller (clic traversant, non déplaçable)", "Bloquear posición (clic pasante, sin arrastrar)", "锁定位置（点击穿透，不可拖动）", "Bloquear posição (clique-através, sem arrastar)", "Заблокировать (сквозные клики, без перетаскивания)", "位置を固定（クリック透過、ドラッグ不可）", "위치 잠금 (클릭 통과, 드래그 불가)", "鎖定位置（點擊穿透，無法拖曳）", "Konumu kilitle (tıklama geçirir, sürüklenemez)", "Khóa vị trí (nhấp xuyên qua, không kéo được)", "Kunci posisi (tembus klik, tak bisa diseret)", "Blocca posizione (click-through, non trascinabile)" };
+        m["ov_lock_menu"]     = new[] { "Lock overlay position", "Zablokuj pozycję nakładki", "Overlay-Position sperren", "Verrouiller l'overlay", "Bloquear posición del overlay", "锁定悬浮窗位置", "Bloquear posição do overlay", "Заблокировать оверлей", "オーバーレイ位置を固定", "오버레이 위치 잠금", "鎖定覆蓋層位置", "Katman konumunu kilitle", "Khóa vị trí lớp phủ", "Kunci posisi overlay", "Blocca posizione overlay" };
+        m["ov_locked"]        = new[] { "Locked · click-through", "Zablokowana · klik-through", "Gesperrt · klick-durchlässig", "Verrouillé · clic traversant", "Bloqueado · clic pasante", "已锁定 · 点击穿透", "Bloqueado · clique-através", "Заблокирована · сквозные клики", "固定中 · クリック透過", "잠김 · 클릭 통과", "已鎖定 · 點擊穿透", "Kilitli · tıklama geçirir", "Đã khóa · nhấp xuyên qua", "Terkunci · tembus klik", "Bloccato · click-through" };
+        m["ov_unlocked"]      = new[] { "Unlocked · drag to move", "Odblokowana · przeciągnij", "Entsperrt · zum Verschieben ziehen", "Déverrouillé · glisser pour déplacer", "Desbloqueado · arrastra para mover", "已解锁 · 拖动移动", "Desbloqueado · arraste para mover", "Разблокирована · перетащите", "固定解除 · ドラッグで移動", "잠금 해제 · 드래그로 이동", "已解鎖 · 拖曳移動", "Kilit açık · sürükleyerek taşıyın", "Đã mở khóa · kéo để di chuyển", "Tak terkunci · seret untuk geser", "Sbloccato · trascinabile" };
+        m["ov_ontop"]         = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au premier plan", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон", "常に最前面", "항상 위에 표시", "永遠置頂", "Her zaman üstte", "Luôn trên cùng", "Selalu di atas", "Sempre in primo piano" };
+        m["ov_accent"]        = new[] { "Accent = profile colour", "Akcent = kolor profilu", "Akzent = Profilfarbe", "Accent = couleur du profil", "Acento = color del perfil", "强调色 = 配置文件颜色", "Destaque = cor do perfil", "Акцент = цвет профиля", "アクセント = プロファイル色", "강조색 = 프로필 색상", "強調色 = 設定檔色彩", "Vurgu = profil rengi", "Màu nhấn = màu hồ sơ", "Aksen = warna profil", "Accento = colore profilo" };
+        m["ov_bold"]          = new[] { "Bold text", "Pogrubiony tekst", "Fetter Text", "Texte en gras", "Texto en negrita", "粗体文字", "Texto em negrito", "Жирный текст", "太字", "굵은 글씨", "粗體文字", "Kalın metin", "Chữ đậm", "Teks tebal", "Grassetto" };
+        m["ov_metrics"]       = new[] { "What to show", "Co pokazywać", "Was anzeigen", "Quoi afficher", "Qué mostrar", "显示内容", "O que mostrar", "Что показывать", "表示項目", "표시 항목", "顯示內容", "Gösterilecekler", "Nội dung hiển thị", "Yang ditampilkan", "Cosa mostrare" };
+        m["ov_position"]      = new[] { "Position", "Pozycja", "Position", "Position", "Posición", "位置", "Posição", "Позиция", "位置", "위치", "位置", "Konum", "Vị trí", "Posisi", "Posizione" };
+        m["ov_options"]       = new[] { "Options", "Opcje", "Optionen", "Options", "Opciones", "选项", "Opções", "Опции", "オプション", "옵션", "選項", "Seçenekler", "Tùy chọn", "Opsi", "Opzioni" };
+        m["ov_hotkey"]        = new[] { "Shortcut — show/hide", "Skrót — pokaż/ukryj", "Kürzel — ein/aus", "Raccourci — afficher/masquer", "Atajo — mostrar/ocultar", "快捷键 — 显示/隐藏", "Atalho — mostrar/ocultar", "Клавиша — показать/скрыть", "ショートカット — 表示/非表示", "단축키 — 표시/숨기기", "快速鍵 — 顯示/隱藏", "Kısayol — göster/gizle", "Phím tắt — hiện/ẩn", "Pintasan — tampil/sembunyi", "Scorciatoia — mostra/nascondi" };
+        m["ov_drag_hint"]     = new[] { "or drag with the mouse", "lub przeciągnij myszą", "oder mit der Maus ziehen", "ou glisser à la souris", "o arrastra con el ratón", "或用鼠标拖动", "ou arraste com o rato", "или перетащите мышью", "またはマウスでドラッグ", "또는 마우스로 드래그", "或用滑鼠拖曳", "veya fareyle sürükleyin", "hoặc kéo bằng chuột", "atau seret dengan mouse", "o trascina con il mouse" };
+        m["ov_pos_pick"]      = new[] { "Corners…", "Rogi…", "Ecken…", "Coins…", "Esquinas…", "边角…", "Cantos…", "Углы…", "コーナー…", "모서리…", "角落…", "Köşeler…", "Góc…", "Sudut…", "Angoli…" };
+        m["ov_pos_tl"]        = new[] { "↖ Top-left", "↖ Lewy górny", "↖ Oben links", "↖ Haut gauche", "↖ Sup. izq.", "↖ 左上", "↖ Sup. esq.", "↖ Сверху слева", "↖ 左上", "↖ 왼쪽 위", "↖ 左上", "↖ Sol üst", "↖ Trên trái", "↖ Kiri atas", "↖ In alto a sinistra" };
+        m["ov_pos_tr"]        = new[] { "↗ Top-right", "↗ Prawy górny", "↗ Oben rechts", "↗ Haut droite", "↗ Sup. der.", "↗ 右上", "↗ Sup. dir.", "↗ Сверху справа", "↗ 右上", "↗ 오른쪽 위", "↗ 右上", "↗ Sağ üst", "↗ Trên phải", "↗ Kanan atas", "↗ In alto a destra" };
+        m["ov_pos_bl"]        = new[] { "↙ Bottom-left", "↙ Lewy dolny", "↙ Unten links", "↙ Bas gauche", "↙ Inf. izq.", "↙ 左下", "↙ Inf. esq.", "↙ Снизу слева", "↙ 左下", "↙ 왼쪽 아래", "↙ 左下", "↙ Sol alt", "↙ Dưới trái", "↙ Kiri bawah", "↙ In basso a sinistra" };
+        m["ov_pos_br"]        = new[] { "↘ Bottom-right", "↘ Prawy dolny", "↘ Unten rechts", "↘ Bas droite", "↘ Inf. der.", "↘ 右下", "↘ Inf. dir.", "↘ Снизу справа", "↘ 右下", "↘ 오른쪽 아래", "↘ 右下", "↘ Sağ alt", "↘ Dưới phải", "↘ Kanan bawah", "↘ In basso a destra" };
+        m["ov_m_temp"]        = new[] { "CPU / GPU temp", "Temp. CPU / GPU", "CPU-/GPU-Temp.", "Temp. CPU / GPU", "Temp. CPU / GPU", "CPU / GPU 温度", "Temp. CPU / GPU", "Темп. CPU / GPU", "CPU / GPU 温度", "CPU / GPU 온도", "CPU / GPU 溫度", "CPU / GPU sıcaklığı", "Nhiệt độ CPU / GPU", "Suhu CPU / GPU", "Temp. CPU / GPU" };
+        m["ov_m_rpm"]         = new[] { "Fan RPM", "Obroty (RPM)", "Lüfter-RPM", "RPM ventilos", "RPM ventilador", "风扇转速", "RPM ventoinha", "Обороты", "ファン RPM", "팬 RPM", "風扇轉速", "Fan RPM", "RPM quạt", "RPM kipas", "RPM ventole" };
+        m["ov_m_fanpct"]      = new[] { "Fan %", "Wentylatory (%)", "Lüfter %", "Ventilo %", "Ventilador %", "风扇 %", "Ventoinha %", "Вентил. %", "ファン %", "팬 %", "風扇 %", "Fan %", "Quạt %", "Kipas %", "Ventole %" };
+        m["ov_m_profile"]     = new[] { "Active profile", "Aktywny profil", "Aktives Profil", "Profil actif", "Perfil activo", "当前配置文件", "Perfil ativo", "Активный профиль", "現在のプロファイル", "활성 프로필", "目前設定檔", "Etkin profil", "Hồ sơ đang dùng", "Profil aktif", "Profilo attivo" };
+        m["ov_m_cooler"]      = new[] { "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost", "Fan Boost" };
+        m["ov_m_load"]        = new[] { "CPU load", "Obciążenie CPU", "CPU-Last", "Charge CPU", "Carga CPU", "CPU 占用", "Carga CPU", "Загрузка CPU", "CPU 使用率", "CPU 부하", "CPU 使用率", "CPU yükü", "Tải CPU", "Beban CPU", "Carico CPU" };
+        m["ov_m_ram"]         = new[] { "RAM", "RAM", "RAM", "RAM", "RAM", "内存", "RAM", "ОЗУ", "RAM", "RAM", "記憶體", "RAM", "RAM", "RAM", "RAM" };
+        m["ov_m_gpuusage"]    = new[] { "GPU load", "Użycie GPU", "GPU-Last", "Charge GPU", "Carga GPU", "GPU 占用", "Carga GPU", "Загрузка GPU", "GPU 使用率", "GPU 부하", "GPU 使用率", "GPU yükü", "Tải GPU", "Beban GPU", "Carico GPU" };
+        m["ov_m_vram"]        = new[] { "VRAM", "VRAM", "VRAM", "VRAM", "VRAM", "显存", "VRAM", "Видеопамять", "VRAM", "VRAM", "顯示記憶體", "VRAM", "VRAM", "VRAM", "VRAM" };
+        m["ov_m_cpuclock"]    = new[] { "CPU clock", "Zegar CPU", "CPU-Takt", "Fréq. CPU", "Reloj CPU", "CPU 频率", "Clock CPU", "Частота CPU", "CPU クロック", "CPU 클럭", "CPU 時脈", "CPU frekansı", "Xung CPU", "Clock CPU", "Clock CPU" };
+        m["ov_bg"]            = new[] { "Background", "Tło", "Hintergrund", "Arrière-plan", "Fondo", "背景", "Fundo", "Фон", "背景", "배경", "背景", "Arka plan", "Nền", "Latar", "Sfondo" };
+        m["ov_bg_color"]      = new[] { "Background colour", "Kolor tła", "Hintergrundfarbe", "Couleur de fond", "Color de fondo", "背景颜色", "Cor de fundo", "Цвет фона", "背景色", "배경 색상", "背景色彩", "Arka plan rengi", "Màu nền", "Warna latar", "Colore sfondo" };
+        m["ov_restore"]       = new[] { "Restore defaults", "Przywróć domyślne", "Standard wiederherstellen", "Réinitialiser", "Restaurar valores", "恢复默认", "Restaurar padrões", "Сбросить", "既定に戻す", "기본값 복원", "還原預設值", "Varsayılanlara dön", "Khôi phục mặc định", "Pulihkan default", "Ripristina predefiniti" };
+        m["ov_m_charge"]      = new[] { "Charge limit", "Limit ładowania", "Ladelimit", "Limite de charge", "Límite de carga", "充电限制", "Limite de carga", "Лимит заряда", "充電上限", "충전 제한", "充電上限", "Şarj sınırı", "Giới hạn sạc", "Batas pengisian", "Limite di carica" };
+        m["ov_m_battery"]     = new[] { "Battery %", "Bateria %", "Akku %", "Batterie %", "Batería %", "电量 %", "Bateria %", "Батарея %", "バッテリー %", "배터리 %", "電量 %", "Pil %", "Pin %", "Baterai %", "Batteria %" };
+        m["ov_lock_row"]      = new[] { "Lock position", "Zablokuj pozycję", "Position sperren", "Verrouiller la position", "Bloquear posición", "锁定位置", "Bloquear posição", "Заблокировать позицию", "位置を固定", "위치 잠금", "鎖定位置", "Konumu kilitle", "Khóa vị trí", "Kunci posisi", "Blocca posizione" };
+        m["ov_note"]          = new[] { "Shows over borderless / windowed-fullscreen games. Exclusive fullscreen may hide it.", "Widoczna w grach borderless / windowed-fullscreen. Tryb exclusive fullscreen może ją ukryć.", "Sichtbar bei randlosen / Fenster-Vollbild-Spielen. Exklusives Vollbild kann es verdecken.", "Visible sur les jeux sans bordure / plein écran fenêtré. Le plein écran exclusif peut le masquer.", "Visible en juegos sin bordes / pantalla completa en ventana. La pantalla completa exclusiva puede ocultarlo.", "在无边框/窗口化全屏游戏中可见。独占全屏可能会隐藏它。", "Visível em jogos sem bordas / ecrã inteiro em janela. O ecrã inteiro exclusivo pode ocultá-lo.", "Виден в играх без рамки / оконный полноэкранный. Эксклюзивный полноэкранный может скрыть его.", "ボーダーレス / ウィンドウ全画面のゲーム上に表示。排他的全画面では隠れる場合があります。", "테두리 없음 / 창 모드 전체 화면 게임 위에 표시됩니다. 독점 전체 화면에서는 숨겨질 수 있습니다.", "在無邊框/視窗化全螢幕遊戲中可見。獨佔全螢幕可能會隱藏它。", "Kenarlıksız / pencereli tam ekran oyunlarda görünür. Özel tam ekran gizleyebilir.", "Hiển thị trên game không viền / toàn màn hình cửa sổ. Toàn màn hình độc quyền có thể ẩn nó.", "Tampil di atas game tanpa bingkai / layar penuh berjendela. Layar penuh eksklusif mungkin menyembunyikannya.", "Visibile sui giochi senza bordi / a schermo intero in finestra. Lo schermo intero esclusivo può nasconderlo." };
 
         // ---- history log ----
-        m["menu_log"]         = new[] { "Change log", "Historia zmian", "Änderungsprotokoll", "Journal des changements", "Registro de cambios", "更改日志", "Registro de alterações", "Журнал изменений" };
-        m["log_title"]        = new[] { "Change history", "Historia zmian", "Änderungsverlauf", "Historique des changements", "Historial de cambios", "更改历史", "Histórico de alterações", "История изменений" };
-        m["log_recent"]       = new[] { "Recent changes", "Ostatnie zmiany", "Letzte Änderungen", "Changements récents", "Cambios recientes", "最近更改", "Alterações recentes", "Недавние изменения" };
-        m["log_full"]         = new[] { "Full log…", "Pełny log…", "Vollständiges Protokoll…", "Journal complet…", "Registro completo…", "完整日志…", "Registro completo…", "Полный журнал…" };
-        m["log_empty"]        = new[] { "No changes recorded yet", "Brak zapisanych zmian", "Noch keine Änderungen", "Aucun changement enregistré", "Sin cambios registrados", "尚无记录", "Nenhuma alteração registrada", "Изменений пока нет" };
-        m["log_col_time"]     = new[] { "Time", "Czas", "Zeit", "Heure", "Hora", "时间", "Hora", "Время" };
-        m["log_col_source"]   = new[] { "Source", "Źródło", "Quelle", "Source", "Origen", "来源", "Origem", "Источник" };
-        m["log_col_detail"]   = new[] { "Written bytes", "Zapisane bajty", "Geschriebene Bytes", "Octets écrits", "Bytes escritos", "写入字节", "Bytes escritos", "Записанные байты" };
+        m["menu_log"]         = new[] { "Change log", "Historia zmian", "Änderungsprotokoll", "Journal des changements", "Registro de cambios", "更改日志", "Registro de alterações", "Журнал изменений", "変更ログ", "변경 기록", "變更記錄", "Değişiklik günlüğü", "Nhật ký thay đổi", "Log perubahan", "Registro" };
+        m["log_title"]        = new[] { "Change history", "Historia zmian", "Änderungsverlauf", "Historique des changements", "Historial de cambios", "更改历史", "Histórico de alterações", "История изменений", "変更履歴", "변경 이력", "變更歷程", "Değişiklik geçmişi", "Lịch sử thay đổi", "Riwayat perubahan", "Cronologia modifiche" };
+        m["log_recent"]       = new[] { "Recent changes", "Ostatnie zmiany", "Letzte Änderungen", "Changements récents", "Cambios recientes", "最近更改", "Alterações recentes", "Недавние изменения", "最近の変更", "최근 변경", "最近變更", "Son değişiklikler", "Thay đổi gần đây", "Perubahan terbaru", "Modifiche recenti" };
+        m["log_full"]         = new[] { "Full log…", "Pełny log…", "Vollständiges Protokoll…", "Journal complet…", "Registro completo…", "完整日志…", "Registro completo…", "Полный журнал…", "完全なログ…", "전체 기록…", "完整記錄…", "Tam günlük…", "Toàn bộ nhật ký…", "Log lengkap…", "Registro completo…" };
+        m["log_empty"]        = new[] { "No changes recorded yet", "Brak zapisanych zmian", "Noch keine Änderungen", "Aucun changement enregistré", "Sin cambios registrados", "尚无记录", "Nenhuma alteração registrada", "Изменений пока нет", "まだ変更の記録はありません", "기록된 변경 없음", "尚無記錄", "Henüz kayıtlı değişiklik yok", "Chưa ghi nhận thay đổi nào", "Belum ada perubahan tercatat", "Nessuna modifica registrata" };
+        m["log_col_time"]     = new[] { "Time", "Czas", "Zeit", "Heure", "Hora", "时间", "Hora", "Время", "時刻", "시간", "時間", "Zaman", "Thời gian", "Waktu", "Ora" };
+        m["log_col_source"]   = new[] { "Source", "Źródło", "Quelle", "Source", "Origen", "来源", "Origem", "Источник", "ソース", "출처", "來源", "Kaynak", "Nguồn", "Sumber", "Origine" };
+        m["log_col_detail"]   = new[] { "Written bytes", "Zapisane bajty", "Geschriebene Bytes", "Octets écrits", "Bytes escritos", "写入字节", "Bytes escritos", "Записанные байты", "書き込みバイト", "기록된 바이트", "寫入位元組", "Yazılan baytlar", "Byte đã ghi", "Byte tertulis", "Byte scritti" };
     }
 
     private static void L02(Dictionary<string, string[]> m)
     {
-        m["log_col_result"]   = new[] { "Readback", "Odczyt", "Rücklesen", "Relecture", "Relectura", "回读", "Releitura", "Обратное чтение" };
-        m["log_copy_all"]     = new[] { "Copy all", "Kopiuj wszystko", "Alles kopieren", "Tout copier", "Copiar todo", "全部复制", "Copiar tudo", "Копировать всё" };
-        m["log_clear"]        = new[] { "Clear", "Wyczyść", "Löschen", "Effacer", "Borrar", "清除", "Limpar", "Очистить" };
-        m["log_clear_confirm"]= new[] { "Clear the whole change history?", "Wyczyścić całą historię zmian?", "Gesamten Änderungsverlauf löschen?", "Effacer tout l'historique ?", "¿Borrar todo el historial?", "清除全部历史？", "Limpar todo o histórico?", "Очистить всю историю?" };
-        m["log_read_fail"]    = new[] { "readback failed", "odczyt nieudany", "Rücklesen fehlgeschlagen", "relecture échouée", "relectura fallida", "回读失败", "releitura falhou", "ошибка чтения" };
-        m["log_err"]          = new[] { "error", "błąd", "Fehler", "erreur", "error", "错误", "erro", "ошибка" };
-        m["log_charge"]       = new[] { "Charge limit {0}%", "Limit ładowania {0}%", "Ladelimit {0}%", "Limite de charge {0}%", "Límite de carga {0}%", "充电限制 {0}%", "Limite de carga {0}%", "Лимит заряда {0}%" };
-        m["log_travel_on"]    = new[] { "Travel mode: 100% until {0}", "Tryb podróży: 100% do {0}", "Reisemodus: 100% bis {0}", "Mode voyage : 100% jusqu'au {0}", "Modo viaje: 100% hasta {0}", "旅行模式：100% 直到 {0}", "Modo viagem: 100% até {0}", "Режим поездки: 100% до {0}" };
-        m["log_travel_off"]   = new[] { "Travel mode ended, charge limit back to {0}", "Tryb podróży zakończony, limit ładowania znów {0}", "Reisemodus beendet, Ladelimit wieder {0}", "Mode voyage terminé, limite de charge de nouveau {0}", "Modo viaje terminado, límite de carga de nuevo {0}", "旅行模式已结束，充电限制恢复为 {0}", "Modo viagem terminado, limite de carga de volta a {0}", "Режим поездки завершён, лимит заряда снова {0}" };
-        m["log_travel_cancel"]= new[] { "Travel mode cancelled (limit changed manually)", "Tryb podróży anulowany (limit zmieniony ręcznie)", "Reisemodus abgebrochen (Limit manuell geändert)", "Mode voyage annulé (limite modifiée manuellement)", "Modo viaje cancelado (límite cambiado manualmente)", "旅行模式已取消（已手动更改限制）", "Modo viagem cancelado (limite alterado manualmente)", "Режим поездки отменён (лимит изменён вручную)" };
-        m["log_external"]     = new[] { "External change: {0} → {1}", "Zmiana zewnętrzna: {0} → {1}", "Externe Änderung: {0} → {1}", "Changement externe : {0} → {1}", "Cambio externo: {0} → {1}", "外部更改：{0} → {1}", "Alteração externa: {0} → {1}", "Внешнее изменение: {0} → {1}" };
-        m["log_curve_on"]     = new[] { "Custom fan curve ON", "Własna krzywa wentylatora WŁ.", "Eigene Lüfterkurve EIN", "Courbe perso ACTIVÉE", "Curva personalizada ACT.", "自定义风扇曲线 开", "Curva personalizada LIG.", "Своя кривая ВКЛ" };
-        m["log_curve_off"]    = new[] { "Custom fan curve off", "Własna krzywa wentylatora WYŁ.", "Eigene Lüfterkurve AUS", "Courbe perso désactivée", "Curva personalizada des.", "自定义风扇曲线 关", "Curva personalizada DESL.", "Своя кривая ВЫКЛ" };
+        m["log_col_result"]   = new[] { "Readback", "Odczyt", "Rücklesen", "Relecture", "Relectura", "回读", "Releitura", "Обратное чтение", "読み戻し", "리드백", "回讀", "Geri okuma", "Đọc lại", "Baca ulang", "Rilettura" };
+        m["log_copy_all"]     = new[] { "Copy all", "Kopiuj wszystko", "Alles kopieren", "Tout copier", "Copiar todo", "全部复制", "Copiar tudo", "Копировать всё", "すべてコピー", "모두 복사", "全部複製", "Tümünü kopyala", "Sao chép tất cả", "Salin semua", "Copia tutto" };
+        m["log_clear"]        = new[] { "Clear", "Wyczyść", "Löschen", "Effacer", "Borrar", "清除", "Limpar", "Очистить", "クリア", "지우기", "清除", "Temizle", "Xóa", "Hapus", "Cancella" };
+        m["log_clear_confirm"]= new[] { "Clear the whole change history?", "Wyczyścić całą historię zmian?", "Gesamten Änderungsverlauf löschen?", "Effacer tout l'historique ?", "¿Borrar todo el historial?", "清除全部历史？", "Limpar todo o histórico?", "Очистить всю историю?", "変更履歴をすべて消去しますか？", "전체 변경 기록을 지우시겠습니까?", "清除全部變更記錄？", "Tüm değişiklik geçmişi silinsin mi?", "Xóa toàn bộ lịch sử thay đổi?", "Hapus seluruh riwayat perubahan?", "Cancellare tutta la cronologia?" };
+        m["log_read_fail"]    = new[] { "readback failed", "odczyt nieudany", "Rücklesen fehlgeschlagen", "relecture échouée", "relectura fallida", "回读失败", "releitura falhou", "ошибка чтения", "読み戻し失敗", "리드백 실패", "回讀失敗", "geri okuma başarısız", "đọc lại thất bại", "baca ulang gagal", "rilettura fallita" };
+        m["log_err"]          = new[] { "error", "błąd", "Fehler", "erreur", "error", "错误", "erro", "ошибка", "エラー", "오류", "錯誤", "hata", "lỗi", "kesalahan", "errore" };
+        m["log_charge"]       = new[] { "Charge limit {0}%", "Limit ładowania {0}%", "Ladelimit {0}%", "Limite de charge {0}%", "Límite de carga {0}%", "充电限制 {0}%", "Limite de carga {0}%", "Лимит заряда {0}%", "充電上限 {0}%", "충전 제한 {0}%", "充電上限 {0}%", "Şarj sınırı %{0}", "Giới hạn sạc {0}%", "Batas pengisian {0}%", "Limite di carica {0}%" };
+        m["log_travel_on"]    = new[] { "Travel mode: 100% until {0}", "Tryb podróży: 100% do {0}", "Reisemodus: 100% bis {0}", "Mode voyage : 100% jusqu'au {0}", "Modo viaje: 100% hasta {0}", "旅行模式：100% 直到 {0}", "Modo viagem: 100% até {0}", "Режим поездки: 100% до {0}", "旅行モード：{0} まで 100%", "여행 모드: {0}까지 100%", "旅行模式：100% 直到 {0}", "Seyahat modu: {0} tarihine kadar %100", "Chế độ du lịch: 100% đến {0}", "Mode perjalanan: 100% hingga {0}", "Modalità viaggio: 100% fino al {0}" };
+        m["log_travel_off"]   = new[] { "Travel mode ended, charge limit back to {0}", "Tryb podróży zakończony, limit ładowania znów {0}", "Reisemodus beendet, Ladelimit wieder {0}", "Mode voyage terminé, limite de charge de nouveau {0}", "Modo viaje terminado, límite de carga de nuevo {0}", "旅行模式已结束，充电限制恢复为 {0}", "Modo viagem terminado, limite de carga de volta a {0}", "Режим поездки завершён, лимит заряда снова {0}", "旅行モード終了、充電上限を {0} に戻しました", "여행 모드 종료, 충전 제한 {0}(으)로 복원", "旅行模式已結束，充電上限還原為 {0}", "Seyahat modu bitti, şarj sınırı tekrar {0}", "Chế độ du lịch kết thúc, giới hạn sạc về {0}", "Mode perjalanan berakhir, batas pengisian kembali ke {0}", "Modalità viaggio terminata, limite di carica torna a {0}" };
+        m["log_travel_cancel"]= new[] { "Travel mode cancelled (limit changed manually)", "Tryb podróży anulowany (limit zmieniony ręcznie)", "Reisemodus abgebrochen (Limit manuell geändert)", "Mode voyage annulé (limite modifiée manuellement)", "Modo viaje cancelado (límite cambiado manualmente)", "旅行模式已取消（已手动更改限制）", "Modo viagem cancelado (limite alterado manualmente)", "Режим поездки отменён (лимит изменён вручную)", "旅行モード解除（上限を手動変更）", "여행 모드 취소됨 (제한을 수동 변경함)", "旅行模式已取消（已手動變更上限）", "Seyahat modu iptal edildi (limit elle değiştirildi)", "Đã hủy chế độ du lịch (giới hạn được đổi thủ công)", "Mode perjalanan dibatalkan (batas diubah manual)", "Modalità viaggio annullata (limite cambiato a mano)" };
+        m["log_external"]     = new[] { "External change: {0} → {1}", "Zmiana zewnętrzna: {0} → {1}", "Externe Änderung: {0} → {1}", "Changement externe : {0} → {1}", "Cambio externo: {0} → {1}", "外部更改：{0} → {1}", "Alteração externa: {0} → {1}", "Внешнее изменение: {0} → {1}", "外部変更：{0} → {1}", "외부 변경: {0} → {1}", "外部變更：{0} → {1}", "Harici değişiklik: {0} → {1}", "Thay đổi bên ngoài: {0} → {1}", "Perubahan eksternal: {0} → {1}", "Modifica esterna: {0} → {1}" };
+        m["log_curve_on"]     = new[] { "Custom fan curve ON", "Własna krzywa wentylatora WŁ.", "Eigene Lüfterkurve EIN", "Courbe perso ACTIVÉE", "Curva personalizada ACT.", "自定义风扇曲线 开", "Curva personalizada LIG.", "Своя кривая ВКЛ", "カスタムファンカーブ オン", "사용자 지정 팬 곡선 켬", "自訂風扇曲線 開", "Özel fan eğrisi AÇIK", "Đường cong quạt tùy chỉnh BẬT", "Kurva kipas kustom AKTIF", "Curva personalizzata ON" };
+        m["log_curve_off"]    = new[] { "Custom fan curve off", "Własna krzywa wentylatora WYŁ.", "Eigene Lüfterkurve AUS", "Courbe perso désactivée", "Curva personalizada des.", "自定义风扇曲线 关", "Curva personalizada DESL.", "Своя кривая ВЫКЛ", "カスタムファンカーブ オフ", "사용자 지정 팬 곡선 끔", "自訂風扇曲線 關", "Özel fan eğrisi kapalı", "Đường cong quạt tùy chỉnh tắt", "Kurva kipas kustom mati", "Curva personalizzata off" };
 
         // ---- log sources ----
-        m["log_src_startup"]  = new[] { "startup", "start", "Start", "démarrage", "inicio", "启动", "início", "запуск" };
-        m["log_src_hotkey"]   = new[] { "hotkey", "skrót", "Tastenkürzel", "raccourci", "atajo", "快捷键", "atalho", "гор. клавиша" };
-        m["log_src_tray"]     = new[] { "tray", "zasobnik", "Infobereich", "barre d'état", "bandeja", "托盘", "bandeja", "трей" };
-        m["log_src_panel"]    = new[] { "panel", "panel", "Panel", "panneau", "panel", "面板", "painel", "панель" };
-        m["log_src_autoac"]   = new[] { "auto AC/battery", "auto AC/bateria", "Auto Netz/Akku", "auto secteur/batt.", "auto CA/batería", "自动 电源/电池", "auto CA/bateria", "авто сеть/батарея" };
-        m["log_src_fancurve"] = new[] { "fan curve", "krzywa went.", "Lüfterkurve", "courbe ventilo", "curva vent.", "风扇曲线", "curva ventoinha", "кривая вент." };
-        m["log_src_external"] = new[] { "external sync", "sync. zewn.", "externer Sync", "sync externe", "sinc. externa", "外部同步", "sinc. externa", "внешняя синхр." };
-        m["log_src_charge"]   = new[] { "charge limit", "limit ładowania", "Ladelimit", "limite charge", "límite carga", "充电限制", "limite carga", "лимит заряда" };
-        m["log_src_cooler"]   = new[] { "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost" };
-        m["log_src_firmware"] = new[] { "firmware", "firmware", "Firmware", "firmware", "firmware", "固件", "firmware", "прошивка" };
-        m["log_src_test"]     = new[] { "test tool", "narz. testowe", "Testtool", "outil de test", "herr. de prueba", "测试工具", "ferr. de teste", "тест. инстр." };
-        m["log_src_thermal"]  = new[] { "thermal", "temperatura", "thermisch", "thermique", "térmico", "温度", "térmico", "температура" };
+        m["log_src_startup"]  = new[] { "startup", "start", "Start", "démarrage", "inicio", "启动", "início", "запуск", "起動", "시작", "啟動", "başlangıç", "khởi động", "mulai", "avvio" };
+        m["log_src_hotkey"]   = new[] { "hotkey", "skrót", "Tastenkürzel", "raccourci", "atajo", "快捷键", "atalho", "гор. клавиша", "ホットキー", "단축키", "快速鍵", "kısayol", "phím tắt", "hotkey", "scorciatoia" };
+        m["log_src_tray"]     = new[] { "tray", "zasobnik", "Infobereich", "barre d'état", "bandeja", "托盘", "bandeja", "трей", "トレイ", "트레이", "系統匣", "tepsi", "khay", "tray", "tray" };
+        m["log_src_panel"]    = new[] { "panel", "panel", "Panel", "panneau", "panel", "面板", "painel", "панель", "パネル", "패널", "面板", "panel", "bảng điều khiển", "panel", "pannello" };
+        m["log_src_autoac"]   = new[] { "auto AC/battery", "auto AC/bateria", "Auto Netz/Akku", "auto secteur/batt.", "auto CA/batería", "自动 电源/电池", "auto CA/bateria", "авто сеть/батарея", "自動 AC/バッテリー", "자동 AC/배터리", "自動 電源/電池", "otomatik AC/pil", "tự động AC/pin", "otomatis AC/baterai", "auto rete/batteria" };
+        m["log_src_fancurve"] = new[] { "fan curve", "krzywa went.", "Lüfterkurve", "courbe ventilo", "curva vent.", "风扇曲线", "curva ventoinha", "кривая вент.", "ファンカーブ", "팬 곡선", "風扇曲線", "fan eğrisi", "đường cong quạt", "kurva kipas", "curva ventole" };
+        m["log_src_external"] = new[] { "external sync", "sync. zewn.", "externer Sync", "sync externe", "sinc. externa", "外部同步", "sinc. externa", "внешняя синхр.", "外部同期", "외부 동기화", "外部同步", "harici eşitleme", "đồng bộ ngoài", "sinkron eksternal", "sync esterna" };
+        m["log_src_charge"]   = new[] { "charge limit", "limit ładowania", "Ladelimit", "limite charge", "límite carga", "充电限制", "limite carga", "лимит заряда", "充電上限", "충전 제한", "充電上限", "şarj sınırı", "giới hạn sạc", "batas pengisian", "limite di carica" };
+        m["log_src_cooler"]   = new[] { "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost", "Fan Boost", "fan boost", "fan boost", "Fan Boost", "Fan Boost", "Fan Boost", "fan boost", "Fan Boost", "Fan Boost", "fan boost" };
+        m["log_src_firmware"] = new[] { "firmware", "firmware", "Firmware", "firmware", "firmware", "固件", "firmware", "прошивка", "ファームウェア", "펌웨어", "韌體", "ürün yazılımı", "firmware", "firmware", "firmware" };
+        m["log_src_test"]     = new[] { "test tool", "narz. testowe", "Testtool", "outil de test", "herr. de prueba", "测试工具", "ferr. de teste", "тест. инстр.", "テストツール", "테스트 도구", "測試工具", "test aracı", "công cụ kiểm thử", "alat uji", "strumento test" };
+        m["log_src_thermal"]  = new[] { "thermal", "temperatura", "thermisch", "thermique", "térmico", "温度", "térmico", "температура", "温度", "온도", "溫度", "termal", "nhiệt", "termal", "termico" };
 
         // ---- thermal alert (Settings -> Notifications) ----
-        m["set_grp_alerts"]  = new[] { "Notifications", "Powiadomienia", "Benachrichtigungen", "Notifications", "Notificaciones", "通知", "Notificações", "Уведомления" };
-        m["ta_enable"]       = new[] { "Temperature alert", "Alert temperatury", "Temperaturwarnung", "Alerte de température", "Alerta de temperatura", "温度警报", "Alerta de temperatura", "Оповещение о температуре" };
-        m["ta_threshold"]    = new[] { "Threshold", "Próg", "Schwelle", "Seuil", "Umbral", "阈值", "Limite", "Порог" };
-        m["ta_time"]         = new[] { "For at least", "Przez co najmniej", "Für mindestens", "Pendant au moins", "Durante al menos", "持续至少", "Por pelo menos", "Не менее" };
-        m["ta_alert_title"]  = new[] { "High temperature", "Wysoka temperatura", "Hohe Temperatur", "Température élevée", "Temperatura alta", "温度过高", "Temperatura alta", "Высокая температура" };
-        m["set_osd_secs"]    = new[] { "OSD display time", "Czas wyświetlania OSD", "OSD-Anzeigedauer", "Durée d'affichage de l'OSD", "Duración del OSD", "OSD 显示时长", "Duração do OSD", "Время показа OSD" };
-        m["ssd_enable"]      = new[] { "SSD temperature alert", "Alert temperatury SSD", "SSD-Temperaturwarnung", "Alerte de température SSD", "Alerta de temperatura del SSD", "SSD 温度警报", "Alerta de temperatura do SSD", "Оповещение о температуре SSD" };
-        m["ssd_threshold"]   = new[] { "SSD threshold", "Próg SSD", "SSD-Schwelle", "Seuil SSD", "Umbral del SSD", "SSD 阈值", "Limite do SSD", "Порог SSD" };
-        m["ssd_alert_title"] = new[] { "SSD running hot", "Wysoka temperatura SSD", "SSD läuft heiß", "SSD en surchauffe", "SSD sobrecalentado", "SSD 温度过高", "SSD superaquecido", "Высокая температура SSD" };
+        m["set_grp_alerts"]  = new[] { "Notifications", "Powiadomienia", "Benachrichtigungen", "Notifications", "Notificaciones", "通知", "Notificações", "Уведомления", "通知", "알림", "通知", "Bildirimler", "Thông báo", "Pemberitahuan", "Notifiche" };
+        m["ta_enable"]       = new[] { "Temperature alert", "Alert temperatury", "Temperaturwarnung", "Alerte de température", "Alerta de temperatura", "温度警报", "Alerta de temperatura", "Оповещение о температуре", "温度アラート", "온도 경고", "溫度警示", "Sıcaklık uyarısı", "Cảnh báo nhiệt độ", "Peringatan suhu", "Avviso temperatura" };
+        m["ta_threshold"]    = new[] { "Threshold", "Próg", "Schwelle", "Seuil", "Umbral", "阈值", "Limite", "Порог", "しきい値", "임계값", "門檻值", "Eşik", "Ngưỡng", "Ambang batas", "Soglia" };
+        m["ta_time"]         = new[] { "For at least", "Przez co najmniej", "Für mindestens", "Pendant au moins", "Durante al menos", "持续至少", "Por pelo menos", "Не менее", "最低継続時間", "최소 지속 시간", "持續至少", "En az", "Trong ít nhất", "Selama minimal", "Per almeno" };
+        m["ta_alert_title"]  = new[] { "High temperature", "Wysoka temperatura", "Hohe Temperatur", "Température élevée", "Temperatura alta", "温度过高", "Temperatura alta", "Высокая температура", "高温", "온도 높음", "溫度過高", "Yüksek sıcaklık", "Nhiệt độ cao", "Suhu tinggi", "Temperatura alta" };
+        m["set_osd_secs"]    = new[] { "OSD display time", "Czas wyświetlania OSD", "OSD-Anzeigedauer", "Durée d'affichage de l'OSD", "Duración del OSD", "OSD 显示时长", "Duração do OSD", "Время показа OSD", "OSD 表示時間", "OSD 표시 시간", "OSD 顯示時間", "OSD görüntüleme süresi", "Thời gian hiện OSD", "Durasi tampil OSD", "Durata OSD" };
+        m["ssd_enable"]      = new[] { "SSD temperature alert", "Alert temperatury SSD", "SSD-Temperaturwarnung", "Alerte de température SSD", "Alerta de temperatura del SSD", "SSD 温度警报", "Alerta de temperatura do SSD", "Оповещение о температуре SSD", "SSD 温度アラート", "SSD 온도 경고", "SSD 溫度警示", "SSD sıcaklık uyarısı", "Cảnh báo nhiệt độ SSD", "Peringatan suhu SSD", "Avviso temperatura SSD" };
+        m["ssd_threshold"]   = new[] { "SSD threshold", "Próg SSD", "SSD-Schwelle", "Seuil SSD", "Umbral del SSD", "SSD 阈值", "Limite do SSD", "Порог SSD", "SSD しきい値", "SSD 임계값", "SSD 門檻值", "SSD eşiği", "Ngưỡng SSD", "Ambang batas SSD", "Soglia SSD" };
+        m["ssd_alert_title"] = new[] { "SSD running hot", "Wysoka temperatura SSD", "SSD läuft heiß", "SSD en surchauffe", "SSD sobrecalentado", "SSD 温度过高", "SSD superaquecido", "Высокая температура SSD", "SSD が高温", "SSD 온도 높음", "SSD 溫度過高", "SSD çok ısındı", "SSD đang nóng", "SSD terlalu panas", "SSD troppo caldo" };
         m["ssd_alert_text"]  = new[]
         {
             "{0}: {1}°C (above {2}°C)",
@@ -359,50 +475,57 @@ public static class Lang
             "{0}: {1}°C (por encima de {2}°C)",
             "{0}：{1}°C（超过 {2}°C）",
             "{0}: {1}°C (acima de {2}°C)",
-            "{0}: {1}°C (выше {2}°C)"
+            "{0}: {1}°C (выше {2}°C)",
+            "{0}：{1}°C（{2}°C 超過）",
+            "{0}: {1}°C ({2}°C 초과)",
+            "{0}：{1}°C（超過 {2}°C）",
+            "{0}: {1}°C ({2}°C üzerinde)",
+            "{0}: {1}°C (trên {2}°C)",
+            "{0}: {1}°C (di atas {2}°C)",
+            "{0}: {1}°C (oltre {2}°C)"
         };
 
         // ---- generic dialog buttons ----
-        m["gen_ok"]     = new[] { "OK", "OK", "OK", "OK", "Aceptar", "确定", "OK", "ОК" };
-        m["gen_cancel"] = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена" };
+        m["gen_ok"]     = new[] { "OK", "OK", "OK", "OK", "Aceptar", "确定", "OK", "ОК", "OK", "확인", "確定", "Tamam", "OK", "OK", "OK" };
+        m["gen_cancel"] = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена", "キャンセル", "취소", "取消", "İptal", "Hủy", "Batal", "Annulla" };
 
         // ---- fan-curve presets ----
-        m["fc_preset"]      = new[] { "Preset", "Preset", "Voreinstellung", "Préréglage", "Preajuste", "预设", "Predefinição", "Пресет" };
-        m["fc_open_editor"] = new[] { "Open editor…", "Otwórz edytor…", "Editor öffnen…", "Ouvrir l'éditeur…", "Abrir editor…", "打开编辑器…", "Abrir editor…", "Открыть редактор…" };
-        m["fc_preset_auto"] = new[] { "Auto (stock)", "Auto (fabryczna)", "Auto (Standard)", "Auto (d'origine)", "Auto (de fábrica)", "自动（原厂）", "Auto (de fábrica)", "Авто (заводская)" };
-        m["fc_ps_save"]     = new[] { "Save", "Zapisz", "Speichern", "Enregistrer", "Guardar", "保存", "Salvar", "Сохранить" };
-        m["fc_ps_saveas"]   = new[] { "Save as…", "Zapisz jako…", "Speichern unter…", "Enregistrer sous…", "Guardar como…", "另存为…", "Salvar como…", "Сохранить как…" };
-        m["fc_ps_rename"]   = new[] { "Rename…", "Zmień nazwę…", "Umbenennen…", "Renommer…", "Renombrar…", "重命名…", "Renomear…", "Переименовать…" };
-        m["fc_ps_delete"]   = new[] { "Delete", "Usuń", "Löschen", "Supprimer", "Eliminar", "删除", "Excluir", "Удалить" };
-        m["fc_ps_import"]   = new[] { "Import…", "Import…", "Importieren…", "Importer…", "Importar…", "导入…", "Importar…", "Импорт…" };
-        m["fc_ps_export"]   = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…" };
-        m["fc_ps_share"]    = new[] { "Share…", "Udostępnij…", "Teilen…", "Partager…", "Compartir…", "分享…", "Compartilhar…", "Поделиться…" };
-        m["fc_ps_name"]     = new[] { "Preset name", "Nazwa presetu", "Name der Voreinstellung", "Nom du préréglage", "Nombre del preajuste", "预设名称", "Nome da predefinição", "Название пресета" };
-        m["fc_ps_exists"]   = new[] { "A preset with this name already exists.", "Preset o tej nazwie już istnieje.", "Eine Voreinstellung mit diesem Namen existiert bereits.", "Un préréglage de ce nom existe déjà.", "Ya existe un preajuste con ese nombre.", "已存在同名预设。", "Já existe uma predefinição com esse nome.", "Пресет с таким именем уже существует." };
-        m["fc_ps_invalid"]  = new[] { "This is not a valid fan-curve preset file.", "To nie jest prawidłowy plik presetu krzywej.", "Dies ist keine gültige Lüfterkurven-Voreinstellungsdatei.", "Ce n'est pas un fichier de préréglage de courbe valide.", "No es un archivo de preajuste de curva válido.", "这不是有效的风扇曲线预设文件。", "Este não é um arquivo de predefinição de curva válido.", "Это не корректный файл пресета кривой." };
-        m["fc_ps_del_confirm"] = new[] { "Delete preset \"{0}\"?", "Usunąć preset \"{0}\"?", "Voreinstellung \"{0}\" löschen?", "Supprimer le préréglage \"{0}\" ?", "¿Eliminar el preajuste \"{0}\"?", "删除预设\"{0}\"？", "Excluir a predefinição \"{0}\"?", "Удалить пресет \"{0}\"?" };
-        m["fc_assign"]      = new[] { "Curve per profile (Silent stays stock):", "Krzywa per profil (Silent zawsze fabryczny):", "Kurve pro Profil (Silent bleibt Standard):", "Courbe par profil (Silent reste d'origine) :", "Curva por perfil (Silent siempre de fábrica):", "按配置文件应用曲线（Silent 始终原厂）：", "Curva por perfil (Silent sempre de fábrica):", "Кривая на профиль (Silent всегда заводской):" };
+        m["fc_preset"]      = new[] { "Preset", "Preset", "Voreinstellung", "Préréglage", "Preajuste", "预设", "Predefinição", "Пресет", "プリセット", "프리셋", "預設組", "Ön ayar", "Preset", "Preset", "Preset" };
+        m["fc_open_editor"] = new[] { "Open editor…", "Otwórz edytor…", "Editor öffnen…", "Ouvrir l'éditeur…", "Abrir editor…", "打开编辑器…", "Abrir editor…", "Открыть редактор…", "エディターを開く…", "편집기 열기…", "開啟編輯器…", "Düzenleyiciyi aç…", "Mở trình sửa…", "Buka editor…", "Apri editor…" };
+        m["fc_preset_auto"] = new[] { "Auto (stock)", "Auto (fabryczna)", "Auto (Standard)", "Auto (d'origine)", "Auto (de fábrica)", "自动（原厂）", "Auto (de fábrica)", "Авто (заводская)", "自動（標準）", "자동(기본값)", "自動（原廠）", "Otomatik (fabrika)", "Tự động (gốc)", "Otomatis (bawaan)", "Auto (originale)" };
+        m["fc_ps_save"]     = new[] { "Save", "Zapisz", "Speichern", "Enregistrer", "Guardar", "保存", "Salvar", "Сохранить", "保存", "저장", "儲存", "Kaydet", "Lưu", "Simpan", "Salva" };
+        m["fc_ps_saveas"]   = new[] { "Save as…", "Zapisz jako…", "Speichern unter…", "Enregistrer sous…", "Guardar como…", "另存为…", "Salvar como…", "Сохранить как…", "名前を付けて保存…", "다른 이름으로 저장…", "另存新檔…", "Farklı kaydet…", "Lưu thành…", "Simpan sebagai…", "Salva come…" };
+        m["fc_ps_rename"]   = new[] { "Rename…", "Zmień nazwę…", "Umbenennen…", "Renommer…", "Renombrar…", "重命名…", "Renomear…", "Переименовать…", "名前を変更…", "이름 바꾸기…", "重新命名…", "Yeniden adlandır…", "Đổi tên…", "Ganti nama…", "Rinomina…" };
+        m["fc_ps_delete"]   = new[] { "Delete", "Usuń", "Löschen", "Supprimer", "Eliminar", "删除", "Excluir", "Удалить", "削除", "삭제", "刪除", "Sil", "Xóa", "Hapus", "Elimina" };
+        m["fc_ps_import"]   = new[] { "Import…", "Import…", "Importieren…", "Importer…", "Importar…", "导入…", "Importar…", "Импорт…", "インポート…", "가져오기…", "匯入…", "İçe aktar…", "Nhập…", "Impor…", "Importa…" };
+        m["fc_ps_export"]   = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…", "エクスポート…", "내보내기…", "匯出…", "Dışa aktar…", "Xuất…", "Ekspor…", "Esporta…" };
+        m["fc_ps_share"]    = new[] { "Share…", "Udostępnij…", "Teilen…", "Partager…", "Compartir…", "分享…", "Compartilhar…", "Поделиться…", "共有…", "공유…", "分享…", "Paylaş…", "Chia sẻ…", "Bagikan…", "Condividi…" };
+        m["fc_ps_name"]     = new[] { "Preset name", "Nazwa presetu", "Name der Voreinstellung", "Nom du préréglage", "Nombre del preajuste", "预设名称", "Nome da predefinição", "Название пресета", "プリセット名", "프리셋 이름", "預設組名稱", "Ön ayar adı", "Tên preset", "Nama preset", "Nome preset" };
+        m["fc_ps_exists"]   = new[] { "A preset with this name already exists.", "Preset o tej nazwie już istnieje.", "Eine Voreinstellung mit diesem Namen existiert bereits.", "Un préréglage de ce nom existe déjà.", "Ya existe un preajuste con ese nombre.", "已存在同名预设。", "Já existe uma predefinição com esse nome.", "Пресет с таким именем уже существует.", "同名のプリセットが既に存在します。", "같은 이름의 프리셋이 이미 있습니다.", "已存在同名預設組。", "Bu adda bir ön ayar zaten var.", "Đã có preset cùng tên.", "Preset dengan nama ini sudah ada.", "Esiste già un preset con questo nome." };
+        m["fc_ps_invalid"]  = new[] { "This is not a valid fan-curve preset file.", "To nie jest prawidłowy plik presetu krzywej.", "Dies ist keine gültige Lüfterkurven-Voreinstellungsdatei.", "Ce n'est pas un fichier de préréglage de courbe valide.", "No es un archivo de preajuste de curva válido.", "这不是有效的风扇曲线预设文件。", "Este não é um arquivo de predefinição de curva válido.", "Это не корректный файл пресета кривой.", "有効なファンカーブプリセットファイルではありません。", "유효한 팬 곡선 프리셋 파일이 아닙니다.", "這不是有效的風扇曲線預設組檔案。", "Bu geçerli bir fan eğrisi ön ayar dosyası değil.", "Đây không phải tệp preset đường cong quạt hợp lệ.", "Ini bukan file preset kurva kipas yang valid.", "Non è un file preset di curva ventole valido." };
+        m["fc_ps_del_confirm"] = new[] { "Delete preset \"{0}\"?", "Usunąć preset \"{0}\"?", "Voreinstellung \"{0}\" löschen?", "Supprimer le préréglage \"{0}\" ?", "¿Eliminar el preajuste \"{0}\"?", "删除预设\"{0}\"？", "Excluir a predefinição \"{0}\"?", "Удалить пресет \"{0}\"?", "プリセット「{0}」を削除しますか？", "프리셋 \"{0}\"을(를) 삭제하시겠습니까?", "刪除預設組「{0}」？", "\"{0}\" ön ayarı silinsin mi?", "Xóa preset \"{0}\"?", "Hapus preset \"{0}\"?", "Eliminare il preset \"{0}\"?" };
+        m["fc_assign"]      = new[] { "Curve per profile (Silent stays stock):", "Krzywa per profil (Silent zawsze fabryczny):", "Kurve pro Profil (Silent bleibt Standard):", "Courbe par profil (Silent reste d'origine) :", "Curva por perfil (Silent siempre de fábrica):", "按配置文件应用曲线（Silent 始终原厂）：", "Curva por perfil (Silent sempre de fábrica):", "Кривая на профиль (Silent всегда заводской):", "プロファイル別カーブ（Silent は標準のまま）：", "프로필별 곡선 (Silent는 기본 유지):", "依設定檔套用曲線（Silent 維持原廠）：", "Profil başına eğri (Silent fabrika ayarında kalır):", "Đường cong theo hồ sơ (Silent giữ gốc):", "Kurva per profil (Silent tetap bawaan):", "Curva per profilo (Silent resta originale):" };
     }
 
     private static void L03(Dictionary<string, string[]> m)
     {
-        m["log_curve_preset"] = new[] { "Fan curve preset applied: {0}", "Zastosowano preset krzywej: {0}", "Lüfterkurven-Voreinstellung angewendet: {0}", "Préréglage de courbe appliqué : {0}", "Preajuste de curva aplicado: {0}", "已应用风扇曲线预设：{0}", "Predefinição de curva aplicada: {0}", "Применён пресет кривой: {0}" };
+        m["log_curve_preset"] = new[] { "Fan curve preset applied: {0}", "Zastosowano preset krzywej: {0}", "Lüfterkurven-Voreinstellung angewendet: {0}", "Préréglage de courbe appliqué : {0}", "Preajuste de curva aplicado: {0}", "已应用风扇曲线预设：{0}", "Predefinição de curva aplicada: {0}", "Применён пресет кривой: {0}", "ファンカーブプリセット適用：{0}", "팬 곡선 프리셋 적용됨: {0}", "已套用風扇曲線預設組：{0}", "Fan eğrisi ön ayarı uygulandı: {0}", "Đã áp dụng preset đường cong quạt: {0}", "Preset kurva kipas diterapkan: {0}", "Preset curva ventole applicato: {0}" };
 
         // ---- status: history sub-tab ----
-        m["st_sub_history"] = new[] { "History", "Historia", "Verlauf", "Historique", "Historial", "历史", "Histórico", "История" };
-        m["st_hist_temps"]  = new[] { "Temperatures (°C)", "Temperatury (°C)", "Temperaturen (°C)", "Températures (°C)", "Temperaturas (°C)", "温度（°C）", "Temperaturas (°C)", "Температуры (°C)" };
-        m["st_hist_fans"]   = new[] { "Fans (duty %)", "Wentylatory (wypełnienie %)", "Lüfter (Duty %)", "Ventilateurs (charge %)", "Ventiladores (ciclo %)", "风扇（占空比 %）", "Ventoinhas (ciclo %)", "Вентиляторы (нагрузка %)" };
-        m["st_hist_empty"]  = new[] { "Collecting data…", "Zbieranie danych…", "Daten werden gesammelt…", "Collecte des données…", "Recopilando datos…", "正在收集数据…", "Coletando dados…", "Сбор данных…" };
-        m["st_hist_rpm"]    = new[] { "Fan speed (RPM)", "Obroty wentylatorów (RPM)", "Lüfterdrehzahl (RPM)", "Vitesse des ventilateurs (RPM)", "Velocidad de ventiladores (RPM)", "风扇转速（RPM）", "Velocidade das ventoinhas (RPM)", "Обороты вентиляторов (RPM)" };
-        m["mdl_c_thanks"]   = new[] { "Thanks", "Podziękowania", "Dank", "Merci", "Gracias", "致谢", "Agradecimentos", "Благодарности" };
-        m["st_hist_export"] = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…" };
+        m["st_sub_history"] = new[] { "History", "Historia", "Verlauf", "Historique", "Historial", "历史", "Histórico", "История", "履歴", "기록", "歷史記錄", "Geçmiş", "Lịch sử", "Riwayat", "Cronologia" };
+        m["st_hist_temps"]  = new[] { "Temperatures (°C)", "Temperatury (°C)", "Temperaturen (°C)", "Températures (°C)", "Temperaturas (°C)", "温度（°C）", "Temperaturas (°C)", "Температуры (°C)", "温度（°C）", "온도 (°C)", "溫度（°C）", "Sıcaklıklar (°C)", "Nhiệt độ (°C)", "Suhu (°C)", "Temperature (°C)" };
+        m["st_hist_fans"]   = new[] { "Fans (duty %)", "Wentylatory (wypełnienie %)", "Lüfter (Duty %)", "Ventilateurs (charge %)", "Ventiladores (ciclo %)", "风扇（占空比 %）", "Ventoinhas (ciclo %)", "Вентиляторы (нагрузка %)", "ファン（デューティ %）", "팬 (듀티 %)", "風扇（轉速 %）", "Fanlar (güç %)", "Quạt (% công suất)", "Kipas (duty %)", "Ventole (duty %)" };
+        m["st_hist_empty"]  = new[] { "Collecting data…", "Zbieranie danych…", "Daten werden gesammelt…", "Collecte des données…", "Recopilando datos…", "正在收集数据…", "Coletando dados…", "Сбор данных…", "データ収集中…", "데이터 수집 중…", "正在收集資料…", "Veri toplanıyor…", "Đang thu thập dữ liệu…", "Mengumpulkan data…", "Raccolta dati…" };
+        m["st_hist_rpm"]    = new[] { "Fan speed (RPM)", "Obroty wentylatorów (RPM)", "Lüfterdrehzahl (RPM)", "Vitesse des ventilateurs (RPM)", "Velocidad de ventiladores (RPM)", "风扇转速（RPM）", "Velocidade das ventoinhas (RPM)", "Обороты вентиляторов (RPM)", "ファン回転数（RPM）", "팬 속도 (RPM)", "風扇轉速（RPM）", "Fan hızı (RPM)", "Tốc độ quạt (RPM)", "Kecepatan kipas (RPM)", "Velocità ventole (RPM)" };
+        m["mdl_c_thanks"]   = new[] { "Thanks", "Podziękowania", "Dank", "Merci", "Gracias", "致谢", "Agradecimentos", "Благодарности", "謝辞", "감사", "致謝", "Teşekkürler", "Cảm ơn", "Terima kasih", "Crediti" };
+        m["st_hist_export"] = new[] { "Export…", "Eksport…", "Exportieren…", "Exporter…", "Exportar…", "导出…", "Exportar…", "Экспорт…", "エクスポート…", "내보내기…", "匯出…", "Dışa aktar…", "Xuất…", "Ekspor…", "Esporta…" };
 
         // ---- FPS / gaming (overlay metrics, Status → Gaming, game-session report) ----
-        m["ov_m_fps"]       = new[] { "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS" };
-        m["ov_m_frametime"] = new[] { "Frametime", "Czas klatki", "Frametime", "Temps d'image", "Tiempo de fotograma", "帧生成时间", "Tempo de quadro", "Время кадра" };
-        m["st_sub_gaming"]  = new[] { "Gaming", "Gry", "Gaming", "Jeu", "Juegos", "游戏", "Jogos", "Игры" };
-        m["st_hist_fps"]    = new[] { "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS" };
-        m["gm_game"]        = new[] { "Game: {0}", "Gra: {0}", "Spiel: {0}", "Jeu : {0}", "Juego: {0}", "游戏：{0}", "Jogo: {0}", "Игра: {0}" };
+        m["ov_m_fps"]       = new[] { "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS" };
+        m["ov_m_frametime"] = new[] { "Frametime", "Czas klatki", "Frametime", "Temps d'image", "Tiempo de fotograma", "帧生成时间", "Tempo de quadro", "Время кадра", "フレームタイム", "프레임 타임", "畫格時間", "Kare süresi", "Frametime", "Frametime", "Frametime" };
+        m["st_sub_gaming"]  = new[] { "Gaming", "Gry", "Gaming", "Jeu", "Juegos", "游戏", "Jogos", "Игры", "ゲーム", "게임", "遊戲", "Oyun", "Chơi game", "Gaming", "Gaming" };
+        m["st_hist_fps"]    = new[] { "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS", "FPS" };
+        m["gm_game"]        = new[] { "Game: {0}", "Gra: {0}", "Spiel: {0}", "Jeu : {0}", "Juego: {0}", "游戏：{0}", "Jogo: {0}", "Игра: {0}", "ゲーム：{0}", "게임: {0}", "遊戲：{0}", "Oyun: {0}", "Game: {0}", "Game: {0}", "Gioco: {0}" };
         m["gm_none"]        = new[]
         {
             "No game detected. Start a game while this tab or the overlay is open and FPS appears automatically.",
@@ -412,12 +535,19 @@ public static class Lang
             "No se detectó ningún juego. Inicia un juego con esta pestaña o el overlay abiertos y los FPS aparecerán automáticamente.",
             "未检测到游戏。在此标签页或悬浮窗打开时启动游戏，FPS 会自动显示。",
             "Nenhum jogo detectado. Inicie um jogo com esta aba ou o overlay abertos e o FPS aparecerá automaticamente.",
-            "Игра не обнаружена. Запустите игру, пока открыта эта вкладка или оверлей - FPS появится автоматически."
+            "Игра не обнаружена. Запустите игру, пока открыта эта вкладка или оверлей - FPS появится автоматически.",
+            "ゲームが検出されません。このタブまたはオーバーレイを開いたままゲームを起動すると FPS が自動表示されます。",
+            "감지된 게임이 없습니다. 이 탭이나 오버레이가 열린 상태에서 게임을 시작하면 FPS가 자동으로 표시됩니다.",
+            "未偵測到遊戲。在此分頁或覆蓋層開啟時啟動遊戲，FPS 會自動顯示。",
+            "Oyun algılanmadı. Bu sekme veya katman açıkken bir oyun başlatın, FPS otomatik görünür.",
+            "Không phát hiện game. Khởi động game khi tab này hoặc lớp phủ đang mở, FPS sẽ tự hiển thị.",
+            "Tidak ada game terdeteksi. Jalankan game saat tab ini atau overlay terbuka, FPS akan muncul otomatis.",
+            "Nessun gioco rilevato. Avvia un gioco con questa scheda o l'overlay aperti e gli FPS compaiono da soli."
         };
-        m["gm_chart"]       = new[] { "Frametime — last 60 s", "Czas klatki — ostatnie 60 s", "Frametime — letzte 60 s", "Temps d'image — 60 dernières s", "Tiempo de fotograma — últimos 60 s", "帧生成时间 — 最近 60 秒", "Tempo de quadro — últimos 60 s", "Время кадра — последние 60 с" };
-        m["gm_chart_empty"] = new[] { "Waiting for frames…", "Czekam na klatki…", "Warte auf Frames…", "En attente d'images…", "Esperando fotogramas…", "等待帧数据…", "Aguardando quadros…", "Ожидание кадров…" };
-        m["gm_stut"]        = new[] { "Stutters", "Przycięcia", "Ruckler", "Saccades", "Tirones", "卡顿", "Engasgos", "Статтеры" };
-        m["gm_last"]        = new[] { "Last game session", "Ostatnia sesja gry", "Letzte Spielsitzung", "Dernière session de jeu", "Última sesión de juego", "上次游戏会话", "Última sessão de jogo", "Последняя игровая сессия" };
+        m["gm_chart"]       = new[] { "Frametime — last 60 s", "Czas klatki — ostatnie 60 s", "Frametime — letzte 60 s", "Temps d'image — 60 dernières s", "Tiempo de fotograma — últimos 60 s", "帧生成时间 — 最近 60 秒", "Tempo de quadro — últimos 60 s", "Время кадра — последние 60 с", "フレームタイム — 直近 60 秒", "프레임 타임 — 최근 60초", "畫格時間 — 最近 60 秒", "Kare süresi — son 60 sn", "Frametime — 60 s gần nhất", "Frametime — 60 dtk terakhir", "Frametime — ultimi 60 s" };
+        m["gm_chart_empty"] = new[] { "Waiting for frames…", "Czekam na klatki…", "Warte auf Frames…", "En attente d'images…", "Esperando fotogramas…", "等待帧数据…", "Aguardando quadros…", "Ожидание кадров…", "フレーム待機中…", "프레임 대기 중…", "等待畫格資料…", "Kareler bekleniyor…", "Đang chờ khung hình…", "Menunggu frame…", "In attesa di frame…" };
+        m["gm_stut"]        = new[] { "Stutters", "Przycięcia", "Ruckler", "Saccades", "Tirones", "卡顿", "Engasgos", "Статтеры", "カクつき", "끊김", "卡頓", "Takılmalar", "Giật hình", "Stutter", "Scatti" };
+        m["gm_last"]        = new[] { "Last game session", "Ostatnia sesja gry", "Letzte Spielsitzung", "Dernière session de jeu", "Última sesión de juego", "上次游戏会话", "Última sessão de jogo", "Последняя игровая сессия", "前回のゲームセッション", "마지막 게임 세션", "上次遊戲工作階段", "Son oyun oturumu", "Phiên chơi gần nhất", "Sesi game terakhir", "Ultima sessione di gioco" };
         m["gm_last_none"]   = new[]
         {
             "Play for at least a minute — a summary lands here when the game exits.",
@@ -427,21 +557,28 @@ public static class Lang
             "Juega al menos un minuto — el resumen aparecerá aquí al cerrar el juego.",
             "至少游玩一分钟，游戏退出后摘要会显示在这里。",
             "Jogue por pelo menos um minuto — o resumo aparece aqui quando o jogo fechar.",
-            "Поиграйте хотя бы минуту — сводка появится здесь после закрытия игры."
+            "Поиграйте хотя бы минуту — сводка появится здесь после закрытия игры.",
+            "1 分以上プレイすると、ゲーム終了時にここに概要が表示されます。",
+            "1분 이상 플레이하면 게임 종료 시 요약이 여기에 표시됩니다.",
+            "至少遊玩一分鐘，遊戲結束後摘要會顯示在這裡。",
+            "En az bir dakika oynayın; oyun kapanınca özet burada görünür.",
+            "Chơi ít nhất một phút — bản tóm tắt sẽ hiện ở đây khi game thoát.",
+            "Main minimal satu menit, ringkasan muncul di sini saat game ditutup.",
+            "Gioca almeno un minuto: il riepilogo compare qui alla chiusura del gioco."
         };
-        m["gm_game_lbl"]    = new[] { "Game", "Gra", "Spiel", "Jeu", "Juego", "游戏", "Jogo", "Игра" };
-        m["gm_dur"]         = new[] { "Duration", "Czas trwania", "Dauer", "Durée", "Duración", "时长", "Duração", "Длительность" };
-        m["gm_fps_row"]     = new[] { "avg {0} · min {1} · max {2}", "śr. {0} · min {1} · maks {2}", "Ø {0} · min {1} · max {2}", "moy. {0} · min {1} · max {2}", "med. {0} · mín {1} · máx {2}", "平均 {0} · 最低 {1} · 最高 {2}", "méd. {0} · mín {1} · máx {2}", "ср. {0} · мин {1} · макс {2}" };
-        m["gm_frames"]      = new[] { "Frames", "Klatki", "Frames", "Images", "Fotogramas", "帧数", "Quadros", "Кадры" };
-        m["gm_temp_max"]    = new[] { "Max temperature", "Maks. temperatura", "Max. Temperatur", "Température max", "Temperatura máx.", "最高温度", "Temperatura máx.", "Макс. температура" };
-        m["gm_rpm_avg"]     = new[] { "Avg fan RPM", "Śr. obroty (RPM)", "Ø Lüfter-RPM", "RPM moyen ventilos", "RPM medio ventilador", "平均风扇转速", "RPM médio ventoinha", "Ср. обороты (RPM)" };
-        m["gm_profile"]     = new[] { "Profile", "Profil", "Profil", "Profil", "Perfil", "配置文件", "Perfil", "Профиль" };
-        m["gm_sess_title"]  = new[] { "Game session", "Sesja gry", "Spielsitzung", "Session de jeu", "Sesión de juego", "游戏会话", "Sessão de jogo", "Игровая сессия" };
-        m["gm_sess_text"]   = new[] { "{0} · avg {1} FPS · 1% low {2}", "{0} · śr. {1} FPS · 1% low {2}", "{0} · Ø {1} FPS · 1% low {2}", "{0} · moy. {1} FPS · 1% low {2}", "{0} · med. {1} FPS · 1% low {2}", "{0} · 平均 {1} FPS · 1% low {2}", "{0} · méd. {1} FPS · 1% low {2}", "{0} · ср. {1} FPS · 1% low {2}" };
-        m["gm_sess_ec"]     = new[] { " · CPU max {0}°C", " · CPU maks. {0}°C", " · CPU max. {0}°C", " · CPU max {0}°C", " · CPU máx. {0}°C", " · CPU 最高 {0}°C", " · CPU máx. {0}°C", " · CPU макс. {0}°C" };
-        m["log_src_game"]   = new[] { "game", "gra", "Spiel", "jeu", "juego", "游戏", "jogo", "игра" };
-        m["log_src_restore"] = new[] { "restore", "przywracanie", "Wiederherstellung", "restauration", "restauración", "恢复", "restauração", "восстановление" };
-        m["set_sess_popup"] = new[] { "Game-session popup", "Okienko podsumowania sesji", "Sitzungs-Popup", "Fenêtre de résumé de session", "Ventana de resumen de sesión", "游戏会话弹窗", "Popup de resumo da sessão", "Окно сводки сессии" };
+        m["gm_game_lbl"]    = new[] { "Game", "Gra", "Spiel", "Jeu", "Juego", "游戏", "Jogo", "Игра", "ゲーム", "게임", "遊戲", "Oyun", "Game", "Game", "Gioco" };
+        m["gm_dur"]         = new[] { "Duration", "Czas trwania", "Dauer", "Durée", "Duración", "时长", "Duração", "Длительность", "プレイ時間", "플레이 시간", "持續時間", "Süre", "Thời lượng", "Durasi", "Durata" };
+        m["gm_fps_row"]     = new[] { "avg {0} · min {1} · max {2}", "śr. {0} · min {1} · maks {2}", "Ø {0} · min {1} · max {2}", "moy. {0} · min {1} · max {2}", "med. {0} · mín {1} · máx {2}", "平均 {0} · 最低 {1} · 最高 {2}", "méd. {0} · mín {1} · máx {2}", "ср. {0} · мин {1} · макс {2}", "平均 {0} · 最小 {1} · 最大 {2}", "평균 {0} · 최소 {1} · 최대 {2}", "平均 {0} · 最低 {1} · 最高 {2}", "ort {0} · min {1} · maks {2}", "TB {0} · min {1} · max {2}", "rata {0} · min {1} · maks {2}", "media {0} · min {1} · max {2}" };
+        m["gm_frames"]      = new[] { "Frames", "Klatki", "Frames", "Images", "Fotogramas", "帧数", "Quadros", "Кадры", "フレーム数", "프레임", "畫格數", "Kareler", "Khung hình", "Frame", "Frame" };
+        m["gm_temp_max"]    = new[] { "Max temperature", "Maks. temperatura", "Max. Temperatur", "Température max", "Temperatura máx.", "最高温度", "Temperatura máx.", "Макс. температура", "最高温度", "최고 온도", "最高溫度", "Maks sıcaklık", "Nhiệt độ tối đa", "Suhu maks", "Temperatura max" };
+        m["gm_rpm_avg"]     = new[] { "Avg fan RPM", "Śr. obroty (RPM)", "Ø Lüfter-RPM", "RPM moyen ventilos", "RPM medio ventilador", "平均风扇转速", "RPM médio ventoinha", "Ср. обороты (RPM)", "平均ファン RPM", "평균 팬 RPM", "平均風扇轉速", "Ort fan RPM", "RPM quạt TB", "RPM kipas rata", "RPM medi ventole" };
+        m["gm_profile"]     = new[] { "Profile", "Profil", "Profil", "Profil", "Perfil", "配置文件", "Perfil", "Профиль", "プロファイル", "프로필", "設定檔", "Profil", "Hồ sơ", "Profil", "Profilo" };
+        m["gm_sess_title"]  = new[] { "Game session", "Sesja gry", "Spielsitzung", "Session de jeu", "Sesión de juego", "游戏会话", "Sessão de jogo", "Игровая сессия", "ゲームセッション", "게임 세션", "遊戲工作階段", "Oyun oturumu", "Phiên chơi game", "Sesi game", "Sessione di gioco" };
+        m["gm_sess_text"]   = new[] { "{0} · avg {1} FPS · 1% low {2}", "{0} · śr. {1} FPS · 1% low {2}", "{0} · Ø {1} FPS · 1% low {2}", "{0} · moy. {1} FPS · 1% low {2}", "{0} · med. {1} FPS · 1% low {2}", "{0} · 平均 {1} FPS · 1% low {2}", "{0} · méd. {1} FPS · 1% low {2}", "{0} · ср. {1} FPS · 1% low {2}", "{0} · 平均 {1} FPS · 1% low {2}", "{0} · 평균 {1} FPS · 1% low {2}", "{0} · 平均 {1} FPS · 1% low {2}", "{0} · ort {1} FPS · %1 low {2}", "{0} · TB {1} FPS · 1% low {2}", "{0} · rata {1} FPS · 1% low {2}", "{0} · media {1} FPS · 1% low {2}" };
+        m["gm_sess_ec"]     = new[] { " · CPU max {0}°C", " · CPU maks. {0}°C", " · CPU max. {0}°C", " · CPU max {0}°C", " · CPU máx. {0}°C", " · CPU 最高 {0}°C", " · CPU máx. {0}°C", " · CPU макс. {0}°C", " · CPU 最高 {0}°C", " · CPU 최고 {0}°C", " · CPU 最高 {0}°C", " · CPU maks {0}°C", " · CPU tối đa {0}°C", " · CPU maks {0}°C", " · CPU max {0}°C" };
+        m["log_src_game"]   = new[] { "game", "gra", "Spiel", "jeu", "juego", "游戏", "jogo", "игра", "ゲーム", "게임", "遊戲", "oyun", "game", "game", "gioco" };
+        m["log_src_restore"] = new[] { "restore", "przywracanie", "Wiederherstellung", "restauration", "restauración", "恢复", "restauração", "восстановление", "復元", "복원", "還原", "geri yükleme", "khôi phục", "pulihkan", "ripristino" };
+        m["set_sess_popup"] = new[] { "Game-session popup", "Okienko podsumowania sesji", "Sitzungs-Popup", "Fenêtre de résumé de session", "Ventana de resumen de sesión", "游戏会话弹窗", "Popup de resumo da sessão", "Окно сводки сессии", "ゲームセッションのポップアップ", "게임 세션 팝업", "遊戲工作階段彈出視窗", "Oyun oturumu penceresi", "Cửa sổ tóm tắt phiên chơi", "Popup sesi game", "Popup sessione di gioco" };
         m["set_sess_desc"]  = new[]
         {
             "When a game exits, GhostDeck shows a summary popup: FPS, 1% low, temperatures and fan RPM, with one-click PNG save and JSON/CSV export. Recent sessions are kept in Status → Gaming, where you can browse and export them later.",
@@ -451,11 +588,18 @@ public static class Lang
             "Al cerrar un juego, GhostDeck muestra una ventana de resumen: FPS, 1% low, temperaturas y RPM de los ventiladores, con guardado PNG y exportación JSON/CSV con un clic. Las sesiones recientes quedan en Estado → Juegos para verlas y exportarlas.",
             "游戏退出时，GhostDeck 会显示会话摘要弹窗：FPS、1% low、温度和风扇转速，可一键保存 PNG 或导出 JSON/CSV。最近的会话保存在 状态 → 游戏 中，可随时查看和导出。",
             "Ao fechar um jogo, o GhostDeck mostra um popup de resumo: FPS, 1% low, temperaturas e RPM das ventoinhas, com salvamento em PNG e exportação JSON/CSV em um clique. As sessões recentes ficam em Status → Jogos para consulta e exportação.",
-            "После закрытия игры GhostDeck показывает окно сводки: FPS, 1% low, температуры и обороты вентиляторов, с сохранением PNG и экспортом JSON/CSV в один клик. Последние сессии хранятся в Статус → Игры, где их можно просматривать и экспортировать."
+            "После закрытия игры GhostDeck показывает окно сводки: FPS, 1% low, температуры и обороты вентиляторов, с сохранением PNG и экспортом JSON/CSV в один клик. Последние сессии хранятся в Статус → Игры, где их можно просматривать и экспортировать.",
+            "ゲーム終了時に GhostDeck が概要ポップアップを表示します：FPS、1% low、温度、ファン RPM。ワンクリックで PNG 保存や JSON/CSV エクスポートが可能です。最近のセッションは ステータス → ゲーム に保存され、後から閲覧・エクスポートできます。",
+            "게임 종료 시 GhostDeck이 요약 팝업을 표시합니다: FPS, 1% low, 온도, 팬 RPM. 원클릭 PNG 저장과 JSON/CSV 내보내기를 지원합니다. 최근 세션은 상태 → 게임에 보관되며 나중에 확인하고 내보낼 수 있습니다.",
+            "遊戲結束時，GhostDeck 會顯示摘要彈出視窗：FPS、1% low、溫度和風扇轉速，可一鍵儲存 PNG 或匯出 JSON/CSV。最近的工作階段保留在 狀態 → 遊戲 中，可隨時瀏覽和匯出。",
+            "Oyun kapanınca GhostDeck bir özet penceresi gösterir: FPS, %1 low, sıcaklıklar ve fan RPM; tek tıkla PNG kaydı ve JSON/CSV dışa aktarma. Son oturumlar Durum → Oyun altında saklanır; oradan sonra göz atıp dışa aktarabilirsiniz.",
+            "Khi game thoát, GhostDeck hiện cửa sổ tóm tắt: FPS, 1% low, nhiệt độ và RPM quạt, kèm lưu PNG một chạm và xuất JSON/CSV. Các phiên gần đây được lưu trong Trạng thái → Chơi game để xem và xuất sau.",
+            "Saat game ditutup, GhostDeck menampilkan popup ringkasan: FPS, 1% low, suhu, dan RPM kipas, dengan simpan PNG sekali klik serta ekspor JSON/CSV. Sesi terbaru disimpan di Status → Gaming, tempat Anda dapat melihat dan mengekspornya nanti.",
+            "Alla chiusura di un gioco, GhostDeck mostra un popup di riepilogo: FPS, 1% low, temperature e RPM ventole, con salvataggio PNG in un clic ed esportazione JSON/CSV. Le sessioni recenti restano in Stato → Gaming, dove puoi consultarle ed esportarle in seguito."
         };
-        m["set_sess_secs"]  = new[] { "Popup visible for", "Czas widoczności okienka", "Popup sichtbar für", "Durée d'affichage", "Duración del popup", "弹窗显示时长", "Duração do popup", "Время показа окна" };
-        m["sess_always"]    = new[] { "Until closed", "Aż do zamknięcia", "Bis zum Schließen", "Jusqu'à fermeture", "Hasta cerrarla", "直到关闭", "Até fechar", "До закрытия" };
-        m["set_sess_keep"]  = new[] { "Remembered game sessions", "Zapamiętane sesje gier", "Gespeicherte Spielsitzungen", "Sessions de jeu mémorisées", "Sesiones de juego guardadas", "保存的游戏会话数", "Sessões de jogo guardadas", "Сохранённые игровые сессии" };
+        m["set_sess_secs"]  = new[] { "Popup visible for", "Czas widoczności okienka", "Popup sichtbar für", "Durée d'affichage", "Duración del popup", "弹窗显示时长", "Duração do popup", "Время показа окна", "ポップアップ表示時間", "팝업 표시 시간", "彈出視窗顯示時間", "Pencere görünme süresi", "Hiện cửa sổ trong", "Popup tampil selama", "Popup visibile per" };
+        m["sess_always"]    = new[] { "Until closed", "Aż do zamknięcia", "Bis zum Schließen", "Jusqu'à fermeture", "Hasta cerrarla", "直到关闭", "Até fechar", "До закрытия", "閉じるまで", "닫을 때까지", "直到關閉", "Kapatılana kadar", "Đến khi đóng", "Hingga ditutup", "Fino alla chiusura" };
+        m["set_sess_keep"]  = new[] { "Remembered game sessions", "Zapamiętane sesje gier", "Gespeicherte Spielsitzungen", "Sessions de jeu mémorisées", "Sesiones de juego guardadas", "保存的游戏会话数", "Sessões de jogo guardadas", "Сохранённые игровые сессии", "保存するゲームセッション数", "저장할 게임 세션 수", "保留的遊戲工作階段數", "Hatırlanan oyun oturumları", "Số phiên chơi được lưu", "Sesi game yang diingat", "Sessioni di gioco memorizzate" };
         m["set_restore_profile"] = new[]
         {
             "Restore profile after wake / at startup",
@@ -465,7 +609,14 @@ public static class Lang
             "Restaurar perfil al despertar / al iniciar",
             "唤醒 / 启动时恢复配置文件",
             "Restaurar perfil ao acordar / ao iniciar",
-            "Восстанавливать профиль после пробуждения / при запуске"
+            "Восстанавливать профиль после пробуждения / при запуске",
+            "復帰後 / 起動時にプロファイルを復元",
+            "절전 해제 / 시작 시 프로필 복원",
+            "喚醒 / 啟動時還原設定檔",
+            "Uyanma / başlangıçta profili geri yükle",
+            "Khôi phục hồ sơ sau khi đánh thức / lúc khởi động",
+            "Pulihkan profil setelah bangun / saat mulai",
+            "Ripristina profilo dopo riattivazione / all'avvio"
         };
         m["set_restore_curve"] = new[]
         {
@@ -476,32 +627,39 @@ public static class Lang
             "Restaurar curva de ventilador al despertar / al iniciar",
             "唤醒 / 启动时恢复风扇曲线",
             "Restaurar curva de ventoinha ao acordar / ao iniciar",
-            "Восстанавливать кривую вентиляторов после пробуждения / при запуске"
+            "Восстанавливать кривую вентиляторов после пробуждения / при запуске",
+            "復帰後 / 起動時にファンカーブを復元",
+            "절전 해제 / 시작 시 팬 곡선 복원",
+            "喚醒 / 啟動時還原風扇曲線",
+            "Uyanma / başlangıçta fan eğrisini geri yükle",
+            "Khôi phục đường cong quạt sau khi đánh thức / lúc khởi động",
+            "Pulihkan kurva kipas setelah bangun / saat mulai",
+            "Ripristina curva ventole dopo la riattivazione / all'avvio"
         };
-        m["log_curve_restore"] = new[] { "Fan curve restored: {0}", "Przywrócono krzywą: {0}", "Lüfterkurve wiederhergestellt: {0}", "Courbe restaurée : {0}", "Curva restaurada: {0}", "已恢复风扇曲线：{0}", "Curva restaurada: {0}", "Кривая восстановлена: {0}" };
-        m["fc_custom"]      = new[] { "custom curve", "własna krzywa", "eigene Kurve", "courbe personnalisée", "curva personalizada", "自定义曲线", "curva personalizada", "своя кривая" };
-        m["set_grp_diag"]   = new[] { "Diagnostics", "Diagnostyka", "Diagnose", "Diagnostic", "Diagnóstico", "诊断", "Diagnóstico", "Диагностика" };
-        m["diag_save"]      = new[] { "Save diagnostic package…", "Zapisz pakiet diagnostyczny…", "Diagnosepaket speichern…", "Enregistrer le paquet de diagnostic…", "Guardar paquete de diagnóstico…", "保存诊断包…", "Salvar pacote de diagnóstico…", "Сохранить пакет диагностики…" };
-        m["set_grp_batt"]   = new[] { "Battery health", "Zdrowie baterii", "Akkuzustand", "Santé de la batterie", "Salud de la batería", "电池健康", "Saúde da bateria", "Состояние батареи" };
-        m["bh_design"]      = new[] { "Design capacity", "Pojemność projektowa", "Nennkapazität", "Capacité nominale", "Capacidad de diseño", "设计容量", "Capacidade de projeto", "Проектная ёмкость" };
-        m["bh_full"]        = new[] { "Full-charge capacity", "Pojemność po pełnym ładowaniu", "Aktuelle Vollladekapazität", "Capacité à pleine charge", "Capacidad a plena carga", "满充容量", "Capacidade em carga plena", "Ёмкость при полном заряде" };
+        m["log_curve_restore"] = new[] { "Fan curve restored: {0}", "Przywrócono krzywą: {0}", "Lüfterkurve wiederhergestellt: {0}", "Courbe restaurée : {0}", "Curva restaurada: {0}", "已恢复风扇曲线：{0}", "Curva restaurada: {0}", "Кривая восстановлена: {0}", "ファンカーブを復元：{0}", "팬 곡선 복원됨: {0}", "已還原風扇曲線：{0}", "Fan eğrisi geri yüklendi: {0}", "Đã khôi phục đường cong quạt: {0}", "Kurva kipas dipulihkan: {0}", "Curva ventole ripristinata: {0}" };
+        m["fc_custom"]      = new[] { "custom curve", "własna krzywa", "eigene Kurve", "courbe personnalisée", "curva personalizada", "自定义曲线", "curva personalizada", "своя кривая", "カスタムカーブ", "사용자 지정 곡선", "自訂曲線", "özel eğri", "đường cong tùy chỉnh", "kurva kustom", "curva personalizzata" };
+        m["set_grp_diag"]   = new[] { "Diagnostics", "Diagnostyka", "Diagnose", "Diagnostic", "Diagnóstico", "诊断", "Diagnóstico", "Диагностика", "診断", "진단", "診斷", "Tanılama", "Chẩn đoán", "Diagnostik", "Diagnostica" };
+        m["diag_save"]      = new[] { "Save diagnostic package…", "Zapisz pakiet diagnostyczny…", "Diagnosepaket speichern…", "Enregistrer le paquet de diagnostic…", "Guardar paquete de diagnóstico…", "保存诊断包…", "Salvar pacote de diagnóstico…", "Сохранить пакет диагностики…", "診断パッケージを保存…", "진단 패키지 저장…", "儲存診斷套件…", "Tanılama paketini kaydet…", "Lưu gói chẩn đoán…", "Simpan paket diagnostik…", "Salva pacchetto diagnostico…" };
+        m["set_grp_batt"]   = new[] { "Battery health", "Zdrowie baterii", "Akkuzustand", "Santé de la batterie", "Salud de la batería", "电池健康", "Saúde da bateria", "Состояние батареи", "バッテリーの状態", "배터리 상태", "電池健康度", "Pil sağlığı", "Sức khỏe pin", "Kesehatan baterai", "Stato batteria" };
+        m["bh_design"]      = new[] { "Design capacity", "Pojemność projektowa", "Nennkapazität", "Capacité nominale", "Capacidad de diseño", "设计容量", "Capacidade de projeto", "Проектная ёмкость", "設計容量", "설계 용량", "設計容量", "Tasarım kapasitesi", "Dung lượng thiết kế", "Kapasitas desain", "Capacità nominale" };
+        m["bh_full"]        = new[] { "Full-charge capacity", "Pojemność po pełnym ładowaniu", "Aktuelle Vollladekapazität", "Capacité à pleine charge", "Capacidad a plena carga", "满充容量", "Capacidade em carga plena", "Ёмкость при полном заряде", "満充電容量", "완충 용량", "充滿電容量", "Tam şarj kapasitesi", "Dung lượng sạc đầy", "Kapasitas isi penuh", "Capacità a piena carica" };
     }
 
     private static void L04(Dictionary<string, string[]> m)
     {
-        m["bh_wear"]        = new[] { "Wear", "Zużycie", "Verschleiß", "Usure", "Desgaste", "损耗", "Desgaste", "Износ" };
-        m["bh_cycles"]      = new[] { "Charge cycles", "Cykle ładowania", "Ladezyklen", "Cycles de charge", "Ciclos de carga", "充电循环", "Ciclos de carga", "Циклы зарядки" };
-        m["ov_m_ssd"]       = new[] { "SSD temp", "Temp. SSD", "SSD-Temp.", "Temp. SSD", "Temp. SSD", "SSD 温度", "Temp. SSD", "Темп. SSD" };
-        m["ov_m_batttime"]  = new[] { "Battery time left", "Pozostały czas baterii", "Restlaufzeit", "Autonomie restante", "Tiempo de batería restante", "剩余电池时间", "Tempo restante de bateria", "Оставшееся время батареи" };
-        m["st_left"]        = new[] { "Left", "Pozostało", "Verbleibt", "Restant", "Restante", "剩余", "Restante", "Осталось" };
-        m["tier_telemetry"] = new[] { "temperatures only", "tylko temperatury", "nur Temperaturen", "températures seules", "solo temperaturas", "仅温度", "somente temperaturas", "только температуры" };
-        m["set_fb_timer"]   = new[] { "Turn Fan Boost off automatically after", "Wyłączaj Fan Boost automatycznie po", "Fan Boost automatisch ausschalten nach", "Désactiver Fan Boost automatiquement après", "Desactivar Fan Boost automáticamente tras", "自动关闭 Fan Boost 的时间", "Desligar o Fan Boost automaticamente após", "Автовыключение Fan Boost через" };
-        m["fb_never"]       = new[] { "Never", "Nigdy", "Nie", "Jamais", "Nunca", "从不", "Nunca", "Никогда" };
-        m["fb_custom"]      = new[] { "Custom…", "Własna…", "Eigene…", "Personnalisé…", "Personalizado…", "自定义…", "Personalizado…", "Своё…" };
-        m["fb_custom_ask"]  = new[] { "Fan Boost auto-off after how many minutes? (1-120)", "Po ilu minutach wyłączyć Fan Boost? (1-120)", "Fan Boost nach wie vielen Minuten ausschalten? (1-120)", "Désactiver Fan Boost après combien de minutes ? (1-120)", "¿Tras cuántos minutos desactivar Fan Boost? (1-120)", "多少分钟后自动关闭 Fan Boost？（1-120）", "Desligar o Fan Boost após quantos minutos? (1-120)", "Через сколько минут выключить Fan Boost? (1-120)" };
-        m["fb_auto_off"]    = new[] { "Timer elapsed - back to the profile's fans", "Minął czas - wentylatory wracają do profilu", "Zeit abgelaufen - zurück zu den Profil-Lüftern", "Minuteur écoulé - retour aux ventilateurs du profil", "Tiempo cumplido - vuelta a los ventiladores del perfil", "计时结束 - 风扇回到配置文件设置", "Tempo esgotado - ventoinhas voltam ao perfil", "Время истекло - вентиляторы возвращаются к профилю" };
-        m["fb_secs"]        = new[] { "{0} s", "{0} s", "{0} s", "{0} s", "{0} s", "{0} 秒", "{0} s", "{0} с" };
-        m["fb_mins"]        = new[] { "{0} min", "{0} min", "{0} Min.", "{0} min", "{0} min", "{0} 分钟", "{0} min", "{0} мин" };
+        m["bh_wear"]        = new[] { "Wear", "Zużycie", "Verschleiß", "Usure", "Desgaste", "损耗", "Desgaste", "Износ", "劣化", "마모율", "損耗", "Aşınma", "Hao mòn", "Keausan", "Usura" };
+        m["bh_cycles"]      = new[] { "Charge cycles", "Cykle ładowania", "Ladezyklen", "Cycles de charge", "Ciclos de carga", "充电循环", "Ciclos de carga", "Циклы зарядки", "充電サイクル", "충전 사이클", "充電循環", "Şarj döngüsü", "Chu kỳ sạc", "Siklus pengisian", "Cicli di carica" };
+        m["ov_m_ssd"]       = new[] { "SSD temp", "Temp. SSD", "SSD-Temp.", "Temp. SSD", "Temp. SSD", "SSD 温度", "Temp. SSD", "Темп. SSD", "SSD 温度", "SSD 온도", "SSD 溫度", "SSD sıcaklığı", "Nhiệt độ SSD", "Suhu SSD", "Temp. SSD" };
+        m["ov_m_batttime"]  = new[] { "Battery time left", "Pozostały czas baterii", "Restlaufzeit", "Autonomie restante", "Tiempo de batería restante", "剩余电池时间", "Tempo restante de bateria", "Оставшееся время батареи", "バッテリー残り時間", "배터리 남은 시간", "電池剩餘時間", "Kalan pil süresi", "Thời gian pin còn lại", "Sisa waktu baterai", "Autonomia batteria" };
+        m["st_left"]        = new[] { "Left", "Pozostało", "Verbleibt", "Restant", "Restante", "剩余", "Restante", "Осталось", "残り", "남음", "剩餘", "Kalan", "Còn lại", "Sisa", "Rimanente" };
+        m["tier_telemetry"] = new[] { "temperatures only", "tylko temperatury", "nur Temperaturen", "températures seules", "solo temperaturas", "仅温度", "somente temperaturas", "только температуры", "温度のみ", "온도만", "僅溫度", "yalnızca sıcaklıklar", "chỉ nhiệt độ", "hanya suhu", "solo temperature" };
+        m["set_fb_timer"]   = new[] { "Turn Fan Boost off automatically after", "Wyłączaj Fan Boost automatycznie po", "Fan Boost automatisch ausschalten nach", "Désactiver Fan Boost automatiquement après", "Desactivar Fan Boost automáticamente tras", "自动关闭 Fan Boost 的时间", "Desligar o Fan Boost automaticamente após", "Автовыключение Fan Boost через", "Fan Boost を自動でオフにするまでの時間", "Fan Boost 자동 끄기 시간", "自動關閉 Fan Boost 的時間", "Fan Boost'u şu süre sonra otomatik kapat", "Tự động tắt Fan Boost sau", "Matikan Fan Boost otomatis setelah", "Disattiva Fan Boost automaticamente dopo" };
+        m["fb_never"]       = new[] { "Never", "Nigdy", "Nie", "Jamais", "Nunca", "从不", "Nunca", "Никогда", "しない", "안 함", "永不", "Asla", "Không bao giờ", "Tidak pernah", "Mai" };
+        m["fb_custom"]      = new[] { "Custom…", "Własna…", "Eigene…", "Personnalisé…", "Personalizado…", "自定义…", "Personalizado…", "Своё…", "カスタム…", "사용자 지정…", "自訂…", "Özel…", "Tùy chỉnh…", "Kustom…", "Personalizzato…" };
+        m["fb_custom_ask"]  = new[] { "Fan Boost auto-off after how many minutes? (1-120)", "Po ilu minutach wyłączyć Fan Boost? (1-120)", "Fan Boost nach wie vielen Minuten ausschalten? (1-120)", "Désactiver Fan Boost après combien de minutes ? (1-120)", "¿Tras cuántos minutos desactivar Fan Boost? (1-120)", "多少分钟后自动关闭 Fan Boost？（1-120）", "Desligar o Fan Boost após quantos minutos? (1-120)", "Через сколько минут выключить Fan Boost? (1-120)", "Fan Boost を何分後に自動オフにしますか？（1-120）", "몇 분 후 Fan Boost를 자동으로 끌까요? (1-120)", "幾分鐘後自動關閉 Fan Boost？（1-120）", "Fan Boost kaç dakika sonra kapansın? (1-120)", "Tự tắt Fan Boost sau bao nhiêu phút? (1-120)", "Fan Boost mati otomatis setelah berapa menit? (1-120)", "Disattivare Fan Boost dopo quanti minuti? (1-120)" };
+        m["fb_auto_off"]    = new[] { "Timer elapsed - back to the profile's fans", "Minął czas - wentylatory wracają do profilu", "Zeit abgelaufen - zurück zu den Profil-Lüftern", "Minuteur écoulé - retour aux ventilateurs du profil", "Tiempo cumplido - vuelta a los ventiladores del perfil", "计时结束 - 风扇回到配置文件设置", "Tempo esgotado - ventoinhas voltam ao perfil", "Время истекло - вентиляторы возвращаются к профилю", "タイマー終了 - プロファイルのファン設定に戻しました", "타이머 종료 - 프로필 팬 설정으로 복귀", "計時結束 - 風扇回到設定檔設定", "Süre doldu - profilin fanlarına dönüldü", "Hết giờ - quạt trở về theo hồ sơ", "Waktu habis - kembali ke kipas profil", "Timer scaduto - ventole del profilo ripristinate" };
+        m["fb_secs"]        = new[] { "{0} s", "{0} s", "{0} s", "{0} s", "{0} s", "{0} 秒", "{0} s", "{0} с", "{0} 秒", "{0}초", "{0} 秒", "{0} sn", "{0} giây", "{0} dtk", "{0} s" };
+        m["fb_mins"]        = new[] { "{0} min", "{0} min", "{0} Min.", "{0} min", "{0} min", "{0} 分钟", "{0} min", "{0} мин", "{0} 分", "{0}분", "{0} 分鐘", "{0} dk", "{0} phút", "{0} mnt", "{0} min" };
         m["telemetry_note"] = new[] {
             "This laptop's firmware does not provide MSI's EC control interface, so profiles, fan curves and the charge limit are unavailable. GhostDeck reads CPU/GPU temperature from MSI's WMI sensor blocks instead.",
             "Firmware tego laptopa nie udostępnia interfejsu sterowania EC firmy MSI, więc profile, krzywe wentylatorów i limit ładowania są niedostępne. GhostDeck odczytuje temperatury CPU/GPU z bloków czujników WMI firmy MSI.",
@@ -510,7 +668,15 @@ public static class Lang
             "El firmware de este portátil no ofrece la interfaz de control EC de MSI, así que perfiles, curvas de ventilador y límite de carga no están disponibles. GhostDeck lee la temperatura de CPU/GPU desde los bloques de sensores WMI de MSI.",
             "本机固件未提供 MSI 的 EC 控制接口，因此无法使用配置文件、风扇曲线和充电限制。GhostDeck 改为从 MSI 的 WMI 传感器块读取 CPU/GPU 温度。",
             "O firmware deste notebook não fornece a interface de controle do EC da MSI, portanto perfis, curvas de ventoinha e limite de carga não estão disponíveis. O GhostDeck lê a temperatura de CPU/GPU dos blocos de sensores WMI da MSI.",
-            "Прошивка этого ноутбука не предоставляет интерфейс управления EC от MSI, поэтому профили, кривые вентиляторов и лимит заряда недоступны. GhostDeck считывает температуру CPU/GPU из блоков датчиков WMI MSI." };
+            "Прошивка этого ноутбука не предоставляет интерфейс управления EC от MSI, поэтому профили, кривые вентиляторов и лимит заряда недоступны. GhostDeck считывает температуру CPU/GPU из блоков датчиков WMI MSI.",
+            "このノートPCのファームウェアは MSI の EC 制御インターフェースを提供していないため、プロファイル、ファンカーブ、充電上限は利用できません。GhostDeck は代わりに MSI の WMI センサーブロックから CPU/GPU 温度を読み取ります。",
+            "이 노트북의 펌웨어는 MSI의 EC 제어 인터페이스를 제공하지 않으므로 프로필, 팬 곡선, 충전 제한을 사용할 수 없습니다. GhostDeck는 대신 MSI의 WMI 센서 블록에서 CPU/GPU 온도를 읽습니다.",
+            "本機韌體未提供 MSI 的 EC 控制介面，因此無法使用設定檔、風扇曲線和充電上限。GhostDeck 改為從 MSI 的 WMI 感測器區塊讀取 CPU/GPU 溫度。",
+            "Bu dizüstünün ürün yazılımı MSI'ın EC kontrol arayüzünü sunmuyor; bu yüzden profiller, fan eğrileri ve şarj sınırı kullanılamıyor. GhostDeck bunun yerine CPU/GPU sıcaklığını MSI'ın WMI sensör bloklarından okur.",
+            "Firmware của laptop này không cung cấp giao diện điều khiển EC của MSI, nên hồ sơ, đường cong quạt và giới hạn sạc không khả dụng. Thay vào đó GhostDeck đọc nhiệt độ CPU/GPU từ các khối cảm biến WMI của MSI.",
+            "Firmware laptop ini tidak menyediakan antarmuka kontrol EC MSI, sehingga profil, kurva kipas, dan batas pengisian tidak tersedia. Sebagai gantinya GhostDeck membaca suhu CPU/GPU dari blok sensor WMI MSI.",
+            "Il firmware di questo laptop non offre l'interfaccia di controllo EC di MSI, quindi profili, curve ventole e limite di carica non sono disponibili. GhostDeck legge invece la temperatura CPU/GPU dai blocchi sensore WMI di MSI."
+            };
         m["diag_desc"] = new[] {
             "The zip contains: a read-only EC dump (or the exact error it produced), MSI's WMI sensor blocks, your settings, the change history, the error log and version info. No personal data.",
             "Zip zawiera: zrzut EC (tylko odczyt, lub dokładny błąd odczytu), bloki czujników WMI firmy MSI, ustawienia, historię zmian, dziennik błędów i informacje o wersji. Bez danych osobistych.",
@@ -519,7 +685,15 @@ public static class Lang
             "El zip contiene: un volcado del EC (solo lectura, o el error exacto), los bloques de sensores WMI de MSI, tus ajustes, el historial de cambios, el registro de errores y las versiones. Sin datos personales.",
             "压缩包包含：EC 转储（只读，或确切的读取错误）、MSI 的 WMI 传感器块、您的设置、更改历史、错误日志和版本信息。不含个人数据。",
             "O zip contém: um dump do EC (somente leitura, ou o erro exato), os blocos de sensores WMI da MSI, suas configurações, o histórico de mudanças, o log de erros e informações de versão. Sem dados pessoais.",
-            "Архив содержит: дамп EC (только чтение, либо точную ошибку), блоки датчиков WMI MSI, ваши настройки, историю изменений, журнал ошибок и сведения о версиях. Без личных данных." };
+            "Архив содержит: дамп EC (только чтение, либо точную ошибку), блоки датчиков WMI MSI, ваши настройки, историю изменений, журнал ошибок и сведения о версиях. Без личных данных.",
+            "zip の内容：読み取り専用の EC ダンプ（または発生した正確なエラー）、MSI の WMI センサーブロック、設定、変更履歴、エラーログ、バージョン情報。個人データは含まれません。",
+            "zip 파일 내용: 읽기 전용 EC 덤프(또는 발생한 정확한 오류), MSI의 WMI 센서 블록, 설정, 변경 기록, 오류 로그, 버전 정보. 개인 정보는 포함되지 않습니다.",
+            "壓縮檔包含：EC 傾印（唯讀，或確切的讀取錯誤）、MSI 的 WMI 感測器區塊、你的設定、變更歷程、錯誤記錄和版本資訊。不含個人資料。",
+            "Zip şunları içerir: salt okunur EC dökümü (veya oluşan tam hata), MSI'ın WMI sensör blokları, ayarlarınız, değişiklik geçmişi, hata günlüğü ve sürüm bilgisi. Kişisel veri yok.",
+            "Tệp zip gồm: bản dump EC chỉ đọc (hoặc lỗi chính xác đã xảy ra), các khối cảm biến WMI của MSI, cài đặt của bạn, lịch sử thay đổi, nhật ký lỗi và thông tin phiên bản. Không có dữ liệu cá nhân.",
+            "Zip berisi: dump EC hanya baca (atau kesalahan persis yang dihasilkannya), blok sensor WMI MSI, pengaturan Anda, riwayat perubahan, log kesalahan, dan info versi. Tanpa data pribadi.",
+            "Lo zip contiene: un dump EC in sola lettura (o l'errore esatto prodotto), i blocchi sensore WMI di MSI, le impostazioni, la cronologia modifiche, il log errori e le info di versione. Nessun dato personale."
+            };
         m["st_hist_fps_hint"] = new[]
         {
             "Fills in while a game is running (open the Gaming tab or the overlay to start the FPS monitor).",
@@ -529,17 +703,24 @@ public static class Lang
             "Se llena mientras un juego está en marcha (abre la pestaña Juegos o el overlay para iniciar el monitor de FPS).",
             "游戏运行时填充（打开游戏标签页或悬浮窗以启动 FPS 监视器）。",
             "Preenche-se enquanto um jogo está em execução (abra a aba Jogos ou o overlay para iniciar o monitor de FPS).",
-            "Заполняется, пока запущена игра (откройте вкладку Игры или оверлей, чтобы запустить монитор FPS)."
+            "Заполняется, пока запущена игра (откройте вкладку Игры или оверлей, чтобы запустить монитор FPS).",
+            "ゲーム実行中に記録されます（ゲームタブまたはオーバーレイを開くと FPS モニターが開始します）。",
+            "게임 실행 중에 채워집니다(FPS 모니터를 시작하려면 게임 탭 또는 오버레이를 여세요).",
+            "遊戲執行時填入（開啟遊戲分頁或覆蓋層以啟動 FPS 監視器）。",
+            "Bir oyun çalışırken dolar (FPS izleyiciyi başlatmak için Oyun sekmesini veya katmanı açın).",
+            "Được điền khi game đang chạy (mở tab Chơi game hoặc lớp phủ để khởi động bộ theo dõi FPS).",
+            "Terisi saat game berjalan (buka tab Gaming atau overlay untuk memulai monitor FPS).",
+            "Si popola mentre un gioco è in esecuzione (apri la scheda Gaming o l'overlay per avviare il monitor FPS)."
         };
 
         // ---- display refresh-rate auto-switch (discussion #18) ----
-        m["set_refresh_toggle"] = new[] { "Switch refresh rate on AC / battery", "Przełączaj odświeżanie przy AC / baterii", "Bildwiederholrate bei Netz / Akku umschalten", "Changer la fréquence sur secteur / batterie", "Cambiar la frecuencia con CA / batería", "接通/电池时切换刷新率", "Alternar taxa de atualização na CA / bateria", "Переключать частоту при сети / батарее" };
-        m["set_refresh_ac"]     = new[] { "Refresh on AC", "Odświeżanie na zasilaczu", "Frequenz am Netz", "Fréquence sur secteur", "Frecuencia con CA", "接通电源时刷新率", "Taxa na CA", "Частота от сети" };
-        m["set_refresh_batt"]   = new[] { "Refresh on battery", "Odświeżanie na baterii", "Frequenz im Akkubetrieb", "Fréquence sur batterie", "Frecuencia con batería", "电池模式刷新率", "Taxa na bateria", "Частота от батареи" };
-        m["ref_keep"]           = new[] { "No change", "Bez zmiany", "Keine Änderung", "Aucun changement", "Sin cambio", "不更改", "Sem alteração", "Без изменения" };
-        m["ref_title"]          = new[] { "Refresh rate", "Odświeżanie", "Bildwiederholrate", "Fréquence d'affichage", "Frecuencia de refresco", "刷新率", "Taxa de atualização", "Частота обновления" };
-        m["log_src_display"]    = new[] { "display", "ekran", "Display", "écran", "pantalla", "显示器", "tela", "экран" };
-        m["st_hist_now"]    = new[] { "now", "teraz", "jetzt", "maintenant", "ahora", "现在", "agora", "сейчас" };
+        m["set_refresh_toggle"] = new[] { "Switch refresh rate on AC / battery", "Przełączaj odświeżanie przy AC / baterii", "Bildwiederholrate bei Netz / Akku umschalten", "Changer la fréquence sur secteur / batterie", "Cambiar la frecuencia con CA / batería", "接通/电池时切换刷新率", "Alternar taxa de atualização na CA / bateria", "Переключать частоту при сети / батарее", "AC / バッテリーでリフレッシュレートを切替", "AC / 배터리 시 주사율 전환", "接電 / 電池時切換更新率", "AC / pilde yenileme hızını değiştir", "Chuyển tần số quét khi cắm sạc / dùng pin", "Ganti kecepatan refresh saat AC / baterai", "Cambia frequenza su rete / batteria" };
+        m["set_refresh_ac"]     = new[] { "Refresh on AC", "Odświeżanie na zasilaczu", "Frequenz am Netz", "Fréquence sur secteur", "Frecuencia con CA", "接通电源时刷新率", "Taxa na CA", "Частота от сети", "AC 時のリフレッシュレート", "AC 시 주사율", "接電時更新率", "AC'de yenileme hızı", "Tần số quét khi cắm sạc", "Refresh saat AC", "Frequenza su rete" };
+        m["set_refresh_batt"]   = new[] { "Refresh on battery", "Odświeżanie na baterii", "Frequenz im Akkubetrieb", "Fréquence sur batterie", "Frecuencia con batería", "电池模式刷新率", "Taxa na bateria", "Частота от батареи", "バッテリー時のリフレッシュレート", "배터리 시 주사율", "電池模式更新率", "Pilde yenileme hızı", "Tần số quét khi dùng pin", "Refresh saat baterai", "Frequenza su batteria" };
+        m["ref_keep"]           = new[] { "No change", "Bez zmiany", "Keine Änderung", "Aucun changement", "Sin cambio", "不更改", "Sem alteração", "Без изменения", "変更なし", "변경 없음", "不變更", "Değişiklik yok", "Không đổi", "Tetap", "Invariata" };
+        m["ref_title"]          = new[] { "Refresh rate", "Odświeżanie", "Bildwiederholrate", "Fréquence d'affichage", "Frecuencia de refresco", "刷新率", "Taxa de atualização", "Частота обновления", "リフレッシュレート", "주사율", "更新率", "Yenileme hızı", "Tần số quét", "Kecepatan refresh", "Frequenza di aggiornamento" };
+        m["log_src_display"]    = new[] { "display", "ekran", "Display", "écran", "pantalla", "显示器", "tela", "экран", "ディスプレイ", "디스플레이", "螢幕", "ekran", "màn hình", "layar", "schermo" };
+        m["st_hist_now"]    = new[] { "now", "teraz", "jetzt", "maintenant", "ahora", "现在", "agora", "сейчас", "現在", "지금", "現在", "şimdi", "hiện tại", "sekarang", "adesso" };
         m["ta_alert_text"]   = new[]
         {
             "CPU {0}°C / GPU {1}°C: above {2}°C for {3} s",
@@ -549,11 +730,18 @@ public static class Lang
             "CPU {0}°C / GPU {1}°C: por encima de {2}°C durante {3} s",
             "CPU {0}°C / GPU {1}°C：超过 {2}°C 已持续 {3} 秒",
             "CPU {0}°C / GPU {1}°C: acima de {2}°C por {3} s",
-            "CPU {0}°C / GPU {1}°C: выше {2}°C в течение {3} с"
+            "CPU {0}°C / GPU {1}°C: выше {2}°C в течение {3} с",
+            "CPU {0}°C / GPU {1}°C：{2}°C 超過が {3} 秒継続",
+            "CPU {0}°C / GPU {1}°C: {2}°C 초과 {3}초 지속",
+            "CPU {0}°C / GPU {1}°C：超過 {2}°C 已持續 {3} 秒",
+            "CPU {0}°C / GPU {1}°C: {3} sn boyunca {2}°C üzerinde",
+            "CPU {0}°C / GPU {1}°C: trên {2}°C trong {3} giây",
+            "CPU {0}°C / GPU {1}°C: di atas {2}°C selama {3} dtk",
+            "CPU {0}°C / GPU {1}°C: oltre {2}°C da {3} s"
         };
 
         // ---- panic reset hotkey ----
-        m["hk_panic"]        = new[] { "Panic reset", "Reset awaryjny", "Not-Reset", "Réinitialisation d'urgence", "Reinicio de emergencia", "紧急重置", "Reset de emergência", "Аварийный сброс" };
+        m["hk_panic"]        = new[] { "Panic reset", "Reset awaryjny", "Not-Reset", "Réinitialisation d'urgence", "Reinicio de emergencia", "紧急重置", "Reset de emergência", "Аварийный сброс", "緊急リセット", "긴급 초기화", "緊急重設", "Acil sıfırlama", "Đặt lại khẩn cấp", "Reset darurat", "Reset di emergenza" };
         m["panic_sub"]       = new[]
         {
             "Balanced profile, Fan Boost off, fans auto",
@@ -563,97 +751,104 @@ public static class Lang
             "Perfil Balanced, Fan Boost desactivado, ventiladores en auto",
             "Balanced 配置文件，Fan Boost 关闭，风扇自动",
             "Perfil Balanced, Fan Boost desligado, ventoinhas em auto",
-            "Профиль Balanced, Fan Boost выкл., вентиляторы авто"
+            "Профиль Balanced, Fan Boost выкл., вентиляторы авто",
+            "Balanced プロファイル、Fan Boost オフ、ファン自動",
+            "Balanced 프로필, Fan Boost 끔, 팬 자동",
+            "Balanced 設定檔，Fan Boost 關閉，風扇自動",
+            "Balanced profili, Fan Boost kapalı, fanlar otomatik",
+            "Hồ sơ Balanced, tắt Fan Boost, quạt tự động",
+            "Profil Balanced, Fan Boost mati, kipas otomatis",
+            "Profilo Balanced, Fan Boost off, ventole auto"
         };
 
         // ---- settings backup (export / import) ----
-        m["set_grp_backup"]  = new[] { "Backup", "Kopia zapasowa", "Sicherung", "Sauvegarde", "Copia de seguridad", "备份", "Backup", "Резервная копия" };
-        m["set_export"]      = new[] { "Export settings…", "Eksportuj ustawienia…", "Einstellungen exportieren…", "Exporter les réglages…", "Exportar ajustes…", "导出设置…", "Exportar configurações…", "Экспорт настроек…" };
-        m["set_import"]      = new[] { "Import settings…", "Importuj ustawienia…", "Einstellungen importieren…", "Importer les réglages…", "Importar ajustes…", "导入设置…", "Importar configurações…", "Импорт настроек…" };
-        m["imp_ok"]          = new[] { "Settings imported.", "Ustawienia zaimportowane.", "Einstellungen importiert.", "Réglages importés.", "Ajustes importados.", "设置已导入。", "Configurações importadas.", "Настройки импортированы." };
-        m["imp_err"]         = new[] { "This is not a valid GhostDeck settings file.", "To nie jest prawidłowy plik ustawień GhostDeck.", "Dies ist keine gültige GhostDeck-Einstellungsdatei.", "Ce n'est pas un fichier de réglages GhostDeck valide.", "No es un archivo de ajustes de GhostDeck válido.", "这不是有效的 GhostDeck 设置文件。", "Este não é um arquivo de configurações válido do GhostDeck.", "Это не корректный файл настроек GhostDeck." };
-        m["bk_err"]          = new[] { "Operation failed: {0}", "Operacja nie powiodła się: {0}", "Vorgang fehlgeschlagen: {0}", "Échec de l'opération : {0}", "La operación falló: {0}", "操作失败：{0}", "Falha na operação: {0}", "Операция не удалась: {0}" };
+        m["set_grp_backup"]  = new[] { "Backup", "Kopia zapasowa", "Sicherung", "Sauvegarde", "Copia de seguridad", "备份", "Backup", "Резервная копия", "バックアップ", "백업", "備份", "Yedekleme", "Sao lưu", "Cadangan", "Backup" };
+        m["set_export"]      = new[] { "Export settings…", "Eksportuj ustawienia…", "Einstellungen exportieren…", "Exporter les réglages…", "Exportar ajustes…", "导出设置…", "Exportar configurações…", "Экспорт настроек…", "設定をエクスポート…", "설정 내보내기…", "匯出設定…", "Ayarları dışa aktar…", "Xuất cài đặt…", "Ekspor pengaturan…", "Esporta impostazioni…" };
+        m["set_import"]      = new[] { "Import settings…", "Importuj ustawienia…", "Einstellungen importieren…", "Importer les réglages…", "Importar ajustes…", "导入设置…", "Importar configurações…", "Импорт настроек…", "設定をインポート…", "설정 가져오기…", "匯入設定…", "Ayarları içe aktar…", "Nhập cài đặt…", "Impor pengaturan…", "Importa impostazioni…" };
+        m["imp_ok"]          = new[] { "Settings imported.", "Ustawienia zaimportowane.", "Einstellungen importiert.", "Réglages importés.", "Ajustes importados.", "设置已导入。", "Configurações importadas.", "Настройки импортированы.", "設定をインポートしました。", "설정을 가져왔습니다.", "設定已匯入。", "Ayarlar içe aktarıldı.", "Đã nhập cài đặt.", "Pengaturan diimpor.", "Impostazioni importate." };
+        m["imp_err"]         = new[] { "This is not a valid GhostDeck settings file.", "To nie jest prawidłowy plik ustawień GhostDeck.", "Dies ist keine gültige GhostDeck-Einstellungsdatei.", "Ce n'est pas un fichier de réglages GhostDeck valide.", "No es un archivo de ajustes de GhostDeck válido.", "这不是有效的 GhostDeck 设置文件。", "Este não é um arquivo de configurações válido do GhostDeck.", "Это не корректный файл настроек GhostDeck.", "有効な GhostDeck 設定ファイルではありません。", "유효한 GhostDeck 설정 파일이 아닙니다.", "這不是有效的 GhostDeck 設定檔案。", "Bu geçerli bir GhostDeck ayar dosyası değil.", "Đây không phải tệp cài đặt GhostDeck hợp lệ.", "Ini bukan file pengaturan GhostDeck yang valid.", "Questo non è un file impostazioni GhostDeck valido." };
+        m["bk_err"]          = new[] { "Operation failed: {0}", "Operacja nie powiodła się: {0}", "Vorgang fehlgeschlagen: {0}", "Échec de l'opération : {0}", "La operación falló: {0}", "操作失败：{0}", "Falha na operação: {0}", "Операция не удалась: {0}", "操作に失敗しました：{0}", "작업 실패: {0}", "操作失敗：{0}", "İşlem başarısız: {0}", "Thao tác thất bại: {0}", "Operasi gagal: {0}", "Operazione non riuscita: {0}" };
 
         // ---- firmware-change warning ----
-        m["menu_fw_ack"]      = new[] { "⚠ Firmware changed — verify model", "⚠ Zmiana firmware — zweryfikuj model", "⚠ Firmware geändert — Modell prüfen", "⚠ Firmware modifié — vérifier le modèle", "⚠ Firmware cambiado — verificar modelo", "⚠ 固件已更改 — 请核对型号", "⚠ Firmware alterado — verificar modelo", "⚠ Прошивка изменена — проверьте модель" };
-        m["fw_changed_title"] = new[] { "EC firmware changed", "Zmieniono firmware EC", "EC-Firmware geändert", "Firmware EC modifié", "Firmware EC cambiado", "EC 固件已更改", "Firmware EC alterado", "Прошивка EC изменена" };
-        m["fw_changed_text"]  = new[] { "EC firmware changed — automatic writes are paused. Verify the model again, then click to acknowledge.", "Firmware EC uległ zmianie — automatyczne zapisy wstrzymane. Zweryfikuj model ponownie, potem kliknij, aby potwierdzić.", "EC-Firmware hat sich geändert — automatische Schreibvorgänge pausiert. Modell erneut prüfen und zum Bestätigen klicken.", "Le firmware EC a changé — écritures automatiques suspendues. Vérifiez le modèle puis cliquez pour confirmer.", "El firmware EC cambió — escrituras automáticas en pausa. Verifica el modelo y haz clic para confirmar.", "EC 固件已更改 — 自动写入已暂停。请重新核对型号后点击确认。", "O firmware EC mudou — gravações automáticas pausadas. Verifique o modelo e clique para confirmar.", "Прошивка EC изменилась — автозапись приостановлена. Проверьте модель и нажмите для подтверждения." };
-        m["log_fw_changed"]   = new[] { "EC firmware changed: {0} → {1} (auto-writes blocked)", "Zmiana firmware EC: {0} → {1} (auto-zapisy zablokowane)", "EC-Firmware geändert: {0} → {1} (Auto-Schreiben blockiert)", "Firmware EC modifié : {0} → {1} (écritures auto bloquées)", "Firmware EC cambiado: {0} → {1} (escrituras auto bloqueadas)", "EC 固件已更改：{0} → {1}（自动写入已阻止）", "Firmware EC alterado: {0} → {1} (gravações auto bloqueadas)", "Прошивка EC изменена: {0} → {1} (автозапись заблокирована)" };
-        m["log_fw_ack"]       = new[] { "Firmware change acknowledged", "Potwierdzono zmianę firmware", "Firmware-Änderung bestätigt", "Changement de firmware confirmé", "Cambio de firmware confirmado", "已确认固件更改", "Alteração de firmware confirmada", "Изменение прошивки подтверждено" };
-        m["tab_scenarios"]  = new[] { "Scenarios", "Scenariusze", "Szenarien", "Scénarios", "Escenarios", "场景", "Cenários", "Сценарии" };
-        m["tab_updates"]    = new[] { "Updates", "Aktualizacje", "Updates", "Mises à jour", "Actualizaciones", "更新", "Atualizações", "Обновления" };
-        m["scen_title"]     = new[] { "Choose a scenario", "Wybierz scenariusz", "Szenario wählen", "Choisir un scénario", "Elige un escenario", "选择场景", "Escolha um cenário", "Выберите сценарий" };
-        m["scen_autoswitch"]= new[] { "Auto-switch on AC / battery", "Auto-przełączanie AC / bateria", "Auto-Wechsel bei Netz / Akku", "Bascule auto secteur / batterie", "Cambio automático CA / batería", "接通/电池自动切换", "Troca automática CA / bateria", "Авто-переключение сеть / батарея" };
-        m["gen_off"]        = new[] { "Off", "Wyłączone", "Aus", "Désactivé", "Apagado", "关闭", "Desligado", "Выкл" };
-        m["gen_off_short"]  = new[] { "Off", "Wył.", "Aus", "Off", "No", "关", "Não", "Выкл" };
-        m["upd_installed"]  = new[] { "Installed version", "Zainstalowana wersja", "Installierte Version", "Version installée", "Versión instalada", "已安装版本", "Versão instalada", "Установленная версия" };
-        m["upd_latest_ok"]  = new[] { "You're on the latest version", "Używasz najnowszej wersji", "Sie nutzen die neueste Version", "Vous avez la dernière version", "Tienes la última versión", "已是最新版本", "Você está na versão mais recente", "У вас последняя версия" };
+        m["menu_fw_ack"]      = new[] { "⚠ Firmware changed — verify model", "⚠ Zmiana firmware — zweryfikuj model", "⚠ Firmware geändert — Modell prüfen", "⚠ Firmware modifié — vérifier le modèle", "⚠ Firmware cambiado — verificar modelo", "⚠ 固件已更改 — 请核对型号", "⚠ Firmware alterado — verificar modelo", "⚠ Прошивка изменена — проверьте модель", "⚠ ファームウェア変更 — モデルを確認", "⚠ 펌웨어 변경됨 — 모델 확인", "⚠ 韌體已變更 — 請核對機型", "⚠ Ürün yazılımı değişti — modeli doğrulayın", "⚠ Firmware đã thay đổi — xác minh lại model", "⚠ Firmware berubah — verifikasi model", "⚠ Firmware cambiato — verifica il modello" };
+        m["fw_changed_title"] = new[] { "EC firmware changed", "Zmieniono firmware EC", "EC-Firmware geändert", "Firmware EC modifié", "Firmware EC cambiado", "EC 固件已更改", "Firmware EC alterado", "Прошивка EC изменена", "EC ファームウェアが変更されました", "EC 펌웨어 변경됨", "EC 韌體已變更", "EC ürün yazılımı değişti", "Firmware EC đã thay đổi", "Firmware EC berubah", "Firmware EC cambiato" };
+        m["fw_changed_text"]  = new[] { "EC firmware changed — automatic writes are paused. Verify the model again, then click to acknowledge.", "Firmware EC uległ zmianie — automatyczne zapisy wstrzymane. Zweryfikuj model ponownie, potem kliknij, aby potwierdzić.", "EC-Firmware hat sich geändert — automatische Schreibvorgänge pausiert. Modell erneut prüfen und zum Bestätigen klicken.", "Le firmware EC a changé — écritures automatiques suspendues. Vérifiez le modèle puis cliquez pour confirmer.", "El firmware EC cambió — escrituras automáticas en pausa. Verifica el modelo y haz clic para confirmar.", "EC 固件已更改 — 自动写入已暂停。请重新核对型号后点击确认。", "O firmware EC mudou — gravações automáticas pausadas. Verifique o modelo e clique para confirmar.", "Прошивка EC изменилась — автозапись приостановлена. Проверьте модель и нажмите для подтверждения.", "EC ファームウェアが変更されました — 自動書き込みは一時停止中です。モデルを再確認してから、クリックして確認済みにしてください。", "EC 펌웨어가 변경되어 자동 쓰기가 일시 중지되었습니다. 모델을 다시 확인한 후 클릭하여 승인하세요.", "EC 韌體已變更 — 自動寫入已暫停。請重新核對機型後按一下確認。", "EC ürün yazılımı değişti — otomatik yazmalar duraklatıldı. Modeli yeniden doğrulayın, ardından onaylamak için tıklayın.", "Firmware EC đã thay đổi — ghi tự động đã tạm dừng. Xác minh lại model, rồi nhấp để xác nhận.", "Firmware EC berubah — penulisan otomatis dijeda. Verifikasi model lagi, lalu klik untuk mengonfirmasi.", "Firmware EC cambiato — scritture automatiche sospese. Verifica di nuovo il modello, poi fai clic per confermare." };
+        m["log_fw_changed"]   = new[] { "EC firmware changed: {0} → {1} (auto-writes blocked)", "Zmiana firmware EC: {0} → {1} (auto-zapisy zablokowane)", "EC-Firmware geändert: {0} → {1} (Auto-Schreiben blockiert)", "Firmware EC modifié : {0} → {1} (écritures auto bloquées)", "Firmware EC cambiado: {0} → {1} (escrituras auto bloqueadas)", "EC 固件已更改：{0} → {1}（自动写入已阻止）", "Firmware EC alterado: {0} → {1} (gravações auto bloqueadas)", "Прошивка EC изменена: {0} → {1} (автозапись заблокирована)", "EC ファームウェア変更：{0} → {1}（自動書き込みをブロック）", "EC 펌웨어 변경됨: {0} → {1} (자동 쓰기 차단됨)", "EC 韌體已變更：{0} → {1}（自動寫入已封鎖）", "EC ürün yazılımı değişti: {0} → {1} (otomatik yazmalar engellendi)", "Firmware EC đã thay đổi: {0} → {1} (đã chặn ghi tự động)", "Firmware EC berubah: {0} → {1} (penulisan otomatis diblokir)", "Firmware EC cambiato: {0} → {1} (scritture automatiche bloccate)" };
+        m["log_fw_ack"]       = new[] { "Firmware change acknowledged", "Potwierdzono zmianę firmware", "Firmware-Änderung bestätigt", "Changement de firmware confirmé", "Cambio de firmware confirmado", "已确认固件更改", "Alteração de firmware confirmada", "Изменение прошивки подтверждено", "ファームウェア変更を確認済みにしました", "펌웨어 변경 승인됨", "已確認韌體變更", "Ürün yazılımı değişikliği onaylandı", "Đã xác nhận thay đổi firmware", "Perubahan firmware dikonfirmasi", "Cambio firmware confermato" };
+        m["tab_scenarios"]  = new[] { "Scenarios", "Scenariusze", "Szenarien", "Scénarios", "Escenarios", "场景", "Cenários", "Сценарии", "シナリオ", "시나리오", "情境", "Senaryolar", "Kịch bản", "Skenario", "Scenari" };
+        m["tab_updates"]    = new[] { "Updates", "Aktualizacje", "Updates", "Mises à jour", "Actualizaciones", "更新", "Atualizações", "Обновления", "更新", "업데이트", "更新", "Güncellemeler", "Cập nhật", "Pembaruan", "Aggiornamenti" };
+        m["scen_title"]     = new[] { "Choose a scenario", "Wybierz scenariusz", "Szenario wählen", "Choisir un scénario", "Elige un escenario", "选择场景", "Escolha um cenário", "Выберите сценарий", "シナリオを選択", "시나리오 선택", "選擇情境", "Bir senaryo seçin", "Chọn kịch bản", "Pilih skenario", "Scegli uno scenario" };
+        m["scen_autoswitch"]= new[] { "Auto-switch on AC / battery", "Auto-przełączanie AC / bateria", "Auto-Wechsel bei Netz / Akku", "Bascule auto secteur / batterie", "Cambio automático CA / batería", "接通/电池自动切换", "Troca automática CA / bateria", "Авто-переключение сеть / батарея", "AC / バッテリーで自動切替", "AC / 배터리 시 자동 전환", "接電 / 電池自動切換", "AC / pilde otomatik geçiş", "Tự chuyển khi cắm sạc / dùng pin", "Ganti otomatis saat AC / baterai", "Cambio automatico su rete / batteria" };
+        m["gen_off"]        = new[] { "Off", "Wyłączone", "Aus", "Désactivé", "Apagado", "关闭", "Desligado", "Выкл", "オフ", "끄기", "關閉", "Kapalı", "Tắt", "Mati", "Off" };
+        m["gen_off_short"]  = new[] { "Off", "Wył.", "Aus", "Off", "No", "关", "Não", "Выкл", "オフ", "끔", "關", "Kapalı", "Tắt", "Mati", "Off" };
+        m["upd_installed"]  = new[] { "Installed version", "Zainstalowana wersja", "Installierte Version", "Version installée", "Versión instalada", "已安装版本", "Versão instalada", "Установленная версия", "インストール済みバージョン", "설치된 버전", "已安裝版本", "Yüklü sürüm", "Phiên bản đã cài", "Versi terpasang", "Versione installata" };
+        m["upd_latest_ok"]  = new[] { "You're on the latest version", "Używasz najnowszej wersji", "Sie nutzen die neueste Version", "Vous avez la dernière version", "Tienes la última versión", "已是最新版本", "Você está na versão mais recente", "У вас последняя версия", "最新バージョンです", "최신 버전입니다", "已是最新版本", "En son sürümü kullanıyorsunuz", "Bạn đang dùng phiên bản mới nhất", "Anda menggunakan versi terbaru", "Hai l'ultima versione" };
     }
 
     private static void L05(Dictionary<string, string[]> m)
     {
-        m["upd_check_now"]  = new[] { "Check now", "Sprawdź teraz", "Jetzt prüfen", "Vérifier maintenant", "Comprobar ahora", "立即检查", "Verificar agora", "Проверить сейчас" };
-        m["upd_checking"]   = new[] { "Checking…", "Sprawdzanie…", "Wird geprüft…", "Vérification…", "Comprobando…", "正在检查…", "Verificando…", "Проверка…" };
-        m["upd_last_checked"] = new[] { "Last checked: {0}", "Ostatnio sprawdzano: {0}", "Zuletzt geprüft: {0}", "Dernière vérification : {0}", "Última comprobación: {0}", "上次检查：{0}", "Última verificação: {0}", "Последняя проверка: {0}" };
-        m["upd_never"]      = new[] { "never", "nigdy", "nie", "jamais", "nunca", "从未", "nunca", "никогда" };
-        m["upd_available"]  = new[] { "New version {0} is available", "Dostępna nowa wersja {0}", "Neue Version {0} verfügbar", "Nouvelle version {0} disponible", "Nueva versión {0} disponible", "有新版本 {0}", "Nova versão {0} disponível", "Доступна новая версия {0}" };
-        m["upd_install"]    = new[] { "Install {0}", "Zainstaluj {0}", "{0} installieren", "Installer {0}", "Instalar {0}", "安装 {0}", "Instalar {0}", "Установить {0}" };
-        m["upd_downloading"] = new[] { "Downloading… {0}%", "Pobieranie… {0}%", "Wird heruntergeladen… {0}%", "Téléchargement… {0}%", "Descargando… {0}%", "正在下载… {0}%", "Baixando… {0}%", "Загрузка… {0}%" };
-        m["upd_restarting"] = new[] { "Restarting to finish the update…", "Ponowne uruchamianie, aby dokończyć aktualizację…", "Neustart zum Abschluss des Updates…", "Redémarrage pour terminer la mise à jour…", "Reiniciando para finalizar la actualización…", "正在重启以完成更新…", "Reiniciando para concluir a atualização…", "Перезапуск для завершения обновления…" };
-        m["upd_dl_failed"]  = new[] { "Download failed — opening the releases page.", "Pobieranie nie powiodło się - otwieram stronę wydań.", "Download fehlgeschlagen — Release-Seite wird geöffnet.", "Échec du téléchargement — ouverture de la page des versions.", "Error de descarga — abriendo la página de versiones.", "下载失败 — 正在打开发布页面。", "Falha no download — abrindo a página de versões.", "Сбой загрузки — открываю страницу релизов." };
-        m["upd_download"]   = new[] { "Download", "Pobierz", "Herunterladen", "Télécharger", "Descargar", "下载", "Baixar", "Скачать" };
-        m["upd_history"]    = new[] { "Release history", "Historia wydań", "Versionsverlauf", "Historique des versions", "Historial de versiones", "发布历史", "Histórico de versões", "История версий" };
-        m["upd_details"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробности" };
-        m["upd_wiki"]       = new[] { "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki" };
-        m["upd_offline"]    = new[] { "Couldn't reach GitHub. Check your connection and try again.", "Nie udało się połączyć z GitHub. Sprawdź połączenie i spróbuj ponownie.", "GitHub nicht erreichbar. Verbindung prüfen und erneut versuchen.", "Impossible de joindre GitHub. Vérifiez la connexion et réessayez.", "No se pudo conectar con GitHub. Revisa la conexión e inténtalo de nuevo.", "无法连接 GitHub。请检查网络后重试。", "Não foi possível acessar o GitHub. Verifique a conexão e tente novamente.", "Не удалось подключиться к GitHub. Проверьте соединение и повторите." };
-        m["upd_retry"]      = new[] { "Try again", "Spróbuj ponownie", "Erneut versuchen", "Réessayer", "Reintentar", "重试", "Tentar novamente", "Повторить" };
-        m["upd_downloads"]  = new[] { "Downloads: {0}", "Pobrania: {0}", "Downloads: {0}", "Téléchargements : {0}", "Descargas: {0}", "下载次数：{0}", "Downloads: {0}", "Загрузки: {0}" };
-        m["set_advanced"]   = new[] { "Advanced settings (colours, hotkeys)…", "Ustawienia zaawansowane (kolory, skróty)…", "Erweiterte Einstellungen (Farben, Tastenkürzel)…", "Paramètres avancés (couleurs, raccourcis)…", "Ajustes avanzados (colores, atajos)…", "高级设置（颜色、快捷键）…", "Configurações avançadas (cores, atalhos)…", "Расширенные настройки (цвета, горячие клавиши)…" };
-        m["set_theme"]      = new[] { "Theme", "Motyw", "Design", "Thème", "Tema", "主题", "Tema", "Тема" };
-        m["set_theme_light"]= new[] { "Light", "Jasny", "Hell", "Clair", "Claro", "浅色", "Claro", "Светлая" };
-        m["set_theme_dark"] = new[] { "Dark", "Ciemny", "Dunkel", "Sombre", "Oscuro", "深色", "Escuro", "Тёмная" };
-        m["menu_language"]  = new[] { "Language", "Język", "Sprache", "Langue", "Idioma", "语言", "Idioma", "Язык" };
-        m["menu_exit"]      = new[] { "Exit", "Zamknij", "Beenden", "Quitter", "Salir", "退出", "Sair", "Выход" };
+        m["upd_check_now"]  = new[] { "Check now", "Sprawdź teraz", "Jetzt prüfen", "Vérifier maintenant", "Comprobar ahora", "立即检查", "Verificar agora", "Проверить сейчас", "今すぐ確認", "지금 확인", "立即檢查", "Şimdi denetle", "Kiểm tra ngay", "Periksa sekarang", "Controlla ora" };
+        m["upd_checking"]   = new[] { "Checking…", "Sprawdzanie…", "Wird geprüft…", "Vérification…", "Comprobando…", "正在检查…", "Verificando…", "Проверка…", "確認中…", "확인 중…", "檢查中…", "Denetleniyor…", "Đang kiểm tra…", "Memeriksa…", "Controllo…" };
+        m["upd_last_checked"] = new[] { "Last checked: {0}", "Ostatnio sprawdzano: {0}", "Zuletzt geprüft: {0}", "Dernière vérification : {0}", "Última comprobación: {0}", "上次检查：{0}", "Última verificação: {0}", "Последняя проверка: {0}", "最終確認：{0}", "마지막 확인: {0}", "上次檢查：{0}", "Son denetim: {0}", "Kiểm tra lần cuối: {0}", "Terakhir diperiksa: {0}", "Ultimo controllo: {0}" };
+        m["upd_never"]      = new[] { "never", "nigdy", "nie", "jamais", "nunca", "从未", "nunca", "никогда", "なし", "없음", "從未", "hiç", "chưa bao giờ", "tidak pernah", "mai" };
+        m["upd_available"]  = new[] { "New version {0} is available", "Dostępna nowa wersja {0}", "Neue Version {0} verfügbar", "Nouvelle version {0} disponible", "Nueva versión {0} disponible", "有新版本 {0}", "Nova versão {0} disponível", "Доступна новая версия {0}", "新しいバージョン {0} が利用可能です", "새 버전 {0} 사용 가능", "有新版本 {0}", "Yeni sürüm {0} mevcut", "Đã có phiên bản mới {0}", "Versi baru {0} tersedia", "Nuova versione {0} disponibile" };
+        m["upd_install"]    = new[] { "Install {0}", "Zainstaluj {0}", "{0} installieren", "Installer {0}", "Instalar {0}", "安装 {0}", "Instalar {0}", "Установить {0}", "{0} をインストール", "{0} 설치", "安裝 {0}", "{0} sürümünü yükle", "Cài đặt {0}", "Pasang {0}", "Installa {0}" };
+        m["upd_downloading"] = new[] { "Downloading… {0}%", "Pobieranie… {0}%", "Wird heruntergeladen… {0}%", "Téléchargement… {0}%", "Descargando… {0}%", "正在下载… {0}%", "Baixando… {0}%", "Загрузка… {0}%", "ダウンロード中… {0}%", "다운로드 중… {0}%", "下載中… {0}%", "İndiriliyor… %{0}", "Đang tải xuống… {0}%", "Mengunduh… {0}%", "Download… {0}%" };
+        m["upd_restarting"] = new[] { "Restarting to finish the update…", "Ponowne uruchamianie, aby dokończyć aktualizację…", "Neustart zum Abschluss des Updates…", "Redémarrage pour terminer la mise à jour…", "Reiniciando para finalizar la actualización…", "正在重启以完成更新…", "Reiniciando para concluir a atualização…", "Перезапуск для завершения обновления…", "更新を完了するため再起動しています…", "업데이트 완료를 위해 다시 시작하는 중…", "正在重新啟動以完成更新…", "Güncellemeyi bitirmek için yeniden başlatılıyor…", "Đang khởi động lại để hoàn tất cập nhật…", "Memulai ulang untuk menyelesaikan pembaruan…", "Riavvio per completare l'aggiornamento…" };
+        m["upd_dl_failed"]  = new[] { "Download failed — opening the releases page.", "Pobieranie nie powiodło się - otwieram stronę wydań.", "Download fehlgeschlagen — Release-Seite wird geöffnet.", "Échec du téléchargement — ouverture de la page des versions.", "Error de descarga — abriendo la página de versiones.", "下载失败 — 正在打开发布页面。", "Falha no download — abrindo a página de versões.", "Сбой загрузки — открываю страницу релизов.", "ダウンロード失敗 — リリースページを開きます。", "다운로드 실패 — 릴리스 페이지를 엽니다.", "下載失敗 — 正在開啟發行頁面。", "İndirme başarısız — sürümler sayfası açılıyor.", "Tải xuống thất bại — đang mở trang phát hành.", "Unduhan gagal — membuka halaman rilis.", "Download non riuscito — apertura della pagina release." };
+        m["upd_download"]   = new[] { "Download", "Pobierz", "Herunterladen", "Télécharger", "Descargar", "下载", "Baixar", "Скачать", "ダウンロード", "다운로드", "下載", "İndir", "Tải xuống", "Unduh", "Scarica" };
+        m["upd_history"]    = new[] { "Release history", "Historia wydań", "Versionsverlauf", "Historique des versions", "Historial de versiones", "发布历史", "Histórico de versões", "История версий", "リリース履歴", "릴리스 기록", "發行歷程", "Sürüm geçmişi", "Lịch sử phát hành", "Riwayat rilis", "Cronologia release" };
+        m["upd_details"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробности", "詳細", "세부 정보", "詳細資訊", "Ayrıntılar", "Chi tiết", "Detail", "Dettagli" };
+        m["upd_wiki"]       = new[] { "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki", "Wiki" };
+        m["upd_offline"]    = new[] { "Couldn't reach GitHub. Check your connection and try again.", "Nie udało się połączyć z GitHub. Sprawdź połączenie i spróbuj ponownie.", "GitHub nicht erreichbar. Verbindung prüfen und erneut versuchen.", "Impossible de joindre GitHub. Vérifiez la connexion et réessayez.", "No se pudo conectar con GitHub. Revisa la conexión e inténtalo de nuevo.", "无法连接 GitHub。请检查网络后重试。", "Não foi possível acessar o GitHub. Verifique a conexão e tente novamente.", "Не удалось подключиться к GitHub. Проверьте соединение и повторите.", "GitHub に接続できません。接続を確認して再試行してください。", "GitHub에 연결할 수 없습니다. 연결을 확인한 후 다시 시도하세요.", "無法連線 GitHub。請檢查網路後再試一次。", "GitHub'a ulaşılamadı. Bağlantınızı kontrol edip yeniden deneyin.", "Không kết nối được GitHub. Kiểm tra mạng và thử lại.", "Tidak dapat menghubungi GitHub. Periksa koneksi Anda dan coba lagi.", "Impossibile raggiungere GitHub. Controlla la connessione e riprova." };
+        m["upd_retry"]      = new[] { "Try again", "Spróbuj ponownie", "Erneut versuchen", "Réessayer", "Reintentar", "重试", "Tentar novamente", "Повторить", "再試行", "다시 시도", "再試一次", "Yeniden dene", "Thử lại", "Coba lagi", "Riprova" };
+        m["upd_downloads"]  = new[] { "Downloads: {0}", "Pobrania: {0}", "Downloads: {0}", "Téléchargements : {0}", "Descargas: {0}", "下载次数：{0}", "Downloads: {0}", "Загрузки: {0}", "ダウンロード数：{0}", "다운로드 수: {0}", "下載次數：{0}", "İndirme: {0}", "Lượt tải: {0}", "Unduhan: {0}", "Download: {0}" };
+        m["set_advanced"]   = new[] { "Advanced settings (colours, hotkeys)…", "Ustawienia zaawansowane (kolory, skróty)…", "Erweiterte Einstellungen (Farben, Tastenkürzel)…", "Paramètres avancés (couleurs, raccourcis)…", "Ajustes avanzados (colores, atajos)…", "高级设置（颜色、快捷键）…", "Configurações avançadas (cores, atalhos)…", "Расширенные настройки (цвета, горячие клавиши)…", "詳細設定（色、ホットキー）…", "고급 설정(색상, 단축키)…", "進階設定（色彩、快速鍵）…", "Gelişmiş ayarlar (renkler, kısayollar)…", "Cài đặt nâng cao (màu sắc, phím tắt)…", "Pengaturan lanjutan (warna, pintasan)…", "Impostazioni avanzate (colori, scorciatoie)…" };
+        m["set_theme"]      = new[] { "Theme", "Motyw", "Design", "Thème", "Tema", "主题", "Tema", "Тема", "テーマ", "테마", "主題", "Tema", "Chủ đề", "Tema", "Tema" };
+        m["set_theme_light"]= new[] { "Light", "Jasny", "Hell", "Clair", "Claro", "浅色", "Claro", "Светлая", "ライト", "라이트", "淺色", "Açık", "Sáng", "Terang", "Chiaro" };
+        m["set_theme_dark"] = new[] { "Dark", "Ciemny", "Dunkel", "Sombre", "Oscuro", "深色", "Escuro", "Тёмная", "ダーク", "다크", "深色", "Koyu", "Tối", "Gelap", "Scuro" };
+        m["menu_language"]  = new[] { "Language", "Język", "Sprache", "Langue", "Idioma", "语言", "Idioma", "Язык", "言語", "언어", "語言", "Dil", "Ngôn ngữ", "Bahasa", "Lingua" };
+        m["menu_exit"]      = new[] { "Exit", "Zamknij", "Beenden", "Quitter", "Salir", "退出", "Sair", "Выход", "終了", "종료", "結束", "Çıkış", "Thoát", "Keluar", "Esci" };
 
-        m["set_hotkeys"]    = new[] { "Keyboard shortcuts", "Skróty klawiszowe", "Tastenkürzel", "Raccourcis clavier", "Atajos de teclado", "键盘快捷键", "Atalhos de teclado", "Горячие клавиши" };
-        m["hk_all"]         = new[] { "All shortcuts", "Wszystkie skróty", "Alle Kürzel", "Tous les raccourcis", "Todos los atajos", "所有快捷键", "Todos os atalhos", "Все клавиши" };
-        m["hk_none"]        = new[] { "(none)", "(brak)", "(keine)", "(aucun)", "(ninguno)", "（无）", "(nenhum)", "(нет)" };
-        m["set_hint"]       = new[] { "Click a field and press a combo.  Esc / Delete = clear.", "Kliknij pole i wciśnij kombinację.  Esc / Delete = wyczyść.", "Feld anklicken und Kombination drücken.  Esc / Entf = löschen.", "Cliquez sur un champ et appuyez sur une combinaison.  Échap / Suppr = effacer.", "Haz clic en un campo y pulsa una combinación.  Esc / Supr = borrar.", "点击字段并按下组合键。Esc / Delete = 清除。", "Clique num campo e pressione uma combinação.  Esc / Delete = limpar.", "Нажмите поле и введите комбинацию.  Esc / Delete = очистить." };
-        m["cycle"]          = new[] { "Cycle (next)", "Cykl (następny)", "Wechseln (nächstes)", "Cycle (suivant)", "Ciclo (siguiente)", "循环（下一个）", "Ciclo (próximo)", "Цикл (следующий)" };
-        m["set_autostart"]  = new[] { "Start with Windows", "Uruchamiaj z Windowsem", "Mit Windows starten", "Démarrer avec Windows", "Iniciar con Windows", "随 Windows 启动", "Iniciar com o Windows", "Запускать с Windows" };
-        m["set_default"]    = new[] { "Defaults", "Domyślne", "Standard", "Défaut", "Predeterminado", "默认", "Padrão", "По умолчанию" };
-        m["set_save"]       = new[] { "Save", "Zapisz", "Speichern", "Enregistrer", "Guardar", "保存", "Salvar", "Сохранить" };
-        m["set_close"]      = new[] { "Close", "Zamknij", "Schließen", "Fermer", "Cerrar", "关闭", "Fechar", "Закрыть" };
-        m["set_saved"]      = new[] { "✓ Saved", "✓ Zapisano", "✓ Gespeichert", "✓ Enregistré", "✓ Guardado", "✓ 已保存", "✓ Salvo", "✓ Сохранено" };
-        m["set_reset_hint"] = new[] { "Defaults restored (click Save).", "Przywrócono domyślne (kliknij Zapisz).", "Standard wiederhergestellt (Speichern).", "Valeurs par défaut (cliquez Enregistrer).", "Restaurado (haz clic en Guardar).", "已恢复默认（点击保存）。", "Padrões restaurados (clique em Salvar).", "Восстановлено (нажмите Сохранить)." };
-        m["set_language"]   = new[] { "Language", "Język", "Sprache", "Langue", "Idioma", "语言", "Idioma", "Язык" };
-        m["set_colors"]     = new[] { "Profile colors", "Kolory profili", "Profilfarben", "Couleurs des profils", "Colores de perfil", "配置文件颜色", "Cores dos perfis", "Цвета профилей" };
-        m["set_colors_reset"] = new[] { "Restore default colors", "Przywróć domyślne kolory", "Standardfarben wiederherstellen", "Restaurer les couleurs par défaut", "Restaurar colores predeterminados", "恢复默认颜色", "Restaurar cores padrão", "Восстановить цвета по умолчанию" };
-        m["set_app_icon"]   = new[] { "Application icon", "Ikona aplikacji", "App-Symbol", "Icône de l'application", "Icono de la aplicación", "应用图标", "Ícone do aplicativo", "Значок приложения" };
-        m["icon_logo"]      = new[] { "GhostDeck logo", "Logotyp GhostDeck", "GhostDeck-Logo", "Logo GhostDeck", "Logotipo GhostDeck", "GhostDeck 标志", "Logotipo GhostDeck", "Логотип GhostDeck" };
-        m["icon_ghost_dark"] = new[] { "Ghost (dark)", "Duszek (ciemna)", "Geist (dunkel)", "Fantôme (sombre)", "Fantasma (oscuro)", "幽灵（深色）", "Fantasma (escuro)", "Призрак (тёмный)" };
-        m["icon_ghost_light"] = new[] { "Ghost (light)", "Duszek (jasna)", "Geist (hell)", "Fantôme (clair)", "Fantasma (claro)", "幽灵（浅色）", "Fantasma (claro)", "Призрак (светлый)" };
-        m["icon_gauge"]     = new[] { "Classic gauge", "Klasyczny zegar", "Klassische Anzeige", "Jauge classique", "Indicador clásico", "经典仪表", "Indicador clássico", "Классический спидометр" };
-        m["icon_ghost_cyan"] = new[] { "Ghost (light, cyan)", "Duszek (jasna, cyan)", "Geist (hell, Cyan)", "Fantôme (clair, cyan)", "Fantasma (claro, cian)", "幽灵（浅色，青色）", "Fantasma (claro, ciano)", "Призрак (светлый, циан)" };
-        m["scen_active"]    = new[] { "ACTIVE", "AKTYWNY", "AKTIV", "ACTIF", "ACTIVO", "当前", "ATIVO", "АКТИВЕН" };
-        m["scen_select"]    = new[] { "SELECT", "WYBIERZ", "WÄHLEN", "CHOISIR", "ELEGIR", "选择", "SELECIONAR", "ВЫБРАТЬ" };
-        m["rep_restart"]    = new[] { "Start over", "Zacznij od nowa", "Neu beginnen", "Recommencer", "Empezar de nuevo", "重新开始", "Recomeçar", "Начать заново" };
-        m["set_grp_ui"]     = new[] { "Interface", "Interfejs", "Oberfläche", "Interface", "Interfaz", "界面", "Interface", "Интерфейс" };
-        m["set_grid"]       = new[] { "Background grid", "Siatka w tle", "Hintergrundraster", "Grille d'arrière-plan", "Cuadrícula de fondo", "背景网格", "Grade de fundo", "Фоновая сетка" };
+        m["set_hotkeys"]    = new[] { "Keyboard shortcuts", "Skróty klawiszowe", "Tastenkürzel", "Raccourcis clavier", "Atajos de teclado", "键盘快捷键", "Atalhos de teclado", "Горячие клавиши", "キーボードショートカット", "키보드 단축키", "鍵盤快速鍵", "Klavye kısayolları", "Phím tắt", "Pintasan keyboard", "Scorciatoie da tastiera" };
+        m["hk_all"]         = new[] { "All shortcuts", "Wszystkie skróty", "Alle Kürzel", "Tous les raccourcis", "Todos los atajos", "所有快捷键", "Todos os atalhos", "Все клавиши", "すべてのショートカット", "모든 단축키", "所有快速鍵", "Tüm kısayollar", "Tất cả phím tắt", "Semua pintasan", "Tutte le scorciatoie" };
+        m["hk_none"]        = new[] { "(none)", "(brak)", "(keine)", "(aucun)", "(ninguno)", "（无）", "(nenhum)", "(нет)", "（なし）", "(없음)", "（無）", "(yok)", "(không)", "(tidak ada)", "(nessuna)" };
+        m["set_hint"]       = new[] { "Click a field and press a combo.  Esc / Delete = clear.", "Kliknij pole i wciśnij kombinację.  Esc / Delete = wyczyść.", "Feld anklicken und Kombination drücken.  Esc / Entf = löschen.", "Cliquez sur un champ et appuyez sur une combinaison.  Échap / Suppr = effacer.", "Haz clic en un campo y pulsa una combinación.  Esc / Supr = borrar.", "点击字段并按下组合键。Esc / Delete = 清除。", "Clique num campo e pressione uma combinação.  Esc / Delete = limpar.", "Нажмите поле и введите комбинацию.  Esc / Delete = очистить.", "欄をクリックしてキーの組み合わせを押します。Esc / Delete = クリア。", "필드를 클릭하고 키 조합을 누르세요.  Esc / Delete = 지우기.", "按一下欄位並按下組合鍵。Esc / Delete = 清除。", "Bir alana tıklayıp tuş kombinasyonuna basın.  Esc / Delete = temizle.", "Nhấp vào ô và nhấn tổ hợp phím.  Esc / Delete = xóa.", "Klik kolom lalu tekan kombinasi tombol.  Esc / Delete = hapus.", "Fai clic su un campo e premi una combinazione.  Esc / Canc = cancella." };
+        m["cycle"]          = new[] { "Cycle (next)", "Cykl (następny)", "Wechseln (nächstes)", "Cycle (suivant)", "Ciclo (siguiente)", "循环（下一个）", "Ciclo (próximo)", "Цикл (следующий)", "循環（次へ）", "순환(다음)", "循環（下一個）", "Döngü (sonraki)", "Xoay vòng (tiếp)", "Siklus (lanjut)", "Scorri (successivo)" };
+        m["set_autostart"]  = new[] { "Start with Windows", "Uruchamiaj z Windowsem", "Mit Windows starten", "Démarrer avec Windows", "Iniciar con Windows", "随 Windows 启动", "Iniciar com o Windows", "Запускать с Windows", "Windows 起動時に開始", "Windows 시작 시 실행", "隨 Windows 啟動", "Windows ile başlat", "Khởi động cùng Windows", "Mulai bersama Windows", "Avvia con Windows" };
+        m["set_default"]    = new[] { "Defaults", "Domyślne", "Standard", "Défaut", "Predeterminado", "默认", "Padrão", "По умолчанию", "既定値", "기본값", "預設", "Varsayılanlar", "Mặc định", "Default", "Predefiniti" };
+        m["set_save"]       = new[] { "Save", "Zapisz", "Speichern", "Enregistrer", "Guardar", "保存", "Salvar", "Сохранить", "保存", "저장", "儲存", "Kaydet", "Lưu", "Simpan", "Salva" };
+        m["set_close"]      = new[] { "Close", "Zamknij", "Schließen", "Fermer", "Cerrar", "关闭", "Fechar", "Закрыть", "閉じる", "닫기", "關閉", "Kapat", "Đóng", "Tutup", "Chiudi" };
+        m["set_saved"]      = new[] { "✓ Saved", "✓ Zapisano", "✓ Gespeichert", "✓ Enregistré", "✓ Guardado", "✓ 已保存", "✓ Salvo", "✓ Сохранено", "✓ 保存済み", "✓ 저장됨", "✓ 已儲存", "✓ Kaydedildi", "✓ Đã lưu", "✓ Tersimpan", "✓ Salvato" };
+        m["set_reset_hint"] = new[] { "Defaults restored (click Save).", "Przywrócono domyślne (kliknij Zapisz).", "Standard wiederhergestellt (Speichern).", "Valeurs par défaut (cliquez Enregistrer).", "Restaurado (haz clic en Guardar).", "已恢复默认（点击保存）。", "Padrões restaurados (clique em Salvar).", "Восстановлено (нажмите Сохранить).", "既定値を復元しました（保存をクリック）。", "기본값 복원됨(저장을 클릭하세요).", "已還原預設值（按一下儲存）。", "Varsayılanlar geri yüklendi (Kaydet'e tıklayın).", "Đã khôi phục mặc định (nhấp Lưu).", "Default dipulihkan (klik Simpan).", "Predefiniti ripristinati (fai clic su Salva)." };
+        m["set_language"]   = new[] { "Language", "Język", "Sprache", "Langue", "Idioma", "语言", "Idioma", "Язык", "言語", "언어", "語言", "Dil", "Ngôn ngữ", "Bahasa", "Lingua" };
+        m["set_colors"]     = new[] { "Profile colors", "Kolory profili", "Profilfarben", "Couleurs des profils", "Colores de perfil", "配置文件颜色", "Cores dos perfis", "Цвета профилей", "プロファイルの色", "프로필 색상", "設定檔色彩", "Profil renkleri", "Màu hồ sơ", "Warna profil", "Colori dei profili" };
+        m["set_colors_reset"] = new[] { "Restore default colors", "Przywróć domyślne kolory", "Standardfarben wiederherstellen", "Restaurer les couleurs par défaut", "Restaurar colores predeterminados", "恢复默认颜色", "Restaurar cores padrão", "Восстановить цвета по умолчанию", "既定の色を復元", "기본 색상 복원", "還原預設色彩", "Varsayılan renkleri geri yükle", "Khôi phục màu mặc định", "Pulihkan warna default", "Ripristina colori predefiniti" };
+        m["set_app_icon"]   = new[] { "Application icon", "Ikona aplikacji", "App-Symbol", "Icône de l'application", "Icono de la aplicación", "应用图标", "Ícone do aplicativo", "Значок приложения", "アプリアイコン", "앱 아이콘", "應用程式圖示", "Uygulama simgesi", "Biểu tượng ứng dụng", "Ikon aplikasi", "Icona dell'applicazione" };
+        m["icon_logo"]      = new[] { "GhostDeck logo", "Logotyp GhostDeck", "GhostDeck-Logo", "Logo GhostDeck", "Logotipo GhostDeck", "GhostDeck 标志", "Logotipo GhostDeck", "Логотип GhostDeck", "GhostDeck ロゴ", "GhostDeck 로고", "GhostDeck 標誌", "GhostDeck logosu", "Logo GhostDeck", "Logo GhostDeck", "Logo GhostDeck" };
+        m["icon_ghost_dark"] = new[] { "Ghost (dark)", "Duszek (ciemna)", "Geist (dunkel)", "Fantôme (sombre)", "Fantasma (oscuro)", "幽灵（深色）", "Fantasma (escuro)", "Призрак (тёмный)", "ゴースト（ダーク）", "고스트(다크)", "幽靈（深色）", "Hayalet (koyu)", "Ma (tối)", "Hantu (gelap)", "Fantasma (scuro)" };
+        m["icon_ghost_light"] = new[] { "Ghost (light)", "Duszek (jasna)", "Geist (hell)", "Fantôme (clair)", "Fantasma (claro)", "幽灵（浅色）", "Fantasma (claro)", "Призрак (светлый)", "ゴースト（ライト）", "고스트(라이트)", "幽靈（淺色）", "Hayalet (açık)", "Ma (sáng)", "Hantu (terang)", "Fantasma (chiaro)" };
+        m["icon_gauge"]     = new[] { "Classic gauge", "Klasyczny zegar", "Klassische Anzeige", "Jauge classique", "Indicador clásico", "经典仪表", "Indicador clássico", "Классический спидометр", "クラシックゲージ", "클래식 게이지", "經典儀表", "Klasik gösterge", "Đồng hồ cổ điển", "Pengukur klasik", "Indicatore classico" };
+        m["icon_ghost_cyan"] = new[] { "Ghost (light, cyan)", "Duszek (jasna, cyan)", "Geist (hell, Cyan)", "Fantôme (clair, cyan)", "Fantasma (claro, cian)", "幽灵（浅色，青色）", "Fantasma (claro, ciano)", "Призрак (светлый, циан)", "ゴースト（ライト、シアン）", "고스트(라이트, 시안)", "幽靈（淺色，青色）", "Hayalet (açık, camgöbeği)", "Ma (sáng, lục lam)", "Hantu (terang, sian)", "Fantasma (chiaro, ciano)" };
+        m["scen_active"]    = new[] { "ACTIVE", "AKTYWNY", "AKTIV", "ACTIF", "ACTIVO", "当前", "ATIVO", "АКТИВЕН", "使用中", "활성", "目前", "ETKİN", "ĐANG DÙNG", "AKTIF", "ATTIVO" };
+        m["scen_select"]    = new[] { "SELECT", "WYBIERZ", "WÄHLEN", "CHOISIR", "ELEGIR", "选择", "SELECIONAR", "ВЫБРАТЬ", "選択", "선택", "選擇", "SEÇ", "CHỌN", "PILIH", "SELEZIONA" };
+        m["rep_restart"]    = new[] { "Start over", "Zacznij od nowa", "Neu beginnen", "Recommencer", "Empezar de nuevo", "重新开始", "Recomeçar", "Начать заново", "最初から", "처음부터 다시", "重新開始", "Baştan başla", "Bắt đầu lại", "Mulai ulang", "Ricomincia" };
+        m["set_grp_ui"]     = new[] { "Interface", "Interfejs", "Oberfläche", "Interface", "Interfaz", "界面", "Interface", "Интерфейс", "インターフェース", "인터페이스", "介面", "Arayüz", "Giao diện", "Antarmuka", "Interfaccia" };
+        m["set_grid"]       = new[] { "Background grid", "Siatka w tle", "Hintergrundraster", "Grille d'arrière-plan", "Cuadrícula de fondo", "背景网格", "Grade de fundo", "Фоновая сетка", "背景グリッド", "배경 격자", "背景格線", "Arka plan ızgarası", "Lưới nền", "Kisi latar belakang", "Griglia di sfondo" };
     }
 
     private static void L06(Dictionary<string, string[]> m)
     {
-        m["set_tab_as_icon"] = new[] { "{0} — as an icon on the right", "{0} - jako ikona po prawej", "{0} — als Symbol rechts", "{0} — en icône à droite", "{0} — como icono a la derecha", "{0} — 显示为右侧图标", "{0} — como ícone à direita", "{0} — значком справа" };
-        m["set_charge"]     = new[] { "Battery charge limit", "Limit ładowania baterii", "Akkuladelimit", "Limite de charge batterie", "Límite de carga", "电池充电限制", "Limite de carga", "Лимит заряда батареи" };
-        m["charge_dont"]    = new[] { "Don't change", "Nie zmieniaj", "Nicht ändern", "Ne pas changer", "No cambiar", "不更改", "Não alterar", "Не менять" };
-        m["set_travel"]     = new[] { "Travel mode", "Tryb podróży", "Reisemodus", "Mode voyage", "Modo viaje", "旅行模式", "Modo viagem", "Режим поездки" };
+        m["set_tab_as_icon"] = new[] { "{0} — as an icon on the right", "{0} - jako ikona po prawej", "{0} — als Symbol rechts", "{0} — en icône à droite", "{0} — como icono a la derecha", "{0} — 显示为右侧图标", "{0} — como ícone à direita", "{0} — значком справа", "{0} — 右側にアイコン表示", "{0} — 오른쪽에 아이콘으로", "{0} — 顯示為右側圖示", "{0} — sağda simge olarak", "{0} — dạng biểu tượng bên phải", "{0} — sebagai ikon di kanan", "{0} — come icona a destra" };
+        m["set_charge"]     = new[] { "Battery charge limit", "Limit ładowania baterii", "Akkuladelimit", "Limite de charge batterie", "Límite de carga", "电池充电限制", "Limite de carga", "Лимит заряда батареи", "バッテリー充電上限", "배터리 충전 제한", "電池充電上限", "Pil şarj sınırı", "Giới hạn sạc pin", "Batas pengisian baterai", "Limite di carica batteria" };
+        m["charge_dont"]    = new[] { "Don't change", "Nie zmieniaj", "Nicht ändern", "Ne pas changer", "No cambiar", "不更改", "Não alterar", "Не менять", "変更しない", "변경 안 함", "不變更", "Değiştirme", "Không thay đổi", "Jangan ubah", "Non modificare" };
+        m["set_travel"]     = new[] { "Travel mode", "Tryb podróży", "Reisemodus", "Mode voyage", "Modo viaje", "旅行模式", "Modo viagem", "Режим поездки", "旅行モード", "여행 모드", "旅行模式", "Seyahat modu", "Chế độ du lịch", "Mode perjalanan", "Modalità viaggio" };
         // ru uses the abbreviation "дн." on purpose: the full word declines with the number
         // (3 дня / 7 дней) and one fixed form would be wrong for part of the picker options.
-        m["travel_days_fmt"]= new[] { "{0} days", "{0} dni", "{0} Tage", "{0} jours", "{0} días", "{0} 天", "{0} dias", "{0} дн." };
-        m["travel_note"]    = new[] { "Charge limit 100% until {0}", "Limit ładowania 100% do {0}", "Ladelimit 100% bis {0}", "Limite de charge 100% jusqu'au {0}", "Límite de carga 100% hasta {0}", "充电限制 100% 直到 {0}", "Limite de carga 100% até {0}", "Лимит заряда 100% до {0}" };
-        m["travel_start"]   = new[] { "Start travel mode", "Rozpocznij tryb podróży", "Reisemodus starten", "Démarrer le mode voyage", "Iniciar modo viaje", "开始旅行模式", "Iniciar modo viagem", "Включить режим поездки" };
-        m["travel_stop"]    = new[] { "End travel mode", "Zakończ tryb podróży", "Reisemodus beenden", "Terminer le mode voyage", "Terminar modo viaje", "结束旅行模式", "Terminar modo viagem", "Завершить режим поездки" };
+        m["travel_days_fmt"]= new[] { "{0} days", "{0} dni", "{0} Tage", "{0} jours", "{0} días", "{0} 天", "{0} dias", "{0} дн.", "{0} 日", "{0}일", "{0} 天", "{0} gün", "{0} ngày", "{0} hari", "{0} giorni" };
+        m["travel_note"]    = new[] { "Charge limit 100% until {0}", "Limit ładowania 100% do {0}", "Ladelimit 100% bis {0}", "Limite de charge 100% jusqu'au {0}", "Límite de carga 100% hasta {0}", "充电限制 100% 直到 {0}", "Limite de carga 100% até {0}", "Лимит заряда 100% до {0}", "充電上限 100%（{0} まで）", "{0}까지 충전 제한 100%", "充電上限 100% 直到 {0}", "{0} tarihine kadar şarj sınırı %100", "Giới hạn sạc 100% đến {0}", "Batas pengisian 100% hingga {0}", "Limite di carica 100% fino al {0}" };
+        m["travel_start"]   = new[] { "Start travel mode", "Rozpocznij tryb podróży", "Reisemodus starten", "Démarrer le mode voyage", "Iniciar modo viaje", "开始旅行模式", "Iniciar modo viagem", "Включить режим поездки", "旅行モードを開始", "여행 모드 시작", "開始旅行模式", "Seyahat modunu başlat", "Bật chế độ du lịch", "Mulai mode perjalanan", "Avvia modalità viaggio" };
+        m["travel_stop"]    = new[] { "End travel mode", "Zakończ tryb podróży", "Reisemodus beenden", "Terminer le mode voyage", "Terminar modo viaje", "结束旅行模式", "Terminar modo viagem", "Завершить режим поездки", "旅行モードを終了", "여행 모드 종료", "結束旅行模式", "Seyahat modunu bitir", "Tắt chế độ du lịch", "Akhiri mode perjalanan", "Fine modalità viaggio" };
         m["travel_help"]    = new[]
         {
             "Charges the battery to 100% for a trip. After the chosen number of days the previous limit comes back on its own; if the app was off, it catches up at the next start. Changing the limit by hand (here, in Scenarios, in a scene or from the CLI) cancels the pending return. The limit is also re-applied after every wake.",
@@ -663,61 +858,100 @@ public static class Lang
             "Carga la batería al 100% para un viaje. Tras el número de días elegido, el límite anterior vuelve por sí solo; si la aplicación estaba cerrada, lo hace en el siguiente inicio. Un cambio manual del límite (aquí, en Escenarios, en una escena o por CLI) cancela el retorno pendiente. El límite también se reaplica tras cada reanudación.",
             "为旅行将电池充至 100%。选定天数过后，之前的限制会自动恢复；即使应用当时未运行，也会在下次启动时补上。手动更改限制（此处、场景页、场景或命令行）会取消待恢复的设置。每次唤醒后也会重新应用限制。",
             "Carrega a bateria a 100% para uma viagem. Após o número de dias escolhido, o limite anterior volta sozinho; se a aplicação estava fechada, é aplicado no próximo arranque. Uma alteração manual do limite (aqui, em Cenários, numa cena ou via CLI) cancela o retorno pendente. O limite também é reaplicado após cada retoma.",
-            "Заряжает батарею до 100% на время поездки. По истечении выбранного числа дней прежний лимит вернётся сам; если приложение было закрыто, это произойдёт при следующем запуске. Ручное изменение лимита (здесь, в Сценариях, в сцене или через CLI) отменяет ожидающий возврат. Лимит также повторно применяется после каждого пробуждения."
+            "Заряжает батарею до 100% на время поездки. По истечении выбранного числа дней прежний лимит вернётся сам; если приложение было закрыто, это произойдёт при следующем запуске. Ручное изменение лимита (здесь, в Сценариях, в сцене или через CLI) отменяет ожидающий возврат. Лимит также повторно применяется после каждого пробуждения.",
+            "旅行に備えてバッテリーを 100% まで充電します。指定した日数が経過すると以前の上限が自動的に戻ります。アプリが停止していた場合は次回起動時に適用されます。上限を手動で変更する（ここ、シナリオ、シーン、CLI）と復帰予定は取り消されます。上限はスリープ復帰のたびに再適用されます。",
+            "여행을 위해 배터리를 100%까지 충전합니다. 선택한 일수가 지나면 이전 제한이 자동으로 복원되며, 앱이 꺼져 있었다면 다음 시작 시 처리합니다. 제한을 수동으로 변경하면(여기, 시나리오, 장면 또는 CLI) 예약된 복원이 취소됩니다. 제한은 절전 해제 시마다 다시 적용됩니다.",
+            "為旅行將電池充至 100%。選定天數過後，之前的上限會自動還原；即使程式當時未執行，也會在下次啟動時補上。手動變更上限（此處、情境頁、場景或 CLI）會取消待還原的設定。每次喚醒後也會重新套用上限。",
+            "Bir seyahat için pili %100'e şarj eder. Seçilen gün sayısı geçince önceki sınır kendiliğinden geri gelir; uygulama kapalıysa bir sonraki başlatmada tamamlanır. Sınırı elle değiştirmek (burada, Senaryolar'da, bir sahnede veya CLI'dan) bekleyen geri dönüşü iptal eder. Sınır her uyanmadan sonra da yeniden uygulanır.",
+            "Sạc pin đến 100% cho chuyến đi. Sau số ngày đã chọn, giới hạn cũ tự khôi phục; nếu ứng dụng đang tắt, việc này được thực hiện ở lần khởi động tiếp theo. Đổi giới hạn thủ công (ở đây, trong Kịch bản, trong cảnh hoặc từ CLI) sẽ hủy việc khôi phục đang chờ. Giới hạn cũng được áp dụng lại sau mỗi lần đánh thức máy.",
+            "Mengisi baterai hingga 100% untuk perjalanan. Setelah jumlah hari yang dipilih, batas sebelumnya kembali dengan sendirinya; jika aplikasi mati, akan disusulkan saat mulai berikutnya. Mengubah batas secara manual (di sini, di Skenario, dalam scene, atau dari CLI) membatalkan pengembalian yang tertunda. Batas juga diterapkan ulang setiap kali bangun dari tidur.",
+            "Carica la batteria al 100% per un viaggio. Dopo il numero di giorni scelto il limite precedente torna da solo; se l'app era chiusa, recupera al prossimo avvio. Modificare il limite a mano (qui, in Scenari, in una scena o dalla CLI) annulla il ripristino in sospeso. Il limite viene riapplicato anche dopo ogni riattivazione."
         };
-        m["set_defaults"]   = new[] { "Restore defaults", "Przywróć domyślne", "Standardwerte wiederherstellen", "Restaurer les valeurs par défaut", "Restaurar valores predeterminados", "恢复默认设置", "Restaurar padrões", "Восстановить по умолчанию" };
-        m["set_autoswitch"] = new[] { "Auto-switch AC / battery", "Auto-przełączanie zasilacz / bateria", "Auto-Wechsel Netz / Akku", "Bascule auto secteur / batterie", "Cambio auto CA / batería", "电源/电池自动切换", "Troca auto tomada / bateria", "Автопереключение сеть / батарея" };
-        m["on_ac"]          = new[] { "On AC", "Na zasilaczu", "Am Netz", "Sur secteur", "Con CA", "接通电源", "Na tomada", "От сети" };
-        m["on_battery"]     = new[] { "On battery", "Na baterii", "Im Akku", "Sur batterie", "Con batería", "使用电池", "Na bateria", "От батареи" };
+        m["set_defaults"]   = new[] { "Restore defaults", "Przywróć domyślne", "Standardwerte wiederherstellen", "Restaurer les valeurs par défaut", "Restaurar valores predeterminados", "恢复默认设置", "Restaurar padrões", "Восстановить по умолчанию", "既定に戻す", "기본값 복원", "還原預設值", "Varsayılanları geri yükle", "Khôi phục mặc định", "Pulihkan default", "Ripristina predefiniti" };
+        m["set_autoswitch"] = new[] { "Auto-switch AC / battery", "Auto-przełączanie zasilacz / bateria", "Auto-Wechsel Netz / Akku", "Bascule auto secteur / batterie", "Cambio auto CA / batería", "电源/电池自动切换", "Troca auto tomada / bateria", "Автопереключение сеть / батарея", "AC / バッテリー自動切替", "AC / 배터리 자동 전환", "電源/電池自動切換", "AC / pilde otomatik geçiş", "Tự chuyển AC / pin", "Ganti otomatis AC / baterai", "Cambio automatico rete / batteria" };
+        m["on_ac"]          = new[] { "On AC", "Na zasilaczu", "Am Netz", "Sur secteur", "Con CA", "接通电源", "Na tomada", "От сети", "AC 接続時", "AC 연결 시", "接上電源", "AC'de", "Khi cắm sạc", "Pada AC", "Da rete" };
+        m["on_battery"]     = new[] { "On battery", "Na baterii", "Im Akku", "Sur batterie", "Con batería", "使用电池", "Na bateria", "От батареи", "バッテリー時", "배터리 사용 시", "使用電池", "Pilde", "Khi dùng pin", "Pada baterai", "A batteria" };
 
-        m["status_title"]   = new[] { "Status / Diagnostics", "Status / Diagnostyka", "Status / Diagnose", "Statut / Diagnostic", "Estado / Diagnóstico", "状态 / 诊断", "Status / Diagnóstico", "Состояние / Диагностика" };
-        m["st_profile"]     = new[] { "Active profile", "Aktywny profil", "Aktives Profil", "Profil actif", "Perfil activo", "当前配置", "Perfil ativo", "Активный профиль" };
-        m["st_cpu_temp"]    = new[] { "CPU temperature", "Temperatura CPU", "CPU-Temperatur", "Température CPU", "Temperatura CPU", "CPU 温度", "Temperatura da CPU", "Температура ЦП" };
-        m["st_gpu_temp"]    = new[] { "GPU temperature", "Temperatura GPU", "GPU-Temperatur", "Température GPU", "Temperatura GPU", "GPU 温度", "Temperatura da GPU", "Температура ГП" };
-        m["st_cpu_fan"]     = new[] { "CPU fan", "Wentylator CPU", "CPU-Lüfter", "Ventilateur CPU", "Ventilador CPU", "CPU 风扇", "Ventilador da CPU", "Вентилятор ЦП" };
-        m["st_gpu_fan"]     = new[] { "GPU fan", "Wentylator GPU", "GPU-Lüfter", "Ventilateur GPU", "Ventilador GPU", "GPU 风扇", "Ventilador da GPU", "Вентилятор ГП" };
-        m["st_charge"]      = new[] { "Charge limit", "Limit ładowania", "Ladelimit", "Limite de charge", "Límite de carga", "充电限制", "Limite de carga", "Лимит заряда" };
-        m["st_firmware"]    = new[] { "EC firmware", "Firmware EC", "EC-Firmware", "Firmware EC", "Firmware EC", "EC 固件", "Firmware EC", "Прошивка EC" };
-        m["st_switches"]    = new[] { "Switches (session)", "Przełączeń (sesja)", "Wechsel (Sitzung)", "Changements (session)", "Cambios (sesión)", "切换次数（本次）", "Trocas (sessão)", "Переключений (сессия)" };
-        m["st_in_profile"]  = new[] { "Time in profile", "Czas w profilu", "Zeit im Profil", "Temps dans le profil", "Tiempo en perfil", "当前配置时长", "Tempo no perfil", "Время в профиле" };
-        m["st_autostart"]   = new[] { "Autostart", "Autostart", "Autostart", "Démarrage auto", "Inicio automático", "自动启动", "Início automático", "Автозапуск" };
-        m["st_app_ver"]     = new[] { "App version", "Wersja aplikacji", "App-Version", "Version de l'app", "Versión de la app", "应用版本", "Versão do app", "Версия приложения" };
-        m["st_cpu_clock"]   = new[] { "CPU clock (approx.)", "Zegar CPU (przybl.)", "CPU-Takt (ca.)", "Fréq. CPU (approx.)", "Reloj CPU (aprox.)", "CPU 频率(约)", "Clock CPU (aprox.)", "Частота CPU (прибл.)" };
-        m["st_gpu_usage"]   = new[] { "GPU load", "Użycie GPU", "GPU-Last", "Charge GPU", "Carga GPU", "GPU 占用", "Carga GPU", "Загрузка GPU" };
-        m["st_vram"]        = new[] { "VRAM used", "Użycie VRAM", "VRAM belegt", "VRAM utilisée", "VRAM usada", "显存占用", "VRAM usada", "Видеопамять" };
-        m["st_battery"]     = new[] { "Battery", "Bateria", "Akku", "Batterie", "Batería", "电量", "Bateria", "Батарея" };
-        m["st_refresh"]     = new[] { "Refresh", "Odśwież", "Aktualisieren", "Actualiser", "Actualizar", "刷新", "Atualizar", "Обновить" };
-        m["always_on_top"]  = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au-dessus", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон" };
-        m["st_model"]       = new[] { "Model", "Model", "Modell", "Modèle", "Modelo", "型号", "Modelo", "Модель" };
-        m["unsupported_title"] = new[] { "Unsupported model", "Niewspierany model", "Nicht unterstütztes Modell", "Modèle non pris en charge", "Modelo no compatible", "不支持的型号", "Modelo não suportado", "Модель не поддерживается" };
-        m["unsupported_sub"]   = new[] { "read-only — contribute on GitHub", "tylko odczyt — zgłoś model na GitHub", "schreibgeschützt — auf GitHub beitragen", "lecture seule — contribuez sur GitHub", "solo lectura — contribuye en GitHub", "只读 — 在 GitHub 上贡献", "somente leitura — contribua no GitHub", "только чтение — добавьте на GitHub" };
-        m["experimental_enable"] = new[] { "Enable experimental models (unverified)", "Włącz modele eksperymentalne (niezweryfikowane)", "Experimentelle Modelle aktivieren (ungeprüft)", "Activer les modèles expérimentaux (non vérifiés)", "Activar modelos experimentales (no verificados)", "启用实验性型号（未验证）", "Ativar modelos experimentais (não verificados)", "Включить экспериментальные модели (непроверенные)" };
+        m["status_title"]   = new[] { "Status / Diagnostics", "Status / Diagnostyka", "Status / Diagnose", "Statut / Diagnostic", "Estado / Diagnóstico", "状态 / 诊断", "Status / Diagnóstico", "Состояние / Диагностика", "ステータス / 診断", "상태 / 진단", "狀態 / 診斷", "Durum / Tanılama", "Trạng thái / Chẩn đoán", "Status / Diagnostik", "Stato / Diagnostica" };
+        m["st_profile"]     = new[] { "Active profile", "Aktywny profil", "Aktives Profil", "Profil actif", "Perfil activo", "当前配置", "Perfil ativo", "Активный профиль", "現在のプロファイル", "활성 프로필", "目前設定檔", "Etkin profil", "Hồ sơ đang dùng", "Profil aktif", "Profilo attivo" };
+        m["st_cpu_temp"]    = new[] { "CPU temperature", "Temperatura CPU", "CPU-Temperatur", "Température CPU", "Temperatura CPU", "CPU 温度", "Temperatura da CPU", "Температура ЦП", "CPU 温度", "CPU 온도", "CPU 溫度", "CPU sıcaklığı", "Nhiệt độ CPU", "Suhu CPU", "Temperatura CPU" };
+        m["st_gpu_temp"]    = new[] { "GPU temperature", "Temperatura GPU", "GPU-Temperatur", "Température GPU", "Temperatura GPU", "GPU 温度", "Temperatura da GPU", "Температура ГП", "GPU 温度", "GPU 온도", "GPU 溫度", "GPU sıcaklığı", "Nhiệt độ GPU", "Suhu GPU", "Temperatura GPU" };
+        m["st_cpu_fan"]     = new[] { "CPU fan", "Wentylator CPU", "CPU-Lüfter", "Ventilateur CPU", "Ventilador CPU", "CPU 风扇", "Ventilador da CPU", "Вентилятор ЦП", "CPU ファン", "CPU 팬", "CPU 風扇", "CPU fanı", "Quạt CPU", "Kipas CPU", "Ventola CPU" };
+        m["st_gpu_fan"]     = new[] { "GPU fan", "Wentylator GPU", "GPU-Lüfter", "Ventilateur GPU", "Ventilador GPU", "GPU 风扇", "Ventilador da GPU", "Вентилятор ГП", "GPU ファン", "GPU 팬", "GPU 風扇", "GPU fanı", "Quạt GPU", "Kipas GPU", "Ventola GPU" };
+        m["st_charge"]      = new[] { "Charge limit", "Limit ładowania", "Ladelimit", "Limite de charge", "Límite de carga", "充电限制", "Limite de carga", "Лимит заряда", "充電上限", "충전 제한", "充電上限", "Şarj sınırı", "Giới hạn sạc", "Batas pengisian", "Limite di carica" };
+        m["st_firmware"]    = new[] { "EC firmware", "Firmware EC", "EC-Firmware", "Firmware EC", "Firmware EC", "EC 固件", "Firmware EC", "Прошивка EC", "EC ファームウェア", "EC 펌웨어", "EC 韌體", "EC ürün yazılımı", "Firmware EC", "Firmware EC", "Firmware EC" };
+        m["st_switches"]    = new[] { "Switches (session)", "Przełączeń (sesja)", "Wechsel (Sitzung)", "Changements (session)", "Cambios (sesión)", "切换次数（本次）", "Trocas (sessão)", "Переключений (сессия)", "切替回数（セッション）", "전환 횟수(세션)", "切換次數（本次）", "Geçişler (oturum)", "Lần chuyển (phiên này)", "Peralihan (sesi)", "Cambi (sessione)" };
+        m["st_in_profile"]  = new[] { "Time in profile", "Czas w profilu", "Zeit im Profil", "Temps dans le profil", "Tiempo en perfil", "当前配置时长", "Tempo no perfil", "Время в профиле", "プロファイル継続時間", "프로필 유지 시간", "目前設定檔持續時間", "Profildeki süre", "Thời gian trong hồ sơ", "Waktu dalam profil", "Tempo nel profilo" };
+        m["st_autostart"]   = new[] { "Autostart", "Autostart", "Autostart", "Démarrage auto", "Inicio automático", "自动启动", "Início automático", "Автозапуск", "自動起動", "자동 시작", "自動啟動", "Otomatik başlatma", "Tự khởi động", "Mulai otomatis", "Avvio automatico" };
+        m["st_app_ver"]     = new[] { "App version", "Wersja aplikacji", "App-Version", "Version de l'app", "Versión de la app", "应用版本", "Versão do app", "Версия приложения", "アプリのバージョン", "앱 버전", "程式版本", "Uygulama sürümü", "Phiên bản ứng dụng", "Versi aplikasi", "Versione app" };
+        m["st_cpu_clock"]   = new[] { "CPU clock (approx.)", "Zegar CPU (przybl.)", "CPU-Takt (ca.)", "Fréq. CPU (approx.)", "Reloj CPU (aprox.)", "CPU 频率(约)", "Clock CPU (aprox.)", "Частота CPU (прибл.)", "CPU クロック（概算）", "CPU 클럭(약)", "CPU 時脈（約）", "CPU frekansı (yaklaşık)", "Xung CPU (xấp xỉ)", "Clock CPU (perkiraan)", "Clock CPU (circa)" };
+        m["st_gpu_usage"]   = new[] { "GPU load", "Użycie GPU", "GPU-Last", "Charge GPU", "Carga GPU", "GPU 占用", "Carga GPU", "Загрузка GPU", "GPU 使用率", "GPU 부하", "GPU 使用率", "GPU yükü", "Tải GPU", "Beban GPU", "Carico GPU" };
+        m["st_vram"]        = new[] { "VRAM used", "Użycie VRAM", "VRAM belegt", "VRAM utilisée", "VRAM usada", "显存占用", "VRAM usada", "Видеопамять", "VRAM 使用量", "VRAM 사용량", "VRAM 使用量", "Kullanılan VRAM", "VRAM đã dùng", "VRAM terpakai", "VRAM usata" };
+        m["st_battery"]     = new[] { "Battery", "Bateria", "Akku", "Batterie", "Batería", "电量", "Bateria", "Батарея", "バッテリー", "배터리", "電量", "Pil", "Pin", "Baterai", "Batteria" };
+        m["st_refresh"]     = new[] { "Refresh", "Odśwież", "Aktualisieren", "Actualiser", "Actualizar", "刷新", "Atualizar", "Обновить", "更新", "새로 고침", "重新整理", "Yenile", "Làm mới", "Segarkan", "Aggiorna" };
+        m["always_on_top"]  = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au-dessus", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон", "常に最前面", "항상 위에 표시", "永遠置頂", "Her zaman üstte", "Luôn trên cùng", "Selalu di atas", "Sempre in primo piano" };
+        m["st_model"]       = new[] { "Model", "Model", "Modell", "Modèle", "Modelo", "型号", "Modelo", "Модель", "モデル", "모델", "機型", "Model", "Model", "Model", "Modello" };
+        m["unsupported_title"] = new[] { "Unsupported model", "Niewspierany model", "Nicht unterstütztes Modell", "Modèle non pris en charge", "Modelo no compatible", "不支持的型号", "Modelo não suportado", "Модель не поддерживается", "未対応モデル", "지원되지 않는 모델", "不支援的機型", "Desteklenmeyen model", "Model không được hỗ trợ", "Model tidak didukung", "Modello non supportato" };
+        m["unsupported_sub"]   = new[] { "read-only — contribute on GitHub", "tylko odczyt — zgłoś model na GitHub", "schreibgeschützt — auf GitHub beitragen", "lecture seule — contribuez sur GitHub", "solo lectura — contribuye en GitHub", "只读 — 在 GitHub 上贡献", "somente leitura — contribua no GitHub", "только чтение — добавьте на GitHub", "読み取り専用 — GitHub で協力", "읽기 전용 — GitHub에서 기여", "唯讀 — 到 GitHub 上貢獻", "salt okunur — GitHub'da katkıda bulunun", "chỉ đọc — đóng góp trên GitHub", "hanya baca — berkontribusi di GitHub", "sola lettura — contribuisci su GitHub" };
+        m["experimental_enable"] = new[] { "Enable experimental models (unverified)", "Włącz modele eksperymentalne (niezweryfikowane)", "Experimentelle Modelle aktivieren (ungeprüft)", "Activer les modèles expérimentaux (non vérifiés)", "Activar modelos experimentales (no verificados)", "启用实验性型号（未验证）", "Ativar modelos experimentais (não verificados)", "Включить экспериментальные модели (непроверенные)", "実験的モデルを有効化（未検証）", "실험적 모델 활성화(미검증)", "啟用實驗性機型（未驗證）", "Deneysel modelleri etkinleştir (doğrulanmamış)", "Bật model thử nghiệm (chưa xác minh)", "Aktifkan model eksperimental (belum diverifikasi)", "Abilita modelli sperimentali (non verificati)" };
         m["set_check_updates"] = new[] {
             "Check for updates (once a day)", "Sprawdzaj aktualizacje (raz dziennie)", "Auf Updates prüfen (täglich)",
             "Vérifier les mises à jour (une fois par jour)", "Buscar actualizaciones (una vez al día)",
-            "检查更新（每天一次）", "Procurar atualizações (uma vez por dia)", "Проверять обновления (раз в день)" };
+            "检查更新（每天一次）", "Procurar atualizações (uma vez por dia)", "Проверять обновления (раз в день)",
+            "更新を確認（1 日 1 回）",
+            "업데이트 확인(하루 1회)",
+            "檢查更新（每天一次）",
+            "Güncellemeleri denetle (günde bir)",
+            "Kiểm tra cập nhật (mỗi ngày một lần)",
+            "Periksa pembaruan (sekali sehari)",
+            "Controlla aggiornamenti (ogni giorno)"
+            };
         m["update_available"] = new[] {
             "Update available", "Dostępna aktualizacja", "Update verfügbar", "Mise à jour disponible",
-            "Actualización disponible", "有可用更新", "Atualização disponível", "Доступно обновление" };
+            "Actualización disponible", "有可用更新", "Atualização disponível", "Доступно обновление",
+            "更新があります",
+            "업데이트 있음",
+            "有可用更新",
+            "Güncelleme var",
+            "Có bản cập nhật",
+            "Pembaruan tersedia",
+            "Aggiornamento disponibile"
+            };
         m["update_available_text"] = new[] {
             "Version {0} is available — click to download.", "Dostępna jest wersja {0} — kliknij, aby pobrać.",
             "Version {0} ist verfügbar – zum Herunterladen klicken.", "La version {0} est disponible — cliquez pour télécharger.",
             "La versión {0} está disponible — haz clic para descargar.", "新版本 {0} 可用 — 点击下载。",
-            "A versão {0} está disponível — clique para baixar.", "Доступна версия {0} — нажмите, чтобы скачать." };
+            "A versão {0} está disponível — clique para baixar.", "Доступна версия {0} — нажмите, чтобы скачать.",
+            "バージョン {0} が利用可能 — クリックしてダウンロード。",
+            "버전 {0} 사용 가능 — 클릭하여 다운로드.",
+            "新版本 {0} 可用 — 按一下即可下載。",
+            "Sürüm {0} mevcut — indirmek için tıklayın.",
+            "Đã có phiên bản {0} — nhấn để tải về.",
+            "Versi {0} tersedia — klik untuk mengunduh.",
+            "È disponibile la versione {0} — fai clic per scaricare."
+            };
         m["menu_update"] = new[] {
             "⬇ Download new version", "⬇ Pobierz nową wersję", "⬇ Neue Version herunterladen",
             "⬇ Télécharger la nouvelle version", "⬇ Descargar nueva versión", "⬇ 下载新版本",
-            "⬇ Baixar nova versão", "⬇ Скачать новую версию" };
-        m["experimental_locked"] = new[] { "experimental — enable in Settings", "eksperymentalny — włącz w Ustawieniach", "experimentell — in Einstellungen aktivieren", "expérimental — activez dans Paramètres", "experimental — actívalo en Ajustes", "实验性 — 在设置中启用", "experimental — ative nas Configurações", "экспериментально — включите в настройках" };
-        m["tier_experimental"]   = new[] { "experimental", "eksperymentalny", "experimentell", "expérimental", "experimental", "实验性", "experimental", "экспериментальный" };
-        m["tier_tested"]         = new[] { "tested", "zweryfikowany", "getestet", "testé", "probado", "已测试", "testado", "проверено" };
-        m["tier_unsupported"]    = new[] { "unsupported", "niewspierany", "nicht unterstützt", "non pris en charge", "no compatible", "不支持", "não suportado", "не поддерживается" };
+            "⬇ Baixar nova versão", "⬇ Скачать новую версию",
+            "⬇ 新バージョンをダウンロード",
+            "⬇ 새 버전 다운로드",
+            "⬇ 下載新版本",
+            "⬇ Yeni sürümü indir",
+            "⬇ Tải phiên bản mới",
+            "⬇ Unduh versi baru",
+            "⬇ Scarica nuova versione"
+            };
+        m["experimental_locked"] = new[] { "experimental — enable in Settings", "eksperymentalny — włącz w Ustawieniach", "experimentell — in Einstellungen aktivieren", "expérimental — activez dans Paramètres", "experimental — actívalo en Ajustes", "实验性 — 在设置中启用", "experimental — ative nas Configurações", "экспериментально — включите в настройках", "実験的 — 設定で有効化", "실험적 — 설정에서 활성화", "實驗性 — 在設定中啟用", "deneysel — Ayarlar'da etkinleştirin", "thử nghiệm — bật trong Cài đặt", "eksperimental — aktifkan di Pengaturan", "sperimentale — abilita in Impostazioni" };
+        m["tier_experimental"]   = new[] { "experimental", "eksperymentalny", "experimentell", "expérimental", "experimental", "实验性", "experimental", "экспериментальный", "実験的", "실험적", "實驗性", "deneysel", "thử nghiệm", "eksperimental", "sperimentale" };
+        m["tier_tested"]         = new[] { "tested", "zweryfikowany", "getestet", "testé", "probado", "已测试", "testado", "проверено", "テスト済み", "테스트됨", "已測試", "test edildi", "đã kiểm thử", "teruji", "testato" };
+        m["tier_unsupported"]    = new[] { "unsupported", "niewspierany", "nicht unterstützt", "non pris en charge", "no compatible", "不支持", "não suportado", "не поддерживается", "未対応", "지원 안 됨", "不支援", "desteklenmiyor", "không hỗ trợ", "tidak didukung", "non supportato" };
 
         // ---- Report my model wizard ----
-        m["menu_report"]    = new[] { "Report my model…", "Zgłoś mój model…", "Mein Modell melden…", "Signaler mon modèle…", "Reportar mi modelo…", "上报我的型号…", "Relatar meu modelo…", "Сообщить о модели…" };
-        m["menu_feedback"]  = new[] { "Send feedback…", "Wyślij opinię…", "Feedback senden…", "Envoyer un avis…", "Enviar comentarios…", "发送反馈…", "Enviar feedback…", "Отправить отзыв…" };
-        m["notice_more"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробнее" };
-        m["rep_title"]      = new[] { "Report my model", "Zgłoś mój model", "Mein Modell melden", "Signaler mon modèle", "Reportar mi modelo", "上报我的型号", "Relatar meu modelo", "Сообщить о модели" };
+        m["menu_report"]    = new[] { "Report my model…", "Zgłoś mój model…", "Mein Modell melden…", "Signaler mon modèle…", "Reportar mi modelo…", "上报我的型号…", "Relatar meu modelo…", "Сообщить о модели…", "モデルを報告…", "내 모델 보고…", "回報我的機型…", "Modelimi bildir…", "Báo cáo model của tôi…", "Laporkan model saya…", "Segnala il mio modello…" };
+        m["menu_feedback"]  = new[] { "Send feedback…", "Wyślij opinię…", "Feedback senden…", "Envoyer un avis…", "Enviar comentarios…", "发送反馈…", "Enviar feedback…", "Отправить отзыв…", "フィードバックを送信…", "피드백 보내기…", "傳送意見回饋…", "Geri bildirim gönder…", "Gửi phản hồi…", "Kirim masukan…", "Invia feedback…" };
+        m["notice_more"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробнее", "詳細", "자세히", "詳細資訊", "Ayrıntılar", "Chi tiết", "Detail", "Dettagli" };
+        m["rep_title"]      = new[] { "Report my model", "Zgłoś mój model", "Mein Modell melden", "Signaler mon modèle", "Reportar mi modelo", "上报我的型号", "Relatar meu modelo", "Сообщить о модели", "モデルを報告", "내 모델 보고", "回報我的機型", "Modelimi bildir", "Báo cáo model của tôi", "Laporkan model saya", "Segnala il mio modello" };
         m["rep_intro"]      = new[] {
             "Help add support for your laptop. This reads your EC in each MSI Center scenario (READ-ONLY — nothing is written) and prepares a GitHub report for you.",
             "Pomóż dodać wsparcie dla Twojego laptopa. Odczytamy EC w każdym scenariuszu MSI Center (TYLKO ODCZYT — nic nie jest zapisywane) i przygotujemy zgłoszenie na GitHub.",
@@ -726,7 +960,15 @@ public static class Lang
             "Ayuda a añadir soporte para tu portátil. Lee el EC en cada escenario de MSI Center (SOLO LECTURA — no se escribe nada) y prepara un informe de GitHub.",
             "帮助为你的笔记本添加支持。将在每个 MSI Center 场景下读取 EC（只读——不写入任何内容）并为你准备 GitHub 报告。",
             "Ajude a adicionar suporte ao seu notebook. Lê o EC em cada cenário do MSI Center (SOMENTE LEITURA — nada é gravado) e prepara um relatório no GitHub.",
-            "Помогите добавить поддержку вашего ноутбука. Считывает EC в каждом сценарии MSI Center (ТОЛЬКО ЧТЕНИЕ — ничего не записывается) и готовит отчёт на GitHub." };
+            "Помогите добавить поддержку вашего ноутбука. Считывает EC в каждом сценарии MSI Center (ТОЛЬКО ЧТЕНИЕ — ничего не записывается) и готовит отчёт на GitHub.",
+            "お使いのノートPCの対応追加にご協力ください。各 MSI Center シナリオで EC を読み取り（読み取り専用 — 書き込みなし）、GitHub 用のレポートを作成します。",
+            "노트북 지원 추가를 도와주세요. 각 MSI Center 시나리오에서 EC를 읽고(읽기 전용 — 아무것도 쓰지 않음) GitHub 보고서를 준비합니다.",
+            "協助新增對你筆電的支援。將在每個 MSI Center 情境下讀取 EC（唯讀——不寫入任何內容）並為你準備 GitHub 回報。",
+            "Dizüstünüz için destek eklenmesine yardımcı olun. Her MSI Center senaryosunda EC okunur (SALT OKUNUR — hiçbir şey yazılmaz) ve sizin için bir GitHub raporu hazırlanır.",
+            "Giúp thêm hỗ trợ cho laptop của bạn. Thao tác này đọc EC trong từng kịch bản MSI Center (CHỈ ĐỌC — không ghi gì) và chuẩn bị sẵn báo cáo GitHub cho bạn.",
+            "Bantu menambahkan dukungan untuk laptop Anda. Ini membaca EC Anda di setiap skenario MSI Center (HANYA BACA — tidak ada yang ditulis) dan menyiapkan laporan GitHub untuk Anda.",
+            "Aiuta ad aggiungere il supporto per il tuo laptop. Legge l'EC in ogni scenario di MSI Center (SOLA LETTURA — non scrive nulla) e prepara un report GitHub per te."
+            };
         m["rep_need_msi"]   = new[] {
             "Requires MSI Center installed (to set each scenario as a reference).",
             "Wymaga zainstalowanego MSI Center (do ustawienia każdego scenariusza jako wzorca).",
@@ -735,7 +977,15 @@ public static class Lang
             "Requiere MSI Center instalado (para fijar cada escenario como referencia).",
             "需要已安装 MSI Center（用于将每个场景设为参考）。",
             "Requer o MSI Center instalado (para definir cada cenário como referência).",
-            "Требуется установленный MSI Center (чтобы задать каждый сценарий как эталон)." };
+            "Требуется установленный MSI Center (чтобы задать каждый сценарий как эталон).",
+            "MSI Center のインストールが必要です（各シナリオを基準として設定するため）。",
+            "MSI Center 설치 필요(각 시나리오를 기준으로 설정하기 위해).",
+            "需要已安裝 MSI Center（用於將每個情境設為參考）。",
+            "MSI Center kurulu olmalı (her senaryoyu referans olarak ayarlamak için).",
+            "Cần cài MSI Center (để đặt từng kịch bản làm tham chiếu).",
+            "Memerlukan MSI Center terpasang (untuk mengatur setiap skenario sebagai acuan).",
+            "Richiede MSI Center installato (per impostare ogni scenario come riferimento)."
+            };
         m["rep_msi_tip"]    = new[] {
             "Best with MSI Center 2.0.48 — the last version with a working SILENT scenario. Newer versions auto-update and silently drop SILENT after a reboot (exactly why this app exists).",
             "Najlepiej mieć MSI Center 2.0.48 — ostatnią wersję z działającym scenariuszem SILENT. Nowsze wersje same się aktualizują i po restarcie tracą tryb SILENT (właśnie dlatego powstała ta aplikacja).",
@@ -744,7 +994,15 @@ public static class Lang
             "Mejor con MSI Center 2.0.48 — la última versión con el escenario SILENT funcional. Las versiones nuevas se autoactualizan y pierden SILENT tras reiniciar (justo por eso existe esta app).",
             "最好使用 MSI Center 2.0.48——最后一个 SILENT 场景可用的版本。较新版本会自动更新，重启后悄悄失去 SILENT（这正是本应用存在的原因）。",
             "Melhor com o MSI Center 2.0.48 — a última versão com o cenário SILENT funcionando. Versões mais novas se atualizam sozinhas e perdem o SILENT após reiniciar (exatamente por isso este app existe).",
-            "Лучше всего MSI Center 2.0.48 — последняя версия с рабочим сценарием SILENT. Новые версии сами обновляются и теряют SILENT после перезагрузки (именно поэтому появилось это приложение)." };
+            "Лучше всего MSI Center 2.0.48 — последняя версия с рабочим сценарием SILENT. Новые версии сами обновляются и теряют SILENT после перезагрузки (именно поэтому появилось это приложение).",
+            "MSI Center 2.0.48 を推奨 — SILENT シナリオが動作する最後のバージョンです。新しいバージョンは自動更新され、再起動後に SILENT が静かに消えます（本アプリが存在する理由です）。",
+            "MSI Center 2.0.48 권장 — SILENT 시나리오가 작동하는 마지막 버전입니다. 최신 버전은 자동 업데이트되며 재부팅 후 SILENT를 조용히 제거합니다(이 앱이 존재하는 이유).",
+            "最好使用 MSI Center 2.0.48——最後一個 SILENT 情境可用的版本。較新版本會自動更新，重新開機後悄悄失去 SILENT（這正是本程式存在的原因）。",
+            "En iyisi MSI Center 2.0.48 — çalışan SILENT senaryosuna sahip son sürüm. Daha yeni sürümler otomatik güncellenir ve yeniden başlatmadan sonra SILENT'ı sessizce kaldırır (bu uygulamanın var olma nedeni tam da bu).",
+            "Tốt nhất với MSI Center 2.0.48 — phiên bản cuối còn kịch bản SILENT hoạt động. Các bản mới hơn tự cập nhật và âm thầm bỏ SILENT sau khi khởi động lại (chính là lý do ứng dụng này tồn tại).",
+            "Terbaik dengan MSI Center 2.0.48 — versi terakhir dengan skenario SILENT yang berfungsi. Versi lebih baru memperbarui otomatis dan diam-diam menghapus SILENT setelah reboot (itulah alasan aplikasi ini ada).",
+            "Meglio con MSI Center 2.0.48 — l'ultima versione con lo scenario SILENT funzionante. Le versioni più recenti si aggiornano da sole ed eliminano SILENT senza avvisare dopo un riavvio (proprio il motivo per cui esiste questa app)."
+            };
         m["rep_msi_clean"]  = new[] {
             "Before installing 2.0.48, fully remove the current MSI Center with MSI's official cleaner:",
             "Przed instalacją 2.0.48 usuń całkowicie obecny MSI Center oficjalnym narzędziem MSI:",
@@ -753,7 +1011,15 @@ public static class Lang
             "Antes de instalar 2.0.48, elimina por completo el MSI Center actual con la herramienta oficial de MSI:",
             "安装 2.0.48 之前，请用 MSI 官方清理工具彻底卸载当前的 MSI Center：",
             "Antes de instalar o 2.0.48, remova completamente o MSI Center atual com a ferramenta oficial da MSI:",
-            "Перед установкой 2.0.48 полностью удалите текущий MSI Center официальной утилитой MSI:" };
+            "Перед установкой 2.0.48 полностью удалите текущий MSI Center официальной утилитой MSI:",
+            "2.0.48 をインストールする前に、MSI 公式クリーナーで現在の MSI Center を完全に削除してください：",
+            "2.0.48 설치 전 MSI 공식 클리너로 현재 MSI Center를 완전히 제거하세요:",
+            "安裝 2.0.48 之前，請用 MSI 官方清理工具徹底移除目前的 MSI Center：",
+            "2.0.48'i kurmadan önce mevcut MSI Center'ı MSI'ın resmi temizleyicisiyle tamamen kaldırın:",
+            "Trước khi cài 2.0.48, gỡ hoàn toàn MSI Center hiện tại bằng công cụ dọn dẹp chính thức của MSI:",
+            "Sebelum memasang 2.0.48, hapus sepenuhnya MSI Center saat ini dengan pembersih resmi MSI:",
+            "Prima di installare la 2.0.48, rimuovi completamente l'attuale MSI Center con lo strumento di pulizia ufficiale MSI:"
+            };
         m["rep_msi_download"] = new[] {
             "Get MSI Center 2.0.48 from Uptodown. Use the direct link; if it ever stops working, use the full version list as a fallback:",
             "Pobierz MSI Center 2.0.48 z Uptodown. Użyj linku bezpośredniego; gdyby przestał działać, skorzystaj z pełnej listy wersji jako zapasowej:",
@@ -762,7 +1028,15 @@ public static class Lang
             "Descarga MSI Center 2.0.48 desde Uptodown. Usa el enlace directo; si deja de funcionar, usa la lista completa de versiones como alternativa:",
             "从 Uptodown 获取 MSI Center 2.0.48。请使用直链；若失效，可改用完整版本列表作为备用：",
             "Baixe o MSI Center 2.0.48 no Uptodown. Use o link direto; se parar de funcionar, use a lista completa de versões como alternativa:",
-            "Скачайте MSI Center 2.0.48 с Uptodown. Используйте прямую ссылку; если она перестанет работать, используйте полный список версий как запасной вариант:" };
+            "Скачайте MSI Center 2.0.48 с Uptodown. Используйте прямую ссылку; если она перестанет работать, используйте полный список версий как запасной вариант:",
+            "MSI Center 2.0.48 を Uptodown から入手してください。直リンクを使用し、無効になった場合は全バージョン一覧を代替として使用してください：",
+            "Uptodown에서 MSI Center 2.0.48을 받으세요. 직접 링크를 사용하고, 작동하지 않으면 전체 버전 목록을 대안으로 사용하세요:",
+            "從 Uptodown 取得 MSI Center 2.0.48。請使用直接連結；若失效，可改用完整版本清單作為備用：",
+            "MSI Center 2.0.48'i Uptodown'dan edinin. Doğrudan bağlantıyı kullanın; çalışmazsa yedek olarak tam sürüm listesini kullanın:",
+            "Tải MSI Center 2.0.48 từ Uptodown. Dùng liên kết trực tiếp; nếu không còn hoạt động, dùng danh sách đầy đủ phiên bản làm phương án dự phòng:",
+            "Dapatkan MSI Center 2.0.48 dari Uptodown. Gunakan tautan langsung; jika suatu saat tidak berfungsi, gunakan daftar versi lengkap sebagai cadangan:",
+            "Scarica MSI Center 2.0.48 da Uptodown. Usa il link diretto; se smette di funzionare, usa l'elenco completo delle versioni come alternativa:"
+            };
     }
 
     private static void L07(Dictionary<string, string[]> m)
@@ -775,7 +1049,15 @@ public static class Lang
             "Descargar MSI Center 2.0.48 (enlace directo)",
             "下载 MSI Center 2.0.48（直链）",
             "Baixar MSI Center 2.0.48 (link direto)",
-            "Скачать MSI Center 2.0.48 (прямая ссылка)" };
+            "Скачать MSI Center 2.0.48 (прямая ссылка)",
+            "MSI Center 2.0.48 をダウンロード（直リンク）",
+            "MSI Center 2.0.48 다운로드(직접 링크)",
+            "下載 MSI Center 2.0.48（直接連結）",
+            "MSI Center 2.0.48'i indir (doğrudan bağlantı)",
+            "Tải MSI Center 2.0.48 (liên kết trực tiếp)",
+            "Unduh MSI Center 2.0.48 (tautan langsung)",
+            "Scarica MSI Center 2.0.48 (link diretto)"
+            };
         m["rep_dl_repo"] = new[] {
             "All MSI Center versions on Uptodown (fallback)",
             "Wszystkie wersje MSI Center na Uptodown (zapasowo)",
@@ -784,7 +1066,15 @@ public static class Lang
             "Todas las versiones de MSI Center en Uptodown (alternativa)",
             "Uptodown 上的所有 MSI Center 版本（备用）",
             "Todas as versões do MSI Center no Uptodown (alternativa)",
-            "Все версии MSI Center на Uptodown (запасной вариант)" };
+            "Все версии MSI Center на Uptodown (запасной вариант)",
+            "Uptodown の全 MSI Center バージョン（代替）",
+            "Uptodown의 모든 MSI Center 버전(대안)",
+            "Uptodown 上的所有 MSI Center 版本（備用）",
+            "Uptodown'daki tüm MSI Center sürümleri (yedek)",
+            "Mọi phiên bản MSI Center trên Uptodown (dự phòng)",
+            "Semua versi MSI Center di Uptodown (cadangan)",
+            "Tutte le versioni di MSI Center su Uptodown (alternativa)"
+            };
         m["rep_uninstaller_link"] = new[] {
             "Download CleanCenterMaster (official MSI uninstaller)",
             "Pobierz CleanCenterMaster (oficjalny deinstalator MSI)",
@@ -793,13 +1083,21 @@ public static class Lang
             "Descargar CleanCenterMaster (desinstalador oficial de MSI)",
             "下载 CleanCenterMaster（MSI 官方卸载工具）",
             "Baixar CleanCenterMaster (desinstalador oficial da MSI)",
-            "Скачать CleanCenterMaster (официальный деинсталлятор MSI)" };
-        m["rep_section"]    = new[] { "EC CAPTURE", "PRZECHWYTYWANIE EC", "EC-ERFASSUNG", "CAPTURE EC", "CAPTURA EC", "EC 采集", "CAPTURA DO EC", "СНЯТИЕ EC" };
-        m["st_cpu_usage"]   = new[] { "CPU usage", "Użycie CPU", "CPU-Last", "Charge CPU", "Uso de CPU", "CPU 占用", "Uso da CPU", "Загрузка CPU" };
-        m["st_ram"]         = new[] { "RAM", "RAM", "RAM", "RAM", "RAM", "内存", "RAM", "ОЗУ" };
-        m["test_tools"]     = new[] { "Test tools (advanced)", "Narzędzia testowe (zaawansowane)", "Testwerkzeuge (erweitert)", "Outils de test (avancé)", "Herramientas de prueba", "测试工具（高级）", "Ferramentas de teste", "Тест-инструменты" };
-        m["test_title"]     = new[] { "Test tools", "Narzędzia testowe", "Testwerkzeuge", "Outils de test", "Herramientas de prueba", "测试工具", "Ferramentas de teste", "Тест-инструменты" };
-        m["test_rpm_btn"]   = new[] { "Scan for fan RPM register", "Skanuj rejestr RPM wentylatora", "Lüfter-RPM-Register suchen", "Chercher le registre RPM", "Buscar registro RPM", "扫描风扇 RPM 寄存器", "Procurar registo de RPM", "Поиск регистра RPM" };
+            "Скачать CleanCenterMaster (официальный деинсталлятор MSI)",
+            "CleanCenterMaster をダウンロード（MSI 公式アンインストーラー）",
+            "CleanCenterMaster 다운로드(MSI 공식 제거 도구)",
+            "下載 CleanCenterMaster（MSI 官方解除安裝工具）",
+            "CleanCenterMaster'ı indir (resmi MSI kaldırıcı)",
+            "Tải CleanCenterMaster (trình gỡ cài đặt chính thức của MSI)",
+            "Unduh CleanCenterMaster (penghapus resmi MSI)",
+            "Scarica CleanCenterMaster (disinstallatore ufficiale MSI)"
+            };
+        m["rep_section"]    = new[] { "EC CAPTURE", "PRZECHWYTYWANIE EC", "EC-ERFASSUNG", "CAPTURE EC", "CAPTURA EC", "EC 采集", "CAPTURA DO EC", "СНЯТИЕ EC", "EC キャプチャ", "EC 캡처", "EC 擷取", "EC YAKALAMA", "THU THẬP EC", "TANGKAPAN EC", "ACQUISIZIONE EC" };
+        m["st_cpu_usage"]   = new[] { "CPU usage", "Użycie CPU", "CPU-Last", "Charge CPU", "Uso de CPU", "CPU 占用", "Uso da CPU", "Загрузка CPU", "CPU 使用率", "CPU 사용률", "CPU 使用率", "CPU kullanımı", "Mức dùng CPU", "Penggunaan CPU", "Uso CPU" };
+        m["st_ram"]         = new[] { "RAM", "RAM", "RAM", "RAM", "RAM", "内存", "RAM", "ОЗУ", "RAM", "RAM", "記憶體", "RAM", "RAM", "RAM", "RAM" };
+        m["test_tools"]     = new[] { "Test tools (advanced)", "Narzędzia testowe (zaawansowane)", "Testwerkzeuge (erweitert)", "Outils de test (avancé)", "Herramientas de prueba", "测试工具（高级）", "Ferramentas de teste", "Тест-инструменты", "テストツール（上級）", "테스트 도구(고급)", "測試工具（進階）", "Test araçları (gelişmiş)", "Công cụ kiểm thử (nâng cao)", "Alat uji (lanjutan)", "Strumenti di test (avanzato)" };
+        m["test_title"]     = new[] { "Test tools", "Narzędzia testowe", "Testwerkzeuge", "Outils de test", "Herramientas de prueba", "测试工具", "Ferramentas de teste", "Тест-инструменты", "テストツール", "테스트 도구", "測試工具", "Test araçları", "Công cụ kiểm thử", "Alat uji", "Strumenti di test" };
+        m["test_rpm_btn"]   = new[] { "Scan for fan RPM register", "Skanuj rejestr RPM wentylatora", "Lüfter-RPM-Register suchen", "Chercher le registre RPM", "Buscar registro RPM", "扫描风扇 RPM 寄存器", "Procurar registo de RPM", "Поиск регистра RPM", "ファン RPM レジスタをスキャン", "팬 RPM 레지스터 스캔", "掃描風扇 RPM 暫存器", "Fan RPM yazmacını tara", "Quét thanh ghi RPM quạt", "Pindai register RPM kipas", "Cerca registro RPM ventole" };
         m["test_rpm_hint"]  = new[] {
             "Read-only. Match a value below to the RPM shown in MSI Center, then tell me the address.",
             "Tylko odczyt. Dopasuj wartość poniżej do RPM z MSI Center i podaj mi adres.",
@@ -808,9 +1106,17 @@ public static class Lang
             "Solo lectura. Asocia un valor al RPM de MSI Center y dime la dirección.",
             "只读。把下面的值与 MSI Center 的 RPM 对应，然后告诉我地址。",
             "Somente leitura. Associe um valor ao RPM do MSI Center e me diga o endereço.",
-            "Только чтение. Сопоставьте значение с RPM в MSI Center и сообщите адрес." };
-        m["test_rpm_a"]     = new[] { "Step 1: capture current speed", "Krok 1: zapisz obecne obroty", "Schritt 1: aktuelle Drehzahl", "Étape 1 : vitesse actuelle", "Paso 1: velocidad actual", "步骤 1：记录当前转速", "Passo 1: velocidade atual", "Шаг 1: текущие обороты" };
-        m["test_rpm_b"]     = new[] { "Step 2: scan + compare", "Krok 2: skanuj i porównaj", "Schritt 2: scannen + vergleichen", "Étape 2 : scanner + comparer", "Paso 2: escanear y comparar", "步骤 2：扫描并比较", "Passo 2: escanear e comparar", "Шаг 2: сканировать и сравнить" };
+            "Только чтение. Сопоставьте значение с RPM в MSI Center и сообщите адрес.",
+            "読み取り専用。下の値を MSI Center の RPM と照合し、アドレスを教えてください。",
+            "읽기 전용. 아래 값을 MSI Center의 RPM과 대조한 뒤 주소를 알려 주세요.",
+            "唯讀。把下面的值與 MSI Center 顯示的 RPM 對應，然後告訴我位址。",
+            "Salt okunur. Aşağıdaki bir değeri MSI Center'daki RPM ile eşleştirin, sonra adresi bana bildirin.",
+            "Chỉ đọc. Đối chiếu một giá trị bên dưới với RPM trong MSI Center, rồi cho tôi biết địa chỉ.",
+            "Hanya baca. Cocokkan nilai di bawah dengan RPM yang ditampilkan MSI Center, lalu beri tahu saya alamatnya.",
+            "Sola lettura. Abbina un valore qui sotto agli RPM mostrati in MSI Center, poi indicami l'indirizzo."
+            };
+        m["test_rpm_a"]     = new[] { "Step 1: capture current speed", "Krok 1: zapisz obecne obroty", "Schritt 1: aktuelle Drehzahl", "Étape 1 : vitesse actuelle", "Paso 1: velocidad actual", "步骤 1：记录当前转速", "Passo 1: velocidade atual", "Шаг 1: текущие обороты", "手順 1：現在の回転数を記録", "1단계: 현재 속도 캡처", "步驟 1：記錄目前轉速", "Adım 1: mevcut hızı yakala", "Bước 1: ghi tốc độ hiện tại", "Langkah 1: tangkap kecepatan saat ini", "Passo 1: acquisisci velocità attuale" };
+        m["test_rpm_b"]     = new[] { "Step 2: scan + compare", "Krok 2: skanuj i porównaj", "Schritt 2: scannen + vergleichen", "Étape 2 : scanner + comparer", "Paso 2: escanear y comparar", "步骤 2：扫描并比较", "Passo 2: escanear e comparar", "Шаг 2: сканировать и сравнить", "手順 2：スキャン + 比較", "2단계: 스캔 + 비교", "步驟 2：掃描並比較", "Adım 2: tara + karşılaştır", "Bước 2: quét + so sánh", "Langkah 2: pindai + bandingkan", "Passo 2: scansiona + confronta" };
         m["test_rpm_hint2"] = new[] {
             "Run step 1, then change fan speed (use the experiment below), then step 2. Addresses whose value changed are the tachometers — match to MSI Center.",
             "Zrób krok 1, potem zmień obroty (użyj eksperymentu poniżej), potem krok 2. Adresy, które się zmieniły, to tachometry — dopasuj do MSI Center.",
@@ -819,11 +1125,19 @@ public static class Lang
             "Paso 1, cambia la velocidad (experimento abajo), luego paso 2. Las direcciones que cambiaron son los tacómetros — compara con MSI Center.",
             "先步骤 1，改变转速（用下面的实验），再步骤 2。发生变化的地址就是转速寄存器——与 MSI Center 对照。",
             "Passo 1, mude a velocidade (experimento abaixo), depois passo 2. Os endereços que mudaram são os tacômetros — compare com o MSI Center.",
-            "Шаг 1, измените обороты (эксперимент ниже), затем шаг 2. Изменившиеся адреса — это тахометры, сверьте с MSI Center." };
-        m["test_dump_btn"]  = new[] { "Save EC dump to file", "Zapisz zrzut EC do pliku", "EC-Dump speichern", "Enregistrer le dump EC", "Guardar volcado EC", "保存 EC 转储到文件", "Salvar dump do EC", "Сохранить дамп EC" };
-        m["test_live"]      = new[] { "Live RPM:", "RPM na żywo:", "Live-RPM:", "RPM en direct :", "RPM en vivo:", "实时转速：", "RPM ao vivo:", "Обороты вживую:" };
-        m["tab_fancurve"]   = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe ventilateur", "Curva ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора" };
-        m["fc_title"]       = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe du ventilateur", "Curva del ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора" };
+            "Шаг 1, измените обороты (эксперимент ниже), затем шаг 2. Изменившиеся адреса — это тахометры, сверьте с MSI Center.",
+            "手順 1 を実行し、ファン速度を変更（下の実験を使用）してから手順 2 を実行。値が変化したアドレスが回転計です — MSI Center と照合してください。",
+            "1단계 실행 후 팬 속도를 바꾸고(아래 실험 사용) 2단계를 실행합니다. 값이 바뀐 주소가 회전계입니다 — MSI Center와 대조하세요.",
+            "先執行步驟 1，改變轉速（用下面的實驗），再執行步驟 2。數值有變化的位址就是轉速計——與 MSI Center 對照。",
+            "Adım 1'i çalıştırın, fan hızını değiştirin (aşağıdaki deneyi kullanın), sonra adım 2. Değeri değişen adresler takometrelerdir — MSI Center ile eşleştirin.",
+            "Chạy bước 1, đổi tốc độ quạt (dùng thử nghiệm bên dưới), rồi bước 2. Các địa chỉ có giá trị thay đổi là bộ đo vòng quay — đối chiếu với MSI Center.",
+            "Jalankan langkah 1, lalu ubah kecepatan kipas (gunakan eksperimen di bawah), lalu langkah 2. Alamat yang nilainya berubah adalah takometer — cocokkan dengan MSI Center.",
+            "Esegui il passo 1, cambia la velocità delle ventole (usa l'esperimento sotto), poi il passo 2. Gli indirizzi con valore cambiato sono i tachimetri — confrontali con MSI Center."
+            };
+        m["test_dump_btn"]  = new[] { "Save EC dump to file", "Zapisz zrzut EC do pliku", "EC-Dump speichern", "Enregistrer le dump EC", "Guardar volcado EC", "保存 EC 转储到文件", "Salvar dump do EC", "Сохранить дамп EC", "EC ダンプをファイルに保存", "EC 덤프를 파일로 저장", "儲存 EC 傾印到檔案", "EC dökümünü dosyaya kaydet", "Lưu bản dump EC ra tệp", "Simpan dump EC ke file", "Salva dump EC su file" };
+        m["test_live"]      = new[] { "Live RPM:", "RPM na żywo:", "Live-RPM:", "RPM en direct :", "RPM en vivo:", "实时转速：", "RPM ao vivo:", "Обороты вживую:", "現在の RPM：", "실시간 RPM:", "即時轉速：", "Canlı RPM:", "RPM trực tiếp:", "RPM langsung:", "RPM live:" };
+        m["tab_fancurve"]   = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe ventilateur", "Curva ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора", "ファンカーブ", "팬 곡선", "風扇曲線", "Fan eğrisi", "Đường cong quạt", "Kurva kipas", "Curva ventole" };
+        m["fc_title"]       = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe du ventilateur", "Curva del ventilador", "风扇曲线", "Curva da ventoinha", "Кривая вентилятора", "ファンカーブ", "팬 곡선", "風扇曲線", "Fan eğrisi", "Đường cong quạt", "Kurva kipas", "Curva ventole" };
         m["fc_hint"]        = new[] {
             "Drag the points up/down to set fan speed per temperature. Apply writes the curve and runs it in the current power mode.",
             "Przeciągaj punkty góra/dół, aby ustawić obroty dla danej temperatury. „Zastosuj” zapisuje krzywą i uruchamia ją w aktualnym trybie.",
@@ -832,7 +1146,15 @@ public static class Lang
             "Arrastra los puntos para fijar la velocidad por temperatura. «Aplicar» usa la curva en el modo actual.",
             "上下拖动各点以设置对应温度的转速。“应用”会在当前模式下使用该曲线。",
             "Arraste os pontos para definir a velocidade por temperatura. “Aplicar” usa a curva no modo atual.",
-            "Перетаскивайте точки, чтобы задать обороты для температуры. «Применить» включает кривую в текущем режиме." };
+            "Перетаскивайте точки, чтобы задать обороты для температуры. «Применить» включает кривую в текущем режиме.",
+            "点を上下にドラッグして温度ごとのファン速度を設定します。「適用」でカーブを書き込み、現在の電源モードで実行します。",
+            "점을 위아래로 끌어 온도별 팬 속도를 설정합니다. 적용하면 곡선을 기록하고 현재 전원 모드에서 실행합니다.",
+            "上下拖曳各點以設定對應溫度的轉速。「套用」會寫入曲線並在目前電源模式下執行。",
+            "Sıcaklığa göre fan hızını ayarlamak için noktaları yukarı/aşağı sürükleyin. Uygula eğriyi yazar ve mevcut güç modunda çalıştırır.",
+            "Kéo các điểm lên/xuống để đặt tốc độ quạt theo nhiệt độ. Áp dụng sẽ ghi đường cong và chạy nó trong chế độ nguồn hiện tại.",
+            "Seret titik ke atas/bawah untuk mengatur kecepatan kipas per suhu. Tombol Terapkan menulis kurva dan menjalankannya dalam mode daya saat ini.",
+            "Trascina i punti su/giù per impostare la velocità delle ventole per temperatura. \"Applica\" scrive la curva e la attiva nella modalità di alimentazione corrente."
+            };
         m["fc_locked"]      = new[] {
             "Editing is available only on supported (Tested / enabled experimental) models.",
             "Edycja dostępna tylko na obsługiwanych modelach (Tested / włączone eksperymentalne).",
@@ -841,10 +1163,18 @@ public static class Lang
             "La edición solo está disponible en modelos compatibles (Tested / experimental habilitado).",
             "仅支持的机型（Tested / 已启用实验性）可编辑。",
             "Edição disponível apenas em modelos suportados (Tested / experimental ativado).",
-            "Редактирование доступно только на поддерживаемых моделях (Tested / включён эксперимент)." };
-        m["fc_fan_cpu"]     = new[] { "Fan 1 (CPU)", "Wentylator 1 (CPU)", "Lüfter 1 (CPU)", "Ventilateur 1 (CPU)", "Ventilador 1 (CPU)", "风扇 1（CPU）", "Ventoinha 1 (CPU)", "Вентилятор 1 (CPU)" };
-        m["fc_fan_gpu"]     = new[] { "Fan 2 (GPU)", "Wentylator 2 (GPU)", "Lüfter 2 (GPU)", "Ventilateur 2 (GPU)", "Ventilador 2 (GPU)", "风扇 2（GPU）", "Ventoinha 2 (GPU)", "Вентилятор 2 (GPU)" };
-        m["fc_fan_single"]  = new[] { "Fan (CPU)", "Wentylator (CPU)", "Lüfter (CPU)", "Ventilateur (CPU)", "Ventilador (CPU)", "风扇（CPU）", "Ventoinha (CPU)", "Вентилятор (CPU)" };
+            "Редактирование доступно только на поддерживаемых моделях (Tested / включён эксперимент).",
+            "編集は対応モデル（テスト済み / 有効化した実験的）のみ可能です。",
+            "지원 모델(테스트됨 / 활성화된 실험적)에서만 편집할 수 있습니다.",
+            "僅支援的機型（Tested / 已啟用實驗性）可編輯。",
+            "Düzenleme yalnızca desteklenen (test edilmiş / etkin deneysel) modellerde kullanılabilir.",
+            "Chỉ chỉnh sửa được trên model được hỗ trợ (đã kiểm thử / thử nghiệm đã bật).",
+            "Pengeditan hanya tersedia pada model yang didukung (Teruji / eksperimental yang diaktifkan).",
+            "La modifica è disponibile solo sui modelli supportati (Testati / sperimentali abilitati)."
+            };
+        m["fc_fan_cpu"]     = new[] { "Fan 1 (CPU)", "Wentylator 1 (CPU)", "Lüfter 1 (CPU)", "Ventilateur 1 (CPU)", "Ventilador 1 (CPU)", "风扇 1（CPU）", "Ventoinha 1 (CPU)", "Вентилятор 1 (CPU)", "ファン 1（CPU）", "팬 1(CPU)", "風扇 1（CPU）", "Fan 1 (CPU)", "Quạt 1 (CPU)", "Kipas 1 (CPU)", "Ventola 1 (CPU)" };
+        m["fc_fan_gpu"]     = new[] { "Fan 2 (GPU)", "Wentylator 2 (GPU)", "Lüfter 2 (GPU)", "Ventilateur 2 (GPU)", "Ventilador 2 (GPU)", "风扇 2（GPU）", "Ventoinha 2 (GPU)", "Вентилятор 2 (GPU)", "ファン 2（GPU）", "팬 2(GPU)", "風扇 2（GPU）", "Fan 2 (GPU)", "Quạt 2 (GPU)", "Kipas 2 (GPU)", "Ventola 2 (GPU)" };
+        m["fc_fan_single"]  = new[] { "Fan (CPU)", "Wentylator (CPU)", "Lüfter (CPU)", "Ventilateur (CPU)", "Ventilador (CPU)", "风扇（CPU）", "Ventoinha (CPU)", "Вентилятор (CPU)", "ファン（CPU）", "팬(CPU)", "風扇（CPU）", "Fan (CPU)", "Quạt (CPU)", "Kipas (CPU)", "Ventola (CPU)" };
         m["fc_single_note"] = new[]
         {
             "This model has a single controllable fan curve",
@@ -854,35 +1184,42 @@ public static class Lang
             "Este modelo tiene una sola curva de ventilador controlable",
             "该机型只有一条可控风扇曲线",
             "Este modelo tem uma única curva de ventoinha controlável",
-            "У этой модели одна управляемая кривая вентилятора"
+            "У этой модели одна управляемая кривая вентилятора",
+            "このモデルは制御可能なファンカーブが 1 本のみです",
+            "이 모델은 제어 가능한 팬 곡선이 하나입니다",
+            "此機型只有一條可控風扇曲線",
+            "Bu modelde tek bir kontrol edilebilir fan eğrisi var",
+            "Model này chỉ có một đường cong quạt điều khiển được",
+            "Model ini hanya memiliki satu kurva kipas yang dapat dikontrol",
+            "Questo modello ha una sola curva ventole controllabile"
         };
-        m["fc_apply"]       = new[] { "Apply", "Zastosuj", "Anwenden", "Appliquer", "Aplicar", "应用", "Aplicar", "Применить" };
-        m["fc_restore"]     = new[] { "Restore automatic fans", "Przywróć automatyczne", "Automatik wiederherstellen", "Rétablir l'automatique", "Restaurar automático", "恢复自动", "Restaurar automático", "Вернуть авто" };
-        m["fc_enable"]      = new[] { "Custom fan curve (override this profile)", "Własna krzywa wentylatora (nadpisz ten profil)", "Eigene Lüfterkurve (Profil überschreiben)", "Courbe perso (remplacer ce profil)", "Curva personalizada (anular este perfil)", "自定义风扇曲线（覆盖此模式）", "Curva personalizada (substituir este perfil)", "Своя кривая (заменить профиль)" };
-        m["st_matrix"]      = new[] { "Profile bytes (EC)", "Bajty profilu (EC)", "Profil-Bytes (EC)", "Octets de profil (EC)", "Bytes de perfil (EC)", "配置字节 (EC)", "Bytes do perfil (EC)", "Байты профиля (EC)" };
-        m["st_now"]         = new[] { "Now (live)", "Teraz (na żywo)", "Jetzt (live)", "Maintenant", "Ahora", "当前（实时）", "Agora", "Сейчас" };
-        m["st_b_byte"]      = new[] { "Byte", "Bajt", "Byte", "Octet", "Byte", "字节", "Byte", "Байт" };
-        m["st_b_role"]      = new[] { "Controls", "Za co odpowiada", "Steuert", "Contrôle", "Controla", "作用", "Controla", "Отвечает за" };
-        m["st_b_vals"]      = new[] { "Values", "Wartości", "Werte", "Valeurs", "Valores", "取值", "Valores", "Значения" };
-        m["st_b_power"]     = new[] { "Power / performance", "Moc / wydajność", "Leistung", "Puissance", "Potencia", "性能", "Desempenho", "Мощность" };
-        m["st_b_cap"]       = new[] { "Extreme power", "Moc Extreme", "Extreme-Leistung", "Puissance Extreme", "Potencia Extreme", "Extreme 功耗", "Potência Extreme", "Мощность Extreme" };
-        m["st_b_others"]    = new[] { "others", "reszta", "andere", "autres", "resto", "其余", "outros", "остальные" };
-        m["st_b_batt"]      = new[] { "Super battery", "Super-bateria", "Super-Akku", "Super batterie", "Súper batería", "超级省电", "Super bateria", "Супер-батарея" };
-        m["st_b_fan"]       = new[] { "Fan", "Wentylator", "Lüfter", "Ventilateur", "Ventilador", "风扇", "Ventoinha", "Вентилятор" };
-        m["st_curve_live"]  = new[] { "Fan curve tables (live)", "Tablice krzywej (na żywo)", "Lüfterkurven-Tabellen (live)", "Tables de courbe (live)", "Tablas de curva (vivo)", "风扇曲线表（实时）", "Tabelas da curva (ao vivo)", "Таблицы кривой (вживую)" };
-        m["st_point"]       = new[] { "Point", "Punkt", "Punkt", "Point", "Punto", "点", "Ponto", "Точка" };
-        m["st_fan_silent"]  = new[] { "silent", "cicho", "leise", "silencieux", "silencio", "静音", "silencioso", "тихо" };
-        m["st_fan_auto"]    = new[] { "auto", "auto", "auto", "auto", "auto", "自动", "auto", "авто" };
-        m["st_fan_curve"]   = new[] { "curve", "krzywa", "Kurve", "courbe", "curva", "曲线", "curva", "кривая" };
-        m["st_v_comfort"]   = new[] { "comfort", "komfort", "Komfort", "confort", "confort", "舒适", "conforto", "комфорт" };
-        m["st_v_turbo"]     = new[] { "turbo", "turbo", "Turbo", "turbo", "turbo", "极速", "turbo", "турбо" };
-        m["st_v_eco"]       = new[] { "eco", "eco", "Eco", "éco", "eco", "节能", "eco", "эко" };
-        m["st_on"]          = new[] { "on", "wł", "an", "activé", "act.", "开", "lig.", "вкл" };
+        m["fc_apply"]       = new[] { "Apply", "Zastosuj", "Anwenden", "Appliquer", "Aplicar", "应用", "Aplicar", "Применить", "適用", "적용", "套用", "Uygula", "Áp dụng", "Terapkan", "Applica" };
+        m["fc_restore"]     = new[] { "Restore automatic fans", "Przywróć automatyczne", "Automatik wiederherstellen", "Rétablir l'automatique", "Restaurar automático", "恢复自动", "Restaurar automático", "Вернуть авто", "自動ファンに戻す", "자동 팬 복원", "還原自動風扇", "Otomatik fanları geri yükle", "Khôi phục quạt tự động", "Pulihkan kipas otomatis", "Ripristina ventole automatiche" };
+        m["fc_enable"]      = new[] { "Custom fan curve (override this profile)", "Własna krzywa wentylatora (nadpisz ten profil)", "Eigene Lüfterkurve (Profil überschreiben)", "Courbe perso (remplacer ce profil)", "Curva personalizada (anular este perfil)", "自定义风扇曲线（覆盖此模式）", "Curva personalizada (substituir este perfil)", "Своя кривая (заменить профиль)", "カスタムファンカーブ（このプロファイルを上書き）", "사용자 지정 팬 곡선(이 프로필 재정의)", "自訂風扇曲線（覆寫此設定檔）", "Özel fan eğrisi (bu profili geçersiz kılar)", "Đường cong quạt tùy chỉnh (ghi đè hồ sơ này)", "Kurva kipas kustom (timpa profil ini)", "Curva personalizzata (sovrascrive questo profilo)" };
+        m["st_matrix"]      = new[] { "Profile bytes (EC)", "Bajty profilu (EC)", "Profil-Bytes (EC)", "Octets de profil (EC)", "Bytes de perfil (EC)", "配置字节 (EC)", "Bytes do perfil (EC)", "Байты профиля (EC)", "プロファイルバイト（EC）", "프로필 바이트(EC)", "設定檔位元組 (EC)", "Profil baytları (EC)", "Byte hồ sơ (EC)", "Byte profil (EC)", "Byte del profilo (EC)" };
+        m["st_now"]         = new[] { "Now (live)", "Teraz (na żywo)", "Jetzt (live)", "Maintenant", "Ahora", "当前（实时）", "Agora", "Сейчас", "現在（リアルタイム）", "현재(실시간)", "目前（即時）", "Şimdi (canlı)", "Hiện tại (trực tiếp)", "Kini (langsung)", "Ora (live)" };
+        m["st_b_byte"]      = new[] { "Byte", "Bajt", "Byte", "Octet", "Byte", "字节", "Byte", "Байт", "バイト", "바이트", "位元組", "Bayt", "Byte", "Byte", "Byte" };
+        m["st_b_role"]      = new[] { "Controls", "Za co odpowiada", "Steuert", "Contrôle", "Controla", "作用", "Controla", "Отвечает за", "役割", "제어 대상", "作用", "İşlev", "Điều khiển", "Mengatur", "Controlla" };
+        m["st_b_vals"]      = new[] { "Values", "Wartości", "Werte", "Valeurs", "Valores", "取值", "Valores", "Значения", "値", "값", "數值", "Değerler", "Giá trị", "Nilai", "Valori" };
+        m["st_b_power"]     = new[] { "Power / performance", "Moc / wydajność", "Leistung", "Puissance", "Potencia", "性能", "Desempenho", "Мощность", "電力 / 性能", "전원 / 성능", "效能", "Güç / performans", "Nguồn / hiệu năng", "Daya / performa", "Potenza / prestazioni" };
+        m["st_b_cap"]       = new[] { "Extreme power", "Moc Extreme", "Extreme-Leistung", "Puissance Extreme", "Potencia Extreme", "Extreme 功耗", "Potência Extreme", "Мощность Extreme", "Extreme 電力", "Extreme 전력", "Extreme 功耗", "Extreme güç", "Công suất Extreme", "Daya Extreme", "Potenza Extreme" };
+        m["st_b_others"]    = new[] { "others", "reszta", "andere", "autres", "resto", "其余", "outros", "остальные", "その他", "기타", "其餘", "diğerleri", "còn lại", "lainnya", "altri" };
+        m["st_b_batt"]      = new[] { "Super battery", "Super-bateria", "Super-Akku", "Super batterie", "Súper batería", "超级省电", "Super bateria", "Супер-батарея", "Super battery", "Super Battery", "超級省電", "Super battery", "Super battery", "Super battery", "Super battery" };
+        m["st_b_fan"]       = new[] { "Fan", "Wentylator", "Lüfter", "Ventilateur", "Ventilador", "风扇", "Ventoinha", "Вентилятор", "ファン", "팬", "風扇", "Fan", "Quạt", "Kipas", "Ventola" };
+        m["st_curve_live"]  = new[] { "Fan curve tables (live)", "Tablice krzywej (na żywo)", "Lüfterkurven-Tabellen (live)", "Tables de courbe (live)", "Tablas de curva (vivo)", "风扇曲线表（实时）", "Tabelas da curva (ao vivo)", "Таблицы кривой (вживую)", "ファンカーブ表（リアルタイム）", "팬 곡선 테이블(실시간)", "風扇曲線表（即時）", "Fan eğrisi tabloları (canlı)", "Bảng đường cong quạt (trực tiếp)", "Tabel kurva kipas (langsung)", "Tabelle curve ventole (live)" };
+        m["st_point"]       = new[] { "Point", "Punkt", "Punkt", "Point", "Punto", "点", "Ponto", "Точка", "点", "포인트", "點", "Nokta", "Điểm", "Titik", "Punto" };
+        m["st_fan_silent"]  = new[] { "silent", "cicho", "leise", "silencieux", "silencio", "静音", "silencioso", "тихо", "静音", "Silent", "靜音", "sessiz", "im lặng", "silent", "silent" };
+        m["st_fan_auto"]    = new[] { "auto", "auto", "auto", "auto", "auto", "自动", "auto", "авто", "自動", "자동", "自動", "otomatik", "tự động", "otomatis", "auto" };
+        m["st_fan_curve"]   = new[] { "curve", "krzywa", "Kurve", "courbe", "curva", "曲线", "curva", "кривая", "カーブ", "곡선", "曲線", "eğri", "đường cong", "kurva", "curva" };
+        m["st_v_comfort"]   = new[] { "comfort", "komfort", "Komfort", "confort", "confort", "舒适", "conforto", "комфорт", "快適", "일반", "舒適", "konfor", "thoải mái", "nyaman", "comfort" };
+        m["st_v_turbo"]     = new[] { "turbo", "turbo", "Turbo", "turbo", "turbo", "极速", "turbo", "турбо", "ターボ", "터보", "極速", "turbo", "turbo", "turbo", "turbo" };
+        m["st_v_eco"]       = new[] { "eco", "eco", "Eco", "éco", "eco", "节能", "eco", "эко", "エコ", "절전", "節能", "eko", "eco", "eco", "eco" };
+        m["st_on"]          = new[] { "on", "wł", "an", "activé", "act.", "开", "lig.", "вкл", "オン", "켜짐", "開", "açık", "bật", "aktif", "on" };
     }
 
     private static void L08(Dictionary<string, string[]> m)
     {
-        m["st_off"]         = new[] { "off", "wył", "aus", "désact.", "desact.", "关", "des.", "выкл" };
+        m["st_off"]         = new[] { "off", "wył", "aus", "désact.", "desact.", "关", "des.", "выкл", "オフ", "꺼짐", "關", "kapalı", "tắt", "mati", "off" };
         m["fc_preview"]     = new[] {
             "Curve addresses are not verified on this model yet — check the preview matches MSI Center (Extreme → Advanced). You can revert any time.",
             "Adresy krzywej nie są jeszcze zweryfikowane na tym modelu — sprawdź, czy podgląd zgadza się z MSI Center (Extreme → Advanced). Możesz cofnąć w każdej chwili.",
@@ -891,7 +1228,15 @@ public static class Lang
             "Direcciones de curva sin verificar en este modelo — comprueba que la vista coincide con MSI Center (Extreme → Advanced). Reversible.",
             "此型号的曲线地址尚未验证——请确认预览与 MSI Center（Extreme → Advanced）一致。可随时还原。",
             "Endereços da curva ainda não verificados neste modelo — confira se a prévia bate com o MSI Center (Extreme → Advanced). Reversível.",
-            "Адреса кривой на этой модели не проверены — сверьте предпросмотр с MSI Center (Extreme → Advanced). Можно вернуть в любой момент." };
+            "Адреса кривой на этой модели не проверены — сверьте предпросмотр с MSI Center (Extreme → Advanced). Можно вернуть в любой момент.",
+            "このモデルではカーブのアドレスが未検証です — プレビューが MSI Center（Extreme → Advanced）と一致するか確認してください。いつでも元に戻せます。",
+            "이 모델의 곡선 주소는 아직 검증되지 않았습니다 — 미리보기가 MSI Center(Extreme → Advanced)와 일치하는지 확인하세요. 언제든 되돌릴 수 있습니다.",
+            "此機型的曲線位址尚未驗證——請確認預覽與 MSI Center（Extreme → Advanced）一致。可隨時還原。",
+            "Eğri adresleri bu modelde henüz doğrulanmadı — önizlemenin MSI Center (Extreme → Advanced) ile eşleştiğini kontrol edin. İstediğiniz zaman geri alabilirsiniz.",
+            "Địa chỉ đường cong chưa được xác minh trên model này — hãy kiểm tra bản xem trước khớp với MSI Center (Extreme → Advanced). Có thể hoàn tác bất cứ lúc nào.",
+            "Alamat kurva belum diverifikasi pada model ini — pastikan pratinjau cocok dengan MSI Center (Extreme → Advanced). Anda dapat mengembalikannya kapan saja.",
+            "Indirizzi della curva non ancora verificati su questo modello: controlla che l'anteprima coincida con MSI Center (Extreme → Advanced). Puoi tornare indietro quando vuoi."
+            };
         m["st_matrix_note"] = new[] {
             "0x34 = Extreme power unlock (written 00 in Extreme, 01 elsewhere), but it reads dynamically and can show 00/01 in any comfort profile — so it is NOT used for detection. Silent vs Balanced is decided solely by the fan byte 0xD4 (1D = Silent).",
             "0x34 = odblokowanie mocy Extreme (zapisywane 00 w Extreme, 01 w pozostałych), ale odczytuje się dynamicznie i bywa 00/01 w każdym profilu komfort — dlatego NIE służy do detekcji. O Silent vs Balanced decyduje wyłącznie bajt wentylatora 0xD4 (1D = Silent).",
@@ -900,7 +1245,15 @@ public static class Lang
             "0x34 = desbloqueo de potencia Extreme (se escribe 00 en Extreme, 01 en el resto), pero su lectura es dinámica y puede mostrar 00/01 en cualquier perfil confort — por eso NO se usa para detección. Silent vs Balanced lo decide solo el byte 0xD4 (1D = Silent).",
             "0x34 = Extreme 功耗解锁（Extreme 写 00，其余写 01），但读取是动态的，任何舒适档都可能显示 00/01——故不用于识别。Silent 与 Balanced 仅由风扇字节 0xD4 区分（1D = Silent）。",
             "0x34 = desbloqueio de potência Extreme (gravado 00 no Extreme, 01 nos outros), mas a leitura é dinâmica e pode mostrar 00/01 em qualquer perfil conforto — por isso NÃO é usado na detecção. Silent vs Balanced é decidido só pelo byte 0xD4 (1D = Silent).",
-            "0x34 = разблокировка мощности Extreme (пишется 00 в Extreme, 01 в остальных), но читается динамически и может показывать 00/01 в любом комфортном профиле — поэтому НЕ используется для определения. Silent и Balanced различает только байт 0xD4 (1D = Silent)." };
+            "0x34 = разблокировка мощности Extreme (пишется 00 в Extreme, 01 в остальных), но читается динамически и может показывать 00/01 в любом комфортном профиле — поэтому НЕ используется для определения. Silent и Balanced различает только байт 0xD4 (1D = Silent).",
+            "0x34 = Extreme 電力アンロック（Extreme では 00、他では 01 を書き込み）。ただし読み取り値は動的で、どの快適プロファイルでも 00/01 になり得るため検出には使いません。Silent と Balanced はファンバイト 0xD4 のみで判定します（1D = Silent）。",
+            "0x34 = Extreme 전력 해제(Extreme에서 00, 그 외 01 기록)이지만 동적으로 읽혀 어떤 일반 프로필에서도 00/01이 나올 수 있어 감지에는 사용하지 않습니다. Silent와 Balanced는 팬 바이트 0xD4(1D = Silent)만으로 구분합니다.",
+            "0x34 = Extreme 功耗解鎖（Extreme 寫入 00，其餘寫入 01），但讀取是動態的，任何舒適設定檔都可能顯示 00/01——因此不用於辨識。Silent 與 Balanced 僅由風扇位元組 0xD4 區分（1D = Silent）。",
+            "0x34 = Extreme güç kilidi açma (Extreme'de 00, diğerlerinde 01 yazılır), ancak dinamik okunur ve herhangi bir konfor profilinde 00/01 gösterebilir — bu yüzden algılamada KULLANILMAZ. Silent ve Balanced ayrımı yalnızca fan baytı 0xD4 ile yapılır (1D = Silent).",
+            "0x34 = mở khóa công suất Extreme (ghi 00 ở Extreme, 01 ở các hồ sơ khác), nhưng giá trị đọc thay đổi động và có thể là 00/01 ở bất kỳ hồ sơ thoải mái nào — nên KHÔNG dùng để nhận diện. Silent và Balanced chỉ được phân biệt bằng byte quạt 0xD4 (1D = Silent).",
+            "0x34 = buka kunci daya Extreme (ditulis 00 di Extreme, 01 di lainnya), tetapi dibaca secara dinamis dan dapat menampilkan 00/01 di profil nyaman mana pun — jadi TIDAK dipakai untuk deteksi. Silent vs Balanced ditentukan hanya oleh byte kipas 0xD4 (1D = Silent).",
+            "0x34 = sblocco potenza Extreme (scritto 00 in Extreme, 01 altrove), ma la lettura è dinamica e può mostrare 00/01 in qualsiasi profilo comfort, quindi NON è usato per il rilevamento. Silent vs Balanced è deciso solo dal byte ventola 0xD4 (1D = Silent)."
+            };
         m["fc_silent_warn"] = new[] {
             "Silent's power cap lives in the same byte as the fan curve (0xD4), so a custom curve turns Silent off — the laptop runs at Balanced power with your fans. Continue?",
             "Limit mocy Silenta siedzi w tym samym bajcie co krzywa (0xD4), więc własna krzywa wyłącza Silent — laptop pójdzie na mocy Balanced z Twoimi wentylatorami. Kontynuować?",
@@ -909,10 +1262,18 @@ public static class Lang
             "El límite de potencia de Silent está en el mismo byte que la curva (0xD4); una curva desactiva Silent — potencia Balanced con tus ventiladores. ¿Continuar?",
             "Silent 的功耗上限与风扇曲线在同一字节（0xD4），自定义曲线会关闭 Silent——将以 Balanced 功耗运行。继续？",
             "O limite de potência do Silent está no mesmo byte da curva (0xD4); uma curva desliga o Silent — potência Balanced com suas ventoinhas. Continuar?",
-            "Лимит мощности Silent в том же байте, что и кривая (0xD4); своя кривая отключает Silent — ноутбук работает на мощности Balanced. Продолжить?" };
-        m["fc_mode"]        = new[] { "Fan mode:", "Tryb wentylatora:", "Lüftermodus:", "Mode ventilateur :", "Modo ventilador:", "风扇模式：", "Modo da ventoinha:", "Режим вентилятора:" };
-        m["fc_default"]     = new[] { "MSI default", "MSI domyślny", "MSI-Standard", "MSI par défaut", "MSI predeterminado", "MSI 默认", "Padrão MSI", "По умолчанию MSI" };
-        m["fc_applied"]     = new[] { "Custom fan curve applied to the current mode.", "Własna krzywa zastosowana w aktualnym trybie.", "Eigene Lüfterkurve im aktuellen Modus angewendet.", "Courbe personnalisée appliquée au mode actuel.", "Curva personalizada aplicada al modo actual.", "已在当前模式应用自定义曲线。", "Curva personalizada aplicada ao modo atual.", "Своя кривая применена в текущем режиме." };
+            "Лимит мощности Silent в том же байте, что и кривая (0xD4); своя кривая отключает Silent — ноутбук работает на мощности Balanced. Продолжить?",
+            "Silent の電力上限はファンカーブと同じバイト（0xD4）にあるため、カスタムカーブを適用すると Silent が解除されます — Balanced の電力で動作します。続行しますか？",
+            "Silent의 전력 제한은 팬 곡선과 같은 바이트(0xD4)에 있어 사용자 지정 곡선을 적용하면 Silent가 꺼집니다 — 사용자 팬 설정으로 Balanced 전력에서 동작합니다. 계속하시겠습니까?",
+            "Silent 的功耗上限與風扇曲線位於同一位元組（0xD4），自訂曲線會關閉 Silent——將以 Balanced 功耗搭配你的風扇運行。繼續？",
+            "Silent'ın güç sınırı fan eğrisiyle aynı bayttadır (0xD4); özel eğri Silent'ı kapatır — dizüstü, sizin fanlarınızla Balanced gücünde çalışır. Devam edilsin mi?",
+            "Giới hạn công suất của Silent nằm cùng byte với đường cong quạt (0xD4), nên đường cong tùy chỉnh sẽ tắt Silent — máy chạy ở công suất Balanced với quạt của bạn. Tiếp tục?",
+            "Batas daya Silent berada di byte yang sama dengan kurva kipas (0xD4), jadi kurva kustom mematikan Silent — laptop berjalan dengan daya Balanced memakai kipas Anda. Lanjutkan?",
+            "Il limite di potenza di Silent risiede nello stesso byte della curva ventole (0xD4), quindi una curva personalizzata disattiva Silent: il laptop funziona con la potenza di Balanced e le tue ventole. Continuare?"
+            };
+        m["fc_mode"]        = new[] { "Fan mode:", "Tryb wentylatora:", "Lüftermodus:", "Mode ventilateur :", "Modo ventilador:", "风扇模式：", "Modo da ventoinha:", "Режим вентилятора:", "ファンモード：", "팬 모드:", "風扇模式：", "Fan modu:", "Chế độ quạt:", "Mode kipas:", "Modalità ventole:" };
+        m["fc_default"]     = new[] { "MSI default", "MSI domyślny", "MSI-Standard", "MSI par défaut", "MSI predeterminado", "MSI 默认", "Padrão MSI", "По умолчанию MSI", "MSI 既定", "MSI 기본값", "MSI 預設", "MSI varsayılanı", "Mặc định MSI", "Default MSI", "Predefinita MSI" };
+        m["fc_applied"]     = new[] { "Custom fan curve applied to the current mode.", "Własna krzywa zastosowana w aktualnym trybie.", "Eigene Lüfterkurve im aktuellen Modus angewendet.", "Courbe personnalisée appliquée au mode actuel.", "Curva personalizada aplicada al modo actual.", "已在当前模式应用自定义曲线。", "Curva personalizada aplicada ao modo atual.", "Своя кривая применена в текущем режиме.", "現在のモードにカスタムファンカーブを適用しました。", "현재 모드에 사용자 지정 팬 곡선을 적용했습니다.", "已在目前模式套用自訂風扇曲線。", "Özel fan eğrisi geçerli moda uygulandı.", "Đã áp dụng đường cong quạt tùy chỉnh cho chế độ hiện tại.", "Kurva kipas kustom diterapkan ke mode saat ini.", "Curva personalizzata applicata alla modalità corrente." };
         m["fc_warn_low"]    = new[] {
             "The highest-temperature speed is low — fans may stay quiet under heavy load and the laptop can get hot. Apply anyway?",
             "Prędkość przy najwyższej temperaturze jest niska — pod dużym obciążeniem wentylatory mogą zostać ciche i laptop się zagrzeje. Zastosować mimo to?",
@@ -921,9 +1282,17 @@ public static class Lang
             "La velocidad a la temperatura máxima es baja — con carga, los ventiladores pueden quedar silenciosos y el equipo calentarse. ¿Aplicar igual?",
             "最高温度下的转速偏低——重载时风扇可能仍很安静、机器会发热。仍要应用吗？",
             "A velocidade na temperatura máxima é baixa — sob carga, as ventoinhas podem ficar silenciosas e o aparelho esquentar. Aplicar mesmo assim?",
-            "Скорость при макс. температуре низкая — под нагрузкой вентиляторы могут остаться тихими, и ноутбук нагреется. Всё равно применить?" };
-        m["test_curve_btn"] = new[] { "Show fan curve (read-only)", "Pokaż krzywą wentylatora (read-only)", "Lüfterkurve anzeigen (nur Lesen)", "Afficher la courbe (lecture seule)", "Mostrar curva (solo lectura)", "显示风扇曲线（只读）", "Mostrar curva (somente leitura)", "Показать кривую (только чтение)" };
-        m["test_curve_none"]= new[] { "No fan-curve map for this model yet.", "Brak mapy krzywej dla tego modelu.", "Noch keine Lüfterkurven-Map für dieses Modell.", "Pas encore de courbe pour ce modèle.", "Aún no hay mapa de curva para este modelo.", "该型号尚无风扇曲线映射。", "Ainda não há mapa de curva para este modelo.", "Для этой модели пока нет карты кривой." };
+            "Скорость при макс. температуре низкая — под нагрузкой вентиляторы могут остаться тихими, и ноутбук нагреется. Всё равно применить?",
+            "最高温度での回転数が低めです — 高負荷時もファンが静かなままで、本体が熱くなる可能性があります。それでも適用しますか？",
+            "최고 온도 구간의 속도가 낮습니다 — 고부하에서 팬이 조용히 유지되어 노트북이 뜨거워질 수 있습니다. 그래도 적용하시겠습니까?",
+            "最高溫度下的轉速偏低——重負載時風扇可能仍很安靜、機器會發熱。仍要套用嗎？",
+            "En yüksek sıcaklıktaki hız düşük — fanlar ağır yükte sessiz kalabilir ve dizüstü ısınabilir. Yine de uygulansın mı?",
+            "Tốc độ ở nhiệt độ cao nhất khá thấp — quạt có thể vẫn êm khi tải nặng và máy có thể nóng. Vẫn áp dụng?",
+            "Kecepatan pada suhu tertinggi rendah — kipas mungkin tetap pelan saat beban berat dan laptop bisa panas. Tetap terapkan?",
+            "La velocità alla temperatura massima è bassa: le ventole potrebbero restare silenziose sotto carico e il laptop scaldarsi. Applicare comunque?"
+            };
+        m["test_curve_btn"] = new[] { "Show fan curve (read-only)", "Pokaż krzywą wentylatora (read-only)", "Lüfterkurve anzeigen (nur Lesen)", "Afficher la courbe (lecture seule)", "Mostrar curva (solo lectura)", "显示风扇曲线（只读）", "Mostrar curva (somente leitura)", "Показать кривую (только чтение)", "ファンカーブを表示（読み取り専用）", "팬 곡선 표시 (읽기 전용)", "顯示風扇曲線（唯讀）", "Fan eğrisini göster (salt okunur)", "Hiện đường cong quạt (chỉ đọc)", "Tampilkan kurva kipas (hanya baca)", "Mostra curva ventole (sola lettura)" };
+        m["test_curve_none"]= new[] { "No fan-curve map for this model yet.", "Brak mapy krzywej dla tego modelu.", "Noch keine Lüfterkurven-Map für dieses Modell.", "Pas encore de courbe pour ce modèle.", "Aún no hay mapa de curva para este modelo.", "该型号尚无风扇曲线映射。", "Ainda não há mapa de curva para este modelo.", "Для этой модели пока нет карты кривой.", "このモデルのファンカーブマップはまだありません。", "이 모델의 팬 곡선 맵이 아직 없습니다.", "此機型尚無風扇曲線對應表。", "Bu model için henüz fan eğrisi haritası yok.", "Model này chưa có bản đồ đường cong quạt.", "Belum ada peta kurva kipas untuk model ini.", "Nessuna mappa curva ventole per questo modello." };
         m["test_curve_hint"]= new[] {
             "Read-only preview — compare with MSI Center (Extreme → Advanced) to confirm the point count and values.",
             "Podgląd tylko do odczytu — porównaj z MSI Center (Extreme → Advanced), aby potwierdzić liczbę punktów i wartości.",
@@ -932,10 +1301,18 @@ public static class Lang
             "Vista previa de solo lectura — compara con MSI Center (Extreme → Advanced) para confirmar el número de puntos y los valores.",
             "只读预览——与 MSI Center（Extreme → Advanced）对比以确认点数和数值。",
             "Pré-visualização somente leitura — compare com o MSI Center (Extreme → Advanced) para confirmar o número de pontos e valores.",
-            "Предпросмотр только для чтения — сравните с MSI Center (Extreme → Advanced), чтобы подтвердить число точек и значения." };
-        m["test_dump_saved"]= new[] { "Saved to:\n{0}", "Zapisano do:\n{0}", "Gespeichert:\n{0}", "Enregistré :\n{0}", "Guardado en:\n{0}", "已保存到：\n{0}", "Salvo em:\n{0}", "Сохранено:\n{0}" };
-        m["test_adv_on"]    = new[] { "Silent + Advanced fan (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + 高级 (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)" };
-        m["test_adv_off"]   = new[] { "Restore Silent", "Przywróć Silent", "Silent wiederherstellen", "Restaurer Silent", "Restaurar Silent", "恢复 Silent", "Restaurar Silent", "Вернуть Silent" };
+            "Предпросмотр только для чтения — сравните с MSI Center (Extreme → Advanced), чтобы подтвердить число точек и значения.",
+            "読み取り専用プレビュー — MSI Center（Extreme → Advanced）と比較して点数と値を確認してください。",
+            "읽기 전용 미리보기 — MSI Center(Extreme → Advanced)와 비교해 포인트 수와 값을 확인하세요.",
+            "唯讀預覽——與 MSI Center（Extreme → Advanced）比對以確認點數和數值。",
+            "Salt okunur önizleme — nokta sayısını ve değerleri doğrulamak için MSI Center (Extreme → Advanced) ile karşılaştırın.",
+            "Xem trước chỉ đọc — so sánh với MSI Center (Extreme → Advanced) để xác nhận số điểm và giá trị.",
+            "Pratinjau hanya baca — bandingkan dengan MSI Center (Extreme → Advanced) untuk memastikan jumlah titik dan nilainya.",
+            "Anteprima in sola lettura: confronta con MSI Center (Extreme → Advanced) per verificare numero di punti e valori."
+            };
+        m["test_dump_saved"]= new[] { "Saved to:\n{0}", "Zapisano do:\n{0}", "Gespeichert:\n{0}", "Enregistré :\n{0}", "Guardado en:\n{0}", "已保存到：\n{0}", "Salvo em:\n{0}", "Сохранено:\n{0}", "保存先：\n{0}", "저장 위치:\n{0}", "已儲存到：\n{0}", "Kaydedildi:\n{0}", "Đã lưu vào:\n{0}", "Disimpan ke:\n{0}", "Salvato in:\n{0}" };
+        m["test_adv_on"]    = new[] { "Silent + Advanced fan (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + 高级 (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced (0xD4=0x8D)", "Silent + Advanced ファン（0xD4=0x8D）", "Silent + 고급 팬 (0xD4=0x8D)", "Silent + 進階風扇 (0xD4=0x8D)", "Silent + Gelişmiş fan (0xD4=0x8D)", "Silent + quạt nâng cao (0xD4=0x8D)", "Silent + kipas Advanced (0xD4=0x8D)", "Silent + ventola avanzata (0xD4=0x8D)" };
+        m["test_adv_off"]   = new[] { "Restore Silent", "Przywróć Silent", "Silent wiederherstellen", "Restaurer Silent", "Restaurar Silent", "恢复 Silent", "Restaurar Silent", "Вернуть Silent", "Silent を復元", "Silent 복원", "還原 Silent", "Silent'ı geri yükle", "Khôi phục Silent", "Pulihkan Silent", "Ripristina Silent" };
         m["test_note"]      = new[] {
             "Experiment: does the EC obey advanced fan control outside Extreme? Apply, watch the fans, then restore. Tested models only.",
             "Eksperyment: czy EC słucha trybu Advanced poza Extreme? Włącz, obserwuj wentylatory, potem przywróć. Tylko modele Tested.",
@@ -944,10 +1321,18 @@ public static class Lang
             "Experimento: ¿obedece el EC el modo Advanced fuera de Extreme? Aplica, observa los ventiladores y restaura. Solo modelos probados.",
             "实验：在 Extreme 之外 EC 是否服从高级风扇控制？应用、观察风扇，然后恢复。仅限已测试机型。",
             "Experimento: o EC obedece ao modo Advanced fora do Extreme? Aplique, observe as ventoinhas e restaure. Apenas modelos testados.",
-            "Эксперимент: слушается ли EC режима Advanced вне Extreme? Примените, посмотрите на вентиляторы, затем верните. Только проверенные модели." };
-        m["tab_report"]     = new[] { "Report", "Zgłoś", "Melden", "Signaler", "Reportar", "提交机型", "Reportar", "Сообщить" };
+            "Эксперимент: слушается ли EC режима Advanced вне Extreme? Примените, посмотрите на вентиляторы, затем верните. Только проверенные модели.",
+            "実験：Extreme 以外でも EC は Advanced ファン制御に従うか？適用してファンを観察し、その後復元してください。テスト済みモデルのみ。",
+            "실험: Extreme 외에서도 EC가 고급 팬 제어를 따르는지 확인합니다. 적용 후 팬을 관찰하고 복원하세요. 테스트된 모델 전용.",
+            "實驗：在 Extreme 之外 EC 是否遵循進階風扇控制？套用、觀察風扇，然後還原。僅限已測試機型。",
+            "Deney: EC, Extreme dışında gelişmiş fan kontrolüne uyuyor mu? Uygulayın, fanları izleyin, sonra geri yükleyin. Yalnızca test edilmiş modeller.",
+            "Thử nghiệm: EC có tuân theo điều khiển quạt nâng cao ngoài Extreme không? Áp dụng, quan sát quạt, rồi khôi phục. Chỉ cho model đã kiểm thử.",
+            "Eksperimen: apakah EC mematuhi kontrol kipas lanjutan di luar Extreme? Terapkan, amati kipas, lalu pulihkan. Hanya model yang sudah diuji.",
+            "Esperimento: l'EC obbedisce al controllo ventole avanzato fuori da Extreme? Applica, osserva le ventole, poi ripristina. Solo modelli testati."
+            };
+        m["tab_report"]     = new[] { "Report", "Zgłoś", "Melden", "Signaler", "Reportar", "提交机型", "Reportar", "Сообщить", "報告", "보고", "回報機型", "Bildir", "Báo cáo", "Laporan", "Segnala" };
         // ---- Models tab ----
-        m["tab_models"]     = new[] { "Models", "Modele", "Modelle", "Modèles", "Modelos", "机型", "Modelos", "Модели" };
+        m["tab_models"]     = new[] { "Models", "Modele", "Modelle", "Modèles", "Modelos", "机型", "Modelos", "Модели", "モデル", "모델", "機型", "Modeller", "Model", "Model", "Modelli" };
         m["mdl_intro"]      = new[] {
             "Every firmware ID the app recognises: {0} tested on real hardware, the rest experimental (opt-in) from the msi-ec / MControlCenter register maps. On an unrecognised firmware the app stays read-only.",
             "Wszystkie identyfikatory firmware rozpoznawane przez aplikację: {0} zweryfikowanych na sprzęcie, reszta eksperymentalna (opcjonalna) z map rejestrów msi-ec / MControlCenter. Nieznany firmware = tryb tylko do odczytu.",
@@ -956,17 +1341,25 @@ public static class Lang
             "Todos los ID de firmware reconocidos: {0} probados en hardware real, el resto experimental (opcional) según los mapas de registros de msi-ec / MControlCenter. Con firmware desconocido la app queda en solo lectura.",
             "应用识别的所有固件 ID：{0} 个已在真实硬件上测试，其余为实验性（需自行启用），来自 msi-ec / MControlCenter 寄存器映射。固件未识别时应用保持只读。",
             "Todos os IDs de firmware reconhecidos: {0} testados em hardware real, o resto experimental (opt-in) dos mapas de registros do msi-ec / MControlCenter. Com firmware desconhecido o app fica somente leitura.",
-            "Все распознаваемые ID прошивок: {0} проверено на реальном железе, остальные экспериментальные (по желанию) из карт регистров msi-ec / MControlCenter. При неизвестной прошивке приложение остаётся в режиме только чтения." };
-        m["mdl_you"]        = new[] { "Your model", "Twój model", "Dein Modell", "Votre modèle", "Tu modelo", "你的机型", "Seu modelo", "Ваша модель" };
-        m["mdl_unknown"]    = new[] { "Firmware {0} not recognised — read-only mode.", "Firmware {0} nierozpoznany — tryb tylko do odczytu.", "Firmware {0} nicht erkannt — Nur-Lese-Modus.", "Firmware {0} non reconnu — mode lecture seule.", "Firmware {0} no reconocido — modo de solo lectura.", "未识别固件 {0} — 只读模式。", "Firmware {0} não reconhecido — modo somente leitura.", "Прошивка {0} не распознана — режим только чтения." };
-        m["mdl_c_family"]   = new[] { "Family", "Rodzina", "Familie", "Famille", "Familia", "家族", "Família", "Семейство" };
-        m["mdl_c_status"]   = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Статус" };
-        m["mdl_c_curve"]    = new[] { "Fan curve", "Krzywa", "Lüfterkurve", "Courbe", "Curva", "风扇曲线", "Curva", "Кривая" };
-        m["mdl_c_sb"]       = new[] { "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB" };
-        m["mdl_c_rpm"]      = new[] { "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM" };
-        m["mdl_curve_edit"] = new[] { "editable", "edytowalna", "editierbar", "modifiable", "editable", "可编辑", "editável", "редактируемая" };
-        m["mdl_curve_prev"] = new[] { "unverified", "niezweryfikowany", "unbestätigt", "non vérifiée", "sin verificar", "未验证", "não verificada", "не проверена" };
-        m["mdl_curve_vopt"] = new[] { "verified (opt-in)", "zweryfikowana (opt-in)", "bestätigt (Opt-in)", "vérifiée (opt-in)", "verificada (opt-in)", "已验证（需启用）", "verificada (opt-in)", "проверена (opt-in)" };
+            "Все распознаваемые ID прошивок: {0} проверено на реальном железе, остальные экспериментальные (по желанию) из карт регистров msi-ec / MControlCenter. При неизвестной прошивке приложение остаётся в режиме только чтения.",
+            "アプリが認識する全ファームウェア ID：{0} 件は実機でテスト済み、残りは msi-ec / MControlCenter のレジスタマップに基づく実験的（オプトイン）です。未認識のファームウェアでは読み取り専用のままです。",
+            "앱이 인식하는 모든 펌웨어 ID: 실제 하드웨어에서 테스트된 {0}개, 나머지는 msi-ec / MControlCenter 레지스터 맵 기반의 실험적(옵트인) 항목입니다. 인식되지 않은 펌웨어에서는 읽기 전용으로 동작합니다.",
+            "應用程式辨識的所有韌體 ID：{0} 個已在實機上測試，其餘為實驗性（需自行啟用），來自 msi-ec / MControlCenter 暫存器對應表。韌體未辨識時應用程式保持唯讀。",
+            "Uygulamanın tanıdığı tüm ürün yazılımı kimlikleri: {0} tanesi gerçek donanımda test edildi, geri kalanı msi-ec / MControlCenter yazmaç haritalarından deneysel (isteğe bağlı). Tanınmayan ürün yazılımında uygulama salt okunur kalır.",
+            "Mọi ID firmware ứng dụng nhận diện: {0} đã kiểm thử trên phần cứng thật, còn lại là thử nghiệm (cần bật) từ bản đồ thanh ghi msi-ec / MControlCenter. Với firmware chưa nhận diện, ứng dụng chỉ đọc.",
+            "Semua ID firmware yang dikenali aplikasi: {0} diuji pada perangkat nyata, sisanya eksperimental (opsional) dari peta register msi-ec / MControlCenter. Pada firmware yang tidak dikenali, aplikasi tetap hanya baca.",
+            "Tutti gli ID firmware riconosciuti dall'app: {0} testati su hardware reale, gli altri sperimentali (opt-in) dalle mappe registri di msi-ec / MControlCenter. Con firmware non riconosciuto l'app resta in sola lettura."
+            };
+        m["mdl_you"]        = new[] { "Your model", "Twój model", "Dein Modell", "Votre modèle", "Tu modelo", "你的机型", "Seu modelo", "Ваша модель", "お使いのモデル", "내 모델", "你的機型", "Modeliniz", "Model của bạn", "Model Anda", "Il tuo modello" };
+        m["mdl_unknown"]    = new[] { "Firmware {0} not recognised — read-only mode.", "Firmware {0} nierozpoznany — tryb tylko do odczytu.", "Firmware {0} nicht erkannt — Nur-Lese-Modus.", "Firmware {0} non reconnu — mode lecture seule.", "Firmware {0} no reconocido — modo de solo lectura.", "未识别固件 {0} — 只读模式。", "Firmware {0} não reconhecido — modo somente leitura.", "Прошивка {0} не распознана — режим только чтения.", "ファームウェア {0} は未認識 — 読み取り専用モード。", "펌웨어 {0}을(를) 인식할 수 없습니다 — 읽기 전용 모드.", "未辨識韌體 {0} — 唯讀模式。", "Ürün yazılımı {0} tanınmadı — salt okunur mod.", "Chưa nhận diện firmware {0} — chế độ chỉ đọc.", "Firmware {0} tidak dikenali — mode hanya baca.", "Firmware {0} non riconosciuto: modalità sola lettura." };
+        m["mdl_c_family"]   = new[] { "Family", "Rodzina", "Familie", "Famille", "Familia", "家族", "Família", "Семейство", "ファミリー", "제품군", "系列", "Aile", "Dòng", "Keluarga", "Famiglia" };
+        m["mdl_c_status"]   = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Статус", "ステータス", "상태", "狀態", "Durum", "Trạng thái", "Status", "Stato" };
+        m["mdl_c_curve"]    = new[] { "Fan curve", "Krzywa", "Lüfterkurve", "Courbe", "Curva", "风扇曲线", "Curva", "Кривая", "ファンカーブ", "팬 곡선", "風扇曲線", "Fan eğrisi", "Đường cong quạt", "Kurva kipas", "Curva ventole" };
+        m["mdl_c_sb"]       = new[] { "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB", "SB" };
+        m["mdl_c_rpm"]      = new[] { "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM", "RPM" };
+        m["mdl_curve_edit"] = new[] { "editable", "edytowalna", "editierbar", "modifiable", "editable", "可编辑", "editável", "редактируемая", "編集可", "편집 가능", "可編輯", "düzenlenebilir", "sửa được", "dapat diedit", "modificabile" };
+        m["mdl_curve_prev"] = new[] { "unverified", "niezweryfikowany", "unbestätigt", "non vérifiée", "sin verificar", "未验证", "não verificada", "не проверена", "未検証", "미검증", "未驗證", "doğrulanmadı", "chưa xác minh", "belum diverifikasi", "non verificata" };
+        m["mdl_curve_vopt"] = new[] { "verified (opt-in)", "zweryfikowana (opt-in)", "bestätigt (Opt-in)", "vérifiée (opt-in)", "verificada (opt-in)", "已验证（需启用）", "verificada (opt-in)", "проверена (opt-in)", "検証済み（オプトイン）", "검증됨 (옵트인)", "已驗證（需啟用）", "doğrulandı (isteğe bağlı)", "đã xác minh (cần bật)", "terverifikasi (opsional)", "verificata (opt-in)" };
         m["mdl_sb_tip"]     = new[] {
             "Super Battery\nWhether the model has a dedicated super-battery\nregister (deepest power/battery throttle).\nAffects the Super Battery profile.",
             "Super Battery\nCzy model ma dedykowany rejestr super-baterii\n(najgłębszy throttle mocy/baterii).\nWpływa na profil Super Battery.",
@@ -975,8 +1368,16 @@ public static class Lang
             "Super Battery\nSi el modelo tiene un registro de super-batería dedicado\n(la limitación más profunda).\nAfecta al perfil Super Battery.",
             "Super Battery\n机型是否有专用的超级省电寄存器\n（最深度的功耗/电池限制）。\n影响 Super Battery 配置文件。",
             "Super Battery\nSe o modelo tem um registro dedicado de super-bateria\n(a limitação mais profunda).\nAfeta o perfil Super Battery.",
-            "Super Battery\nЕсть ли у модели отдельный регистр супер-батареи\n(самое глубокое ограничение мощности).\nВлияет на профиль Super Battery." };
-        m["mdl_search"]     = new[] { "Search model or firmware…", "Szukaj modelu lub firmware…", "Modell oder Firmware suchen…", "Rechercher un modèle ou firmware…", "Buscar modelo o firmware…", "搜索机型或固件…", "Pesquisar modelo ou firmware…", "Поиск модели или прошивки…" };
+            "Super Battery\nЕсть ли у модели отдельный регистр супер-батареи\n(самое глубокое ограничение мощности).\nВлияет на профиль Super Battery.",
+            "Super Battery\nこのモデルに専用の Super Battery レジスタ\n（最も深い電力/バッテリー制限）があるかどうか。\nSuper Battery プロファイルに影響します。",
+            "Super Battery\n모델에 전용 Super Battery 레지스터\n(가장 강한 전력/배터리 제한)가 있는지 여부.\nSuper Battery 프로필에 영향을 줍니다.",
+            "Super Battery\n機型是否有專用的超級省電暫存器\n（最深度的功耗/電池限制）。\n影響 Super Battery 設定檔。",
+            "Super Battery\nModelde özel bir super-battery yazmacı\nolup olmadığı (en derin güç/pil kısıtlaması).\nSuper Battery profilini etkiler.",
+            "Super Battery\nModel có thanh ghi super-battery riêng hay không\n(mức giới hạn nguồn/pin sâu nhất).\nẢnh hưởng đến hồ sơ Super Battery.",
+            "Super Battery\nApakah model memiliki register super-battery\nkhusus (pembatasan daya/baterai terdalam).\nMemengaruhi profil Super Battery.",
+            "Super Battery\nIndica se il modello ha un registro super-battery\ndedicato (limite più profondo di potenza/batteria).\nInfluisce sul profilo Super Battery."
+            };
+        m["mdl_search"]     = new[] { "Search model or firmware…", "Szukaj modelu lub firmware…", "Modell oder Firmware suchen…", "Rechercher un modèle ou firmware…", "Buscar modelo o firmware…", "搜索机型或固件…", "Pesquisar modelo ou firmware…", "Поиск модели или прошивки…", "モデルまたはファームウェアを検索…", "모델 또는 펌웨어 검색…", "搜尋機型或韌體…", "Model veya ürün yazılımı ara…", "Tìm model hoặc firmware…", "Cari model atau firmware…", "Cerca modello o firmware…" };
         m["mdl_legend"]     = new[] {
             "Fan curve:  ✓ editable = writable now   ·   ◉ unverified = editable after enabling Experimental, but addresses unconfirmed - compare with MSI Center first   ·   — = none.   SB = has a super-battery register.   RPM = fan-tachometer address known (real RPM shown).",
             "Krzywa:  ✓ edytowalna = zapisywalna od razu   ·   ◉ niezweryfikowany = edytowalna po włączeniu trybu eksperymentalnego, ale adresy niepotwierdzone - najpierw porównaj z MSI Center   ·   — = brak.   SB = ma rejestr super-baterii.   RPM = znany adres tachometru (pokazuje realne RPM).",
@@ -985,38 +1386,46 @@ public static class Lang
             "Curva:  ✓ editable = escribible ya   ·   ◉ sin verificar = editable tras activar Experimental, direcciones sin confirmar - compara antes con MSI Center   ·   — = ninguna.   SB = registro de super-batería.   RPM = dirección del tacómetro conocida (RPM reales).",
             "风扇曲线：✓ 可编辑 = 立即可写   ·   ◉ 未验证 = 启用实验模式后可编辑，但地址未确认 - 请先与 MSI Center 对比   ·   — = 无。SB = 有超级省电寄存器。RPM = 已知转速地址（显示真实转速）。",
             "Curva:  ✓ editável = gravável agora   ·   ◉ não verificada = editável após ativar Experimental, endereços não confirmados - compare antes com o MSI Center   ·   — = nenhuma.   SB = registro de super-bateria.   RPM = endereço do tacômetro conhecido (RPM reais).",
-            "Кривая:  ✓ редактируемая = запись доступна   ·   ◉ не проверена = доступна после включения экспериментального режима, адреса не подтверждены - сначала сравните с MSI Center   ·   — = нет.   SB = есть регистр супер-батареи.   RPM = известен адрес тахометра (реальные обороты)." };
-        m["set_grp_look"]   = new[] { "Appearance", "Wygląd", "Darstellung", "Apparence", "Apariencia", "外观", "Aparência", "Вид" };
-        m["set_grp_power"]  = new[] { "Power", "Zasilanie", "Energie", "Alimentation", "Energía", "电源", "Energia", "Питание" };
-        m["set_grp_start"]  = new[] { "Startup & tray", "Start i zasobnik", "Start & Infobereich", "Démarrage", "Inicio", "启动与托盘", "Inicialização", "Запуск" };
-        m["set_grp_updates"]= new[] { "Updates", "Aktualizacje", "Updates", "Mises à jour", "Actualizaciones", "更新", "Atualizações", "Обновления" };
-        m["set_grp_tray"]   = new[] { "Tray menu", "Menu w zasobniku", "Infobereichsmenü", "Menu de la barre d'état", "Menú de bandeja", "托盘菜单", "Menu da bandeja", "Меню в трее" };
+            "Кривая:  ✓ редактируемая = запись доступна   ·   ◉ не проверена = доступна после включения экспериментального режима, адреса не подтверждены - сначала сравните с MSI Center   ·   — = нет.   SB = есть регистр супер-батареи.   RPM = известен адрес тахометра (реальные обороты).",
+            "ファンカーブ：  ✓ 編集可 = 今すぐ書き込み可   ·   ◉ 未検証 = 実験的機能を有効にすると編集可、ただしアドレス未確認 - 先に MSI Center と比較   ·   — = なし。SB = Super Battery レジスタあり。RPM = ファン回転計アドレス既知（実 RPM を表示）。",
+            "팬 곡선:  ✓ 편집 가능 = 지금 쓰기 가능   ·   ◉ 미검증 = 실험 기능 활성화 후 편집 가능하나 주소 미확인 - 먼저 MSI Center와 비교   ·   — = 없음.   SB = Super Battery 레지스터 있음.   RPM = 팬 회전계 주소 확인됨(실제 RPM 표시).",
+            "風扇曲線：✓ 可編輯 = 立即可寫入   ·   ◉ 未驗證 = 啟用實驗模式後可編輯，但位址未確認 - 請先與 MSI Center 比對   ·   — = 無。SB = 有超級省電暫存器。RPM = 已知轉速計位址（顯示實際轉速）。",
+            "Fan eğrisi:  ✓ düzenlenebilir = şimdi yazılabilir   ·   ◉ doğrulanmadı = Deneysel etkinleştirilince düzenlenebilir, ancak adresler doğrulanmamış - önce MSI Center ile karşılaştırın   ·   — = yok.   SB = super-battery yazmacı var.   RPM = fan takometre adresi biliniyor (gerçek RPM gösterilir).",
+            "Đường cong quạt:  ✓ sửa được = ghi được ngay   ·   ◉ chưa xác minh = sửa được sau khi bật Thử nghiệm, nhưng địa chỉ chưa xác nhận - hãy so với MSI Center trước   ·   — = không có.   SB = có thanh ghi super-battery.   RPM = đã biết địa chỉ cảm biến vòng quay quạt (hiện RPM thật).",
+            "Kurva kipas:  ✓ dapat diedit = bisa ditulis sekarang   ·   ◉ belum diverifikasi = dapat diedit setelah mengaktifkan Eksperimental, tetapi alamat belum dikonfirmasi - bandingkan dulu dengan MSI Center   ·   — = tidak ada.   SB = punya register super-battery.   RPM = alamat takometer kipas diketahui (RPM nyata ditampilkan).",
+            "Curva ventole:  ✓ modificabile = scrivibile ora   ·   ◉ non verificata = modificabile dopo aver attivato Sperimentale, ma indirizzi non confermati - confronta prima con MSI Center   ·   — = nessuna.   SB = ha un registro super-battery.   RPM = indirizzo tachimetro ventola noto (RPM reali mostrati)."
+            };
+        m["set_grp_look"]   = new[] { "Appearance", "Wygląd", "Darstellung", "Apparence", "Apariencia", "外观", "Aparência", "Вид", "外観", "외관", "外觀", "Görünüm", "Diện mạo", "Tampilan", "Aspetto" };
+        m["set_grp_power"]  = new[] { "Power", "Zasilanie", "Energie", "Alimentation", "Energía", "电源", "Energia", "Питание", "電源", "전원", "電源", "Güç", "Nguồn", "Daya", "Alimentazione" };
+        m["set_grp_start"]  = new[] { "Startup & tray", "Start i zasobnik", "Start & Infobereich", "Démarrage", "Inicio", "启动与托盘", "Inicialização", "Запуск", "起動とトレイ", "시작 및 트레이", "啟動與系統匣", "Başlangıç ve tepsi", "Khởi động & khay", "Startup & tray", "Avvio e tray" };
+        m["set_grp_updates"]= new[] { "Updates", "Aktualizacje", "Updates", "Mises à jour", "Actualizaciones", "更新", "Atualizações", "Обновления", "更新", "업데이트", "更新", "Güncellemeler", "Cập nhật", "Pembaruan", "Aggiornamenti" };
+        m["set_grp_tray"]   = new[] { "Tray menu", "Menu w zasobniku", "Infobereichsmenü", "Menu de la barre d'état", "Menú de bandeja", "托盘菜单", "Menu da bandeja", "Меню в трее", "トレイメニュー", "트레이 메뉴", "系統匣選單", "Tepsi menüsü", "Menu khay", "Menu tray", "Menu tray" };
         // (#23) tray-icon mouse actions
-        m["set_tray_left"]  = new[] { "Left click", "Lewy przycisk", "Linksklick", "Clic gauche", "Clic izquierdo", "左键单击", "Clique esquerdo", "Левый клик" };
-        m["set_tray_mid"]   = new[] { "Middle click", "Środkowy przycisk", "Mittelklick", "Clic du milieu", "Clic central", "中键单击", "Clique do meio", "Средний клик" };
-        m["set_tray_wheel"] = new[] { "Scroll wheel", "Kółko myszy", "Mausrad", "Molette", "Rueda del ratón", "滚轮", "Roda do mouse", "Колесо мыши" };
-        m["act_none"]       = new[] { "Do nothing", "Nic nie rób", "Nichts tun", "Ne rien faire", "No hacer nada", "不执行操作", "Não fazer nada", "Ничего не делать" };
-        m["act_show_state"] = new[] { "Show current state", "Pokaż bieżący stan", "Aktuellen Status anzeigen", "Afficher l'état actuel", "Mostrar estado actual", "显示当前状态", "Mostrar estado atual", "Показать текущее состояние" };
-        m["act_open"]       = new[] { "Open: {0}", "Otwórz: {0}", "Öffnen: {0}", "Ouvrir : {0}", "Abrir: {0}", "打开：{0}", "Abrir: {0}", "Открыть: {0}" };
-        m["twa_profiles"]   = new[] { "Switch profiles", "Przełączaj profile", "Profile wechseln", "Changer de profil", "Cambiar perfiles", "切换情景模式", "Alternar perfis", "Переключение профилей" };
+        m["set_tray_left"]  = new[] { "Left click", "Lewy przycisk", "Linksklick", "Clic gauche", "Clic izquierdo", "左键单击", "Clique esquerdo", "Левый клик", "左クリック", "왼쪽 클릭", "按一下左鍵", "Sol tık", "Nhấp trái", "Klik kiri", "Clic sinistro" };
+        m["set_tray_mid"]   = new[] { "Middle click", "Środkowy przycisk", "Mittelklick", "Clic du milieu", "Clic central", "中键单击", "Clique do meio", "Средний клик", "中クリック", "가운데 클릭", "按一下中鍵", "Orta tık", "Nhấp giữa", "Klik tengah", "Clic centrale" };
+        m["set_tray_wheel"] = new[] { "Scroll wheel", "Kółko myszy", "Mausrad", "Molette", "Rueda del ratón", "滚轮", "Roda do mouse", "Колесо мыши", "ホイール", "스크롤 휠", "滾輪", "Kaydırma tekerleği", "Con lăn chuột", "Roda gulir", "Rotellina" };
+        m["act_none"]       = new[] { "Do nothing", "Nic nie rób", "Nichts tun", "Ne rien faire", "No hacer nada", "不执行操作", "Não fazer nada", "Ничего не делать", "何もしない", "동작 없음", "不執行動作", "Hiçbir şey yapma", "Không làm gì", "Tanpa aksi", "Nessuna azione" };
+        m["act_show_state"] = new[] { "Show current state", "Pokaż bieżący stan", "Aktuellen Status anzeigen", "Afficher l'état actuel", "Mostrar estado actual", "显示当前状态", "Mostrar estado atual", "Показать текущее состояние", "現在の状態を表示", "현재 상태 표시", "顯示目前狀態", "Geçerli durumu göster", "Hiện trạng thái hiện tại", "Tampilkan status saat ini", "Mostra stato attuale" };
+        m["act_open"]       = new[] { "Open: {0}", "Otwórz: {0}", "Öffnen: {0}", "Ouvrir : {0}", "Abrir: {0}", "打开：{0}", "Abrir: {0}", "Открыть: {0}", "開く：{0}", "열기: {0}", "開啟：{0}", "Aç: {0}", "Mở: {0}", "Buka: {0}", "Apri: {0}" };
+        m["twa_profiles"]   = new[] { "Switch profiles", "Przełączaj profile", "Profile wechseln", "Changer de profil", "Cambiar perfiles", "切换情景模式", "Alternar perfis", "Переключение профилей", "プロファイル切替", "프로필 전환", "切換設定檔", "Profil değiştir", "Chuyển hồ sơ", "Ganti profil", "Cambia profilo" };
         // (#26) keyboard backlight
-        m["kbd_title"]      = new[] { "Keyboard backlight", "Podświetlenie klawiatury", "Tastaturbeleuchtung", "Rétroéclairage du clavier", "Retroiluminación del teclado", "键盘背光", "Retroiluminação do teclado", "Подсветка клавиатуры" };
-        m["kbd_off"]        = new[] { "Off", "Wył.", "Aus", "Éteint", "Apagado", "关闭", "Desligado", "Выкл." };
-        m["kbd_low"]        = new[] { "Low", "Niska", "Niedrig", "Faible", "Baja", "低", "Baixa", "Низкая" };
+        m["kbd_title"]      = new[] { "Keyboard backlight", "Podświetlenie klawiatury", "Tastaturbeleuchtung", "Rétroéclairage du clavier", "Retroiluminación del teclado", "键盘背光", "Retroiluminação do teclado", "Подсветка клавиатуры", "キーボードバックライト", "키보드 백라이트", "鍵盤背光", "Klavye aydınlatması", "Đèn nền bàn phím", "Lampu latar keyboard", "Retroilluminazione tastiera" };
+        m["kbd_off"]        = new[] { "Off", "Wył.", "Aus", "Éteint", "Apagado", "关闭", "Desligado", "Выкл.", "オフ", "끄기", "關閉", "Kapalı", "Tắt", "Mati", "Off" };
+        m["kbd_low"]        = new[] { "Low", "Niska", "Niedrig", "Faible", "Baja", "低", "Baixa", "Низкая", "低", "낮음", "低", "Düşük", "Thấp", "Rendah", "Bassa" };
     }
 
     private static void L09(Dictionary<string, string[]> m)
     {
-        m["kbd_mid"]        = new[] { "Mid", "Średnia", "Mittel", "Moyen", "Media", "中", "Média", "Средняя" };
-        m["kbd_high"]       = new[] { "High", "Wysoka", "Hoch", "Élevé", "Alta", "高", "Alta", "Высокая" };
+        m["kbd_mid"]        = new[] { "Mid", "Średnia", "Mittel", "Moyen", "Media", "中", "Média", "Средняя", "中", "중간", "中", "Orta", "Vừa", "Sedang", "Media" };
+        m["kbd_high"]       = new[] { "High", "Wysoka", "Hoch", "Élevé", "Alta", "高", "Alta", "Высокая", "高", "높음", "高", "Yüksek", "Cao", "Tinggi", "Alta" };
         // signed model database (ModelDb)
-        m["temptray_grp"]     = new[] { "Temperature in the tray", "Temperatura w zasobniku", "Temperatur im Infobereich", "Température dans la zone de notification", "Temperatura en la bandeja", "托盘温度显示", "Temperatura na bandeja", "Температура в трее" };
-        m["temptray_warn"]    = new[] { "Warm above", "Ciepło powyżej", "Warm ab", "Tiède au-dessus de", "Cálido por encima de", "偏热阈值", "Morno acima de", "Тепло выше" };
-        m["temptray_hot"]     = new[] { "Hot above", "Gorąco powyżej", "Heiß ab", "Chaud au-dessus de", "Caliente por encima de", "高温阈值", "Quente acima de", "Горячо выше" };
-        m["temptray_ok"]      = new[] { "Normal", "Normalna", "Normal", "Normale", "Normal", "正常", "Normal", "Норма" };
-        m["temptray_warn_c"]  = new[] { "Warm", "Ciepła", "Warm", "Tiède", "Cálido", "偏热", "Morno", "Тепло" };
-        m["temptray_hot_c"]   = new[] { "Hot", "Gorąca", "Heiß", "Chaud", "Caliente", "高温", "Quente", "Горячо" };
-        m["temptray_reset"]   = new[] { "Default colours", "Domyślne kolory", "Standardfarben", "Couleurs par défaut", "Colores predeterminados", "默认颜色", "Cores padrão", "Цвета по умолчанию" };
+        m["temptray_grp"]     = new[] { "Temperature in the tray", "Temperatura w zasobniku", "Temperatur im Infobereich", "Température dans la zone de notification", "Temperatura en la bandeja", "托盘温度显示", "Temperatura na bandeja", "Температура в трее", "トレイに温度表示", "트레이 온도 표시", "系統匣溫度顯示", "Tepside sıcaklık", "Nhiệt độ trên khay", "Suhu di tray", "Temperatura nel tray" };
+        m["temptray_warn"]    = new[] { "Warm above", "Ciepło powyżej", "Warm ab", "Tiède au-dessus de", "Cálido por encima de", "偏热阈值", "Morno acima de", "Тепло выше", "やや高温しきい値", "따뜻함 기준", "偏熱門檻", "Ilık eşiği", "Ấm khi trên", "Hangat di atas", "Caldo sopra" };
+        m["temptray_hot"]     = new[] { "Hot above", "Gorąco powyżej", "Heiß ab", "Chaud au-dessus de", "Caliente por encima de", "高温阈值", "Quente acima de", "Горячо выше", "高温しきい値", "뜨거움 기준", "高溫門檻", "Sıcak eşiği", "Nóng khi trên", "Panas di atas", "Molto caldo sopra" };
+        m["temptray_ok"]      = new[] { "Normal", "Normalna", "Normal", "Normale", "Normal", "正常", "Normal", "Норма", "正常", "정상", "正常", "Normal", "Bình thường", "Normal", "Normale" };
+        m["temptray_warn_c"]  = new[] { "Warm", "Ciepła", "Warm", "Tiède", "Cálido", "偏热", "Morno", "Тепло", "やや高温", "따뜻함", "偏熱", "Ilık", "Ấm", "Hangat", "Caldo" };
+        m["temptray_hot_c"]   = new[] { "Hot", "Gorąca", "Heiß", "Chaud", "Caliente", "高温", "Quente", "Горячо", "高温", "뜨거움", "高溫", "Sıcak", "Nóng", "Panas", "Molto caldo" };
+        m["temptray_reset"]   = new[] { "Default colours", "Domyślne kolory", "Standardfarben", "Couleurs par défaut", "Colores predeterminados", "默认颜色", "Cores padrão", "Цвета по умолчанию", "既定の色", "기본 색상", "預設色彩", "Varsayılan renkler", "Màu mặc định", "Warna default", "Colori predefiniti" };
         m["temptray_desc"]    = new[]
         {
             "Shows the temperature as a number next to the clock, without opening anything. Two separate icons, because a tray icon only fits two digits. Windows hides new icons in the overflow area at first - drag them onto the taskbar to keep them visible.",
@@ -1026,10 +1435,17 @@ public static class Lang
             "Muestra la temperatura como un número junto al reloj, sin abrir nada. Dos iconos separados, porque en un icono de la bandeja solo caben dos dígitos. Windows oculta al principio los iconos nuevos en el área de desbordamiento: arrástralos a la barra de tareas.",
             "在时钟旁以数字显示温度，无需打开任何窗口。使用两个独立图标，因为托盘图标只能容纳两位数字。Windows 默认会把新图标收进溢出区域，请把它们拖到任务栏上。",
             "Mostra a temperatura como um número ao lado do relógio, sem abrir nada. Dois ícones separados, porque um ícone da bandeja só comporta dois dígitos. O Windows esconde ícones novos na área de transbordo - arraste-os para a barra de tarefas.",
-            "Показывает температуру числом рядом с часами, ничего не открывая. Два отдельных значка, потому что в значок трея помещаются лишь две цифры. Windows сначала прячет новые значки в области переполнения - перетащите их на панель задач."
+            "Показывает температуру числом рядом с часами, ничего не открывая. Два отдельных значка, потому что в значок трея помещаются лишь две цифры. Windows сначала прячет новые значки в области переполнения - перетащите их на панель задач.",
+            "何も開かずに時計の横へ温度を数字で表示します。トレイアイコンには 2 桁しか収まらないため、アイコンを 2 つ使います。Windows は新しいアイコンを最初はオーバーフロー領域に隠します - タスクバーへドラッグすると常に表示されます。",
+            "아무것도 열지 않고 시계 옆에 온도를 숫자로 표시합니다. 트레이 아이콘에는 두 자리만 들어가므로 아이콘 두 개를 사용합니다. Windows는 처음에 새 아이콘을 오버플로 영역에 숨기므로 작업 표시줄로 끌어다 놓아 계속 표시되게 하세요.",
+            "在時鐘旁以數字顯示溫度，無需開啟任何視窗。使用兩個獨立圖示，因為系統匣圖示只能容納兩位數字。Windows 一開始會把新圖示收進溢位區域，請把它們拖到工作列上以保持顯示。",
+            "Sıcaklığı hiçbir şey açmadan saatin yanında sayı olarak gösterir. Bir tepsi simgesine yalnızca iki basamak sığdığından iki ayrı simge kullanılır. Windows yeni simgeleri önce taşma alanına gizler - görünür kalmaları için görev çubuğuna sürükleyin.",
+            "Hiện nhiệt độ dưới dạng số cạnh đồng hồ, không cần mở gì. Dùng hai biểu tượng riêng, vì một biểu tượng khay chỉ chứa được hai chữ số. Ban đầu Windows ẩn biểu tượng mới trong vùng tràn - hãy kéo chúng ra thanh tác vụ để luôn hiển thị.",
+            "Menampilkan suhu sebagai angka di samping jam, tanpa membuka apa pun. Dua ikon terpisah, karena ikon tray hanya muat dua digit. Windows awalnya menyembunyikan ikon baru di area luapan - seret ke taskbar agar tetap terlihat.",
+            "Mostra la temperatura come numero accanto all'orologio, senza aprire nulla. Due icone separate, perché un'icona tray contiene solo due cifre. Windows nasconde all'inizio le nuove icone nell'area overflow - trascinale sulla barra per tenerle visibili."
         };
-        m["set_grp_nav"]      = new[] { "Navigation", "Nawigacja", "Navigation", "Navigation", "Navegación", "导航", "Navegação", "Навигация" };
-        m["set_always_start"] = new[] { "Always open on Start", "Zawsze otwieraj na Start", "Immer auf Start öffnen", "Toujours ouvrir sur Accueil", "Abrir siempre en Inicio", "总是从起始页打开", "Abrir sempre no Início", "Всегда открывать на Старте" };
+        m["set_grp_nav"]      = new[] { "Navigation", "Nawigacja", "Navigation", "Navigation", "Navegación", "导航", "Navegação", "Навигация", "ナビゲーション", "탐색", "導覽", "Gezinme", "Điều hướng", "Navigasi", "Navigazione" };
+        m["set_always_start"] = new[] { "Always open on Start", "Zawsze otwieraj na Start", "Immer auf Start öffnen", "Toujours ouvrir sur Accueil", "Abrir siempre en Inicio", "总是从起始页打开", "Abrir sempre no Início", "Всегда открывать на Старте", "常にスタートで開く", "항상 시작 페이지로 열기", "一律從起始頁開啟", "Her zaman Başlangıç'ta aç", "Luôn mở ở Bắt đầu", "Selalu buka di Mulai", "Apri sempre su Inizio" };
         m["set_always_start_desc"] = new[]
         {
             "Settings open on the Start dashboard every time instead of the sub-tab you used last. Clicking the Settings tab while you are already on it always goes back to Start.",
@@ -1039,20 +1455,27 @@ public static class Lang
             "Los ajustes se abren siempre en la página de inicio en lugar de la subpestaña que usaste por última vez. Volver a pulsar la pestaña Ajustes siempre regresa a Inicio.",
             "设置每次都从起始页打开，而不是上次使用的子选项卡。已经在设置中时再次点击该选项卡也会回到起始页。",
             "As configurações abrem sempre na página inicial em vez da subguia usada por último. Clicar novamente na guia Configurações sempre volta ao Início.",
-            "Настройки всегда открываются на стартовой странице вместо последней использованной вкладки. Повторный щелчок по вкладке настроек всегда возвращает на старт."
+            "Настройки всегда открываются на стартовой странице вместо последней использованной вкладки. Повторный щелчок по вкладке настроек всегда возвращает на старт.",
+            "設定は毎回、前回のサブタブではなくスタートのダッシュボードで開きます。設定タブを表示中に再度クリックすると常にスタートへ戻ります。",
+            "설정을 열 때 마지막에 사용한 하위 탭 대신 항상 시작 대시보드로 엽니다. 이미 설정에 있을 때 설정 탭을 클릭하면 항상 시작 페이지로 돌아갑니다.",
+            "設定每次都從起始儀表板開啟，而不是上次使用的子分頁。已在設定中時再按一下設定分頁也會回到起始頁。",
+            "Ayarlar her seferinde son kullandığınız alt sekme yerine Başlangıç panosunda açılır. Zaten Ayarlar'dayken Ayarlar sekmesine tıklamak her zaman Başlangıç'a döner.",
+            "Cài đặt luôn mở ở bảng Bắt đầu thay vì tab con dùng lần trước. Nhấp tab Cài đặt khi đang ở trong đó sẽ luôn quay về Bắt đầu.",
+            "Pengaturan selalu terbuka di dasbor Mulai, bukan sub-tab yang terakhir Anda gunakan. Mengklik tab Pengaturan saat sudah berada di dalamnya selalu kembali ke Mulai.",
+            "Le impostazioni si aprono sempre sulla dashboard Inizio invece che sull'ultima sotto-scheda usata. Fare clic sulla scheda Impostazioni quando è già aperta riporta sempre a Inizio."
         };
-        m["set_modeldb"]    = new[] { "Model database", "Baza modeli", "Modell-Datenbank", "Base de modèles", "Base de modelos", "型号数据库", "Base de modelos", "База моделей" };
-        m["modeldb_downloaded"] = new[] { "updated", "zaktualizowana", "aktualisiert", "mise à jour", "actualizada", "已更新", "atualizada", "обновлена" };
-        m["modeldb_pending"] = new[] { "{0} waiting", "{0} czeka", "{0} wartet", "{0} en attente", "{0} en espera", "{0} 等待中", "{0} aguardando", "{0} ожидает" };
-        m["log_modeldb"]    = new[] { "Model database updated to {0}", "Baza modeli zaktualizowana do {0}", "Modell-Datenbank auf {0} aktualisiert", "Base de modèles mise à jour vers {0}", "Base de modelos actualizada a {0}", "型号数据库已更新到 {0}", "Base de modelos atualizada para {0}", "База моделей обновлена до {0}" };
-        m["modeldb_check"] = new[] { "Check now", "Sprawdź teraz", "Jetzt prüfen", "Vérifier", "Comprobar ahora", "立即检查", "Verificar agora", "Проверить" };
-        m["modeldb_checking"] = new[] { "Checking…", "Sprawdzam…", "Prüfe…", "Vérification…", "Comprobando…", "检查中…", "Verificando…", "Проверка…" };
-        m["modeldb_current"] = new[] { "Already up to date", "Już aktualna", "Bereits aktuell", "Déjà à jour", "Ya actualizada", "已是最新", "Já atualizada", "Уже актуальна" };
-        m["modeldb_applied"] = new[] { "Updated to {0}", "Zaktualizowano do {0}", "Auf {0} aktualisiert", "Mis à jour vers {0}", "Actualizada a {0}", "已更新到 {0}", "Atualizada para {0}", "Обновлена до {0}" };
-        m["modeldb_failed"] = new[] { "Could not check", "Nie udało się sprawdzić", "Prüfung fehlgeschlagen", "Vérification impossible", "No se pudo comprobar", "检查失败", "Não foi possível verificar", "Не удалось проверить" };
-        m["modeldb_deferred"] = new[] { "Downloaded - applies when the fan-curve editor is closed", "Pobrano - zadziała po zamknięciu edytora krzywej", "Geladen - wirkt, sobald der Lüfterkurven-Editor geschlossen ist", "Téléchargée - active à la fermeture de l'éditeur de courbe", "Descargada - se aplica al cerrar el editor de curva", "已下载 - 关闭风扇曲线编辑器后生效", "Baixada - aplica ao fechar o editor de curva", "Загружена - применится после закрытия редактора кривой" };
+        m["set_modeldb"]    = new[] { "Model database", "Baza modeli", "Modell-Datenbank", "Base de modèles", "Base de modelos", "型号数据库", "Base de modelos", "База моделей", "モデルデータベース", "모델 데이터베이스", "機型資料庫", "Model veritabanı", "Cơ sở dữ liệu model", "Basis data model", "Database modelli" };
+        m["modeldb_downloaded"] = new[] { "updated", "zaktualizowana", "aktualisiert", "mise à jour", "actualizada", "已更新", "atualizada", "обновлена", "更新済み", "업데이트됨", "已更新", "güncellendi", "đã cập nhật", "diperbarui", "aggiornato" };
+        m["modeldb_pending"] = new[] { "{0} waiting", "{0} czeka", "{0} wartet", "{0} en attente", "{0} en espera", "{0} 等待中", "{0} aguardando", "{0} ожидает", "{0} 待機中", "{0} 대기 중", "{0} 等待中", "{0} bekliyor", "{0} đang chờ", "{0} menunggu", "{0} in attesa" };
+        m["log_modeldb"]    = new[] { "Model database updated to {0}", "Baza modeli zaktualizowana do {0}", "Modell-Datenbank auf {0} aktualisiert", "Base de modèles mise à jour vers {0}", "Base de modelos actualizada a {0}", "型号数据库已更新到 {0}", "Base de modelos atualizada para {0}", "База моделей обновлена до {0}", "モデルデータベースを {0} に更新しました", "모델 데이터베이스가 {0}(으)로 업데이트됨", "機型資料庫已更新至 {0}", "Model veritabanı {0} sürümüne güncellendi", "Cơ sở dữ liệu model đã cập nhật lên {0}", "Basis data model diperbarui ke {0}", "Database modelli aggiornato a {0}" };
+        m["modeldb_check"] = new[] { "Check now", "Sprawdź teraz", "Jetzt prüfen", "Vérifier", "Comprobar ahora", "立即检查", "Verificar agora", "Проверить", "今すぐ確認", "지금 확인", "立即檢查", "Şimdi denetle", "Kiểm tra ngay", "Periksa sekarang", "Controlla ora" };
+        m["modeldb_checking"] = new[] { "Checking…", "Sprawdzam…", "Prüfe…", "Vérification…", "Comprobando…", "检查中…", "Verificando…", "Проверка…", "確認中…", "확인 중…", "檢查中…", "Denetleniyor…", "Đang kiểm tra…", "Memeriksa…", "Controllo…" };
+        m["modeldb_current"] = new[] { "Already up to date", "Już aktualna", "Bereits aktuell", "Déjà à jour", "Ya actualizada", "已是最新", "Já atualizada", "Уже актуальна", "最新です", "이미 최신 상태", "已是最新", "Zaten güncel", "Đã là mới nhất", "Sudah yang terbaru", "Già aggiornato" };
+        m["modeldb_applied"] = new[] { "Updated to {0}", "Zaktualizowano do {0}", "Auf {0} aktualisiert", "Mis à jour vers {0}", "Actualizada a {0}", "已更新到 {0}", "Atualizada para {0}", "Обновлена до {0}", "{0} に更新しました", "{0}(으)로 업데이트됨", "已更新至 {0}", "{0} sürümüne güncellendi", "Đã cập nhật lên {0}", "Diperbarui ke {0}", "Aggiornato a {0}" };
+        m["modeldb_failed"] = new[] { "Could not check", "Nie udało się sprawdzić", "Prüfung fehlgeschlagen", "Vérification impossible", "No se pudo comprobar", "检查失败", "Não foi possível verificar", "Не удалось проверить", "確認できません", "확인할 수 없음", "無法檢查", "Denetlenemedi", "Không kiểm tra được", "Tidak dapat memeriksa", "Controllo non riuscito" };
+        m["modeldb_deferred"] = new[] { "Downloaded - applies when the fan-curve editor is closed", "Pobrano - zadziała po zamknięciu edytora krzywej", "Geladen - wirkt, sobald der Lüfterkurven-Editor geschlossen ist", "Téléchargée - active à la fermeture de l'éditeur de courbe", "Descargada - se aplica al cerrar el editor de curva", "已下载 - 关闭风扇曲线编辑器后生效", "Baixada - aplica ao fechar o editor de curva", "Загружена - применится после закрытия редактора кривой", "ダウンロード済み - ファンカーブエディターを閉じると適用", "다운로드됨 - 팬 곡선 편집기를 닫으면 적용됩니다", "已下載 - 關閉風扇曲線編輯器後生效", "İndirildi - fan eğrisi düzenleyicisi kapatılınca uygulanır", "Đã tải - áp dụng khi đóng trình sửa đường cong quạt", "Diunduh - diterapkan saat editor kurva kipas ditutup", "Scaricato - si applica alla chiusura dell'editor curva ventole" };
         // Windows-key lock (software hook)
-        m["winlock_title"]  = new[] { "Windows key lock", "Blokada klawisza Windows", "Windows-Taste sperren", "Verrou touche Windows", "Bloqueo tecla Windows", "Windows 键锁定", "Bloqueio da tecla Windows", "Блокировка клавиши Windows" };
+        m["winlock_title"]  = new[] { "Windows key lock", "Blokada klawisza Windows", "Windows-Taste sperren", "Verrou touche Windows", "Bloqueo tecla Windows", "Windows 键锁定", "Bloqueio da tecla Windows", "Блокировка клавиши Windows", "Windows キーロック", "Windows 키 잠금", "Windows 鍵鎖定", "Windows tuşu kilidi", "Khóa phím Windows", "Kunci tombol Windows", "Blocco tasto Windows" };
         m["winlock_hint"]   = new[]
         {
             "Blocks both Windows keys while gaming (Win+L too; Ctrl+Alt+Del still works)",
@@ -1063,12 +1486,19 @@ public static class Lang
             "游戏时屏蔽两个 Windows 键（包括 Win+L；Ctrl+Alt+Del 仍可用）",
             "Bloqueia as duas teclas Windows ao jogar (Win+L também; Ctrl+Alt+Del continua funcionando)",
             "Блокирует обе клавиши Windows в игре (включая Win+L; Ctrl+Alt+Del работает)",
+            "ゲーム中は両方の Windows キーをブロック（Win+L も。Ctrl+Alt+Del は有効）",
+            "게임 중 양쪽 Windows 키를 차단합니다 (Win+L 포함, Ctrl+Alt+Del은 계속 동작)",
+            "遊戲時封鎖兩個 Windows 鍵（包括 Win+L；Ctrl+Alt+Del 仍可用）",
+            "Oyun sırasında her iki Windows tuşunu engeller (Win+L dahil; Ctrl+Alt+Del çalışmaya devam eder)",
+            "Chặn cả hai phím Windows khi chơi game (kể cả Win+L; Ctrl+Alt+Del vẫn hoạt động)",
+            "Memblokir kedua tombol Windows saat bermain game (juga Win+L; Ctrl+Alt+Del tetap berfungsi)",
+            "Blocca entrambi i tasti Windows durante il gioco (anche Win+L; Ctrl+Alt+Del resta attivo)"
         };
         // screen brightness (scenes + CLI)
-        m["bri_title"]      = new[] { "Screen brightness", "Jasność ekranu", "Bildschirmhelligkeit", "Luminosité de l'écran", "Brillo de pantalla", "屏幕亮度", "Brilho da tela", "Яркость экрана" };
+        m["bri_title"]      = new[] { "Screen brightness", "Jasność ekranu", "Bildschirmhelligkeit", "Luminosité de l'écran", "Brillo de pantalla", "屏幕亮度", "Brilho da tela", "Яркость экрана", "画面の明るさ", "화면 밝기", "螢幕亮度", "Ekran parlaklığı", "Độ sáng màn hình", "Kecerahan layar", "Luminosità schermo" };
         // scene schedule
-        m["sch_grp"]        = new[] { "Scene schedule", "Harmonogram scen", "Szenen-Zeitplan", "Planification des scènes", "Programación de escenas", "场景计划", "Agendamento de cenas", "Расписание сцен" };
-        m["sch_enable"]     = new[] { "Schedule active", "Harmonogram aktywny", "Zeitplan aktiv", "Planification active", "Programación activa", "计划已启用", "Agendamento ativo", "Расписание включено" };
+        m["sch_grp"]        = new[] { "Scene schedule", "Harmonogram scen", "Szenen-Zeitplan", "Planification des scènes", "Programación de escenas", "场景计划", "Agendamento de cenas", "Расписание сцен", "シーンスケジュール", "장면 일정", "場景排程", "Sahne zamanlaması", "Lịch trình cảnh", "Jadwal scene", "Pianificazione scene" };
+        m["sch_enable"]     = new[] { "Schedule active", "Harmonogram aktywny", "Zeitplan aktiv", "Planification active", "Programación activa", "计划已启用", "Agendamento ativo", "Расписание включено", "スケジュール有効", "일정 활성", "排程已啟用", "Zamanlama etkin", "Lịch trình đang bật", "Jadwal aktif", "Pianificazione attiva" };
         m["sch_desc"]       = new[]
         {
             "Applies a scene when its time window starts (first matching rule wins; overnight ranges allowed; also applied at startup). Manual changes inside a window are respected.",
@@ -1079,8 +1509,15 @@ public static class Lang
             "在时间窗口开始时应用场景（第一条匹配规则生效；允许跨午夜的区间；启动时也会应用）。窗口内的手动更改会被保留。",
             "Aplica uma cena quando sua janela de tempo começa (a primeira regra correspondente vence; intervalos que cruzam a meia-noite são permitidos; também na inicialização). Alterações manuais dentro da janela são respeitadas.",
             "Применяет сцену в начале её временного окна (побеждает первое совпавшее правило; диапазоны через полночь допустимы; также при запуске). Ручные изменения внутри окна сохраняются.",
+            "時間枠の開始時にシーンを適用します（最初に一致したルールが優先。日をまたぐ範囲も可。起動時にも適用）。時間枠内の手動変更は維持されます。",
+            "시간 범위가 시작될 때 장면을 적용합니다(첫 번째 일치 규칙 우선, 자정 넘김 허용, 시작 시에도 적용). 범위 안에서의 수동 변경은 유지됩니다.",
+            "在時間區間開始時套用場景（第一條符合的規則生效；允許跨午夜的區間；啟動時也會套用）。區間內的手動變更會被保留。",
+            "Zaman aralığı başladığında sahneyi uygular (ilk eşleşen kural geçerlidir; gece yarısını aşan aralıklara izin verilir; başlangıçta da uygulanır). Aralık içindeki manuel değişikliklere dokunulmaz.",
+            "Áp dụng một cảnh khi khung giờ của nó bắt đầu (quy tắc khớp đầu tiên thắng; cho phép khoảng qua đêm; cũng áp dụng khi khởi động). Thay đổi thủ công trong khung giờ được giữ nguyên.",
+            "Menerapkan scene saat jendela waktunya dimulai (aturan pertama yang cocok menang; rentang lewat tengah malam diizinkan; juga diterapkan saat mulai). Perubahan manual di dalam jendela tetap dihormati.",
+            "Applica una scena all'inizio della sua fascia oraria (vince la prima regola corrispondente; fasce notturne ammesse; applicata anche all'avvio). Le modifiche manuali dentro una fascia sono rispettate."
         };
-        m["sch_add"]        = new[] { "Add rule", "Dodaj regułę", "Regel hinzufügen", "Ajouter une règle", "Añadir regla", "添加规则", "Adicionar regra", "Добавить правило" };
+        m["sch_add"]        = new[] { "Add rule", "Dodaj regułę", "Regel hinzufügen", "Ajouter une règle", "Añadir regla", "添加规则", "Adicionar regra", "Добавить правило", "ルールを追加", "규칙 추가", "新增規則", "Kural ekle", "Thêm quy tắc", "Tambah aturan", "Aggiungi regola" };
         m["sch_need_scene"] = new[]
         {
             "Create a scene first - schedule rules run scenes.",
@@ -1091,20 +1528,27 @@ public static class Lang
             "请先创建场景 - 计划规则运行的是场景。",
             "Crie uma cena primeiro - as regras executam cenas.",
             "Сначала создайте сцену - правила расписания запускают сцены.",
+            "先にシーンを作成してください - スケジュールルールはシーンを実行します。",
+            "먼저 장면을 만드세요 - 일정 규칙은 장면을 실행합니다.",
+            "請先建立場景 - 排程規則執行的是場景。",
+            "Önce bir sahne oluşturun - zamanlama kuralları sahneleri çalıştırır.",
+            "Hãy tạo cảnh trước - quy tắc lịch trình chạy các cảnh.",
+            "Buat scene dulu - aturan jadwal menjalankan scene.",
+            "Crea prima una scena - le regole di pianificazione eseguono scene."
         };
-        m["sch_rule_title"] = new[] { "Schedule rule", "Reguła harmonogramu", "Zeitplan-Regel", "Règle de planification", "Regla de programación", "计划规则", "Regra de agendamento", "Правило расписания" };
-        m["sch_scene"]      = new[] { "Scene", "Scena", "Szene", "Scène", "Escena", "场景", "Cena", "Сцена" };
-        m["sch_days"]       = new[] { "Days", "Dni", "Tage", "Jours", "Días", "星期", "Dias", "Дни" };
-        m["sch_from"]       = new[] { "From", "Od", "Von", "De", "Desde", "从", "De", "С" };
-        m["sch_to"]         = new[] { "to", "do", "bis", "à", "hasta", "到", "até", "до" };
-        m["sch_daily"]      = new[] { "Every day", "Codziennie", "Täglich", "Tous les jours", "Todos los días", "每天", "Todos os dias", "Ежедневно" };
-        m["sch_weekdays"]   = new[] { "Weekdays", "Dni robocze", "Werktags", "Jours ouvrés", "Días laborables", "工作日", "Dias úteis", "Будни" };
-        m["sch_weekend"]    = new[] { "Weekend", "Weekend", "Wochenende", "Week-end", "Fin de semana", "周末", "Fim de semana", "Выходные" };
-        m["scen_gear_tip"]  = new[] { "Choose what this tab shows", "Wybierz, co pokazuje ta zakładka", "Wähle, was dieser Tab zeigt", "Choisissez ce que cet onglet affiche", "Elige qué muestra esta pestaña", "选择此选项卡显示的内容", "Escolha o que esta guia mostra", "Выберите, что показывает эта вкладка" };
-        m["log_schedule"]   = new[] { "Schedule: {0} ({1}-{2})", "Harmonogram: {0} ({1}-{2})", "Zeitplan: {0} ({1}-{2})", "Planification : {0} ({1}-{2})", "Programación: {0} ({1}-{2})", "计划：{0}（{1}-{2}）", "Agendamento: {0} ({1}-{2})", "Расписание: {0} ({1}-{2})" };
-        m["log_src_schedule"] = new[] { "schedule", "harmonogram", "Zeitplan", "planification", "programación", "计划", "agendamento", "расписание" };
+        m["sch_rule_title"] = new[] { "Schedule rule", "Reguła harmonogramu", "Zeitplan-Regel", "Règle de planification", "Regla de programación", "计划规则", "Regra de agendamento", "Правило расписания", "スケジュールルール", "일정 규칙", "排程規則", "Zamanlama kuralı", "Quy tắc lịch trình", "Aturan jadwal", "Regola oraria" };
+        m["sch_scene"]      = new[] { "Scene", "Scena", "Szene", "Scène", "Escena", "场景", "Cena", "Сцена", "シーン", "장면", "場景", "Sahne", "Cảnh", "Scene", "Scena" };
+        m["sch_days"]       = new[] { "Days", "Dni", "Tage", "Jours", "Días", "星期", "Dias", "Дни", "曜日", "요일", "星期", "Günler", "Ngày", "Hari", "Giorni" };
+        m["sch_from"]       = new[] { "From", "Od", "Von", "De", "Desde", "从", "De", "С", "開始", "시작", "從", "Başlangıç", "Từ", "Dari", "Da" };
+        m["sch_to"]         = new[] { "to", "do", "bis", "à", "hasta", "到", "até", "до", "～", "종료", "到", "bitiş", "đến", "sampai", "a" };
+        m["sch_daily"]      = new[] { "Every day", "Codziennie", "Täglich", "Tous les jours", "Todos los días", "每天", "Todos os dias", "Ежедневно", "毎日", "매일", "每天", "Her gün", "Hằng ngày", "Setiap hari", "Ogni giorno" };
+        m["sch_weekdays"]   = new[] { "Weekdays", "Dni robocze", "Werktags", "Jours ouvrés", "Días laborables", "工作日", "Dias úteis", "Будни", "平日", "평일", "平日", "Hafta içi", "Ngày làm việc", "Hari kerja", "Feriali" };
+        m["sch_weekend"]    = new[] { "Weekend", "Weekend", "Wochenende", "Week-end", "Fin de semana", "周末", "Fim de semana", "Выходные", "週末", "주말", "週末", "Hafta sonu", "Cuối tuần", "Akhir pekan", "Weekend" };
+        m["scen_gear_tip"]  = new[] { "Choose what this tab shows", "Wybierz, co pokazuje ta zakładka", "Wähle, was dieser Tab zeigt", "Choisissez ce que cet onglet affiche", "Elige qué muestra esta pestaña", "选择此选项卡显示的内容", "Escolha o que esta guia mostra", "Выберите, что показывает эта вкладка", "このタブの表示内容を選択", "이 탭에 표시할 항목 선택", "選擇此分頁顯示的內容", "Bu sekmede gösterilecekleri seçin", "Chọn nội dung hiển thị của tab này", "Pilih apa yang ditampilkan tab ini", "Scegli cosa mostra questa scheda" };
+        m["log_schedule"]   = new[] { "Schedule: {0} ({1}-{2})", "Harmonogram: {0} ({1}-{2})", "Zeitplan: {0} ({1}-{2})", "Planification : {0} ({1}-{2})", "Programación: {0} ({1}-{2})", "计划：{0}（{1}-{2}）", "Agendamento: {0} ({1}-{2})", "Расписание: {0} ({1}-{2})", "スケジュール：{0}（{1}-{2}）", "일정: {0} ({1}-{2})", "排程：{0}（{1}-{2}）", "Zamanlama: {0} ({1}-{2})", "Lịch trình: {0} ({1}-{2})", "Jadwal: {0} ({1}-{2})", "Pianificazione: {0} ({1}-{2})" };
+        m["log_src_schedule"] = new[] { "schedule", "harmonogram", "Zeitplan", "planification", "programación", "计划", "agendamento", "расписание", "スケジュール", "일정", "排程", "zamanlama", "lịch trình", "jadwal", "pianificazione" };
         // touchpad (devnode switch)
-        m["tp_title"]       = new[] { "Touchpad", "Touchpad", "Touchpad", "Pavé tactile", "Panel táctil", "触摸板", "Touchpad", "Тачпад" };
+        m["tp_title"]       = new[] { "Touchpad", "Touchpad", "Touchpad", "Pavé tactile", "Panel táctil", "触摸板", "Touchpad", "Тачпад", "タッチパッド", "터치패드", "觸控板", "Dokunmatik yüzey", "Bàn di chuột", "Touchpad", "Touchpad" };
         m["tp_hint"]        = new[]
         {
             "Disables the touchpad at the device level (like Device Manager). The hotkey and a panic reset always re-enable it",
@@ -1115,9 +1559,16 @@ public static class Lang
             "在设备级别禁用触摸板（如设备管理器）。热键和紧急重置始终可以重新启用它",
             "Desativa o touchpad no nível do dispositivo (como o Gerenciador de Dispositivos). O atalho e o reset de emergência sempre o reativam",
             "Отключает тачпад на уровне устройства (как Диспетчер устройств). Горячая клавиша и аварийный сброс всегда включают его обратно",
+            "タッチパッドをデバイスレベルで無効化します（デバイスマネージャーと同様）。ホットキーと緊急リセットで常に再有効化できます",
+            "장치 수준에서 터치패드를 비활성화합니다(장치 관리자와 동일). 단축키와 긴급 초기화로 항상 다시 켤 수 있습니다",
+            "在裝置層級停用觸控板（如裝置管理員）。快速鍵和緊急重設一律可重新啟用它",
+            "Dokunmatik yüzeyi aygıt düzeyinde devre dışı bırakır (Aygıt Yöneticisi gibi). Kısayol tuşu ve acil sıfırlama her zaman yeniden etkinleştirir",
+            "Tắt bàn di chuột ở cấp thiết bị (như Trình quản lý Thiết bị). Phím tắt và đặt lại khẩn cấp luôn bật lại nó",
+            "Menonaktifkan touchpad di tingkat perangkat (seperti Device Manager). Hotkey dan reset darurat selalu mengaktifkannya kembali",
+            "Disattiva il touchpad a livello di dispositivo (come Gestione dispositivi). La scorciatoia e il reset di emergenza lo riattivano sempre"
         };
         // battery-level rules
-        m["bat_rules_grp"]  = new[] { "Battery rules", "Reguły baterii", "Akku-Regeln", "Règles de batterie", "Reglas de batería", "电量规则", "Regras de bateria", "Правила батареи" };
+        m["bat_rules_grp"]  = new[] { "Battery rules", "Reguły baterii", "Akku-Regeln", "Règles de batterie", "Reglas de batería", "电量规则", "Regras de bateria", "Правила батареи", "バッテリールール", "배터리 규칙", "電量規則", "Pil kuralları", "Quy tắc pin", "Aturan baterai", "Regole batteria" };
         m["bat_rules_desc"] = new[]
         {
             "Fires once when the battery level crosses a threshold: the lower rule while discharging, the upper one while charging. A rule re-arms only after the level moves 3 pp away from its threshold, so a 30 ↔ 31 % wobble never switches back and forth.",
@@ -1128,18 +1579,25 @@ public static class Lang
             "电量越过阈值时触发一次：放电时触发下限规则，充电时触发上限规则。规则只有在电量离开阈值 3 个百分点后才会重新武装，因此 30 ↔ 31% 的波动不会来回切换。",
             "Dispara uma vez quando o nível cruza um limite: a regra inferior ao descarregar, a superior ao carregar. Uma regra só rearma quando o nível se afasta 3 pp do limite, então uma oscilação de 30 ↔ 31 % nunca fica alternando.",
             "Срабатывает один раз при пересечении порога: нижнее правило при разряде, верхнее при зарядке. Правило взводится снова лишь когда уровень отойдёт на 3 п.п. от порога, поэтому колебание 30 ↔ 31 % не вызывает переключений туда-сюда.",
+            "バッテリー残量がしきい値を越えた時に一度だけ実行します：放電中は下限ルール、充電中は上限ルール。ルールは残量がしきい値から 3 ポイント離れて初めて再度有効になるため、30 ↔ 31 % の揺れで往復切替は起きません。",
+            "배터리 잔량이 임계값을 넘을 때 한 번 실행됩니다: 방전 중에는 하한 규칙, 충전 중에는 상한 규칙. 잔량이 임계값에서 3%p 이상 벗어나야 규칙이 다시 준비되므로 30 ↔ 31 % 흔들림으로 왔다 갔다 하지 않습니다.",
+            "電量越過門檻值時觸發一次：放電時觸發下限規則，充電時觸發上限規則。規則只有在電量離開門檻值 3 個百分點後才會重新生效，因此 30 ↔ 31% 的波動不會來回切換。",
+            "Pil düzeyi bir eşiği geçtiğinde bir kez tetiklenir: deşarjda alt kural, şarjda üst kural. Kural, düzey eşikten 3 puan uzaklaştıktan sonra yeniden kurulur; böylece %30 ↔ %31 dalgalanması ileri geri geçiş yapmaz.",
+            "Kích hoạt một lần khi mức pin vượt ngưỡng: quy tắc dưới khi xả, quy tắc trên khi sạc. Quy tắc chỉ được kích hoạt lại sau khi mức pin cách ngưỡng 3 điểm %, nên dao động 30 ↔ 31 % không bao giờ chuyển qua lại.",
+            "Dipicu sekali saat level baterai melewati ambang: aturan bawah saat baterai dipakai, aturan atas saat mengisi. Aturan aktif lagi hanya setelah level bergeser 3 poin persen dari ambangnya, sehingga goyangan 30 ↔ 31 % tidak pernah bolak-balik.",
+            "Scatta una volta quando il livello batteria attraversa una soglia: la regola inferiore in scarica, quella superiore in carica. Una regola si riarma solo dopo che il livello si allontana di 3 punti percentuali dalla soglia, così un'oscillazione 30 ↔ 31 % non causa mai cambi continui."
         };
-        m["bat_enable"]     = new[] { "Rules active", "Reguły aktywne", "Regeln aktiv", "Règles actives", "Reglas activas", "规则已启用", "Regras ativas", "Правила включены" };
-        m["bat_below"]      = new[] { "Below", "Poniżej", "Unter", "Sous", "Por debajo", "低于", "Abaixo", "Ниже" };
-        m["bat_above"]      = new[] { "Above", "Powyżej", "Über", "Au-dessus", "Por encima", "高于", "Acima", "Выше" };
-        m["log_batt_low"]   = new[] { "Battery {0} % - crossed below {1} %", "Bateria {0} % - spadła poniżej {1} %", "Akku {0} % - unter {1} % gefallen", "Batterie {0} % - passée sous {1} %", "Batería {0} % - cayó por debajo de {1} %", "电量 {0}% - 低于 {1}%", "Bateria {0} % - caiu abaixo de {1} %", "Батарея {0} % - опустилась ниже {1} %" };
-        m["log_batt_high"]  = new[] { "Battery {0} % - crossed above {1} %", "Bateria {0} % - wzrosła powyżej {1} %", "Akku {0} % - über {1} % gestiegen", "Batterie {0} % - passée au-dessus de {1} %", "Batería {0} % - superó el {1} %", "电量 {0}% - 高于 {1}%", "Bateria {0} % - subiu acima de {1} %", "Батарея {0} % - поднялась выше {1} %" };
-        m["log_src_battery"] = new[] { "battery", "bateria", "Akku", "batterie", "batería", "电量", "bateria", "батарея" };
+        m["bat_enable"]     = new[] { "Rules active", "Reguły aktywne", "Regeln aktiv", "Règles actives", "Reglas activas", "规则已启用", "Regras ativas", "Правила включены", "ルール有効", "규칙 활성", "規則已啟用", "Kurallar etkin", "Quy tắc đang bật", "Aturan aktif", "Regole attive" };
+        m["bat_below"]      = new[] { "Below", "Poniżej", "Unter", "Sous", "Por debajo", "低于", "Abaixo", "Ниже", "以下", "미만", "低於", "Altında", "Dưới", "Di bawah", "Sotto" };
+        m["bat_above"]      = new[] { "Above", "Powyżej", "Über", "Au-dessus", "Por encima", "高于", "Acima", "Выше", "以上", "초과", "高於", "Üstünde", "Trên", "Di atas", "Sopra" };
+        m["log_batt_low"]   = new[] { "Battery {0} % - crossed below {1} %", "Bateria {0} % - spadła poniżej {1} %", "Akku {0} % - unter {1} % gefallen", "Batterie {0} % - passée sous {1} %", "Batería {0} % - cayó por debajo de {1} %", "电量 {0}% - 低于 {1}%", "Bateria {0} % - caiu abaixo de {1} %", "Батарея {0} % - опустилась ниже {1} %", "バッテリー {0} % - {1} % を下回りました", "배터리 {0} % - {1} % 아래로 내려감", "電量 {0}% - 降至 {1}% 以下", "Pil %{0} - %{1} altına indi", "Pin {0} % - đã xuống dưới {1} %", "Baterai {0} % - turun di bawah {1} %", "Batteria {0} % - scesa sotto {1} %" };
+        m["log_batt_high"]  = new[] { "Battery {0} % - crossed above {1} %", "Bateria {0} % - wzrosła powyżej {1} %", "Akku {0} % - über {1} % gestiegen", "Batterie {0} % - passée au-dessus de {1} %", "Batería {0} % - superó el {1} %", "电量 {0}% - 高于 {1}%", "Bateria {0} % - subiu acima de {1} %", "Батарея {0} % - поднялась выше {1} %", "バッテリー {0} % - {1} % を上回りました", "배터리 {0} % - {1} % 위로 올라감", "電量 {0}% - 升至 {1}% 以上", "Pil %{0} - %{1} üstüne çıktı", "Pin {0} % - đã vượt trên {1} %", "Baterai {0} % - naik di atas {1} %", "Batteria {0} % - salita sopra {1} %" };
+        m["log_src_battery"] = new[] { "battery", "bateria", "Akku", "batterie", "batería", "电量", "bateria", "батарея", "バッテリー", "배터리", "電量", "pil", "pin", "baterai", "batteria" };
         // Fn/Win swap (EC fn_win_swap)
-        m["fnswap_grp"]     = new[] { "Keyboard layout", "Układ klawiatury", "Tastaturlayout", "Disposition du clavier", "Distribución del teclado", "键盘布局", "Layout do teclado", "Раскладка клавиатуры" };
-        m["fnswap_title"]   = new[] { "Fn / Win keys", "Klawisze Fn / Win", "Fn/Win-Tasten", "Touches Fn / Win", "Teclas Fn / Win", "Fn / Win 键", "Teclas Fn / Win", "Клавиши Fn / Win" };
-        m["fnswap_left"]    = new[] { "Fn on the left", "Fn po lewej", "Fn links", "Fn à gauche", "Fn a la izquierda", "Fn 在左", "Fn à esquerda", "Fn слева" };
-        m["fnswap_right"]   = new[] { "Fn on the right", "Fn po prawej", "Fn rechts", "Fn à droite", "Fn a la derecha", "Fn 在右", "Fn à direita", "Fn справа" };
+        m["fnswap_grp"]     = new[] { "Keyboard layout", "Układ klawiatury", "Tastaturlayout", "Disposition du clavier", "Distribución del teclado", "键盘布局", "Layout do teclado", "Раскладка клавиатуры", "キーボード配列", "키보드 배열", "鍵盤配置", "Klavye düzeni", "Bố cục bàn phím", "Tata letak keyboard", "Layout tastiera" };
+        m["fnswap_title"]   = new[] { "Fn / Win keys", "Klawisze Fn / Win", "Fn/Win-Tasten", "Touches Fn / Win", "Teclas Fn / Win", "Fn / Win 键", "Teclas Fn / Win", "Клавиши Fn / Win", "Fn / Win キー", "Fn / Win 키", "Fn / Win 鍵", "Fn / Win tuşları", "Phím Fn / Win", "Tombol Fn / Win", "Tasti Fn / Win" };
+        m["fnswap_left"]    = new[] { "Fn on the left", "Fn po lewej", "Fn links", "Fn à gauche", "Fn a la izquierda", "Fn 在左", "Fn à esquerda", "Fn слева", "Fn を左に", "Fn 왼쪽", "Fn 在左", "Fn solda", "Fn bên trái", "Fn di kiri", "Fn a sinistra" };
+        m["fnswap_right"]   = new[] { "Fn on the right", "Fn po prawej", "Fn rechts", "Fn à droite", "Fn a la derecha", "Fn 在右", "Fn à direita", "Fn справа", "Fn を右に", "Fn 오른쪽", "Fn 在右", "Fn sağda", "Fn bên phải", "Fn di kanan", "Fn a destra" };
         m["fnswap_desc"]    = new[]
         {
             "Swaps the Fn and Windows keys in hardware (the setting lives in the EC and survives reboots). Pick the side the Fn key should be on.",
@@ -1150,12 +1608,19 @@ public static class Lang
             "在硬件层面交换 Fn 和 Windows 键（设置保存在 EC 中，重启后仍然有效）。选择 Fn 键应位于哪一侧。",
             "Troca as teclas Fn e Windows em hardware (a configuração fica no EC e sobrevive a reinicializações). Escolha de que lado deve ficar a tecla Fn.",
             "Меняет местами клавиши Fn и Windows на аппаратном уровне (настройка хранится в EC и переживает перезагрузку). Выберите, с какой стороны должна быть клавиша Fn.",
+            "Fn キーと Windows キーをハードウェアで入れ替えます（設定は EC に保存され再起動後も維持）。Fn キーを置く側を選択してください。",
+            "Fn 키와 Windows 키를 하드웨어에서 맞바꿉니다(설정은 EC에 저장되어 재부팅 후에도 유지). Fn 키가 위치할 쪽을 선택하세요.",
+            "在硬體層面交換 Fn 和 Windows 鍵（設定儲存在 EC 中，重新開機後仍然有效）。選擇 Fn 鍵應位於哪一側。",
+            "Fn ve Windows tuşlarını donanımda değiştirir (ayar EC'de tutulur, yeniden başlatmada korunur). Fn tuşunun olacağı tarafı seçin.",
+            "Hoán đổi phím Fn và Windows ở mức phần cứng (cài đặt lưu trong EC và giữ nguyên sau khi khởi động lại). Chọn bên mà phím Fn sẽ nằm.",
+            "Menukar tombol Fn dan Windows di perangkat keras (pengaturan tersimpan di EC dan bertahan setelah reboot). Pilih sisi tempat tombol Fn berada.",
+            "Scambia i tasti Fn e Windows a livello hardware (l'impostazione risiede nell'EC e sopravvive ai riavvii). Scegli il lato in cui deve stare il tasto Fn."
         };
         // (#27) webcam switch + hard block
-        m["webcam_title"]   = new[] { "Webcam", "Kamera", "Webcam", "Webcam", "Cámara web", "摄像头", "Webcam", "Веб-камера" };
-        m["webcam_hint"]    = new[] { "Hardware switch: the camera drops off USB (same as the Fn key)", "Sprzętowy przełącznik: kamera znika z USB (jak klawisz Fn)", "Hardware-Schalter: Kamera verschwindet vom USB (wie die Fn-Taste)", "Interrupteur matériel : la caméra disparaît de l'USB (comme la touche Fn)", "Interruptor de hardware: la cámara desaparece del USB (como la tecla Fn)", "硬件开关：摄像头从 USB 断开（与 Fn 键相同）", "Interruptor de hardware: a câmera some do USB (como a tecla Fn)", "Аппаратный переключатель: камера исчезает с USB (как клавиша Fn)" };
-        m["set_grp_privacy"]= new[] { "Privacy", "Prywatność", "Datenschutz", "Confidentialité", "Privacidad", "隐私", "Privacidade", "Приватность" };
-        m["webcam_block"]   = new[] { "Hard camera block", "Twarda blokada kamery", "Harte Kamerasperre", "Blocage matériel de la caméra", "Bloqueo duro de la cámara", "硬件级摄像头锁定", "Bloqueio rígido da câmera", "Жёсткая блокировка камеры" };
+        m["webcam_title"]   = new[] { "Webcam", "Kamera", "Webcam", "Webcam", "Cámara web", "摄像头", "Webcam", "Веб-камера", "ウェブカメラ", "웹캠", "視訊鏡頭", "Web kamerası", "Webcam", "Webcam", "Webcam" };
+        m["webcam_hint"]    = new[] { "Hardware switch: the camera drops off USB (same as the Fn key)", "Sprzętowy przełącznik: kamera znika z USB (jak klawisz Fn)", "Hardware-Schalter: Kamera verschwindet vom USB (wie die Fn-Taste)", "Interrupteur matériel : la caméra disparaît de l'USB (comme la touche Fn)", "Interruptor de hardware: la cámara desaparece del USB (como la tecla Fn)", "硬件开关：摄像头从 USB 断开（与 Fn 键相同）", "Interruptor de hardware: a câmera some do USB (como a tecla Fn)", "Аппаратный переключатель: камера исчезает с USB (как клавиша Fn)", "ハードウェアスイッチ：カメラが USB から切断されます（Fn キーと同じ）", "하드웨어 스위치: 카메라가 USB에서 분리됩니다(Fn 키와 동일)", "硬體開關：鏡頭會從 USB 斷開（與 Fn 鍵相同）", "Donanım anahtarı: kamera USB'den ayrılır (Fn tuşuyla aynı)", "Công tắc phần cứng: camera ngắt khỏi USB (giống phím Fn)", "Sakelar perangkat keras: kamera terputus dari USB (sama seperti tombol Fn)", "Interruttore hardware: la fotocamera si scollega dall'USB (come con il tasto Fn)" };
+        m["set_grp_privacy"]= new[] { "Privacy", "Prywatność", "Datenschutz", "Confidentialité", "Privacidad", "隐私", "Privacidade", "Приватность", "プライバシー", "개인 정보 보호", "隱私", "Gizlilik", "Quyền riêng tư", "Privasi", "Privacy" };
+        m["webcam_block"]   = new[] { "Hard camera block", "Twarda blokada kamery", "Harte Kamerasperre", "Blocage matériel de la caméra", "Bloqueo duro de la cámara", "硬件级摄像头锁定", "Bloqueio rígido da câmera", "Жёсткая блокировка камеры", "カメラのハードブロック", "카메라 하드 차단", "硬體級鏡頭鎖定", "Donanımsal kamera kilidi", "Khóa cứng camera", "Blokir keras kamera", "Blocco hardware fotocamera" };
         m["webcam_block_desc"] = new[]
         {
             "Locks the camera off at the firmware level: while active, neither the Fn key nor the Webcam switch can re-enable it. Lift the block here; a panic reset also lifts it.",
@@ -1166,27 +1631,34 @@ public static class Lang
             "在固件层面锁定摄像头：激活期间，Fn 键和摄像头开关都无法重新启用它。可在此解除锁定；紧急重置也会解除。",
             "Bloqueia a câmera no nível do firmware: enquanto ativo, nem a tecla Fn nem o interruptor da Webcam podem reativá-la. Remova o bloqueio aqui; um reset de emergência também o remove.",
             "Блокирует камеру на уровне прошивки: пока блокировка активна, ни клавиша Fn, ни переключатель камеры не смогут её включить. Снять блокировку можно здесь; аварийный сброс тоже её снимает.",
+            "ファームウェアレベルでカメラをオフに固定します。有効中は Fn キーもウェブカメラスイッチも再有効化できません。解除はここで行います。緊急リセットでも解除されます。",
+            "펌웨어 수준에서 카메라를 잠급니다: 활성 중에는 Fn 키도 웹캠 스위치도 다시 켤 수 없습니다. 여기서 차단을 해제하며, 긴급 초기화로도 해제됩니다.",
+            "在韌體層面鎖定鏡頭：啟用期間，Fn 鍵和視訊鏡頭開關都無法重新啟用它。可在此解除鎖定；緊急重設也會解除。",
+            "Kamerayı ürün yazılımı düzeyinde kilitler: etkinken ne Fn tuşu ne de Web kamerası anahtarı yeniden açabilir. Kilidi buradan kaldırın; acil sıfırlama da kaldırır.",
+            "Khóa tắt camera ở mức firmware: khi đang bật, cả phím Fn lẫn công tắc Webcam đều không thể bật lại. Gỡ khóa tại đây; đặt lại khẩn cấp cũng gỡ khóa.",
+            "Mengunci kamera mati di tingkat firmware: selama aktif, tombol Fn maupun sakelar Webcam tidak bisa mengaktifkannya lagi. Cabut blokir di sini; reset darurat juga mencabutnya.",
+            "Blocca la fotocamera a livello firmware: finché è attivo, né il tasto Fn né l'interruttore Webcam possono riattivarla. Rimuovi il blocco qui; anche un reset di emergenza lo rimuove."
         };
     }
 
     private static void L10(Dictionary<string, string[]> m)
     {
-        m["webcam_blocked"] = new[] { "Block active", "Blokada aktywna", "Sperre aktiv", "Blocage actif", "Bloqueo activo", "锁定已启用", "Bloqueio ativo", "Блокировка активна" };
-        m["webcam_unblocked"] = new[] { "Block lifted", "Blokada zdjęta", "Sperre aufgehoben", "Blocage levé", "Bloqueo quitado", "锁定已解除", "Bloqueio removido", "Блокировка снята" };
-        m["webcam_blocked_warn"] = new[] { "Camera is hard-blocked - lift the block in Settings → System", "Kamera jest twardo zablokowana - zdejmij blokadę w Ustawienia → System", "Kamera ist hart gesperrt - Sperre unter Einstellungen → System aufheben", "Caméra bloquée matériellement - levez le blocage dans Paramètres → Système", "La cámara está bloqueada - quita el bloqueo en Ajustes → Sistema", "摄像头已被硬件锁定 - 请在设置 → 系统中解除锁定", "A câmera está bloqueada - remova o bloqueio em Configurações → Sistema", "Камера жёстко заблокирована - снимите блокировку в Настройки → Система" };
+        m["webcam_blocked"] = new[] { "Block active", "Blokada aktywna", "Sperre aktiv", "Blocage actif", "Bloqueo activo", "锁定已启用", "Bloqueio ativo", "Блокировка активна", "ブロック有効", "차단 활성", "鎖定已啟用", "Kilit etkin", "Đang khóa", "Blokir aktif", "Blocco attivo" };
+        m["webcam_unblocked"] = new[] { "Block lifted", "Blokada zdjęta", "Sperre aufgehoben", "Blocage levé", "Bloqueo quitado", "锁定已解除", "Bloqueio removido", "Блокировка снята", "ブロック解除", "차단 해제됨", "鎖定已解除", "Kilit kaldırıldı", "Đã gỡ khóa", "Blokir dicabut", "Blocco rimosso" };
+        m["webcam_blocked_warn"] = new[] { "Camera is hard-blocked - lift the block in Settings → System", "Kamera jest twardo zablokowana - zdejmij blokadę w Ustawienia → System", "Kamera ist hart gesperrt - Sperre unter Einstellungen → System aufheben", "Caméra bloquée matériellement - levez le blocage dans Paramètres → Système", "La cámara está bloqueada - quita el bloqueo en Ajustes → Sistema", "摄像头已被硬件锁定 - 请在设置 → 系统中解除锁定", "A câmera está bloqueada - remova o bloqueio em Configurações → Sistema", "Камера жёстко заблокирована - снимите блокировку в Настройки → Система", "カメラはハードブロック中です - 設定 → システムで解除してください", "카메라가 하드 차단됨 - 설정 → 시스템에서 차단을 해제하세요", "鏡頭已被硬體鎖定 - 請在設定 → 系統中解除鎖定", "Kamera donanımsal kilitli - kilidi Ayarlar → Sistem'den kaldırın", "Camera đang bị khóa cứng - gỡ khóa trong Cài đặt → Hệ thống", "Kamera diblokir keras - cabut blokir di Pengaturan → Sistem", "Fotocamera bloccata via hardware - rimuovi il blocco in Impostazioni → Sistema" };
         // (#21) scenes
-        m["scene_title"]    = new[] { "Scenes", "Sceny", "Szenen", "Scènes", "Escenas", "自定义场景", "Cenas", "Сцены" };
-        m["scene_applied"]  = new[] { "Scene applied", "Scena zastosowana", "Szene angewendet", "Scène appliquée", "Escena aplicada", "场景已应用", "Cena aplicada", "Сцена применена" };
-        m["log_scene"]      = new[] { "Scene: {0}", "Scena: {0}", "Szene: {0}", "Scène : {0}", "Escena: {0}", "场景：{0}", "Cena: {0}", "Сцена: {0}" };
-        m["log_src_scene"]  = new[] { "Scene", "Scena", "Szene", "Scène", "Escena", "场景", "Cena", "Сцена" };
-        m["scene_add"]      = new[] { "Add scene", "Dodaj scenę", "Szene hinzufügen", "Ajouter une scène", "Añadir escena", "添加场景", "Adicionar cena", "Добавить сцену" };
-        m["scene_add_examples"] = new[] { "Add example scenes", "Dodaj przykładowe sceny", "Beispielszenen hinzufügen", "Ajouter des scènes d'exemple", "Añadir escenas de ejemplo", "添加示例场景", "Adicionar cenas de exemplo", "Добавить примеры сцен" };
-        m["scene_run"]      = new[] { "Run", "Uruchom", "Ausführen", "Exécuter", "Ejecutar", "运行", "Executar", "Запустить" };
-        m["scene_edit"]     = new[] { "Edit", "Edytuj", "Bearbeiten", "Modifier", "Editar", "编辑", "Editar", "Изменить" };
-        m["scene_delete"]   = new[] { "Delete", "Usuń", "Löschen", "Supprimer", "Eliminar", "删除", "Excluir", "Удалить" };
-        m["scene_up"]       = new[] { "Move up", "Przesuń w górę", "Nach oben", "Monter", "Subir", "上移", "Mover para cima", "Вверх" };
-        m["scene_down"]     = new[] { "Move down", "Przesuń w dół", "Nach unten", "Descendre", "Bajar", "下移", "Mover para baixo", "Вниз" };
-        m["scene_del_confirm"] = new[] { "Delete scene \"{0}\"?", "Usunąć scenę \"{0}\"?", "Szene \"{0}\" löschen?", "Supprimer la scène « {0} » ?", "¿Eliminar la escena \"{0}\"?", "删除场景“{0}”？", "Excluir a cena \"{0}\"?", "Удалить сцену \"{0}\"?" };
+        m["scene_title"]    = new[] { "Scenes", "Sceny", "Szenen", "Scènes", "Escenas", "自定义场景", "Cenas", "Сцены", "シーン", "장면", "自訂場景", "Sahneler", "Cảnh", "Scene", "Scene" };
+        m["scene_applied"]  = new[] { "Scene applied", "Scena zastosowana", "Szene angewendet", "Scène appliquée", "Escena aplicada", "场景已应用", "Cena aplicada", "Сцена применена", "シーンを適用しました", "장면 적용됨", "場景已套用", "Sahne uygulandı", "Đã áp dụng cảnh", "Scene diterapkan", "Scena applicata" };
+        m["log_scene"]      = new[] { "Scene: {0}", "Scena: {0}", "Szene: {0}", "Scène : {0}", "Escena: {0}", "场景：{0}", "Cena: {0}", "Сцена: {0}", "シーン：{0}", "장면: {0}", "場景：{0}", "Sahne: {0}", "Cảnh: {0}", "Scene: {0}", "Scena: {0}" };
+        m["log_src_scene"]  = new[] { "Scene", "Scena", "Szene", "Scène", "Escena", "场景", "Cena", "Сцена", "シーン", "장면", "場景", "Sahne", "Cảnh", "Scene", "Scena" };
+        m["scene_add"]      = new[] { "Add scene", "Dodaj scenę", "Szene hinzufügen", "Ajouter une scène", "Añadir escena", "添加场景", "Adicionar cena", "Добавить сцену", "シーンを追加", "장면 추가", "新增場景", "Sahne ekle", "Thêm cảnh", "Tambah scene", "Aggiungi scena" };
+        m["scene_add_examples"] = new[] { "Add example scenes", "Dodaj przykładowe sceny", "Beispielszenen hinzufügen", "Ajouter des scènes d'exemple", "Añadir escenas de ejemplo", "添加示例场景", "Adicionar cenas de exemplo", "Добавить примеры сцен", "サンプルシーンを追加", "예제 장면 추가", "新增範例場景", "Örnek sahneler ekle", "Thêm cảnh mẫu", "Tambah scene contoh", "Aggiungi scene di esempio" };
+        m["scene_run"]      = new[] { "Run", "Uruchom", "Ausführen", "Exécuter", "Ejecutar", "运行", "Executar", "Запустить", "実行", "실행", "執行", "Çalıştır", "Chạy", "Jalankan", "Esegui" };
+        m["scene_edit"]     = new[] { "Edit", "Edytuj", "Bearbeiten", "Modifier", "Editar", "编辑", "Editar", "Изменить", "編集", "편집", "編輯", "Düzenle", "Sửa", "Edit", "Modifica" };
+        m["scene_delete"]   = new[] { "Delete", "Usuń", "Löschen", "Supprimer", "Eliminar", "删除", "Excluir", "Удалить", "削除", "삭제", "刪除", "Sil", "Xóa", "Hapus", "Elimina" };
+        m["scene_up"]       = new[] { "Move up", "Przesuń w górę", "Nach oben", "Monter", "Subir", "上移", "Mover para cima", "Вверх", "上へ", "위로 이동", "上移", "Yukarı taşı", "Lên", "Naikkan", "Sposta su" };
+        m["scene_down"]     = new[] { "Move down", "Przesuń w dół", "Nach unten", "Descendre", "Bajar", "下移", "Mover para baixo", "Вниз", "下へ", "아래로 이동", "下移", "Aşağı taşı", "Xuống", "Turunkan", "Sposta giù" };
+        m["scene_del_confirm"] = new[] { "Delete scene \"{0}\"?", "Usunąć scenę \"{0}\"?", "Szene \"{0}\" löschen?", "Supprimer la scène « {0} » ?", "¿Eliminar la escena \"{0}\"?", "删除场景“{0}”？", "Excluir a cena \"{0}\"?", "Удалить сцену \"{0}\"?", "シーン「{0}」を削除しますか？", "장면 \"{0}\"을(를) 삭제하시겠습니까?", "刪除場景「{0}」？", "\"{0}\" sahnesi silinsin mi?", "Xóa cảnh \"{0}\"?", "Hapus scene \"{0}\"?", "Eliminare la scena \"{0}\"?" };
         m["scene_empty"]    = new[]
         {
             "No scenes yet. A scene applies profile, fan curve, refresh rate, overlay and more in one click.",
@@ -1197,10 +1669,17 @@ public static class Lang
             "尚无场景。一个场景可一键设置情景模式、风扇曲线、刷新率、悬浮窗等。",
             "Nenhuma cena ainda. Uma cena aplica perfil, curva, taxa de atualização, overlay e mais em um clique.",
             "Сцен пока нет. Сцена одним кликом применяет профиль, кривую, частоту обновления, оверлей и другое.",
+            "シーンはまだありません。シーンはプロファイル、ファンカーブ、リフレッシュレート、オーバーレイなどをワンクリックで適用します。",
+            "아직 장면이 없습니다. 장면은 프로필, 팬 곡선, 주사율, 오버레이 등을 한 번의 클릭으로 적용합니다.",
+            "尚無場景。一個場景可一鍵套用設定檔、風扇曲線、更新率、覆蓋層等。",
+            "Henüz sahne yok. Sahne; profil, fan eğrisi, yenileme hızı, katman ve daha fazlasını tek tıkla uygular.",
+            "Chưa có cảnh nào. Một cảnh áp dụng hồ sơ, đường cong quạt, tần số quét, lớp phủ và hơn nữa chỉ với một cú nhấp.",
+            "Belum ada scene. Scene menerapkan profil, kurva kipas, kecepatan refresh, overlay, dan lainnya dalam sekali klik.",
+            "Nessuna scena. Una scena applica profilo, curva ventole, frequenza di aggiornamento, overlay e altro con un clic."
         };
-        m["scene_empty_def"] = new[] { "(no changes)", "(bez zmian)", "(keine Änderungen)", "(aucun changement)", "(sin cambios)", "（无更改）", "(sem alterações)", "(без изменений)" };
-        m["scene_name"]     = new[] { "Name", "Nazwa", "Name", "Nom", "Nombre", "名称", "Nome", "Название" };
-        m["scene_glyph"]    = new[] { "Icon (optional)", "Ikona (opcjonalnie)", "Symbol (optional)", "Icône (facultatif)", "Icono (opcional)", "图标（可选）", "Ícone (opcional)", "Значок (необязательно)" };
+        m["scene_empty_def"] = new[] { "(no changes)", "(bez zmian)", "(keine Änderungen)", "(aucun changement)", "(sin cambios)", "（无更改）", "(sem alterações)", "(без изменений)", "（変更なし）", "(변경 없음)", "（無變更）", "(değişiklik yok)", "(không thay đổi)", "(tanpa perubahan)", "(nessuna modifica)" };
+        m["scene_name"]     = new[] { "Name", "Nazwa", "Name", "Nom", "Nombre", "名称", "Nome", "Название", "名前", "이름", "名稱", "Ad", "Tên", "Nama", "Nome" };
+        m["scene_glyph"]    = new[] { "Icon (optional)", "Ikona (opcjonalnie)", "Symbol (optional)", "Icône (facultatif)", "Icono (opcional)", "图标（可选）", "Ícone (opcional)", "Значок (необязательно)", "アイコン（任意）", "아이콘(선택)", "圖示（選填）", "Simge (isteğe bağlı)", "Biểu tượng (tùy chọn)", "Ikon (opsional)", "Icona (opzionale)" };
         m["scene_hint_unchecked"] = new[]
         {
             "Rows switched on are applied when the scene runs; everything else stays as it is.",
@@ -1211,24 +1690,31 @@ public static class Lang
             "启用的行会在运行场景时被应用；其余保持不变。",
             "As linhas ativadas são aplicadas ao executar a cena; o resto permanece como está.",
             "Включённые строки применяются при запуске сцены; остальное остаётся без изменений.",
+            "オンにした行がシーン実行時に適用され、それ以外はそのまま維持されます。",
+            "켜진 행은 장면 실행 시 적용되고 나머지는 그대로 유지됩니다.",
+            "已開啟的列會在執行場景時套用；其餘保持不變。",
+            "Açık satırlar sahne çalışınca uygulanır; diğerleri olduğu gibi kalır.",
+            "Các hàng được bật sẽ áp dụng khi chạy cảnh; phần còn lại giữ nguyên.",
+            "Baris yang diaktifkan diterapkan saat scene berjalan; sisanya tetap seperti semula.",
+            "Le righe attivate vengono applicate all'esecuzione della scena; il resto rimane invariato."
         };
-        m["sc_profile"]     = new[] { "Profile", "Profil", "Profil", "Profil", "Perfil", "情景模式", "Perfil", "Профиль" };
-        m["scene_example_work"]   = new[] { "Work", "Praca", "Arbeit", "Travail", "Trabajo", "办公", "Trabalho", "Работа" };
-        m["scene_example_travel"] = new[] { "Travel", "Podróż", "Reise", "Voyage", "Viaje", "出行", "Viagem", "Поездка" };
-        m["twa_scenes"]     = new[] { "Switch scenes", "Przełączaj sceny", "Szenen wechseln", "Changer de scène", "Cambiar escenas", "切换场景", "Alternar cenas", "Переключение сцен" };
-        m["twa_kbd"]        = new[] { "Keyboard backlight", "Podświetlenie klawiatury", "Tastaturbeleuchtung", "Rétroéclairage du clavier", "Retroiluminación del teclado", "键盘背光", "Retroiluminação do teclado", "Подсветка клавиатуры" };
+        m["sc_profile"]     = new[] { "Profile", "Profil", "Profil", "Profil", "Perfil", "情景模式", "Perfil", "Профиль", "プロファイル", "프로필", "設定檔", "Profil", "Hồ sơ", "Profil", "Profilo" };
+        m["scene_example_work"]   = new[] { "Work", "Praca", "Arbeit", "Travail", "Trabajo", "办公", "Trabalho", "Работа", "仕事", "업무", "辦公", "İş", "Làm việc", "Kerja", "Lavoro" };
+        m["scene_example_travel"] = new[] { "Travel", "Podróż", "Reise", "Voyage", "Viaje", "出行", "Viagem", "Поездка", "外出", "여행", "外出", "Seyahat", "Di chuyển", "Perjalanan", "Viaggio" };
+        m["twa_scenes"]     = new[] { "Switch scenes", "Przełączaj sceny", "Szenen wechseln", "Changer de scène", "Cambiar escenas", "切换场景", "Alternar cenas", "Переключение сцен", "シーン切替", "장면 전환", "切換場景", "Sahne değiştir", "Chuyển cảnh", "Ganti scene", "Cambia scena" };
+        m["twa_kbd"]        = new[] { "Keyboard backlight", "Podświetlenie klawiatury", "Tastaturbeleuchtung", "Rétroéclairage du clavier", "Retroiluminación del teclado", "键盘背光", "Retroiluminação do teclado", "Подсветка клавиатуры", "キーボードバックライト", "키보드 백라이트", "鍵盤背光", "Klavye aydınlatması", "Đèn nền bàn phím", "Lampu latar keyboard", "Retroilluminazione tastiera" };
         // feedback round 2
-        m["set_refresh_now"] = new[] { "Current refresh rate", "Aktualne odświeżanie", "Aktuelle Bildwiederholrate", "Taux de rafraîchissement actuel", "Tasa de refresco actual", "当前刷新率", "Taxa de atualização atual", "Текущая частота обновления" };
-        m["ref_panel_internal"] = new[] { "Controls the built-in laptop panel", "Steruje wbudowaną matrycą laptopa", "Steuert das integrierte Laptop-Display", "Contrôle la dalle intégrée du portable", "Controla el panel integrado del portátil", "控制笔记本内置屏幕", "Controla a tela integrada do notebook", "Управляет встроенным экраном ноутбука" };
-        m["ref_panel_primary"] = new[] { "No built-in panel active - controls the primary display", "Brak aktywnej wbudowanej matrycy - sterowanie ekranem głównym", "Kein integriertes Display aktiv - steuert das Hauptdisplay", "Aucune dalle intégrée active - contrôle l'écran principal", "Sin panel integrado activo - controla la pantalla principal", "没有活动的内置屏幕 - 控制主屏幕", "Nenhuma tela integrada ativa - controla a tela principal", "Встроенный экран не активен - управление основным экраном" };
-        m["webcam_block_confirm"] = new[] { "Confirm the block", "Potwierdź blokadę", "Sperre bestätigen", "Confirmer le blocage", "Confirmar el bloqueo", "确认锁定", "Confirmar o bloqueio", "Подтвердить блокировку" };
-        m["scene_example_current"] = new[] { "Current setup", "Bieżące ustawienia", "Aktuelles Setup", "Configuration actuelle", "Configuración actual", "当前设置", "Configuração atual", "Текущие настройки" };
-        m["set_grp_scen"]   = new[] { "Scenarios tab", "Zakładka Scenariusze", "Szenarien-Tab", "Onglet Scénarios", "Pestaña Escenarios", "场景选项卡", "Aba Cenários", "Вкладка Сценарии" };
-        m["set_refresh_set"] = new[] { "Change now", "Zmień teraz", "Jetzt ändern", "Changer maintenant", "Cambiar ahora", "立即更改", "Alterar agora", "Изменить сейчас" };
-        m["scene_del_arm"]  = new[] { "Click again to delete", "Kliknij ponownie, aby usunąć", "Zum Löschen erneut klicken", "Cliquez à nouveau pour supprimer", "Haz clic de nuevo para eliminar", "再次点击以删除", "Clique novamente para excluir", "Нажмите ещё раз, чтобы удалить" };
-        m["ec_view_title"]  = new[] { "EC live view", "Podgląd EC na żywo", "EC-Live-Ansicht", "Vue EC en direct", "Vista EC en vivo", "EC 实时视图", "Visualização EC ao vivo", "Просмотр EC в реальном времени" };
-        m["ec_view_marker"] = new[] { "Marker", "Marker", "Marker", "Marqueur", "Marcador", "标记", "Marcador", "Маркер" };
-        m["ec_view_noise"]  = new[] { "Muted (always changing): {0}", "Wyciszone (zmieniają się ciągle): {0}", "Stummgeschaltet (ändern sich ständig): {0}", "Masqués (changent en continu) : {0}", "Silenciados (cambian sin parar): {0}", "已静音（持续变化）：{0}", "Silenciados (mudam o tempo todo): {0}", "Заглушены (меняются постоянно): {0}" };
+        m["set_refresh_now"] = new[] { "Current refresh rate", "Aktualne odświeżanie", "Aktuelle Bildwiederholrate", "Taux de rafraîchissement actuel", "Tasa de refresco actual", "当前刷新率", "Taxa de atualização atual", "Текущая частота обновления", "現在のリフレッシュレート", "현재 주사율", "目前更新率", "Geçerli yenileme hızı", "Tần số quét hiện tại", "Kecepatan refresh saat ini", "Frequenza attuale" };
+        m["ref_panel_internal"] = new[] { "Controls the built-in laptop panel", "Steruje wbudowaną matrycą laptopa", "Steuert das integrierte Laptop-Display", "Contrôle la dalle intégrée du portable", "Controla el panel integrado del portátil", "控制笔记本内置屏幕", "Controla a tela integrada do notebook", "Управляет встроенным экраном ноутбука", "ノートPC内蔵パネルを制御", "노트북 내장 패널을 제어합니다", "控制筆電內建螢幕", "Dizüstünün dahili ekranını denetler", "Điều khiển màn hình tích hợp của laptop", "Mengontrol panel bawaan laptop", "Controlla il pannello integrato del laptop" };
+        m["ref_panel_primary"] = new[] { "No built-in panel active - controls the primary display", "Brak aktywnej wbudowanej matrycy - sterowanie ekranem głównym", "Kein integriertes Display aktiv - steuert das Hauptdisplay", "Aucune dalle intégrée active - contrôle l'écran principal", "Sin panel integrado activo - controla la pantalla principal", "没有活动的内置屏幕 - 控制主屏幕", "Nenhuma tela integrada ativa - controla a tela principal", "Встроенный экран не активен - управление основным экраном", "内蔵パネルが無効 - プライマリディスプレイを制御", "활성 내장 패널 없음 - 주 디스플레이를 제어합니다", "沒有使用中的內建螢幕 - 控制主螢幕", "Etkin dahili ekran yok - birincil ekranı denetler", "Không có màn hình tích hợp đang hoạt động - điều khiển màn hình chính", "Tidak ada panel bawaan aktif - mengontrol layar utama", "Nessun pannello integrato attivo - controlla lo schermo principale" };
+        m["webcam_block_confirm"] = new[] { "Confirm the block", "Potwierdź blokadę", "Sperre bestätigen", "Confirmer le blocage", "Confirmar el bloqueo", "确认锁定", "Confirmar o bloqueio", "Подтвердить блокировку", "ブロックを確認", "차단 확인", "確認鎖定", "Kilidi onayla", "Xác nhận khóa", "Konfirmasi blokir", "Conferma il blocco" };
+        m["scene_example_current"] = new[] { "Current setup", "Bieżące ustawienia", "Aktuelles Setup", "Configuration actuelle", "Configuración actual", "当前设置", "Configuração atual", "Текущие настройки", "現在の設定", "현재 설정", "目前設定", "Geçerli kurulum", "Thiết lập hiện tại", "Pengaturan saat ini", "Setup attuale" };
+        m["set_grp_scen"]   = new[] { "Scenarios tab", "Zakładka Scenariusze", "Szenarien-Tab", "Onglet Scénarios", "Pestaña Escenarios", "场景选项卡", "Aba Cenários", "Вкладка Сценарии", "シナリオタブ", "시나리오 탭", "情境分頁", "Senaryolar sekmesi", "Tab Kịch bản", "Tab Skenario", "Scheda Scenari" };
+        m["set_refresh_set"] = new[] { "Change now", "Zmień teraz", "Jetzt ändern", "Changer maintenant", "Cambiar ahora", "立即更改", "Alterar agora", "Изменить сейчас", "今すぐ変更", "지금 변경", "立即變更", "Şimdi değiştir", "Đổi ngay", "Ubah sekarang", "Cambia ora" };
+        m["scene_del_arm"]  = new[] { "Click again to delete", "Kliknij ponownie, aby usunąć", "Zum Löschen erneut klicken", "Cliquez à nouveau pour supprimer", "Haz clic de nuevo para eliminar", "再次点击以删除", "Clique novamente para excluir", "Нажмите ещё раз, чтобы удалить", "もう一度クリックで削除", "삭제하려면 다시 클릭", "再按一次以刪除", "Silmek için tekrar tıklayın", "Nhấp lần nữa để xóa", "Klik lagi untuk menghapus", "Fai clic di nuovo per eliminare" };
+        m["ec_view_title"]  = new[] { "EC live view", "Podgląd EC na żywo", "EC-Live-Ansicht", "Vue EC en direct", "Vista EC en vivo", "EC 实时视图", "Visualização EC ao vivo", "Просмотр EC в реальном времени", "EC ライブビュー", "EC 실시간 보기", "EC 即時檢視", "EC canlı görünüm", "Xem EC trực tiếp", "Tampilan langsung EC", "Vista EC live" };
+        m["ec_view_marker"] = new[] { "Marker", "Marker", "Marker", "Marqueur", "Marcador", "标记", "Marcador", "Маркер", "マーカー", "마커", "標記", "İşaret", "Đánh dấu", "Penanda", "Marcatore" };
+        m["ec_view_noise"]  = new[] { "Muted (always changing): {0}", "Wyciszone (zmieniają się ciągle): {0}", "Stummgeschaltet (ändern sich ständig): {0}", "Masqués (changent en continu) : {0}", "Silenciados (cambian sin parar): {0}", "已静音（持续变化）：{0}", "Silenciados (mudam o tempo todo): {0}", "Заглушены (меняются постоянно): {0}", "ミュート中（常に変化）：{0}", "무시됨(항상 변함): {0}", "已靜音（持續變化）：{0}", "Susturuldu (sürekli değişen): {0}", "Bỏ qua (luôn thay đổi): {0}", "Dibisukan (selalu berubah): {0}", "Silenziati (cambiano sempre): {0}" };
         m["ec_view_hint"]   = new[]
         {
             "Read-only live EC dump, refreshed every 1.5 s. Bytes that just changed glow amber and land in the log below. Press an Fn key (backlight, camera, fans) and watch which register reacts; sensor bytes (temps, fan speeds) flicker naturally.",
@@ -1239,31 +1725,38 @@ public static class Lang
             "只读的 EC 实时转储，每 1.5 秒刷新。刚变化的字节以琥珀色高亮并记录在下方日志中。按下 Fn 键（背光、摄像头、风扇），观察哪个寄存器有反应；传感器字节（温度、转速）会自然波动。",
             "Despejo EC ao vivo somente leitura, atualizado a cada 1,5 s. Bytes que acabaram de mudar brilham em âmbar e entram no registro abaixo. Pressione uma tecla Fn (retroiluminação, câmera, ventoinhas) e veja qual registrador reage; bytes de sensores (temperaturas, rotações) oscilam naturalmente.",
             "Живой дамп EC только для чтения, обновляется каждые 1,5 с. Только что изменившиеся байты подсвечиваются янтарным и попадают в журнал ниже. Нажмите клавишу Fn (подсветка, камера, вентиляторы) и посмотрите, какой регистр отреагирует; байты датчиков (температуры, обороты) меняются естественно.",
+            "読み取り専用の EC ライブダンプ。1.5 秒ごとに更新。変化直後のバイトは琥珀色に光り、下のログに記録されます。Fn キー（バックライト、カメラ、ファン）を押してどのレジスタが反応するか確認してください。センサーバイト（温度、ファン速度）は自然に変動します。",
+            "읽기 전용 EC 실시간 덤프, 1.5초마다 새로 고침. 방금 바뀐 바이트는 호박색으로 표시되고 아래 로그에 기록됩니다. Fn 키(백라이트, 카메라, 팬)를 눌러 어느 레지스터가 반응하는지 확인하세요. 센서 바이트(온도, 팬 속도)는 자연스럽게 흔들립니다.",
+            "唯讀的 EC 即時傾印，每 1.5 秒更新。剛變化的位元組以琥珀色標示並記錄在下方記錄中。按下 Fn 鍵（背光、鏡頭、風扇），觀察哪個暫存器有反應；感測器位元組（溫度、轉速）會自然波動。",
+            "Salt okunur canlı EC dökümü, 1,5 sn'de bir yenilenir. Yeni değişen baytlar kehribar renginde yanar ve alttaki günlüğe düşer. Bir Fn tuşuna basın (aydınlatma, kamera, fanlar) ve hangi yazmacın tepki verdiğini izleyin; sensör baytları (sıcaklık, fan hızı) doğal olarak titrer.",
+            "Bản dump EC trực tiếp chỉ đọc, làm mới mỗi 1,5 s. Byte vừa thay đổi sáng màu hổ phách và được ghi vào nhật ký bên dưới. Nhấn một phím Fn (đèn nền, camera, quạt) và xem thanh ghi nào phản ứng; byte cảm biến (nhiệt độ, tốc độ quạt) dao động tự nhiên.",
+            "Dump EC langsung hanya baca, disegarkan setiap 1,5 dtk. Byte yang baru berubah menyala kuning dan masuk ke log di bawah. Tekan tombol Fn (lampu latar, kamera, kipas) dan lihat register mana yang bereaksi; byte sensor (suhu, kecepatan kipas) berkedip secara alami.",
+            "Dump EC live, sola lettura, aggiornato ogni 1,5 s. I byte appena cambiati si illuminano in ambra e finiscono nel log sotto. Premi un tasto Fn (retroilluminazione, fotocamera, ventole) e osserva quale registro reagisce; i byte dei sensori (temperature, velocità ventole) oscillano naturalmente."
         };
-        m["set_grp_display"]= new[] { "Display", "Ekran", "Anzeige", "Écran", "Pantalla", "显示", "Tela", "Экран" };
-        m["set_sub_home"]   = new[] { "Start", "Start", "Start", "Accueil", "Inicio", "主页", "Início", "Главная" };
-        m["set_sub_general"]= new[] { "General", "Ogólne", "Allgemein", "Général", "General", "常规", "Geral", "Общие" };
-        m["set_sub_gaming"] = new[] { "Gaming", "Gaming", "Gaming", "Gaming", "Gaming", "游戏", "Gaming", "Игры" };
-        m["set_sub_hotkeys"]= new[] { "Hotkeys", "Skróty", "Kürzel", "Raccourcis", "Atajos", "快捷键", "Atalhos", "Клавиши" };
-        m["set_sub_system"] = new[] { "System", "System", "System", "Système", "Sistema", "系统", "Sistema", "Система" };
-        m["set_tile_general"]= new[] { "Theme, language, colors, app icon", "Motyw, język, kolory, ikona aplikacji", "Design, Sprache, Farben, App-Symbol", "Thème, langue, couleurs, icône", "Tema, idioma, colores, icono", "主题、语言、颜色、图标", "Tema, idioma, cores, ícone", "Тема, язык, цвета, значок" };
-        m["set_tile_power"] = new[] { "Charge limit, AC / battery, refresh rate", "Limit ładowania, AC / bateria, odświeżanie", "Ladelimit, Netz / Akku, Bildrate", "Limite de charge, secteur / batterie, Hz", "Límite de carga, CA / batería, Hz", "充电限制、电源/电池、刷新率", "Limite de carga, CA / bateria, Hz", "Лимит заряда, сеть / батарея, герцовка" };
-        m["set_tile_notif"] = new[] { "Temperature alert, on-screen messages", "Alert temperatury, komunikaty ekranowe", "Temperaturalarm, Bildschirmmeldungen", "Alerte température, messages à l'écran", "Alerta de temperatura, avisos en pantalla", "温度警报、屏幕提示", "Alerta de temperatura, avisos na tela", "Оповещение о температуре, сообщения" };
-        m["set_tile_gaming"]= new[] { "Overlay, metrics, game session report", "Overlay, metryki, raport sesji gry", "Overlay, Metriken, Sitzungsbericht", "Overlay, métriques, rapport de session", "Overlay, métricas, informe de sesión", "悬浮窗、指标、会话报告", "Overlay, métricas, relatório de sessão", "Оверлей, метрики, отчёт сессии" };
+        m["set_grp_display"]= new[] { "Display", "Ekran", "Anzeige", "Écran", "Pantalla", "显示", "Tela", "Экран", "ディスプレイ", "디스플레이", "顯示", "Ekran", "Màn hình", "Layar", "Schermo" };
+        m["set_sub_home"]   = new[] { "Start", "Start", "Start", "Accueil", "Inicio", "主页", "Início", "Главная", "スタート", "시작", "首頁", "Başlangıç", "Bắt đầu", "Mulai", "Inizio" };
+        m["set_sub_general"]= new[] { "General", "Ogólne", "Allgemein", "Général", "General", "常规", "Geral", "Общие", "一般", "일반", "一般", "Genel", "Chung", "Umum", "Generale" };
+        m["set_sub_gaming"] = new[] { "Gaming", "Gaming", "Gaming", "Gaming", "Gaming", "游戏", "Gaming", "Игры", "ゲーム", "게임", "遊戲", "Oyun", "Chơi game", "Gaming", "Gaming" };
+        m["set_sub_hotkeys"]= new[] { "Hotkeys", "Skróty", "Kürzel", "Raccourcis", "Atajos", "快捷键", "Atalhos", "Клавиши", "ホットキー", "단축키", "快速鍵", "Kısayol tuşları", "Phím tắt", "Hotkey", "Scorciatoie" };
+        m["set_sub_system"] = new[] { "System", "System", "System", "Système", "Sistema", "系统", "Sistema", "Система", "システム", "시스템", "系統", "Sistem", "Hệ thống", "Sistem", "Sistema" };
+        m["set_tile_general"]= new[] { "Theme, language, colors, app icon", "Motyw, język, kolory, ikona aplikacji", "Design, Sprache, Farben, App-Symbol", "Thème, langue, couleurs, icône", "Tema, idioma, colores, icono", "主题、语言、颜色、图标", "Tema, idioma, cores, ícone", "Тема, язык, цвета, значок", "テーマ、言語、色、アプリアイコン", "테마, 언어, 색상, 앱 아이콘", "主題、語言、色彩、圖示", "Tema, dil, renkler, uygulama simgesi", "Chủ đề, ngôn ngữ, màu, biểu tượng ứng dụng", "Tema, bahasa, warna, ikon aplikasi", "Tema, lingua, colori, icona app" };
+        m["set_tile_power"] = new[] { "Charge limit, AC / battery, refresh rate", "Limit ładowania, AC / bateria, odświeżanie", "Ladelimit, Netz / Akku, Bildrate", "Limite de charge, secteur / batterie, Hz", "Límite de carga, CA / batería, Hz", "充电限制、电源/电池、刷新率", "Limite de carga, CA / bateria, Hz", "Лимит заряда, сеть / батарея, герцовка", "充電上限、AC / バッテリー、リフレッシュレート", "충전 제한, AC / 배터리, 주사율", "充電上限、電源/電池、更新率", "Şarj sınırı, AC / pil, yenileme hızı", "Giới hạn sạc, nguồn AC / pin, tần số quét", "Batas pengisian, AC / baterai, kecepatan refresh", "Limite di carica, rete / batteria, frequenza schermo" };
+        m["set_tile_notif"] = new[] { "Temperature alert, on-screen messages", "Alert temperatury, komunikaty ekranowe", "Temperaturalarm, Bildschirmmeldungen", "Alerte température, messages à l'écran", "Alerta de temperatura, avisos en pantalla", "温度警报、屏幕提示", "Alerta de temperatura, avisos na tela", "Оповещение о температуре, сообщения", "温度アラート、画面上のメッセージ", "온도 경고, 화면 메시지", "溫度警示、螢幕提示", "Sıcaklık uyarısı, ekran mesajları", "Cảnh báo nhiệt độ, thông báo trên màn hình", "Peringatan suhu, pesan di layar", "Avviso temperatura, messaggi a schermo" };
+        m["set_tile_gaming"]= new[] { "Overlay, metrics, game session report", "Overlay, metryki, raport sesji gry", "Overlay, Metriken, Sitzungsbericht", "Overlay, métriques, rapport de session", "Overlay, métricas, informe de sesión", "悬浮窗、指标、会话报告", "Overlay, métricas, relatório de sessão", "Оверлей, метрики, отчёт сессии", "オーバーレイ、メトリクス、ゲームセッションレポート", "오버레이, 지표, 게임 세션 보고서", "覆蓋層、指標、遊戲工作階段報告", "Katman, ölçümler, oyun oturumu raporu", "Lớp phủ, chỉ số, báo cáo phiên chơi game", "Overlay, metrik, laporan sesi game", "Overlay, metriche, report sessione di gioco" };
     }
 
     private static void L11(Dictionary<string, string[]> m)
     {
-        m["set_tile_hotkeys"]= new[] { "Global keyboard shortcuts", "Globalne skróty klawiszowe", "Globale Tastenkürzel", "Raccourcis clavier globaux", "Atajos de teclado globales", "全局快捷键", "Atalhos de teclado globais", "Глобальные горячие клавиши" };
-        m["set_tile_system"]= new[] { "Autostart, updates, tray menu, backup", "Autostart, aktualizacje, menu tray, kopia", "Autostart, Updates, Tray-Menü, Backup", "Démarrage auto, mises à jour, sauvegarde", "Inicio automático, actualizaciones, copia", "自启动、更新、托盘菜单、备份", "Início automático, atualizações, backup", "Автозапуск, обновления, резервная копия" };
-        m["st2_limit_on"]   = new[] { "Limit {0}%", "Limit {0}%", "Limit {0}%", "Limite {0}%", "Límite {0}%", "限制 {0}%", "Limite {0}%", "Лимит {0}%" };
-        m["st2_limit_off"]  = new[] { "Limit off", "Limit wył.", "Limit aus", "Limite désact.", "Límite des.", "限制关", "Limite desl.", "Лимит выкл" };
-        m["st2_hz"]         = new[] { "AC {0} Hz / bat. {1} Hz", "AC {0} Hz / bat. {1} Hz", "Netz {0} / Akku {1} Hz", "Secteur {0} / batt. {1} Hz", "CA {0} / bat. {1} Hz", "电源 {0} / 电池 {1} Hz", "CA {0} / bat. {1} Hz", "Сеть {0} / бат. {1} Гц" };
-        m["st2_metrics"]    = new[] { "{0} metrics", "{0} metryk", "{0} Metriken", "{0} métriques", "{0} métricas", "{0} 项指标", "{0} métricas", "{0} метрик" };
-        m["st2_hotkeys"]    = new[] { "{0} of {1} enabled", "{0} z {1} włączonych", "{0} von {1} aktiv", "{0} sur {1} actifs", "{0} de {1} activos", "已启用 {0}/{1}", "{0} de {1} ativos", "{0} из {1} включено" };
-        m["st2_system"]     = new[] { "Autostart {0} · updates {1}", "Autostart {0} · aktualizacje {1}", "Autostart {0} · Updates {1}", "Démarrage {0} · MAJ {1}", "Inicio {0} · actualiz. {1}", "自启动{0} · 更新{1}", "Início {0} · atualiz. {1}", "Автозапуск {0} · обновления {1}" };
-        m["st2_whatsnew"]   = new[] { "What's new in v{0}", "Co nowego w v{0}", "Neu in v{0}", "Nouveautés de la v{0}", "Novedades de v{0}", "v{0} 新功能", "Novidades da v{0}", "Что нового в v{0}" };
-        m["st2_exp"]        = new[] { "experimental on", "eksperymentalne wł", "Experimentell an", "expérimental act.", "experimental act.", "实验模式开", "experimental lig.", "эксперим. вкл" };
+        m["set_tile_hotkeys"]= new[] { "Global keyboard shortcuts", "Globalne skróty klawiszowe", "Globale Tastenkürzel", "Raccourcis clavier globaux", "Atajos de teclado globales", "全局快捷键", "Atalhos de teclado globais", "Глобальные горячие клавиши", "グローバルキーボードショートカット", "전역 키보드 단축키", "全域快速鍵", "Genel klavye kısayolları", "Phím tắt toàn cục", "Pintasan keyboard global", "Scorciatoie da tastiera globali" };
+        m["set_tile_system"]= new[] { "Autostart, updates, tray menu, backup", "Autostart, aktualizacje, menu tray, kopia", "Autostart, Updates, Tray-Menü, Backup", "Démarrage auto, mises à jour, sauvegarde", "Inicio automático, actualizaciones, copia", "自启动、更新、托盘菜单、备份", "Início automático, atualizações, backup", "Автозапуск, обновления, резервная копия", "自動起動、更新、トレイメニュー、バックアップ", "자동 시작, 업데이트, 트레이 메뉴, 백업", "自動啟動、更新、系統匣選單、備份", "Otomatik başlatma, güncellemeler, tepsi menüsü, yedekleme", "Tự khởi động, cập nhật, menu khay, sao lưu", "Mulai otomatis, pembaruan, menu tray, cadangan", "Avvio automatico, aggiornamenti, menu tray, backup" };
+        m["st2_limit_on"]   = new[] { "Limit {0}%", "Limit {0}%", "Limit {0}%", "Limite {0}%", "Límite {0}%", "限制 {0}%", "Limite {0}%", "Лимит {0}%", "制限 {0}%", "제한 {0}%", "上限 {0}%", "Sınır %{0}", "Giới hạn {0}%", "Batas {0}%", "Limite {0}%" };
+        m["st2_limit_off"]  = new[] { "Limit off", "Limit wył.", "Limit aus", "Limite désact.", "Límite des.", "限制关", "Limite desl.", "Лимит выкл", "制限オフ", "제한 꺼짐", "上限關閉", "Sınır kapalı", "Giới hạn tắt", "Batas mati", "Limite off" };
+        m["st2_hz"]         = new[] { "AC {0} Hz / bat. {1} Hz", "AC {0} Hz / bat. {1} Hz", "Netz {0} / Akku {1} Hz", "Secteur {0} / batt. {1} Hz", "CA {0} / bat. {1} Hz", "电源 {0} / 电池 {1} Hz", "CA {0} / bat. {1} Hz", "Сеть {0} / бат. {1} Гц", "AC {0} Hz / バッテリー {1} Hz", "AC {0} Hz / 배터리 {1} Hz", "電源 {0} Hz / 電池 {1} Hz", "AC {0} Hz / pil {1} Hz", "AC {0} Hz / pin {1} Hz", "AC {0} Hz / bat. {1} Hz", "Rete {0} Hz / batt. {1} Hz" };
+        m["st2_metrics"]    = new[] { "{0} metrics", "{0} metryk", "{0} Metriken", "{0} métriques", "{0} métricas", "{0} 项指标", "{0} métricas", "{0} метрик", "{0} 項目", "지표 {0}개", "{0} 項指標", "{0} ölçüm", "{0} chỉ số", "{0} metrik", "{0} metriche" };
+        m["st2_hotkeys"]    = new[] { "{0} of {1} enabled", "{0} z {1} włączonych", "{0} von {1} aktiv", "{0} sur {1} actifs", "{0} de {1} activos", "已启用 {0}/{1}", "{0} de {1} ativos", "{0} из {1} включено", "{0} / {1} 有効", "{1}개 중 {0}개 활성", "已啟用 {0}/{1}", "{1} kısayoldan {0} etkin", "{0} / {1} đang bật", "{0} dari {1} aktif", "{0} di {1} attivi" };
+        m["st2_system"]     = new[] { "Autostart {0} · updates {1}", "Autostart {0} · aktualizacje {1}", "Autostart {0} · Updates {1}", "Démarrage {0} · MAJ {1}", "Inicio {0} · actualiz. {1}", "自启动{0} · 更新{1}", "Início {0} · atualiz. {1}", "Автозапуск {0} · обновления {1}", "自動起動 {0} · 更新 {1}", "자동 시작 {0} · 업데이트 {1}", "自動啟動{0} · 更新{1}", "Otomatik başlatma {0} · güncellemeler {1}", "Tự khởi động {0} · cập nhật {1}", "Mulai otomatis {0} · pembaruan {1}", "Avvio auto {0} · aggiornamenti {1}" };
+        m["st2_whatsnew"]   = new[] { "What's new in v{0}", "Co nowego w v{0}", "Neu in v{0}", "Nouveautés de la v{0}", "Novedades de v{0}", "v{0} 新功能", "Novidades da v{0}", "Что нового в v{0}", "v{0} の新機能", "v{0}의 새로운 기능", "v{0} 新功能", "v{0} sürümündeki yenilikler", "Có gì mới trong v{0}", "Yang baru di v{0}", "Novità nella v{0}" };
+        m["st2_exp"]        = new[] { "experimental on", "eksperymentalne wł", "Experimentell an", "expérimental act.", "experimental act.", "实验模式开", "experimental lig.", "эксперим. вкл", "実験モード オン", "실험 모드 켜짐", "實驗模式開", "deneysel açık", "thử nghiệm bật", "eksperimental aktif", "sperimentale attivo" };
         m["ec_err_unsupported"] = new[] {
             "This laptop's firmware refused the EC request (WMI reported \"unsupported\"). GhostDeck cannot read or control the EC here - please report the model on GitHub with this message so the access path can be checked.",
             "Firmware tego laptopa odrzucił żądanie do EC (WMI zwróciło \"unsupported\"). GhostDeck nie odczyta ani nie ustawi tu EC - zgłoś model na GitHubie razem z tym komunikatem, aby sprawdzić ścieżkę dostępu.",
@@ -1272,7 +1765,15 @@ public static class Lang
             "El firmware de este portátil rechazó la petición al EC (WMI informa \"unsupported\"). GhostDeck no puede leer ni controlar el EC aquí: informa del modelo en GitHub junto con este mensaje.",
             "本机固件拒绝了该 EC 请求（WMI 返回 \"unsupported\"）。GhostDeck 无法在此读取或控制 EC，请携带此消息在 GitHub 上反馈机型。",
             "O firmware deste notebook recusou a solicitação ao EC (o WMI informou \"unsupported\"). O GhostDeck não consegue ler nem controlar o EC aqui - reporte o modelo no GitHub com esta mensagem.",
-            "Прошивка этого ноутбука отклонила запрос к EC (WMI вернул \"unsupported\"). GhostDeck не может читать или управлять EC - сообщите о модели на GitHub вместе с этим сообщением." };
+            "Прошивка этого ноутбука отклонила запрос к EC (WMI вернул \"unsupported\"). GhostDeck не может читать или управлять EC - сообщите о модели на GitHub вместе с этим сообщением.",
+            "このノートPCのファームウェアが EC 要求を拒否しました（WMI が \"unsupported\" を返しました）。GhostDeck はここでは EC を読み取り・制御できません。このメッセージを添えて GitHub でモデルを報告してください。アクセス経路を確認します。",
+            "이 노트북의 펌웨어가 EC 요청을 거부했습니다(WMI가 \"unsupported\" 보고). GhostDeck은 여기서 EC를 읽거나 제어할 수 없습니다. 접근 경로를 확인할 수 있도록 이 메시지와 함께 GitHub에 모델을 제보해 주세요.",
+            "本機韌體拒絕了該 EC 請求（WMI 回報 \"unsupported\"）。GhostDeck 無法在此讀取或控制 EC，請附上此訊息在 GitHub 回報機型，以便檢查存取路徑。",
+            "Bu dizüstünün ürün yazılımı EC isteğini reddetti (WMI \"unsupported\" bildirdi). GhostDeck burada EC'yi okuyamaz veya kontrol edemez - erişim yolunun incelenebilmesi için modeli bu mesajla birlikte GitHub'da bildirin.",
+            "Firmware của laptop này đã từ chối yêu cầu EC (WMI báo \"unsupported\"). GhostDeck không thể đọc hay điều khiển EC ở đây - vui lòng báo cáo model trên GitHub kèm thông báo này để kiểm tra đường truy cập.",
+            "Firmware laptop ini menolak permintaan EC (WMI melaporkan \"unsupported\"). GhostDeck tidak dapat membaca atau mengontrol EC di sini - laporkan model di GitHub beserta pesan ini agar jalur aksesnya dapat diperiksa.",
+            "Il firmware di questo laptop ha rifiutato la richiesta EC (WMI ha risposto \"unsupported\"). GhostDeck non può leggere né controllare l'EC qui - segnala il modello su GitHub con questo messaggio per verificare il percorso di accesso."
+            };
         m["ec_err_denied"] = new[] {
             "Access to the MSI WMI interface was denied. Run GhostDeck as administrator.",
             "Odmowa dostępu do interfejsu WMI MSI. Uruchom GhostDeck jako administrator.",
@@ -1281,7 +1782,15 @@ public static class Lang
             "Acceso denegado a la interfaz WMI de MSI. Ejecuta GhostDeck como administrador.",
             "拒绝访问 MSI WMI 接口。请以管理员身份运行 GhostDeck。",
             "Acesso negado à interface WMI da MSI. Execute o GhostDeck como administrador.",
-            "Доступ к интерфейсу WMI MSI запрещён. Запустите GhostDeck от имени администратора." };
+            "Доступ к интерфейсу WMI MSI запрещён. Запустите GhostDeck от имени администратора.",
+            "MSI WMI インターフェースへのアクセスが拒否されました。GhostDeck を管理者として実行してください。",
+            "MSI WMI 인터페이스 접근이 거부되었습니다. GhostDeck을 관리자 권한으로 실행하세요.",
+            "存取 MSI WMI 介面遭拒。請以系統管理員身分執行 GhostDeck。",
+            "MSI WMI arayüzüne erişim reddedildi. GhostDeck'i yönetici olarak çalıştırın.",
+            "Truy cập giao diện MSI WMI bị từ chối. Hãy chạy GhostDeck với quyền quản trị.",
+            "Akses ke antarmuka MSI WMI ditolak. Jalankan GhostDeck sebagai administrator.",
+            "Accesso all'interfaccia WMI di MSI negato. Esegui GhostDeck come amministratore."
+            };
         m["ec_err_missing"] = new[] {
             "MSI's WMI interface (MSI_ACPI) was not found. On an MSI laptop this usually means a fresh Windows install without the MSI WMI schema - installing MSI Center once adds it (see the FAQ). On other machines the interface simply does not exist.",
             "Nie znaleziono interfejsu WMI MSI (MSI_ACPI). Na laptopie MSI zwykle oznacza to świeżą instalację Windows bez schematu WMI MSI - jednorazowa instalacja MSI Center go doda (patrz FAQ). Na innych komputerach ten interfejs po prostu nie występuje.",
@@ -1290,7 +1799,15 @@ public static class Lang
             "No se encontró la interfaz WMI de MSI (MSI_ACPI). En un portátil MSI esto suele indicar una instalación limpia de Windows sin el esquema WMI de MSI: instalar MSI Center una vez lo añade (ver FAQ). En otras máquinas esta interfaz simplemente no existe.",
             "未找到 MSI 的 WMI 接口 (MSI_ACPI)。在 MSI 笔记本上这通常意味着全新安装的 Windows 缺少 MSI WMI 架构，安装一次 MSI Center 即可添加（见 FAQ）。在其他电脑上该接口本就不存在。",
             "A interface WMI da MSI (MSI_ACPI) não foi encontrada. Em um notebook MSI isso geralmente indica uma instalação limpa do Windows sem o esquema WMI da MSI - instalar o MSI Center uma vez o adiciona (ver FAQ). Em outras máquinas essa interface simplesmente não existe.",
-            "Интерфейс WMI MSI (MSI_ACPI) не найден. На ноутбуке MSI это обычно означает чистую установку Windows без схемы WMI MSI - однократная установка MSI Center добавит её (см. FAQ). На других компьютерах этот интерфейс просто отсутствует." };
+            "Интерфейс WMI MSI (MSI_ACPI) не найден. На ноутбуке MSI это обычно означает чистую установку Windows без схемы WMI MSI - однократная установка MSI Center добавит её (см. FAQ). На других компьютерах этот интерфейс просто отсутствует.",
+            "MSI の WMI インターフェース (MSI_ACPI) が見つかりません。MSI ノートPCでは通常、MSI WMI スキーマのない新規 Windows インストールが原因です。MSI Center を一度インストールすると追加されます（FAQ 参照）。他のマシンではこのインターフェースはそもそも存在しません。",
+            "MSI WMI 인터페이스(MSI_ACPI)를 찾을 수 없습니다. MSI 노트북에서는 보통 MSI WMI 스키마가 없는 새로 설치된 Windows를 뜻하며, MSI Center를 한 번 설치하면 추가됩니다(FAQ 참조). 다른 기기에는 이 인터페이스가 아예 없습니다.",
+            "找不到 MSI 的 WMI 介面 (MSI_ACPI)。在 MSI 筆電上這通常表示全新安裝的 Windows 缺少 MSI WMI 結構描述，安裝一次 MSI Center 即可加入（見 FAQ）。在其他電腦上該介面本來就不存在。",
+            "MSI'ın WMI arayüzü (MSI_ACPI) bulunamadı. Bir MSI dizüstünde bu genellikle MSI WMI şeması olmayan temiz bir Windows kurulumu anlamına gelir - MSI Center'ı bir kez kurmak şemayı ekler (SSS'ye bakın). Diğer makinelerde bu arayüz zaten yoktur.",
+            "Không tìm thấy giao diện WMI của MSI (MSI_ACPI). Trên laptop MSI, điều này thường có nghĩa là Windows cài mới chưa có schema MSI WMI - cài MSI Center một lần sẽ bổ sung (xem FAQ). Trên máy khác, giao diện này đơn giản là không tồn tại.",
+            "Antarmuka WMI MSI (MSI_ACPI) tidak ditemukan. Pada laptop MSI ini biasanya berarti instalasi Windows baru tanpa skema MSI WMI - memasang MSI Center sekali akan menambahkannya (lihat FAQ). Pada mesin lain antarmuka ini memang tidak ada.",
+            "Interfaccia WMI di MSI (MSI_ACPI) non trovata. Su un laptop MSI di solito indica un'installazione pulita di Windows senza lo schema WMI di MSI - installare MSI Center una volta lo aggiunge (vedi FAQ). Su altre macchine l'interfaccia semplicemente non esiste."
+            };
         m["fw_schema_missing"] = new[] {
             "MSI WMI interface is not registered - installing MSI Center once adds it (see FAQ)",
             "Interfejs WMI MSI nie jest zarejestrowany - jednorazowa instalacja MSI Center go doda (patrz FAQ)",
@@ -1299,7 +1816,15 @@ public static class Lang
             "La interfaz WMI de MSI no está registrada: instalar MSI Center una vez la añade (ver FAQ)",
             "未注册 MSI WMI 接口，安装一次 MSI Center 即可添加（见 FAQ）",
             "A interface WMI da MSI não está registrada - instalar o MSI Center uma vez a adiciona (ver FAQ)",
-            "Интерфейс WMI MSI не зарегистрирован - однократная установка MSI Center добавит его (см. FAQ)" };
+            "Интерфейс WMI MSI не зарегистрирован - однократная установка MSI Center добавит его (см. FAQ)",
+            "MSI WMI インターフェースが未登録です。MSI Center を一度インストールすると追加されます（FAQ 参照）",
+            "MSI WMI 인터페이스가 등록되지 않음 - MSI Center를 한 번 설치하면 추가됩니다(FAQ 참조)",
+            "未註冊 MSI WMI 介面，安裝一次 MSI Center 即可加入（見 FAQ）",
+            "MSI WMI arayüzü kayıtlı değil - MSI Center'ı bir kez kurmak arayüzü ekler (SSS'ye bakın)",
+            "Giao diện MSI WMI chưa được đăng ký - cài MSI Center một lần sẽ bổ sung (xem FAQ)",
+            "Antarmuka MSI WMI belum terdaftar - memasang MSI Center sekali akan menambahkannya (lihat FAQ)",
+            "Interfaccia WMI di MSI non registrata - installare MSI Center una volta la aggiunge (vedi FAQ)"
+            };
         m["fw_probe_failed"] = new[] {
             "EC firmware could not be read",
             "Nie udało się odczytać firmware EC",
@@ -1308,7 +1833,15 @@ public static class Lang
             "No se pudo leer el firmware del EC",
             "无法读取 EC 固件",
             "Não foi possível ler o firmware do EC",
-            "Не удалось прочитать прошивку EC" };
+            "Не удалось прочитать прошивку EC",
+            "EC ファームウェアを読み取れませんでした",
+            "EC 펌웨어를 읽을 수 없음",
+            "無法讀取 EC 韌體",
+            "EC ürün yazılımı okunamadı",
+            "Không đọc được firmware EC",
+            "Firmware EC tidak dapat dibaca",
+            "Impossibile leggere il firmware EC"
+            };
         m["fw_probe_retrying"] = new[] {
             "WMI temporarily unavailable - retrying...",
             "WMI chwilowo niedostępne - ponawiam...",
@@ -1317,8 +1850,16 @@ public static class Lang
             "WMI no disponible temporalmente: reintentando...",
             "WMI 暂时不可用，正在重试...",
             "WMI temporariamente indisponível - tentando novamente...",
-            "WMI временно недоступен - повторяю попытку..." };
-        m["rep_step"]       = new[] { "Step {0} of {1}", "Krok {0} z {1}", "Schritt {0} von {1}", "Étape {0} sur {1}", "Paso {0} de {1}", "第 {0} / {1} 步", "Etapa {0} de {1}", "Шаг {0} из {1}" };
+            "WMI временно недоступен - повторяю попытку...",
+            "WMI が一時的に利用できません。再試行中...",
+            "WMI를 일시적으로 사용할 수 없음 - 재시도 중...",
+            "WMI 暫時無法使用，正在重試...",
+            "WMI geçici olarak kullanılamıyor - yeniden deneniyor...",
+            "WMI tạm thời không khả dụng - đang thử lại...",
+            "WMI sementara tidak tersedia - mencoba lagi...",
+            "WMI temporaneamente non disponibile - nuovo tentativo..."
+            };
+        m["rep_step"]       = new[] { "Step {0} of {1}", "Krok {0} z {1}", "Schritt {0} von {1}", "Étape {0} sur {1}", "Paso {0} de {1}", "第 {0} / {1} 步", "Etapa {0} de {1}", "Шаг {0} из {1}", "ステップ {0} / {1}", "{1}단계 중 {0}단계", "第 {0} / {1} 步", "Adım {0} / {1}", "Bước {0} / {1}", "Langkah {0} dari {1}", "Passo {0} di {1}" };
         m["rep_set_scenario"] = new[] {
             "In MSI Center set the scenario to: {0}, then click Capture.",
             "W MSI Center ustaw scenariusz: {0}, następnie kliknij Przechwyć.",
@@ -1327,11 +1868,19 @@ public static class Lang
             "En MSI Center fija el escenario en: {0}, luego pulsa Capturar.",
             "在 MSI Center 中将场景设为：{0}，然后点击采集。",
             "No MSI Center defina o cenário como: {0}, depois clique em Capturar.",
-            "В MSI Center установите сценарий: {0}, затем нажмите «Снять»." };
-        m["rep_capture"]    = new[] { "Capture", "Przechwyć", "Erfassen", "Capturer", "Capturar", "采集", "Capturar", "Снять" };
-        m["rep_capturing"]  = new[] { "Reading EC…", "Odczyt EC…", "EC wird gelesen…", "Lecture de l'EC…", "Leyendo EC…", "正在读取 EC…", "Lendo EC…", "Чтение EC…" };
-        m["rep_captured"]   = new[] { "captured", "przechwycono", "erfasst", "capturé", "capturado", "已采集", "capturado", "снято" };
-        m["rep_pending"]    = new[] { "pending", "oczekuje", "ausstehend", "en attente", "pendiente", "待采集", "pendente", "ожидание" };
+            "В MSI Center установите сценарий: {0}, затем нажмите «Снять».",
+            "MSI Center でシナリオを {0} に設定し、「キャプチャ」をクリックしてください。",
+            "MSI Center에서 시나리오를 {0}(으)로 설정한 뒤 캡처를 클릭하세요.",
+            "在 MSI Center 中將情境設為：{0}，然後按一下擷取。",
+            "MSI Center'da senaryoyu şuna ayarlayın: {0}, ardından Yakala'ya tıklayın.",
+            "Trong MSI Center, đặt kịch bản thành: {0}, rồi bấm Thu thập.",
+            "Di MSI Center atur skenario ke: {0}, lalu klik Tangkap.",
+            "In MSI Center imposta lo scenario su: {0}, poi fai clic su Acquisisci."
+            };
+        m["rep_capture"]    = new[] { "Capture", "Przechwyć", "Erfassen", "Capturer", "Capturar", "采集", "Capturar", "Снять", "キャプチャ", "캡처", "擷取", "Yakala", "Thu thập", "Tangkap", "Acquisisci" };
+        m["rep_capturing"]  = new[] { "Reading EC…", "Odczyt EC…", "EC wird gelesen…", "Lecture de l'EC…", "Leyendo EC…", "正在读取 EC…", "Lendo EC…", "Чтение EC…", "EC を読み取り中…", "EC 읽는 중…", "正在讀取 EC…", "EC okunuyor…", "Đang đọc EC…", "Membaca EC…", "Lettura EC…" };
+        m["rep_captured"]   = new[] { "captured", "przechwycono", "erfasst", "capturé", "capturado", "已采集", "capturado", "снято", "キャプチャ済み", "캡처됨", "已擷取", "yakalandı", "đã thu thập", "ditangkap", "acquisito" };
+        m["rep_pending"]    = new[] { "pending", "oczekuje", "ausstehend", "en attente", "pendiente", "待采集", "pendente", "ожидание", "待機中", "대기 중", "待擷取", "bekliyor", "đang chờ", "menunggu", "in attesa" };
         m["rep_all_done"]   = new[] {
             "All scenarios captured. The report was copied to your clipboard and saved to a file. Click Finish to open the GitHub form — paste the full report (Ctrl+V) into the \"Full EC dump per scenario (optional, very helpful)\" field.",
             "Wszystkie scenariusze przechwycone. Raport skopiowano do schowka i zapisano do pliku. Kliknij Zakończ, aby otworzyć formularz GitHub — wklej pełny raport (Ctrl+V) w pole \"Full EC dump per scenario (optional, very helpful)\".",
@@ -1340,11 +1889,19 @@ public static class Lang
             "Todos los escenarios capturados. El informe se copió al portapapeles y se guardó en un archivo. Pulsa Finalizar para abrir el formulario de GitHub — pega el informe completo (Ctrl+V) en el campo \"Full EC dump per scenario (optional, very helpful)\".",
             "已采集所有场景。报告已复制到剪贴板并保存为文件。点击完成以打开 GitHub 表单——将完整报告（Ctrl+V）粘贴到 \"Full EC dump per scenario (optional, very helpful)\" 字段。",
             "Todos os cenários capturados. O relatório foi copiado para a área de transferência e salvo em arquivo. Clique em Concluir para abrir o formulário do GitHub — cole o relatório completo (Ctrl+V) no campo \"Full EC dump per scenario (optional, very helpful)\".",
-            "Все сценарии сняты. Отчёт скопирован в буфер обмена и сохранён в файл. Нажмите «Готово», чтобы открыть форму GitHub — вставьте полный отчёт (Ctrl+V) в поле \"Full EC dump per scenario (optional, very helpful)\"." };
-        m["rep_finish"]     = new[] { "Finish & open GitHub", "Zakończ i otwórz GitHub", "Fertig & GitHub öffnen", "Terminer & ouvrir GitHub", "Finalizar y abrir GitHub", "完成并打开 GitHub", "Concluir e abrir GitHub", "Готово и открыть GitHub" };
-        m["rep_cancel"]     = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена" };
-        m["rep_saved_to"]   = new[] { "Saved to: {0}", "Zapisano do: {0}", "Gespeichert unter: {0}", "Enregistré dans : {0}", "Guardado en: {0}", "已保存到：{0}", "Salvo em: {0}", "Сохранено в: {0}" };
-        m["rep_clip_fail"] = new[] { "The report could not be put on the clipboard, another program was holding it. Open the saved file and copy the text from there.", "Nie udało się wstawić raportu do schowka, bo trzymał go inny program. Otwórz zapisany plik i skopiuj tekst stamtąd.", "Der Bericht konnte nicht in die Zwischenablage kopiert werden, ein anderes Programm hat sie belegt. Öffne die gespeicherte Datei und kopiere den Text von dort.", "Le rapport n'a pas pu être copié dans le presse-papiers, un autre programme le bloquait. Ouvrez le fichier enregistré et copiez le texte depuis celui-ci.", "No se pudo copiar el informe al portapapeles, otro programa lo tenía ocupado. Abre el archivo guardado y copia el texto desde ahí.", "报告无法复制到剪贴板，剪贴板正被其他程序占用。请打开已保存的文件，从那里复制文本。", "Não foi possível copiar o relatório para a área de transferência, outro programa estava com ela. Abra o arquivo salvo e copie o texto de lá.", "Отчёт не удалось скопировать в буфер обмена, его занимала другая программа. Откройте сохранённый файл и скопируйте текст оттуда." };
+            "Все сценарии сняты. Отчёт скопирован в буфер обмена и сохранён в файл. Нажмите «Готово», чтобы открыть форму GitHub — вставьте полный отчёт (Ctrl+V) в поле \"Full EC dump per scenario (optional, very helpful)\".",
+            "全シナリオをキャプチャしました。レポートはクリップボードにコピーされ、ファイルにも保存されました。「完了」をクリックして GitHub フォームを開き、レポート全体を（Ctrl+V で）\"Full EC dump per scenario (optional, very helpful)\" 欄に貼り付けてください。",
+            "모든 시나리오를 캡처했습니다. 보고서가 클립보드에 복사되고 파일로 저장되었습니다. 완료를 클릭해 GitHub 양식을 연 뒤 전체 보고서(Ctrl+V)를 \"Full EC dump per scenario (optional, very helpful)\" 항목에 붙여넣으세요.",
+            "已擷取所有情境。報告已複製到剪貼簿並儲存為檔案。按一下完成以開啟 GitHub 表單 — 將完整報告（Ctrl+V）貼到 \"Full EC dump per scenario (optional, very helpful)\" 欄位。",
+            "Tüm senaryolar yakalandı. Rapor panoya kopyalandı ve bir dosyaya kaydedildi. GitHub formunu açmak için Bitir'e tıklayın — raporun tamamını (Ctrl+V) \"Full EC dump per scenario (optional, very helpful)\" alanına yapıştırın.",
+            "Đã thu thập mọi kịch bản. Báo cáo đã được sao chép vào bảng tạm và lưu vào tệp. Bấm Hoàn tất để mở biểu mẫu GitHub — dán toàn bộ báo cáo (Ctrl+V) vào trường \"Full EC dump per scenario (optional, very helpful)\".",
+            "Semua skenario sudah ditangkap. Laporan telah disalin ke papan klip dan disimpan ke file. Klik Selesai untuk membuka formulir GitHub — tempel laporan lengkap (Ctrl+V) ke kolom \"Full EC dump per scenario (optional, very helpful)\".",
+            "Tutti gli scenari acquisiti. Il report è stato copiato negli appunti e salvato in un file. Fai clic su Fine per aprire il modulo GitHub — incolla il report completo (Ctrl+V) nel campo \"Full EC dump per scenario (optional, very helpful)\"."
+            };
+        m["rep_finish"]     = new[] { "Finish & open GitHub", "Zakończ i otwórz GitHub", "Fertig & GitHub öffnen", "Terminer & ouvrir GitHub", "Finalizar y abrir GitHub", "完成并打开 GitHub", "Concluir e abrir GitHub", "Готово и открыть GitHub", "完了して GitHub を開く", "완료 및 GitHub 열기", "完成並開啟 GitHub", "Bitir ve GitHub'ı aç", "Hoàn tất & mở GitHub", "Selesai & buka GitHub", "Fine e apri GitHub" };
+        m["rep_cancel"]     = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена", "キャンセル", "취소", "取消", "İptal", "Hủy", "Batal", "Annulla" };
+        m["rep_saved_to"]   = new[] { "Saved to: {0}", "Zapisano do: {0}", "Gespeichert unter: {0}", "Enregistré dans : {0}", "Guardado en: {0}", "已保存到：{0}", "Salvo em: {0}", "Сохранено в: {0}", "保存先：{0}", "저장 위치: {0}", "已儲存到：{0}", "Kaydedildi: {0}", "Đã lưu vào: {0}", "Disimpan ke: {0}", "Salvato in: {0}" };
+        m["rep_clip_fail"] = new[] { "The report could not be put on the clipboard, another program was holding it. Open the saved file and copy the text from there.", "Nie udało się wstawić raportu do schowka, bo trzymał go inny program. Otwórz zapisany plik i skopiuj tekst stamtąd.", "Der Bericht konnte nicht in die Zwischenablage kopiert werden, ein anderes Programm hat sie belegt. Öffne die gespeicherte Datei und kopiere den Text von dort.", "Le rapport n'a pas pu être copié dans le presse-papiers, un autre programme le bloquait. Ouvrez le fichier enregistré et copiez le texte depuis celui-ci.", "No se pudo copiar el informe al portapapeles, otro programa lo tenía ocupado. Abre el archivo guardado y copia el texto desde ahí.", "报告无法复制到剪贴板，剪贴板正被其他程序占用。请打开已保存的文件，从那里复制文本。", "Não foi possível copiar o relatório para a área de transferência, outro programa estava com ela. Abra o arquivo salvo e copie o texto de lá.", "Отчёт не удалось скопировать в буфер обмена, его занимала другая программа. Откройте сохранённый файл и скопируйте текст оттуда.", "他のプログラムがクリップボードを使用中のため、レポートをコピーできませんでした。保存されたファイルを開き、そこからテキストをコピーしてください。", "다른 프로그램이 클립보드를 점유하고 있어 보고서를 클립보드에 넣을 수 없습니다. 저장된 파일을 열어 거기서 텍스트를 복사하세요.", "報告無法複製到剪貼簿，剪貼簿正被其他程式佔用。請開啟已儲存的檔案，從那裡複製文字。", "Rapor panoya kopyalanamadı, panoyu başka bir program tutuyordu. Kaydedilen dosyayı açıp metni oradan kopyalayın.", "Không thể đưa báo cáo vào bảng tạm, một chương trình khác đang giữ nó. Hãy mở tệp đã lưu và sao chép nội dung từ đó.", "Laporan tidak dapat disalin ke papan klip, program lain sedang menahannya. Buka file yang tersimpan dan salin teksnya dari sana.", "Impossibile copiare il report negli appunti, erano occupati da un altro programma. Apri il file salvato e copia il testo da lì." };
         m["rep_read_fail"]  = new[] {
             "Couldn't read the EC (is the MSI WMI interface available?). Details: {0}",
             "Nie udało się odczytać EC (czy interfejs WMI MSI jest dostępny?). Szczegóły: {0}",
@@ -1353,28 +1910,36 @@ public static class Lang
             "No se pudo leer el EC (¿está disponible la interfaz WMI de MSI?). Detalles: {0}",
             "无法读取 EC（MSI WMI 接口是否可用？）。详情：{0}",
             "Não foi possível ler o EC (a interface WMI da MSI está disponível?). Detalhes: {0}",
-            "Не удалось прочитать EC (доступен ли интерфейс MSI WMI?). Подробности: {0}" };
+            "Не удалось прочитать EC (доступен ли интерфейс MSI WMI?). Подробности: {0}",
+            "EC を読み取れませんでした（MSI WMI インターフェースは利用可能ですか？）。詳細：{0}",
+            "EC를 읽을 수 없습니다(MSI WMI 인터페이스를 사용할 수 있나요?). 세부 정보: {0}",
+            "無法讀取 EC（MSI WMI 介面是否可用？）。詳細資訊：{0}",
+            "EC okunamadı (MSI WMI arayüzü kullanılabilir mi?). Ayrıntılar: {0}",
+            "Không đọc được EC (giao diện MSI WMI có khả dụng không?). Chi tiết: {0}",
+            "Tidak dapat membaca EC (apakah antarmuka MSI WMI tersedia?). Detail: {0}",
+            "Impossibile leggere l'EC (l'interfaccia WMI di MSI è disponibile?). Dettagli: {0}"
+            };
 
-        m["yes"]            = new[] { "Yes", "Tak", "Ja", "Oui", "Sí", "是", "Sim", "Да" };
-        m["no"]             = new[] { "No", "Nie", "Nein", "Non", "No", "否", "Não", "Нет" };
-        m["err"]            = new[] { "ERROR", "BŁĄD", "FEHLER", "ERREUR", "ERROR", "错误", "ERRO", "ОШИБКА" };
+        m["yes"]            = new[] { "Yes", "Tak", "Ja", "Oui", "Sí", "是", "Sim", "Да", "はい", "예", "是", "Evet", "Có", "Ya", "Sì" };
+        m["no"]             = new[] { "No", "Nie", "Nein", "Non", "No", "否", "Não", "Нет", "いいえ", "아니요", "否", "Hayır", "Không", "Tidak", "No" };
+        m["err"]            = new[] { "ERROR", "BŁĄD", "FEHLER", "ERREUR", "ERROR", "错误", "ERRO", "ОШИБКА", "エラー", "오류", "錯誤", "HATA", "LỖI", "KESALAHAN", "ERRORE" };
 
-        m["sub_silent"]       = new[] { "quiet · ~30–40 W", "cicho · ~30–40 W", "leise · ~30–40 W", "silencieux · ~30–40 W", "silencioso · ~30–40 W", "安静 · ~30–40 W", "silencioso · ~30–40 W", "тихо · ~30–40 W" };
-        m["sub_balanced"]     = new[] { "full power", "pełna moc", "volle Leistung", "pleine puissance", "máxima potencia", "全功率", "potência total", "полная мощность" };
-        m["sub_extreme"]      = new[] { "max · loud", "maks · głośno", "max · laut", "max · bruyant", "máx · ruidoso", "最大 · 吵", "máx · ruidoso", "макс · громко" };
-        m["sub_superbattery"] = new[] { "saving · ~15 W", "oszczędzanie · ~15 W", "sparen · ~15 W", "économie · ~15 W", "ahorro · ~15 W", "省电 · ~15 W", "economia · ~15 W", "экономия · ~15 W" };
+        m["sub_silent"]       = new[] { "quiet · ~30–40 W", "cicho · ~30–40 W", "leise · ~30–40 W", "silencieux · ~30–40 W", "silencioso · ~30–40 W", "安静 · ~30–40 W", "silencioso · ~30–40 W", "тихо · ~30–40 W", "静音 · ~30–40 W", "조용함 · ~30–40 W", "安靜 · ~30–40 W", "sessiz · ~30–40 W", "êm · ~30–40 W", "senyap · ~30–40 W", "silenzioso · ~30–40 W" };
+        m["sub_balanced"]     = new[] { "full power", "pełna moc", "volle Leistung", "pleine puissance", "máxima potencia", "全功率", "potência total", "полная мощность", "フルパワー", "풀 파워", "全功率", "tam güç", "toàn công suất", "daya penuh", "piena potenza" };
+        m["sub_extreme"]      = new[] { "max · loud", "maks · głośno", "max · laut", "max · bruyant", "máx · ruidoso", "最大 · 吵", "máx · ruidoso", "макс · громко", "最大 · 高騒音", "최대 · 시끄러움", "最大 · 吵", "maks · gürültülü", "tối đa · ồn", "maks · bising", "max · rumoroso" };
+        m["sub_superbattery"] = new[] { "saving · ~15 W", "oszczędzanie · ~15 W", "sparen · ~15 W", "économie · ~15 W", "ahorro · ~15 W", "省电 · ~15 W", "economia · ~15 W", "экономия · ~15 W", "省電力 · ~15 W", "절전 · ~15 W", "省電 · ~15 W", "tasarruf · ~15 W", "tiết kiệm · ~15 W", "hemat · ~15 W", "risparmio · ~15 W" };
     }
 
     // ---- power test (Core/PowerTest.cs + the third Report sub-tab) ----
     private static void L12(Dictionary<string, string[]> m)
     {
-        m["subtab_power"]      = new[] { "Power test", "Test mocy", "Leistungstest", "Test de puissance", "Prueba de potencia", "功率测试", "Teste de potência", "Тест мощности" };
-        m["pt_intro"]         = new[] { "This sub-tab is the only one that measures rather than just reads. It runs the same load on the processor and the graphics chip in SILENT, BALANCED and EXTREME, recording temperatures, fan speed, CPU clock and how much work the processor actually got done, once a second. That way a report carries numbers instead of impressions. MSI Center is not needed for any of it.", "Ta podzakładka jako jedyna mierzy, a nie tylko odczytuje. Uruchamia to samo obciążenie procesora i układu graficznego w SILENT, BALANCED i EXTREME i co sekundę zapisuje temperatury, obroty wentylatorów, zegar procesora oraz to, ile pracy procesor faktycznie wykonał. Dzięki temu w zgłoszeniu są liczby zamiast wrażeń. MSI Center nie jest do niczego potrzebny.", "Dieser Unterreiter ist der einzige, der misst und nicht nur ausliest. Er lässt dieselbe Last auf Prozessor und Grafikchip in SILENT, BALANCED und EXTREME laufen und schreibt jede Sekunde Temperaturen, Lüfterdrehzahl, CPU-Takt und die tatsächlich geleistete Arbeit des Prozessors mit. So stehen im Bericht Zahlen statt Eindrücken. MSI Center wird dafür an keiner Stelle gebraucht.", "Ce sous-onglet est le seul à mesurer, et pas seulement à lire. Il exécute la même charge sur le processeur et la puce graphique en SILENT, BALANCED et EXTREME, en relevant chaque seconde les températures, la vitesse des ventilateurs, la fréquence du processeur et le travail que celui-ci a réellement accompli. Ainsi le rapport contient des chiffres et non des impressions. MSI Center n'est nécessaire à aucun moment.", "Esta subpestaña es la única que mide en lugar de solo leer. Ejecuta la misma carga en el procesador y el chip gráfico en SILENT, BALANCED y EXTREME, y registra cada segundo las temperaturas, la velocidad del ventilador, la frecuencia del procesador y cuánto trabajo completó realmente. Así el informe lleva números en lugar de impresiones. No hace falta MSI Center para nada de esto.", "这个子选项卡是唯一进行实测而不只是读取的页面。它在 SILENT、BALANCED 和 EXTREME 下对处理器和显卡运行相同的负载，每秒记录一次温度、风扇转速、处理器频率以及处理器实际完成的工作量。这样报告里给出的是数字，而不是主观感受。整个过程都不需要 MSI Center。", "Esta subguia é a única que mede, em vez de apenas ler. Ela roda a mesma carga no processador e no chip gráfico em SILENT, BALANCED e EXTREME e registra, uma vez por segundo, as temperaturas, a rotação das ventoinhas, a frequência do processador e quanto trabalho ele realmente concluiu. Assim o relatório traz números em vez de impressões. O MSI Center não é necessário para nada disso.", "Эта вкладка единственная, где идёт измерение, а не просто чтение. Она запускает одну и ту же нагрузку на процессор и графический чип в SILENT, BALANCED и EXTREME и раз в секунду записывает температуру, обороты вентилятора, частоту процессора и то, сколько работы процессор реально выполнил. Поэтому в отчёте цифры, а не впечатления. MSI Center для всего этого не нужен." };
-        m["pt_warn_write"]    = new[] { "The test writes to the Embedded Controller exactly what picking a profile from the tray menu writes: the handful of values a profile is made of. It sets them in turn for SILENT, BALANCED and EXTREME.", "Test zapisuje do kontrolera EC dokładnie to samo, co wybranie profilu z menu pod ikoną przy zegarku: kilka wartości, z których składa się profil. Ustawia je po kolei dla SILENT, BALANCED i EXTREME.", "Der Test schreibt in den Embedded Controller (EC) genau das, was auch die Wahl eines Profils im Menü unter dem Symbol neben der Uhr schreibt: die paar Werte, aus denen ein Profil besteht. Er setzt sie nacheinander für SILENT, BALANCED und EXTREME.", "Le test écrit dans le contrôleur EC exactement ce qu'écrit le choix d'un profil dans le menu de la barre d'état : les quelques valeurs qui composent un profil. Il les applique tour à tour pour SILENT, BALANCED et EXTREME.", "La prueba escribe en el controlador EC exactamente lo mismo que escribe elegir un perfil en el menú de la bandeja: los pocos valores de los que se compone un perfil. Los fija por turnos para SILENT, BALANCED y EXTREME.", "测试向 EC 写入的内容，和你从托盘菜单选择配置文件时写入的完全一样：构成一个配置文件的那几个值。它会依次为 SILENT、BALANCED 和 EXTREME 设置这些值。", "O teste grava no controlador EC exatamente o mesmo que escolher um perfil no menu da bandeja: os poucos valores que compõem um perfil. Ele os define um de cada vez, para SILENT, BALANCED e EXTREME.", "Тест записывает в контроллер EC ровно то же, что и выбор профиля в меню в трее: несколько значений, из которых состоит профиль. Он задаёт их по очереди для SILENT, BALANCED и EXTREME." };
-        m["pt_warn_fourth"]   = new[] { "If your board has a fourth performance mode, the test also writes that one value, checks whether the controller accepted it, and puts it back. The value comes from the model database, it is not guessed.", "Jeśli Twoja płyta ma czwarty tryb wydajności, test wpisze dodatkowo tę jedną wartość, sprawdzi, czy kontroler ją przyjął, i cofnie ją z powrotem. Wartość pochodzi z bazy modeli, nie jest zgadywana.", "Hat deine Platine einen vierten Leistungsmodus, schreibt der Test zusätzlich diesen einen Wert, prüft, ob der EC ihn übernommen hat, und nimmt ihn wieder zurück. Der Wert stammt aus der Modelldatenbank, er ist nicht geraten.", "Si votre carte possède un quatrième mode de performance, le test écrit en plus cette valeur unique, vérifie si le contrôleur l'a acceptée, puis la remet comme avant. La valeur vient de la base de modèles, elle n'est pas devinée.", "Si tu placa tiene un cuarto modo de rendimiento, la prueba escribe además ese único valor, comprueba si el controlador lo aceptó y lo devuelve a como estaba. El valor sale de la base de datos de modelos, no se adivina.", "如果你的主板有第四种性能模式，测试还会额外写入那一个值，检查 EC 是否接受，然后再改回原样。这个值来自机型数据库，不是猜出来的。", "Se a sua placa tiver um quarto modo de desempenho, o teste grava também esse único valor, verifica se o EC o aceitou e o desfaz em seguida. O valor vem do banco de modelos, não é um palpite.", "Если у вашей платы есть четвёртый режим производительности, тест дополнительно запишет это одно значение, проверит, принял ли его контроллер, и вернёт его обратно. Значение берётся из базы моделей, оно не подбирается наугад." };
-        m["pt_warn_heat"]    = new[] { "For a minute per profile every processor core runs flat out and the graphics chip runs alongside them, so the laptop gets hot and the fans get loud. That is the measurement, not a fault. Both are loaded because some profiles raise a limit the two chips share. Allow about seven minutes, and leave the machine alone while it runs: anything else you do competes with the test and spoils the numbers.", "Przez minutę na każdy profil wszystkie rdzenie procesora liczą na pełnych obrotach, a razem z nimi pracuje układ graficzny, więc laptop się nagrzeje, a wentylatory będą głośne. Tak wygląda pomiar, to nie usterka. Obciążamy oba, bo niektóre profile podnoszą limit wspólny dla obu układów. Zarezerwuj około siedmiu minut i nie korzystaj w tym czasie z komputera, bo cokolwiek innego robisz, konkuruje z testem i psuje wyniki.", "Pro Profil laufen alle Prozessorkerne eine Minute lang unter Volllast, und der Grafikchip läuft parallel dazu mit, der Laptop wird also heiß und die Lüfter werden laut. Das gehört zur Messung, es ist kein Fehler. Beide werden belastet, weil manche Profile ein Limit anheben, das sich die zwei Chips teilen. Plane etwa sieben Minuten ein und lass das Gerät währenddessen in Ruhe: Alles andere, was du nebenbei machst, konkurriert mit dem Test und verfälscht die Zahlen.", "Pendant une minute par profil, tous les cœurs du processeur tournent à fond et la puce graphique travaille en même temps, la machine chauffe donc et les ventilateurs deviennent bruyants. C'est la mesure, pas un défaut. Les deux sont sollicités parce que certains profils relèvent une limite partagée par les deux puces. Comptez environ sept minutes et ne vous servez pas de la machine pendant le test : tout ce que vous faites d'autre entre en concurrence avec lui et fausse les chiffres.", "Durante un minuto por perfil, todos los núcleos del procesador trabajan al máximo y el chip gráfico trabaja junto a ellos, así que el equipo se calienta y los ventiladores suenan fuerte. Eso es la medición, no un fallo. Se cargan los dos porque algunos perfiles elevan un límite que ambos chips comparten. Reserva unos siete minutos y no uses el equipo mientras tanto: cualquier otra cosa que hagas compite con la prueba y estropea los números.", "每个配置文件下，所有处理器核心都会满载运行一分钟，显卡也会同时满载，因此笔记本会变烫，风扇会变吵。这是测量过程，不是故障。两者都要加载，因为某些配置文件会提高两颗芯片共用的功耗上限。请预留大约七分钟，并在测试运行期间不要使用笔记本：你做的任何其他事情都会与测试争抢资源，让测量结果失真。", "Durante um minuto em cada perfil, todos os núcleos do processador trabalham a plena carga e o chip gráfico trabalha junto com eles, então o notebook esquenta e as ventoinhas ficam barulhentas. Isso é a medição, não um defeito. Os dois são carregados porque alguns perfis elevam um limite que os dois chips compartilham. Reserve cerca de sete minutos e não use o notebook enquanto o teste roda: qualquer outra coisa que você fizer concorre com ele e estraga os números.", "По минуте на каждый профиль все ядра процессора работают на полную, и вместе с ними работает графический чип, поэтому ноутбук нагреется, а вентиляторы станут громкими. Так и выглядит измерение, это не сбой. Нагружаются оба, потому что некоторые профили поднимают предел, общий для двух чипов. Отведите около семи минут и не пользуйтесь компьютером, пока идёт замер: любые ваши действия конкурируют с тестом и портят результаты." };
-        m["pt_warn_restore"]  = new[] { "At the end, and when you click Cancel, the profile you had before comes back. Controller settings are volatile, so even if something did go wrong, a restart returns the factory state.", "Na koniec, a także po kliknięciu Anuluj, wraca profil, który miałeś wcześniej. Ustawienia kontrolera są ulotne, więc nawet gdyby coś poszło nie tak, restart przywraca stan fabryczny.", "Am Ende und auch beim Klick auf Abbrechen kommt das Profil zurück, das du vorher hattest. Die Einstellungen im EC sind flüchtig, und selbst wenn wirklich etwas schiefgehen sollte, stellt ein Neustart den Werkszustand wieder her.", "À la fin, comme lorsque vous cliquez sur Annuler, le profil que vous aviez avant revient. Les réglages du contrôleur sont volatils, donc même si quelque chose se passait mal, un redémarrage rétablit l'état d'usine.", "Al final, y también cuando pulsas Cancelar, vuelve el perfil que tenías antes. Los ajustes del controlador son volátiles, así que aunque algo saliera mal, un reinicio devuelve el estado de fábrica.", "测试结束时会恢复你之前使用的配置文件，点击取消时也一样。EC 中的设置是易失的，所以即使真出了问题，重启后也会回到出厂状态。", "No fim, e também quando você clica em Cancelar, o perfil que você tinha antes volta. As gravações no EC são voláteis, então, mesmo que algo desse errado, reiniciar devolve o estado de fábrica.", "В конце, а также когда вы нажимаете Отмена, возвращается профиль, который был у вас раньше. Настройки контроллера не сохраняются, поэтому даже если что-то пойдёт не так, перезагрузка вернёт заводское состояние." };
-        m["st_gpu_clock"] = new[] { "GPU clock", "Zegar GPU", "GPU-Takt", "Fréquence GPU", "Frecuencia GPU", "GPU 频率", "Clock da GPU", "Частота GPU" };
+        m["subtab_power"]      = new[] { "Power test", "Test mocy", "Leistungstest", "Test de puissance", "Prueba de potencia", "功率测试", "Teste de potência", "Тест мощности", "電力テスト", "전력 테스트", "功率測試", "Güç testi", "Kiểm tra công suất", "Uji daya", "Test potenza" };
+        m["pt_intro"]         = new[] { "This sub-tab is the only one that measures rather than just reads. It runs the same load on the processor and the graphics chip in SILENT, BALANCED and EXTREME, recording temperatures, fan speed, CPU clock and how much work the processor actually got done, once a second. That way a report carries numbers instead of impressions. MSI Center is not needed for any of it.", "Ta podzakładka jako jedyna mierzy, a nie tylko odczytuje. Uruchamia to samo obciążenie procesora i układu graficznego w SILENT, BALANCED i EXTREME i co sekundę zapisuje temperatury, obroty wentylatorów, zegar procesora oraz to, ile pracy procesor faktycznie wykonał. Dzięki temu w zgłoszeniu są liczby zamiast wrażeń. MSI Center nie jest do niczego potrzebny.", "Dieser Unterreiter ist der einzige, der misst und nicht nur ausliest. Er lässt dieselbe Last auf Prozessor und Grafikchip in SILENT, BALANCED und EXTREME laufen und schreibt jede Sekunde Temperaturen, Lüfterdrehzahl, CPU-Takt und die tatsächlich geleistete Arbeit des Prozessors mit. So stehen im Bericht Zahlen statt Eindrücken. MSI Center wird dafür an keiner Stelle gebraucht.", "Ce sous-onglet est le seul à mesurer, et pas seulement à lire. Il exécute la même charge sur le processeur et la puce graphique en SILENT, BALANCED et EXTREME, en relevant chaque seconde les températures, la vitesse des ventilateurs, la fréquence du processeur et le travail que celui-ci a réellement accompli. Ainsi le rapport contient des chiffres et non des impressions. MSI Center n'est nécessaire à aucun moment.", "Esta subpestaña es la única que mide en lugar de solo leer. Ejecuta la misma carga en el procesador y el chip gráfico en SILENT, BALANCED y EXTREME, y registra cada segundo las temperaturas, la velocidad del ventilador, la frecuencia del procesador y cuánto trabajo completó realmente. Así el informe lleva números en lugar de impresiones. No hace falta MSI Center para nada de esto.", "这个子选项卡是唯一进行实测而不只是读取的页面。它在 SILENT、BALANCED 和 EXTREME 下对处理器和显卡运行相同的负载，每秒记录一次温度、风扇转速、处理器频率以及处理器实际完成的工作量。这样报告里给出的是数字，而不是主观感受。整个过程都不需要 MSI Center。", "Esta subguia é a única que mede, em vez de apenas ler. Ela roda a mesma carga no processador e no chip gráfico em SILENT, BALANCED e EXTREME e registra, uma vez por segundo, as temperaturas, a rotação das ventoinhas, a frequência do processador e quanto trabalho ele realmente concluiu. Assim o relatório traz números em vez de impressões. O MSI Center não é necessário para nada disso.", "Эта вкладка единственная, где идёт измерение, а не просто чтение. Она запускает одну и ту же нагрузку на процессор и графический чип в SILENT, BALANCED и EXTREME и раз в секунду записывает температуру, обороты вентилятора, частоту процессора и то, сколько работы процессор реально выполнил. Поэтому в отчёте цифры, а не впечатления. MSI Center для всего этого не нужен.", "このサブタブは、読み取るだけでなく実測する唯一のページです。SILENT、BALANCED、EXTREME で CPU と GPU に同じ負荷をかけ、温度、ファン回転数、CPU クロック、CPU が実際にこなした仕事量を毎秒記録します。これによりレポートは印象ではなく数値を伝えます。MSI Center は一切不要です。", "이 하위 탭은 단순히 읽는 것이 아니라 실제로 측정하는 유일한 탭입니다. SILENT, BALANCED, EXTREME에서 프로세서와 그래픽 칩에 동일한 부하를 주고, 온도, 팬 속도, CPU 클럭, 프로세서가 실제로 처리한 작업량을 1초마다 기록합니다. 그래서 보고서에는 인상이 아닌 숫자가 담깁니다. 이 과정에 MSI Center는 필요 없습니다.", "這個子分頁是唯一進行實測而不只是讀取的頁面。它在 SILENT、BALANCED 和 EXTREME 下對處理器和顯示晶片執行相同的負載，每秒記錄一次溫度、風扇轉速、CPU 時脈以及處理器實際完成的工作量。這樣報告裡呈現的是數字，而不是主觀感受。整個過程都不需要 MSI Center。", "Bu alt sekme, yalnızca okumak yerine ölçüm yapan tek sekmedir. İşlemci ve grafik çipine SILENT, BALANCED ve EXTREME'de aynı yükü uygular; sıcaklıkları, fan hızını, CPU frekansını ve işlemcinin gerçekte ne kadar iş yaptığını saniyede bir kaydeder. Böylece rapor izlenim yerine sayılar taşır. Bunların hiçbiri için MSI Center gerekmez.", "Thẻ phụ này là thẻ duy nhất thực sự đo chứ không chỉ đọc. Nó chạy cùng một tải trên bộ xử lý và chip đồ họa ở SILENT, BALANCED và EXTREME, ghi lại nhiệt độ, tốc độ quạt, xung CPU và lượng công việc bộ xử lý thực sự hoàn thành, mỗi giây một lần. Nhờ đó báo cáo có con số thay vì cảm nhận. Không cần MSI Center cho bất kỳ phần nào.", "Sub-tab ini satu-satunya yang mengukur, bukan hanya membaca. Ia menjalankan beban yang sama pada prosesor dan chip grafis di SILENT, BALANCED, dan EXTREME, mencatat suhu, kecepatan kipas, clock CPU, dan seberapa banyak kerja yang benar-benar diselesaikan prosesor, sekali per detik. Dengan begitu laporan berisi angka, bukan kesan. MSI Center tidak diperlukan sama sekali.", "Questa sotto-scheda è l'unica che misura invece di limitarsi a leggere. Esegue lo stesso carico su processore e chip grafico in SILENT, BALANCED ed EXTREME, registrando una volta al secondo temperature, velocità ventole, clock CPU e quanto lavoro il processore ha davvero svolto. Così il report contiene numeri, non impressioni. MSI Center non serve per nulla di tutto questo." };
+        m["pt_warn_write"]    = new[] { "The test writes to the Embedded Controller exactly what picking a profile from the tray menu writes: the handful of values a profile is made of. It sets them in turn for SILENT, BALANCED and EXTREME.", "Test zapisuje do kontrolera EC dokładnie to samo, co wybranie profilu z menu pod ikoną przy zegarku: kilka wartości, z których składa się profil. Ustawia je po kolei dla SILENT, BALANCED i EXTREME.", "Der Test schreibt in den Embedded Controller (EC) genau das, was auch die Wahl eines Profils im Menü unter dem Symbol neben der Uhr schreibt: die paar Werte, aus denen ein Profil besteht. Er setzt sie nacheinander für SILENT, BALANCED und EXTREME.", "Le test écrit dans le contrôleur EC exactement ce qu'écrit le choix d'un profil dans le menu de la barre d'état : les quelques valeurs qui composent un profil. Il les applique tour à tour pour SILENT, BALANCED et EXTREME.", "La prueba escribe en el controlador EC exactamente lo mismo que escribe elegir un perfil en el menú de la bandeja: los pocos valores de los que se compone un perfil. Los fija por turnos para SILENT, BALANCED y EXTREME.", "测试向 EC 写入的内容，和你从托盘菜单选择配置文件时写入的完全一样：构成一个配置文件的那几个值。它会依次为 SILENT、BALANCED 和 EXTREME 设置这些值。", "O teste grava no controlador EC exatamente o mesmo que escolher um perfil no menu da bandeja: os poucos valores que compõem um perfil. Ele os define um de cada vez, para SILENT, BALANCED e EXTREME.", "Тест записывает в контроллер EC ровно то же, что и выбор профиля в меню в трее: несколько значений, из которых состоит профиль. Он задаёт их по очереди для SILENT, BALANCED и EXTREME.", "このテストが EC に書き込むのは、トレイメニューでプロファイルを選んだときと全く同じ内容、つまりプロファイルを構成する数個の値だけです。SILENT、BALANCED、EXTREME の順に設定します。", "이 테스트가 EC에 쓰는 내용은 트레이 메뉴에서 프로필을 선택할 때 쓰는 것과 정확히 같습니다. 프로필을 이루는 몇 개의 값입니다. SILENT, BALANCED, EXTREME 순으로 차례로 설정합니다.", "測試寫入 EC 的內容，和你從系統匣選單選擇設定檔時寫入的完全一樣：構成一個設定檔的那幾個值。它會依序為 SILENT、BALANCED 和 EXTREME 設定這些值。", "Test, Gömülü Denetleyiciye tepsi menüsünden bir profil seçtiğinizde yazılanın tam olarak aynısını yazar: bir profili oluşturan birkaç değeri. Bunları sırayla SILENT, BALANCED ve EXTREME için ayarlar.", "Bài kiểm tra ghi vào bộ điều khiển nhúng (EC) đúng những gì việc chọn hồ sơ từ menu khay ghi: vài giá trị tạo nên một hồ sơ. Nó lần lượt đặt chúng cho SILENT, BALANCED và EXTREME.", "Uji ini menulis ke kontroler tertanam (EC) persis seperti saat memilih profil dari menu tray: beberapa nilai yang membentuk sebuah profil. Nilai-nilai itu diatur bergantian untuk SILENT, BALANCED, dan EXTREME.", "Il test scrive nell'Embedded Controller esattamente ciò che scrive la scelta di un profilo dal menu tray: la manciata di valori di cui è fatto un profilo. Li imposta a turno per SILENT, BALANCED ed EXTREME." };
+        m["pt_warn_fourth"]   = new[] { "If your board has a fourth performance mode, the test also writes that one value, checks whether the controller accepted it, and puts it back. The value comes from the model database, it is not guessed.", "Jeśli Twoja płyta ma czwarty tryb wydajności, test wpisze dodatkowo tę jedną wartość, sprawdzi, czy kontroler ją przyjął, i cofnie ją z powrotem. Wartość pochodzi z bazy modeli, nie jest zgadywana.", "Hat deine Platine einen vierten Leistungsmodus, schreibt der Test zusätzlich diesen einen Wert, prüft, ob der EC ihn übernommen hat, und nimmt ihn wieder zurück. Der Wert stammt aus der Modelldatenbank, er ist nicht geraten.", "Si votre carte possède un quatrième mode de performance, le test écrit en plus cette valeur unique, vérifie si le contrôleur l'a acceptée, puis la remet comme avant. La valeur vient de la base de modèles, elle n'est pas devinée.", "Si tu placa tiene un cuarto modo de rendimiento, la prueba escribe además ese único valor, comprueba si el controlador lo aceptó y lo devuelve a como estaba. El valor sale de la base de datos de modelos, no se adivina.", "如果你的主板有第四种性能模式，测试还会额外写入那一个值，检查 EC 是否接受，然后再改回原样。这个值来自机型数据库，不是猜出来的。", "Se a sua placa tiver um quarto modo de desempenho, o teste grava também esse único valor, verifica se o EC o aceitou e o desfaz em seguida. O valor vem do banco de modelos, não é um palpite.", "Если у вашей платы есть четвёртый режим производительности, тест дополнительно запишет это одно значение, проверит, принял ли его контроллер, и вернёт его обратно. Значение берётся из базы моделей, оно не подбирается наугад.", "お使いの基板に4つ目のパフォーマンスモードがある場合、テストはその1つの値も書き込み、EC が受け付けたか確認してから元に戻します。この値はモデルデータベース由来で、推測ではありません。", "보드에 네 번째 성능 모드가 있으면 테스트는 그 값 하나를 추가로 쓰고, 컨트롤러가 받아들였는지 확인한 뒤 되돌립니다. 이 값은 모델 데이터베이스에서 가져온 것이지 추측한 것이 아닙니다.", "如果你的主機板有第四種效能模式，測試還會額外寫入那一個值，檢查 EC 是否接受，然後再改回原樣。這個值來自機型資料庫，不是猜出來的。", "Kartınızda dördüncü bir performans modu varsa test o tek değeri de yazar, denetleyicinin kabul edip etmediğini kontrol eder ve geri alır. Değer model veritabanından gelir, tahmin edilmez.", "Nếu bo mạch có chế độ hiệu năng thứ tư, bài kiểm tra cũng ghi thêm một giá trị đó, kiểm tra xem bộ điều khiển có chấp nhận không, rồi đặt lại như cũ. Giá trị lấy từ cơ sở dữ liệu model, không phải đoán.", "Jika papan Anda punya mode performa keempat, uji ini juga menulis satu nilai itu, memeriksa apakah kontroler menerimanya, lalu mengembalikannya. Nilainya berasal dari basis data model, bukan tebakan.", "Se la tua scheda ha una quarta modalità prestazioni, il test scrive anche quel singolo valore, verifica se il controller lo ha accettato e lo ripristina. Il valore viene dal database modelli, non è indovinato." };
+        m["pt_warn_heat"]    = new[] { "For a minute per profile every processor core runs flat out and the graphics chip runs alongside them, so the laptop gets hot and the fans get loud. That is the measurement, not a fault. Both are loaded because some profiles raise a limit the two chips share. Allow about seven minutes, and leave the machine alone while it runs: anything else you do competes with the test and spoils the numbers.", "Przez minutę na każdy profil wszystkie rdzenie procesora liczą na pełnych obrotach, a razem z nimi pracuje układ graficzny, więc laptop się nagrzeje, a wentylatory będą głośne. Tak wygląda pomiar, to nie usterka. Obciążamy oba, bo niektóre profile podnoszą limit wspólny dla obu układów. Zarezerwuj około siedmiu minut i nie korzystaj w tym czasie z komputera, bo cokolwiek innego robisz, konkuruje z testem i psuje wyniki.", "Pro Profil laufen alle Prozessorkerne eine Minute lang unter Volllast, und der Grafikchip läuft parallel dazu mit, der Laptop wird also heiß und die Lüfter werden laut. Das gehört zur Messung, es ist kein Fehler. Beide werden belastet, weil manche Profile ein Limit anheben, das sich die zwei Chips teilen. Plane etwa sieben Minuten ein und lass das Gerät währenddessen in Ruhe: Alles andere, was du nebenbei machst, konkurriert mit dem Test und verfälscht die Zahlen.", "Pendant une minute par profil, tous les cœurs du processeur tournent à fond et la puce graphique travaille en même temps, la machine chauffe donc et les ventilateurs deviennent bruyants. C'est la mesure, pas un défaut. Les deux sont sollicités parce que certains profils relèvent une limite partagée par les deux puces. Comptez environ sept minutes et ne vous servez pas de la machine pendant le test : tout ce que vous faites d'autre entre en concurrence avec lui et fausse les chiffres.", "Durante un minuto por perfil, todos los núcleos del procesador trabajan al máximo y el chip gráfico trabaja junto a ellos, así que el equipo se calienta y los ventiladores suenan fuerte. Eso es la medición, no un fallo. Se cargan los dos porque algunos perfiles elevan un límite que ambos chips comparten. Reserva unos siete minutos y no uses el equipo mientras tanto: cualquier otra cosa que hagas compite con la prueba y estropea los números.", "每个配置文件下，所有处理器核心都会满载运行一分钟，显卡也会同时满载，因此笔记本会变烫，风扇会变吵。这是测量过程，不是故障。两者都要加载，因为某些配置文件会提高两颗芯片共用的功耗上限。请预留大约七分钟，并在测试运行期间不要使用笔记本：你做的任何其他事情都会与测试争抢资源，让测量结果失真。", "Durante um minuto em cada perfil, todos os núcleos do processador trabalham a plena carga e o chip gráfico trabalha junto com eles, então o notebook esquenta e as ventoinhas ficam barulhentas. Isso é a medição, não um defeito. Os dois são carregados porque alguns perfis elevam um limite que os dois chips compartilham. Reserve cerca de sete minutos e não use o notebook enquanto o teste roda: qualquer outra coisa que você fizer concorre com ele e estraga os números.", "По минуте на каждый профиль все ядра процессора работают на полную, и вместе с ними работает графический чип, поэтому ноутбук нагреется, а вентиляторы станут громкими. Так и выглядит измерение, это не сбой. Нагружаются оба, потому что некоторые профили поднимают предел, общий для двух чипов. Отведите около семи минут и не пользуйтесь компьютером, пока идёт замер: любые ваши действия конкурируют с тестом и портят результаты.", "各プロファイルで1分間、全 CPU コアが全力で動作し、GPU も同時に動作するため、本体は熱くなりファンは大きな音を立てます。これは測定であり、故障ではありません。一部のプロファイルは両チップ共通の制限を引き上げるため、両方に負荷をかけます。約7分を見込み、実行中は本体に触れないでください。他の操作はテストと競合し、数値を狂わせます。", "프로필마다 1분 동안 모든 프로세서 코어가 최대 속도로 돌아가고 그래픽 칩도 함께 동작하므로 노트북이 뜨거워지고 팬이 시끄러워집니다. 이는 측정 과정이지 고장이 아닙니다. 일부 프로필은 두 칩이 공유하는 제한을 높이기 때문에 둘 다 부하를 줍니다. 약 7분을 확보하고 실행 중에는 기기를 그대로 두세요. 다른 작업을 하면 테스트와 자원을 다투어 결과가 왜곡됩니다.", "每個設定檔下，所有處理器核心都會滿載執行一分鐘，顯示晶片也會同時滿載，因此筆電會變燙，風扇會變吵。這是測量過程，不是故障。兩者都要加載，因為某些設定檔會提高兩顆晶片共用的功耗上限。請預留大約七分鐘，並在測試執行期間不要使用筆電：你做的任何其他事情都會與測試爭搶資源，讓測量結果失真。", "Her profilde bir dakika boyunca tüm işlemci çekirdekleri tam hızda çalışır ve grafik çipi de onlarla birlikte çalışır; bu yüzden dizüstü ısınır ve fanlar gürültülü olur. Bu bir arıza değil, ölçümün kendisidir. İkisi de yüklenir çünkü bazı profiller iki çipin paylaştığı bir sınırı yükseltir. Yaklaşık yedi dakika ayırın ve test sırasında makineye dokunmayın: yaptığınız her şey testle yarışır ve sayıları bozar.", "Trong một phút cho mỗi hồ sơ, mọi nhân xử lý chạy hết công suất và chip đồ họa chạy cùng lúc, nên laptop sẽ nóng và quạt sẽ ồn. Đó là phép đo, không phải lỗi. Cả hai đều được tải vì một số hồ sơ nâng giới hạn mà hai chip dùng chung. Hãy dành khoảng bảy phút và để yên máy trong lúc chạy: bất cứ việc gì khác đều tranh tài nguyên với bài kiểm tra và làm sai lệch con số.", "Selama satu menit per profil semua inti prosesor berjalan penuh dan chip grafis ikut bekerja, sehingga laptop menjadi panas dan kipas bising. Itulah pengukurannya, bukan kerusakan. Keduanya dibebani karena beberapa profil menaikkan batas yang dipakai bersama kedua chip. Sediakan sekitar tujuh menit dan biarkan mesin selama uji berjalan: apa pun yang Anda lakukan akan bersaing dengan uji dan merusak angkanya.", "Per un minuto per profilo ogni core del processore gira al massimo e il chip grafico lavora insieme a loro, quindi il laptop si scalda e le ventole diventano rumorose. È la misurazione, non un guasto. Entrambi sono caricati perché alcuni profili alzano un limite condiviso dai due chip. Prevedi circa sette minuti e lascia stare la macchina mentre gira: qualsiasi altra cosa tu faccia compete con il test e falsa i numeri." };
+        m["pt_warn_restore"]  = new[] { "At the end, and when you click Cancel, the profile you had before comes back. Controller settings are volatile, so even if something did go wrong, a restart returns the factory state.", "Na koniec, a także po kliknięciu Anuluj, wraca profil, który miałeś wcześniej. Ustawienia kontrolera są ulotne, więc nawet gdyby coś poszło nie tak, restart przywraca stan fabryczny.", "Am Ende und auch beim Klick auf Abbrechen kommt das Profil zurück, das du vorher hattest. Die Einstellungen im EC sind flüchtig, und selbst wenn wirklich etwas schiefgehen sollte, stellt ein Neustart den Werkszustand wieder her.", "À la fin, comme lorsque vous cliquez sur Annuler, le profil que vous aviez avant revient. Les réglages du contrôleur sont volatils, donc même si quelque chose se passait mal, un redémarrage rétablit l'état d'usine.", "Al final, y también cuando pulsas Cancelar, vuelve el perfil que tenías antes. Los ajustes del controlador son volátiles, así que aunque algo saliera mal, un reinicio devuelve el estado de fábrica.", "测试结束时会恢复你之前使用的配置文件，点击取消时也一样。EC 中的设置是易失的，所以即使真出了问题，重启后也会回到出厂状态。", "No fim, e também quando você clica em Cancelar, o perfil que você tinha antes volta. As gravações no EC são voláteis, então, mesmo que algo desse errado, reiniciar devolve o estado de fábrica.", "В конце, а также когда вы нажимаете Отмена, возвращается профиль, который был у вас раньше. Настройки контроллера не сохраняются, поэтому даже если что-то пойдёт не так, перезагрузка вернёт заводское состояние.", "終了時、およびキャンセルをクリックした時には、以前のプロファイルに戻ります。EC の設定は揮発性なので、万一問題が起きても再起動で工場出荷状態に戻ります。", "테스트가 끝나거나 취소를 클릭하면 이전 프로필로 돌아옵니다. 컨트롤러 설정은 휘발성이므로 설령 문제가 생기더라도 재시작하면 공장 상태로 돌아옵니다.", "測試結束時會還原你之前使用的設定檔，按一下取消時也一樣。EC 中的設定是暫時性的，所以即使真的出了問題，重新開機後也會回到出廠狀態。", "Sonunda ve İptal'e tıkladığınızda önceki profiliniz geri gelir. Denetleyici ayarları geçicidir; bir şey ters gitse bile yeniden başlatma fabrika durumuna döndürür.", "Khi kết thúc, và khi bấm Hủy, hồ sơ trước đó sẽ được khôi phục. Cài đặt của bộ điều khiển là tạm thời, nên dù có sự cố, khởi động lại sẽ trả về trạng thái xuất xưởng.", "Di akhir, dan saat Anda klik Batal, profil sebelumnya dikembalikan. Pengaturan kontroler bersifat sementara, jadi jika pun ada yang salah, mulai ulang mengembalikan kondisi pabrik.", "Alla fine, e quando fai clic su Annulla, torna il profilo che avevi prima. Le impostazioni del controller sono volatili, quindi anche se qualcosa andasse storto un riavvio riporta allo stato di fabbrica." };
+        m["st_gpu_clock"] = new[] { "GPU clock", "Zegar GPU", "GPU-Takt", "Fréquence GPU", "Frecuencia GPU", "GPU 频率", "Clock da GPU", "Частота GPU", "GPU クロック", "GPU 클럭", "GPU 時脈", "GPU frekansı", "Xung GPU", "Clock GPU", "Clock GPU" };
         // {0} adapter name, {1} current MHz, {2} ceiling MHz, {3} percent of the ceiling
         m["st_gpu_clock_tip"] = new[] {
             "{0}\n\nCore clock {1} MHz of a {2} MHz ceiling, so {3} % of what this card can run at. A busy card sitting well under its ceiling is the firmware holding it there, which is exactly what a performance profile changes. Read from Windows itself, with no vendor software installed.",
@@ -1384,7 +1949,15 @@ public static class Lang
             "{0}\n\nFrecuencia del núcleo {1} MHz frente a un techo de {2} MHz, es decir el {3} % de lo que esta tarjeta puede dar. Una tarjeta ocupada que se queda muy por debajo de su techo está retenida ahí por el firmware, que es justo lo que cambia un perfil de rendimiento. Leído directamente de Windows, sin software del fabricante.",
             "{0}\n\n核心频率 {1} MHz，上限 {2} MHz，即这张显卡能力的 {3} %。显卡满载却明显低于上限，说明是固件把它压在那里，而这正是性能配置文件所改变的。数据直接来自 Windows，无需安装厂商软件。",
             "{0}\n\nClock do núcleo {1} MHz para um teto de {2} MHz, ou seja {3} % do que esta placa consegue. Uma placa ocupada que fica bem abaixo do teto está sendo segurada ali pelo firmware, que é exatamente o que um perfil de desempenho altera. Lido direto do Windows, sem software do fabricante.",
-            "{0}\n\nЧастота ядра {1} МГц при потолке {2} МГц, то есть {3} % от возможностей этой карты. Загруженная карта, держащаяся заметно ниже потолка, удерживается там прошивкой, а именно это и меняет профиль производительности. Читается прямо из Windows, без ПО производителя." };
+            "{0}\n\nЧастота ядра {1} МГц при потолке {2} МГц, то есть {3} % от возможностей этой карты. Загруженная карта, держащаяся заметно ниже потолка, удерживается там прошивкой, а именно это и меняет профиль производительности. Читается прямо из Windows, без ПО производителя.",
+            "{0}\n\nコアクロック {1} MHz、上限 {2} MHz、つまりこのカードの能力の {3} % です。負荷中なのに上限を大きく下回るなら、ファームウェアが抑えているということで、まさにパフォーマンスプロファイルが変える部分です。Windows 自体から取得、ベンダーソフト不要。",
+            "{0}\n\n코어 클럭 {1} MHz, 상한 {2} MHz, 즉 이 카드가 낼 수 있는 성능의 {3} %입니다. 바쁜 카드가 상한보다 훨씬 낮게 머문다면 펌웨어가 붙잡고 있는 것이며, 성능 프로필이 바꾸는 것이 바로 이것입니다. 벤더 소프트웨어 없이 Windows에서 직접 읽습니다.",
+            "{0}\n\n核心時脈 {1} MHz，上限 {2} MHz，即這張顯示卡能力的 {3} %。顯示卡滿載卻明顯低於上限，表示是韌體把它壓在那裡，而這正是效能設定檔所改變的。資料直接來自 Windows，無需安裝廠商軟體。",
+            "{0}\n\nÇekirdek frekansı {1} MHz, üst sınır {2} MHz; yani bu kartın çalışabildiğinin %{3} kadarı. Meşgul bir kartın üst sınırının çok altında kalması, ürün yazılımının onu orada tutmasıdır; performans profilinin değiştirdiği tam olarak budur. Üretici yazılımı kurulmadan doğrudan Windows'tan okunur.",
+            "{0}\n\nXung nhân {1} MHz trên trần {2} MHz, tức {3} % khả năng của card này. Card đang bận mà vẫn thấp hơn hẳn trần là do firmware giữ nó ở đó, và đó chính là điều hồ sơ hiệu năng thay đổi. Đọc trực tiếp từ Windows, không cần phần mềm hãng.",
+            "{0}\n\nClock inti {1} MHz dari batas {2} MHz, yaitu {3} % dari kemampuan kartu ini. Kartu yang sibuk tetapi jauh di bawah batasnya berarti ditahan oleh firmware, dan itulah yang diubah oleh profil performa. Dibaca langsung dari Windows, tanpa perangkat lunak vendor.",
+            "{0}\n\nClock del core {1} MHz su un tetto di {2} MHz, cioè il {3} % di quanto questa scheda può raggiungere. Una scheda impegnata ma ben sotto il suo tetto è il firmware che la tiene lì, ed è esattamente ciò che un profilo prestazioni cambia. Letto da Windows stesso, senza software del produttore installato."
+            };
         // {0} adapter name - shown when the card has powered itself down and reports no clock
         m["st_gpu_clock_tip_idle"] = new[] {
             "{0}\n\nNo clock to report: with nothing asking the card for work it powers itself down, and a sleeping card does not answer. Start anything that uses it and the figure appears. Read from Windows itself, with no vendor software installed.",
@@ -1394,7 +1967,15 @@ public static class Lang
             "{0}\n\nNo hay frecuencia que mostrar: si nada le pide trabajo, la tarjeta se apaga, y una tarjeta dormida no responde. Inicia algo que la use y el valor aparecerá. Leído directamente de Windows, sin software del fabricante.",
             "{0}\n\n没有可显示的频率：没有任何程序请求显卡工作时，它会自行关闭，而休眠的显卡不会应答。启动任何使用它的程序，数值就会出现。数据直接来自 Windows，无需安装厂商软件。",
             "{0}\n\nSem clock para mostrar: quando nada pede trabalho à placa, ela se desliga, e uma placa dormindo não responde. Inicie algo que a use e o valor aparece. Lido direto do Windows, sem software do fabricante.",
-            "{0}\n\nЧастоту показать нечего: когда карту никто не нагружает, она отключается, а спящая карта не отвечает. Запустите что-нибудь, что её использует, и значение появится. Читается прямо из Windows, без ПО производителя." };
+            "{0}\n\nЧастоту показать нечего: когда карту никто не нагружает, она отключается, а спящая карта не отвечает. Запустите что-нибудь, что её использует, и значение появится. Читается прямо из Windows, без ПО производителя.",
+            "{0}\n\n表示できるクロックがありません。カードに仕事を求めるものがなければ自ら停止し、休止中のカードは応答しません。カードを使うものを起動すれば数値が表示されます。Windows 自体から取得、ベンダーソフト不要。",
+            "{0}\n\n표시할 클럭이 없습니다. 카드에 작업을 요청하는 것이 없으면 스스로 전원을 내리고, 잠든 카드는 응답하지 않습니다. 카드를 사용하는 무언가를 실행하면 수치가 나타납니다. 벤더 소프트웨어 없이 Windows에서 직접 읽습니다.",
+            "{0}\n\n沒有可顯示的時脈：沒有任何程式要求顯示卡工作時，它會自行關閉，而休眠的顯示卡不會回應。啟動任何使用它的程式，數值就會出現。資料直接來自 Windows，無需安裝廠商軟體。",
+            "{0}\n\nBildirilecek frekans yok: karttan iş isteyen bir şey olmadığında kart kendini kapatır ve uyuyan kart yanıt vermez. Kartı kullanan herhangi bir şeyi başlatın, değer görünür. Üretici yazılımı kurulmadan doğrudan Windows'tan okunur.",
+            "{0}\n\nKhông có xung để báo: khi không có gì yêu cầu card làm việc, nó tự tắt nguồn, và card đang ngủ không trả lời. Chạy bất kỳ thứ gì dùng đến nó, con số sẽ xuất hiện. Đọc trực tiếp từ Windows, không cần phần mềm hãng.",
+            "{0}\n\nTidak ada clock untuk dilaporkan: tanpa permintaan kerja, kartu mematikan dirinya sendiri, dan kartu yang tidur tidak menjawab. Jalankan apa pun yang memakainya dan angkanya akan muncul. Dibaca langsung dari Windows, tanpa perangkat lunak vendor.",
+            "{0}\n\nNessun clock da riportare: senza nulla che chieda lavoro alla scheda, questa si spegne, e una scheda a riposo non risponde. Avvia qualsiasi cosa che la usi e il valore compare. Letto da Windows stesso, senza software del produttore installato."
+            };
         // ---- Report start screen ----
         m["rep_home_title"] = new[] {
             "Three tests, three different questions",
@@ -1404,7 +1985,15 @@ public static class Lang
             "Tres pruebas, tres preguntas distintas",
             "三个测试，三个不同的问题",
             "Três testes, três perguntas diferentes",
-            "Три теста, три разных вопроса" };
+            "Три теста, три разных вопроса",
+            "3つのテスト、3つの異なる問い",
+            "세 가지 테스트, 세 가지 다른 질문",
+            "三個測試，三個不同的問題",
+            "Üç test, üç farklı soru",
+            "Ba bài kiểm tra, ba câu hỏi khác nhau",
+            "Tiga uji, tiga pertanyaan berbeda",
+            "Tre test, tre domande diverse"
+            };
         m["rep_home_intro1"] = new[] {
             "GhostDeck switches profiles by writing a handful of values to the laptop's embedded controller, the small chip that runs the fans and the power limits. Those values differ between boards, so for a laptop nobody has reported yet we simply do not know them, and the app stays read-only until someone establishes them.",
             "GhostDeck przełącza profile, zapisując kilka wartości do kontrolera wbudowanego w laptopa, czyli małego układu, który steruje wentylatorami i limitami mocy. Te wartości różnią się między płytami, więc dla laptopa, którego nikt jeszcze nie zgłosił, po prostu ich nie znamy, i aplikacja pozostaje w trybie tylko do odczytu, dopóki ktoś ich nie ustali.",
@@ -1413,7 +2002,15 @@ public static class Lang
             "GhostDeck cambia de perfil escribiendo unos pocos valores en el controlador integrado del portátil, el pequeño chip que gobierna los ventiladores y los límites de potencia. Esos valores difieren entre placas, así que para un portátil que nadie ha reportado aún simplemente no los conocemos, y la aplicación permanece en solo lectura hasta que alguien los establezca.",
             "GhostDeck 通过向笔记本的嵌入式控制器（管理风扇和功率限制的小芯片）写入几个值来切换配置文件。这些值因主板而异，对于还没有人报告过的笔记本，我们根本不知道它们，应用会保持只读，直到有人确定这些值。",
             "O GhostDeck troca de perfil gravando alguns valores no controlador embutido do notebook, o pequeno chip que comanda as ventoinhas e os limites de energia. Esses valores variam entre placas; para um notebook que ninguém reportou ainda, simplesmente não os conhecemos, e o app fica somente leitura até alguém estabelecê-los.",
-            "GhostDeck переключает профили, записывая несколько значений во встроенный контроллер ноутбука, маленький чип, управляющий вентиляторами и лимитами мощности. Эти значения различаются между платами, поэтому для ноутбука, о котором ещё никто не сообщил, мы их просто не знаем, и приложение остаётся в режиме только чтения, пока кто-нибудь их не установит." };
+            "GhostDeck переключает профили, записывая несколько значений во встроенный контроллер ноутбука, маленький чип, управляющий вентиляторами и лимитами мощности. Эти значения различаются между платами, поэтому для ноутбука, о котором ещё никто не сообщил, мы их просто не знаем, и приложение остаётся в режиме только чтения, пока кто-нибудь их не установит.",
+            "GhostDeck は、ファンと電力制限を司る小さなチップである組み込みコントローラーに数個の値を書き込んでプロファイルを切り替えます。この値は基板ごとに異なるため、まだ誰も報告していないノートPCではその値が不明で、誰かが確定するまでアプリは読み取り専用のままです。",
+            "GhostDeck은 팬과 전력 제한을 담당하는 작은 칩인 노트북의 임베디드 컨트롤러에 몇 개의 값을 써서 프로필을 전환합니다. 이 값은 보드마다 다르므로 아직 아무도 제보하지 않은 노트북의 경우 값을 알 수 없고, 누군가 확정할 때까지 앱은 읽기 전용으로 유지됩니다.",
+            "GhostDeck 透過向筆電的嵌入式控制器（管理風扇和功率限制的小晶片）寫入幾個值來切換設定檔。這些值因主機板而異，對於還沒有人回報過的筆電，我們根本不知道它們，應用程式會保持唯讀，直到有人確定這些值。",
+            "GhostDeck, profilleri dizüstünün gömülü denetleyicisine, yani fanları ve güç sınırlarını yöneten küçük çipe birkaç değer yazarak değiştirir. Bu değerler kartlar arasında farklıdır; henüz kimsenin bildirmediği bir dizüstü için bunları bilmeyiz ve biri belirleyene kadar uygulama salt okunur kalır.",
+            "GhostDeck chuyển hồ sơ bằng cách ghi vài giá trị vào bộ điều khiển nhúng của laptop, con chip nhỏ điều khiển quạt và giới hạn công suất. Các giá trị này khác nhau giữa các bo mạch, nên với laptop chưa ai báo cáo, chúng tôi đơn giản là chưa biết chúng, và ứng dụng giữ chế độ chỉ đọc cho đến khi có người xác lập.",
+            "GhostDeck mengganti profil dengan menulis beberapa nilai ke kontroler tertanam (EC) laptop, chip kecil yang mengatur kipas dan batas daya. Nilai-nilai itu berbeda antar papan, jadi untuk laptop yang belum pernah dilaporkan kami tidak mengetahuinya, dan aplikasi tetap hanya baca sampai seseorang menetapkannya.",
+            "GhostDeck cambia profilo scrivendo una manciata di valori nell'embedded controller del laptop, il piccolo chip che gestisce ventole e limiti di potenza. Questi valori variano da scheda a scheda, quindi per un laptop che nessuno ha ancora segnalato semplicemente non li conosciamo, e l'app resta in sola lettura finché qualcuno non li stabilisce."
+            };
         m["rep_home_intro2"] = new[] {
             "These three tests are how that happens. The first two work by comparison: you switch scenarios in MSI Center while the wizard watches what changes in the controller, which is why they need MSI Center installed as an independent reference. The third needs nothing: it runs the same load in every profile and counts how much work your machine actually got done, so it answers whether a profile changes anything without asking you to judge by ear.",
             "Te trzy testy służą właśnie do tego. Dwa pierwsze działają przez porównanie: Ty przełączasz scenariusze w MSI Center, a kreator patrzy, co zmienia się w kontrolerze. Dlatego wymagają zainstalowanego MSI Center, jako niezależnego punktu odniesienia. Trzeci nie wymaga niczego: uruchamia w każdym profilu to samo obciążenie i liczy, ile pracy Twój komputer faktycznie wykonał, więc odpowiada na pytanie, czy profil cokolwiek zmienia, bez proszenia Cię o ocenę na słuch.",
@@ -1422,7 +2019,15 @@ public static class Lang
             "Para eso están estas tres pruebas. Las dos primeras funcionan por comparación: tú cambias de escenario en MSI Center mientras el asistente observa qué cambia en el controlador; por eso necesitan MSI Center instalado como referencia independiente. La tercera no necesita nada: ejecuta la misma carga en cada perfil y cuenta cuánto trabajo hizo realmente tu máquina, así que responde si un perfil cambia algo sin pedirte juzgar de oído.",
             "这三个测试正是为此而生。前两个通过对比工作：你在 MSI Center 中切换场景，向导观察控制器中发生的变化，因此它们需要安装 MSI Center 作为独立参照。第三个则无需任何东西：它在每个配置文件下运行相同的负载并统计电脑实际完成了多少工作，从而回答配置文件是否真的改变了什么，而不用你凭耳朵判断。",
             "Esses três testes existem exatamente para isso. Os dois primeiros funcionam por comparação: você troca de cenário no MSI Center enquanto o assistente observa o que muda no controlador, e por isso exigem o MSI Center instalado como referência independente. O terceiro não exige nada: roda a mesma carga em cada perfil e conta quanto trabalho a máquina realmente concluiu, respondendo se um perfil muda alguma coisa sem pedir que você julgue de ouvido.",
-            "Именно для этого и нужны эти три теста. Первые два работают через сравнение: вы переключаете сценарии в MSI Center, а мастер смотрит, что меняется в контроллере, поэтому им нужен установленный MSI Center как независимый ориентир. Третьему не нужно ничего: он запускает одну и ту же нагрузку в каждом профиле и считает, сколько работы машина реально выполнила, отвечая, меняет ли профиль хоть что-то, не прося вас судить на слух." };
+            "Именно для этого и нужны эти три теста. Первые два работают через сравнение: вы переключаете сценарии в MSI Center, а мастер смотрит, что меняется в контроллере, поэтому им нужен установленный MSI Center как независимый ориентир. Третьему не нужно ничего: он запускает одну и ту же нагрузку в каждом профиле и считает, сколько работы машина реально выполнила, отвечая, меняет ли профиль хоть что-то, не прося вас судить на слух.",
+            "この3つのテストがその手段です。最初の2つは比較で動作します。MSI Center でシナリオを切り替え、ウィザードがコントローラーの変化を観察するため、独立した基準として MSI Center のインストールが必要です。3つ目は何も必要としません。各プロファイルで同じ負荷を実行し、マシンが実際にこなした仕事量を数えるので、耳で判断させることなくプロファイルが何かを変えているかに答えます。",
+            "이 세 가지 테스트가 그 과정입니다. 처음 둘은 비교 방식입니다. MSI Center에서 시나리오를 바꾸는 동안 마법사가 컨트롤러의 변화를 관찰하므로 독립적인 기준으로 MSI Center가 설치되어 있어야 합니다. 세 번째는 아무것도 필요 없습니다. 모든 프로필에서 같은 부하를 실행하고 기기가 실제로 처리한 작업량을 세므로, 귀로 판단할 필요 없이 프로필이 무언가를 바꾸는지 답합니다.",
+            "這三個測試正是為此而生。前兩個透過比對運作：你在 MSI Center 中切換情境，精靈觀察控制器中發生的變化，因此它們需要安裝 MSI Center 作為獨立參照。第三個則不需要任何東西：它在每個設定檔下執行相同的負載並統計電腦實際完成了多少工作，從而回答設定檔是否真的改變了什麼，而不用你憑耳朵判斷。",
+            "Bu üç test bunun yoludur. İlk ikisi karşılaştırmayla çalışır: siz MSI Center'da senaryo değiştirirken sihirbaz denetleyicide neyin değiştiğini izler; bu yüzden bağımsız referans olarak MSI Center'ın kurulu olması gerekir. Üçüncüsü hiçbir şeye ihtiyaç duymaz: her profilde aynı yükü çalıştırır ve makinenizin gerçekte ne kadar iş yaptığını sayar; böylece bir profilin bir şey değiştirip değiştirmediğini kulakla yargılamanızı istemeden yanıtlar.",
+            "Ba bài kiểm tra này là cách để làm điều đó. Hai bài đầu hoạt động bằng so sánh: bạn chuyển kịch bản trong MSI Center trong khi trình hướng dẫn theo dõi thay đổi trong bộ điều khiển, vì vậy chúng cần MSI Center được cài làm tham chiếu độc lập. Bài thứ ba không cần gì: nó chạy cùng một tải ở mọi hồ sơ và đếm lượng công việc máy thực sự hoàn thành, nên trả lời được hồ sơ có thay đổi gì không mà không cần bạn phán đoán bằng tai.",
+            "Ketiga uji inilah caranya. Dua yang pertama bekerja dengan perbandingan: Anda mengganti skenario di MSI Center sementara wizard mengamati apa yang berubah di kontroler, karena itu keduanya memerlukan MSI Center terpasang sebagai acuan independen. Yang ketiga tidak butuh apa pun: ia menjalankan beban yang sama di setiap profil dan menghitung kerja yang benar-benar diselesaikan mesin Anda, sehingga menjawab apakah profil mengubah sesuatu tanpa meminta Anda menilai dengan telinga.",
+            "Questi tre test servono proprio a questo. I primi due lavorano per confronto: cambi scenario in MSI Center mentre la procedura guidata osserva cosa cambia nel controller, ed è per questo che richiedono MSI Center installato come riferimento indipendente. Il terzo non richiede nulla: esegue lo stesso carico in ogni profilo e conta quanto lavoro la macchina ha davvero svolto, così risponde se un profilo cambia qualcosa senza chiederti di giudicare a orecchio."
+            };
         m["rep_home_intro3"] = new[] {
             "Not recognised yet? Go left to right: Profiles first, then Fan curve, then the Power test. Already supported? Then the Power test alone is enough - it proves the profiles do what they claim on your board.",
             "Twojego laptopa nie ma jeszcze na liście? Idź od lewej: najpierw Profile, potem Krzywa wentylatora, na koniec Test mocy. Laptop jest już obsługiwany? Wtedy wystarczy sam Test mocy - potwierdzi, że profile robią na Twojej płycie to, co obiecują.",
@@ -1431,7 +2036,15 @@ public static class Lang
             "¿Tu portátil aún no está reconocido? Ve de izquierda a derecha: primero Perfiles, luego Curva del ventilador y al final la Prueba de potencia. ¿Ya está soportado? Entonces basta la Prueba de potencia: demuestra que los perfiles hacen en tu placa lo que prometen.",
             "你的笔记本还未被识别？请从左到右依次进行：先是配置文件，然后是风扇曲线，最后是功率测试。已经受支持？那么只需运行功率测试，它能证明配置文件在你的主板上确实名副其实。",
             "Seu notebook ainda não é reconhecido? Vá da esquerda para a direita: primeiro Perfis, depois Curva da ventoinha e por fim o Teste de potência. Já é suportado? Então basta o Teste de potência - ele prova que os perfis fazem na sua placa o que prometem.",
-            "Ваш ноутбук ещё не распознан? Идите слева направо: сначала Профили, затем Кривая вентилятора, в конце Тест мощности. Уже поддерживается? Тогда достаточно одного Теста мощности - он докажет, что профили действительно делают на вашей плате то, что обещают." };
+            "Ваш ноутбук ещё не распознан? Идите слева направо: сначала Профили, затем Кривая вентилятора, в конце Тест мощности. Уже поддерживается? Тогда достаточно одного Теста мощности - он докажет, что профили действительно делают на вашей плате то, что обещают.",
+            "まだ未認識ですか？左から右へ進んでください。まずプロファイル、次にファンカーブ、最後に電力テストです。すでにサポート済みですか？なら電力テストだけで十分です。お使いの基板でプロファイルが謳い通りに動くことを証明します。",
+            "아직 인식되지 않았나요? 왼쪽에서 오른쪽으로 진행하세요. 먼저 프로필, 다음 팬 곡선, 그다음 전력 테스트입니다. 이미 지원되나요? 그러면 전력 테스트만으로 충분합니다. 프로필이 이 보드에서 제 역할을 하는지 증명합니다.",
+            "你的筆電還未被辨識？請從左到右依序進行：先是設定檔，然後是風扇曲線，最後是功率測試。已經受支援？那麼只需執行功率測試，它能證明設定檔在你的主機板上確實名副其實。",
+            "Henüz tanınmıyor mu? Soldan sağa gidin: önce Profiller, sonra Fan eğrisi, ardından Güç testi. Zaten destekleniyor mu? O zaman yalnızca Güç testi yeterlidir - profillerin kartınızda iddia ettiklerini yaptığını kanıtlar.",
+            "Chưa được nhận diện? Đi từ trái sang phải: Hồ sơ trước, rồi Đường cong quạt, rồi Kiểm tra công suất. Đã được hỗ trợ? Chỉ cần Kiểm tra công suất là đủ - nó chứng minh các hồ sơ làm đúng như tuyên bố trên bo mạch của bạn.",
+            "Belum dikenali? Ikuti dari kiri ke kanan: Profil dulu, lalu Kurva kipas, lalu Uji daya. Sudah didukung? Maka Uji daya saja cukup - ia membuktikan profil bekerja sesuai klaimnya di papan Anda.",
+            "Non ancora riconosciuto? Vai da sinistra a destra: prima Profili, poi Curva ventole, poi il Test potenza. Già supportato? Allora basta il Test potenza da solo - dimostra che i profili fanno ciò che promettono sulla tua scheda."
+            };
         m["rep_home_q1"] = new[] {
             "What does MSI Center write for each of its scenarios?",
             "Co MSI Center zapisuje dla każdego ze swoich scenariuszy?",
@@ -1440,7 +2053,15 @@ public static class Lang
             "¿Qué escribe MSI Center para cada uno de sus escenarios?",
             "MSI Center 为它的每个场景写入了什么？",
             "O que o MSI Center grava para cada um dos seus cenários?",
-            "Что MSI Center записывает для каждого из своих сценариев?" };
+            "Что MSI Center записывает для каждого из своих сценариев?",
+            "MSI Center は各シナリオで何を書き込んでいるか？",
+            "MSI Center는 각 시나리오에 무엇을 쓸까요?",
+            "MSI Center 為它的每個情境寫入了什麼？",
+            "MSI Center her senaryosu için ne yazıyor?",
+            "MSI Center ghi gì cho từng kịch bản của nó?",
+            "Apa yang ditulis MSI Center untuk setiap skenarionya?",
+            "Cosa scrive MSI Center per ciascuno dei suoi scenari?"
+            };
         m["rep_home_d1"] = new[] {
             "Reads the controller once per scenario while you switch between them. This is how a model that nobody has reported yet gets its profile recipe.",
             "Odczytuje kontroler raz na scenariusz, podczas gdy Ty je przełączasz. Tak model, którego nikt jeszcze nie zgłosił, dostaje swój przepis na profile.",
@@ -1449,7 +2070,15 @@ public static class Lang
             "Lee el controlador una vez por escenario mientras tú los cambias. Así un modelo que nadie ha reportado aún obtiene su receta de perfiles.",
             "在你切换场景时，每个场景读取一次控制器。尚未有人报告过的机型就是这样获得它的配置方案的。",
             "Lê o controlador uma vez por cenário enquanto você os troca. É assim que um modelo que ninguém reportou ainda ganha a sua receita de perfis.",
-            "Считывает контроллер по одному разу на сценарий, пока вы их переключаете. Так модель, о которой ещё никто не сообщил, получает свой рецепт профилей." };
+            "Считывает контроллер по одному разу на сценарий, пока вы их переключаете. Так модель, о которой ещё никто не сообщил, получает свой рецепт профилей.",
+            "シナリオを切り替える間、シナリオごとにコントローラーを1回読み取ります。まだ誰も報告していないモデルは、こうしてプロファイルのレシピを得ます。",
+            "시나리오를 전환하는 동안 시나리오마다 컨트롤러를 한 번씩 읽습니다. 아직 아무도 제보하지 않은 모델은 이렇게 프로필 레시피를 얻습니다.",
+            "在你切換情境時，每個情境讀取一次控制器。尚未有人回報過的機型就是這樣取得它的設定檔配方的。",
+            "Siz senaryolar arasında geçiş yaparken denetleyiciyi her senaryo için bir kez okur. Henüz kimsenin bildirmediği bir model profil tarifini böyle alır.",
+            "Đọc bộ điều khiển một lần cho mỗi kịch bản trong khi bạn chuyển giữa chúng. Đây là cách một model chưa ai báo cáo có được công thức hồ sơ.",
+            "Membaca kontroler sekali per skenario saat Anda berpindah di antaranya. Beginilah model yang belum pernah dilaporkan mendapatkan resep profilnya.",
+            "Legge il controller una volta per scenario mentre passi dall'uno all'altro. È così che un modello mai segnalato ottiene la sua ricetta dei profili."
+            };
         m["rep_home_q2"] = new[] {
             "Where does this board keep its fan curve tables?",
             "Gdzie ta płyta trzyma tablice krzywej wentylatora?",
@@ -1458,7 +2087,15 @@ public static class Lang
             "¿Dónde guarda esta placa sus tablas de curva del ventilador?",
             "这块主板把风扇曲线表放在哪里？",
             "Onde esta placa guarda as tabelas da curva da ventoinha?",
-            "Где эта плата хранит таблицы кривой вентилятора?" };
+            "Где эта плата хранит таблицы кривой вентилятора?",
+            "この基板はファンカーブのテーブルをどこに持っているか？",
+            "이 보드는 팬 곡선 테이블을 어디에 보관할까요?",
+            "這塊主機板把風扇曲線表放在哪裡？",
+            "Bu kart fan eğrisi tablolarını nerede tutuyor?",
+            "Bo mạch này lưu bảng đường cong quạt ở đâu?",
+            "Di mana papan ini menyimpan tabel kurva kipasnya?",
+            "Dove tiene questa scheda le tabelle della curva ventole?"
+            };
         m["rep_home_d2"] = new[] {
             "You set a curve with distinctive speeds in MSI Center, and the wizard finds those speeds in the controller. That confirms the addresses before this app ever writes a curve of its own.",
             "Ustawiasz w MSI Center krzywą o charakterystycznych prędkościach, a kreator odnajduje te prędkości w kontrolerze. To potwierdza adresy, zanim ta aplikacja sama cokolwiek zapisze.",
@@ -1467,7 +2104,15 @@ public static class Lang
             "Configuras en MSI Center una curva con velocidades distintivas y el asistente encuentra esas velocidades en el controlador. Eso confirma las direcciones antes de que esta aplicación escriba curva alguna.",
             "你在 MSI Center 中设置一条转速特征明显的曲线，向导在控制器中找到这些转速。这样就在本应用写入任何曲线之前确认了地址。",
             "Você define no MSI Center uma curva com velocidades características, e o assistente encontra essas velocidades no controlador. Isso confirma os endereços antes de este app gravar qualquer curva própria.",
-            "Вы задаёте в MSI Center кривую с характерными скоростями, а мастер находит эти скорости в контроллере. Это подтверждает адреса до того, как приложение запишет собственную кривую." };
+            "Вы задаёте в MSI Center кривую с характерными скоростями, а мастер находит эти скорости в контроллере. Это подтверждает адреса до того, как приложение запишет собственную кривую.",
+            "MSI Center で特徴的な回転数のカーブを設定し、ウィザードがその回転数をコントローラー内で見つけます。これにより、このアプリが自前のカーブを書き込む前にアドレスを確認します。",
+            "MSI Center에서 특징적인 속도의 곡선을 설정하면 마법사가 컨트롤러에서 그 속도를 찾습니다. 이 앱이 자체 곡선을 쓰기 전에 주소를 확인하는 과정입니다.",
+            "你在 MSI Center 中設定一條轉速特徵明顯的曲線，精靈在控制器中找到這些轉速。這樣就在本應用程式寫入任何曲線之前確認了位址。",
+            "MSI Center'da belirgin hızlara sahip bir eğri ayarlarsınız, sihirbaz bu hızları denetleyicide bulur. Bu, uygulama kendi eğrisini yazmadan önce adresleri doğrular.",
+            "Bạn đặt một đường cong với các tốc độ đặc trưng trong MSI Center, và trình hướng dẫn tìm các tốc độ đó trong bộ điều khiển. Điều này xác nhận địa chỉ trước khi ứng dụng ghi đường cong của riêng nó.",
+            "Anda mengatur kurva dengan kecepatan yang khas di MSI Center, dan wizard menemukan kecepatan itu di kontroler. Ini memastikan alamatnya sebelum aplikasi menulis kurvanya sendiri.",
+            "Imposti in MSI Center una curva con velocità riconoscibili e la procedura guidata le ritrova nel controller. Questo conferma gli indirizzi prima che l'app scriva mai una curva propria."
+            };
         m["rep_home_q3"] = new[] {
             "Does what we write actually change anything?",
             "Czy to, co zapisujemy, faktycznie coś zmienia?",
@@ -1476,7 +2121,15 @@ public static class Lang
             "¿Lo que escribimos cambia realmente algo?",
             "我们写入的值真的改变了什么吗？",
             "O que gravamos muda alguma coisa de verdade?",
-            "Меняет ли то, что мы записываем, хоть что-нибудь?" };
+            "Меняет ли то, что мы записываем, хоть что-нибудь?",
+            "私たちの書き込みは実際に何かを変えているか？",
+            "우리가 쓰는 값이 실제로 무언가를 바꿀까요?",
+            "我們寫入的值真的改變了什麼嗎？",
+            "Yazdıklarımız gerçekten bir şey değiştiriyor mu?",
+            "Những gì chúng ta ghi có thực sự thay đổi gì không?",
+            "Apakah yang kita tulis benar-benar mengubah sesuatu?",
+            "Ciò che scriviamo cambia davvero qualcosa?"
+            };
         m["rep_home_d3"] = new[] {
             "Runs the same load on the processor and the graphics chip in each profile and counts the work completed, so the answer is a number rather than an impression. It also measures the baseline twice, so a run that drifted says so instead of pretending.",
             "Uruchamia w każdym profilu to samo obciążenie procesora i układu graficznego i liczy wykonaną pracę, więc odpowiedzią jest liczba, a nie wrażenie. Mierzy też punkt odniesienia dwa razy, więc przebieg, który odjechał, sam to mówi, zamiast udawać.",
@@ -1485,7 +2138,15 @@ public static class Lang
             "Ejecuta la misma carga en el procesador y el chip gráfico en cada perfil y cuenta el trabajo completado: la respuesta es un número, no una impresión. Además mide la referencia dos veces, así que una pasada que derivó lo dice ella misma en vez de fingir.",
             "在每个配置文件下对处理器和显卡运行相同的负载并统计完成的工作量，答案是一个数字而不是主观感受。基准还会测量两次，跑偏的一次会自己说明，而不是装作正常。",
             "Roda a mesma carga no processador e no chip gráfico em cada perfil e conta o trabalho concluído: a resposta é um número, não uma impressão. A linha de base é medida duas vezes, então uma execução que derivou diz isso ela mesma em vez de fingir.",
-            "Запускает в каждом профиле одну и ту же нагрузку на процессор и графический чип и считает выполненную работу: ответом становится число, а не впечатление. Базовая линия измеряется дважды, поэтому уплывший прогон сам об этом говорит, а не притворяется." };
+            "Запускает в каждом профиле одну и ту же нагрузку на процессор и графический чип и считает выполненную работу: ответом становится число, а не впечатление. Базовая линия измеряется дважды, поэтому уплывший прогон сам об этом говорит, а не притворяется.",
+            "各プロファイルで CPU と GPU に同じ負荷を実行し、完了した仕事量を数えるので、答えは印象ではなく数値です。ベースラインも2回測定するため、ずれた実行は取り繕わずにそう示します。",
+            "각 프로필에서 프로세서와 그래픽 칩에 같은 부하를 주고 완료된 작업량을 세므로 답은 인상이 아닌 숫자입니다. 기준선도 두 번 측정하므로 흔들린 실행은 숨기지 않고 스스로 드러납니다.",
+            "在每個設定檔下對處理器和顯示晶片執行相同的負載並統計完成的工作量，答案是一個數字而不是主觀感受。基準還會測量兩次，跑偏的一次會自己說明，而不是裝作正常。",
+            "Her profilde işlemci ve grafik çipine aynı yükü uygular ve tamamlanan işi sayar; böylece yanıt izlenim değil, bir sayıdır. Temel değeri de iki kez ölçer; sapan bir çalıştırma numara yapmak yerine bunu söyler.",
+            "Chạy cùng một tải trên bộ xử lý và chip đồ họa ở mỗi hồ sơ và đếm công việc hoàn thành, nên câu trả lời là con số chứ không phải cảm nhận. Nó cũng đo đường cơ sở hai lần, nên một lần chạy bị lệch sẽ tự cho biết thay vì giả vờ.",
+            "Menjalankan beban yang sama pada prosesor dan chip grafis di setiap profil dan menghitung kerja yang selesai, sehingga jawabannya berupa angka, bukan kesan. Ia juga mengukur garis dasar dua kali, sehingga pengukuran yang melenceng akan terlihat, bukan berpura-pura.",
+            "Esegue lo stesso carico su processore e chip grafico in ogni profilo e conta il lavoro completato, così la risposta è un numero e non un'impressione. Misura anche la linea di base due volte, così un'esecuzione che è andata alla deriva lo dice invece di fingere."
+            };
         m["rep_home_f_read"] = new[] {
             "Needs MSI Center · read-only, writes nothing",
             "Wymaga MSI Center · tylko odczyt, nic nie zapisuje",
@@ -1494,7 +2155,15 @@ public static class Lang
             "Necesita MSI Center · solo lectura, no escribe nada",
             "需要 MSI Center · 只读，不写入任何内容",
             "Exige o MSI Center · somente leitura, não grava nada",
-            "Нужен MSI Center · только чтение, ничего не записывает" };
+            "Нужен MSI Center · только чтение, ничего не записывает",
+            "MSI Center が必要 · 読み取り専用、書き込みなし",
+            "MSI Center 필요 · 읽기 전용, 쓰기 없음",
+            "需要 MSI Center · 唯讀，不寫入任何內容",
+            "MSI Center gerekir · salt okunur, hiçbir şey yazmaz",
+            "Cần MSI Center · chỉ đọc, không ghi gì",
+            "Perlu MSI Center · hanya baca, tidak menulis apa pun",
+            "Richiede MSI Center · sola lettura, non scrive nulla"
+            };
         m["rep_home_f_power"] = new[] {
             "Needs nothing · writes profile values, restores them at the end",
             "Nie wymaga niczego · zapisuje wartości profili i przywraca je na końcu",
@@ -1503,30 +2172,38 @@ public static class Lang
             "No necesita nada · escribe valores de perfil y los restaura al final",
             "无需任何东西 · 写入配置文件的值并在结束时恢复",
             "Não exige nada · grava valores de perfil e os restaura no final",
-            "Ничего не нужно · записывает значения профилей и в конце их восстанавливает" };
-        m["pt_writes"]        = new[] { "Addresses the test may write", "Adresy, które test może zapisać", "Mögliche Schreibadressen", "Adresses écrites possibles", "Direcciones que la prueba puede escribir", "测试可能写入的地址", "Endereços que o teste pode gravar", "Адреса возможной записи" };
-        m["pt_steps"]          = new[] { "What runs, in order", "Kolejne kroki", "Ablauf, der Reihe nach", "Étapes, dans l'ordre", "Qué se ejecuta, en orden", "执行顺序", "O que roda, em ordem", "Порядок шагов" };
-        m["pt_row_restore"]    = new[] { "Restore your profile", "Przywróć profil", "Profil wiederherstellen", "Restaurer votre profil", "Restaurar tu perfil", "恢复你的配置文件", "Restaurar seu perfil", "Возврат профиля" };
-        m["pt_consent"]        = new[] { "I understand the machine will run hot and loud for a few minutes", "Rozumiem, że przez kilka minut laptop będzie gorący i głośny", "Mir ist klar, dass das Gerät ein paar Minuten heiß und laut läuft", "Je comprends que la machine va chauffer et être bruyante pendant quelques minutes", "Entiendo que el equipo se calentará y sonará fuerte durante unos minutos", "我知道机器会在几分钟内变烫且噪音变大", "Entendo que o notebook vai esquentar e ficar barulhento por alguns minutos", "Понимаю, что несколько минут ноутбук будет горячим и шумным" };
-        m["pt_need_consent"]   = new[] { "Tick the box above first.", "Najpierw zaznacz pole powyżej.", "Setze zuerst den Haken oben.", "Cochez d'abord la case ci-dessus.", "Marca primero la casilla de arriba.", "请先勾选上面的复选框。", "Marque a caixa acima primeiro.", "Сначала отметьте галочку выше." };
-        m["pt_start"]          = new[] { "Start the test", "Uruchom test", "Test starten", "Lancer le test", "Iniciar la prueba", "开始测试", "Iniciar o teste", "Запустить тест" };
-        m["pt_cancel"]         = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена" };
-        m["pt_stage_settle"]   = new[] { "Settling", "Stabilizacja", "Einpendeln", "Stabilisation", "Estabilizando", "稳定中", "Estabilizando", "Стабилизация" };
-        m["pt_stage_load"]     = new[] { "Under load", "Pod obciążeniem", "Unter Last", "Sous charge", "Bajo carga", "负载中", "Sob carga", "Под нагрузкой" };
-        m["pt_stage_write"]    = new[] { "Writing the extra value", "Zapis dodatkowej wartości", "Zusatzwert schreiben", "Écriture de la 4e valeur", "Escribiendo el valor extra", "写入额外值", "Gravando o valor extra", "Запись доп. значения" };
-        m["pt_stage_revert"]   = new[] { "Putting the register back", "Przywracanie rejestru", "Register zurücksetzen", "Restauration du registre", "Restaurando el registro", "还原寄存器", "Restaurando o registrador", "Возврат регистра" };
-        m["pt_stage_read"]     = new[] { "Reading the controller", "Odczyt EC", "EC lesen", "Lecture de l'EC", "Leyendo el EC", "读取 EC", "Lendo o EC", "Чтение EC" };
-        m["pt_stage_check"]  = new[] { "Checking the machine is idle", "Sprawdzanie, czy komputer jest bezczynny", "Leerlauf prüfen", "Vérification de l'inactivité", "Comprobando inactividad", "检查是否空闲", "Verificando se está ocioso", "Проверка простоя" };
-        m["pt_block_sim"]      = new[] { "Preview mode is on, so nothing is written to the controller. The test needs real hardware.", "Tryb podglądu jest włączony, więc nic nie jest zapisywane do EC. Test wymaga prawdziwego sprzętu.", "Der Vorschaumodus ist aktiv, es wird also nichts in den EC geschrieben. Der Test braucht echte Hardware.", "Le mode aperçu est actif, rien n'est écrit dans l'EC. Le test exige du matériel réel.", "El modo de vista previa está activado, así que no se escribe nada en el EC. La prueba necesita hardware real.", "预览模式已开启，不会向 EC 写入任何内容。此测试需要真实硬件。", "O modo de pré-visualização está ativo, então nada é gravado no EC. O teste precisa de hardware real.", "Включён режим предпросмотра, в EC ничего не записывается. Тесту нужно реальное железо." };
-        m["pt_block_unknown"]  = new[] { "This firmware is not in the model database, so there are no register addresses to test.", "Tego firmware'u nie ma w bazie modeli, więc nie ma adresów rejestrów do przetestowania.", "Diese Firmware steht nicht in der Modelldatenbank, es gibt also keine Registeradressen zum Testen.", "Ce firmware ne figure pas dans la base de modèles, il n'y a donc aucune adresse de registre à tester.", "Este firmware no está en la base de datos de modelos, así que no hay direcciones de registro que probar.", "该固件不在机型数据库中，因此没有可供测试的寄存器地址。", "Este firmware não está no banco de modelos, então não há endereços de registradores para testar.", "Этой прошивки нет в базе моделей, поэтому нет адресов регистров для теста." };
-        m["pt_block_locked"]   = new[] { "Your model is experimental. Turn on experimental writes in Settings first.", "Twój model jest eksperymentalny. Najpierw włącz zapisy eksperymentalne w Ustawieniach.", "Dein Modell ist experimentell. Aktiviere zuerst experimentelle Schreibvorgänge in den Einstellungen.", "Votre modèle est expérimental. Activez d'abord les écritures expérimentales dans Paramètres.", "Tu modelo es experimental. Activa primero las escrituras experimentales en Ajustes.", "你的机型为实验性。请先在设置中启用实验性写入。", "Seu modelo é experimental. Ative primeiro as gravações experimentais nas Configurações.", "Ваша модель экспериментальная. Сначала включите экспериментальную запись в настройках." };
-        m["pt_block_battery"]  = new[] { "Plug the charger in. On battery the firmware caps power by itself, which would make every measurement meaningless.", "Podłącz zasilacz. Na baterii firmware sam ogranicza moc, więc każdy pomiar byłby bezwartościowy.", "Schließe das Netzteil an. Im Akkubetrieb begrenzt die Firmware die Leistung von sich aus, jede Messung wäre damit wertlos.", "Branchez le chargeur. Sur batterie, le firmware limite lui-même la puissance, ce qui rendrait toute mesure dénuée de sens.", "Conecta el cargador. Con batería, el firmware limita la potencia por su cuenta, lo que dejaría sin sentido todas las mediciones.", "请接上电源适配器。使用电池时固件会自行限制功耗，任何测量都会失去意义。", "Conecte o carregador. Na bateria o firmware limita a potência por conta própria, o que tornaria toda medição sem sentido.", "Подключите зарядное устройство. От батареи прошивка сама ограничивает мощность, и все измерения потеряют смысл." };
-        m["pt_res_busy"]    = new[] { "Something else was using the processor, so these numbers compare the machine's other work, not the profiles. Run it again on an idle machine.", "Coś innego korzystało z procesora, więc te liczby porównują obcą pracę, a nie profile. Powtórz test na bezczynnym komputerze.", "Etwas anderes hat den Prozessor ausgelastet, diese Zahlen vergleichen also fremde Arbeit und nicht die Profile. Wiederhole den Test auf einem unbelasteten Rechner.", "Un autre programme utilisait le processeur, ces chiffres comparent donc l'autre activité de la machine, pas les profils. Relancez le test sur une machine au repos.", "Otra cosa estaba usando el procesador, así que estos números comparan ese otro trabajo del equipo, no los perfiles. Repite la prueba con el equipo inactivo.", "其他程序占用了处理器，因此这些数字比较的是机器上的其他工作，而不是配置文件。请在空闲的机器上重新运行一次。", "Outra coisa estava usando o processador, então estes números comparam o outro trabalho da máquina, não os perfis. Repita o teste com a máquina ociosa.", "Процессор был занят чем-то ещё, поэтому эти числа сравнивают постороннюю нагрузку, а не профили. Повторите тест на простаивающем компьютере." };
-        m["pt_res_done"]       = new[] { "Done. The full report is on your clipboard and saved to a file.", "Gotowe. Pełny raport jest w schowku i zapisany do pliku.", "Fertig. Der vollständige Bericht liegt in der Zwischenablage und wurde als Datei gespeichert.", "Terminé. Le rapport complet est dans le presse-papiers et enregistré dans un fichier.", "Listo. El informe completo está en el portapapeles y guardado en un archivo.", "完成。完整报告已复制到剪贴板并保存为文件。", "Pronto. O relatório completo está na área de transferência e salvo em arquivo.", "Готово. Полный отчёт скопирован в буфер обмена и сохранён в файл." };
-        m["pt_res_aborted"]    = new[] { "Stopped: {0}. Whatever was measured is in the report.", "Zatrzymano: {0}. To, co zdążyliśmy zmierzyć, jest w raporcie.", "Abgebrochen: {0}. Was gemessen wurde, steht im Bericht.", "Arrêté : {0}. Ce qui a été mesuré figure dans le rapport.", "Detenido: {0}. Lo que se llegó a medir está en el informe.", "已停止：{0}。已测得的数据都在报告中。", "Interrompido: {0}. O que foi medido está no relatório.", "Остановлено: {0}. Всё, что успели измерить, есть в отчёте." };
-        m["pt_res_prebusy"]  = new[] { "The machine was already {0} % busy, so the test refused to start and wrote nothing. Close what is running, wait a moment and try again.", "Komputer był już zajęty w {0} %, więc test nie wystartował i niczego nie zapisał. Zamknij, co masz uruchomione, odczekaj chwilę i spróbuj ponownie.", "Der Rechner war bereits zu {0} % ausgelastet, deshalb ist der Test gar nicht erst gestartet und hat nichts geschrieben. Schließe, was gerade läuft, warte einen Moment und versuche es erneut.", "La machine était déjà occupée à {0} %, le test n'a donc pas démarré et n'a rien écrit. Fermez ce qui tourne, patientez un instant et réessayez.", "El equipo ya estaba al {0} % de uso, así que la prueba no llegó a arrancar y no escribió nada. Cierra lo que tengas abierto, espera un momento e inténtalo de nuevo.", "机器当时已有 {0}% 的负载，因此测试拒绝启动，也没有写入任何内容。请关闭正在运行的程序，稍等片刻后再试一次。", "A máquina já estava {0} % ocupada, então o teste não começou e não gravou nada. Feche o que estiver rodando, espere um pouco e tente de novo.", "Компьютер уже был занят на {0} %, поэтому тест не запустился и ничего не записал. Закройте запущенные программы, подождите немного и попробуйте снова." };
-        m["pt_res_refused"]    = new[] { "The controller refused {0} from outside. That is the answer we needed.", "EC odrzucił wartość {0} zapisaną z zewnątrz. Tej odpowiedzi szukaliśmy.", "Der EC hat {0} von außen abgelehnt. Genau das wollten wir wissen.", "L'EC a refusé {0} depuis l'extérieur. C'est la réponse que nous cherchions.", "El EC rechazó {0} desde fuera. Esa es la respuesta que necesitábamos.", "EC 拒绝了来自外部的 {0}。这正是我们需要的答案。", "O EC recusou {0} vindo de fora. Essa é a resposta que precisávamos.", "EC отклонил запись {0} извне. Это и есть нужный нам ответ." };
-        m["pt_res_accepted"]   = new[] { "{0} was accepted and cleared cleanly.", "Wartość {0} została przyjęta i czysto wycofana.", "{0} wurde übernommen und sauber zurückgesetzt.", "{0} a été accepté et effacé proprement.", "{0} se aceptó y se limpió correctamente.", "{0} 已被接受，并已干净地清除。", "{0} foi aceito e zerado corretamente.", "Запись {0} принята и корректно сброшена." };
-        m["pt_res_stuck"]      = new[] { "{0} was accepted but did not clear. The report shows what is still set.", "Wartość {0} została przyjęta, ale nie wycofała się. W raporcie widać, co nadal jest ustawione.", "{0} wurde übernommen, aber nicht zurückgesetzt. Der Bericht zeigt, was noch gesetzt ist.", "{0} a été accepté mais n'a pas été effacé. Le rapport indique ce qui reste actif.", "{0} se aceptó pero no se limpió. El informe muestra lo que sigue activo.", "{0} 已被接受但未清除。报告中列出了仍处于设置状态的内容。", "{0} foi aceito, mas não foi zerado. O relatório mostra o que continua definido.", "Запись {0} принята, но не сбросилась. В отчёте видно, что осталось установленным." };
+            "Ничего не нужно · записывает значения профилей и в конце их восстанавливает",
+            "何も不要 · プロファイル値を書き込み、終了時に復元",
+            "필요 없음 · 프로필 값을 쓰고 종료 시 복원",
+            "不需要任何東西 · 寫入設定檔的值並在結束時還原",
+            "Hiçbir şey gerekmez · profil değerlerini yazar, sonunda geri yükler",
+            "Không cần gì · ghi giá trị hồ sơ, khôi phục khi kết thúc",
+            "Tidak perlu apa pun · menulis nilai profil, mengembalikannya di akhir",
+            "Non richiede nulla · scrive i valori dei profili, li ripristina alla fine"
+            };
+        m["pt_writes"]        = new[] { "Addresses the test may write", "Adresy, które test może zapisać", "Mögliche Schreibadressen", "Adresses écrites possibles", "Direcciones que la prueba puede escribir", "测试可能写入的地址", "Endereços que o teste pode gravar", "Адреса возможной записи", "テストが書き込む可能性のあるアドレス", "테스트가 쓸 수 있는 주소", "測試可能寫入的位址", "Testin yazabileceği adresler", "Địa chỉ bài kiểm tra có thể ghi", "Alamat yang mungkin ditulis uji ini", "Indirizzi che il test può scrivere" };
+        m["pt_steps"]          = new[] { "What runs, in order", "Kolejne kroki", "Ablauf, der Reihe nach", "Étapes, dans l'ordre", "Qué se ejecuta, en orden", "执行顺序", "O que roda, em ordem", "Порядок шагов", "実行内容（順序）", "실행 순서", "執行順序", "Sırasıyla ne çalışır", "Thứ tự thực hiện", "Yang dijalankan, berurutan", "Cosa gira, in ordine" };
+        m["pt_row_restore"]    = new[] { "Restore your profile", "Przywróć profil", "Profil wiederherstellen", "Restaurer votre profil", "Restaurar tu perfil", "恢复你的配置文件", "Restaurar seu perfil", "Возврат профиля", "プロファイルを復元", "프로필 복원", "還原你的設定檔", "Profilinizi geri yükle", "Khôi phục hồ sơ của bạn", "Pulihkan profil Anda", "Ripristina il tuo profilo" };
+        m["pt_consent"]        = new[] { "I understand the machine will run hot and loud for a few minutes", "Rozumiem, że przez kilka minut laptop będzie gorący i głośny", "Mir ist klar, dass das Gerät ein paar Minuten heiß und laut läuft", "Je comprends que la machine va chauffer et être bruyante pendant quelques minutes", "Entiendo que el equipo se calentará y sonará fuerte durante unos minutos", "我知道机器会在几分钟内变烫且噪音变大", "Entendo que o notebook vai esquentar e ficar barulhento por alguns minutos", "Понимаю, что несколько минут ноутбук будет горячим и шумным", "数分間、本体が高温かつ高騒音になることを理解しました", "몇 분 동안 기기가 뜨겁고 시끄러워진다는 점을 이해합니다", "我知道機器會在幾分鐘內變燙且噪音變大", "Makinenin birkaç dakika sıcak ve gürültülü çalışacağını anlıyorum", "Tôi hiểu máy sẽ nóng và ồn trong vài phút", "Saya paham mesin akan panas dan bising selama beberapa menit", "Capisco che la macchina sarà calda e rumorosa per qualche minuto" };
+        m["pt_need_consent"]   = new[] { "Tick the box above first.", "Najpierw zaznacz pole powyżej.", "Setze zuerst den Haken oben.", "Cochez d'abord la case ci-dessus.", "Marca primero la casilla de arriba.", "请先勾选上面的复选框。", "Marque a caixa acima primeiro.", "Сначала отметьте галочку выше.", "先に上のチェックボックスをオンにしてください。", "먼저 위의 확인란을 선택하세요.", "請先勾選上面的核取方塊。", "Önce yukarıdaki kutuyu işaretleyin.", "Hãy đánh dấu ô ở trên trước.", "Centang kotak di atas dulu.", "Spunta prima la casella sopra." };
+        m["pt_start"]          = new[] { "Start the test", "Uruchom test", "Test starten", "Lancer le test", "Iniciar la prueba", "开始测试", "Iniciar o teste", "Запустить тест", "テストを開始", "테스트 시작", "開始測試", "Testi başlat", "Bắt đầu kiểm tra", "Mulai uji", "Avvia il test" };
+        m["pt_cancel"]         = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена", "キャンセル", "취소", "取消", "İptal", "Hủy", "Batal", "Annulla" };
+        m["pt_stage_settle"]   = new[] { "Settling", "Stabilizacja", "Einpendeln", "Stabilisation", "Estabilizando", "稳定中", "Estabilizando", "Стабилизация", "安定化中", "안정화 중", "穩定中", "Dengeleniyor", "Đang ổn định", "Menstabilkan", "Stabilizzazione" };
+        m["pt_stage_load"]     = new[] { "Under load", "Pod obciążeniem", "Unter Last", "Sous charge", "Bajo carga", "负载中", "Sob carga", "Под нагрузкой", "負荷中", "부하 중", "負載中", "Yük altında", "Đang tải", "Di bawah beban", "Sotto carico" };
+        m["pt_stage_write"]    = new[] { "Writing the extra value", "Zapis dodatkowej wartości", "Zusatzwert schreiben", "Écriture de la 4e valeur", "Escribiendo el valor extra", "写入额外值", "Gravando o valor extra", "Запись доп. значения", "追加値を書き込み中", "추가 값 쓰는 중", "寫入額外值", "Ek değer yazılıyor", "Đang ghi giá trị bổ sung", "Menulis nilai tambahan", "Scrittura del valore extra" };
+        m["pt_stage_revert"]   = new[] { "Putting the register back", "Przywracanie rejestru", "Register zurücksetzen", "Restauration du registre", "Restaurando el registro", "还原寄存器", "Restaurando o registrador", "Возврат регистра", "レジスタを復元中", "레지스터 되돌리는 중", "還原暫存器", "Yazmaç geri alınıyor", "Đang đặt lại thanh ghi", "Mengembalikan register", "Ripristino del registro" };
+        m["pt_stage_read"]     = new[] { "Reading the controller", "Odczyt EC", "EC lesen", "Lecture de l'EC", "Leyendo el EC", "读取 EC", "Lendo o EC", "Чтение EC", "コントローラーを読み取り中", "컨트롤러 읽는 중", "讀取 EC", "Denetleyici okunuyor", "Đang đọc bộ điều khiển", "Membaca kontroler", "Lettura del controller" };
+        m["pt_stage_check"]  = new[] { "Checking the machine is idle", "Sprawdzanie, czy komputer jest bezczynny", "Leerlauf prüfen", "Vérification de l'inactivité", "Comprobando inactividad", "检查是否空闲", "Verificando se está ocioso", "Проверка простоя", "アイドル状態を確認中", "유휴 상태 확인 중", "檢查是否閒置", "Makinenin boşta olduğu kontrol ediliyor", "Đang kiểm tra máy có rảnh", "Memeriksa mesin sedang idle", "Verifica che la macchina sia inattiva" };
+        m["pt_block_sim"]      = new[] { "Preview mode is on, so nothing is written to the controller. The test needs real hardware.", "Tryb podglądu jest włączony, więc nic nie jest zapisywane do EC. Test wymaga prawdziwego sprzętu.", "Der Vorschaumodus ist aktiv, es wird also nichts in den EC geschrieben. Der Test braucht echte Hardware.", "Le mode aperçu est actif, rien n'est écrit dans l'EC. Le test exige du matériel réel.", "El modo de vista previa está activado, así que no se escribe nada en el EC. La prueba necesita hardware real.", "预览模式已开启，不会向 EC 写入任何内容。此测试需要真实硬件。", "O modo de pré-visualização está ativo, então nada é gravado no EC. O teste precisa de hardware real.", "Включён режим предпросмотра, в EC ничего не записывается. Тесту нужно реальное железо.", "プレビューモードがオンのため、コントローラーには何も書き込まれません。このテストには実機が必要です。", "미리보기 모드가 켜져 있어 컨트롤러에 아무것도 쓰지 않습니다. 이 테스트에는 실제 하드웨어가 필요합니다.", "預覽模式已開啟，不會向 EC 寫入任何內容。此測試需要真實硬體。", "Önizleme modu açık, bu yüzden denetleyiciye hiçbir şey yazılmaz. Test gerçek donanım gerektirir.", "Chế độ xem trước đang bật nên không ghi gì vào bộ điều khiển. Bài kiểm tra cần phần cứng thật.", "Mode pratinjau aktif, jadi tidak ada yang ditulis ke kontroler. Uji ini memerlukan perangkat keras nyata.", "La modalità anteprima è attiva, quindi nulla viene scritto nel controller. Il test richiede hardware reale." };
+        m["pt_block_unknown"]  = new[] { "This firmware is not in the model database, so there are no register addresses to test.", "Tego firmware'u nie ma w bazie modeli, więc nie ma adresów rejestrów do przetestowania.", "Diese Firmware steht nicht in der Modelldatenbank, es gibt also keine Registeradressen zum Testen.", "Ce firmware ne figure pas dans la base de modèles, il n'y a donc aucune adresse de registre à tester.", "Este firmware no está en la base de datos de modelos, así que no hay direcciones de registro que probar.", "该固件不在机型数据库中，因此没有可供测试的寄存器地址。", "Este firmware não está no banco de modelos, então não há endereços de registradores para testar.", "Этой прошивки нет в базе моделей, поэтому нет адресов регистров для теста.", "このファームウェアはモデルデータベースにないため、テストするレジスタアドレスがありません。", "이 펌웨어는 모델 데이터베이스에 없어 테스트할 레지스터 주소가 없습니다.", "此韌體不在機型資料庫中，因此沒有可供測試的暫存器位址。", "Bu ürün yazılımı model veritabanında yok, bu yüzden test edilecek yazmaç adresi yok.", "Firmware này không có trong cơ sở dữ liệu model, nên không có địa chỉ thanh ghi để kiểm tra.", "Firmware ini tidak ada di basis data model, jadi tidak ada alamat register untuk diuji.", "Questo firmware non è nel database modelli, quindi non ci sono indirizzi di registro da testare." };
+        m["pt_block_locked"]   = new[] { "Your model is experimental. Turn on experimental writes in Settings first.", "Twój model jest eksperymentalny. Najpierw włącz zapisy eksperymentalne w Ustawieniach.", "Dein Modell ist experimentell. Aktiviere zuerst experimentelle Schreibvorgänge in den Einstellungen.", "Votre modèle est expérimental. Activez d'abord les écritures expérimentales dans Paramètres.", "Tu modelo es experimental. Activa primero las escrituras experimentales en Ajustes.", "你的机型为实验性。请先在设置中启用实验性写入。", "Seu modelo é experimental. Ative primeiro as gravações experimentais nas Configurações.", "Ваша модель экспериментальная. Сначала включите экспериментальную запись в настройках.", "お使いのモデルは実験的です。先に設定で実験的書き込みを有効にしてください。", "이 모델은 실험적입니다. 먼저 설정에서 실험적 쓰기를 켜세요.", "你的機型為實驗性。請先在設定中啟用實驗性寫入。", "Modeliniz deneysel. Önce Ayarlar'da deneysel yazmayı açın.", "Model của bạn là thử nghiệm. Hãy bật ghi thử nghiệm trong Cài đặt trước.", "Model Anda eksperimental. Aktifkan penulisan eksperimental di Pengaturan dulu.", "Il tuo modello è sperimentale. Attiva prima le scritture sperimentali nelle Impostazioni." };
+        m["pt_block_battery"]  = new[] { "Plug the charger in. On battery the firmware caps power by itself, which would make every measurement meaningless.", "Podłącz zasilacz. Na baterii firmware sam ogranicza moc, więc każdy pomiar byłby bezwartościowy.", "Schließe das Netzteil an. Im Akkubetrieb begrenzt die Firmware die Leistung von sich aus, jede Messung wäre damit wertlos.", "Branchez le chargeur. Sur batterie, le firmware limite lui-même la puissance, ce qui rendrait toute mesure dénuée de sens.", "Conecta el cargador. Con batería, el firmware limita la potencia por su cuenta, lo que dejaría sin sentido todas las mediciones.", "请接上电源适配器。使用电池时固件会自行限制功耗，任何测量都会失去意义。", "Conecte o carregador. Na bateria o firmware limita a potência por conta própria, o que tornaria toda medição sem sentido.", "Подключите зарядное устройство. От батареи прошивка сама ограничивает мощность, и все измерения потеряют смысл.", "充電器を接続してください。バッテリー駆動時はファームウェアが自ら電力を制限するため、すべての測定が無意味になります。", "충전기를 연결하세요. 배터리 사용 시 펌웨어가 스스로 전력을 제한하므로 모든 측정이 무의미해집니다.", "請接上變壓器。使用電池時韌體會自行限制功耗，任何測量都會失去意義。", "Şarj cihazını takın. Pilde ürün yazılımı gücü kendisi sınırlar; bu da her ölçümü anlamsız kılar.", "Hãy cắm sạc. Khi dùng pin, firmware tự giới hạn công suất, khiến mọi phép đo vô nghĩa.", "Colokkan pengisi daya. Pada baterai firmware membatasi daya sendiri, sehingga setiap pengukuran tidak berarti.", "Collega il caricabatterie. A batteria il firmware limita la potenza da solo, rendendo ogni misurazione priva di senso." };
+        m["pt_res_busy"]    = new[] { "Something else was using the processor, so these numbers compare the machine's other work, not the profiles. Run it again on an idle machine.", "Coś innego korzystało z procesora, więc te liczby porównują obcą pracę, a nie profile. Powtórz test na bezczynnym komputerze.", "Etwas anderes hat den Prozessor ausgelastet, diese Zahlen vergleichen also fremde Arbeit und nicht die Profile. Wiederhole den Test auf einem unbelasteten Rechner.", "Un autre programme utilisait le processeur, ces chiffres comparent donc l'autre activité de la machine, pas les profils. Relancez le test sur une machine au repos.", "Otra cosa estaba usando el procesador, así que estos números comparan ese otro trabajo del equipo, no los perfiles. Repite la prueba con el equipo inactivo.", "其他程序占用了处理器，因此这些数字比较的是机器上的其他工作，而不是配置文件。请在空闲的机器上重新运行一次。", "Outra coisa estava usando o processador, então estes números comparam o outro trabalho da máquina, não os perfis. Repita o teste com a máquina ociosa.", "Процессор был занят чем-то ещё, поэтому эти числа сравнивают постороннюю нагрузку, а не профили. Повторите тест на простаивающем компьютере.", "他の何かが CPU を使用していたため、これらの数値はプロファイルではなくマシンの他の作業を比較しています。アイドル状態のマシンで再実行してください。", "다른 무언가가 프로세서를 사용하고 있어 이 숫자는 프로필이 아니라 기기의 다른 작업을 비교한 것입니다. 유휴 상태에서 다시 실행하세요.", "其他程式佔用了處理器，因此這些數字比較的是機器上的其他工作，而不是設定檔。請在閒置的機器上重新執行一次。", "İşlemciyi başka bir şey kullanıyordu, bu yüzden bu sayılar profilleri değil makinenin diğer işlerini karşılaştırıyor. Boşta bir makinede yeniden çalıştırın.", "Có thứ khác đang dùng bộ xử lý, nên các con số này so sánh công việc khác của máy, không phải các hồ sơ. Hãy chạy lại trên máy đang rảnh.", "Ada hal lain yang memakai prosesor, jadi angka ini membandingkan kerja lain di mesin, bukan profilnya. Jalankan lagi saat mesin idle.", "Qualcos'altro stava usando il processore, quindi questi numeri confrontano l'altro lavoro della macchina, non i profili. Ripeti su una macchina inattiva." };
+        m["pt_res_done"]       = new[] { "Done. The full report is on your clipboard and saved to a file.", "Gotowe. Pełny raport jest w schowku i zapisany do pliku.", "Fertig. Der vollständige Bericht liegt in der Zwischenablage und wurde als Datei gespeichert.", "Terminé. Le rapport complet est dans le presse-papiers et enregistré dans un fichier.", "Listo. El informe completo está en el portapapeles y guardado en un archivo.", "完成。完整报告已复制到剪贴板并保存为文件。", "Pronto. O relatório completo está na área de transferência e salvo em arquivo.", "Готово. Полный отчёт скопирован в буфер обмена и сохранён в файл.", "完了。レポート全体をクリップボードにコピーし、ファイルにも保存しました。", "완료. 전체 보고서가 클립보드에 있으며 파일로 저장되었습니다.", "完成。完整報告已複製到剪貼簿並儲存為檔案。", "Tamamlandı. Tam rapor panoda ve bir dosyaya kaydedildi.", "Xong. Báo cáo đầy đủ đã ở trong bảng tạm và lưu vào tệp.", "Selesai. Laporan lengkap ada di papan klip dan disimpan ke file.", "Fatto. Il report completo è negli appunti e salvato in un file." };
+        m["pt_res_aborted"]    = new[] { "Stopped: {0}. Whatever was measured is in the report.", "Zatrzymano: {0}. To, co zdążyliśmy zmierzyć, jest w raporcie.", "Abgebrochen: {0}. Was gemessen wurde, steht im Bericht.", "Arrêté : {0}. Ce qui a été mesuré figure dans le rapport.", "Detenido: {0}. Lo que se llegó a medir está en el informe.", "已停止：{0}。已测得的数据都在报告中。", "Interrompido: {0}. O que foi medido está no relatório.", "Остановлено: {0}. Всё, что успели измерить, есть в отчёте.", "停止：{0}。測定できた分はレポートにあります。", "중지됨: {0}. 측정된 내용은 보고서에 있습니다.", "已停止：{0}。已測得的資料都在報告中。", "Durduruldu: {0}. Ölçülen her şey raporda.", "Đã dừng: {0}. Những gì đã đo đều nằm trong báo cáo.", "Dihentikan: {0}. Apa pun yang sudah terukur ada di laporan.", "Interrotto: {0}. Quanto misurato è nel report." };
+        m["pt_res_prebusy"]  = new[] { "The machine was already {0} % busy, so the test refused to start and wrote nothing. Close what is running, wait a moment and try again.", "Komputer był już zajęty w {0} %, więc test nie wystartował i niczego nie zapisał. Zamknij, co masz uruchomione, odczekaj chwilę i spróbuj ponownie.", "Der Rechner war bereits zu {0} % ausgelastet, deshalb ist der Test gar nicht erst gestartet und hat nichts geschrieben. Schließe, was gerade läuft, warte einen Moment und versuche es erneut.", "La machine était déjà occupée à {0} %, le test n'a donc pas démarré et n'a rien écrit. Fermez ce qui tourne, patientez un instant et réessayez.", "El equipo ya estaba al {0} % de uso, así que la prueba no llegó a arrancar y no escribió nada. Cierra lo que tengas abierto, espera un momento e inténtalo de nuevo.", "机器当时已有 {0}% 的负载，因此测试拒绝启动，也没有写入任何内容。请关闭正在运行的程序，稍等片刻后再试一次。", "A máquina já estava {0} % ocupada, então o teste não começou e não gravou nada. Feche o que estiver rodando, espere um pouco e tente de novo.", "Компьютер уже был занят на {0} %, поэтому тест не запустился и ничего не записал. Закройте запущенные программы, подождите немного и попробуйте снова.", "マシンにすでに {0} % の負荷があったため、テストは開始を拒否し、何も書き込みませんでした。実行中のものを閉じ、少し待ってから再試行してください。", "기기가 이미 {0} % 사용 중이어서 테스트가 시작을 거부했고 아무것도 쓰지 않았습니다. 실행 중인 프로그램을 닫고 잠시 기다린 뒤 다시 시도하세요.", "機器當時已有 {0} % 的負載，因此測試拒絕啟動，也沒有寫入任何內容。請關閉正在執行的程式，稍等片刻後再試一次。", "Makine zaten %{0} meşguldü, bu yüzden test başlamayı reddetti ve hiçbir şey yazmadı. Çalışanları kapatın, biraz bekleyin ve tekrar deneyin.", "Máy đã bận {0} % nên bài kiểm tra từ chối bắt đầu và không ghi gì. Hãy đóng những gì đang chạy, chờ một lát rồi thử lại.", "Mesin sudah sibuk {0} %, jadi uji menolak dimulai dan tidak menulis apa pun. Tutup yang sedang berjalan, tunggu sebentar, lalu coba lagi.", "La macchina era già occupata al {0} %, quindi il test ha rifiutato di partire e non ha scritto nulla. Chiudi ciò che è in esecuzione, attendi un momento e riprova." };
+        m["pt_res_refused"]    = new[] { "The controller refused {0} from outside. That is the answer we needed.", "EC odrzucił wartość {0} zapisaną z zewnątrz. Tej odpowiedzi szukaliśmy.", "Der EC hat {0} von außen abgelehnt. Genau das wollten wir wissen.", "L'EC a refusé {0} depuis l'extérieur. C'est la réponse que nous cherchions.", "El EC rechazó {0} desde fuera. Esa es la respuesta que necesitábamos.", "EC 拒绝了来自外部的 {0}。这正是我们需要的答案。", "O EC recusou {0} vindo de fora. Essa é a resposta que precisávamos.", "EC отклонил запись {0} извне. Это и есть нужный нам ответ.", "コントローラーは外部からの {0} を拒否しました。これが必要だった答えです。", "컨트롤러가 외부의 {0}을(를) 거부했습니다. 바로 그것이 필요한 답입니다.", "EC 拒絕了來自外部的 {0}。這正是我們需要的答案。", "Denetleyici dışarıdan gelen {0} değerini reddetti. İhtiyacımız olan yanıt buydu.", "Bộ điều khiển đã từ chối {0} từ bên ngoài. Đó là câu trả lời chúng ta cần.", "Kontroler menolak {0} dari luar. Itulah jawaban yang kita butuhkan.", "Il controller ha rifiutato {0} dall'esterno. È la risposta che ci serviva." };
+        m["pt_res_accepted"]   = new[] { "{0} was accepted and cleared cleanly.", "Wartość {0} została przyjęta i czysto wycofana.", "{0} wurde übernommen und sauber zurückgesetzt.", "{0} a été accepté et effacé proprement.", "{0} se aceptó y se limpió correctamente.", "{0} 已被接受，并已干净地清除。", "{0} foi aceito e zerado corretamente.", "Запись {0} принята и корректно сброшена.", "{0} は受け付けられ、正常にクリアされました。", "{0}이(가) 수락되고 깔끔하게 해제되었습니다.", "{0} 已被接受，並已乾淨地清除。", "{0} kabul edildi ve sorunsuz sıfırlandı.", "{0} đã được chấp nhận và xóa sạch.", "{0} diterima dan dibersihkan dengan baik.", "{0} è stato accettato e azzerato correttamente." };
+        m["pt_res_stuck"]      = new[] { "{0} was accepted but did not clear. The report shows what is still set.", "Wartość {0} została przyjęta, ale nie wycofała się. W raporcie widać, co nadal jest ustawione.", "{0} wurde übernommen, aber nicht zurückgesetzt. Der Bericht zeigt, was noch gesetzt ist.", "{0} a été accepté mais n'a pas été effacé. Le rapport indique ce qui reste actif.", "{0} se aceptó pero no se limpió. El informe muestra lo que sigue activo.", "{0} 已被接受但未清除。报告中列出了仍处于设置状态的内容。", "{0} foi aceito, mas não foi zerado. O relatório mostra o que continua definido.", "Запись {0} принята, но не сбросилась. В отчёте видно, что осталось установленным.", "{0} は受け付けられましたがクリアされませんでした。レポートに残っている設定内容が示されています。", "{0}이(가) 수락되었지만 해제되지 않았습니다. 보고서에 아직 설정된 내용이 표시됩니다.", "{0} 已被接受但未清除。報告中列出了仍處於設定狀態的內容。", "{0} kabul edildi ancak sıfırlanmadı. Rapor hâlâ ayarlı olanı gösteriyor.", "{0} đã được chấp nhận nhưng chưa xóa. Báo cáo cho thấy những gì vẫn còn được đặt.", "{0} diterima tetapi tidak terhapus. Laporan menunjukkan apa yang masih tersetel.", "{0} è stato accettato ma non si è azzerato. Il report mostra cosa è ancora impostato." };
     }
 }
