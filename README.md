@@ -7,7 +7,7 @@
 [![Digitally signed releases](https://img.shields.io/badge/releases-digitally%20signed-2ea043?logo=windows&logoColor=white)](#digitally-signed-releases)
 [![Latest release](https://img.shields.io/github/v/release/wygodad/ghostdeck?label=latest&color=3c7dff)](https://github.com/wygodad/ghostdeck/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/wygodad/ghostdeck/total?color=3c7dff)](https://github.com/wygodad/ghostdeck/releases)
-[![No kernel driver](https://img.shields.io/badge/kernel%20driver-none-2ea043)](#how-it-works)
+[![No kernel driver](https://img.shields.io/badge/kernel%20driver-none-2ea043)](#how-it-works-short-version)
 [![15 languages](https://img.shields.io/badge/UI-15%20languages-8d63ff)](#features)
 [![License](https://img.shields.io/github/license/wygodad/ghostdeck?color=98a0ae)](LICENSE)
 
