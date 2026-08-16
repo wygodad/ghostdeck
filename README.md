@@ -265,6 +265,28 @@ EC register map credit: [**BeardOverflow/msi-ec**](https://github.com/BeardOverf
 
 See **[docs/FAQ.md](docs/FAQ.md)** - fan control outside Extreme, exact-wattage / PL1-PL2 sliders (and the BIOS route), running alongside MSI Center (and why changes don't show in its UI), **"unsupported" after a clean Windows install**, **keyboard backlight and why per-key RGB laptops don't get it**, RGB/colour control, auto-clearing RAM, safety, and the admin/UAC prompt.
 
+## Documentation
+
+Everything this project knows about MSI's Embedded Controller, and about itself, is written down
+rather than kept in someone's head. All of it lives in [`docs/`](docs/):
+
+| Document | What is in it |
+|---|---|
+| **[TECHNICAL.md](docs/TECHNICAL.md)** | The main reference: EC registers and per-profile recipes, how each feature works and why it was built that way, the invariants that must not be "fixed", and one numbered section per shipped change. |
+| **[FAN-CURVE.md](docs/FAN-CURVE.md)** | The Fan curve page end to end: the curve arithmetic (and why its interpolation is a model, never a measurement), all four views, the fan sweep and its safeguards, **how each finding is composed and where its thresholds come from**, and the page's DPI and scrolling rules. |
+| **[SUPPORTED_MODELS.md](docs/SUPPORTED_MODELS.md)** | Every recognised firmware with its support tier and what is enabled on it. **Generated from the code** - CI fails if it drifts. |
+| **[MSI-WMI-SCHEMA.md](docs/MSI-WMI-SCHEMA.md)** | Why a clean Windows install can report "unsupported" until MSI Center is installed once, measured end to end. |
+| **[RENDERING.md](docs/RENDERING.md)** | How the UI is drawn: sharp text at high DPI, the buffered Status canvas, the per-pixel overlay, and the scrolling rules every page must obey (§5.1). |
+| **[LIGHTING.md](docs/LIGHTING.md)** | Keyboard backlight: what the EC exposes, and why per-key RGB laptops are out of scope. |
+| **[CLI.md](docs/CLI.md)** | Every command-line switch, for scripts, Stream Deck and Task Scheduler. |
+| **[BUILD.md](docs/BUILD.md)** | Building from source, and how a release is produced and signed. |
+| **[FAQ.md](docs/FAQ.md)** | The questions people actually ask, answered with sources. |
+| **[ABOUT_THE_NAME.md](docs/ABOUT_THE_NAME.md)** | Why the project stopped being called "MSI Profile Switcher". |
+
+Release notes live in **[CHANGELOG.md](CHANGELOG.md)**, and each version also gets an illustrated
+tour on the **[wiki](https://github.com/wygodad/ghostdeck/wiki)** (reachable from the app: Updates ->
+Wiki on any release).
+
 ## Testing the model gate (developer)
 
 To preview the **experimental** / **unsupported** UI on any machine, set the `MSIPS_FORCE_FIRMWARE` environment variable to a firmware string before launching. The app then **simulates** that firmware and performs **no EC writes** (UI preview only):
