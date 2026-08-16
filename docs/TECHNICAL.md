@@ -338,6 +338,12 @@ The main window has a hidden developer dialog for probing the EC on new hardware
 It provides, all gated on the normal write-safety rules (Tested / opted-in Experimental):
 
 - **RPM finder** — two read-only EC scans at different fan speeds. The fan tachometer is the address whose value changes between scans; `RPM = 478000 / value`. Verified on the Raider GE78HX 13V (`17S1IMS1`): **`0xC9` = CPU fan (Fan 1)**, **`0xCB` = GPU fan (Fan 2)**, within ~1% of MSI Center.
+
+  **Plausibility ceiling (v1.34.0, issue #92).** Because the divisor is one byte, the register
+  cannot express anything below `478000/255` = **1874 RPM**: once a fan slows past that, the value
+  left in it is not a reading, and dividing it anyway produced ~9958 RPM in Status and in reports.
+  Readings above **8000 RPM** are therefore dropped (shown as "--"); the fastest fan ever logged on
+  any model is 7206 RPM, on a GE66 under load with Fan Boost.
 - **Live RPM** — continuous read of `0xC9` / `0xCB` for comparing against MSI Center.
 - **Save EC dump to file** — read-only 256-byte dump, used to locate fan-curve table addresses.
 - **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.
@@ -2450,3 +2456,85 @@ as pull requests - the strings are plain arrays in `Core/Lang.cs`, position = la
 **Layout check.** The sub-tab strip (§56) shrinks to icons when captions do not fit, so the
 longer languages (tr, vi, id, it) degrade the same way de/fr already do; CJK captions are
 shorter than English. Tray tooltips stay under the 127-character NotifyIcon limit in all 15.
+
+## 65. Fan curve page: four views of one curve (v1.34)
+
+The Fan curve tab is four sub-tabs over ONE curve state - the same six temperature nodes and six
+speed nodes per fan, the same preset bar, per-profile assignment row and on/off switch. **Chart**
+drags the nodes (plus live operating point, audibility zones, intent tiles, comparison layers and a
+coupled points table), **Equalizer** gives one fader per node, **Deck** gives rotary dials and a
+crossfader between two shapes, and **In action** never edits: it shows the last hour of real
+readings over the curve and runs the fan sweep, a real measurement of how the fans answer commands.
+
+The page is documented in full in **[FAN-CURVE.md](FAN-CURVE.md)**: the curve arithmetic and why its
+interpolation is a model rather than a measurement, every view, the sweep's safeguards and restore
+paths, **how the findings are composed and where their thresholds come from**, the report's
+language split, the live feed, and the page's DPI and scrolling rules.
+
+The three points that belong in this document rather than that one:
+
+- **Silent and a curve cannot coexist** - the Silent power cap and the fan mode share `0xD4`
+  (§17.5), so applying a curve switches the profile to Balanced explicitly. The sweep does the same
+  for the duration of the test and switches back afterwards.
+- **The sweep is the only measuring write.** The EC has no "set duty" register, so each step writes
+  a FLAT curve into the editor's own tables with Advanced fan mode engaged, holds it 6 s and
+  averages the last 3 s. It runs inside `D.EcSession()` and restores the previous tables and mode in
+  a `finally` on every exit path. This is the data the fan calibration and wear diagnostics
+  (roadmap #97/#98) will build on.
+- **Model DB implication: none.** No new per-model fields; the sweep uses the existing curve spec
+  and tachometer addresses.
+
+## 66. Text on a scrolling page (v1.34)
+
+`TextRenderer.DrawText` draws every label in this app, and by default it honours **neither**
+`Graphics.TranslateTransform` **nor** `Graphics.Clip` - it hands the string to GDI through a raw
+HDC. `ThemedPage.ApplyScroll` is a `TranslateTransform`, so on a page that scrolls that way the
+cards, curves and dots move while every caption stays where it was, and no clip can stop scrolled
+content from painting over the page header.
+
+Two supported ways out, both in use:
+
+- draw labels through **`Ui.DrawText`**, which adds
+  `PreserveGraphicsTranslateTransform | PreserveGraphicsClipping` (`Ui.Scrolled`) - required on
+  every page that calls `ApplyScroll` (`ReportPage`, `ScenariosPage`);
+- or **offset the geometry** instead of the `Graphics`, so painting, child controls and hit tests
+  share one coordinate space (`FanCurvePage`'s In-action view).
+
+Pages built entirely from child controls (`SettingsPage`, the inner scroll host of `ModelsPage`)
+avoid the question: WinForms moves children itself.
+
+The measurements behind this, the child-coordinate rule that goes with it, and the related trap of
+toggling a child's `Visible` from inside `OnPaint` (which schedules the next paint and loops) are in
+[RENDERING.md](RENDERING.md) §5.1.
+
+## 67. A board that needed one more byte: `0xD6` on the GE66/GP66 (v1.34.0, issue #52)
+
+Until now every supported board took the same three-register recipe: shift mode, fan mode and the
+super-battery flag. The GE66 Raider / GP66 Leopard (`1543EMS1`) is the first exception, and it is
+worth writing down because the same shape will repeat on other families.
+
+**The symptom.** The owner's HWiNFO logs showed our Balanced pinned at a **fixed PL1 of 30 W - the
+same as Silent** - while MSI Center's Balanced held a **moving 57-71 W**. Both applications write
+identical `0xD2` and `0xD4` values, so the profile bytes could not be the difference.
+
+**Finding the candidate.** The owner's per-scenario dump (taken on MSI Center 2.0.48, which still
+has Silent) has exactly one configuration byte whose value differs between the vendor's Silent and
+its Balanced: `0xD6` = **05 / 03 / 05 / 05** across Silent / Balanced / Extreme / Super Battery.
+Everything else that differs is a sensor.
+
+**Confirming it by measurement.** A one-off build writing those values was run by the owner with
+Cinebench and HWiNFO logging. The limit stopped being static: PL1 read 90 W at idle and settled at
+**55 W** under load (165 of 171 samples), with package power peaking at 85 W and averaging 58 W.
+That is the vendor's behaviour, not the Silent-level cap.
+
+**What ships.** `Devices.StdRecipesPlus` adds one extra register to the standard recipe, and the
+model entry writes the vendor's own values - **Silent included**. Writing `05` in Silent is what
+MSI Center does, so the Silent power cap it produces there is preserved; the app is not inventing a
+value, it is replaying one. No schema change was needed: a recipe is already a list of
+(address, value) pairs, so the signed model database carried it as data.
+
+**What was deliberately NOT used as evidence.** The owner also ran the built-in Power test on that
+build, and its numbers are internally inconsistent - Balanced scored 100 and the Balanced repeat 137
+(2863 vs 3858 MHz). The repeat column exists to expose exactly that drift, and it did, so that run
+says nothing about which profile is faster. The Cinebench + HWiNFO run is the measurement this
+change rests on.

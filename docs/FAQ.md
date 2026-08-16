@@ -58,6 +58,16 @@ No, and it's not planned. "Freeing" RAM (trimming working sets or the standby li
 
 They are there, Windows just hid them. Windows 11 puts every newly registered notification icon into the hidden overflow area (the `^` arrow next to the clock) until you say otherwise. Click the arrow, then drag the temperature icons down onto the taskbar and they stay there. The same happens to the GhostDeck ghost icon on a fresh install. If the overflow area has no temperature icons at all, check Settings -> System, card "Temperature in the tray": the card is hidden entirely on machines whose temperatures the app cannot read.
 
+## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
+
+Usually not, and MSI Center does the same thing on the same machine. Two separate causes:
+
+**The fan is not spinning.** On a cool laptop the firmware stops a fan completely - most often the GPU fan on battery or at idle. A stopped fan has no speed to report: the controller returns nothing, so the app shows "--" rather than inventing a zero. Load the machine for a minute and both numbers come back. A discrete GPU that has powered down also reports no temperature, which is why its whole row can read "--" at once.
+
+**The fan is spinning slower than the register can express.** The tachometer register does not hold RPM, it holds a divisor: RPM = 478000 / value, in a single byte. The lowest speed that can be expressed at all is therefore 478000/255 = **1874 RPM** - below that, whatever sits in the register is not a reading. GhostDeck used to divide it anyway and reported speeds around 9958 RPM (issue #92); since v1.34.0 anything above 8000 RPM - well past the fastest fan ever logged on any model, 7206 - is treated as no reading and shown as "--".
+
+If a fan is audibly roaring and still shows "--", that is worth reporting: open an issue with your model, firmware and what MSI Center or HWiNFO64 shows at that moment.
+
 ## Is there any risk of damaging my laptop?
 
 Very low. The app uses MSI's **official WMI interface** (the same channel MSI Center uses), writes only the exact register values MSI's own profiles use, and EC writes are **volatile** - a reboot resets the EC to firmware defaults (nothing is flashed). On an **unrecognized firmware it stays read-only** and writes nothing. The CPU also keeps its own hardware thermal protection that no EC write can disable. Experimental models are opt-in and write only documented mode registers.

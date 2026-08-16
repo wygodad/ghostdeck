@@ -161,11 +161,14 @@ current position so focusing a child does **not** yank the page to the top.
   **bricks** (Fan Boost, overlay) are child `Control`s. This hybrid is exactly the mix the rules
   below warn about, and it is what made the scroll-coordinate bug (§5.1) possible: painted parts
   and child controls do not consume the scroll offset the same way.
-- **Fan curve** ([`FanCurvePage.cs`](../UI/FanCurvePage.cs)) — a custom-painted editable curve (drag
-  points) plus a few child controls; short, no special caching needed.
-- **Models** ([`ModelsPage.cs`](../UI/ModelsPage.cs)) / **Report** ([`ReportPage.cs`](../UI/ReportPage.cs))
-  / **Updates** — mostly standard child controls (lists, buttons, labels) with light custom painting;
-  they scroll natively.
+- **Fan curve** ([`FanCurvePage.cs`](../UI/FanCurvePage.cs)) — four sub-views over one curve, mostly
+  hand-painted with a few child controls. `AutoScroll` is **off**: the In-action view scrolls itself
+  by offsetting its geometry (§5.1a), paints its header last and places child controls through
+  `Place()`. Full description in [FAN-CURVE.md](FAN-CURVE.md).
+- **Models** ([`ModelsPage.cs`](../UI/ModelsPage.cs)) / **Updates** — the page itself does not
+  scroll; an inner `AutoScroll` panel scrolls a child table, so WinForms moves the content.
+- **Report** ([`ReportPage.cs`](../UI/ReportPage.cs)) — hand-painted content on an `AutoScroll` page:
+  it calls `ApplyScroll` and therefore draws every label through `Ui.DrawText` (§5.1a).
 - **Chrome** ([`MainForm`](../UI/MainForm.cs)) — the tab strip, theme button and the announcement
   **banner** are custom-drawn controls; the banner is a top-docked `Panel` shown on demand.
 - **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change
@@ -194,9 +197,42 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   `ThemedComboBox`, never a bare `ComboBox`, for any new select** (language, AC/battery profile, overlay
   position all use it).
 
-### 5.1 Child positions on an `AutoScroll` page are CLIENT coordinates (v1.28)
+### 5.1 Scrolling: what carries the offset, and what silently does not (v1.28, corrected v1.34)
 
-The rule the layout code points at, and the one that is easiest to get wrong:
+Three different things on a scrolling page consume the scroll offset in three different ways. Every
+scroll bug this project has had came from assuming any two of them behave alike.
+
+**(a) `TextRenderer` does NOT follow `ApplyScroll` — and cannot be clipped either.**
+
+`TextRenderer.DrawText` hands its string to GDI through a raw HDC. By default it reads neither
+`Graphics.TranslateTransform` nor `Graphics.Clip`. Measured, not deduced:
+
+| what was drawn | result |
+|---|---|
+| `TranslateTransform(0,150)` + `TextRenderer.DrawText` at y=0 | text landed at y≈**6** |
+| `TranslateTransform(0,150)` + GDI+ `DrawString` at y=0 | text landed at y≈**156** |
+| `SetClip(0,150,300,150)` + `TextRenderer.DrawText` at y=10 | drawn anyway, **outside the clip** |
+| the same two calls **with the flags below** | y≈156, and clipped away |
+
+Since every label in this app goes through `TextRenderer`, a page that scrolls by `ApplyScroll`
+moves its cards, curves and dots while every caption stays where it was, and no `SetClip` can stop
+content from painting over the page header. There are exactly two correct ways out:
+
+1. **Keep the transform and tell `TextRenderer` to honour it.** Draw text through `Ui.DrawText`,
+   which adds `TextFormatFlags.PreserveGraphicsTranslateTransform | PreserveGraphicsClipping`.
+   `Ui.Scrolled` is that flag pair. **Any page that calls `ApplyScroll` must use `Ui.DrawText` for
+   every label** — `ReportPage` and `ScenariosPage` do. Adding the flags on an unscrolled `Graphics`
+   is harmless: the transform is then the identity, and honouring the paint clip is correct anyway.
+2. **Offset the geometry instead of the `Graphics`.** Bake the scroll into the rectangles, so
+   painting, child controls and hit tests share one coordinate space. `FanCurvePage`'s In-action
+   view does this (`PlayArea`), and it also paints its header **last**, over a repainted band,
+   because with no usable clip the drawing order is what protects the header. See
+   [FAN-CURVE.md](FAN-CURVE.md) §10.
+
+Pages whose content is entirely child controls (`SettingsPage`, `ModelsPage`'s inner scroll host)
+sidestep all of this: WinForms moves children itself. That remains the smoothest option.
+
+**(b) Child positions on an `AutoScroll` page are CLIENT coordinates.**
 
 - `OnPaint` + `ApplyScroll(g)` draws in **content** coordinates: the translate by
   `AutoScrollPosition` is applied for you.
@@ -220,6 +256,49 @@ Two more traps in the same family:
 
 `SettingsPage.Layout2`, `ScenariosPage.Relayout` and `ReportPage.Relayout` all follow this.
 
+**(c) A child control is never clipped by the page's paint clip.**
+
+Child controls own their own window, so they paint over the parent and no `SetClip` in the parent's
+`OnPaint` touches them. A page that scrolls its own painting therefore has to HIDE the children
+that scrolled out of view, or they float over whatever the header is. `FanCurvePage.Place()` does
+exactly that, and it is also why a child cannot be over-painted by scrolled content: the sub-tab
+strip stays legible for free.
+
+One more, learned the same way: **never toggle a child's `Visible` from inside `OnPaint`**. Hiding
+a child adds its rectangle back to the parent's update region, so the paint that hid it schedules
+the next paint, which hides it again — a repaint loop that looks exactly like flicker. Write the
+value once per frame from the layout pass, or write the same value every frame (WinForms turns an
+unchanged `Visible`/`SetBounds` write into a no-op).
+
+**(d) Resizing children does not re-evaluate the page's scrollbars (v1.34).**
+
+Clicking **maximize and then restore** left a horizontal scrollbar on Status, Scenarios, Settings
+and Report, and it vanished as soon as you switched tabs and came back.
+
+The content was not too wide. Measured on a reproduction: at the moment the bar was showing, the
+child overhung the client area by **0 px**. A `ScrollableControl` re-evaluates its scrollbars in
+`AdjustFormScrollbars`, which runs as part of a **layout**, and simply assigning a child's
+`Width`/`Height` from a resize handler does not schedule one. So the extent computed while the
+window was maximized survived the restore, and the tab switch only helped because that path forces
+a full layout.
+
+The fix is one call, `PerformLayout()`, after the layout pass - wrapped in
+**`ThemedPage.LayoutAndSyncScroll(pass)`**, which also drops the re-entrant `Resize` that the
+layout itself raises. `StatusPage`, `ScenariosPage`, `ReportPage` and `SettingsPage` all go through
+it. (`SettingsPage.SelectSub` had been calling `PerformLayout()` by hand for the same reason since
+v1.28; what was missing was doing it on **resize** as well.)
+
+What was measured, so nobody re-derives it from a plausible-sounding theory:
+
+| after maximize → restore | horizontal scrollbar |
+|---|---|
+| plain layout pass | **shown** (child overhang: 0 px) |
+| pass repeated until `ClientSize` settles | still shown |
+| pass + `AutoScrollMinSize` reassigned | still shown |
+| pass + `HorizontalScroll.Visible = false` | still shown |
+| **pass + `PerformLayout()`** | **gone**, and stays gone across repeated cycles |
+| pass + `AutoScroll` off/on | gone, but heavier and it resets the scroll position |
+
 ### 5.2 A sub-tab strip that does not fit shrinks, it does not scroll (v1.28)
 
 `SubTabs.FitTo(available)` is given the width the host can spare. If the full strip is wider, it
@@ -240,6 +319,9 @@ covers the content, an inline label answers the same question immediately.
   `DrawString`, or a `BufferedGraphics` allocated from the control's own `Graphics`.
 - **Match the text API to the target.** GDI+ `DrawString` respects bitmap DPI; GDI `TextRenderer`
   respects the DC's DPI. Don't expect `SetResolution` to fix `TextRenderer` on a bare bitmap.
+- **`TextRenderer` ignores the `Graphics` transform and clip** unless it is passed
+  `PreserveGraphicsTranslateTransform | PreserveGraphicsClipping`. On any page that scrolls by
+  `ApplyScroll`, draw labels through `Ui.DrawText` (§5.1a), or scroll by offsetting geometry.
 - **Cache heavy scrolling pages.** Render once into an off-screen buffer and BitBlt it while
   scrolling; re-render only on data/size/theme change — not per scroll frame.
 - **Don't mix hand-painted (`OnPaint`+`ApplyScroll`) elements with child controls on a page that

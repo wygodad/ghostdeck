@@ -328,7 +328,10 @@ public sealed class ScenariosPage : ThemedPage
         if (_panicBtn != null) { _panicBtn.BackColor = Theme.Red; _panicBtn.ForeColor = Color.White; }
     }
 
-    private void Relayout()
+    // Wrapped so the scroll extent is recomputed afterwards - see ThemedPage.LayoutAndSyncScroll.
+    private void Relayout() => LayoutAndSyncScroll(RelayoutPass);
+
+    private void RelayoutPass()
     {
         // Manual layout inside an AutoScroll panel: WinForms keeps a child's Location in *client*
         // coordinates and physically shifts children by the scroll delta, so content coordinates
@@ -383,7 +386,9 @@ public sealed class ScenariosPage : ThemedPage
         if (!scenes)
         {
             _scenesHeadY = bricksBottom + 10;
-            AutoScrollMinSize = new Size(820, bricksBottom + 12);
+            // width 0: everything above is laid out against the width actually available, so the
+            // page never needs to scroll sideways (it used to demand 820 px unconditionally)
+            AutoScrollMinSize = new Size(0, bricksBottom + 12);
             return;
         }
         _scenesHeadY = bricksBottom + 10;
@@ -405,7 +410,7 @@ public sealed class ScenariosPage : ThemedPage
         _addScene.Location = new Point(Pad + ox, y + oy);
         _addExamples.Location = new Point(Pad + _addScene.PreferredSize.Width + 10 + ox, y + oy);
         int bottom = y + _addScene.PreferredSize.Height + 8;
-        AutoScrollMinSize = new Size(820, bottom + 12);
+        AutoScrollMinSize = new Size(0, bottom + 12);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -414,18 +419,18 @@ public sealed class ScenariosPage : ThemedPage
         ApplyScroll(g);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var info = D.Status();
-        TextRenderer.DrawText(g, Lang.T("scen_title"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
+        Ui.DrawText(g, Lang.T("scen_title"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
         string sub = info.Device + (string.IsNullOrEmpty(D.Firmware()) ? "" : "  ·  " + D.Firmware());
-        TextRenderer.DrawText(g, sub, new Font("Segoe UI", 10.5f), new Point(Pad, _subY), Theme.Muted);
+        Ui.DrawText(g, sub, new Font("Segoe UI", 10.5f), new Point(Pad, _subY), Theme.Muted);
         // (the tier badge lives in the header strip now, next to the version)
 
         // (#21) scenes section header + empty-state hint (unless the section is hidden)
         if (ScenesVisible)
         {
-            TextRenderer.DrawText(g, Lang.T("scene_title"), new Font("Segoe UI", 13f, FontStyle.Bold),
+            Ui.DrawText(g, Lang.T("scene_title"), new Font("Segoe UI", 13f, FontStyle.Bold),
                 new Point(Pad, _scenesHeadY), Theme.Text);
             if (_sceneCards.Count == 0)
-                TextRenderer.DrawText(g, Lang.T("scene_empty"), new Font("Segoe UI", 9.5f),
+                Ui.DrawText(g, Lang.T("scene_empty"), new Font("Segoe UI", 9.5f),
                     new Point(Pad, _scenesHeadY + new Font("Segoe UI", 13f, FontStyle.Bold).Height + 10), Theme.Muted);
         }
     }
@@ -479,10 +484,10 @@ public sealed class ScenariosPage : ThemedPage
             int top = Math.Max(16, (Height - blockH) / 2);
             IconPainter.Scenario(g, _id, new RectangleF((Width - iconBox) / 2f, top, iconBox, iconBox), col, 4f);
             int textW = Width - 24;
-            TextRenderer.DrawText(g, def.Label, nameFont,
+            Ui.DrawText(g, def.Label, nameFont,
                 new Rectangle(12, top + iconBox + g1, textW, nameH), Theme.Text,
                 TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
-            TextRenderer.DrawText(g, Lang.T(def.SubKey), subFont,
+            Ui.DrawText(g, Lang.T(def.SubKey), subFont,
                 new Rectangle(12, top + iconBox + g1 + nameH + g2, textW, subH), Theme.Muted,
                 TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
             int footY = top + iconBox + g1 + nameH + g2 + subH + g3;
@@ -494,7 +499,7 @@ public sealed class ScenariosPage : ThemedPage
             }
             else
             {
-                TextRenderer.DrawText(g, Lang.T("scen_select"), footFont,
+                Ui.DrawText(g, Lang.T("scen_select"), footFont,
                     new Rectangle(12, footY + 6, textW, footFont.Height + 2),
                     _hover ? Theme.Muted : Theme.Faint,
                     TextFormatFlags.Top | TextFormatFlags.HorizontalCenter);
@@ -583,7 +588,14 @@ public sealed class ScenariosPage : ThemedPage
         // wrap to new lines, and the PAGE gives all cards the tallest card's height so a row
         // of cards stays even. 16 px of horizontal air per chip obeys the padding rule;
         // NameGap keeps the pills off the scene name, the whole block centers vertically.
-        private const int ChipH = 20, ChipGapX = 5, ChipGapY = 8, ChipPad = 16, NameGap = 14;
+        private const int ChipGapX = 5, ChipGapY = 8, ChipPad = 16, NameGap = 14;
+
+        // The pill height follows the FONT, with 4 px of air above and below the text. A fixed
+        // 20 px box left the outlined pills looking like the text touched their edges (the
+        // filled profile pill hid it better), and it clipped outright once the font grew with
+        // the display scaling.
+        private static readonly Font ChipFont = new("Segoe UI", 8.5f);
+        private static int ChipH => ChipFont.Height + 8;
 
         private int TextAreaWidth(int width) => width - 58 - HotCount * (HotW + HotGap) - 16;
 
@@ -637,16 +649,16 @@ public sealed class ScenariosPage : ThemedPage
             var nameFont = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             int nameH = nameFont.Height;
             const int top = 10;
-            TextRenderer.DrawText(g, glyph, new Font("Segoe UI Emoji", 15f),
+            Ui.DrawText(g, glyph, new Font("Segoe UI Emoji", 15f),
                 new Rectangle(12, top - 6, 40, nameH + 12), Theme.Accent,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
-            TextRenderer.DrawText(g, _scene.Name, nameFont,
+            Ui.DrawText(g, _scene.Name, nameFont,
                 new Rectangle(58, top, Math.Max(20, TextAreaWidth(Width)), nameH),
                 Theme.Text, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
 
             // chips center vertically in the space UNDER the name line
             int tw = Math.Max(40, ChipAreaWidth(Width));
-            using var chipFont = new Font("Segoe UI", 8.5f);
+            var chipFont = ChipFont;
             var parts = _scene.SummaryParts();
             int pillsH = (_armDelete || parts.Count == 0 ? 1 : ChipLines(tw)) * (ChipH + ChipGapY) - ChipGapY;
             int areaTop = top + nameH + NameGap;
@@ -654,13 +666,13 @@ public sealed class ScenariosPage : ThemedPage
             if (_armDelete)
             {
                 // armed delete replaces the chips with the confirm hint (amber), like the camera block
-                TextRenderer.DrawText(g, Lang.T("scene_del_arm"), chipFont,
+                Ui.DrawText(g, Lang.T("scene_del_arm"), chipFont,
                     new Rectangle(12, cy, tw, ChipH), Theme.Amber,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
             }
             else if (parts.Count == 0)
             {
-                TextRenderer.DrawText(g, Lang.T("scene_empty_def"), chipFont,
+                Ui.DrawText(g, Lang.T("scene_empty_def"), chipFont,
                     new Rectangle(12, cy, tw, ChipH), Theme.Muted,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
             }
@@ -687,7 +699,7 @@ public sealed class ScenariosPage : ThemedPage
                         using var pen = new Pen(accent ? profC : Theme.Border);
                         g.DrawPath(pen, path);
                     }
-                    TextRenderer.DrawText(g, parts[i], chipFont, Rectangle.Round(cr),
+                    Ui.DrawText(g, parts[i], chipFont, Rectangle.Round(cr),
                         accent ? profC : Theme.Muted,
                         TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                     x += w + ChipGapX;
@@ -700,7 +712,7 @@ public sealed class ScenariosPage : ThemedPage
                         : i == _hotHover ? (i == 4 ? Theme.Red : Theme.Accent)
                         : _hover ? Theme.Muted : Theme.Faint;
                 var f = new Font("Segoe UI", i == 4 && _armDelete ? 12f : 10.5f, i == 4 && _armDelete ? FontStyle.Bold : FontStyle.Regular);
-                TextRenderer.DrawText(g, HotGlyphs[i], f, HotRect(i), c,
+                Ui.DrawText(g, HotGlyphs[i], f, HotRect(i), c,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
             }
         }
@@ -780,7 +792,7 @@ public sealed class ScenariosPage : ThemedPage
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, new RectangleF(bx, by, box, box));
             // label (stops before the help dot + toggle)
             int lx = bx + box + 14, rightPad = _right.Width + 14 + (_help != null ? _help.Width + 14 : 0) + 12;
-            TextRenderer.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
+            Ui.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
                 new Rectangle(lx, 0, Math.Max(20, Width - lx - rightPad), Height), Theme.Text,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         }

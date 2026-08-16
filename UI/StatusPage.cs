@@ -205,7 +205,12 @@ public sealed class StatusPage : ThemedPage
         return Math.Max(150, Math.Min(240, (avail - gap * (RingCount - 1)) / RingCount));
     }
 
-    private void Relayout()
+    // Wrapped so the scroll extent is recomputed after the canvas is resized: without it a
+    // horizontal scrollbar survived a maximize/restore even though nothing overhangs any more
+    // (ThemedPage.LayoutAndSyncScroll).
+    private void Relayout() => LayoutAndSyncScroll(RelayoutPass);
+
+    private void RelayoutPass()
     {
         if (_canvas == null) return;
         _statusTabs.Size = new Size(_statusTabs.FitTo(ClientSize.Width - 24), _statusTabs.Height);

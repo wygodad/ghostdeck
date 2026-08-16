@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260814;
+    public const int DataVersion = 20260816;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -121,6 +121,23 @@ public static class Devices
     // Generic recipe set from documented msi-ec shift_mode + fan_mode (+ optional super_battery).
     // Used for EXPERIMENTAL models. Note: does NOT include our tested model's undocumented
     // 0x34 power-cap co-flag — so on these models "Silent" may not cap power the same way.
+    /// <summary>
+    /// Standard recipe plus ONE extra register written per profile. Used where a board needs a
+    /// vendor byte that the shared recipe does not carry - today only the power-management byte
+    /// 0xD6 on the GE66/GP66 board, see the comment at that model.
+    /// </summary>
+    private static Dictionary<ProfileId, (byte, byte)[]> StdRecipesPlus(byte shift, byte fan, byte? superBatt,
+                                                                        byte addr, byte silent, byte balanced, byte extreme, byte superB)
+    {
+        var b = StdRecipes(shift, fan, superBatt);
+        var extra = new Dictionary<ProfileId, byte>
+        {
+            [ProfileId.Silent] = silent, [ProfileId.Balanced] = balanced,
+            [ProfileId.Extreme] = extreme, [ProfileId.SuperBattery] = superB,
+        };
+        return b.ToDictionary(kv => kv.Key, kv => kv.Value.Append((addr, extra[kv.Key])).ToArray());
+    }
+
     private static Dictionary<ProfileId, (byte, byte)[]> StdRecipes(byte shift, byte fan, byte? superBatt)
     {
         (byte, byte)[] R(byte shiftVal, byte fanVal, bool sbOn)
@@ -473,10 +490,21 @@ public static class Devices
         // (issue #53): the test curve sits byte-for-byte at 0x72 / 0x8A. RPM 0xC9/0xCB vary per
         // scenario (A0/BC/B0/BC ≈ 2500-3000 RPM). Extreme confirmed by MEASUREMENT (issue #52):
         // HWiNFO package-power logs show our Extreme and MSI Center's Extreme reaching the same
-        // power, which was the last open hardware check. (The same logs show MSI Center's Balanced
-        // holding a higher PL1 than ours - under investigation in #52, does not gate the tier.)
+        // power, which was the last open hardware check.
+        //
+        // 0xD6 — the extra byte this board needs for Balanced (issue #52, measured twice).
+        // Symptom: with the shared recipe, our Balanced sat at a FIXED PL1 of 30 W - the same as
+        // Silent - while MSI Center's Balanced held a moving 57-71 W, although both write the same
+        // 0xD2/0xD4. The owner's per-scenario dump has exactly one configuration byte that differs
+        // between the vendor's Silent and its Balanced: 0xD6 = 05 / 03 / 05 / 05. A one-off test
+        // build writing those vendor values was run by the owner with Cinebench + HWiNFO logging:
+        // PL1 became DYNAMIC (90 W at idle, settling at 55 W under load, 165 of 171 samples) and
+        // package power averaged 58 W - i.e. the vendor's behaviour instead of the Silent-level
+        // cap. The values written here are the vendor's own per-scenario values, Silent included,
+        // so Silent keeps the cap MSI Center gives it.
         new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified,
+                Recipes = StdRecipesPlus(0xD2, 0xD4, 0xEB, 0xD6, silent: 0x05, balanced: 0x03, extreme: 0x05, superB: 0x05),
                 Credit = "krystian-pytlik", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/52" },
 
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
@@ -533,6 +561,21 @@ public static class Devices
         new() { Name = "MSI Prestige 14 AI Evo C1MG",       FirmwarePrefixes = new[] { "14N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 AI Studio C1UDXG",  FirmwarePrefixes = new[] { "14N2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 14 A13VF",               FirmwarePrefixes = new[] { "14P1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Creator M14 A13VE (14P1IWS1) - the Creator build of the SAME board as the Cyborg 14
+        // above: its BIOS is E14P1IMS, and msi-ec carries the sibling prefix 14P1IMS1 in
+        // CONF_G2_3, whose map is byte-identical to what StdRecipes writes here (shift 0xD2
+        // C1/C2/C4, super-batt 0xEB mask 0x0F, fan 0xD4 with silent 0x1D, charge 0xD7).
+        // The prefix itself is in NEITHER map: this owner's report (issue #91) and the still
+        // unanswered msi-ec issue #692 are the only two captures of it. His per-scenario dump
+        // matches StdRecipes 1:1 with a real Silent (0x1D), taken on MSI Center 2.0.48 - the
+        // last lineup that still had the Silent scenario, so every column has a clean source.
+        // Curve tables hold the family layout at the shipped ModernCurve addresses (CPU 0x69/
+        // 0x72, GPU 0x81/0x8A) with ascending values. RPM: 0xC9 varies per scenario
+        // (A3/A0/BA/BA = 2930/2990/2570 rpm); 0xCB stays 00, and the msi-ec reporter of the
+        // same machine states one fan - so the second tachometer is left off.
+        new() { Name = "MSI Creator M14 A13VE",             FirmwarePrefixes = new[] { "14P1IWS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "otherpartsoftheworld-spec", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/91" },
         new() { Name = "MSI Venture 14 AI A2HMG",           FirmwarePrefixes = new[] { "14Q2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Venture A14 AI+ A3HMG",         FirmwarePrefixes = new[] { "14QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 Flip AI+ D3MTG",    FirmwarePrefixes = new[] { "14T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

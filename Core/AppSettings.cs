@@ -213,6 +213,16 @@ public sealed class AppSettings
     // ostatnio otwarta subzakladka Ustawien (0 = Start/kafelki); wraca po restarcie aplikacji
     public int SettingsSubTab { get; set; }
 
+    // Fan-curve page: last view (0 chart, 1 equalizer, 2 deck, 3 playground) + the chart-view
+    // options. Machine-local UI state like SettingsSubTab (not imported, not cloned).
+    public int FanCurveView { get; set; }
+    public bool FanCurveZones { get; set; } = true;      // audibility bands behind the plot
+    public bool FanCurveTrail { get; set; }              // 3-minute temperature trail on the curve (opt-in)
+    public bool FanCurveDotLabels { get; set; }          // "In action": values next to every history dot (opt-in)
+    public bool FanCurveIntents { get; set; } = true;    // intent tiles above the charts
+    public bool FanCurveTable { get; set; }              // coupled points table expanded
+    public List<string> FanCurveCompare { get; set; } = new();   // preset names drawn as comparison layers
+
     // (discussion #9) Whether Settings always opens on the Start page instead of returning to
     // wherever it was left. Default false = the behaviour so far.
     public bool SettingsAlwaysStart { get; set; }

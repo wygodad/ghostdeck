@@ -277,7 +277,10 @@ public sealed class ReportPage : ThemedPage
         _subTabs.Invalidate();
     }
 
-    private void Relayout()
+    // Wrapped so the scroll extent is recomputed afterwards - see ThemedPage.LayoutAndSyncScroll.
+    private void Relayout() => LayoutAndSyncScroll(RelayoutPass);
+
+    private void RelayoutPass()
     {
         // Content coordinates offset by AutoScrollPosition when they reach a child's Location -
         // WinForms treats those as client coords and shifts children by the scroll delta, while
@@ -359,24 +362,24 @@ public sealed class ReportPage : ThemedPage
     private void PaintLanding(Graphics g)
     {
         int avail = ClientSize.Width - Pad * 2;
-        TextRenderer.DrawText(g, Lang.T("rep_home_title"), LandTitleF, new Point(Pad, _landTitleY), Theme.Text);
+        Ui.DrawText(g, Lang.T("rep_home_title"), LandTitleF, new Point(Pad, _landTitleY), Theme.Text);
         int introH = _landI3Y - _landIntroY;
         if (_landTwoCol)
         {
-            TextRenderer.DrawText(g, Lang.T("rep_home_intro1"), IntroFont,
+            Ui.DrawText(g, Lang.T("rep_home_intro1"), IntroFont,
                 new Rectangle(Pad, _landIntroY, _landColW, introH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak);
-            TextRenderer.DrawText(g, Lang.T("rep_home_intro2"), IntroFont,
+            Ui.DrawText(g, Lang.T("rep_home_intro2"), IntroFont,
                 new Rectangle(Pad + _landColW + Gutter, _landIntroY, _landColW, introH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak);
         }
         else
         {
-            TextRenderer.DrawText(g, LandIntro12, IntroFont,
+            Ui.DrawText(g, LandIntro12, IntroFont,
                 new Rectangle(Pad, _landIntroY, avail, introH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak);
         }
-        TextRenderer.DrawText(g, Lang.T("rep_home_intro3"), IntroFont,
+        Ui.DrawText(g, Lang.T("rep_home_intro3"), IntroFont,
             new Rectangle(Pad, _landI3Y, avail, _landCardsY - _landI3Y), Theme.Text,
             TextFormatFlags.Left | TextFormatFlags.WordBreak);
 
@@ -399,21 +402,21 @@ public sealed class ReportPage : ThemedPage
                 g.DrawPath(ap, ip);
             Ui.CenterGlyph(g, LandGlyphs[i], LandGlyphF, Theme.Accent, iconR);
 
-            TextRenderer.DrawText(g, LandTitle(i), new Font("Segoe UI", 12f, FontStyle.Bold),
+            Ui.DrawText(g, LandTitle(i), new Font("Segoe UI", 12f, FontStyle.Bold),
                 new Rectangle(iconR.Right + 14, iconR.Y, r.Width - LandIconBox - LandPad * 2 - 14, LandIconBox),
                 Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
 
             int innerW = r.Width - LandPad * 2;
             int y = iconR.Bottom + 14;
             int qH = TextRenderer.MeasureText(LandQ(i), LandQF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
-            TextRenderer.DrawText(g, LandQ(i), LandQF, new Rectangle(r.X + LandPad, y, innerW, qH + 2),
+            Ui.DrawText(g, LandQ(i), LandQF, new Rectangle(r.X + LandPad, y, innerW, qH + 2),
                 hover ? Theme.Accent : Theme.Text, TextFormatFlags.WordBreak);
             y += qH + 10;
-            TextRenderer.DrawText(g, LandD(i), LandDF,
+            Ui.DrawText(g, LandD(i), LandDF,
                 new Rectangle(r.X + LandPad, y, innerW, r.Bottom - LandPad - y), Theme.Muted, TextFormatFlags.WordBreak);
 
             int fH = TextRenderer.MeasureText(LandF(i), LandFootF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
-            TextRenderer.DrawText(g, LandF(i), LandFootF,
+            Ui.DrawText(g, LandF(i), LandFootF,
                 new Rectangle(r.X + LandPad, r.Bottom - LandPad - fH, innerW, fH + 2), Theme.Faint, TextFormatFlags.WordBreak);
         }
     }
@@ -514,7 +517,7 @@ public sealed class ReportPage : ThemedPage
         ApplyScroll(g);
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
-        TextRenderer.DrawText(g, Lang.T("menu_report"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
+        Ui.DrawText(g, Lang.T("menu_report"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
         if (_landing) { PaintLanding(g); return; }
         if (_sub == 1) { PaintCurve(g); return; }
@@ -522,19 +525,19 @@ public sealed class ReportPage : ThemedPage
 
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
         // left: intro under title, info card (child) already placed, firmware pill below it
-        TextRenderer.DrawText(g, Lang.T("rep_intro"), IntroFont,
+        Ui.DrawText(g, Lang.T("rep_intro"), IntroFont,
             new Rectangle(Pad, _introY, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
         // content coord, NOT _card.Bottom - a child's Bottom already carries the scroll offset,
         // and OnPaint adds it again through ApplyScroll (see docs/RENDERING.md §5.1)
         PaintFirmwarePill(g, _contentTop + _card.Height + 14);
 
         // right: section label
-        TextRenderer.DrawText(g, Lang.T("rep_section"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
+        Ui.DrawText(g, Lang.T("rep_section"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
 
         // right: progress (only while capturing)
         if (_capturing)
         {
-            TextRenderer.DrawText(g, Lang.T("rep_capturing") + $"  {_lastPct}%", new Font("Segoe UI", 10f, FontStyle.Bold),
+            Ui.DrawText(g, Lang.T("rep_capturing") + $"  {_lastPct}%", new Font("Segoe UI", 10f, FontStyle.Bold),
                 new Point(_rightX, _barY - 30), Theme.Accent);
             var track = new RectangleF(_rightX, _barY, rightW, 12);
             using (var path = Theme.RoundRect(track, 6)) { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
@@ -546,7 +549,7 @@ public sealed class ReportPage : ThemedPage
         bool done = _step >= Steps.Length;
         string instr = done ? "✓  " + Lang.T("rep_all_done")
                             : string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " — " + string.Format(Lang.T("rep_set_scenario"), Steps[_step].msiName);
-        TextRenderer.DrawText(g, instr, new Font("Segoe UI", 11.5f, FontStyle.Bold),
+        Ui.DrawText(g, instr, new Font("Segoe UI", 11.5f, FontStyle.Bold),
             new Rectangle(_rightX, _instrTop, rightW, _instrH + 6), done ? Theme.Green : Theme.Text, TextFormatFlags.WordBreak);
         if (done) PaintSaved(g, _rightX, _capY + 44 + 10, rightW, _savedPath, _copied);
     }
@@ -565,12 +568,12 @@ public sealed class ReportPage : ThemedPage
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
 
         // ---- left column: intro + info card (child) + firmware pill ----
-        TextRenderer.DrawText(g, Lang.T("rep_curve_intro"), IntroFont,
+        Ui.DrawText(g, Lang.T("rep_curve_intro"), IntroFont,
             new Rectangle(Pad, _curveTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
         PaintFirmwarePill(g, _contentTop + _curveCard.Height + 14);
 
         // ---- right column: section label + numbered steps ----
-        TextRenderer.DrawText(g, Lang.T("rep_curve_steps"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
+        Ui.DrawText(g, Lang.T("rep_curve_steps"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
         string[] steps = { Lang.T("rep_curve_s1"), Lang.T("rep_curve_s2"), Lang.T("rep_curve_s3"), Lang.T("rep_curve_s4"), Lang.T("rep_curve_s5") };
         var numFont = new Font("Segoe UI", 9f, FontStyle.Bold);
         var stFont = new Font("Segoe UI", 10.5f);
@@ -579,14 +582,14 @@ public sealed class ReportPage : ThemedPage
             int ry = _curveStepsTop + i * 34;
             var circ = new RectangleF(_rightX, ry, 24, 24);
             using (var b = new SolidBrush(Theme.AccentSoft)) g.FillEllipse(b, circ);
-            TextRenderer.DrawText(g, (i + 1).ToString(), numFont, Rectangle.Round(circ), Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            TextRenderer.DrawText(g, steps[i], stFont, new Rectangle(_rightX + 36, ry - 4, rightW - 40, 34), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            Ui.DrawText(g, (i + 1).ToString(), numFont, Rectangle.Round(circ), Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            Ui.DrawText(g, steps[i], stFont, new Rectangle(_rightX + 36, ry - 4, rightW - 40, 34), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
         }
 
         // ---- right column: progress / result (under the capture button) ----
         if (_curveCapturing)
         {
-            TextRenderer.DrawText(g, Lang.T("rep_capturing") + $"  {_curvePct}%", new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, _curveBarY - 4), Theme.Accent);
+            Ui.DrawText(g, Lang.T("rep_capturing") + $"  {_curvePct}%", new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, _curveBarY - 4), Theme.Accent);
             var track = new RectangleF(_rightX, _curveBarY + 20, rightW, 12);
             using (var path = Theme.RoundRect(track, 6)) { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
             float fw = Math.Max(12, rightW * _curveBar);
@@ -597,7 +600,7 @@ public sealed class ReportPage : ThemedPage
             var col = _curveCpuAt >= 0 || _curveGpuAt >= 0 ? (_curveMatch ? Theme.Green : Theme.Amber) : Theme.Red;
             var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
-            TextRenderer.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            Ui.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             PaintSaved(g, _rightX, _curveBarY + mh + 10, rightW, _curveSavedPath, _curveCopied);
         }
     }
@@ -1195,16 +1198,16 @@ public sealed class ReportPage : ThemedPage
         var secFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
 
         // ---- left column: intro + warning card (child) + the exact addresses + firmware pill ----
-        TextRenderer.DrawText(g, Lang.T("pt_intro"), IntroFont,
+        Ui.DrawText(g, Lang.T("pt_intro"), IntroFont,
             new Rectangle(Pad, _ptTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
-        TextRenderer.DrawText(g, Lang.T("pt_writes"), secFont, new Point(Pad, _ptWritesY), Theme.Muted);
-        TextRenderer.DrawText(g, PtWriteList(dev), WritesFont,
+        Ui.DrawText(g, Lang.T("pt_writes"), secFont, new Point(Pad, _ptWritesY), Theme.Muted);
+        Ui.DrawText(g, PtWriteList(dev), WritesFont,
             new Rectangle(Pad, _ptWritesY + 20, _leftW, _ptWritesH + 4), Theme.Accent,
             TextFormatFlags.Left | TextFormatFlags.WordBreak);
         PaintFirmwarePill(g, _ptWritesY + 20 + _ptWritesH + 14);
 
         // ---- right column: checklist label ----
-        TextRenderer.DrawText(g, Lang.T("pt_steps"), secFont, new Point(_rightX, _contentTop), Theme.Muted);
+        Ui.DrawText(g, Lang.T("pt_steps"), secFont, new Point(_rightX, _contentTop), Theme.Muted);
 
         int y = _ptBarY;
         if (_ptRunning)
@@ -1218,7 +1221,7 @@ public sealed class ReportPage : ThemedPage
                 "check" => Lang.T("pt_stage_check"),
                 _ => Lang.T("pt_stage_read"),
             };
-            TextRenderer.DrawText(g, stage + (_ptLive.Length > 0 ? "   " + _ptLive : ""),
+            Ui.DrawText(g, stage + (_ptLive.Length > 0 ? "   " + _ptLive : ""),
                 new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, y - 4), Theme.Accent);
             var track = new RectangleF(_rightX, y + 20, rightW, 12);
             using (var path = Theme.RoundRect(track, 6))
@@ -1240,14 +1243,14 @@ public sealed class ReportPage : ThemedPage
             string verdict = PowerTest.Summary(r);
             var vf = new Font("Segoe UI", 11.5f, FontStyle.Bold);
             int vh = TextRenderer.MeasureText(verdict, vf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
-            TextRenderer.DrawText(g, verdict, vf, new Rectangle(_rightX, y, rightW, vh + 6), col,
+            Ui.DrawText(g, verdict, vf, new Rectangle(_rightX, y, rightW, vh + 6), col,
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             y += vh + 10;
             y += PaintSaved(g, _rightX, y, rightW, _ptSavedPath, _ptCopied) + 8;
         }
 
         if (_ptMsg != null)
-            TextRenderer.DrawText(g, _ptMsg, new Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
+            Ui.DrawText(g, _ptMsg, new Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
                 Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
     }
 
@@ -1261,7 +1264,7 @@ public sealed class ReportPage : ThemedPage
             string saved = string.Format(Lang.T("rep_saved_to"), path);
             var sf = new Font("Segoe UI", 9f);
             sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
-            TextRenderer.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
+            Ui.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
             sh += 6;
         }
         // Deliberately NOT tied to the path: a run that lost the clipboard AND the file is the one
@@ -1270,7 +1273,7 @@ public sealed class ReportPage : ThemedPage
         var wf = new Font("Segoe UI", 10f, FontStyle.Bold);
         string warn = Lang.T("rep_clip_fail");
         int wh = ClipWarnHeight(w);
-        TextRenderer.DrawText(g, warn, wf, new Rectangle(x, y + sh + 2, w, wh), Theme.Amber,
+        Ui.DrawText(g, warn, wf, new Rectangle(x, y + sh + 2, w, wh), Theme.Amber,
             TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
         return sh + wh + 6;
     }
@@ -1288,10 +1291,10 @@ public sealed class ReportPage : ThemedPage
         using (var path = Theme.RoundRect(pill, 11))
         { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
         var lf = new Font("Segoe UI", 10f);
-        TextRenderer.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
+        Ui.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        TextRenderer.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "—" : D.Firmware(), new Font("Consolas", 11f, FontStyle.Bold),
+        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "—" : D.Firmware(), new Font("Consolas", 11f, FontStyle.Bold),
             new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
     }
@@ -1359,14 +1362,14 @@ public sealed class ReportPage : ThemedPage
             else
             {
                 using var pen = new Pen(Theme.BorderStrong, 2f); g.DrawEllipse(pen, circle);
-                TextRenderer.DrawText(g, _num.ToString(), new Font("Segoe UI", 9f, FontStyle.Bold), Rectangle.Round(circle), Theme.Muted,
+                Ui.DrawText(g, _num.ToString(), new Font("Segoe UI", 9f, FontStyle.Bold), Rectangle.Round(circle), Theme.Muted,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
             int nx = Cx + Circle / 2 + 16;
-            TextRenderer.DrawText(g, _name, new Font("Segoe UI", 11f, FontStyle.Bold),
+            Ui.DrawText(g, _name, new Font("Segoe UI", 11f, FontStyle.Bold),
                 new Rectangle(nx, 6, Width - nx - StatusW - 6, Height - 12), _done || _current ? Theme.Text : Theme.Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
-            TextRenderer.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), new Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
+            Ui.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), new Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
                 new Rectangle(Width - StatusW, 6, StatusW - 10, Height - 12), _done ? Theme.Green : Theme.Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
         }
@@ -1441,10 +1444,10 @@ public sealed class ReportPage : ThemedPage
             // used to get is shorter than the glyph as soon as the display scales past 100 %, and
             // GDI clips the difference away.
             int ih = TextRenderer.MeasureText(_icon, IconFont, Size.Empty, TextFormatFlags.NoPadding).Height;
-            TextRenderer.DrawText(g, _icon, IconFont, new Rectangle(12, TopPad, 30, ih + 2), fg,
+            Ui.DrawText(g, _icon, IconFont, new Rectangle(12, TopPad, 30, ih + 2), fg,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
             foreach (var (rect, text) in _paras)
-                TextRenderer.DrawText(g, text, _font, rect, fg, TextFormatFlags.WordBreak | TextFormatFlags.Top | TextFormatFlags.Left);
+                Ui.DrawText(g, text, _font, rect, fg, TextFormatFlags.WordBreak | TextFormatFlags.Top | TextFormatFlags.Left);
         }
     }
 }

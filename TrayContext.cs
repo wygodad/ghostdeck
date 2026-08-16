@@ -1608,6 +1608,7 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyHotkeys()
     {
         _hotkeys.UnregisterAll();
+        HotkeysRefused.Clear();
         Reg("Overlay", ToggleOverlay);       // read-only, so both work even when EC writes are disabled
         Reg("OverlayLock", ToggleOverlayLock);
         Reg("EcView", ShowEcViewer);         // live EC dump viewer - read-only diagnostics
@@ -1628,6 +1629,21 @@ public sealed class TrayContext : ApplicationContext
             var scene = s;
             Reg(scene.HotkeyKey, () => ApplyScene(scene, ChangeSource.Hotkey));
         }
+        ReportRefusedHotkeys();
+    }
+
+    // Told once per app run: repeating it on every settings save would nag. The Settings page
+    // keeps showing the warning for as long as the clash lasts.
+    private bool _refusedTold;
+
+    private void ReportRefusedHotkeys()
+    {
+        if (_refusedTold || HotkeysRefused.Count == 0 || !_tray.Visible) return;
+        _refusedTold = true;
+        _balloonUrl = null;
+        _tray.BalloonTipTitle = Lang.T("hk_refused_title");
+        _tray.BalloonTipText = string.Format(Lang.T("hk_refused_body"), HotkeysRefused.Count);
+        _tray.ShowBalloonTip(8000);
     }
 
     // Live EC viewer (Ctrl+Shift+E; also a button in the Ctrl+Shift+T test dialog): read-only
@@ -1660,11 +1676,19 @@ public sealed class TrayContext : ApplicationContext
         _osd.ShowProfile("MSI  ·  " + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
     }
 
+    // RegisterHotKey fails when another running app already owns the combination. That result
+    // used to be dropped on the floor, so a shortcut Windows had refused simply did nothing and
+    // the user had no way to tell it apart from a broken feature (issue #92: the Fan Boost
+    // shortcut was dead while the Scenarios toggle worked). Failures are collected here and
+    // surfaced once - as a balloon on startup and as a warning in Settings -> Hotkeys.
     private void Reg(string key, Action action)
     {
-        if (_settings.HotkeysEnabled && _settings.Hotkeys.TryGetValue(key, out var hd) && hd.IsSet && hd.Enabled)
-            _hotkeys.Register(hd.Mods, hd.Vk, action);
+        if (!_settings.HotkeysEnabled || !_settings.Hotkeys.TryGetValue(key, out var hd) || !hd.IsSet || !hd.Enabled) return;
+        if (!_hotkeys.Register(hd.Mods, hd.Vk, action)) HotkeysRefused.Add(key);
     }
+
+    /// <summary>Shortcut keys Windows refused this round; read by Settings to flag the row.</summary>
+    public static readonly HashSet<string> HotkeysRefused = new();
 
     // ---------------- settings / language / status ----------------
     private void ChangeLanguage(string code)

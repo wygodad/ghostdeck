@@ -23,6 +23,30 @@ internal static class Ui
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
+    // ---- text on a page that scrolls ----
+    // TextRenderer hands its string to GDI through a raw HDC, so by default it honours NEITHER
+    // Graphics.TranslateTransform NOR Graphics.Clip - the two flags below are the only mechanism
+    // that makes it read them (measured, see docs/RENDERING.md §5.1). A page that scrolls by
+    // ThemedPage.ApplyScroll therefore has to draw every label through these wrappers: without
+    // them the cards, lines and dots move with the scroll while every caption stays put, and no
+    // clip can stop content from painting over the page header.
+    // Adding the flags is safe on an unscrolled Graphics too: the transform is then the identity
+    // and honouring the paint clip is what a painter should do anyway.
+    public const TextFormatFlags Scrolled =
+        TextFormatFlags.PreserveGraphicsTranslateTransform | TextFormatFlags.PreserveGraphicsClipping;
+
+    public static void DrawText(Graphics g, string text, Font font, Rectangle bounds, Color color, TextFormatFlags flags)
+        => TextRenderer.DrawText(g, text, font, bounds, color, flags | Scrolled);
+
+    public static void DrawText(Graphics g, string text, Font font, Rectangle bounds, Color color)
+        => TextRenderer.DrawText(g, text, font, bounds, color, Scrolled);
+
+    public static void DrawText(Graphics g, string text, Font font, Point pt, Color color, TextFormatFlags flags)
+        => TextRenderer.DrawText(g, text, font, pt, color, flags | Scrolled);
+
+    public static void DrawText(Graphics g, string text, Font font, Point pt, Color color)
+        => TextRenderer.DrawText(g, text, font, pt, color, Scrolled);
+
     /// <summary>Faint background grid (ghostdeck.dev texture), drawn under the page content.</summary>
     public static void DrawGrid(Graphics g, Rectangle r)
     {

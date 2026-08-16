@@ -228,7 +228,12 @@ public sealed class SettingsPage : ThemedPage
     // No custom OnPaint: the title is a child Label and everything else is a child control, so the page
     // scrolls natively (smooth, no title/blit mismatch). The base clears to Theme.Surface.
 
-    private void Layout2()
+    // Wrapped so the scroll extent is recomputed after the pass and the re-entrant Resize it used
+    // to fight with is dropped - see ThemedPage.LayoutAndSyncScroll. SelectSub already did the
+    // PerformLayout part by hand; now every entry point gets it, resize included.
+    private void Layout2() => LayoutAndSyncScroll(Layout2Pass);
+
+    private void Layout2Pass()
     {
         if (_subTabs == null) return;
         // Manual layout inside an AutoScroll panel: WinForms physically shifts children by the scroll
@@ -1087,6 +1092,11 @@ public sealed class SettingsPage : ThemedPage
         _hkMaster = new ToggleSwitch { Checked = D.Settings.HotkeysEnabled };
         _hkMaster.Toggled += v => { D.Settings.HotkeysEnabled = v; UpdateHotkeyRowsEnabled(); D.SaveSettings(); D.SettingsChanged(); };
         hk.AddRow(Lang.T("hk_all"), _hkMaster);   // master on/off (#9), default on
+        if (TrayContext.HotkeysRefused.Count > 0)
+        {
+            var warn = new Label { AutoSize = true, ForeColor = Theme.Amber, MaximumSize = new Size(420, 0), Text = Lang.T("hk_refused_row") };
+            hk.AddRow(null, warn);
+        }
         // static actions + one row per scene (#21); scene rows label with the scene's name
         var hkRows = Acts.Select(a => (a.key, a.label, scene: false)).ToList();
         foreach (var s in D.Settings.Scenes) hkRows.Add((s.HotkeyKey, s.Name, true));
@@ -1109,7 +1119,10 @@ public sealed class SettingsPage : ThemedPage
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             box.Location = new Point(tg.Width + 12, (row.Height - box.Height) / 2);
             row.Controls.Add(tg); row.Controls.Add(box);
-            (isScene ? hkScenes : hk).AddRow(key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : label, row);
+            // A shortcut Windows refused (another app owns the combination) is marked right on
+            // its row - it used to look identical to one that works (issue #92).
+            string mark = TrayContext.HotkeysRefused.Contains(key) ? "  ⚠" : "";
+            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : label), row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);

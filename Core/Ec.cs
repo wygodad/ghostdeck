@@ -363,7 +363,14 @@ public static class Ec
     // low single digits is not a fan speed, it is the register caught between updates: raw 2 reads
     // as 239000 RPM, and that lands in Status, the overlay and a power-test report as if it meant
     // something. Past what a laptop fan can physically do we report nothing instead.
-    private const int MaxPlausibleRpm = 12000;
+    //
+    // The ceiling is 8000, not the arbitrary 12000 it started as (issue #92). Two measurements
+    // set it: the divisor is a single byte, so the LOWEST speed this register can express at all
+    // is 478000/255 = 1874 RPM - once a fan slows past that, whatever stays in the register is
+    // not a reading; and the fastest fan we have ever logged on any model is 7206 RPM (GE66 under
+    // load with Fan Boost). A slow fan was therefore reported as ~9958 RPM, which passed 12000
+    // and reached Status as a number. No reading beats a wrong one.
+    private const int MaxPlausibleRpm = 8000;
 
     private static int RpmFrom(byte addr, int rpmConst)
     {

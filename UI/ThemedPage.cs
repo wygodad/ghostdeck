@@ -55,8 +55,35 @@ public abstract class ThemedPage : UserControl
     public virtual void OnDisplayChanged() { }
     public virtual void ApplyTheme() { BackColor = Theme.Surface; Invalidate(true); }
 
-    /// <summary>Translate painting to honour the scroll offset (call at the top of OnPaint).</summary>
+    /// <summary>
+    /// Translate painting to honour the scroll offset (call at the top of OnPaint).
+    /// Labels on such a page MUST be drawn through <see cref="Ui.DrawText"/>: TextRenderer reads
+    /// neither this transform nor the clip on its own (docs/RENDERING.md §5.1).
+    /// </summary>
     protected void ApplyScroll(Graphics g) => g.TranslateTransform(AutoScrollPosition.X, AutoScrollPosition.Y);
+
+    private bool _laying;
+
+    /// <summary>
+    /// Runs a layout pass and then makes WinForms recompute the scroll extent.
+    ///
+    /// Changing child bounds does NOT by itself make a ScrollableControl re-evaluate its
+    /// scrollbars. After clicking maximize and then restore, the page kept showing a horizontal
+    /// scrollbar although its content already fitted - measured: the child overhung the client
+    /// area by 0 px and the bar was still there. It disappeared on the next tab switch only
+    /// because that path forces a full layout. <c>PerformLayout()</c> is what runs
+    /// <c>AdjustFormScrollbars</c>, and it is the whole fix (SettingsPage.SelectSub already
+    /// relied on this; every page that lays itself out by hand needs it on resize too).
+    ///
+    /// The guard drops the re-entrant call raised by the layout this method performs.
+    /// </summary>
+    protected void LayoutAndSyncScroll(Action pass)
+    {
+        if (_laying) return;
+        _laying = true;
+        try { pass(); PerformLayout(); }
+        finally { _laying = false; }
+    }
 
     // We paint the whole surface ourselves, so a partial scroll blit leaves ghosting.
     // Force a full repaint whenever the scroll position changes.
