@@ -2116,6 +2116,7 @@ public sealed class TrayContext : ApplicationContext
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
                     (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
+                ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
                 if (_settings.TempTrayCpu || _settings.TempTrayGpu) ui?.Post(_ => UpdateTempTrays(hw), null);
             }
             catch { }
@@ -2220,6 +2221,41 @@ public sealed class TrayContext : ApplicationContext
             catch { }
             finally { Interlocked.Exchange(ref _ssdBusy, 0); }
         });
+    }
+
+    // The charge threshold can be changed behind our back: installing MSI Center resets it to 100 %
+    // and the battery charges to full while our Status tile still shows the 80 % the user chose
+    // (reported after a clean MSI Center install). The value is already in every hardware sample,
+    // it was simply never compared with ours.
+    //
+    // We ADOPT the new value instead of writing ours back. Re-asserting would be two applications
+    // fighting over one register in a loop - exactly what this app does not do (the profile sync
+    // above adopts for the same reason). The user is told once and puts their limit back in one
+    // click if they want it.
+    private int _chargeReported;   // EC value already reported, so one external change = one notice
+
+    private void OnChargeSample(int ecLimit)
+    {
+        if (_settings.ChargeLimit is not (60 or 80 or 100)) return;      // we are not managing it
+        if (ecLimit is < 10 or > 100) return;                            // register unreadable / not set
+        if (_settings.TravelUntil != DateTime.MinValue) return;          // travel mode owns the limit for now
+        int mine = _settings.ChargeLimit;
+        if (ecLimit == mine) { _chargeReported = 0; return; }
+        if (ecLimit == _chargeReported) return;                          // already said this
+        _chargeReported = ecLimit;
+
+        string text = string.Format(Lang.T("charge_ext_text"), mine, ecLimit);
+        _settings.ChargeLimit = ecLimit;
+        _settings.Save();
+        ChangeLog.Add(ChangeSource.ExternalSync, text, $"{_device!.ChargeCtrl:X2}={(0x80 | ecLimit):X2}");
+        BuildMenu();
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+        if (!_settings.ChargeExternalNotify) return;
+        _osd.ShowProfile("MSI  ·  " + Lang.T("charge_ext_title"), text, Theme.Amber);
+        _balloonUrl = null;
+        _tray.BalloonTipTitle = Lang.T("charge_ext_title");
+        _tray.BalloonTipText = text;
+        _tray.ShowBalloonTip(8000);
     }
 
     private void OnSsdSample(string name, int temp)

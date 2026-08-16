@@ -723,6 +723,11 @@ public sealed class SettingsPage : ThemedPage
         var ssdDeg = Combo(ssdVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(ssdVals, D.Settings.SsdAlertDegrees)));
         ssdDeg.SelectedIndexChanged += (_, _) => { D.Settings.SsdAlertDegrees = ssdVals[Math.Max(0, ssdDeg.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ssd_threshold"), ssdDeg);
+        // Someone else moving the charge threshold (MSI Center and its installer do) is not a hardware
+        // alarm, it is "your setting no longer applies" - opt-OUT, because silence there means the
+        // app shows a limit that is not in the EC any more.
+        alerts.AddRow(null, new SepLine());
+        alerts.AddRow(Lang.T("charge_ext_enable"), Toggle(D.Settings.ChargeExternalNotify, v => { D.Settings.ChargeExternalNotify = v; D.SaveSettings(); }));
         // How long OSD toasts stay fully visible; the temperature alert enforces a 5 s minimum.
         alerts.AddRow(null, new SepLine());
         int[] osdVals = Enumerable.Range(1, 15).ToArray();
@@ -741,6 +746,7 @@ public sealed class SettingsPage : ThemedPage
             D.Settings.TempAlertSeconds = d.TempAlertSeconds;
             D.Settings.SsdAlertEnabled = d.SsdAlertEnabled;
             D.Settings.SsdAlertDegrees = d.SsdAlertDegrees;
+            D.Settings.ChargeExternalNotify = d.ChargeExternalNotify;
             D.Settings.OsdSeconds = d.OsdSeconds;
             D.SaveSettings(); D.SettingsChanged();
             Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });

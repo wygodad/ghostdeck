@@ -2538,3 +2538,28 @@ build, and its numbers are internally inconsistent - Balanced scored 100 and the
 (2863 vs 3858 MHz). The repeat column exists to expose exactly that drift, and it did, so that run
 says nothing about which profile is faster. The Cinebench + HWiNFO run is the measurement this
 change rests on.
+
+## 68. External changes to the charge limit (v1.35.0)
+
+The poll has adopted externally changed **profiles** since early on (`ChangeSource.ExternalSync`):
+if something else moves the shift byte, the app follows rather than fighting. The **charge limit**
+never got that treatment, and it showed: installing MSI Center resets the threshold to 100 %, the
+battery charges to full, and Status keeps showing the 80 % the user chose, because that tile reads
+`AppSettings.ChargeLimit` - our stored value - and `TryApplyChargeLimit()` runs only at start, after
+wake, and on an explicit change.
+
+The fix costs one comparison. `Ec.TryReadHw` already reads `ChargeCtrl & 0x7F` in every sample, so
+`OnChargeSample` compares it with our setting and, when they differ, **adopts** the EC value: writes
+it to settings, refreshes the tray and Status, logs it as an external change, and - unless switched
+off in Settings → Notifications - shows an OSD toast and a tray notification naming both limits.
+
+Deliberate choices:
+
+- **Adopt, never re-assert.** Writing our value back would put two applications in a loop over one
+  register. The profile sync adopts for the same reason (§ invariants: no automatic write loops).
+- **One notice per change**, not per poll: `_chargeReported` remembers the value already announced
+  and resets when the EC agrees with us again.
+- **Silent while travel mode is active** - that mode owns the limit and has its own revert logic;
+  adopting an external value mid-trip would corrupt what it has to restore.
+- **Only when we manage the limit at all** (60/80/100). With the limit set to "don't change", the
+  register is not ours to comment on.

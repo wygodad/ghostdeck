@@ -182,6 +182,20 @@ It's a single, self-contained file - no install, no .NET runtime needed. Run it 
 
 **A `GhostDeck.exe` v1.24.0+ without this signature is not an official build - don't run it.**
 
+#### What is signed, and how you can check it yourself
+
+Three different things carry a signature, for three different reasons. None of them replaces another:
+
+| What | Signed with | What it proves | How to check |
+|---|---|---|---|
+| **`GhostDeck.exe`** from a release | Authenticode (Azure Artifact Signing) | The file you downloaded came from us and nothing altered it on the way | Right-click the exe → Properties → **Digital Signatures** → "WYGODA DAWID FENIX INSPIRE" |
+| **`data/models.json`** - the model database | ECDSA P-256, public key in [`tools/model-signing.pub`](tools/model-signing.pub) | The model list the app downloads between releases is ours; a swapped or older file is refused | The app verifies it on every load and falls back to its built-in tables if anything is off |
+| **Commits and tags** in this repository | SSH signing key registered on the GitHub account | The history CI builds from really is the maintainer's, not someone using the same name in `user.email` | GitHub shows **Verified** next to the commit; `git verify-commit <sha>` locally |
+
+The third one closes the last gap in the chain: a signed binary is only as trustworthy as the source
+it was built from. Commits are signed from 2026-08-16 onward - anything older predates the key and
+is unsigned, which is expected and not a warning sign.
+
 ![Power & fan control for MSI laptops - no kernel driver](docs/images/banner-glitch.svg)
 
 ## Supported models

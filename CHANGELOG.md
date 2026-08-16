@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **A charge limit changed outside GhostDeck is now noticed** instead of being silently wrong. Installing MSI Center resets the EC threshold to 100 %, so the battery charged to full while the app still showed the 80 % you had chosen. Every hardware sample already read that register - it was simply never compared. The app now adopts the new value, updates Status and the tray, writes it to the change log, and (opt-out, Settings → Notifications) shows an OSD toast plus a tray notification naming the old and the new limit. It deliberately does **not** write your value back: two applications fighting over one register is the kind of loop this app avoids.
+
 ## [1.34.0] - 2026-08-16
 ### Added
 - **Fan curve page rebuilt around four views of one curve** (sub-tabs; the last one is remembered): **Chart** with a live operating point + optional trail (temperature mapped onto the node axis), audibility zones behind the plot, intent tiles (Quiet / Balanced / Cool / Max, shapes derived from the factory default), up to three comparison layers of saved presets, and a coupled points table under both charts (hover a row = halo on both nodes; click a % to type it); **Equalizer** with one fader per node and wheel nudging; **Deck** with rotary dials, live VU bars and a crossfader blending the whole curve between two shapes; **In action**, which never edits: your curve with the **last hour of real readings** drawn over it (hover a dot for its values, click to pin, or turn every label on), an airflow gauge driven by the current fan duty, and a collapsible diagnostics panel. One shared background reader (1.5 s) replaces the page's mode-only timer.

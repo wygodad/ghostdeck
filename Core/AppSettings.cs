@@ -63,6 +63,10 @@ public sealed class AppSettings
     public string ProfileOnBattery { get; set; } = "Silent";
 
     public int ChargeLimit { get; set; } = 0;                          // 0 = nie zmieniaj; inaczej 60/80/100
+    // Ktos inny (MSI Center, jego instalator, BIOS) przestawil prog ladowania w EC - powiadom.
+    // Domyslnie WLACZONE: to nie jest alarm o stanie sprzetu, tylko informacja, ze nasze
+    // ustawienie przestalo obowiazywac, a bez niej aplikacja pokazuje wartosc, ktorej juz nie ma.
+    public bool ChargeExternalNotify { get; set; } = true;
 
     // ---- Charge-limit travel mode: charge to 100% until the date below, then TravelPrevLimit
     // comes back on its own. MinValue = not active. Any explicit limit change cancels it.
