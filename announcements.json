@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-08-v1340-fan-curve-views",
+    "severity": "info",
+    "minVersion": "1.0.0",
+    "maxVersion": "1.33.0",
+    "title": "New release: four views of your fan curve, and a sweep that measures the fans",
+    "title_pl": "Nowe wydanie: cztery widoki krzywej wentylatora i przejazd, który mierzy wentylatory",
+    "body": "GhostDeck v1.34.0 is out. The Fan curve tab is now four views of ONE curve: Chart (the editor, plus a live operating point, audibility zones, intent tiles derived from your model's factory curve, comparison layers and a points table you can type into), Equalizer (one fader per point), Deck (rotary dials and a crossfader that blends the whole curve between two shapes) and In action, which never edits - it draws the last hour of REAL readings over your curve, one dot per reading, so you can finally see whether the laptop follows the curve at all. Its diagnostics panel runs a fan sweep: 30/45/60/80/100 % held for 6 s each, tachometers and reaction times recorded, then a plain-language verdict on whether each fan followed the command, whether one has a floor and whether they disagree. It names the exact registers before writing them and restores your curve, fan mode and profile on every exit path; the last 30 runs are kept. Also: seven more interface languages (15 in total), a Wiki button on every release in Updates, scrolling and resizing fixed properly across the app, and a keyboard shortcut Windows refuses now says so instead of silently doing nothing. Click Details for the tour.",
+    "body_pl": "Wyszło GhostDeck v1.34.0. Zakładka Krzywa wentylatora to teraz cztery widoki JEDNEJ krzywej: Wykres (edytor, a do tego punkt pracy na żywo, strefy słyszalności, kafle intencji wyprowadzone z fabrycznej krzywej Twojego modelu, warstwy porównawcze i tabela punktów, w którą można wpisywać wartości), Equalizer (suwak na punkt), Deck (tarcze radialne i krosfader mieszający całą krzywą między dwoma kształtami) oraz W akcji, który niczego nie edytuje - nakłada na Twoją krzywą REALNE odczyty z ostatniej godziny, jedna kropka na odczyt, więc wreszcie widać, czy laptop w ogóle idzie za krzywą. Panel diagnostyczny uruchamia przejazd wentylatorów: 30/45/60/80/100 % po 6 s, z zapisem tachometrów i czasu reakcji, a potem mówi po ludzku, czy każdy wentylator poszedł za poleceniem, czy któryś ma podłogę i czy oba się zgadzają. Przed zapisem wymienia z nazwy adresy, które ruszy, i przywraca krzywą, tryb wentylatora oraz profil na każdej ścieżce wyjścia; ostatnie 30 przejazdów jest zapisywanych. Do tego: siedem nowych języków interfejsu (razem 15), przycisk Wiki przy każdym wydaniu w Aktualizacjach, porządnie naprawione przewijanie i zmiana rozmiaru okna w całej aplikacji oraz skrót klawiszowy, który - gdy Windows go odrzuci - wreszcie o tym mówi, zamiast po cichu nie działać. Kliknij Szczegóły.",
+    "url": "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-1.34.0"
+  },
+  {
     "id": "2026-08-v1330-travel-ssd",
     "severity": "info",
     "minVersion": "1.0.0",

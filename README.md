@@ -89,6 +89,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
 | Charge-limit travel mode (auto-revert after a trip) | ❌ | ✅ *(3-30 days, CLI 1-90)* |
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
+| Measured fan characteristic (duty → RPM sweep) | ❌ | ✅ *(30-100 %, per-machine history, plain-language findings)* |
 | Global **rebindable** hotkeys | Limited² | ✅ |
 | Scenes (one-click multi-setting macros) | ❌ | ✅ *(profile + curve + Hz + overlay + more)* |
 | Tray-icon wheel / middle-click actions | ❌ | ✅ *(configurable)* |
