@@ -314,6 +314,13 @@ public static class Devices
         // Fan RPM at 0xC9/0xCB (same as the tested G2 GE78HX): the #6 dump shows 0xC9 = C6/C0/C4/C0 across
         // scenarios → 478000/raw ≈ 2400-2490 RPM (plausible, load-varying); 0xCB = 00 (dGPU fan idle at capture).
         // Enabled so CPU fan RPM shows (issue #7); owner-confirm the value against HWiNFO.
+        // Silent on THIS board measured as fan-only (owner power test, issue #93): over 60 s phases
+        // Silent and Balanced completed the same work (within 0.04 %, against ~2 % second-to-second
+        // noise) at the same clocks (4465 vs 4453 MHz), and only the fans differed (3053 vs 3665 RPM,
+        // 3 °C cooler). The same run separated Extreme by 12 %, so the method had the sensitivity;
+        // a cap that only tightens after minutes would still be invisible to it. Not a fault and nothing is written differently - the same
+        // 0xD4 = 0x1D means "less noise" here and "less power" on a GE78HX. Recorded so nobody later
+        // reads the equal work columns as a bug (FAQ: "Does Silent lower power on every laptop?").
         // Fan curve VERIFIED (issue #8): the owner set a known test curve in MSI Center and the wizard found
         // it at exactly 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
         new() { Name = "MSI Sword 16 HX B13V / B14V", FirmwarePrefixes = new[] { "15P2EMS1" }, Tier = Tier.Tested,

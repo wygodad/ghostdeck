@@ -14,7 +14,7 @@ The one exception is **Silent**: on this EC the Silent power cap and the "custom
 
 ## Can I set an exact wattage (a power slider / PL1 / PL2)?
 
-Not the way this app works - and that's actually the core reason it exists. The app doesn't set watts directly: it flips MSI's built-in EC power *modes* (the Silent / Balanced / Extreme presets), and the firmware decides the wattage for each mode. Setting an arbitrary PL1/PL2 number would mean writing Intel's power-limit registers - but on these MSI laptops those are **locked** (MSR is BIOS-locked, MMIO is overridden by Intel DTT). That's exactly why ThrottleStop and Intel XTU can't cap wattage on most of these machines either. MSI's EC doesn't expose a writable power-limit register, and the msi-ec maps don't show one for the boards I've checked - so from software, on a locked machine, a free slider isn't on the table. In practice, **"Silent" is the low-PL policy MSI removed** (it drops package power from ~100 W to ~30 W under load, verifiable in HWiNFO), so the profiles *are* your power control here.
+Not the way this app works - and that's actually the core reason it exists. The app doesn't set watts directly: it flips MSI's built-in EC power *modes* (the Silent / Balanced / Extreme presets), and the firmware decides the wattage for each mode. Setting an arbitrary PL1/PL2 number would mean writing Intel's power-limit registers - but on these MSI laptops those are **locked** (MSR is BIOS-locked, MMIO is overridden by Intel DTT). That's exactly why ThrottleStop and Intel XTU can't cap wattage on most of these machines either. MSI's EC doesn't expose a writable power-limit register, and the msi-ec maps don't show one for the boards I've checked - so from software, on a locked machine, a free slider isn't on the table. In practice, **"Silent" is the low-PL policy MSI removed** - on the boards where that cap is real it drops package power from ~100 W to ~30 W under load, verifiable in HWiNFO - so the profiles *are* your power control here. On some models Silent only slows the fans; see [Does Silent lower power on every laptop?](#does-silent-lower-power-on-every-laptop) for how to tell which one you have.
 
 **There is one route to a real slider, though - outside this app.** If your model lets you disable **Overclocking Lock / CFG Lock** in the hidden Advanced BIOS, the MSR power-limit registers open up, and **ThrottleStop** (or Intel XTU) can then set PL1/PL2 directly - that's your actual watt slider. Caveats: (1) on many 13th-gen MSI these BIOS options are greyed out or locked by microcode, so it's not guaranteed; (2) it's a manual, at-your-own-risk change in an unofficial BIOS menu; (3) even after the MSR is unlocked, Intel DTT can still override the limit via MMIO.
 
@@ -57,6 +57,32 @@ No, and it's not planned. "Freeing" RAM (trimming working sets or the standby li
 ## I turned on the temperature icons in the tray and nothing appeared
 
 They are there, Windows just hid them. Windows 11 puts every newly registered notification icon into the hidden overflow area (the `^` arrow next to the clock) until you say otherwise. Click the arrow, then drag the temperature icons down onto the taskbar and they stay there. The same happens to the GhostDeck ghost icon on a fresh install. If the overflow area has no temperature icons at all, check Settings -> System, card "Temperature in the tray": the card is hidden entirely on machines whose temperatures the app cannot read.
+
+## Does Silent lower power on every laptop?
+
+No, and it is worth knowing which kind of machine you have.
+
+Silent writes one byte (`0xD4 = 0x1D`). What the firmware does with it differs by board. On a Raider
+GE78HX the profile is a real power policy: package power drops from ~100 W to ~30 W under load and the
+machine is measurably slower. On an MSI Sword 16 HX B13V, an owner's power test measured the CPU doing
+**the same work in Silent as in Balanced** at the same clocks - the two differed by 0.04 %, against a
+second-to-second variation of about 2 % inside each phase - while only the fans came down (3053 vs
+3665 rpm) and the CPU ran 3 °C cooler. Same byte, same app, different firmware behaviour.
+
+Neither is a fault, and nothing is being written differently. It matters because it tells you what to
+expect: on a "power" board Silent buys quiet by giving up speed, on a "fan-only" board it buys quiet
+for free.
+
+One limit of the method is worth stating: each profile is held for 60 s and the last 25 s are averaged,
+so a cap that only tightened after several minutes would not show up. What the test does prove on the
+spot is that it *can* see a difference - in that same run Extreme came out 12 % ahead, far outside the
+noise.
+
+**How to tell, in about five minutes:** tray menu → **Report / verify** → **Power test**. It runs the
+same all-core load in Silent, Balanced and Extreme and prints the work each profile completed. If the
+Silent row does the same work as Balanced, your board is the fan-only kind. The report says so in as
+many words, and it measures Balanced twice so you can see whether the machine simply got hot during
+the run.
 
 ## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
 
