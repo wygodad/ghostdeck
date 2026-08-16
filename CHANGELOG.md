@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.34.0] - 2026-08-16
 ### Added
 - **Fan curve page rebuilt around four views of one curve** (sub-tabs; the last one is remembered): **Chart** with a live operating point + optional trail (temperature mapped onto the node axis), audibility zones behind the plot, intent tiles (Quiet / Balanced / Cool / Max, shapes derived from the factory default), up to three comparison layers of saved presets, and a coupled points table under both charts (hover a row = halo on both nodes; click a % to type it); **Equalizer** with one fader per node and wheel nudging; **Deck** with rotary dials, live VU bars and a crossfader blending the whole curve between two shapes; **In action**, which never edits: your curve with the **last hour of real readings** drawn over it (hover a dot for its values, click to pin, or turn every label on), an airflow gauge driven by the current fan duty, and a collapsible diagnostics panel. One shared background reader (1.5 s) replaces the page's mode-only timer.
 - **Fan sweep** (Fan curve → In action → diagnostics) - holds the fans at 30 / 45 / 60 / 80 / 100 % for 6 s each behind a consent dialog that names the exact addresses, records tachometers (or duty readback plus reaction time on boards without one), restores the previous curve, fan mode and profile on every exit path, and writes plain-language findings under the results. Every run is kept (the last 30) and can be re-opened and re-exported from the picker, with the firmware and app version it was actually run on. The copied report stays in English for pasting into issues; the findings are appended in your own language.
