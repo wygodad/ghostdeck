@@ -15,11 +15,11 @@ dotnet build -c Release
 ## Produce the single-file exe
 From the repo root:
 ```powershell
-dotnet publish -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-  -p:DebugType=none -p:Version=X.Y.Z -o release
+dotnet publish -c Release -r win-x64 --self-contained false `
+  -p:PublishSingleFile=true -p:DebugType=none -p:Version=X.Y.Z -o release
 ```
-Output: `release/GhostDeck.exe` (~154 MB, self-contained, requires admin to *run*).
+Output: `release/GhostDeck.exe` (~2.5 MB, framework-dependent, requires the .NET 8 Desktop Runtime and admin to *run*).
+The release workflow renames this file to `GhostDeck-win-x64.exe` after signing; that is the name published as the release asset.
 A local re-publish to `release/` needs the running app closed first (file lock) - exit it from the tray.
 Local builds are **unsigned**; only the release workflow signs (see below).
 
@@ -37,7 +37,7 @@ git push origin main
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-GitHub Actions then builds the self-contained exe, **signs it** (Azure Artifact Signing via
+GitHub Actions then builds the exe with a pinned SDK (8.0.424), **signs it** (Azure Artifact Signing via
 OIDC; publisher "WYGODA DAWID FENIX INSPIRE") and publishes a **Release** with the exe
 attached and the notes taken from the matching CHANGELOG section. The workflow verifies the
 signature and **refuses to publish** when it is missing or has an unexpected subject, so a

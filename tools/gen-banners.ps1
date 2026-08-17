@@ -1,55 +1,89 @@
-# Generates the README banners (docs/images/banner*.svg) as SVG with every glyph
-# converted to Bezier paths, so they render identically everywhere with no font
-# dependency. Text shaping (incl. kerning) comes from WPF FormattedText.BuildGeometry.
+# Generates the README banners (docs/images/banner*.png).
+#
+# Text is drawn with WPF DrawingContext.DrawText, i.e. ordinary text rendering to a bitmap.
+# The banners are raster images of text - no font file and no glyph outline is redistributed.
+# (An earlier version emitted SVG with FormattedText.BuildGeometry glyph paths; that exported
+# Windows font outlines as vector data, which is not what the font terms allow.)
 #
 # Run on Windows (needs Segoe UI + Consolas and the WPF stack):
 #   powershell -NoProfile -STA -ExecutionPolicy Bypass -File tools\gen-banners.ps1
 #
-# Pitfalls encoded below: GeometryGroup.ToString() prints the type name, so the group
-# is converted through PathGeometry.CreateFromGeometry first (keeps the curves); and
-# a helper named "R" would collide with PowerShell's built-in Invoke-History alias.
+# Layout is authored in a 1280x300 logical space and rendered at 2x (2560x600) so the images
+# stay sharp on HiDPI screens; GitHub scales them down to the available width.
 Add-Type -AssemblyName PresentationCore
-$inv = [System.Globalization.CultureInfo]::InvariantCulture
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName WindowsBase
+
+$inv    = [System.Globalization.CultureInfo]::InvariantCulture
 $outDir = Join-Path $PSScriptRoot '..\docs\images'
+$W = 1280.0; $H = 300.0; $SCALE = 2.0
+
+function Br([string]$hex, [double]$opacity = 1.0) {
+    $c = [Windows.Media.ColorConverter]::ConvertFromString($hex)
+    $b = New-Object Windows.Media.SolidColorBrush($c)
+    $b.Opacity = $opacity
+    $b.Freeze()
+    $b
+}
+function Pen([string]$hex, [double]$thickness = 1.0) {
+    $p = New-Object Windows.Media.Pen((Br $hex), $thickness)
+    $p.Freeze()
+    $p
+}
+function Rct([double]$x, [double]$y, [double]$w, [double]$h) { New-Object Windows.Rect($x, $y, $w, $h) }
+function Pt([double]$x, [double]$y) { New-Object Windows.Point($x, $y) }
 
 function New-TF([string]$family, [string]$weight) {
     $w = switch ($weight) { 'bold' { [Windows.FontWeights]::Bold } 'semibold' { [Windows.FontWeights]::SemiBold } default { [Windows.FontWeights]::Normal } }
     New-Object Windows.Media.Typeface((New-Object Windows.Media.FontFamily($family)), [Windows.FontStyles]::Normal, $w, [Windows.FontStretches]::Normal)
 }
+function New-FT([string]$text, [string]$family, [double]$size, [string]$weight, [string]$fill) {
+    $tf = New-TF $family $weight
+    New-Object Windows.Media.FormattedText($text, $inv, [Windows.FlowDirection]::LeftToRight, $tf, $size, (Br $fill), 1.0)
+}
 function Measure-Run([string]$text, [string]$family, [double]$size, [string]$weight) {
-    $tf = New-TF $family $weight
-    $ft = New-Object Windows.Media.FormattedText($text, $inv, [Windows.FlowDirection]::LeftToRight, $tf, $size, [Windows.Media.Brushes]::White, 1.0)
-    ,@($ft.WidthIncludingTrailingWhitespace, $ft.Baseline)
+    (New-FT $text $family $size $weight '#FFFFFF').WidthIncludingTrailingWhitespace
 }
-function Get-RunPath([string]$text, [string]$family, [double]$size, [string]$weight, [double]$x, [double]$yBase, [string]$fill) {
-    $tf = New-TF $family $weight
-    $ft = New-Object Windows.Media.FormattedText($text, $inv, [Windows.FlowDirection]::LeftToRight, $tf, $size, [Windows.Media.Brushes]::White, 1.0)
-    $geo = $ft.BuildGeometry([Windows.Point]::new($x, $yBase - $ft.Baseline))
-    # BuildGeometry returns a GeometryGroup, whose ToString() is just the type name -
-    # PathGeometry.CreateFromGeometry flattens the group into figures but KEEPS the Beziers
-    $d = [Windows.Media.PathGeometry]::CreateFromGeometry($geo).ToString($inv)
-    if ($d.StartsWith('F1')) { $d = $d.Substring(2) }
-    if ([string]::IsNullOrWhiteSpace($d)) { return '' }
-    $d = [regex]::Replace($d, '-?\d+\.\d+', { param($m) ([math]::Round([double]$m.Value, 1)).ToString($inv) })
-    "<path d=""$d"" fill=""$fill""/>"
-}
-# left-anchored sequence of coloured runs sharing one baseline; returns SVG paths
-function Get-Line([double]$x, [double]$yBase, [object[]]$runs) {
-    $svg = ''; $cx = $x
+
+# left-anchored sequence of coloured runs sharing one baseline
+function Draw-Line($dc, [double]$x, [double]$yBase, [object[]]$runs) {
+    $cx = $x
     foreach ($r in $runs) {
-        $svg += Get-RunPath $r.t $r.f $r.s $r.w $cx $yBase $r.c
-        $cx += (Measure-Run $r.t $r.f $r.s $r.w)[0]
+        $ft = New-FT $r.t $r.f $r.s $r.w $r.c
+        $dc.DrawText($ft, (Pt $cx ($yBase - $ft.Baseline)))
+        $cx += $ft.WidthIncludingTrailingWhitespace
     }
-    $svg
 }
 # centre-anchored version: centres the WHOLE run sequence on cx
-function Get-CLine([double]$cx, [double]$yBase, [object[]]$runs) {
+function Draw-CLine($dc, [double]$cx, [double]$yBase, [object[]]$runs) {
     $tot = 0.0
-    foreach ($r in $runs) { $tot += (Measure-Run $r.t $r.f $r.s $r.w)[0] }
-    Get-Line ($cx - $tot / 2) $yBase $runs
+    foreach ($r in $runs) { $tot += Measure-Run $r.t $r.f $r.s $r.w }
+    Draw-Line $dc ($cx - $tot / 2) $yBase $runs
 }
 function TxtR([string]$t, [double]$s, [string]$c, [string]$w = 'normal', [string]$f = 'Segoe UI') { @{t=$t; s=$s; c=$c; w=$w; f=$f} }
 function M([string]$t, [double]$s, [string]$c, [string]$w = 'normal') { @{t=$t; s=$s; c=$c; w=$w; f='Consolas'} }
+
+function New-Layer([scriptblock]$draw) {
+    $v = New-Object Windows.Media.DrawingVisual
+    $dc = $v.RenderOpen()
+    & $draw $dc
+    $dc.Close()
+    $v
+}
+function Save-Banner([string]$name, [Windows.Media.Visual[]]$layers) {
+    $root = New-Object Windows.Media.ContainerVisual
+    foreach ($l in $layers) { $root.Children.Add($l) | Out-Null }
+    $dpi = 96.0 * $SCALE
+    $rtb = New-Object Windows.Media.Imaging.RenderTargetBitmap(
+        [int]($W * $SCALE), [int]($H * $SCALE), $dpi, $dpi, [Windows.Media.PixelFormats]::Pbgra32)
+    $rtb.Render($root)
+    $enc = New-Object Windows.Media.Imaging.PngBitmapEncoder
+    $enc.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($rtb)) | Out-Null
+    $path = Join-Path $outDir $name
+    $fs = [IO.File]::Create($path)
+    $enc.Save($fs)
+    $fs.Close()
+}
 
 $hexDim = '#131C2C'
 $hexRows = @(
@@ -61,97 +95,139 @@ $hexRows = @(
     @(220, '70: 64 2D 19 23 2D 37 41 4B 50 64 0A 03 03 03 03 03'),
     @(250, '80: 37 00 3C 41 46 4B 50 55 64 1E 14 1E 28 32 3C 46'),
     @(280, '90: 50 64 0A 03 03 03 02 03 06 00 00 06 00 00 00 00'))
-function Get-HexMatrix([double]$x) {
-    $svg = ''
-    foreach ($row in $hexRows) { $svg += Get-Line $x $row[0] @( (M $row[1] 15 $hexDim) ) }
-    $svg += Get-Line $x 100 @( (M 'D0: 00 00 C1 83 ' 15 $hexDim), (M '1D' 15 '#0E2A3C'), (M ' 00 05 80 00 01 00 00 00 00 00 00' 15 $hexDim) )
-    $svg
+function Draw-HexMatrix($dc, [double]$x) {
+    foreach ($row in $hexRows) { Draw-Line $dc $x $row[0] @( (M $row[1] 15 $hexDim) ) }
+    Draw-Line $dc $x 100 @( (M 'D0: 00 00 C1 83 ' 15 $hexDim), (M '1D' 15 '#0E2A3C'), (M ' 00 05 80 00 01 00 00 00 00 00 00' 15 $hexDim) )
 }
 
-# ================= banner.svg (05B, header) =================
-$b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300">'
-$b += '<rect width="1280" height="300" fill="#05070B"/>'
-$b += Get-HexMatrix 30
-$b += '<rect x="332" y="82" width="40" height="26" rx="5" fill="none" stroke="#3DE3FF" stroke-width="2"/>'
-$b += Get-CLine 352 101 @( (M '1D' 15 '#3DE3FF' 'bold') )
-$b += '<rect x="380" y="84" width="286" height="24" fill="#05070B" opacity=".92"/>'
-$b += Get-Line 388 101 @( (M ([char]0x2190 + ' one byte brings Silent back') 15 '#3DE3FF') )
-$b += Get-Line 700 132 @( (TxtR 'Ghost' 60 '#F3F7FF' 'bold'), (TxtR 'Deck' 60 '#3DE3FF' 'bold') )
-$b += Get-Line 702 178 @( (TxtR 'Restore Silent. Drive the fans. Read the machine.' 20 '#A4ADBD') )
-$b += Get-Line 702 210 @( (TxtR ('MSI laptops ' + [char]0xB7 + ' no kernel driver ' + [char]0xB7 + ' anti-cheat safe') 16 '#566072') )
-$b += '</svg>'
-Set-Content -Path (Join-Path $outDir 'banner.svg') -Value $b -Encoding UTF8
+# ================= banner.png (05B, header) =================
+Save-Banner 'banner.png' @( (New-Layer {
+    param($dc)
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 0 0 $W $H))
+    Draw-HexMatrix $dc 30
+    $dc.DrawRoundedRectangle($null, (Pen '#3DE3FF' 2), (Rct 332 82 40 26), 5, 5)
+    Draw-CLine $dc 352 101 @( (M '1D' 15 '#3DE3FF' 'bold') )
+    $dc.DrawRectangle((Br '#05070B' .92), $null, (Rct 380 84 286 24))
+    Draw-Line $dc 388 101 @( (M ([char]0x2190 + ' one byte brings Silent back') 15 '#3DE3FF') )
+    Draw-Line $dc 700 132 @( (TxtR 'Ghost' 60 '#F3F7FF' 'bold'), (TxtR 'Deck' 60 '#3DE3FF' 'bold') )
+    Draw-Line $dc 702 178 @( (TxtR 'Restore Silent. Drive the fans. Read the machine.' 20 '#A4ADBD') )
+    Draw-Line $dc 702 210 @( (TxtR ('MSI laptops ' + [char]0xB7 + ' no kernel driver ' + [char]0xB7 + ' anti-cheat safe') 16 '#566072') )
+}) )
 
-# ================= banner-profiles.svg (07) =================
-$b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300">'
-$b += '<rect width="1280" height="300" fill="#05070B"/>'
-$b += Get-CLine 640 128 @( (TxtR 'Ghost' 62 '#F3F7FF' 'bold'), (TxtR 'Deck' 62 '#3DE3FF' 'bold') )
-$b += '<rect x="356" y="164" width="130" height="42" rx="21" fill="#0F1B33" stroke="#3C7DFF"/>'
-$b += Get-CLine 421 191 @( (TxtR 'Silent' 18 '#7FA8FF' 'semibold') )
-$b += '<rect x="502" y="164" width="150" height="42" rx="21" fill="#241B0C" stroke="#FFC15D"/>'
-$b += Get-CLine 577 191 @( (TxtR 'Balanced' 18 '#FFC15D' 'semibold') )
-$b += '<rect x="668" y="164" width="140" height="42" rx="21" fill="#2A0D1B" stroke="#FF2F7D"/>'
-$b += Get-CLine 738 191 @( (TxtR 'Extreme' 18 '#FF6FA5' 'semibold') )
-$b += '<rect x="824" y="164" width="180" height="42" rx="21" fill="#0C2418" stroke="#61E7A4"/>'
-$b += Get-CLine 914 191 @( (TxtR 'Super Battery' 18 '#61E7A4' 'semibold') )
-$b += Get-CLine 640 248 @( (TxtR 'The profiles MSI Center dropped - one click away, on 146 models' 17 '#566072') )
-$b += '</svg>'
-Set-Content -Path (Join-Path $outDir 'banner-profiles.svg') -Value $b -Encoding UTF8
+# ================= banner-profiles.png (07) =================
+Save-Banner 'banner-profiles.png' @( (New-Layer {
+    param($dc)
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 0 0 $W $H))
+    Draw-CLine $dc 640 128 @( (TxtR 'Ghost' 62 '#F3F7FF' 'bold'), (TxtR 'Deck' 62 '#3DE3FF' 'bold') )
+    $dc.DrawRoundedRectangle((Br '#0F1B33'), (Pen '#3C7DFF'), (Rct 356 164 130 42), 21, 21)
+    Draw-CLine $dc 421 191 @( (TxtR 'Silent' 18 '#7FA8FF' 'semibold') )
+    $dc.DrawRoundedRectangle((Br '#241B0C'), (Pen '#FFC15D'), (Rct 502 164 150 42), 21, 21)
+    Draw-CLine $dc 577 191 @( (TxtR 'Balanced' 18 '#FFC15D' 'semibold') )
+    $dc.DrawRoundedRectangle((Br '#2A0D1B'), (Pen '#FF2F7D'), (Rct 668 164 140 42), 21, 21)
+    Draw-CLine $dc 738 191 @( (TxtR 'Extreme' 18 '#FF6FA5' 'semibold') )
+    $dc.DrawRoundedRectangle((Br '#0C2418'), (Pen '#61E7A4'), (Rct 824 164 180 42), 21, 21)
+    Draw-CLine $dc 914 191 @( (TxtR 'Super Battery' 18 '#61E7A4' 'semibold') )
+    Draw-CLine $dc 640 248 @( (TxtR 'The profiles MSI Center dropped - one click away' 17 '#566072') )
+}) )
 
-# ================= banner-thermal.svg (11) =================
+# ================= banner-thermal.png (11) =================
 $deg = [char]0xB0
-$b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300">'
-$b += '<rect width="1280" height="300" fill="#05070B"/>'
-$b += '<defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3C7DFF"/><stop offset=".4" stop-color="#3DE3FF"/><stop offset=".7" stop-color="#FFC15D"/><stop offset="1" stop-color="#FF2F7D"/></linearGradient></defs>'
-$b += '<g opacity=".85"><rect x="0" y="236" width="1280" height="10" rx="5" fill="url(#tg)"/><rect x="0" y="254" width="1280" height="4" rx="2" fill="url(#tg)" opacity=".5"/><rect x="0" y="264" width="1280" height="2" rx="1" fill="url(#tg)" opacity=".25"/></g>'
-$b += Get-Line 34 228 @( (M ('30' + $deg) 14 '#566072') )
-$b += Get-Line 560 228 @( (M ('62' + $deg) 14 '#566072') )
-$b += Get-Line 1200 228 @( (M ('95' + $deg) 14 '#566072') )
-$b += '<circle cx="500" cy="243" r="9" fill="none" stroke="#F3F7FF" stroke-width="2.5"/>'
-$b += Get-CLine 640 126 @( (TxtR 'Ghost' 62 '#F3F7FF' 'bold'), (TxtR 'Deck' 62 '#3DE3FF' 'bold') )
-$b += Get-CLine 640 172 @( (TxtR 'Keep it cool. Keep it quiet. Keep control.' 19 '#A4ADBD') )
-$b += '</svg>'
-Set-Content -Path (Join-Path $outDir 'banner-thermal.svg') -Value $b -Encoding UTF8
+Save-Banner 'banner-thermal.png' @( (New-Layer {
+    param($dc)
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 0 0 $W $H))
+    $g = New-Object Windows.Media.LinearGradientBrush
+    $g.StartPoint = Pt 0 0; $g.EndPoint = Pt 1 0
+    foreach ($s in @(@(0,'#3C7DFF'), @(.4,'#3DE3FF'), @(.7,'#FFC15D'), @(1,'#FF2F7D'))) {
+        $g.GradientStops.Add((New-Object Windows.Media.GradientStop([Windows.Media.ColorConverter]::ConvertFromString($s[1]), [double]$s[0])))
+    }
+    $g.Freeze()
+    $dc.PushOpacity(.85)
+    $dc.DrawRoundedRectangle($g, $null, (Rct 0 236 $W 10), 5, 5)
+    $dc.PushOpacity(.5);  $dc.DrawRoundedRectangle($g, $null, (Rct 0 254 $W 4), 2, 2);  $dc.Pop()
+    $dc.PushOpacity(.25); $dc.DrawRoundedRectangle($g, $null, (Rct 0 264 $W 2), 1, 1);  $dc.Pop()
+    $dc.Pop()
+    Draw-Line $dc 34   228 @( (M ('30' + $deg) 14 '#566072') )
+    Draw-Line $dc 560  228 @( (M ('62' + $deg) 14 '#566072') )
+    Draw-Line $dc 1200 228 @( (M ('95' + $deg) 14 '#566072') )
+    $dc.DrawEllipse($null, (Pen '#F3F7FF' 2.5), (Pt 500 243), 9, 9)
+    Draw-CLine $dc 640 126 @( (TxtR 'Ghost' 62 '#F3F7FF' 'bold'), (TxtR 'Deck' 62 '#3DE3FF' 'bold') )
+    Draw-CLine $dc 640 172 @( (TxtR 'Keep it cool. Keep it quiet. Keep control.' 19 '#A4ADBD') )
+}) )
 
-# ================= banner-hologram.svg (03) =================
-$b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300">'
-$b += '<defs><pattern id="hs" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="#0A121C"/></pattern>'
-$b += '<filter id="hf"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-$b += '<radialGradient id="hr" cx=".5" cy=".5" r=".7"><stop offset="0" stop-color="#0E2A3C"/><stop offset="1" stop-color="#05070B"/></radialGradient></defs>'
-$b += '<rect width="1280" height="300" fill="#05070B"/><rect width="1280" height="300" fill="url(#hr)"/>'
-$b += '<g filter="url(#hf)">' + (Get-CLine 640 150 @( (TxtR 'Ghost' 72 '#F3F7FF' 'bold'), (TxtR 'Deck' 72 '#3DE3FF' 'bold') )) + '</g>'
-$b += '<g opacity=".85">' + (Get-CLine 640 205 @( (TxtR 'INDEPENDENT POWER & FAN CONTROL FOR MSI LAPTOPS' 19 '#7BE9FF') )) + '</g>'
-$b += '<rect width="1280" height="300" fill="url(#hs)" opacity=".55"/>'
-$b += '<rect x="0" y="118" width="1280" height="2" fill="#3DE3FF" opacity=".25"/>'
-$b += '</svg>'
-Set-Content -Path (Join-Path $outDir 'banner-hologram.svg') -Value $b -Encoding UTF8
+# ================= banner-hologram.png (03) =================
+# Three stacked layers: background, blurred+sharp text (the SVG feGaussianBlur/feMerge glow),
+# then the scanline overlay and the horizontal scan bar.
+$holoBg = New-Layer {
+    param($dc)
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 0 0 $W $H))
+    $r = New-Object Windows.Media.RadialGradientBrush
+    $r.Center = Pt .5 .5; $r.GradientOrigin = Pt .5 .5; $r.RadiusX = .7; $r.RadiusY = .7
+    $r.GradientStops.Add((New-Object Windows.Media.GradientStop([Windows.Media.ColorConverter]::ConvertFromString('#0E2A3C'), 0.0)))
+    $r.GradientStops.Add((New-Object Windows.Media.GradientStop([Windows.Media.ColorConverter]::ConvertFromString('#05070B'), 1.0)))
+    $r.Freeze()
+    $dc.DrawRectangle($r, $null, (Rct 0 0 $W $H))
+}
+$holoGlow = New-Layer {
+    param($dc)
+    Draw-CLine $dc 640 150 @( (TxtR 'Ghost' 72 '#F3F7FF' 'bold'), (TxtR 'Deck' 72 '#3DE3FF' 'bold') )
+}
+$holoGlow.Effect = New-Object Windows.Media.Effects.BlurEffect -Property @{ Radius = 12 }
+$holoText = New-Layer {
+    param($dc)
+    Draw-CLine $dc 640 150 @( (TxtR 'Ghost' 72 '#F3F7FF' 'bold'), (TxtR 'Deck' 72 '#3DE3FF' 'bold') )
+    $dc.PushOpacity(.85)
+    Draw-CLine $dc 640 205 @( (TxtR 'INDEPENDENT POWER & FAN CONTROL FOR MSI LAPTOPS' 19 '#7BE9FF') )
+    $dc.Pop()
+}
+$holoOver = New-Layer {
+    param($dc)
+    # 4x4 tile with a 2px bar = the SVG scanline pattern
+    $tile = New-Object Windows.Media.DrawingGroup
+    $gd = New-Object Windows.Media.GeometryDrawing((Br '#0A121C'), $null, (New-Object Windows.Media.RectangleGeometry((Rct 0 0 4 2))))
+    $tile.Children.Add($gd)
+    $tile.Freeze()
+    $db = New-Object Windows.Media.DrawingBrush($tile)
+    $db.TileMode = [Windows.Media.TileMode]::Tile
+    $db.ViewportUnits = [Windows.Media.BrushMappingMode]::Absolute
+    $db.Viewport = Rct 0 0 4 4
+    $db.Stretch = [Windows.Media.Stretch]::None
+    $db.Opacity = .55
+    $db.Freeze()
+    $dc.DrawRectangle($db, $null, (Rct 0 0 $W $H))
+    $dc.DrawRectangle((Br '#3DE3FF' .25), $null, (Rct 0 118 $W 2))
+}
+Save-Banner 'banner-hologram.png' @($holoBg, $holoGlow, $holoText, $holoOver)
 
-# ================= banner-glitch.svg (12) =================
-$b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300">'
-$b += '<rect width="1280" height="300" fill="#05070B"/>'
-$b += '<g opacity=".7">' + (Get-CLine 637 158 @( (TxtR 'GhostDeck' 74 '#FF2F7D' 'bold') )) + '</g>'
-$b += '<g opacity=".7">' + (Get-CLine 643 162 @( (TxtR 'GhostDeck' 74 '#3DE3FF' 'bold') )) + '</g>'
-$b += Get-CLine 640 160 @( (TxtR 'Ghost' 74 '#F3F7FF' 'bold'), (TxtR 'Deck' 74 '#3DE3FF' 'bold') )
-$b += '<rect x="380" y="98" width="520" height="7" fill="#05070B"/><rect x="420" y="101" width="440" height="2" fill="#3DE3FF" opacity=".6"/>'
-$b += '<rect x="430" y="138" width="430" height="5" fill="#05070B"/><rect x="470" y="140" width="350" height="2" fill="#FF2F7D" opacity=".55"/>'
-$b += Get-CLine 640 216 @( (M '>> power & fan control // MSI laptops // no kernel driver <<' 17 '#A4ADBD') )
-$b += '</svg>'
-Set-Content -Path (Join-Path $outDir 'banner-glitch.svg') -Value $b -Encoding UTF8
+# ================= banner-glitch.png (12) =================
+Save-Banner 'banner-glitch.png' @( (New-Layer {
+    param($dc)
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 0 0 $W $H))
+    $dc.PushOpacity(.7); Draw-CLine $dc 637 158 @( (TxtR 'GhostDeck' 74 '#FF2F7D' 'bold') ); $dc.Pop()
+    $dc.PushOpacity(.7); Draw-CLine $dc 643 162 @( (TxtR 'GhostDeck' 74 '#3DE3FF' 'bold') ); $dc.Pop()
+    Draw-CLine $dc 640 160 @( (TxtR 'Ghost' 74 '#F3F7FF' 'bold'), (TxtR 'Deck' 74 '#3DE3FF' 'bold') )
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 380 98 520 7))
+    $dc.DrawRectangle((Br '#3DE3FF' .6), $null, (Rct 420 101 440 2))
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 430 138 430 5))
+    $dc.DrawRectangle((Br '#FF2F7D' .55), $null, (Rct 470 140 350 2))
+    Draw-CLine $dc 640 216 @( (M '>> power & fan control // MSI laptops // no kernel driver <<' 17 '#A4ADBD') )
+}) )
 
-# ================= banner-terminal.svg (04) =================
-$b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300">'
-$b += '<rect width="1280" height="300" fill="#05070B"/>'
-$b += '<rect x="70" y="34" width="1140" height="232" rx="12" fill="#0A0D14" stroke="#232C40"/>'
-$b += '<circle cx="102" cy="62" r="6" fill="#FF2F7D"/><circle cx="124" cy="62" r="6" fill="#FFC15D"/><circle cx="146" cy="62" r="6" fill="#61E7A4"/>'
-$b += Get-Line 170 68 @( (M 'ghostdeck.exe' 15 '#566072') )
-$b += Get-Line 104 122 @( (M '>' 21 '#61E7A4'), (M ' ghostdeck ' 21 '#F3F7FF'), (M '--profile silent' 21 '#3DE3FF') )
-$b += Get-Line 104 158 @( (M ('Silent restored ' + [char]0xB7 + ' 0xD4 = 0x1D ' + [char]0xB7 + ' ~30 W cap') 21 '#A4ADBD') )
-$b += Get-Line 104 212 @( (M 'Ghost' 34 '#F3F7FF' 'bold'), (M 'Deck' 34 '#3DE3FF' 'bold'), (M '  - the Silent profile MSI removed' 21 '#566072') )
-$b += '<rect x="360" y="240" width="13" height="24" fill="#3DE3FF"/>'
-$b += Get-Line 1076 120 @( (M '(\_/)' 17 '#153444') )
-$b += Get-Line 1076 140 @( (M '(o o)' 17 '#153444') )
-$b += Get-Line 1070 160 @( (M '/| |\' 17 '#153444') )
-$b += '</svg>'
-Set-Content -Path (Join-Path $outDir 'banner-terminal.svg') -Value $b -Encoding UTF8
+# ================= banner-terminal.png (04) =================
+Save-Banner 'banner-terminal.png' @( (New-Layer {
+    param($dc)
+    $dc.DrawRectangle((Br '#05070B'), $null, (Rct 0 0 $W $H))
+    $dc.DrawRoundedRectangle((Br '#0A0D14'), (Pen '#232C40'), (Rct 70 34 1140 232), 12, 12)
+    $dc.DrawEllipse((Br '#FF2F7D'), $null, (Pt 102 62), 6, 6)
+    $dc.DrawEllipse((Br '#FFC15D'), $null, (Pt 124 62), 6, 6)
+    $dc.DrawEllipse((Br '#61E7A4'), $null, (Pt 146 62), 6, 6)
+    Draw-Line $dc 170 68  @( (M 'ghostdeck.exe' 15 '#566072') )
+    Draw-Line $dc 104 122 @( (M '>' 21 '#61E7A4'), (M ' ghostdeck ' 21 '#F3F7FF'), (M '--profile silent' 21 '#3DE3FF') )
+    Draw-Line $dc 104 158 @( (M ('Silent restored ' + [char]0xB7 + ' 0xD4 = 0x1D ' + [char]0xB7 + ' ~30 W cap') 21 '#A4ADBD') )
+    Draw-Line $dc 104 212 @( (M 'Ghost' 34 '#F3F7FF' 'bold'), (M 'Deck' 34 '#3DE3FF' 'bold'), (M '  - the Silent profile MSI removed' 21 '#566072') )
+    $dc.DrawRectangle((Br '#3DE3FF'), $null, (Rct 360 240 13 24))
+    Draw-Line $dc 1076 120 @( (M '(\_/)' 17 '#153444') )
+    Draw-Line $dc 1076 140 @( (M '(o o)' 17 '#153444') )
+    Draw-Line $dc 1070 160 @( (M '/| |\' 17 '#153444') )
+}) )
 
-Get-ChildItem $outDir\banner*.svg | ForEach-Object { '{0}  {1:N0} B' -f $_.Name, $_.Length }
+Get-ChildItem (Join-Path $outDir 'banner*.png') | ForEach-Object { '{0}  {1:N0} B' -f $_.Name, $_.Length }

@@ -7,17 +7,25 @@ namespace GhostDeck;
 /// <summary>
 /// Update check + in-app self-update against GitHub Releases. The check queries the public
 /// "latest release" endpoint and compares the tag to the running assembly version. Install
-/// downloads the GhostDeck.exe asset next to the running exe as GhostDeck.update.exe, starts
+/// downloads the release asset next to the running exe as GhostDeck.update.exe, starts
 /// it with <c>--finish-update &lt;pid&gt; &lt;target&gt;</c> and exits; the updater waits for
 /// this process to die, swaps the files (old exe kept as .bak) and relaunches. Any check
 /// failure is swallowed (offline, rate-limited, etc.) so it never disrupts the app.
+///
+/// AssetName is matched exactly. Releases up to v1.34.x shipped a self-contained
+/// "GhostDeck.exe"; from v1.35.0 the build is framework-dependent and the asset is named
+/// "GhostDeck-win-x64.exe". That rename is deliberate: it is what stops the updater in an
+/// installed v1.34.x from replacing a self-contained copy with a build that needs a .NET
+/// runtime the machine may not have. Not finding its asset, the older version leaves the
+/// running exe alone and opens the release page instead, so the one-off migration is manual
+/// and visible rather than a silently broken install.
 /// </summary>
 public static class Updater
 {
     private const string LatestApi   = "https://api.github.com/repos/wygodad/ghostdeck/releases/latest";
     private const string ListApi     = "https://api.github.com/repos/wygodad/ghostdeck/releases?per_page=";
     public  const string ReleasesUrl = "https://github.com/wygodad/ghostdeck/releases/latest";
-    private const string AssetName   = "GhostDeck.exe";
+    private const string AssetName   = "GhostDeck-win-x64.exe";
     private const string UpdateFile  = "GhostDeck.update.exe";
 
     public readonly record struct Result(Version Version, string Tag, string Url, string AssetUrl, long AssetSize);
