@@ -114,7 +114,7 @@ the data, in the device table and in the changelog.
 
 ### .NET components (bundled)
 
-`GhostDeck.exe` is published as a framework-dependent single file. It requires the .NET 8
+The GhostDeck executable is published as a framework-dependent single file. It requires the .NET 8
 Desktop Runtime, installed separately by the user from Microsoft, and does not carry that
 runtime inside itself.
 
