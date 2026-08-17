@@ -849,7 +849,7 @@ public sealed class ReportPage : ThemedPage
     private string BuildReport()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== MSI Profile Switcher — model support report ===");
+        sb.AppendLine("=== GhostDeck — model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {D.AppVersion()}");
         sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}");

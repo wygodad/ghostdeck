@@ -114,7 +114,7 @@ public sealed class ReportForm : Form
             const int flags = (int)(TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
             TextRenderer.DrawText(g, title, titleFont, new Rectangle(LeftX, 0, tw + 4, HeaderH),
                 Color.White, (TextFormatFlags)flags);
-            TextRenderer.DrawText(g, "·  MSI Profile Switcher", subFont,
+            TextRenderer.DrawText(g, "·  GhostDeck", subFont,
                 new Rectangle(LeftX + tw + 14, 0, 500, HeaderH),
                 Color.FromArgb(220, 255, 255, 255), (TextFormatFlags)flags);
         };
@@ -383,7 +383,7 @@ public sealed class ReportForm : Form
     private string BuildReport()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== MSI Profile Switcher — model support report ===");
+        sb.AppendLine("=== GhostDeck — model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {_appVersion}");
         sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(_firmware) ? "(unknown)" : _firmware)}");
