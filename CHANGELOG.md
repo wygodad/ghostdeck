@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+
+## [1.35.0] - 2026-08-17
 > **Upgrading from v1.34.0?** Install this one by hand. The release file is named
 > `GhostDeck-win-x64.exe` now, so the updater in your copy cannot swap it for you: pressing
 > Install reports a failed download and opens this page. That is expected, nothing is broken and
