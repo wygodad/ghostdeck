@@ -73,7 +73,8 @@ public static class Cli
                 return int.TryParse(Arg1(), out int hz) && hz is > 0 and <= 1000 ? new CliCommand(CliKind.Refresh, hz.ToString()) : null;
             case "--charge":
                 if (Arg1().ToLowerInvariant() == "off") return new CliCommand(CliKind.Charge, "0");
-                return int.TryParse(Arg1(), out int ch) && ch is 60 or 80 or 100 ? new CliCommand(CliKind.Charge, ch.ToString()) : null;
+                // any threshold the register accepts (20-100); 60/80/100 are the vendor-verified ones
+                return int.TryParse(Arg1(), out int ch) && AppSettings.ChargeManaged(ch) ? new CliCommand(CliKind.Charge, ch.ToString()) : null;
             case "--travel":
                 if (Arg1().ToLowerInvariant() == "off") return new CliCommand(CliKind.Travel, "0");
                 return int.TryParse(Arg1(), out int td) && td is >= 1 and <= 90 ? new CliCommand(CliKind.Travel, td.ToString()) : null;

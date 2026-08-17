@@ -70,8 +70,10 @@ public sealed class ScenariosPage : ThemedPage
         _tiles = Profiles.Order.Select(id => new Tile(d, id)).ToArray();
         foreach (var t in _tiles) Controls.Add(t);
 
-        _charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" }, ChargeIndex()) { Size = new Size(280, 34) };
-        _charge.SelectedChanged += i => D.SetChargeLimit(i switch { 1 => 60, 2 => 80, 3 => 100, _ => 0 });
+        // A custom limit (any value 20-100, set in Settings) gets its own segment here, otherwise
+        // the brick would show "Off" for a threshold that is very much on - which is what it did.
+        _charge = new SegControl(ChargeLabels(), ChargeIndex()) { Size = new Size(ChargeCustomOn ? 360 : 280, 34) };
+        _charge.SelectedChanged += i => D.SetChargeLimit(i switch { 1 => 60, 2 => 80, 3 => 100, 4 => D.Settings.ChargeCustom, _ => 0 });
 
         _auto = new ToggleSwitch { Checked = D.Settings.AutoSwitchEnabled };
         _auto.Toggled += v => D.SetAutoSwitch(v);
@@ -265,7 +267,7 @@ public sealed class ScenariosPage : ThemedPage
             Overlay = D.OverlayOn(),
             RefreshHz = curHz > 0 ? curHz : null,
             RefreshTarget = curHz > 0 ? hzTarget : null,
-            ChargeLimit = D.Settings.ChargeLimit is 60 or 80 or 100 ? D.Settings.ChargeLimit : 0,
+            ChargeLimit = AppSettings.ChargeManaged(D.Settings.ChargeLimit) ? D.Settings.ChargeLimit : 0,
             KbdLight = D.KbdLevel() >= 0 ? D.KbdLevel() : null,
             Webcam = D.WebcamState() >= 0 ? D.WebcamState() == 1 : null,
             CurvePreset = D.Settings.CurveActive && D.Settings.CurveName.Length > 0 ? D.Settings.CurveName : null,
@@ -281,13 +283,29 @@ public sealed class ScenariosPage : ThemedPage
         RebuildScenes();
     }
 
-    private int ChargeIndex() => D.Settings.ChargeLimit switch { 60 => 1, 80 => 2, 100 => 3, _ => 0 };
+    // "Custom" only exists as a segment when a custom value is actually in play - no dead choice
+    // on machines where the three presets are all anyone uses.
+    private bool ChargeCustomOn => AppSettings.ChargeManaged(D.Settings.ChargeLimit) && !AppSettings.ChargeVerified(D.Settings.ChargeLimit);
+
+    private string[] ChargeLabels() => ChargeCustomOn
+        ? new[] { Lang.T("gen_off_short"), "60%", "80%", "100%", D.Settings.ChargeLimit + "%" }
+        : new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" };
+
+    private int ChargeIndex() => D.Settings.ChargeLimit switch { 60 => 1, 80 => 2, 100 => 3, 0 => 0, _ => ChargeCustomOn ? 4 : 0 };
+
+    // Not just the selection: the segment SET changes (a custom limit adds one) and so does its
+    // caption (it carries the number), so the labels are rebuilt on every refresh.
+    private void SyncChargeBrick()
+    {
+        _charge.SetItems(ChargeLabels(), ChargeIndex());
+        _charge.Width = ChargeCustomOn ? 360 : 280;
+    }
 
     public override void OnEnter()
     {
         _addScene.Text = "+  " + Lang.T("scene_add");          // follow a language change
         _addExamples.Text = Lang.T("scene_add_examples");
-        _charge.Selected = ChargeIndex();
+        SyncChargeBrick();
         _auto.Checked = D.Settings.AutoSwitchEnabled;
         if (_kbd != null && D.KbdLevel() is >= 0 and var kl) _kbd.Selected = kl;   // follows the Fn key too
         SyncRefreshBrick();
@@ -300,7 +318,7 @@ public sealed class ScenariosPage : ThemedPage
     // included because the Settings → Scenarios-tab visibility toggles land here too.
     public override void LiveRefresh()
     {
-        _charge.Selected = ChargeIndex();
+        SyncChargeBrick();
         _auto.Checked = D.Settings.AutoSwitchEnabled;
         if (_kbd != null && D.KbdLevel() is >= 0 and var kl) _kbd.Selected = kl;
         SyncRefreshBrick();

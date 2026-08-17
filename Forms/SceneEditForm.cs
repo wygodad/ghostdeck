@@ -91,8 +91,16 @@ public sealed class SceneEditForm : Form
             scene.Overlay != null, scene.Overlay == false ? 1 : 0,
             (on, i) => _scene.Overlay = on ? i == 0 : null);
 
-        int[] chargeVals = { 0, 60, 80, 100 };
-        var chargeItems = new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" };
+        // The three presets plus, when one is in play, the custom threshold: the scene the user is
+        // editing may already carry one, or their current setting may be custom - either way it has
+        // to be selectable here, or saving the scene would silently round it to a preset.
+        var chargeList = new List<int> { 0, 60, 80, 100 };
+        int chargeExtra = scene.ChargeLimit is { } sc && !AppSettings.ChargeVerified(sc) && sc != 0 ? sc
+                        : AppSettings.ChargeManaged(d.Settings.ChargeLimit) && !AppSettings.ChargeVerified(d.Settings.ChargeLimit) ? d.Settings.ChargeLimit
+                        : 0;
+        if (chargeExtra != 0) chargeList.Add(chargeExtra);
+        int[] chargeVals = chargeList.ToArray();
+        var chargeItems = chargeVals.Select(v => v == 0 ? Lang.T("gen_off_short") : v + "%").ToArray();
         int chSel = scene.ChargeLimit is { } cl ? Math.Max(0, Array.IndexOf(chargeVals, cl)) : 2;
         Row(Lang.T("st_charge"), chargeItems, scene.ChargeLimit != null, chSel,
             (on, i) => _scene.ChargeLimit = on ? chargeVals[i] : null);

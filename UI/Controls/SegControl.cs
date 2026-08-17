@@ -8,7 +8,7 @@ namespace GhostDeck;
 
 public sealed class SegControl : Control
 {
-    private readonly string[] _items;
+    private string[] _items;
     private int _sel;
     public event Action<int>? SelectedChanged;
     public int Selected { get => _sel; set { _sel = value; Invalidate(); } }
@@ -24,6 +24,19 @@ public sealed class SegControl : Control
         using var f = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         foreach (var it in items) maxW = Math.Max(maxW, TextRenderer.MeasureText(it, f).Width);
         MinimumSize = new Size((maxW + 16) * items.Length, 0);
+    }
+
+    /// <summary>
+    /// Replace the segments. Needed where the SET of choices depends on state, not just which one
+    /// is active: the charge-limit brick grows a segment when a custom threshold is in play, and
+    /// its caption carries the number, so it changes with the value.
+    /// </summary>
+    public void SetItems(string[] items, int sel)
+    {
+        if (items.Length == 0) return;
+        _items = items;
+        _sel = Math.Clamp(sel, 0, items.Length - 1);
+        Invalidate();
     }
 
     protected override void OnMouseDown(MouseEventArgs e)

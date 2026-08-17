@@ -67,7 +67,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
 - ♻️ **Startup / wake restore** *(opt-in, Settings → Power)* - the EC resets to factory state on every cold boot (and sometimes wakes in Super Battery on its own); GhostDeck can re-assert both your **profile** and your **custom fan curve** a few seconds after startup and resume, so the machine always comes back exactly as you left it
 - 🖥️ **Refresh-rate auto-switch** *(opt-in)* - drop the panel to 60 Hz on battery and jump back to 144/240 Hz on AC, automatically; pickers list only the modes your panel reports and always target the **built-in panel**, even with an external monitor set as primary. Pure Windows display API, so it works on **every** laptop - even unrecognised models
-- 🔋 **Battery charge limit** (60 / 80 / 100 %) with a **travel mode** - one click charges to 100 % for a trip and the previous limit returns automatically after 3-30 days - plus a **battery health panel** (design vs full-charge capacity, wear %, charge cycles) in Settings → Power
+- 🔋 **Battery charge limit** - the three presets MSI offers (60 / 80 / 100 %) plus **any value from 20 to 100 %** on a slider - with a **travel mode** - one click charges to 100 % for a trip and the previous limit returns automatically after 3-30 days - plus a **battery health panel** (design vs full-charge capacity, wear %, charge cycles) in Settings → Power
 - 🚀 **Start with Windows** (elevated scheduled task - no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
 - 🗄️ **Signed model-database updates** - support for newly verified models and fan curves arrives **without waiting for a release**: the app fetches a **digitally signed** model database from the repo at every start, when you open the Models tab, or on demand from Settings → System, and applies it straight away when it is newer. Signature verified on every load, older files rejected, anything invalid falls back to the built-in tables - a bad download can never break the app
@@ -86,7 +86,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Silent profile** | ❌ *(removed in 2.0)* | ✅ |
 | Balanced / Extreme / Super Battery modes | ✅ | ✅ |
 | Full fan speed (Fan Boost / MSI Cooler Boost) | ✅ | ✅ *(+ auto-off timer)* |
-| Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100)* |
+| Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100 **or any value 20-100 %**)* |
 | Charge-limit travel mode (auto-revert after a trip) | ❌ | ✅ *(3-30 days, CLI 1-90)* |
 | Custom fan curve | Limited¹ | ✅ *(Balanced / Extreme / Super Battery)*¹ |
 | Measured fan characteristic (duty → RPM sweep) | ❌ | ✅ *(30-100 %, per-machine history, plain-language findings)* |
@@ -233,7 +233,7 @@ GhostDeck.exe --fanboost on 120       # full fan speed; optional auto-off in N s
 GhostDeck.exe --curve "My quiet"      # apply a saved fan-curve preset ("auto" = stock fans)
 GhostDeck.exe --scene "Gaming"        # apply a saved scene (needs the app running)
 GhostDeck.exe --refresh max           # panel refresh rate (a number or "max"; any laptop)
-GhostDeck.exe --charge 80             # battery charge limit (60/80/100, "off" = stop managing)
+GhostDeck.exe --charge 80             # battery charge limit (20-100, "off" = stop managing)
 GhostDeck.exe --travel 7              # charge to 100% for a trip; the previous limit returns after 7 days ("off" = end now)
 GhostDeck.exe --brightness 45         # internal-panel brightness (any laptop)
 GhostDeck.exe --hdr on                # HDR / advanced color (HDR-capable displays)

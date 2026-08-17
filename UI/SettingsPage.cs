@@ -163,14 +163,14 @@ public sealed class SettingsPage : ThemedPage
         int li = Math.Max(0, Array.IndexOf(Lang.Codes, s.Language));
         _tiles[0].SetState(Lang.T(Theme.Dark ? "set_theme_dark" : "set_theme_light") + " · " + Lang.Names[li], null);
 
-        string p = s.ChargeLimit is 60 or 80 or 100 ? string.Format(Lang.T("st2_limit_on"), s.ChargeLimit) : Lang.T("st2_limit_off");
+        string p = AppSettings.ChargeManaged(s.ChargeLimit) ? string.Format(Lang.T("st2_limit_on"), s.ChargeLimit) : Lang.T("st2_limit_off");
         if (s.AutoSwitchEnabled &&
             Enum.TryParse<ProfileId>(s.ProfileOnAC, out var pa) && Enum.TryParse<ProfileId>(s.ProfileOnBattery, out var pb))
             p += " · " + Profiles.Get(pa).Label + " / " + Profiles.Get(pb).Label;
         if (s.RefreshSwitchEnabled && s.RefreshOnAC > 0 && s.RefreshOnBattery > 0)
             p += " · " + string.Format(Lang.T("st2_hz"), s.RefreshOnAC, s.RefreshOnBattery);
         if (Display.Current() is > 0 and var curHz) p += " · " + curHz + " Hz";   // live panel rate
-        _tiles[1].SetState(p, s.ChargeLimit is 60 or 80 or 100 || s.RefreshSwitchEnabled);
+        _tiles[1].SetState(p, AppSettings.ChargeManaged(s.ChargeLimit) || s.RefreshSwitchEnabled);
 
         _tiles[2].SetState(s.TempAlertEnabled
                 ? $"{s.TempAlertDegrees} °C / {s.TempAlertSeconds} s · OSD {s.OsdSeconds} s"
@@ -350,16 +350,35 @@ public sealed class SettingsPage : ThemedPage
 
         // ---- Power group: battery card + display card ----
         var power = new CardSection(Lang.T("set_grp_power"), "");
-        var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%" }, Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit))) { Size = new Size(280, 34) };
+        // The three presets are the values MSI Center exposes and the only ones verified on real
+        // hardware, so they stay one click away; "Custom" opens a slider for any threshold the
+        // register accepts (20-100). The custom value is remembered, so switching 80 % <-> 73 %
+        // is a click, not another aim with the mouse.
+        bool chargeCustom = AppSettings.ChargeManaged(D.Settings.ChargeLimit) && !AppSettings.ChargeVerified(D.Settings.ChargeLimit);
+        int chargeIdx = chargeCustom ? 4 : Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit));
+        var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%", Lang.T("charge_custom") }, chargeIdx) { Size = new Size(360, 34) };
         charge.SelectedChanged += i =>
         {
             bool wasTravel = D.Settings.TravelUntil != DateTime.MinValue;
-            D.SetChargeLimit(ChargeVals[i]);
-            // a manual limit cancels a pending travel revert - flip the travel row back too
-            if (wasTravel && D.Settings.TravelUntil == DateTime.MinValue)
+            bool wasCustom = chargeCustom;
+            D.SetChargeLimit(i == 4 ? D.Settings.ChargeCustom : ChargeVals[i]);
+            // a manual limit cancels a pending travel revert - flip the travel row back too;
+            // entering or leaving Custom adds/removes the slider row, so rebuild for that too
+            if ((wasTravel && D.Settings.TravelUntil == DateTime.MinValue) || wasCustom != (i == 4))
                 Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
         };
         power.AddRow(Lang.T("set_charge"), charge);
+        if (chargeCustom)
+        {
+            var slider = new Slider(AppSettings.ChargeMin, AppSettings.ChargeMax, D.Settings.ChargeLimit, 5, "%") { Width = 300 };
+            slider.ValueChanged += v => { D.Settings.ChargeCustom = v; D.SetChargeLimit(v); };
+            power.AddRow(Lang.T("charge_custom_row"), slider);
+            // Tag "warn" is the card convention: ApplyTheme paints it amber and Relayout rewraps it
+            // to the card width. A hand-set ForeColor is overwritten on the next theme pass, and a
+            // fixed MaximumSize keeps the text in a narrow column - both were wrong here.
+            var warn = new Label { AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("charge_custom_warn") };
+            power.AddRow(null, warn);
+        }
 
         // Travel mode: one-shot "charge to 100% until a date", then the previous limit comes
         // back on its own. State lives in TravelUntil, so the picker only chooses the length.
@@ -1100,7 +1119,7 @@ public sealed class SettingsPage : ThemedPage
         hk.AddRow(Lang.T("hk_all"), _hkMaster);   // master on/off (#9), default on
         if (TrayContext.HotkeysRefused.Count > 0)
         {
-            var warn = new Label { AutoSize = true, ForeColor = Theme.Amber, MaximumSize = new Size(420, 0), Text = Lang.T("hk_refused_row") };
+            var warn = new Label { AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("hk_refused_row") };
             hk.AddRow(null, warn);
         }
         // static actions + one row per scene (#21); scene rows label with the scene's name

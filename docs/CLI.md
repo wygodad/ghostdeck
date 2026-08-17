@@ -42,7 +42,7 @@ directory and it works even when the app can't start.
 | `--curve auto` | Back to stock fan behaviour for the active profile | `fan curve: stock` |
 | `--scene "<name>"` | Apply a saved scene by name, case-insensitive (**requires the app running**) | `scene applied: <name>` |
 | `--refresh <hz\|max>` | Panel refresh rate; `max` picks the highest mode the panel reports. Windows display API - works on any laptop | `refresh rate: 240 Hz` |
-| `--charge <60\|80\|100\|off>` | Battery charge limit; `off` = stop managing (the EC keeps its current threshold, the app just stops re-asserting it) | `charge limit: 80 %` |
+| `--charge <20-100\|off>` | Battery charge limit - any threshold from 20 to 100 % (60, 80 and 100 are the vendor-verified ones); `off` = stop managing (the EC keeps its current threshold, the app just stops re-asserting it) | `charge limit: 80 %` |
 | `--travel <days\|off>` | Charge to 100 % for a trip; the previous limit returns automatically after 1-90 full days. `off` = end now and restore the previous limit. Any manual charge-limit change cancels the pending revert. The revert is applied by the running app (poll or next start); with no app running, the next one-shot CLI call catches it up | `travel mode: 100 % until 2026-08-19` |
 | `--brightness <0-100>` | Internal-panel brightness (WMI, driver-free) - works on any laptop; external monitors are not covered | `brightness: 45` |
 | `--hdr <on\|off>` | HDR / advanced color on every HDR-capable display (DisplayConfig API, any machine) | `hdr: on` |

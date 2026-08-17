@@ -1421,7 +1421,7 @@ public sealed class TrayContext : ApplicationContext
         bool wantProfile = _settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && _profileBeforeSleep is { };
         bool wantCurve = _settings.RestoreCurveOnResume && _settings.CurveActive;   // (#49)
         bool wantSchedule = _settings.ScheduleEnabled;
-        bool wantCharge = _settings.ChargeLimit is 60 or 80 or 100;
+        bool wantCharge = AppSettings.ChargeManaged(_settings.ChargeLimit);
         // Poll would otherwise run the schedule check ~3 s after wake - before the EC settled
         // and BEFORE the restore below, which would then overwrite the scheduled scene.
         _scheduleHoldUntil = Environment.TickCount64 + 8000;
@@ -1566,7 +1566,7 @@ public sealed class TrayContext : ApplicationContext
             hw.CpuTemp, hw.GpuTemp, hw.CpuRpm, hw.GpuRpm, hw.CpuFan, hw.GpuFan,
             // overlay shows the app-managed limit: OFF unless we actively enforce 60/80/100
             // (the EC byte keeps the last value even when the app stops managing it)
-            load, ramPct, ramUsed, _settings.ChargeLimit is 60 or 80 or 100 ? _settings.ChargeLimit : 0, batt, charging,
+            load, ramPct, ramUsed, AppSettings.ChargeManaged(_settings.ChargeLimit) ? _settings.ChargeLimit : 0, batt, charging,
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
             Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second);
@@ -2024,12 +2024,13 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (AutoWritable && !_simulate && _settings.ChargeLimit is 60 or 80 or 100)
+        if (AutoWritable && !_simulate && AppSettings.ChargeManaged(_settings.ChargeLimit))
         {
             using var _ec = EcBusy();
             try
             {
                 Ec.SetChargeLimit(_device!, _settings.ChargeLimit);
+                _chargeWroteAt = Environment.TickCount64;   // silences the external-change check briefly
                 ChangeLog.Add(ChangeSource.ChargeLimit,
                     string.Format(Lang.T("log_charge"), _settings.ChargeLimit),
                     $"{_device!.ChargeCtrl:X2}={(0x80 | _settings.ChargeLimit):X2}");
@@ -2232,13 +2233,19 @@ public sealed class TrayContext : ApplicationContext
     // fighting over one register in a loop - exactly what this app does not do (the profile sync
     // above adopts for the same reason). The user is told once and puts their limit back in one
     // click if they want it.
-    private int _chargeReported;   // EC value already reported, so one external change = one notice
+    private int _chargeReported;        // EC value already reported, so one external change = one notice
+    private long _chargeWroteAt;        // Environment.TickCount64 of our own last write to the register
 
     private void OnChargeSample(int ecLimit)
     {
-        if (_settings.ChargeLimit is not (60 or 80 or 100)) return;      // we are not managing it
+        if (!AppSettings.ChargeManaged(_settings.ChargeLimit)) return;   // we are not managing it
         if (ecLimit is < 10 or > 100) return;                            // register unreadable / not set
         if (_settings.TravelUntil != DateTime.MinValue) return;          // travel mode owns the limit for now
+        // Our own writes must not come back as someone else's change. A hardware sample is taken on
+        // a worker and can be READ BEFORE a write that lands while it is in flight, so the stale
+        // value would arrive here right after the user moved the slider - which is exactly what the
+        // first build did: setting 55 % raised an "external change" toast about ourselves.
+        if (Environment.TickCount64 - _chargeWroteAt < 6000) return;
         int mine = _settings.ChargeLimit;
         if (ecLimit == mine) { _chargeReported = 0; return; }
         if (ecLimit == _chargeReported) return;                          // already said this

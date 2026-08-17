@@ -479,6 +479,20 @@ public sealed class UpdatesPage : ThemedPage
                 var l = MdLink.Replace(bullet ? t[2..].Trim() : t, "$1");
                 if (l.Length == 0) continue;
                 if (!bullet && IsSection(l)) { notes.Add(new(NoteKind.Header, ParseRuns(l.TrimEnd(':')))); continue; }
+
+                // An INDENTED line that is not a bullet continues the previous one. Release bodies
+                // are CHANGELOG sections, and older ones were hard-wrapped at ~80 columns: every
+                // wrapped line used to become its own note, so a long entry rendered as a stack of
+                // short ragged lines while an unwrapped one filled the card. Markdown treats a line
+                // break inside a paragraph as a space - so do we now, and every past release reads
+                // full width without touching what is already published on GitHub.
+                if (!bullet && (raw.StartsWith(" ") || raw.StartsWith("\t")) &&
+                    notes.Count > 0 && notes[^1].Kind is NoteKind.Bullet or NoteKind.Para)
+                {
+                    var prev = notes[^1];
+                    prev.Runs.AddRange(ParseRuns(" " + l));
+                    continue;
+                }
                 notes.Add(new(bullet ? NoteKind.Bullet : NoteKind.Para, ParseRuns(l)));
             }
             while (notes.Count > 0 && notes[^1].Kind == NoteKind.Gap) notes.RemoveAt(notes.Count - 1);

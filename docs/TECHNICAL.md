@@ -2563,3 +2563,30 @@ Deliberate choices:
   adopting an external value mid-trip would corrupt what it has to restore.
 - **Only when we manage the limit at all** (60/80/100). With the limit set to "don't change", the
   register is not ours to comment on.
+
+## 69. Charge limit: any value, not three (v1.35.0)
+
+`Ec.SetChargeLimit` has always written `0x80 | percent` and accepted 10-100 - the restriction to
+60 / 80 / 100 was **ours**, copied from the three buttons MSI Center shows, and it was enforced in
+eight places: `AppSettings` (validation on load plus the scene field and `TravelPrevLimit`),
+`Cli.cs`, three checks in `TrayContext`, `ScenariosPage` and `SettingsPage`.
+
+All of them now go through two helpers on `AppSettings`:
+
+- `ChargeManaged(v)` - `v` is between **20** and 100, i.e. we are managing the threshold at all;
+- `ChargeVerified(v)` - `v` is 60, 80 or 100, i.e. a value confirmed on real hardware.
+
+**Why the floor is 20 and not the register's 10.** A limit below 20 % is not battery care, it is a
+laptop that barely charges: unplug it and it dies almost immediately. The register would take it;
+the UI will not offer it.
+
+**Why the presets stay.** They are one click, they cover almost every use, and they are the only
+values anyone has measured. The fourth segment, *Custom*, reveals a slider (20-100, step 5) and
+remembers its value in `AppSettings.ChargeCustom`, so moving between 80 % and a custom 73 % is a
+click rather than another aim with the mouse. A warning line under the slider states, in the user's
+own language, that other values go to the same register in the same way but that nobody has
+measured whether every firmware honours them exactly - the honest position, not a scare.
+
+**Scenes.** The scene editor lists the three presets plus, when one is in play, the custom
+threshold (from the scene being edited or from the current setting). Without that, saving a scene
+would silently round a custom limit down to a preset.

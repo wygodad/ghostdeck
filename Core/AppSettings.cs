@@ -62,7 +62,18 @@ public sealed class AppSettings
     public string ProfileOnAC { get; set; } = "Balanced";
     public string ProfileOnBattery { get; set; } = "Silent";
 
-    public int ChargeLimit { get; set; } = 0;                          // 0 = nie zmieniaj; inaczej 60/80/100
+    public int ChargeLimit { get; set; } = 0;                          // 0 = nie zmieniaj; inaczej 20-100
+    public int ChargeCustom { get; set; } = 70;                        // ostatnia wlasna wartosc (segment "Wlasny")
+
+    /// <summary>
+    /// Czy w ogole zarzadzamy progiem ladowania. Rejestr (0x80 | procent) przyjmuje 10-100, ale
+    /// ponizej 20 % limit oznacza laptopa, ktory praktycznie nie laduje baterii - to nie jest
+    /// oszczedzanie ogniwa. 60/80/100 to jedyne wartosci potwierdzone na sprzecie (MSI Center
+    /// pokazuje tylko je), reszta jest zapisywana tym samym rejestrem - patrz TECHNICAL 69.
+    /// </summary>
+    public const int ChargeMin = 20, ChargeMax = 100;
+    public static bool ChargeManaged(int v) => v is >= ChargeMin and <= ChargeMax;
+    public static bool ChargeVerified(int v) => v is 60 or 80 or 100;
     // Ktos inny (MSI Center, jego instalator, BIOS) przestawil prog ladowania w EC - powiadom.
     // Domyslnie WLACZONE: to nie jest alarm o stanie sprzetu, tylko informacja, ze nasze
     // ustawienie przestalo obowiazywac, a bez niej aplikacja pokazuje wartosc, ktorej juz nie ma.
@@ -362,7 +373,8 @@ public sealed class AppSettings
         if (TempAlertDegrees is < 60 or > 105) TempAlertDegrees = 90;
         if (TempAlertSeconds is < 3 or > 120) TempAlertSeconds = 10;
         if (SsdAlertDegrees is < 45 or > 90) SsdAlertDegrees = 70;
-        if (TravelPrevLimit is not (0 or 60 or 80 or 100)) TravelPrevLimit = 0;
+        if (TravelPrevLimit != 0 && !ChargeManaged(TravelPrevLimit)) TravelPrevLimit = 0;
+        if (!ChargeManaged(ChargeCustom)) ChargeCustom = 70;
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
@@ -380,7 +392,7 @@ public sealed class AppSettings
         foreach (var s in Scenes)
         {
             if (s.KbdLight is { } kl && kl is < 0 or > 3) s.KbdLight = null;
-            if (s.ChargeLimit is { } cl && cl is not (0 or 60 or 80 or 100)) s.ChargeLimit = null;
+            if (s.ChargeLimit is { } cl && cl != 0 && !ChargeManaged(cl)) s.ChargeLimit = null;
             if (s.RefreshHz is { } hz && hz is < 0 or > 1000) s.RefreshHz = null;
             if (s.RefreshHz is null) s.RefreshTarget = null;   // the identity travels with the rate
             if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;

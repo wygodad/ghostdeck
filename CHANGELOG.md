@@ -5,7 +5,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **The battery charge limit can be any value from 20 to 100 %**, not just 60 / 80 / 100. The three presets stay one click away - they are what MSI Center offers and the only values verified on real hardware - and a fourth segment, **Custom**, opens a slider for anything in between; the custom value is remembered, so switching between a preset and your own number is one click. A line under the slider says plainly that other values are written through the same register but nobody has measured whether every firmware honours them exactly. Scenes and `--charge` accept the full range too, and a scene keeps a custom value instead of rounding it to a preset.
 - **A charge limit changed outside GhostDeck is now noticed** instead of being silently wrong. Installing MSI Center resets the EC threshold to 100 %, so the battery charged to full while the app still showed the 80 % you had chosen. Every hardware sample already read that register - it was simply never compared. The app now adopts the new value, updates Status and the tray, writes it to the change log, and (opt-out, Settings → Notifications) shows an OSD toast plus a tray notification naming the old and the new limit. It deliberately does **not** write your value back: two applications fighting over one register is the kind of loop this app avoids.
+
+### Fixed
+- **Updates tab: older release entries now read at full width.** Release notes written with hard-wrapped lines rendered every wrapped line as its own paragraph, so a long entry came out as a stack of short ragged lines while an unwrapped one filled the card. An indented continuation line is now joined to the line above, the way Markdown treats a break inside a paragraph, so every past entry reads properly without editing anything already published.
+- Settings → Hotkeys: the warning about shortcuts Windows refused is shown as a full-width amber note, like every other warning on a card.
 
 ## [1.34.0] - 2026-08-16
 ### Added
