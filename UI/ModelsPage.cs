@@ -226,6 +226,7 @@ public sealed class ModelsPage : ThemedPage
     {
         private readonly ModelsPage _p;
         private Rectangle _sbHeaderRect;
+        private Rectangle _familyHeaderRect;
         private readonly List<(Rectangle rect, string url)> _creditRects = new();
 
         public Table(ModelsPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
@@ -238,7 +239,8 @@ public sealed class ModelsPage : ThemedPage
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            Cursor = _sbHeaderRect.Contains(e.Location) || _creditRects.Any(c => c.rect.Contains(e.Location))
+            Cursor = _sbHeaderRect.Contains(e.Location) || _familyHeaderRect.Contains(e.Location)
+                     || _creditRects.Any(c => c.rect.Contains(e.Location))
                 ? Cursors.Hand : Cursors.Default;
             base.OnMouseMove(e);
         }
@@ -250,6 +252,11 @@ public sealed class ModelsPage : ThemedPage
             if (_sbHeaderRect.Contains(e.Location))
             {
                 HelpPopup.Toggle(this, _sbHeaderRect, Lang.T("mdl_sb_tip"), this);
+                return;
+            }
+            if (_familyHeaderRect.Contains(e.Location))
+            {
+                HelpPopup.Toggle(this, _familyHeaderRect, Lang.T("mdl_family_tip"), this);
                 return;
             }
             foreach (var (rect, url) in _creditRects)
@@ -289,8 +296,14 @@ public sealed class ModelsPage : ThemedPage
                 TextRenderer.DrawText(g, headers[c], FHead, new Rectangle(cx[c], 8, ColW(c), HeadH - 8), Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
 
-            // The column needs a sentence of explanation, so it gets the app's standard help dot:
-            // click to open the bubble, click again (or anywhere) to dismiss.
+            // Two columns need a sentence of explanation, so they get the app's standard help dot:
+            // click to open the bubble, click again (or anywhere) to dismiss. Family is in there
+            // because G1 / G2 is msi-ec's grouping, not an MSI designation - worth saying out loud
+            // next to a column that otherwise reads like something the vendor prints on the box.
+            int famTextW = TextRenderer.MeasureText(headers[2], FHead).Width;
+            HelpDot.Render(g, new RectangleF(cx[2] + famTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
+            _familyHeaderRect = new Rectangle(cx[2], 0, famTextW + 30, HeadH);
+
             int sbTextW = TextRenderer.MeasureText(headers[5], FHead).Width;
             HelpDot.Render(g, new RectangleF(cx[5] + sbTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
             _sbHeaderRect = new Rectangle(cx[5], 0, sbTextW + 30, HeadH);

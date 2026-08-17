@@ -1484,6 +1484,23 @@ public static class Lang
         m["mdl_curve_edit"] = new[] { "editable", "edytowalna", "editierbar", "modifiable", "editable", "可编辑", "editável", "редактируемая", "編集可", "편집 가능", "可編輯", "düzenlenebilir", "sửa được", "dapat diedit", "modificabile" };
         m["mdl_curve_prev"] = new[] { "unverified", "niezweryfikowany", "unbestätigt", "non vérifiée", "sin verificar", "未验证", "não verificada", "не проверена", "未検証", "미검증", "未驗證", "doğrulanmadı", "chưa xác minh", "belum diverifikasi", "non verificata" };
         m["mdl_curve_vopt"] = new[] { "verified (opt-in)", "zweryfikowana (opt-in)", "bestätigt (Opt-in)", "vérifiée (opt-in)", "verificada (opt-in)", "已验证（需启用）", "verificada (opt-in)", "проверена (opt-in)", "検証済み（オプトイン）", "검증됨 (옵트인)", "已驗證（需啟用）", "doğrulandı (isteğe bağlı)", "đã xác minh (cần bật)", "terverifikasi (opsional)", "verificata (opt-in)" };
+        m["mdl_family_tip"] = new[] {
+            "Family\nEC register layout, not an MSI designation.\nG2 writes 0xD2 / 0xD4, G1 writes 0xF2 / 0xF4.\nThe G1 / G2 names follow msi-ec's own grouping,\nso both tables can be compared side by side.",
+            "Rodzina\nUkład rejestrów EC, nie oznaczenie MSI.\nG2 pisze 0xD2 / 0xD4, G1 pisze 0xF2 / 0xF4.\nNazwy G1 / G2 idą za nazewnictwem msi-ec,\nżeby dało się porównywać obie tabele.",
+            "Familie\nEC-Registerlayout, keine MSI-Bezeichnung.\nG2 schreibt 0xD2 / 0xD4, G1 schreibt 0xF2 / 0xF4.\nDie Namen G1 / G2 folgen der Gruppierung von msi-ec,\ndamit sich beide Tabellen vergleichen lassen.",
+            "Famille\nDisposition des registres EC, pas une désignation MSI.\nG2 écrit 0xD2 / 0xD4, G1 écrit 0xF2 / 0xF4.\nLes noms G1 / G2 suivent le regroupement de msi-ec,\npour que les deux tableaux soient comparables.",
+            "Familia\nDisposición de registros EC, no una designación de MSI.\nG2 escribe 0xD2 / 0xD4, G1 escribe 0xF2 / 0xF4.\nLos nombres G1 / G2 siguen la agrupación de msi-ec,\npara poder comparar ambas tablas.",
+            "系列\nEC 寄存器布局，并非 MSI 的官方命名。\nG2 写入 0xD2 / 0xD4，G1 写入 0xF2 / 0xF4。\nG1 / G2 沿用 msi-ec 的分组命名，\n方便与其表格对照。",
+            "Família\nLayout dos registos EC, não uma designação da MSI.\nG2 escreve 0xD2 / 0xD4, G1 escreve 0xF2 / 0xF4.\nOs nomes G1 / G2 seguem o agrupamento do msi-ec,\npara que as duas tabelas possam ser comparadas.",
+            "Семейство\nРаскладка регистров EC, а не обозначение MSI.\nG2 пишет 0xD2 / 0xD4, G1 пишет 0xF2 / 0xF4.\nНазвания G1 / G2 следуют группировке msi-ec,\nчтобы обе таблицы можно было сравнивать.",
+            "ファミリー\nEC レジスタの配置で、MSI の呼称ではありません。\nG2 は 0xD2 / 0xD4、G1 は 0xF2 / 0xF4 に書き込みます。\nG1 / G2 という名前は msi-ec の分類に合わせてあり、\n両方の表を並べて比較できます。",
+            "제품군\nEC 레지스터 배치이며 MSI의 명칭이 아닙니다.\nG2는 0xD2 / 0xD4, G1은 0xF2 / 0xF4에 씁니다.\nG1 / G2 이름은 msi-ec의 분류를 따르므로\n두 표를 나란히 비교할 수 있습니다.",
+            "系列\nEC 暫存器配置，並非 MSI 的官方命名。\nG2 寫入 0xD2 / 0xD4，G1 寫入 0xF2 / 0xF4。\nG1 / G2 沿用 msi-ec 的分組命名，\n方便與其表格對照。",
+            "Aile\nEC yazmaç düzeni, MSI'nin verdiği bir ad değil.\nG2 0xD2 / 0xD4, G1 0xF2 / 0xF4 yazar.\nG1 / G2 adları msi-ec'in kendi gruplamasını izler,\nböylece iki tablo karşılaştırılabilir.",
+            "Dòng\nBố trí thanh ghi EC, không phải tên gọi của MSI.\nG2 ghi 0xD2 / 0xD4, G1 ghi 0xF2 / 0xF4.\nTên G1 / G2 theo cách nhóm của msi-ec,\nđể có thể đối chiếu hai bảng.",
+            "Keluarga\nTata letak register EC, bukan sebutan dari MSI.\nG2 menulis 0xD2 / 0xD4, G1 menulis 0xF2 / 0xF4.\nNama G1 / G2 mengikuti pengelompokan msi-ec,\nagar kedua tabel bisa dibandingkan.",
+            "Famiglia\nDisposizione dei registri EC, non una sigla MSI.\nG2 scrive 0xD2 / 0xD4, G1 scrive 0xF2 / 0xF4.\nI nomi G1 / G2 seguono il raggruppamento di msi-ec,\ncosì le due tabelle si possono confrontare.",
+        };
         m["mdl_sb_tip"]     = new[] {
             "Super Battery\nWhether the model has a dedicated super-battery\nregister (deepest power/battery throttle).\nAffects the Super Battery profile.",
             "Super Battery\nCzy model ma dedykowany rejestr super-baterii\n(najgłębszy throttle mocy/baterii).\nWpływa na profil Super Battery.",

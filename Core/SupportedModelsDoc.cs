@@ -33,7 +33,7 @@ internal static class SupportedModelsDoc
         L();
         L("Column meaning:");
         L();
-        L("- **Family** - EC register layout. **G2** = shift `0xD2` / fan `0xD4` / super-batt `0xEB` / charge `0xD7` (same as the tested board). **G1** = shift `0xF2` / fan `0xF4` / charge `0xEF`, older boards.");
+        L("- **Family** - EC register layout, not an MSI designation. **G2** = shift `0xD2` / fan `0xD4` / super-batt `0xEB` / charge `0xD7` (same as the tested board). **G1** = shift `0xF2` / fan `0xF4` / charge `0xEF`, older boards. The **G1** / **G2** names follow [msi-ec](https://github.com/BeardOverflow/msi-ec)'s own grouping so the two tables can be read side by side; GhostDeck derives the label from the shift address it already stores for each model.");
         L("- **Status** - &#9989; tested = verified on hardware; &#9887;&#65039; experimental = documented registers, not yet confirmed by an owner (the low-power \"Silent\" behaviour in particular).");
         L("- **Fan curve** - &#9989; editable = the curve tab writes the curve; &#9989; verified (opt-in) = the curve itself is owner-verified while the model still awaits its profile checks, so editing needs the Experimental opt-in; \"(single fan)\" = iGPU model, only the CPU table applies; &#9673; unverified = editable once Experimental is enabled, but the table addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`, shared across the G2 family by MControlCenter) are not yet confirmed on that exact model - compare with MSI Center first; &mdash; = no curve support (profiles only).");
         L("- **Super Battery** - whether the model exposes a super-battery throttle register.");
