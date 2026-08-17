@@ -48,10 +48,13 @@ OUR_DEFAULTS = {"shift": 0xD2, "fan": 0xD4, "charge": 0xD7}
 # prefixes listed here are excluded from the mismatch section.
 MISMATCH_WAIVERS: set[str] = set()
 
-# Address pairs treated as equivalent (ours, upstream). msi-ec standardises battery charge
-# control on 0xEF across every conf; on the G2 family we write 0xD7 (0x80|percent), verified
-# on real hardware (GE78HX and other Tested models) - both work, not a divergence to chase.
-CHARGE_EQUIV: set[tuple[int, int]] = {(0xD7, 0xEF)}
+# Address pairs (ours, upstream) to accept as equivalent instead of reporting a mismatch.
+# Empty on purpose: our charge addresses match upstream on both families, G1 on 0xEF (all 35
+# G1 entries set it explicitly) and G2 on 0xD7 (our default), so nothing needs a waiver. Keep
+# it empty unless a divergence is confirmed on hardware - a blanket 0xD7/0xEF pair here would
+# silence exactly the failure worth catching, a G1 entry losing its explicit ChargeCtrl and
+# silently inheriting the G2 default.
+CHARGE_EQUIV: set[tuple[int, int]] = set()
 
 # No-Silent prefixes already known and tracked (the 2026-07-28 review; see the tracking
 # issue and TECHNICAL §36). Hidden from the weekly report so it stays quiet; remove entries

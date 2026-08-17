@@ -11,7 +11,7 @@
 [![15 languages](https://img.shields.io/badge/UI-15%20languages-8d63ff)](#features)
 [![License](https://img.shields.io/github/license/wygodad/ghostdeck?color=98a0ae)](LICENSE)
 
-A lightweight, **independent** Windows **tray app** to switch MSI laptop power profiles - **Silent / Balanced / Extreme / Super Battery** - instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile. **Every release is a digitally signed `GhostDeck.exe`** - Windows shows the verified publisher instead of "Unknown", and a tampered file fails the check ([details](#digitally-signed-releases)).
+A lightweight, **independent** Windows **tray app** to switch MSI laptop power profiles - **Silent / Balanced / Extreme / Super Battery** - instantly via global hotkeys, the tray menu, or auto-switch on AC/battery, with an on-screen overlay showing the active profile. **Every release is digitally signed** - Windows shows the verified publisher instead of "Unknown", and a tampered file fails the check ([details](#digitally-signed-releases)).
 
 Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to the Embedded Controller (EC) through MSI's own **WMI interface**, carried by Windows' built-in ACPI driver - **no kernel driver, no disabling of Windows security** - and it does not need MSI Center running. One prerequisite on a freshly installed Windows: MSI Center must be installed **once** to deploy the MSI WMI schema Windows needs (it can be uninstalled afterwards) - see **[docs/MSI-WMI-SCHEMA.md](docs/MSI-WMI-SCHEMA.md)**.
 
@@ -72,7 +72,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
 - 🗄️ **Signed model-database updates** - support for newly verified models and fan curves arrives **without waiting for a release**: the app fetches a **digitally signed** model database from the repo at every start, when you open the Models tab, or on demand from Settings → System, and applies it straight away when it is newer. Signature verified on every load, older files rejected, anything invalid falls back to the built-in tables - a bad download can never break the app
 - ⬇️ **In-app updates** - a daily update check (can be disabled) with a tray notification, plus **one-click install from the Updates tab**: it downloads the new release, shows a progress bar and restarts itself on the new version (the previous `.exe` is kept as a `.bak` and cleaned up on next start); falls back to the download page if the download fails. The tab also lists the **last 20 releases with download counts and full release notes readable inline** (click an entry to expand), and recovers from a lost connection on its own (retry button + automatic re-check)
-- 🔏 **Digitally signed releases** - every `GhostDeck.exe` published since v1.24.0 carries a verified publisher signature ("WYGODA DAWID FENIX INSPIRE"), so Windows can confirm who built it and that nobody tampered with it - see [Download](#download) for what that means in practice
+- 🔏 **Digitally signed releases** - every release published since v1.24.0 carries a verified publisher signature ("WYGODA DAWID FENIX INSPIRE"), so Windows can confirm who built it and that nobody tampered with it - see [Download](#download) for what that means in practice
 - 📣 **Announcements & feedback** - occasional in-app notices (tray balloon + a dismissible banner) fetched read-only from the repo on the same daily check; a **Send feedback…** tray entry opens GitHub Discussions. No data is collected by the app (a plain download, same privacy footprint as the update check); both can be turned off with the update-check toggle
 
 ![Keep it cool. Keep it quiet. Keep control.](docs/images/banner-thermal.png)
@@ -118,7 +118,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | One-click diagnostic package for bug reports | ❌ | ✅ |
 | Measured comparison of the power profiles under load | ❌ | ✅ *(Power test: same CPU + GPU load in each profile, sampled every second, baseline measured twice)* |
 | Works with any / no MSI Center version | ❌ | ✅ |
-| Installed size | ~950 MB⁴ + background services | ~155 MB⁵ *(single portable .exe, no services)* |
+| Installed size | ~950 MB⁴ + background services | ~2.5 MB⁵ *(single portable .exe, no services)* |
 | RGB / per-key lighting / other MSI-Center features | ✅ | ❌ |
 | In-app self-update | ✅ | ✅ *(one-click install + restart)* |
 | Open source | ❌ | ✅ |
@@ -167,8 +167,10 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 
 ## Download
 
-Grab the latest **`GhostDeck.exe`** from the [**Releases**](../../releases) page.
-It's a single, self-contained file - no install, no .NET runtime needed. Run it and approve the UAC prompt (EC access requires administrator).
+Grab the latest **`GhostDeck-win-x64.exe`** from the [**Releases**](../../releases) page.
+It's a single file, no install. GhostDeck 1.35.0+ requires the **[.NET 8 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/8.0)** - most machines already have it, and Windows offers the download if it is missing. Run it and approve the UAC prompt (EC access requires administrator).
+
+> **Upgrading from v1.34.x or earlier?** Install v1.35.0 by hand. The release file is named differently now, so the in-app updater in older versions opens this page instead of replacing your copy.
 
 **Requirements:** Windows 11 or Windows 10, **64-bit (x64) only** - there is no 32-bit or ARM64 build. No .NET install needed (the runtime ships inside the exe). Profile, fan and EC features need an **MSI laptop**; on any other machine, or on an unrecognised firmware, the app starts read-only.
 
@@ -178,9 +180,9 @@ It's a single, self-contained file - no install, no .NET runtime needed. Run it 
 
 - **You know who made it** - right-click the exe → Properties → **Digital Signatures** shows **"WYGODA DAWID FENIX INSPIRE"** (the developer's registered company). Windows shows the same name in the UAC prompt instead of "Unknown publisher".
 - **Nobody tampered with it** - if even one byte of the file were modified after signing (by malware, a broken download, or a fake mirror), the signature check fails visibly.
-- **Fewer scary warnings over time** - SmartScreen and antivirus tools treat consistently-signed software as increasingly trustworthy, so "Windows protected your PC" prompts fade away as the signature builds reputation.
+- **Publisher identity and integrity** - Authenticode lets Windows and security tools identify who published the file and verify that nobody altered it after signing.
 
-**A `GhostDeck.exe` v1.24.0+ without this signature is not an official build - don't run it.**
+**If a file presented as an official v1.24.0+ release does not carry this signature, don't run it.**
 
 #### What is signed, and how you can check it yourself
 
@@ -188,7 +190,7 @@ Three different things carry a signature, for three different reasons. None of t
 
 | What | Signed with | What it proves | How to check |
 |---|---|---|---|
-| **`GhostDeck.exe`** from a release | Authenticode (Azure Artifact Signing) | The file you downloaded came from us and nothing altered it on the way | Right-click the exe → Properties → **Digital Signatures** → "WYGODA DAWID FENIX INSPIRE" |
+| **The release .exe** | Authenticode (Azure Artifact Signing) | The file you downloaded came from us and nothing altered it on the way | Right-click the exe → Properties → **Digital Signatures** → "WYGODA DAWID FENIX INSPIRE" |
 | **`data/models.json`** - the model database | ECDSA P-256, public key in [`tools/model-signing.pub`](tools/model-signing.pub) | The model list the app downloads between releases is ours; a swapped or older file is refused | The app verifies it on every load and falls back to its built-in tables if anything is off |
 | **Commits and tags** in this repository | SSH signing key registered on the GitHub account | The history CI builds from really is the maintainer's, not someone using the same name in `user.email` | GitHub shows **Verified** next to the commit; `git verify-commit <sha>` locally |
 
@@ -204,7 +206,7 @@ Each model is **✅ tested** (verified on real hardware) or **⚗️ experimenta
 
 Experimental models are **opt-in**: enable them in *Settings → Power → "Enable experimental models"*. They write only documented MSI shift/fan registers (low risk), but switching may not give the same low-power "Silent" until an owner confirms it.
 
-**147 models** are recognised, grouped into two EC families taken from the [msi-ec](https://github.com/BeardOverflow/msi-ec) maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter):
+**147 models** are recognised, grouped into EC families using hardware mapping information documented by [msi-ec](https://github.com/BeardOverflow/msi-ec), with fan and temperature register layouts cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter):
 
 | Tier | Models | EC firmware / registers | Fan curve |
 |---|---|---|---|
@@ -212,7 +214,7 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 | ⚗️ **G2 family** (110) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
 | ⚗️ **G1 family** (35) | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | shift `0xF2` / fan `0xF4` / charge `0xEF` | - profiles only |
 
-The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; on experimental models the curve is editable once you opt in, but stays flagged **unverified** until you compare it with MSI Center on your own model. See the **[full per-firmware list of all 147 models](docs/SUPPORTED_MODELS.md)** (source of truth: [`Devices.cs`](Core/Devices.cs)). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function - guessing it would be unsafe).
+The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family; on experimental models the curve is editable once you opt in, but stays flagged **unverified** until you compare it with MSI Center on your own model. See the **[full per-firmware list of all 147 models](docs/SUPPORTED_MODELS.md)** (source of truth: [`Devices.cs`](Core/Devices.cs)). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function - guessing it would be unsafe).
 
 **Got a different MSI - or own an experimental one and can confirm it works?** The easiest way is right inside the app: tray menu → **Report my model…** (also a button in the Status window). It walks you through a read-only EC capture in each MSI Center scenario, builds the report, copies it to your clipboard, saves it to a file, and opens a pre-filled GitHub issue - just paste and submit. (Requires MSI Center installed as the scenario reference.)
 
@@ -224,7 +226,9 @@ Prefer to do it by hand? Open a **[Model support request](../../issues/new?templ
 
 ## CLI / automation
 
-Every core action is scriptable - handy for Task Scheduler, Stream Deck, AutoHotkey or plain shortcuts. Run from an **elevated** prompt (EC access needs admin, same as the app):
+Every core action is scriptable - handy for Task Scheduler, Stream Deck, AutoHotkey or plain shortcuts. Run from an **elevated** prompt (EC access needs admin, same as the app).
+
+> The examples below call the executable `GhostDeck.exe`. The release file is named `GhostDeck-win-x64.exe`, so either rename your copy or use that name in the commands.
 
 ```powershell
 GhostDeck.exe --profile Silent        # or Balanced / Extreme / SuperBattery
@@ -257,8 +261,8 @@ Full reference - every command, the `--status` JSON schema and ready-made recipe
 Requires the **.NET 8 SDK**.
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true ^
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+dotnet publish -c Release -r win-x64 --self-contained false ^
+  -p:PublishSingleFile=true -p:DebugType=none -o publish
 ```
 
 The app icon is generated by `tools/gen-icon.ps1` (already committed as `app.ico`).
@@ -317,4 +321,17 @@ The Status window / tray show a `(test)` marker while simulating.
 
 ## License
 
-[MIT](LICENSE) © 2026 wygodad
+**[GPL-3.0-or-later](LICENSE)** © 2026 Dawid Wygoda
+
+GhostDeck is free software: you may redistribute it and modify it under the terms of the GNU
+General Public License, either version 3 or (at your option) any later version. A modified
+version you distribute must keep those freedoms and make its source available.
+
+Releases through **v1.34.x were published under the MIT license** for material the project had
+the right to license under those terms, and existing MIT grants to such material remain in
+effect. **From v1.35.0 onward GhostDeck is distributed under GPL-3.0-or-later.**
+
+The name **GhostDeck** and the project's visual assets are not covered by the code license,
+see [TRADEMARK.md](TRADEMARK.md) and [LICENSE-ASSETS.md](LICENSE-ASSETS.md). Where GhostDeck's
+hardware knowledge came from is recorded in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md);
+licenses of the components bundled in the executable are in [licenses/](licenses/).

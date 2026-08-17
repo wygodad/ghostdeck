@@ -15,7 +15,9 @@
     <RootNamespace>GhostDeck</RootNamespace>
     <Product>GhostDeck</Product>
     <Version>1.0.0</Version>
-    <Company>—</Company>
+    <Company>WYGODA DAWID FENIX INSPIRE</Company>
+    <Copyright>Copyright (C) 2026 Dawid Wygoda</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
