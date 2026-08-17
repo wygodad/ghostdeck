@@ -1,6 +1,6 @@
 # GhostDeck - for MSI laptops
 
-![GhostDeck - one byte brings Silent back](docs/images/banner.svg)
+![GhostDeck - one byte brings Silent back](docs/images/banner.png)
 
 <sub>*(formerly “MSI Profile Switcher” - renamed to keep the project clearly independent of MSI; see [docs/ABOUT_THE_NAME.md](docs/ABOUT_THE_NAME.md))*</sub>
 
@@ -24,7 +24,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 >
 > **[→ Browse the full FAQ](docs/FAQ.md)**
 
-![Silent, Balanced, Extreme, Super Battery - the profiles MSI Center dropped](docs/images/banner-profiles.svg)
+![Silent, Balanced, Extreme, Super Battery - the profiles MSI Center dropped](docs/images/banner-profiles.png)
 
 ## Features
 
@@ -75,7 +75,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔏 **Digitally signed releases** - every `GhostDeck.exe` published since v1.24.0 carries a verified publisher signature ("WYGODA DAWID FENIX INSPIRE"), so Windows can confirm who built it and that nobody tampered with it - see [Download](#download) for what that means in practice
 - 📣 **Announcements & feedback** - occasional in-app notices (tray balloon + a dismissible banner) fetched read-only from the repo on the same daily check; a **Send feedback…** tray entry opens GitHub Discussions. No data is collected by the app (a plain download, same privacy footprint as the update check); both can be turned off with the update-check toggle
 
-![Keep it cool. Keep it quiet. Keep control.](docs/images/banner-thermal.svg)
+![Keep it cool. Keep it quiet. Keep control.](docs/images/banner-thermal.png)
 
 ## Comparison with MSI software
 
@@ -132,7 +132,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 
 > The comparison is against **MSI Center 2.0** (the version that dropped Silent). This app is an **unofficial, independent** project - **not affiliated with, endorsed, sponsored or supported by MSI**. "MSI", "MSI Center" and "Cooler Boost" are trademarks of Micro-Star International Co., Ltd.; they are used here only descriptively to state compatibility.
 
-![GhostDeck](docs/images/banner-hologram.svg)
+![GhostDeck](docs/images/banner-hologram.png)
 
 ## Screenshots
 
@@ -196,7 +196,7 @@ The third one closes the last gap in the chain: a signed binary is only as trust
 it was built from. Commits are signed from 2026-08-16 onward - anything older predates the key and
 is unsigned, which is expected and not a warning sign.
 
-![Power & fan control for MSI laptops - no kernel driver](docs/images/banner-glitch.svg)
+![Power & fan control for MSI laptops - no kernel driver](docs/images/banner-glitch.png)
 
 ## Supported models
 
@@ -220,7 +220,7 @@ The G2 fan-curve tables use the fixed addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`
 
 Prefer to do it by hand? Open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
 
-![ghostdeck --profile silent](docs/images/banner-terminal.svg)
+![ghostdeck --profile silent](docs/images/banner-terminal.png)
 
 ## CLI / automation
 
