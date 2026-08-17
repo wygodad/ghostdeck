@@ -4,9 +4,17 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+> **Upgrading from v1.34.0?** Install this one by hand. The release file is named
+> `GhostDeck-win-x64.exe` now, so the updater in your copy cannot swap it for you: pressing
+> Install reports a failed download and opens this page. That is expected, nothing is broken and
+> your installed copy is left untouched. Download the file from here, and make sure the
+> [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) is installed.
+> Updates after this one work normally again.
+
 ### Changed
-- **GhostDeck is now licensed under GPL-3.0-or-later.** Releases up to and including v1.34.x were published under the MIT license and that grant still applies to them; from this release the code is GPL. You may still use, study, modify and redistribute GhostDeck freely, but a modified version you distribute has to keep those freedoms and make its source available. The name, the logo and the application icons are not covered by the code license, see `TRADEMARK.md` and `LICENSE-ASSETS.md`. A new `THIRD-PARTY-NOTICES.md` records where GhostDeck's hardware knowledge came from, naming the upstream files it was researched from and what was used from each; `licenses/` carries the licenses of the components bundled in the executable.
+- **GhostDeck is now licensed under GPL-3.0-or-later.** Releases through v1.34.x were published under the MIT license for material the project had the right to license under those terms, and existing MIT grants to such material remain in effect; from this release the code is GPL. You may still use, study, modify and redistribute GhostDeck freely, but a modified version you distribute has to keep those freedoms and make its source available. The name and the project's visual assets are not covered by the code license, see `TRADEMARK.md` and `LICENSE-ASSETS.md`. A new `THIRD-PARTY-NOTICES.md` records where GhostDeck's hardware knowledge came from, naming the upstream files it was researched from and what was used from each; `licenses/` carries the licenses of the components bundled in the executable.
 - **The download is now one small file instead of one large one.** GhostDeck used to ship with the whole .NET runtime packed inside the executable, which made it about 160 MB. It is now built framework-dependent, so the download is around 2.5 MB and updates are correspondingly quicker. In exchange the **.NET 8 Desktop Runtime has to be installed** - most machines already have it, and Windows offers the download if it is missing. The release asset is named `GhostDeck-win-x64.exe`.
+- **Banners in the README are raster images now.** The generator used to convert every glyph to vector paths, which put outlines of Windows fonts in the repository; it draws text to a bitmap instead, at twice the previous resolution.
 
 ### Added
 - **The battery charge limit can be any value from 20 to 100 %**, not just 60 / 80 / 100. The three presets stay one click away - they are what MSI Center offers and the only values verified on real hardware - and a fourth segment, **Custom**, opens a slider for anything in between; the custom value is remembered, so switching between a preset and your own number is one click. A line under the slider says plainly that other values are written through the same register but nobody has measured whether every firmware honours them exactly. Scenes and `--charge` accept the full range too, and a scene keeps a custom value instead of rounding it to a preset.
