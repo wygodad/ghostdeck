@@ -848,8 +848,18 @@ print into the parent terminal.
   `ApplyPresetFromTray`, `PanicReset`) - so every gate (tier, experimental opt-in) and every OSD /
   ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
-  (`Tier.Tested` or `ExperimentalEnabled`), apply directly via `Ec.*`, log to the shared
+  (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
   ChangeLog file, exit. `--overlay` is the one command that requires the running app.
+
+**Per-model experimental consent (1.36).** The old global `ExperimentalEnabled` switch is
+replaced by `ExperimentalWriteFw`, a list of firmware prefixes the owner explicitly allowed
+writes for. The gate compares against `DeviceProfile.MatchedPrefix(firmware)`, so consent is
+tied to the exact prefix that matched: a BIOS update that changes the prefix drops the machine
+back to read-only until the owner consents again. The Settings row only appears when the
+detected machine is experimental, and it names the prefix it would unlock. Migration happens
+once at startup: a legacy `true` narrows to the currently detected prefix (when that machine is
+experimental) and the flag is cleared; the CLI still honours a not-yet-migrated legacy flag
+read-only, so a one-shot call cannot disagree with a settings file the tray has not touched yet.
 
 CLI profile changes count as user-initiated (the user ran the command), mirroring hotkeys; log
 entries use the `Cli` source. Elevation is required for EC access exactly like the app itself.

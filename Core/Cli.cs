@@ -203,7 +203,11 @@ public static class Cli
         var settings = AppSettings.Load();
         string fw = Ec.ReadFirmware();
         var dev = Devices.Detect(fw);
-        bool writable = dev != null && (dev.Tier == Tier.Tested || settings.ExperimentalEnabled);
+        // Legacy ExperimentalEnabled is honoured read-only here: a one-shot CLI call must not
+        // lose to a settings file the tray app has not migrated yet.
+        bool writable = dev != null && (dev.Tier == Tier.Tested
+            || settings.ExperimentalWriteAllowedFor(dev.MatchedPrefix(fw))
+            || settings.ExperimentalEnabled);
 
         // A travel mode whose date passed is caught up on any one-shot invocation - without the
         // tray app running there is no poll to do it. --diag keeps its read-only promise.

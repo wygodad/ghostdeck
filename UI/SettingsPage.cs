@@ -187,7 +187,9 @@ public sealed class SettingsPage : ThemedPage
 
         string sys = string.Format(Lang.T("st2_system"),
             Lang.T(s.Autostart ? "st_on" : "st_off"), Lang.T(s.UpdateCheckEnabled ? "st_on" : "st_off"));
-        if (s.ExperimentalEnabled) sys += " · " + Lang.T("st2_exp");   // worth surfacing: it gates EC writes
+        var homeFw = D.Firmware();
+        if (s.ExperimentalWriteAllowedFor(Devices.Detect(homeFw)?.MatchedPrefix(homeFw)))
+            sys += " · " + Lang.T("st2_exp");   // worth surfacing: it gates EC writes on this machine
         _tiles[5].SetState(sys, s.Autostart);
 
         foreach (var t in _tiles) t.SyncToggle();
@@ -345,7 +347,21 @@ public sealed class SettingsPage : ThemedPage
 
         var start = new CardSection(Lang.T("set_grp_start"), "");
         start.AddRow(Lang.T("set_autostart"), Toggle(D.Settings.Autostart, v => { D.Settings.Autostart = v; try { Autostart.Set(v); } catch { } D.SaveSettings(); }));
-        start.AddRow(Lang.T("experimental_enable"), Toggle(D.Settings.ExperimentalEnabled, v => { D.Settings.ExperimentalEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
+        // Per-model consent: the row exists only when the detected machine is experimental,
+        // and the consent is keyed to the matched firmware prefix (see DeviceProfile.MatchedPrefix).
+        {
+            string fw = D.Firmware();
+            var det = Devices.Detect(fw);
+            string? expFw = det is { Tier: Tier.Experimental } ? det.MatchedPrefix(fw) : null;
+            if (expFw != null)
+                start.AddRow(string.Format(Lang.T("experimental_enable_fw"), expFw),
+                    Toggle(D.Settings.ExperimentalWriteAllowedFor(expFw), v =>
+                    {
+                        if (v) { if (!D.Settings.ExperimentalWriteAllowedFor(expFw)) D.Settings.ExperimentalWriteFw.Add(expFw); }
+                        else D.Settings.ExperimentalWriteFw.RemoveAll(x => string.Equals(x, expFw, StringComparison.OrdinalIgnoreCase));
+                        D.SaveSettings(); D.SettingsChanged();
+                    }));
+        }
         _gLeft[SubSystem].Add(start);
 
         // ---- Power group: battery card + display card ----

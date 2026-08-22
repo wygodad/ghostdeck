@@ -84,7 +84,22 @@ public sealed class AppSettings
     public DateTime TravelUntil { get; set; } = DateTime.MinValue;
     public int TravelPrevLimit { get; set; }
     public bool StatusOnTop { get; set; } = false;                     // okno Status "zawsze na wierzchu"
-    public bool ExperimentalEnabled { get; set; } = false;             // pozwol na zapis dla modeli Experimental
+    public bool ExperimentalEnabled { get; set; } = false;             // LEGACY pre-1.36 global flag; migrated to ExperimentalWriteFw on startup, never written back as true
+    public List<string> ExperimentalWriteFw { get; set; } = new();     // per-model consent: firmware prefixes the owner explicitly allowed writes for
+
+    public bool ExperimentalWriteAllowedFor(string? prefix) =>
+        prefix != null && ExperimentalWriteFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>One-time migration of the legacy global flag: consent narrows to the machine
+    /// it was actually given on. Returns true when something changed and needs a save.</summary>
+    public bool MigrateExperimentalFlag(string? matchedPrefix, bool deviceIsExperimental)
+    {
+        if (!ExperimentalEnabled) return false;
+        if (deviceIsExperimental && matchedPrefix != null && !ExperimentalWriteAllowedFor(matchedPrefix))
+            ExperimentalWriteFw.Add(matchedPrefix);
+        ExperimentalEnabled = false;
+        return true;
+    }
 
     public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases (+ ogloszenia)
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
@@ -469,6 +484,7 @@ public sealed class AppSettings
         TravelPrevLimit = 0;
         StatusOnTop = src.StatusOnTop;
         ExperimentalEnabled = src.ExperimentalEnabled;
+        ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
         UpdateCheckEnabled = src.UpdateCheckEnabled;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
@@ -541,6 +557,7 @@ public sealed class AppSettings
             ChargeLimit = ChargeLimit,
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
+            ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),
             UpdateCheckEnabled = UpdateCheckEnabled,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,

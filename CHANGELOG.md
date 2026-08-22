@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- **Experimental writes are now enabled per model, not globally.** The old switch unlocked
+  every unverified machine in the database at once; the new one, shown only when the detected
+  laptop is experimental, names its firmware prefix and unlocks writes for that machine alone.
+  An existing consent migrates to the detected machine automatically, and a firmware change
+  puts the machine back on read-only until it is consented to again.
 ### Added
 - **Keyboard backlight and Fn/Windows swap on the Creator M14 A13VE** ([#91](../../issues/91)) -
   the owner confirmed both registers by changing them: `0xD3` steps 80-83 with the backlight

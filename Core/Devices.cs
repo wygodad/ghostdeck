@@ -80,6 +80,13 @@ public sealed class DeviceProfile
     public bool Matches(string firmware) =>
         !string.IsNullOrEmpty(firmware) &&
         FirmwarePrefixes.Any(p => firmware.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The firmware prefix this device matched on, or null. Per-model experimental
+    /// write consent is keyed by this exact prefix, so a BIOS update that changes the prefix
+    /// lands back on read-only until the owner consents again.</summary>
+    public string? MatchedPrefix(string firmware) =>
+        string.IsNullOrEmpty(firmware) ? null :
+        FirmwarePrefixes.FirstOrDefault(p => firmware.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 }
 
 public static class Devices

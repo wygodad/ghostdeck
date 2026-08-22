@@ -78,7 +78,7 @@ public sealed class TrayContext : ApplicationContext
     private bool _battLowFired, _battHighFired;
 
     private bool Known => _device != null;
-    private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
+    private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
     // Automatic (non user-initiated) writes are additionally blocked after a firmware change until acknowledged.
     private bool AutoWritable => Writable && !_firmwareChanged;
 
@@ -105,6 +105,8 @@ public sealed class TrayContext : ApplicationContext
         _probeStatus = probe.Status;
         _firmware = probe.Firmware;
         _device = Devices.Detect(_firmware);
+        if (_settings.MigrateExperimentalFlag(_device?.MatchedPrefix(_firmware), _device is { Tier: Tier.Experimental }))
+            _settings.Save();
         // A hard startup failure finally lands in errors.log (#56 was undiagnosable from logs);
         // a transient one gets a bounded retry - one WMI hiccup at launch used to leave the app
         // "unsupported" until the process was restarted.
