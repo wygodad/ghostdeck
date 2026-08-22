@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260823,
+  "dataVersion": 20260824,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / 14V",
@@ -997,11 +997,14 @@
       }
     },
     {
-      "name": "MSI Raider GE68 HX 14VIG",
+      "name": "MSI Raider GE68 HX 14VIG / Vector 16 HX A13V",
       "prefixes": [
         "15M1IMS2"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "shiftEcoValue": "0xC6",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1012,26 +1015,24 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "dodi6161",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/104",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
+          "0xD4=0x1D"
         ],
         "Balanced": [
           "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "Extreme": [
           "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "SuperBattery": [
-          "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
+          "0xD2=0xC6",
+          "0xD4=0x0D"
         ]
       }
     },

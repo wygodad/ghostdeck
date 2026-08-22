@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260823;
+    public const int DataVersion = 20260824;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -523,7 +523,32 @@ public static class Devices
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====
         // G2 modern-HX siblings of the tested 17S1IMS1 board (same 0xD2/0xD4 layout).
         new() { Name = "MSI Vector GP68 HX 13V",            FirmwarePrefixes = new[] { "15M1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Raider GE68 HX 14VIG",          FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Raider GE68 HX 14VIG board (15M1IMS2), also sold as Vector 16 HX A13V - the owner's
+        // report (issue #104, taken on MSI Center 2.0.48, the last lineup with the real Silent
+        // scenario) matches StdRecipes on the three main profiles: shift 0xD2 C1/C1/C4, fan
+        // 0xD4 1D/0D/0D with a true Silent 0x1D. Super Battery is NOT the family canon on this
+        // board: the vendor writes shift 0xC6 (not 0xC2) and never touches 0xEB (00 in every
+        // scenario; 0x50/0x51 rise to 4B/4B there as well), so the recipe mirrors the capture -
+        // 0xC6 and no 0xEB write - and ShiftEcoValue makes detection report it. Eco itself is
+        // unverified on hardware; the power test covers the three main profiles.
+        // TESTED 2026-08-23 on the owner's power-test run (#105): Silent completes 73% of
+        // Balanced's work at 2474 vs 3364 MHz, Extreme adds 10% on top (3649 MHz), recipe bytes
+        // read back intact after every phase, 2% baseline drift. Curve tables hold the family
+        // layout at the shipped ModernCurve addresses (ascending values) - no test curve, so the
+        // curve stays unverified. RPM: single-byte divisors at 0xC9/0xCB as on the Pulse 16 AI
+        // (0xC9 = C8/C8/C8/CD = ~2390-2330 rpm, 0xCB = EB/A6 = ~2030-2880 rpm where the GPU fan
+        // was awake; the wide-pair bytes 0xC8/0xCA sit at 00 in all four columns) - enabled as
+        // the family scheme, owner asked to cross-check against HWiNFO.
+        new() { Name = "MSI Raider GE68 HX 14VIG / Vector 16 HX A13V", FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, ShiftEcoValue = 0xC6,
+                Recipes = new()
+                {
+                    [ProfileId.Silent]       = new (byte, byte)[] { (0xD2, 0xC1), (0xD4, 0x1D) },
+                    [ProfileId.Balanced]     = new (byte, byte)[] { (0xD2, 0xC1), (0xD4, 0x0D) },
+                    [ProfileId.Extreme]      = new (byte, byte)[] { (0xD2, 0xC4), (0xD4, 0x0D) },
+                    [ProfileId.SuperBattery] = new (byte, byte)[] { (0xD2, 0xC6), (0xD4, 0x0D) },
+                },
+                Credit = "dodi6161", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/104" },
         new() { Name = "MSI Raider GE68 HX 14VGG",          FirmwarePrefixes = new[] { "15M2IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Vector 16 HX AI (15M3EMS1) - the first model promoted on a MEASUREMENT rather than on its
         // owner's judgement. The Power test (issue #74) answers all three hardware checks with

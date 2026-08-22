@@ -5,6 +5,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **MSI Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`) promoted to tested** ([#104](../../issues/104),
+  [#105](../../issues/105), thanks @dodi6161) - the owner's per-scenario capture matches the standard
+  recipes on the three main profiles with a real Silent (`0xD4=0x1D`, MSI Center 2.0.48), and his
+  power test shows the Silent cap outright: 73% of Balanced's work at 2474 vs 3364 MHz, Extreme 10%
+  above Balanced, recipe bytes read back intact after every phase. On this board the vendor's Super
+  Battery writes shift `0xC6` and never touches `0xEB`, so the entry carries those exact bytes
+  instead of the family defaults. Fan RPM enabled at `0xC9`/`0xCB` (family scheme, owner asked to
+  cross-check against HWiNFO). 24 models tested.
 - **MSI Creator M14 A13VE (`14P1IWS1`) promoted to tested** ([#91](../../issues/91), thanks
   @otherpartsoftheworld-spec) - his power-test run measured Silent dropping the fan from 3571
   to 2964 rpm at unchanged throughput, with every phase reading its recipe back cleanly.
