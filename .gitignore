@@ -19,3 +19,7 @@ tools/preview.png
 
 # JetBrains Rider
 .idea/
+
+# Python bytecode from tools/
+__pycache__/
+*.pyc
