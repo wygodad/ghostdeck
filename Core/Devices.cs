@@ -692,7 +692,18 @@ public static class Devices
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Thin 15 B12UCX / B12VE (16R8IMS2) - fan curve VERIFIED (issue #111): the test curve sits
+        // byte-for-byte at the shipped 0x72; the GPU part was not written, the same signature as
+        // the sibling 16R8IMS1 (Thin GF63 12VE) on the same MS-16R8 board, and teardown videos of
+        // the Thin 15 B12 chassis show a SINGLE fan, so SingleFan like the sibling. Fan RPM: 0xC9
+        // alive in the curve capture (0xCD = ~2320 rpm), no second tach on a one-fan chassis.
+        // Tier stays Experimental: the owner's per-scenario snapshot (issue #110) matches
+        // StdRecipes 1:1 on every recipe byte, but the power test (issue #112) ran on a busy
+        // machine (own ~82%, 9% drift, and the Extreme phase still carried MSI Center's advanced
+        // curve from the capture two minutes earlier), so the profile proof awaits a clean re-run.
+        new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "arcfybrr", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/111" },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 15 A11SCX",            FirmwarePrefixes = new[] { "16S6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

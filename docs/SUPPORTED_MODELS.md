@@ -115,7 +115,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Summit E16 Flip A11UCT | `1591EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Summit E16 Flip A12UCT / A12MT | `1592EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Sword 17 HX B14VGKG | `17T2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Thin 15 B12UCX / B12VE | `16R8IMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
+| MSI Thin 15 B12UCX / B12VE | `16R8IMS2` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) (single fan) | &#10003; | &#10003; 0xC9 |
 | MSI Thin A15 B7VF | `16RKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Thin A15 B7VF | `16RKIMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Thin GF63 12HW | `16R7IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
