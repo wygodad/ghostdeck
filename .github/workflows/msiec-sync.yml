@@ -2,17 +2,11 @@
 # a GitHub issue when something changed. Report-only by design - it NEVER edits code; new
 # models reach users exclusively through a normal reviewed commit + release.
 # See tools/msiec-sync.py and docs/TECHNICAL.md §36.
-#
-# PAUSED 2026-08-17: the weekly schedule is off while the provenance and licensing of the
-# device table is reviewed. No further model entries are imported from upstream until that
-# review is finished. The job still runs on demand (workflow_dispatch) so the address
-# mismatch check - the early warning that upstream corrected a register we also write -
-# stays available. Re-enable the cron line below once the review lands.
 name: msi-ec sync
 
 on:
-  # schedule:
-  #   - cron: "0 6 * * 1"   # Mondays 06:00 UTC  (paused, see header)
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
   workflow_dispatch:
 
 permissions:
