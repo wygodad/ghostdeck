@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260816;
+    public const int DataVersion = 20260823;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -580,7 +580,13 @@ public static class Devices
         // 0x72, GPU 0x81/0x8A) with ascending values. RPM: 0xC9 varies per scenario
         // (A3/A0/BA/BA = 2930/2990/2570 rpm); 0xCB stays 00, and the msi-ec reporter of the
         // same machine states one fan - so the second tachometer is left off.
-        new() { Name = "MSI Creator M14 A13VE",             FirmwarePrefixes = new[] { "14P1IWS1" }, Tier = Tier.Experimental,
+        // TESTED 2026-08-23 on the owner's power-test run (#91, 2026-08-17): Silent drops the
+        // fan from 3571 to 2964 rpm with work at 99 vs Balanced's 100 - it quiets the machine
+        // without giving up performance - and every phase read its recipe back unchanged with
+        // zero baseline drift. Extreme measured equal to Balanced under the all-core CPU+GPU
+        // load (CPU pinned at ~2457 MHz throughout); likely a shared package budget on this
+        // thin 14" chassis, so C4 is kept as the recipe and the equality is just recorded here.
+        new() { Name = "MSI Creator M14 A13VE",             FirmwarePrefixes = new[] { "14P1IWS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "otherpartsoftheworld-spec", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/91" },
         new() { Name = "MSI Venture 14 AI A2HMG",           FirmwarePrefixes = new[] { "14Q2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

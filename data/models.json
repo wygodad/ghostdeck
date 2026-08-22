@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260816,
+  "dataVersion": 20260823,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / 14V",
@@ -1828,7 +1828,7 @@
       "prefixes": [
         "14P1IWS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "fanCurve": {
         "advancedModeValue": "0x8D",

@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- **MSI Creator M14 A13VE (`14P1IWS1`) promoted to tested** ([#91](../../issues/91), thanks
+  @otherpartsoftheworld-spec) - his power-test run measured Silent dropping the fan from 3571
+  to 2964 rpm at unchanged throughput, with every phase reading its recipe back cleanly.
+  Extreme measured equal to Balanced under the combined CPU+GPU load (clock pinned at
+  ~2457 MHz), consistent with a shared package budget on this thin 14" chassis; the recipe is
+  unchanged and the equality is recorded in the device table. 23 models tested.
 
 ## [1.35.0] - 2026-08-17
 > **Upgrading from v1.34.0?** Install this one by hand. The release file is named
