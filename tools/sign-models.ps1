@@ -1,3 +1,4 @@
+#Requires -Version 7
 # Signs data/models.json -> data/models.json.sig (ECDSA P-256 / SHA-256, DER, base64).
 # Run with pwsh 7+ after every model-data change:
 #   1. bump Devices.DataVersion, build
