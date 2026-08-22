@@ -590,7 +590,22 @@ public static class Devices
         new() { Name = "MSI Modern 14 B11MOU",              FirmwarePrefixes = new[] { "14D3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E14 Flip Evo A12MT",     FirmwarePrefixes = new[] { "14F1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // moved to the Tested block above (issues #60 / #61) - Modern 14 C12M (14J1IMS1)
-        new() { Name = "MSI Stealth 14 Studio A13VF",       FirmwarePrefixes = new[] { "14K1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Stealth 14 Studio A13VF (14K1EMS1) - owner-verified end to end in one evening (issues
+        // #107/#108/#109, MSI Center 2.0.48, the last lineup with the real Silent scenario). The
+        // per-scenario dump matches StdRecipes 1:1 in all four scenarios (shift 0xD2 C1/C1/C4/C2,
+        // fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery). Curve VERIFIED (#107):
+        // the test curve (CPU 25/35/45/55/65/75, GPU 20/30/40/50/60/70) sits byte-for-byte at the
+        // shipped 0x72 / 0x8A. Power test (#108, 3% drift, recipes read back intact each phase):
+        // Silent completes 103% of Balanced's work at 3591 MHz while running 4 C cooler at lower
+        // fan duty (81 vs 85%) - the combined CPU+GPU load is heat-limited on this thin 14"
+        // chassis, so the profiles converge under full load (same pattern as the Stealth 17
+        // Studio, #82); Silent still buys the firmware's quiet-fan preset. RPM at 0xC9/0xCB,
+        // single-byte divisors, alive in every capture (B3/AE/B2/B5 and B2/B4/B2/B3, ~2600-2750
+        // rpm). 0xD6 flips to 03 in Extreme on its own (EC-driven at 0xD2=C4, nothing writes it) -
+        // fourth board showing the D6/power-level link tracked since #52.
+        new() { Name = "MSI Stealth 14 Studio A13VF",       FirmwarePrefixes = new[] { "14K1EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "kltk", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/109" },
         new() { Name = "MSI Stealth 14 AI Studio A1VGG / A1VFG", FirmwarePrefixes = new[] { "14K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 H D13M",              FirmwarePrefixes = new[] { "14L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 AI Evo C1MG",       FirmwarePrefixes = new[] { "14N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

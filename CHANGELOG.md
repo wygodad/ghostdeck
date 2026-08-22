@@ -14,7 +14,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **The `17S2IMS2` entry is named "MSI Raider GE78HX 13V / Vector 17 HX A14V"** - every report
   of that firmware on record comes from Vector 17 HX owners ([#32](../../issues/32)), so the
   entry now names the machines that supplied the evidence.
-### Changed
+- **MSI Stealth 14 Studio A13VF (`14K1EMS1`) promoted to tested, fan curve verified** ([#107](../../issues/107),
+  [#108](../../issues/108), [#109](../../issues/109), thanks @kltk) - the owner's capture matches the standard
+  recipes byte for byte in all four scenarios, and his test curve was found byte for byte at the
+  shipped curve addresses, so the curve editor is confirmed on this board. His power test shows the
+  known thin-chassis pattern: under a full combined load Silent completes the same work as Balanced
+  while running 4 C cooler at lower fan speed (the machine is heat-limited, so the profiles converge;
+  Silent still applies the firmware's quiet-fan preset). Fan RPM enabled at `0xC9`/`0xCB`. 25 models
+  tested.
 - **MSI Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`) promoted to tested** ([#104](../../issues/104),
   [#105](../../issues/105), thanks @dodi6161) - the owner's per-scenario capture matches the standard
   recipes on the three main profiles with a real Silent (`0xD4=0x1D`, MSI Center 2.0.48), and his
