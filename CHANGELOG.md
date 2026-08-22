@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Keyboard backlight and Fn/Windows swap on the Creator M14 A13VE** ([#91](../../issues/91)) -
+  the owner confirmed both registers by changing them: `0xD3` steps 80-83 with the backlight
+  level and `0xE8` reads 01/11 for the swap, so both maps now carry `14P1IWS1` even though
+  msi-ec still lists only the sibling board.
+
+### Changed
+- **The `17S2IMS2` entry is named "MSI Raider GE78HX 13V / Vector 17 HX A14V"** - every report
+  of that firmware on record comes from Vector 17 HX owners ([#32](../../issues/32)), so the
+  entry now names the machines that supplied the evidence.
 ### Changed
 - **MSI Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`) promoted to tested** ([#104](../../issues/104),
   [#105](../../issues/105), thanks @dodi6161) - the owner's per-scenario capture matches the standard

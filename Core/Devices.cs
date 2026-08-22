@@ -88,7 +88,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260824;
+    public const int DataVersion = 20260825;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -179,7 +179,7 @@ public static class Devices
     private static readonly Dictionary<string, byte> KbdBacklightMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["13P3EMS1"] = 0xD3, ["13P5EMS1"] = 0xD3, ["13Q2EMS1"] = 0xD3, ["13Q3EMS1"] = 0xD3, ["14C4EMS1"] = 0xD3, ["14C6EMS1"] = 0xD3, ["14D2EMS1"] = 0xD3, ["14D3EMS1"] = 0xD3,
-        ["14F1EMS1"] = 0xD3, ["14J1IMS1"] = 0xD3, ["14L1EMS1"] = 0xD3, ["14N1EMS1"] = 0xD3, ["14N2EMS1"] = 0xD3, ["14P1IMS1"] = 0xD3, ["14QKIMS1"] = 0xD3, ["1552EMS1"] = 0xD3,
+        ["14F1EMS1"] = 0xD3, ["14J1IMS1"] = 0xD3, ["14L1EMS1"] = 0xD3, ["14N1EMS1"] = 0xD3, ["14N2EMS1"] = 0xD3, ["14P1IMS1"] = 0xD3, ["14P1IWS1"] = 0xD3, ["14QKIMS1"] = 0xD3, ["1552EMS1"] = 0xD3,
         ["1581EMS1"] = 0xD3, ["1582EMS1"] = 0xD3, ["1583EMS1"] = 0xD3, ["1584EMS1"] = 0xD3, ["1584IMS1"] = 0xD3, ["1585EMS1"] = 0xD3, ["1585EMS2"] = 0xD3, ["158PIMS1"] = 0xD3,
         ["1591EMS1"] = 0xD3, ["1592EMS1"] = 0xD3, ["1594EMS1"] = 0xD3, ["1596EMS1"] = 0xD3, ["159KIMS1"] = 0xD3, ["15A1EMS1"] = 0xD3, ["15A3EMS1"] = 0xD3, ["15H1IMS1"] = 0xD3,
         ["15H2IMS1"] = 0xD3, ["15H5EMS1"] = 0xD3, ["15K1IMS1"] = 0xD3, ["16R6EMS1"] = 0xD3, ["16R7IMS1"] = 0xD3, ["16R8IMS1"] = 0xD3, ["16R8IMS2"] = 0xD3, ["16RKIMS1"] = 0xD3,
@@ -231,7 +231,7 @@ public static class Devices
         ["16W1EMS2"] = (0xBF, true), ["16W2EMS1"] = (0xBF, true), ["16WKEMS1"] = (0xBF, true), ["17K2EMS1"] = (0xBF, true), ["17LLEMS1"] = (0xBF, true),
         // address 0xE8, invert=false
         ["13P3EMS1"] = (0xE8, false), ["13P5EMS1"] = (0xE8, false), ["13Q2EMS1"] = (0xE8, false), ["13Q3EMS1"] = (0xE8, false), ["14F1EMS1"] = (0xE8, false), ["14J1IMS1"] = (0xE8, false),
-        ["14K1EMS1"] = (0xE8, false), ["14K2EMS1"] = (0xE8, false), ["14L1EMS1"] = (0xE8, false), ["14N1EMS1"] = (0xE8, false), ["14N2EMS1"] = (0xE8, false), ["14P1IMS1"] = (0xE8, false),
+        ["14K1EMS1"] = (0xE8, false), ["14K2EMS1"] = (0xE8, false), ["14L1EMS1"] = (0xE8, false), ["14N1EMS1"] = (0xE8, false), ["14N2EMS1"] = (0xE8, false), ["14P1IMS1"] = (0xE8, false), ["14P1IWS1"] = (0xE8, false),
         ["14Q2EMS1"] = (0xE8, false), ["14QKIMS1"] = (0xE8, false), ["14T2EMS1"] = (0xE8, false), ["15A1EMS1"] = (0xE8, false), ["15A3EMS1"] = (0xE8, false), ["15Q3EMS1"] = (0xE8, false),
         ["15QKIMS1"] = (0xE8, false),
         // address 0xE8, invert=true
@@ -271,9 +271,12 @@ public static class Devices
         // ---------- TESTED ----------
         new()
         {
-            Name = "MSI Raider GE78HX 13V / 14V",     // 17S1IMS1 (13V, also Vector GP78HX 13V) + 17S2IMS2 (14V)
-            // Same board & EC layout (per-scenario dumps 1:1). 14V (17S2IMS2) is owner-confirmed on real
-            // hardware (profile switching works), so it shares Tier.Tested, not Experimental. See TECHNICAL §19.5.
+            Name = "MSI Raider GE78HX 13V / Vector 17 HX A14V",  // 17S1IMS1 (13V, also Vector GP78HX 13V) + 17S2IMS2
+            // MS-17S1 and MS-17S2 are different boards with a dump-confirmed identical EC layout.
+            // Every 17S2IMS2 report on record comes from Vector 17 HX owners (issue #32 here,
+            // msi-ec #668 upstream: "Vector 17 HX A14VGG"); no GE78 HX 14V owner has ever
+            // reported, so the entry is named after the machines that supplied the evidence.
+            // 17S2IMS2 stays Tier.Tested on those confirmations. See TECHNICAL §19.5.
             // The Vector 17 HX A14V ships the same MS-17S2 board (17S2IMS2.112, issue #32): its owner's
             // fan-curve wizard found the test curve at the shipped 0x72/0x8A — independent 14V confirmation.
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
@@ -605,6 +608,10 @@ public static class Devices
         // 0x72, GPU 0x81/0x8A) with ascending values. RPM: 0xC9 varies per scenario
         // (A3/A0/BA/BA = 2930/2990/2570 rpm); 0xCB stays 00, and the msi-ec reporter of the
         // same machine states one fan - so the second tachometer is left off.
+        // Kbd backlight and Fn/Win swap CONFIRMED BY CHANGE by the owner (#91, 2026-08-15
+        // comment): 0xD3 steps 80/81/82/83 with the backlight level (cycle Off->3->2->1) and
+        // 0xE8 reads 01 unswapped / 11 swapped - the same layout as the sibling 14P1IMS1, so
+        // both maps carry this prefix even though msi-ec still lists only the sibling.
         // TESTED 2026-08-23 on the owner's power-test run (#91, 2026-08-17): Silent drops the
         // fan from 3571 to 2964 rpm with work at 99 vs Balanced's 100 - it quiets the machine
         // without giving up performance - and every phase read its recipe back unchanged with

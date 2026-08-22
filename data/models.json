@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260824,
+  "dataVersion": 20260825,
   "models": [
     {
-      "name": "MSI Raider GE78HX 13V / 14V",
+      "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
       "prefixes": [
         "17S1IMS1",
         "17S2IMS2"
@@ -5452,6 +5452,7 @@
       "14N1EMS1": "0xD3",
       "14N2EMS1": "0xD3",
       "14P1IMS1": "0xD3",
+      "14P1IWS1": "0xD3",
       "14QKIMS1": "0xD3",
       "1551EMS1": "0xF3",
       "1552EMS1": "0xD3",
@@ -5603,6 +5604,10 @@
         "invert": false
       },
       "14P1IMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "14P1IWS1": {
         "addr": "0xE8",
         "invert": false
       },
