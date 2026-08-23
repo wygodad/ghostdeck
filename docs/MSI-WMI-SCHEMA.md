@@ -69,6 +69,12 @@ ships only with MSI Center.
   working across reboots. Even MSI's own "MSI Center Cleaner Master" cleanup tool leaves them
   in place. Reinstalling MSI Center later restores the full package cleanly. (All of this was
   measured on one machine, a Raider GE78HX; treat the uninstall part with that caveat.)
+- **Independently confirmed on a second machine (2026-08-19).** The reporter whose fresh-install
+  observation started this investigation ran the diagnostic script on his GE76 Raider
+  (discussion #56): the working `MSI_ACPI` class (29 methods) maps to the same Micro-Star-signed
+  `msiapcfg.dll` MOF resource, `MofImagePath` points at that file, and the NBFoundation package
+  that deployed it is present - the same picture as the development machine in every checked
+  detail.
 - Residual note: with all MSI software removed there is no service left watching the file,
   so a future major Windows upgrade or WMI repository rebuild could in principle orphan the
   schema. The fix is the same one-time MSI Center installation.
