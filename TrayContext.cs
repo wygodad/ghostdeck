@@ -1042,6 +1042,7 @@ public sealed class TrayContext : ApplicationContext
             ChangeLog.Add(ChangeSource.FanCurve,
                 string.Format(Lang.T("log_curve_preset"), p.Name),
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
+            if (_main is { IsDisposed: false } mf) mf.SyncFanCurvePreset(p.Name);   // (#100) keep the editor's view current
             if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), p.Name, _settings.ColorFor(_current));
         }
         catch (Exception ex)

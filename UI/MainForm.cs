@@ -387,6 +387,12 @@ public sealed class MainForm : Form
     public bool CurveEditorHot =>
         _pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fc && fc.CurveHot;
 
+    /// <summary>(#100) A preset was applied from the tray; mirror it in the fan-curve editor.</summary>
+    public void SyncFanCurvePreset(string name)
+    {
+        if (_pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fc) fc.SyncExternalPreset(name);
+    }
+
     /// <summary>A newer model database went live: let every page re-read what it derived from it.</summary>
     public void OnDeviceDbChanged()
     {

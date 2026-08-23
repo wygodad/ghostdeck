@@ -10,7 +10,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   byte read at the moment the submenu opens decides whether a custom curve is running at all,
   so the mark stays truthful after profile switches, and the preset is recognised by its
   points, so it is marked no matter whether it was applied from the tray or from the Fan curve
-  tab; a hand-edited curve matches no preset and ticks nothing.
+  tab; a hand-edited curve matches no preset and ticks nothing. The Fan curve tab also mirrors
+  a preset applied from the tray - the picker and the chart follow, so both surfaces tell the
+  same story.
 
 ### Changed
 - **MSI Katana GF66 12U / Sword 15 A12UC (`1584EMS1`) promoted to tested, with a verified fan

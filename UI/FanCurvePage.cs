@@ -372,6 +372,19 @@ public sealed class FanCurvePage : ThemedPage
         Invalidate();
     }
 
+    /// <summary>(#100) The tray quick-switch applied a saved preset; mirror it here so the
+    /// editor shows the curve the machine is actually running. Loads the points and selects
+    /// the preset without re-applying anything - the EC already has it.</summary>
+    public void SyncExternalPreset(string name)
+    {
+        if (_fc == null || D.Settings.FindPreset(name) is not { } p || !p.IsValid(_fc.Points)) return;
+        _cpuT = (int[])p.CpuTemp.Clone(); _cpuS = (int[])p.CpuSpeed.Clone();
+        _gpuT = (int[])p.GpuTemp.Clone(); _gpuS = (int[])p.GpuSpeed.Clone();
+        _loaded = true;
+        RefreshPresetUi(name);   // selects it in the picker; the sync guard keeps OnPresetPicked from re-applying
+        Invalidate();
+    }
+
     private FanCurvePreset SnapshotPreset(string name) => new()
     {
         Name = name,
