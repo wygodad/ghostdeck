@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Fixed
+- **The tray's Fan curve submenu now marks the active preset** ([#100](../../issues/100)) -
+  a check lands on "Auto (stock)" or on the preset that is actually live in the EC. The fan
+  byte read at the moment the submenu opens decides whether a custom curve is running at all,
+  so the mark stays truthful after profile switches; a curve applied straight from the editor
+  carries no preset name and ticks nothing.
+
 ### Changed
 - **MSI Katana GF66 12U / Sword 15 A12UC (`1584EMS1`) promoted to tested, with a verified fan
   curve and fan RPM** ([#116](../../issues/116), [#119](../../issues/119),

@@ -694,10 +694,26 @@ public sealed class TrayContext : ApplicationContext
                 foreach (var p in _settings.CurvePresets)
                 {
                     string name = p.Name;
-                    var it = new ToolStripMenuItem(name);
+                    var it = new ToolStripMenuItem(name) { Tag = name };
                     it.Click += (_, _) => ApplyPresetFromTray(name);
                     curve.DropDownItems.Add(it);
                 }
+                // (#100) mark the live state when the submenu opens. The EC fan byte is the
+                // truth here: the recorded preset name can outlive a profile switch that already
+                // put the fans back on stock, so the byte decides WHETHER a custom curve is
+                // running and the name only decides WHICH preset gets the tick. A curve applied
+                // straight from the editor carries no preset name and ticks nothing.
+                curve.DropDownOpening += (_, _) =>
+                {
+                    if (_device?.FanCurve is not { } fcv) return;
+                    bool curveLive;
+                    try { curveLive = Ec.ReadByte(_device.FanMode) == fcv.AdvancedModeValue; }
+                    catch { curveLive = _settings.CurveActive; }
+                    auto.Checked = !curveLive;
+                    foreach (ToolStripItem tsi in curve.DropDownItems)
+                        if (tsi is ToolStripMenuItem pmi && pmi.Tag is string pname)
+                            pmi.Checked = curveLive && pname == _settings.CurveName;
+                };
             }
             else curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
             menu.Items.Add(curve);
