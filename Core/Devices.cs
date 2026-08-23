@@ -95,7 +95,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260829;
+    public const int DataVersion = 20260830;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -546,7 +546,25 @@ public static class Devices
 
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====
         // G2 modern-HX siblings of the tested 17S1IMS1 board (same 0xD2/0xD4 layout).
-        new() { Name = "MSI Vector GP68 HX 13V",            FirmwarePrefixes = new[] { "15M1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Vector GP68 HX 13V (15M1IMS1) - fan curve VERIFIED (issue #131): the owner's test
+        // curve sits byte-for-byte at the shipped 0x72/0x8A. RPM enabled at 0xC9/0xCB: live in
+        // his dump (B1/A5) and the same divisor scheme the sister-board 15M1IMS2 owner confirmed
+        // against HWiNFO64; his 0xCA read 01 once - the transient mid-update glitch known from
+        // 15P3EMS1, which the plausibility gate absorbs. Tier stays Experimental (no hardware
+        // checks yet).
+        new() { Name = "MSI Vector GP68 HX 13V",            FirmwarePrefixes = new[] { "15M1IMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Fanilo-Nantenaina", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/131" },
+
+        // Vector A16 HX A8WIG (15MMIMS1) - first owner report of the MS-15MM AMD board (issue
+        // #130, MSI Center 2.0.48, wizard run on a machine the app did not recognise). Snapshot =
+        // standard shift/fan recipes 1:1 (real Silent 0x1D); Super Battery writes no throttle
+        // register (0xEB reads 00 in every scenario), so the eco recipe is the mode byte alone.
+        // Curve VERIFIED on the spot: his test curve sits byte-for-byte at the shipped 0x72/0x8A.
+        // RPM at 0xC9/0xCB, single-byte divisors alive (9F/CD = ~2350-3000 rpm).
+        new() { Name = "MSI Vector A16 HX A8WIG",           FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "Matt99-sys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130" },
         // Raider GE68 HX 14VIG board (15M1IMS2), also sold as Vector 16 HX A13V - the owner's
         // report (issue #104, taken on MSI Center 2.0.48, the last lineup with the real Silent
         // scenario) matches StdRecipes on the three main profiles: shift 0xD2 C1/C1/C4, fan
@@ -720,7 +738,21 @@ public static class Devices
                 Credit = "dmas-dll, Lofre", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27" },
         new() { Name = "MSI Summit E16 Flip A11UCT",        FirmwarePrefixes = new[] { "1591EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E16 Flip A12UCT / A12MT", FirmwarePrefixes = new[] { "1592EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Prestige 16 Studio A13VE",      FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Prestige 16 Studio A13VE / Summit E16 Flip A13VFT (1594EMS1) - one board, two retail
+        // lines; owner-verified (issues #127/#128, MSI Center 2.0.48). Snapshot = StdRecipes 1:1
+        // in all four scenarios; power test clean (2% drift): Silent does 95% of Balanced's work
+        // 7 C cooler on slower fans, Extreme unlocks +34% (4472 MHz), recipes read back intact
+        // each phase. 0xD6 flips to 03 in Extreme by itself - FIFTH board for the #52
+        // observation. RPM at 0xC9/0xCB, single-byte divisors alive (86/87/A0 = ~2700-2840 rpm).
+        // NO FanCurve ON PURPOSE (issue #129): the owner's test curve landed OFF the family
+        // layout - the first four points one byte high (CPU 0x73-0x76, GPU 0x8B-0x8E) and the
+        // last two slots of both tables holding 0x82 (130). MControlCenter reports working fan
+        // control on this exact firmware using SEVEN speed slots from 0x72, so the board is
+        // controllable, but until the slot mapping is decoded we do not write fan tables here.
+        // A second capture with a different test curve was requested in #129.
+        new() { Name = "MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT", FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127" },
         new() { Name = "MSI Summit E16 AI Studio A1VETG",   FirmwarePrefixes = new[] { "1596EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige A16 AI+ A3HMG",        FirmwarePrefixes = new[] { "159KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI Evo B1MG",       FirmwarePrefixes = new[] { "15A1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

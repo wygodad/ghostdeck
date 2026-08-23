@@ -5,6 +5,22 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT (`1594EMS1`) promoted to tested, with
+  fan RPM** ([#127](../../issues/127), [#128](../../issues/128), thanks @Flo827) - one board,
+  two retail names; the capture matches the standard recipes byte for byte and the power test is
+  clean: Silent runs 7 C cooler on slower fans at 95 % of Balanced's work, Extreme unlocks
+  +34 %. The fan-curve editor stays off on this model on purpose: the owner's test curve landed
+  off the family layout ([#129](../../issues/129)), so no fan tables are written until the real
+  slot mapping is decoded. 28 models tested.
+- **New model: MSI Vector A16 HX A8WIG (`15MMIMS1`)** ([#130](../../issues/130), thanks
+  @Matt99-sys) - the first MS-15MM AMD board in the database, reported from a machine the app
+  did not yet recognise: standard shift/fan recipes, Super Battery without a throttle register,
+  the fan curve verified byte for byte at the shipped addresses, and fan RPM at `0xC9`/`0xCB`.
+  148 models recognised.
+- **Vector GP68 HX 13V (`15M1IMS1`): fan curve verified and fan RPM enabled**
+  ([#131](../../issues/131), thanks @Fanilo-Nantenaina) - the owner's test curve sits byte for
+  byte at the shipped addresses, and the tachometers use the divisor scheme its sister board
+  confirmed against HWiNFO64.
 - **GF63 Thin 11UC / 11SC (`16R6EMS1`): CPU fan RPM enabled** ([#118](../../issues/118),
   thanks @SrBeans) - a second owner's dumps show the CPU tachometer alive at `0xC9`; the GPU
   bytes stay empty in every capture, so only the CPU address ships. On the Raider GE68 HX /

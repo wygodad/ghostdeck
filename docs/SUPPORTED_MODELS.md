@@ -2,7 +2,7 @@
 
 > Auto-generated from [`Devices.cs`](../Core/Devices.cs) - the single source of truth. Do not edit by hand: regenerate with `GhostDeck.exe --dump-supported-md docs/SUPPORTED_MODELS.md` (CI fails when this file drifts from the code).
 
-**147 laptop models** are recognised: **27 tested** on real hardware (MSI Bravo 15 B7ED; MSI Bravo 17 C7VE / D7VFK; MSI Creator M14 A13VE; MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK; MSI Crosshair 16 HX AI D2XW; MSI Crosshair A16 HX (D7W/D8W); MSI Cyborg 15 A12VF / A13VF; MSI GE66 Raider / GP66 Leopard; MSI GF63 Thin 11UC / 11SC; MSI Katana 15 HX B14WEK; MSI Katana GF66 11UE / 11UG; MSI Katana GF66 12U / Sword 15 A12UC; MSI Modern 14 C12M; MSI Pulse 16 AI C1VGKG/C1VFKG; MSI Pulse/Katana 17 B13V/GK; MSI Raider A18 HX A7VIG; MSI Raider GE67 HX 12U; MSI Raider GE68 HX 14VIG / Vector 16 HX A13V; MSI Raider GE76 12UE / 12UGS; MSI Raider GE78 HX 14VHG; MSI Raider GE78HX 13V / Vector 17 HX A14V; MSI Stealth 14 Studio A13VF; MSI Sword 16 HX B13V / B14V; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Vector 16 HX AI A2XWHG / A2XWIG; MSI Vector A18 HX A9WHG) and **120 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps, with fan and temperature registers cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
+**148 laptop models** are recognised: **28 tested** on real hardware (MSI Bravo 15 B7ED; MSI Bravo 17 C7VE / D7VFK; MSI Creator M14 A13VE; MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK; MSI Crosshair 16 HX AI D2XW; MSI Crosshair A16 HX (D7W/D8W); MSI Cyborg 15 A12VF / A13VF; MSI GE66 Raider / GP66 Leopard; MSI GF63 Thin 11UC / 11SC; MSI Katana 15 HX B14WEK; MSI Katana GF66 11UE / 11UG; MSI Katana GF66 12U / Sword 15 A12UC; MSI Modern 14 C12M; MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT; MSI Pulse 16 AI C1VGKG/C1VFKG; MSI Pulse/Katana 17 B13V/GK; MSI Raider A18 HX A7VIG; MSI Raider GE67 HX 12U; MSI Raider GE68 HX 14VIG / Vector 16 HX A13V; MSI Raider GE76 12UE / 12UGS; MSI Raider GE78 HX 14VHG; MSI Raider GE78HX 13V / Vector 17 HX A14V; MSI Stealth 14 Studio A13VF; MSI Sword 16 HX B13V / B14V; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Vector 16 HX AI A2XWHG / A2XWIG; MSI Vector A18 HX A9WHG) and **120 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps, with fan and temperature registers cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
 
 Column meaning:
 
@@ -29,6 +29,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Katana GF66 11UE / 11UG | `1581EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Katana GF66 12U / Sword 15 A12UC | `1584EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Modern 14 C12M | `14J1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
+| MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT | `1594EMS1` | G2 | &#9989; tested | &mdash; | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse/Katana 17 B13V/GK | `17L5EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
@@ -85,7 +86,6 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Prestige 15 A12SC / A12UC | `16S8EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige 16 AI Evo B1MG | `15A1EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige 16 AI+ Evo B2VMG | `15A3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Prestige 16 Studio A13VE | `1594EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige A16 AI+ A3HMG | `159KIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE68 HX 14VGG | `15M2IMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE68HX 13V | `15M2IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
@@ -123,8 +123,9 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Titan GT77 12UHS | `17Q1IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Titan GT77HX 13VH | `17Q2IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Vector 17 HX AI A2XWHG | `17S3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
+| MSI Vector A16 HX A8WIG | `15MMIMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Vector GP66 12UGS | `1544EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Vector GP68 HX 13V | `15M1IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
+| MSI Vector GP68 HX 13V | `15M1IMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Venture 14 AI A2HMG | `14Q2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Venture A14 AI+ A3HMG | `14QKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Venture A15 AI A2HMG / A2HMTG | `15QKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
