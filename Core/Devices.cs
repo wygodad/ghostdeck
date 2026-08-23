@@ -95,7 +95,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260828;
+    public const int DataVersion = 20260829;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -413,9 +413,13 @@ public static class Devices
 
         // GF63 Thin 11UC / 11SC (16R6EMS1) — owner per-scenario dump (issue #30) matches
         // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
+        //   RPM enabled from a second owner's dumps (issue #118): the CPU tach reads as a live
+        //   single-byte divisor at 0xC9 (A1/A0/9F = ~2400 rpm) while 0xC8/0xCA/0xCB stay 00 in
+        //   every capture, so only the CPU address ships; reporter asked to cross-check HWiNFO64.
+        //   Credit shared as thanks.
         new() { Name = "MSI GF63 Thin 11UC / 11SC", FirmwarePrefixes = new[] { "16R6EMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Qaron-makaron", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/30" },
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Qaron-makaron, SrBeans", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/30" },
 
         // Katana GF66 11UE / 11UG (1581EMS1) — owner per-scenario dump (issue #34) matches
         // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
@@ -559,6 +563,8 @@ public static class Devices
         // (0xC9 = C8/C8/C8/CD = ~2390-2330 rpm, 0xCB = EB/A6 = ~2030-2880 rpm where the GPU fan
         // was awake; the wide-pair bytes 0xC8/0xCA sit at 00 in all four columns) - enabled as
         // the family scheme, owner asked to cross-check against HWiNFO.
+        //   RPM CONFIRMED by the owner 2026-08-22 (#104 follow-up): GhostDeck's readout matches
+        //   HWiNFO64 "100 percent" on his machine - the divisor hypothesis is hardware fact.
         new() { Name = "MSI Raider GE68 HX 14VIG / Vector 16 HX A13V", FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, ShiftEcoValue = 0xC6,
                 Recipes = new()

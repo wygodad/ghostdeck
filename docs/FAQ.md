@@ -106,6 +106,16 @@ Since **v1.24.0 every release is digitally signed**: right-click the exe → Pro
 
 Additional checks: compare the SHA-256 with the asset on the [Releases](../../../releases) page (`certutil -hashfile GhostDeck.exe SHA256` in a terminal) - every release is built from the public source by GitHub Actions, so the code that produced the exe is fully auditable, and you can always build it yourself (see the README). If a file claiming to be GhostDeck has no signature (v1.24.0+) or a *majority* of engines flag it, don't run it and tell us - that would not be our build.
 
+## I pinned GhostDeck to the taskbar and Windows blocks it ("An App Control policy has blocked this file")
+
+Nothing is broken - you have run into **Smart App Control**, a Windows 11 security feature that ships enabled on fresh installations. One of the things it blocks is **shortcut files (.lnk) that carry the "downloaded from the internet" marker**, and pinning an app creates exactly such a shortcut behind the taskbar button when the exe still carries that marker. That is why the app starts fine directly while the pinned button fails ([Microsoft's description](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-has-blocked-an-app-with-a-dangerous-file-extension)).
+
+The fix: unpin the app, right-click the GhostDeck exe → **Properties** → tick **Unblock** at the bottom of the General tab → OK, then pin it again. If the button still fails, also delete the leftover shortcut: Win+R → `%AppData%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` → delete `GhostDeck.lnk` → pin again. (First reported in discussion #106.)
+
 ## Why does it ask for administrator (UAC)?
 
 EC access via WMI requires elevation. Launching manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**.
+
+## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
+
+A side effect of the answer above. GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.

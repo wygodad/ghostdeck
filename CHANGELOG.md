@@ -5,6 +5,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **GF63 Thin 11UC / 11SC (`16R6EMS1`): CPU fan RPM enabled** ([#118](../../issues/118),
+  thanks @SrBeans) - a second owner's dumps show the CPU tachometer alive at `0xC9`; the GPU
+  bytes stay empty in every capture, so only the CPU address ships. On the Raider GE68 HX /
+  Vector 16 HX A13V the owner confirmed the RPM readout against HWiNFO64
+  ([#104](../../issues/104)). Two new FAQ entries: the Smart App Control block on pinned
+  taskbar shortcuts, and screenshots while an elevated window has focus.
 - **The fan-curve comparison chips moved to their own row, with an on/off checkbox** - they
   shared the preset row, where narrow windows silently clipped them away; now they sit on a
   full-width row between the preset bar and the built-in curve tiles, every chip fits, and a
