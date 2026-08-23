@@ -755,6 +755,12 @@ public static class Devices
         // TODO 32). Note for the whole family: one extra stock byte sits past the sliders at
         // 0x78/0x90 (103% on GE78 boards, 130% here) that MSI Center's UI never writes; we do
         // not touch it either.
+        //   RPM CONFIRMED by the owner (#129 follow-up, 2026-08-23): both fans match HWiNFO64
+        //   side by side (2987/2914). Board quirk from his captures: the GPU DUTY byte reads 0
+        //   at idle while the GPU fan spins (tach alive) - most likely it only reports while
+        //   the dGPU is awake (his power test showed a live value under GPU load); the same
+        //   one-sided-duty family as 17P2EMS1's dead CPU duty. Status then shows "-" on the
+        //   GPU fan dial while the RPM tile stays correct.
         new() { Name = "MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT", FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127" },
