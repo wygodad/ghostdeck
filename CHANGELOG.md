@@ -5,6 +5,21 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **MSI Katana GF66 12U / Sword 15 A12UC (`1584EMS1`) promoted to tested, with a verified fan
+  curve and fan RPM** ([#116](../../issues/116), [#119](../../issues/119),
+  [#120](../../issues/120), thanks @messer2212 and @Error29112002) - one board behind two retail
+  lines: the Katana 12UD owner's capture matches the standard recipes byte for byte and he
+  confirmed all three hardware checks, while the Sword owner's dumps verify the curve addresses
+  and show both fan tachometers alive at `0xC9`/`0xCB`. 27 models tested.
+- **Katana GF66 11UE / 11UG (`1581EMS1`): fan curve verified and fan RPM enabled**
+  ([#121](../../issues/121), [#122](../../issues/122)) - a second owner re-confirmed every
+  recipe byte on firmware .107 and proved the curve addresses with a test curve; his dumps show
+  both tachometers as single-byte divisors, so RPM readout is on. @vlf1e joins the entry's
+  credit.
+- **Katana 17 B12UCXK / B12VGK (`17L5EMS2`): fan curve verified, entry renamed**
+  ([#125](../../issues/125), thanks @Dkrimz) - the B12VGK owner's test curve sits byte for byte
+  at the shipped addresses. The model itself stays experimental until a clean scenario capture
+  and power test.
 - **MSI Raider GE78 HX 14VHG (`17S1IMS2`) promoted to tested** ([#102](../../issues/102),
   [#103](../../issues/103), thanks @OrbNRG) - the owner's capture matches the standard recipes
   byte for byte in all four scenarios, and his power test shows a working Silent well beyond the

@@ -95,7 +95,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260827;
+    public const int DataVersion = 20260828;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -419,9 +419,15 @@ public static class Devices
 
         // Katana GF66 11UE / 11UG (1581EMS1) — owner per-scenario dump (issue #34) matches
         // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
+        //   Re-confirmed on firmware .107 by a second owner (issues #121/#122): recipes 1:1
+        //   again, and his test curve sits byte-for-byte at the shipped 0x72/0x8A - curve
+        //   VERIFIED. His dumps also show both tachs as live single-byte divisors at 0xC9/0xCB
+        //   (D1-D3 idle, 96/CA under the test curve = ~2260-3190 rpm, high bytes always 00,
+        //   unlike the 16-bit sibling 1585EMS1) - RPM enabled, reporter asked to cross-check
+        //   against HWiNFO64. Credit shared as thanks.
         new() { Name = "MSI Katana GF66 11UE / 11UG", FirmwarePrefixes = new[] { "1581EMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "mewmrow", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/34" },
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "mewmrow, vlf1e", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/34" },
 
         // Bravo 17 C7VE / D7VFK (17LNIMS1) — owner per-scenario dump (issue #40, a D7VFK unit)
         // matches shift/fan 1:1 (0xD2 C1/C1/C4/C2, 0xD4 1D/0D/0D/0D) and the owner confirmed all
@@ -675,7 +681,17 @@ public static class Devices
         new() { Name = "MSI Creator Z16 A11UE",             FirmwarePrefixes = new[] { "1571EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator Z16 A12U",              FirmwarePrefixes = new[] { "1572EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 15 B12UEZ / B12UGSZ", FirmwarePrefixes = new[] { "1583EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Katana GF66 12U",               FirmwarePrefixes = new[] { "1584EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Katana GF66 12U / Sword 15 A12UC (1584EMS1) - one board behind two retail lines.
+        // Tested via the Katana 12UD owner (issue #116: snapshot = StdRecipes 1:1 on MSI Center
+        // 2.0.48, all three hardware checks confirmed, no dump). The Sword 15 A12UC owner
+        // (issues #119/#120) supplied what that report lacked: full dumps (snapshot also 1:1)
+        // and the curve proof - his test curve sits byte-for-byte at the shipped 0x72/0x8A, so
+        // the curve is VERIFIED. His dumps read both tachs as live single-byte divisors at
+        // 0xC9/0xCB (AD/C3/87 and BA/BB/98 = ~2450-3540 rpm, high bytes always 00, unlike the
+        // 16-bit sibling 1585EMS1) - RPM enabled, both owners asked to cross-check HWiNFO64.
+        new() { Name = "MSI Katana GF66 12U / Sword 15 A12UC", FirmwarePrefixes = new[] { "1584EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "messer2212, Error29112002", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/116" },
         new() { Name = "MSI Katana GF66 12UDO",             FirmwarePrefixes = new[] { "1584IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana 15 B12VEK / B12VFK / B12VGK", FirmwarePrefixes = new[] { "1585EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Katana 15 HX B14WEK (1587EMS1) - owner per-scenario snapshot (issue #63) matches StdRecipes
@@ -749,7 +765,17 @@ public static class Devices
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 12UC",              FirmwarePrefixes = new[] { "17L4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Katana 17 B12UCXK",             FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Katana 17 B12UCXK / B12VGK (17L5EMS2) - fan curve VERIFIED (issue #125): the B12VGK
+        // owner's test curve sits byte-for-byte at the shipped 0x72/0x8A. Tier stays
+        // Experimental: his scenario capture (issue #124) holds identical bytes in all four
+        // columns (the machine sat in one scenario throughout, the same procedure slip as
+        // issue #58 on this prefix) and his power test (issue #126) ran with Fan Boost ON and
+        // 8% drift, so both await clean re-runs. RPM stays off on purpose: the sibling
+        // 17L5EMS1 reports fan speed as 16-bit pairs (wide-tach, TODO 19), and one dump with
+        // low-byte-only values cannot rule that out here.
+        new() { Name = "MSI Katana 17 B12UCXK / B12VGK",    FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Dkrimz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125" },
         new() { Name = "MSI Katana 17 HX B14WGK",           FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth GS76 11UG",             FirmwarePrefixes = new[] { "17M1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator 17 B11UE",              FirmwarePrefixes = new[] { "17M1EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
