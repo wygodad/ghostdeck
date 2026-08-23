@@ -712,7 +712,7 @@ public sealed class TrayContext : ApplicationContext
                     auto.Checked = !curveLive;
                     foreach (ToolStripItem tsi in curve.DropDownItems)
                         if (tsi is ToolStripMenuItem pmi && pmi.Tag is string pname)
-                            pmi.Checked = curveLive && pname == _settings.CurveName;
+                            pmi.Checked = curveLive && IsActivePreset(pname);
                 };
             }
             else curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
@@ -998,6 +998,17 @@ public sealed class TrayContext : ApplicationContext
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
         }
         catch { }   // curve is cosmetic on top of the recipe; a failed write must not fail the switch
+    }
+
+    // (#100) A preset is "active" when its points equal the curve recorded as live. The
+    // fan-curve page records the points but not the name (its applies are "manual"), so a name
+    // comparison would miss presets applied from the page; point equality covers both paths and
+    // goes dark the moment the user drags any point away from the preset.
+    private bool IsActivePreset(string name)
+    {
+        if (!_settings.CurveActive || _settings.FindPreset(name) is not { } p) return false;
+        return p.CpuTemp.SequenceEqual(_settings.CurveCpuTemp) && p.CpuSpeed.SequenceEqual(_settings.CurveCpuSpeed)
+            && p.GpuTemp.SequenceEqual(_settings.CurveGpuTemp) && p.GpuSpeed.SequenceEqual(_settings.CurveGpuSpeed);
     }
 
     // Tray quick-switch: apply a named preset (or null = back to the profile's stock fans).
