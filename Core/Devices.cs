@@ -744,13 +744,16 @@ public static class Devices
         // 7 C cooler on slower fans, Extreme unlocks +34% (4472 MHz), recipes read back intact
         // each phase. 0xD6 flips to 03 in Extreme by itself - FIFTH board for the #52
         // observation. RPM at 0xC9/0xCB, single-byte divisors alive (86/87/A0 = ~2700-2840 rpm).
-        // NO FanCurve ON PURPOSE (issue #129): this family runs a SEVEN-slot speed table at the
-        // same bases (CPU 0x72-0x78, GPU 0x8A-0x90, six temp thresholds between the slots -
-        // exactly MControlCenter's model, which reports working fan control on this firmware).
-        // The owner's screenshot shows seven sliders per fan, the first pinned at 0% and the
-        // stock top at 130% (0x82), and his dump matches that screen byte for byte. Our 6-point
-        // reader/writer would misalign this table, so no fan-table writes until the app grows a
-        // per-model 7-slot format with the 130% range (research list).
+        // NO FanCurve ON PURPOSE (issue #129). Hard facts: the EC holds SEVEN plausible curve
+        // bytes at 0x72-0x78 (00, then the four values the owner typed, then the factory 130
+        // 130; GPU mirror at 0x8A-0x90), MSI Center's screen shows SIX sliders ending at 130%,
+        // and the values he typed into the top sliders did not land (both EC and his re-opened
+        // screen read 130, not the instructed 65/75). Best-fit mapping: the six sliders write
+        // 0x73-0x78 with 0x72 as a fixed leading 00 - one byte above every other family -
+        // which also matches MControlCenter's seven-speeds-plus-six-temps model of this region
+        // (their fan control works on this firmware). Unconfirmed until a second capture with
+        // all six sliders set to distinct values; meanwhile our 6-point writer at base 0x72
+        // would land one byte off, so no fan-table writes here. Research: roadmap #107/TODO 32.
         new() { Name = "MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT", FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127" },
