@@ -95,7 +95,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260826;
+    public const int DataVersion = 20260827;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -289,7 +289,11 @@ public static class Devices
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
             CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
-            Credit = "wygodad", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/1",
+            // Re-confirmed on firmware 17S1IMS1.114 by a 13VH owner (issue #115, MSI Center
+            // 2.0.48): recipe bytes match in all four scenarios and all three hardware checks
+            // passed - credit shared as thanks. (His Extreme column showed 0xD4=8D: his own
+            // MSI Center Advanced curve active at capture time, not a board quirk.)
+            Credit = "wygodad, megadude9704", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/1",
 
             // Fan-curve tables located via the test tool; 6 points each (read-only preview for now).
             // First point is the 0°C→0% entry; tables verified 1:1 against MSI Center (6 points each).
@@ -584,7 +588,21 @@ public static class Devices
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
                 Credit = "xulu19861102-hub, mithril01", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
-        new() { Name = "MSI Raider GE78 HX 14VHG",          FirmwarePrefixes = new[] { "17S1IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
+        // the last lineup with the real Silent scenario). The per-scenario capture matches
+        // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
+        // so unlike the sibling 17S1IMS1 entry nothing writes it here - the recipes stay
+        // standard. Power test (#103): 6% thermal drift, but Silent's effect dwarfs it - CPU
+        // 80 C vs Balanced's 95 C, GPU 67 vs 90 C, fans at 48% duty vs 53-77%, at 92% of
+        // Balanced's work (2393 vs 2601 MHz), recipes read back intact each phase; Extreme
+        // measured level with Balanced (shared package budget, recorded). Curve tables hold the
+        // family layout at the shipped addresses (stock values identical to the 17S1IMS1 board)
+        // but no test curve was run, so the curve stays unverified. RPM at 0xC9/0xCB,
+        // single-byte divisors, alive in every scenario (A6/A6/AA/B5 and A6/AA/A6/CD =
+        // ~2300-2900 rpm).
+        new() { Name = "MSI Raider GE78 HX 14VHG",          FirmwarePrefixes = new[] { "17S1IMS2" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "OrbNRG", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/102" },
         new() { Name = "MSI Raider GE78 HX Smart Touchpad 13V", FirmwarePrefixes = new[] { "17S2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Vector 17 HX AI A2XWHG",        FirmwarePrefixes = new[] { "17S3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 

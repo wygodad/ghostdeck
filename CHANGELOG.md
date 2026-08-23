@@ -5,6 +5,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **MSI Raider GE78 HX 14VHG (`17S1IMS2`) promoted to tested** ([#102](../../issues/102),
+  [#103](../../issues/103), thanks @OrbNRG) - the owner's capture matches the standard recipes
+  byte for byte in all four scenarios, and his power test shows a working Silent well beyond the
+  run's 6 % thermal drift: CPU 80 C vs 95 C, GPU 67 C vs 90 C, fans at 48 % duty vs 53-77 %, at
+  92 % of Balanced's work. Fan RPM enabled at `0xC9`/`0xCB`. 26 models tested.
+- **@megadude9704 joins the Raider GE78HX 13V / Vector 17 HX A14V credit** ([#115](../../issues/115)) -
+  a 13VH owner re-confirmed the recipes and all three hardware checks on firmware .114. His
+  request for fan-curve speeds above 100 % is recorded on the research list.
 - **Experimental writes are now enabled per model, not globally.** The old switch unlocked
   every unverified machine in the database at once; the new one, shown only when the detected
   laptop is experimental, names its firmware prefix and unlocks writes for that machine alone.
