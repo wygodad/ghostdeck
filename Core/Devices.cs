@@ -744,16 +744,17 @@ public static class Devices
         // 7 C cooler on slower fans, Extreme unlocks +34% (4472 MHz), recipes read back intact
         // each phase. 0xD6 flips to 03 in Extreme by itself - FIFTH board for the #52
         // observation. RPM at 0xC9/0xCB, single-byte divisors alive (86/87/A0 = ~2700-2840 rpm).
-        // NO FanCurve ON PURPOSE (issue #129). Hard facts: the EC holds SEVEN plausible curve
-        // bytes at 0x72-0x78 (00, then the four values the owner typed, then the factory 130
-        // 130; GPU mirror at 0x8A-0x90), MSI Center's screen shows SIX sliders ending at 130%,
-        // and the values he typed into the top sliders did not land (both EC and his re-opened
-        // screen read 130, not the instructed 65/75). Best-fit mapping: the six sliders write
-        // 0x73-0x78 with 0x72 as a fixed leading 00 - one byte above every other family -
-        // which also matches MControlCenter's seven-speeds-plus-six-temps model of this region
-        // (their fan control works on this firmware). Unconfirmed until a second capture with
-        // all six sliders set to distinct values; meanwhile our 6-point writer at base 0x72
-        // would land one byte off, so no fan-table writes here. Research: roadmap #107/TODO 32.
+        // NO FanCurve TEMPORARILY (issue #129): the layout turned out to be the family
+        // standard after all. The owner's six on-screen slider values map 1:1 onto 0x72-0x77 /
+        // 0x8A-0x8F (proven by matching a GE78 screen to its dump the same way: 0/40/48/60/75/89
+        // = 00 28 30 3C 4B 59 exactly); the wizard's "not located" happened because only four
+        // of the six sliders were set, so the full six-value tracer never existed in the EC.
+        // The board's REAL specialty is the range: the stock top slider is 130% (0x82), beyond
+        // today's 100% editor - enabling the editor now would clamp that 130 to 100 on read and
+        // write the downgrade back on Apply. Re-enable with per-model MaxFanPct (roadmap #107 /
+        // TODO 32). Note for the whole family: one extra stock byte sits past the sliders at
+        // 0x78/0x90 (103% on GE78 boards, 130% here) that MSI Center's UI never writes; we do
+        // not touch it either.
         new() { Name = "MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT", FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127" },
