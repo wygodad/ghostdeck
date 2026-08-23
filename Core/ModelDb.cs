@@ -139,6 +139,9 @@ public static class ModelDb
             w.WriteNumber("points", fc.Points);
             w.WriteBoolean("verified", fc.Verified);
             w.WriteBoolean("singleFan", fc.SingleFan);
+            // Optional, omitted at the default: older clients ignore unread keys, and a database
+            // without the key parses to the default - degrades cleanly in both directions.
+            if (fc.MaxFanPct != 150) w.WriteNumber("maxFanPct", fc.MaxFanPct);
             w.WriteEndObject();
         }
         // Optional: a database written before this key existed simply omits it, and a client that
@@ -229,7 +232,8 @@ public static class ModelDb
                 ParseByte(fc.GetProperty("gpuSpeedBase").GetString()),
                 fc.GetProperty("points").GetInt32(),
                 fc.GetProperty("verified").GetBoolean(),
-                fc.GetProperty("singleFan").GetBoolean());
+                fc.GetProperty("singleFan").GetBoolean(),
+                fc.TryGetProperty("maxFanPct", out var mx) ? mx.GetInt32() : 150);
         FourthModeSpec? fourth = null;
         if (m.TryGetProperty("fourthMode", out var fm))
             fourth = new FourthModeSpec(
@@ -287,6 +291,7 @@ public static class ModelDb
             foreach (var id in Profiles.Order)
                 if (!d.Recipes.TryGetValue(id, out var r) || r.Length == 0) { error = d.Name + ": missing recipe " + id; return false; }
             if (d.FanCurve is { } fc && fc.Points is < 1 or > 16) { error = d.Name + ": bad curve points"; return false; }
+            if (d.FanCurve is { } fc2 && fc2.MaxFanPct is < 100 or > 200) { error = d.Name + ": bad curve max %"; return false; }
             if (d.FourthMode is { } fm)
             {
                 if (string.IsNullOrWhiteSpace(fm.Name)) { error = d.Name + ": fourth mode without a name"; return false; }

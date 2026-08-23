@@ -30,8 +30,10 @@ none of that chrome belongs there.
 The last view is remembered in `AppSettings.FanCurveView` (machine-local, like `SettingsSubTab`).
 
 Temperature nodes are fixed the way MSI Center fixes them; the page edits speeds. Every speed
-array is kept clamped to 0-100 and non-decreasing left to right (`CurveModel.Monotone`), so no
-edit path - drag, wheel, typed cell, intent, blend - can produce a curve that dips.
+array is kept clamped to the model's speed scale (`FanCurveSpec.MaxFanPct` - 150 on the modern
+family, the same top MSI Center's own sliders reach; see TECHNICAL 17.3) and non-decreasing left
+to right, so no edit path - drag, wheel, typed cell, intent, blend - can produce a curve that
+dips. Built-in intents never exceed 100 %; the range above is only reached by dragging there.
 
 ## 2. What "apply" actually writes
 
@@ -147,7 +149,8 @@ The one thing on this page that writes to the EC for measurement rather than for
 
 The EC has **no "set duty" register**. So each step writes a **flat curve** (every node = the
 step's duty) into the same tables the editor uses, with Advanced fan mode engaged. Steps are
-30 / 45 / 60 / 80 / 100 %, each held 6 s, with the last 3 one-second readings averaged. During the
+30 / 45 / 60 / 80 / 100 % - plus the model's own top step (150 %) on boards whose speed scale
+goes past 100 - each held 6 s, with the last 3 one-second readings averaged. During the
 settle the code notes when the duty readback first came within ±2 of the command: that is the
 **reaction time**.
 

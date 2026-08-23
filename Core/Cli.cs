@@ -406,7 +406,7 @@ public static class Cli
                         return 0;
                     }
                     var p = settings.FindPreset(cmd.Arg);
-                    if (p == null || !p.IsValid(fc.Points)) { Console.WriteLine($"preset not found: {cmd.Arg}"); return 1; }
+                    if (p == null || !p.IsValid(fc)) { Console.WriteLine($"preset not found: {cmd.Arg}"); return 1; }
                     if (Ec.GetCurrent(dev) == ProfileId.Silent)
                         Ec.Apply(dev.Recipes[ProfileId.Balanced]);   // a curve drops the Silent cap (same EC byte)
                     Ec.WriteFanCurve(dev, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
@@ -521,7 +521,7 @@ public static class Cli
         if (id == ProfileId.Silent || dev.FanCurve is not { } fc) return;
         if (!s.ProfileCurves.TryGetValue(Profiles.Get(id).Key, out var name) || string.IsNullOrEmpty(name)) return;
         var p = s.FindPreset(name);
-        if (p == null || !p.IsValid(fc.Points)) return;
+        if (p == null || !p.IsValid(fc)) return;
         try
         {
             Ec.WriteFanCurve(dev, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);

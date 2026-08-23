@@ -237,10 +237,11 @@ public sealed class FanCurvePage : ThemedPage
                         if (c is { } v && v.cpuSpeed.Length == points)
                         {
                             // Defensive clamp: some boards keep other units in (or near) these
-                            // tables — values over 100 pushed points off the plot and broke the
-                            // page's hit-testing (issue #28). The editor's world is 0-100 only.
-                            _cpuT = Clamp100(v.cpuTemp); _cpuS = Clamp100(v.cpuSpeed);
-                            _gpuT = Clamp100(v.gpuTemp); _gpuS = Clamp100(v.gpuSpeed);
+                            // tables — out-of-range values pushed points off the plot and broke
+                            // the page's hit-testing (issue #28). Speeds cap at the model's own
+                            // scale (MSI Center's sliders reach 150 %), temperatures at 100 °C.
+                            _cpuT = ClampArr(v.cpuTemp, 100); _cpuS = ClampArr(v.cpuSpeed, MaxPct);
+                            _gpuT = ClampArr(v.gpuTemp, 100); _gpuS = ClampArr(v.gpuSpeed, MaxPct);
                             _loaded = true;
                         }
                         Invalidate();
@@ -292,10 +293,13 @@ public sealed class FanCurvePage : ThemedPage
         SyncEnable();
     }
 
-    private static int[] Clamp100(int[] a)
+    // Top of the speed axis/scale for this model (100 when no curve spec is present).
+    private int MaxPct => _fc?.MaxFanPct ?? 100;
+
+    private static int[] ClampArr(int[] a, int max)
     {
         var r = new int[a.Length];
-        for (int i = 0; i < a.Length; i++) r[i] = Math.Clamp(a[i], 0, 100);
+        for (int i = 0; i < a.Length; i++) r[i] = Math.Clamp(a[i], 0, max);
         return r;
     }
 
@@ -367,7 +371,7 @@ public sealed class FanCurvePage : ThemedPage
         UpdatePresetButtons();
         if (_syncingPresets) return;
         var p = SelectedPreset();
-        if (p == null || !p.IsValid(_fc?.Points ?? 6)) return;
+        if (p == null || _fc == null || !p.IsValid(_fc)) return;
         _cpuT = (int[])p.CpuTemp.Clone(); _cpuS = (int[])p.CpuSpeed.Clone();
         _gpuT = (int[])p.GpuTemp.Clone(); _gpuS = (int[])p.GpuSpeed.Clone();
         _loaded = true;
@@ -380,7 +384,7 @@ public sealed class FanCurvePage : ThemedPage
     /// the preset without re-applying anything - the EC already has it.</summary>
     public void SyncExternalPreset(string name)
     {
-        if (_fc == null || D.Settings.FindPreset(name) is not { } p || !p.IsValid(_fc.Points)) return;
+        if (_fc == null || D.Settings.FindPreset(name) is not { } p || !p.IsValid(_fc)) return;
         _cpuT = (int[])p.CpuTemp.Clone(); _cpuS = (int[])p.CpuSpeed.Clone();
         _gpuT = (int[])p.GpuTemp.Clone(); _gpuS = (int[])p.GpuSpeed.Clone();
         _loaded = true;
@@ -477,7 +481,7 @@ public sealed class FanCurvePage : ThemedPage
         try
         {
             var p = JsonSerializer.Deserialize<FanCurvePreset>(File.ReadAllText(dlg.FileName));
-            if (p == null || !p.IsValid(_fc?.Points ?? 6))
+            if (p == null || _fc == null || !p.IsValid(_fc))
             {
                 MessageBox.Show(FindForm(), Lang.T("fc_ps_invalid"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -789,7 +793,7 @@ public sealed class FanCurvePage : ThemedPage
         {
             if (ci >= MaxLayers) break;
             if (n.Length == 0) _layers.Add((Lang.T("fc_layer_default"), DefCpuS, DefGpuS, LayerColors[ci++]));
-            else if (D.Settings.FindPreset(n) is { } p && p.IsValid(_fc?.Points ?? 6))
+            else if (_fc != null && D.Settings.FindPreset(n) is { } p && p.IsValid(_fc))
                 _layers.Add((p.Name, p.CpuSpeed, p.GpuSpeed, LayerColors[ci++]));
         }
     }
@@ -832,7 +836,7 @@ public sealed class FanCurvePage : ThemedPage
     private string CurveInUseName()
     {
         foreach (var pr in D.Settings.CurvePresets)
-            if (pr.IsValid(_fc?.Points ?? 6) && CurveModel.SameShape(pr.CpuSpeed, _cpuS) && (Single || CurveModel.SameShape(pr.GpuSpeed, _gpuS)))
+            if (_fc != null && pr.IsValid(_fc) && CurveModel.SameShape(pr.CpuSpeed, _cpuS) && (Single || CurveModel.SameShape(pr.GpuSpeed, _gpuS)))
                 return pr.Name;
         int intent = ActiveIntent();
         if (intent >= 0) return Lang.T(IntentKey(Intents[intent]));
@@ -888,10 +892,10 @@ public sealed class FanCurvePage : ThemedPage
         if (commit && int.TryParse(_cellEdit.Text.Trim().TrimEnd('%'), out int v))
         {
             int[] s = fan == 0 ? _cpuS : _gpuS;
-            // same rule as a drag: 0-100 and never past either neighbour
+            // same rule as a drag: 0-MaxPct and never past either neighbour
             int lo = row > 0 ? s[row - 1] : 0;
-            int hi = row < s.Length - 1 ? s[row + 1] : 100;
-            int nv = Math.Clamp(Math.Clamp(v, 0, 100), lo, hi);
+            int hi = row < s.Length - 1 ? s[row + 1] : MaxPct;
+            int nv = Math.Clamp(Math.Clamp(v, 0, MaxPct), lo, hi);
             if (nv != s[row])
             {
                 s[row] = nv;
@@ -934,9 +938,9 @@ public sealed class FanCurvePage : ThemedPage
     {
         var tr = _eqTracks[fan, i];
         int[] s = fan == 0 ? _cpuS : _gpuS;
-        int sp = (int)Math.Round((tr.Bottom - y) / (float)tr.Height * 100);
-        int lo = i > 0 ? s[i - 1] : 0, hi = i < s.Length - 1 ? s[i + 1] : 100;
-        s[i] = Math.Clamp(Math.Clamp(sp, 0, 100), lo, hi);
+        int sp = (int)Math.Round((tr.Bottom - y) / (float)tr.Height * MaxPct);
+        int lo = i > 0 ? s[i - 1] : 0, hi = i < s.Length - 1 ? s[i + 1] : MaxPct;
+        s[i] = Math.Clamp(Math.Clamp(sp, 0, MaxPct), lo, hi);
         Invalidate();
     }
 
@@ -949,7 +953,7 @@ public sealed class FanCurvePage : ThemedPage
         using var valFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         using var tempFont = new Font("Segoe UI", 8.5f);
         using var scaleFont = new Font("Segoe UI", 8f);
-        int scaleW = TextRenderer.MeasureText(g, "100%", scaleFont).Width + S(6);
+        int scaleW = TextRenderer.MeasureText(g, MaxPct + "%", scaleFont).Width + S(6);
         for (int fan = 0; fan < fans; fan++)
         {
             var gr = EqGroupRect(fan);
@@ -962,28 +966,28 @@ public sealed class FanCurvePage : ThemedPage
             // sparkline of the whole shape, top-right of the card: the "what am I building" cue
             var mini = new Rectangle(gr.Right - S(120), gr.Y + S(12), S(100), S(28));
             var mp = new PointF[n];
-            for (int k = 0; k < n; k++) mp[k] = new PointF(mini.X + k * mini.Width / (float)(n - 1), mini.Bottom - sp[k] / 100f * mini.Height);
+            for (int k = 0; k < n; k++) mp[k] = new PointF(mini.X + k * mini.Width / (float)(n - 1), mini.Bottom - sp[k] / (float)MaxPct * mini.Height);
             using (var mpen = new Pen(Theme.Accent, Sf(1.6f)) { LineJoin = LineJoin.Round }) g.DrawLines(mpen, mp);
 
             // shared % scale in the left gutter, grid lines across all faders
             var t0 = EqTrack(fan, 0, n);
             var tn = EqTrack(fan, n - 1, n);
             using (var grid = new Pen(Theme.Border) { DashStyle = DashStyle.Dot })
-                for (int v = 0; v <= 100; v += 25)
+                for (int v = 0; v <= MaxPct; v += 25)
                 {
-                    int y = t0.Bottom - (int)(v / 100f * t0.Height);
+                    int y = t0.Bottom - (int)(v / (float)MaxPct * t0.Height);
                     g.DrawLine(grid, t0.Left - S(6), y, tn.Right + S(6), y);
                     TextRenderer.DrawText(g, v + "%", scaleFont, new Rectangle(t0.Left - S(10) - scaleW, y - scaleFont.Height / 2 - 1, scaleW, scaleFont.Height + 2), Theme.Faint,
                         TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
                 }
 
-            int labelHalf = Math.Max(S(20), TextRenderer.MeasureText(g, "100%", valFont).Width / 2 + S(4));
+            int labelHalf = Math.Max(S(20), TextRenderer.MeasureText(g, MaxPct + "%", valFont).Width / 2 + S(4));
             for (int i = 0; i < n; i++)
             {
                 var tr = EqTrack(fan, i, n);
                 _eqTracks[fan, i] = tr;
                 bool hot = fan == _eqHoverFan && i == _eqHoverIdx || fan == _dragFan && i == _dragIdx;
-                int fillH = (int)(sp[i] / 100f * tr.Height);
+                int fillH = (int)(sp[i] / (float)MaxPct * tr.Height);
                 var fillCol = D.Settings.FanCurveZones
                     ? CurveModel.Band(sp[i]) switch { 0 => Theme.Green, 1 => Theme.Amber, _ => Theme.Red }
                     : Theme.AccentFill;
@@ -1083,7 +1087,7 @@ public sealed class FanCurvePage : ThemedPage
             return (CurveModel.IntentShape(it, DefCpuS, _cpuT), CurveModel.IntentShape(it, DefGpuS, _gpuT));
         }
         int pi = i - PoleIntentKeys.Length;
-        if (pi >= 0 && pi < D.Settings.CurvePresets.Count && D.Settings.CurvePresets[pi].IsValid(_fc?.Points ?? 6))
+        if (pi >= 0 && pi < D.Settings.CurvePresets.Count && _fc != null && D.Settings.CurvePresets[pi].IsValid(_fc))
         {
             var p = D.Settings.CurvePresets[pi];
             return (p.CpuSpeed, p.GpuSpeed);
@@ -1129,7 +1133,7 @@ public sealed class FanCurvePage : ThemedPage
     {
         var (c, rMax) = DialGeometry(fan);
         double a = NodeAngle(i, n) * Math.PI / 180.0;
-        float r = rMax * (0.22f + 0.78f * Math.Clamp(speedPct, 0, 100) / 100f);   // inner hole keeps the ghost visible
+        float r = rMax * (0.22f + 0.78f * Math.Clamp(speedPct, 0, MaxPct) / (float)MaxPct);   // inner hole keeps the ghost visible
         return new PointF(c.X + (float)Math.Cos(a) * r, c.Y + (float)Math.Sin(a) * r);
     }
 
@@ -1139,10 +1143,10 @@ public sealed class FanCurvePage : ThemedPage
     {
         var (c, rMax) = DialGeometry(fan);
         float dist = (float)Math.Sqrt(Math.Pow(mouse.X - c.X, 2) + Math.Pow(mouse.Y - c.Y, 2));
-        int sp = (int)Math.Round((dist / rMax - 0.22f) / 0.78f * 100f);
+        int sp = (int)Math.Round((dist / rMax - 0.22f) / 0.78f * MaxPct);
         int[] s = fan == 0 ? _cpuS : _gpuS;
-        int lo = i > 0 ? s[i - 1] : 0, hi = i < s.Length - 1 ? s[i + 1] : 100;
-        int nv = Math.Clamp(Math.Clamp(sp, 0, 100), lo, hi);
+        int lo = i > 0 ? s[i - 1] : 0, hi = i < s.Length - 1 ? s[i + 1] : MaxPct;
+        int nv = Math.Clamp(Math.Clamp(sp, 0, MaxPct), lo, hi);
         if (nv != s[i]) { s[i] = nv; Invalidate(); }
     }
 
@@ -1187,19 +1191,19 @@ public sealed class FanCurvePage : ThemedPage
             TextRenderer.DrawText(g, title, titleF, new Rectangle(d.X + fan * (colW + S(40)), d.Y + S(10), colW, titleF.Height + S(4)),
                 Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
 
-            // rings at 25/50/75/100 % + the audibility tint between them when zones are on
-            for (int v = 25; v <= 100; v += 25)
+            // rings every 25 % up to the model top + the audibility tint between them when zones are on
+            for (int v = 25; v <= MaxPct; v += 25)
             {
-                float rr = rMax * (0.22f + 0.78f * v / 100f);
-                using var rp = new Pen(Color.FromArgb(v == 100 ? 90 : 55, Theme.Border), 1f) { DashStyle = v == 100 ? DashStyle.Solid : DashStyle.Dot };
+                float rr = rMax * (0.22f + 0.78f * v / (float)MaxPct);
+                using var rp = new Pen(Color.FromArgb(v == MaxPct ? 90 : 55, Theme.Border), 1f) { DashStyle = v == MaxPct ? DashStyle.Solid : DashStyle.Dot };
                 g.DrawEllipse(rp, c.X - rr, c.Y - rr, rr * 2, rr * 2);
                 TextRenderer.DrawText(g, v + "%", smallF, new Rectangle((int)(c.X - S(18)), (int)(c.Y - rr) - smallF.Height / 2, S(36), smallF.Height),
                     Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
             }
             if (D.Settings.FanCurveZones)
             {
-                float rQuiet = rMax * (0.22f + 0.78f * CurveModel.QuietMax / 100f);
-                float rLoud = rMax * (0.22f + 0.78f * CurveModel.LoudMin / 100f);
+                float rQuiet = rMax * (0.22f + 0.78f * CurveModel.QuietMax / (float)MaxPct);
+                float rLoud = rMax * (0.22f + 0.78f * CurveModel.LoudMin / (float)MaxPct);
                 using var qb = new SolidBrush(Color.FromArgb(Theme.Dark ? 14 : 20, Theme.Green));
                 g.FillEllipse(qb, c.X - rQuiet, c.Y - rQuiet, rQuiet * 2, rQuiet * 2);
                 using var lb = new SolidBrush(Color.FromArgb(Theme.Dark ? 12 : 18, Theme.Red));
@@ -1462,7 +1466,7 @@ public sealed class FanCurvePage : ThemedPage
         var session = D.EcSession();   // blocks the automatic engines and a model-DB swap while we hold the fans
         _sweepCts = new CancellationTokenSource();
         var ctk = _sweepCts.Token;
-        _sweepResult = null; _sweepEntry = null; _sweepStatus = Lang.T("fc_sweep_running"); _sweepStep = 0; _sweepCount = FanSweep.DefaultSteps.Length;
+        _sweepResult = null; _sweepEntry = null; _sweepStatus = Lang.T("fc_sweep_running"); _sweepStep = 0; _sweepCount = FanSweep.StepsFor(dev).Length;
         // freeze the user-facing writers for the duration: switch, default button, cell editor
         CloseCellEditor(commit: false);
         _enable.Enabled = _enableLabel.Enabled = _default.Enabled = false;
@@ -1473,7 +1477,7 @@ public sealed class FanCurvePage : ThemedPage
             FanSweep.Result? r = null;
             try
             {
-                r = FanSweep.Run(dev, FanSweep.DefaultSteps,
+                r = FanSweep.Run(dev, FanSweep.StepsFor(dev),
                     (i, n, msg) => { try { BeginInvoke(() => { _sweepStep = i; _sweepCount = n; _sweepStatus = msg; Invalidate(); }); } catch { } },
                     ctk);
             }
@@ -1527,7 +1531,7 @@ public sealed class FanCurvePage : ThemedPage
         TextRenderer.DrawText(g, Lang.T("fc_play_title"), titleF, new Rectangle(ch.X + S(16), ch.Y + S(10), ch.Width / 2, titleF.Height + S(4)), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding);
         TextRenderer.DrawText(g, Lang.T("fc_play_sub"), subF, new Rectangle(ch.X + S(16), ch.Y + S(12) + titleF.Height + S(4), ch.Width - S(200), subF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
 
-        int axisW = TextRenderer.MeasureText(g, "100%", axisF).Width + S(10);
+        int axisW = TextRenderer.MeasureText(g, MaxPct + "%", axisF).Width + S(10);
         int plotTop = ch.Y + S(20) + titleF.Height + subF.Height + S(14);
         var plot = new Rectangle(ch.X + S(16) + axisW, plotTop, ch.Width - S(32) - axisW - S(140), ch.Bottom - S(34) - plotTop);
         bool plotFits = plot.Width >= S(160) && plot.Height >= S(60);
@@ -1542,9 +1546,9 @@ public sealed class FanCurvePage : ThemedPage
             return;
         }
         using (var grid = new Pen(Theme.Border))
-            for (int v = 0; v <= 100; v += 25)
+            for (int v = 0; v <= MaxPct; v += 25)
             {
-                float y = plot.Bottom - v / 100f * plot.Height;
+                float y = plot.Bottom - v / (float)MaxPct * plot.Height;
                 g.DrawLine(grid, plot.Left, y, plot.Right, y);
                 TextRenderer.DrawText(g, v + "%", axisF, new Rectangle(plot.Left - axisW - S(4), (int)y - axisF.Height / 2, axisW, axisF.Height), Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             }
@@ -1576,7 +1580,7 @@ public sealed class FanCurvePage : ThemedPage
                 int[] temps = fan == 0 ? _cpuT : _gpuT;
                 if (t <= 0) continue;
                 var dotCol = fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
-                var pt = new PointF(plot.Left + CurveModel.OrdinalX(temps, t) * plot.Width / (n - 1), plot.Bottom - Math.Clamp(d, 0, 100) / 100f * plot.Height);
+                var pt = new PointF(plot.Left + CurveModel.OrdinalX(temps, t) * plot.Width / (n - 1), plot.Bottom - Math.Clamp(d, 0, MaxPct) / (float)MaxPct * plot.Height);
                 var key = (fan, t, d);
                 _dotHits[key] = new Rectangle((int)(pt.X - S(6)), (int)(pt.Y - S(6)), S(12), S(12));
                 bool hovered = _hoverDot.HasValue && _hoverDot.Value == key;
@@ -1606,7 +1610,7 @@ public sealed class FanCurvePage : ThemedPage
             int[] sp = fan == 0 ? _cpuS : _gpuS;
             var pts = new PointF[sp.Length];
             for (int i = 0; i < sp.Length; i++)
-                pts[i] = new PointF(plot.Left + i * plot.Width / (float)(sp.Length - 1), plot.Bottom - sp[i] / 100f * plot.Height);
+                pts[i] = new PointF(plot.Left + i * plot.Width / (float)(sp.Length - 1), plot.Bottom - sp[i] / (float)MaxPct * plot.Height);
             using var pen = new Pen(Color.FromArgb(fan == 0 ? 255 : 210, cols[fan]), Sf(2.2f)) { LineJoin = LineJoin.Round };
             g.DrawLines(pen, pts);
         }
@@ -1632,7 +1636,7 @@ public sealed class FanCurvePage : ThemedPage
                 int t = fan == 0 ? live.CpuTemp : live.GpuTemp;
                 if (t <= 0) continue;
                 int[] temps = fan == 0 ? _cpuT : _gpuT, sp = fan == 0 ? _cpuS : _gpuS;
-                var dot = new PointF(plot.Left + CurveModel.OrdinalX(temps, t) * plot.Width / (n - 1), plot.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, sp, t), 0, 100) / 100f * plot.Height);
+                var dot = new PointF(plot.Left + CurveModel.OrdinalX(temps, t) * plot.Width / (n - 1), plot.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, sp, t), 0, MaxPct) / (float)MaxPct * plot.Height);
                 using (var halo = new SolidBrush(Color.FromArgb(70, cols[fan]))) g.FillEllipse(halo, dot.X - Sf(12), dot.Y - Sf(12), Sf(24), Sf(24));
                 using (var db = new SolidBrush(cols[fan])) g.FillEllipse(db, dot.X - Sf(6), dot.Y - Sf(6), Sf(12), Sf(12));
                 using (var cb = new SolidBrush(Color.White)) g.FillEllipse(cb, dot.X - Sf(2.2f), dot.Y - Sf(2.2f), Sf(4.4f), Sf(4.4f));
@@ -1658,7 +1662,7 @@ public sealed class FanCurvePage : ThemedPage
         var air = PlayAirRect;
         int liveDuty = haveLive ? Math.Max(live.CpuFan, live.GpuFan) : 0;
         int lanes = 5;
-        float speed = haveLive ? 0.3f + Math.Clamp(liveDuty, 0, 100) / 100f * 2.4f : 0f;
+        float speed = haveLive ? 0.3f + Math.Clamp(liveDuty, 0, MaxPct) / (float)MaxPct * 2.4f : 0f;
         for (int lane = 0; lane < lanes; lane++)
         {
             float y = air.Y + (lane + 0.5f) * air.Height / lanes;
@@ -1816,7 +1820,7 @@ public sealed class FanCurvePage : ThemedPage
                 int maxV = r.HasTach ? Math.Max(1000, r.Steps.Max(x => Math.Max(x.CpuRpm, x.GpuRpm))) : 100;
                 for (int f = 0; f < fans; f++)
                 {
-                    var pts = r.Steps.Select(x => new PointF(mc.Left + x.DutyPct / 100f * mc.Width,
+                    var pts = r.Steps.Select(x => new PointF(mc.Left + x.DutyPct / (float)MaxPct * mc.Width,
                         mc.Bottom - (r.HasTach ? (f == 0 ? x.CpuRpm : x.GpuRpm) : (f == 0 ? x.CpuDuty : x.GpuDuty)) / (float)maxV * mc.Height)).ToArray();
                     if (pts.Length < 2) continue;
                     using var lp = new Pen(cols[f], Sf(2f)) { LineJoin = LineJoin.Round };
@@ -1924,7 +1928,7 @@ public sealed class FanCurvePage : ThemedPage
         int[] s = fan == 0 ? _cpuS : _gpuS;
         int n = s.Length;
         float x = p.Left + (n <= 1 ? 0 : i * p.Width / (float)(n - 1));
-        float y = p.Bottom - s[i] / 100f * p.Height;
+        float y = p.Bottom - s[i] / (float)MaxPct * p.Height;
         return new PointF(x, y);
     }
 
@@ -2093,8 +2097,8 @@ public sealed class FanCurvePage : ThemedPage
         else if (_view == ViewDeck && _dialHoverFan >= 0) { fan = _dialHoverFan; i = _dialHoverIdx; }
         else return;
         int[] s = fan == 0 ? _cpuS : _gpuS;
-        int lo = i > 0 ? s[i - 1] : 0, hi = i < s.Length - 1 ? s[i + 1] : 100;
-        int nv = Math.Clamp(Math.Clamp(s[i] + Math.Sign(e.Delta), 0, 100), lo, hi);
+        int lo = i > 0 ? s[i - 1] : 0, hi = i < s.Length - 1 ? s[i + 1] : MaxPct;
+        int nv = Math.Clamp(Math.Clamp(s[i] + Math.Sign(e.Delta), 0, MaxPct), lo, hi);
         if (nv != s[i]) { s[i] = nv; if (_enable.Checked) ReApply(); Invalidate(); }
     }
 
@@ -2102,10 +2106,10 @@ public sealed class FanCurvePage : ThemedPage
     {
         var p = PlotRect(_dragFan);
         int[] s = _dragFan == 0 ? _cpuS : _gpuS;
-        int sp = (int)Math.Round((p.Bottom - mouseY) / (float)p.Height * 100);
+        int sp = (int)Math.Round((p.Bottom - mouseY) / (float)p.Height * MaxPct);
         int lo = _dragIdx > 0 ? s[_dragIdx - 1] : 0;
-        int hi = _dragIdx < s.Length - 1 ? s[_dragIdx + 1] : 100;
-        s[_dragIdx] = Math.Clamp(Math.Clamp(sp, 0, 100), lo, hi);
+        int hi = _dragIdx < s.Length - 1 ? s[_dragIdx + 1] : MaxPct;
+        s[_dragIdx] = Math.Clamp(Math.Clamp(sp, 0, MaxPct), lo, hi);
         Invalidate();
     }
 
@@ -2275,11 +2279,11 @@ public sealed class FanCurvePage : ThemedPage
             {
                 (0, CurveModel.QuietMax, Theme.Green, "fc_zone_quiet"),
                 (CurveModel.QuietMax, CurveModel.LoudMin, Theme.Amber, "fc_zone_audible"),
-                (CurveModel.LoudMin, 100, Theme.Red, "fc_zone_loud"),
+                (CurveModel.LoudMin, MaxPct, Theme.Red, "fc_zone_loud"),
             };
             foreach (var (lo, hi, c, key) in bands)
             {
-                float y1 = p.Bottom - hi / 100f * p.Height, y2 = p.Bottom - lo / 100f * p.Height;
+                float y1 = p.Bottom - hi / (float)MaxPct * p.Height, y2 = p.Bottom - lo / (float)MaxPct * p.Height;
                 using var br = new SolidBrush(Color.FromArgb(Theme.Dark ? 16 : 22, c));
                 g.FillRectangle(br, p.Left, y1, p.Width, y2 - y1);
                 TextRenderer.DrawText(g, Lang.T(key), zf, new Rectangle(p.Right - 90, (int)y1 + 3, 88, 14),
@@ -2290,9 +2294,9 @@ public sealed class FanCurvePage : ThemedPage
         using (var grid = new Pen(Theme.Border))
         using (var axisFont = new Font("Segoe UI", 8.5f))
         {
-            for (int v = 0; v <= 100; v += 25)
+            for (int v = 0; v <= MaxPct; v += 25)
             {
-                float y = p.Bottom - v / 100f * p.Height;
+                float y = p.Bottom - v / (float)MaxPct * p.Height;
                 g.DrawLine(grid, p.Left, y, p.Right, y);
                 TextRenderer.DrawText(g, v + "%", axisFont, new Rectangle(card.X + 8, (int)y - 9, 44, 18), Theme.Faint,
                     TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
@@ -2310,7 +2314,7 @@ public sealed class FanCurvePage : ThemedPage
             if (ls.Length != n) continue;
             var lp = new PointF[n];
             for (int i = 0; i < n; i++)
-                lp[i] = new PointF(p.Left + (n <= 1 ? 0 : i * p.Width / (float)(n - 1)), p.Bottom - ls[i] / 100f * p.Height);
+                lp[i] = new PointF(p.Left + (n <= 1 ? 0 : i * p.Width / (float)(n - 1)), p.Bottom - ls[i] / (float)MaxPct * p.Height);
             using var lpen = new Pen(Color.FromArgb(200, color), 2f) { DashStyle = DashStyle.Dash, LineJoin = LineJoin.Round };
             g.DrawLines(lpen, lp);
         }
@@ -2392,7 +2396,7 @@ public sealed class FanCurvePage : ThemedPage
         // otherwise throw the dot off the plot) and the rpm live in the label only.
         PointF OnCurve(int t) =>
             new(p.Left + CurveModel.OrdinalX(temps, t) * p.Width / (n - 1),
-                p.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, speeds, t), 0, 100) / 100f * p.Height);
+                p.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, speeds, t), 0, MaxPct) / (float)MaxPct * p.Height);
 
         // optional trail (opt-in): where the temperature has been over the last three minutes,
         // as small dots along the curve, older = fainter, in the amber "history" colour so it
@@ -2558,7 +2562,7 @@ public sealed class FanCurvePage : ThemedPage
         int headH = hf.Height + S(6);
         int rowsTop = headY + headH + S(6);
         int rowH = Math.Max(rf.Height + S(6), (t.Bottom - S(8) - rowsTop) / Math.Max(1, n));
-        int cellW = TextRenderer.MeasureText(g, "100%", bf).Width + S(20);
+        int cellW = TextRenderer.MeasureText(g, MaxPct + "%", bf).Width + S(20);
         int tempW = TextRenderer.MeasureText(g, "100°", rf).Width + S(14);
         int bandW = new[] { "fc_zone_quiet", "fc_zone_audible", "fc_zone_loud" }.Max(k => TextRenderer.MeasureText(g, Lang.T(k), rf).Width) + S(14);
         int idxW = TextRenderer.MeasureText(g, "6", bf).Width + S(12);

@@ -29,7 +29,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Katana GF66 11UE / 11UG | `1581EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Katana GF66 12U / Sword 15 A12UC | `1584EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Modern 14 C12M | `14J1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
-| MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT | `1594EMS1` | G2 | &#9989; tested | &mdash; | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT | `1594EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse/Katana 17 B13V/GK | `17L5EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |

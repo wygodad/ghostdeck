@@ -14,9 +14,17 @@ public sealed record FanCurveSpec(
     byte GpuTempBase, byte GpuSpeedBase,
     int Points,
     bool Verified = false,    // false = read-only preview (addresses unconfirmed on real hardware)
-    bool SingleFan = false);  // true = board exposes ONE controllable curve (MSI Center shows a
+    bool SingleFan = false,   // true = board exposes ONE controllable curve (MSI Center shows a
                               // single slider); the editor hides the GPU plot and the GPU table
                               // is never written (it is a dead field on such boards, see #22)
+    int MaxFanPct = 150);     // top of the speed scale the editor allows. 150 matches the vendor
+                              // tools: MSI Center's Advanced sliders go to 150 % (byte-proven on
+                              // 17S1IMS1: Save 150 -> 0x77/0x8F = 0x96) and MControlCenter hard-
+                              // codes maximum=150 for every model. Stock curves stay <= 100 %
+                              // (some boards ship >100 in the hidden 7th byte we never touch);
+                              // built-in presets never exceed 100 - only a deliberate manual drag
+                              // reaches the range above. Lower per model here if a board ever
+                              // proves to misbehave.
 
 /// <summary>
 /// An extra value the shift-mode register accepts on some boards, on top of the three the four
@@ -95,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260830;
+    public const int DataVersion = 20260831;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -744,17 +752,15 @@ public static class Devices
         // 7 C cooler on slower fans, Extreme unlocks +34% (4472 MHz), recipes read back intact
         // each phase. 0xD6 flips to 03 in Extreme by itself - FIFTH board for the #52
         // observation. RPM at 0xC9/0xCB, single-byte divisors alive (86/87/A0 = ~2700-2840 rpm).
-        // NO FanCurve TEMPORARILY (issue #129): the layout turned out to be the family
-        // standard after all. The owner's six on-screen slider values map 1:1 onto 0x72-0x77 /
-        // 0x8A-0x8F (proven by matching a GE78 screen to its dump the same way: 0/40/48/60/75/89
-        // = 00 28 30 3C 4B 59 exactly); the wizard's "not located" happened because only four
-        // of the six sliders were set, so the full six-value tracer never existed in the EC.
-        // The board's REAL specialty is the range: the stock top slider is 130% (0x82), beyond
-        // today's 100% editor - enabling the editor now would clamp that 130 to 100 on read and
-        // write the downgrade back on Apply. Re-enable with per-model MaxFanPct (roadmap #107 /
-        // TODO 32). Note for the whole family: one extra stock byte sits past the sliders at
-        // 0x78/0x90 (103% on GE78 boards, 130% here) that MSI Center's UI never writes; we do
-        // not touch it either.
+        // Fan curve = family standard (issue #129): the owner's on-screen slider values map
+        // 1:1 onto 0x72-0x77 / 0x8A-0x8F (proven by pairing a GE78 screen with its dump the
+        // same way: 0/40/48/60/75/89 = 00 28 30 3C 4B 59 exactly), and the editor's speed
+        // scale covers the board's stock 130 % top slider (the scale reaches 150, same as
+        // MSI Center's own sliders). Verified stays false: the wizard saw only four of the
+        // six tracer values in his run, so a full six-value tracer match is still owed.
+        // Note for the whole family: one extra stock byte sits past the sliders at
+        // 0x78/0x90 (103 % on GE78 boards, 130 % here) that MSI Center's UI never writes; we
+        // do not touch it either.
         //   RPM CONFIRMED by the owner (#129 follow-up, 2026-08-23): both fans match HWiNFO64
         //   side by side (2987/2914). Board quirk from his captures: the GPU DUTY byte reads 0
         //   at idle while the GPU fan spins (tach alive) - most likely it only reports while
@@ -762,7 +768,7 @@ public static class Devices
         //   one-sided-duty family as 17P2EMS1's dead CPU duty. Status then shows "-" on the
         //   GPU fan dial while the RPM tile stays correct.
         new() { Name = "MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT", FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127" },
         new() { Name = "MSI Summit E16 AI Studio A1VETG",   FirmwarePrefixes = new[] { "1596EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige A16 AI+ A3HMG",        FirmwarePrefixes = new[] { "159KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

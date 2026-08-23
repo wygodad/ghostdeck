@@ -78,7 +78,8 @@ public sealed class FanLiveFeed : IDisposable
                 else
                 {
                     var b = Ec.ReadMany(new[] { dev.FanMode, dev.CpuTemp, dev.GpuTemp, dev.CpuFan, dev.GpuFan });
-                    s = new FanLiveSample(DateTime.Now, b[0], b[1], b[2], Math.Min(100, (int)b[3]), Math.Min(100, (int)b[4]), 0, 0);
+                    int cap = dev.FanCurve?.MaxFanPct ?? 100;   // duty above 100 is real on these boards
+                    s = new FanLiveSample(DateTime.Now, b[0], b[1], b[2], Math.Min(cap, (int)b[3]), Math.Min(cap, (int)b[4]), 0, 0);
                 }
             }
             catch { }

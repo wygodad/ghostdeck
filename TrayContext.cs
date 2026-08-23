@@ -363,7 +363,7 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Curve:
                     if (_device?.FanCurve is not { } fc) return "1|no fan-curve support on this model";
                     if (cmd.Arg.Equals("auto", StringComparison.OrdinalIgnoreCase)) { ApplyPresetFromTray(null); return "0|fan curve: stock"; }
-                    if (_settings.FindPreset(cmd.Arg) is not { } p || !p.IsValid(fc.Points)) return "1|preset not found: " + cmd.Arg;
+                    if (_settings.FindPreset(cmd.Arg) is not { } p || !p.IsValid(fc)) return "1|preset not found: " + cmd.Arg;
                     ApplyPresetFromTray(p.Name);
                     return "0|fan curve applied: " + p.Name;
                 case CliKind.Kbd:
@@ -987,7 +987,7 @@ public sealed class TrayContext : ApplicationContext
         if (id == ProfileId.Silent || _device?.FanCurve is not { } fc) return;
         if (!_settings.ProfileCurves.TryGetValue(Profiles.Get(id).Key, out var name) || string.IsNullOrEmpty(name)) return;
         var p = _settings.FindPreset(name);
-        if (p == null || !p.IsValid(fc.Points)) return;
+        if (p == null || !p.IsValid(fc)) return;
         try
         {
             Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
@@ -1029,7 +1029,7 @@ public sealed class TrayContext : ApplicationContext
                 return;
             }
             var p = _settings.FindPreset(name);
-            if (p == null || !p.IsValid(fc.Points)) return;
+            if (p == null || !p.IsValid(fc)) return;
             // A curve in Silent drops the Silent cap (same EC byte) -> leave Silent for Balanced first.
             if (_current == ProfileId.Silent)
                 SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Tray, applyCurve: false);

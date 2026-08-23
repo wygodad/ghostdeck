@@ -19,6 +19,10 @@ namespace GhostDeck;
 public static class FanSweep
 {
     public static readonly int[] DefaultSteps = { 30, 45, 60, 80, 100 };
+
+    /// <summary>Step ladder for this model: the shared defaults, plus the model's own top when it goes past 100 %.</summary>
+    public static int[] StepsFor(DeviceProfile dev) =>
+        dev.FanCurve is { MaxFanPct: > 100 } fc ? DefaultSteps.Append(fc.MaxFanPct).ToArray() : DefaultSteps;
     public const int SettleSeconds = 6;   // fans need a few seconds to reach a new level
     public const int SamplesPerStep = 3;  // last three 1 s readings are averaged
 
@@ -55,7 +59,7 @@ public static class FanSweep
             for (int si = 0; si < steps.Length; si++)
             {
                 if (ct.IsCancellationRequested) { res.Aborted = true; break; }
-                int duty = Math.Clamp(steps[si], 0, 100);
+                int duty = Math.Clamp(steps[si], 0, fc.MaxFanPct);
                 var flat = Enumerable.Repeat(duty, fc.Points).ToArray();
                 progress(si, steps.Length, $"{duty}%");
                 Ec.WriteFanCurve(dev, tC, flat, tG, flat);

@@ -408,6 +408,8 @@ MSI factory default curve (what we measured): CPU `0→0, 50→40, 57→48, 64�
 
 There are **no per-profile curve values** — the four profiles use the built-in fan logic via `0x1D`/`0x0D`, not the tables.
 
+**Speed range.** The speed bytes are a percentage whose working scale tops out at **150 (`0x96`)**, not 100. Evidence: MSI Center's Advanced sliders go to 150 % on this family and Save stores the byte as-is (measured on `17S1IMS1`: last slider to 150 % → `0x77`/`0x8F` = `0x96`; Default → back to stock `0x59`/`0x5D`); MControlCenter hard-codes `maximum=150` for every model it supports (`src/mainwindow.ui`); and the firmware honours the range — the fans audibly spin past their 100 % level. Some boards even ship stock values above 100: one extra byte sits past each speed table (`0x78`/`0x90`; 103 % on GE78 boards, 130 % on `1594EMS1`) that neither MSI Center's UI nor GhostDeck ever writes. The editor's ceiling is per model (`FanCurveSpec.MaxFanPct`, 150 wherever a curve ships; a board can be lowered through the signed database if it ever proves to misbehave). Built-in presets stay ≤ 100 % — the range above is reached only by a deliberate manual drag. Same capture, one more observation: MSI Center engages the curve by setting **bit 7 on the current `0xD4` value** (Silent `0x1D` → `0x9D`) where GhostDeck writes the constant `0x8D` — both work.
+
 ### 17.4 What the EC dumps revealed (technical)
 
 We captured full 256-byte EC dumps in all four MSI Center 2.0.48 scenarios and diffed them, ignoring sensor bytes (temps `0x68`/`0x80`, fan duty `0x71`/`0x89`/`0xF4`, tach RPM `0xC9`/`0xCB`, etc.). Two findings settled the design:

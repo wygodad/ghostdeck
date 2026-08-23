@@ -4,14 +4,26 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Fan-curve speeds above 100 %** ([#115](../../issues/115), [#129](../../issues/129), also
+  asked for in [#43](../../issues/43)) - the editor's speed scale now reaches **150 %**, the
+  same top MSI Center's Advanced sliders and MControlCenter allow. All four views (chart,
+  equalizer, deck, in action), the value table, presets and the fan sweep take the full range
+  (the sweep gains a 150 % step on these boards), and the live duty readout is no longer capped
+  at 100 %, so a boost reading like 120 % shows as itself. Built-in presets still never exceed
+  100 % - the range above is reached only by deliberately dragging a slider there. The ceiling
+  is per model in the signed database (150 % wherever a curve is supported), so a board can be
+  lowered with a database update, no release needed, if one ever proves to misbehave.
+  Byte-proven on the reference GE78HX: MSI Center's own Save stores 0x96 (150 %) in the curve
+  table and the firmware audibly spins the fans past their 100 % level. With the cap lifted,
+  the **fan-curve editor turns on for the Prestige 16 Studio / Summit E16 Flip (`1594EMS1`)**,
+  whose stock top slider is a genuine 130 %.
 ### Changed
 - **MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT (`1594EMS1`) promoted to tested, with
   fan RPM** ([#127](../../issues/127), [#128](../../issues/128), thanks @Flo827) - one board,
   two retail names; the capture matches the standard recipes byte for byte and the power test is
   clean: Silent runs 7 C cooler on slower fans at 95 % of Balanced's work, Extreme unlocks
-  +34 %. The fan-curve editor stays off on this model on purpose: the owner's test curve landed
-  off the family layout ([#129](../../issues/129)), so no fan tables are written until the real
-  slot mapping is decoded. 28 models tested.
+  +34 %. 28 models tested.
 - **New model: MSI Vector A16 HX A8WIG (`15MMIMS1`)** ([#130](../../issues/130), thanks
   @Matt99-sys) - the first MS-15MM AMD board in the database, reported from a machine the app
   did not yet recognise: standard shift/fan recipes, Super Battery without a throttle register,

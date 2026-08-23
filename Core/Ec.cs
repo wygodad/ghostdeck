@@ -348,9 +348,11 @@ public static class Ec
         {
             int cpuT = ReadRaw(dev.CpuTemp);
             int gpuT = ReadRaw(dev.GpuTemp);
-            // Fan duty is a raw PWM value whose ceiling can read slightly above 100; clamp for display.
-            int cpuF = Math.Min(100, (int)ReadRaw(dev.CpuFan));
-            int gpuF = Math.Min(100, (int)ReadRaw(dev.GpuFan));
+            // Fan duty is a raw PWM value; the ceiling for display is the model's own speed scale
+            // (boards with a curve honour values above 100 - MSI Center's sliders go to 150).
+            int dutyCap = dev.FanCurve?.MaxFanPct ?? 100;
+            int cpuF = Math.Min(dutyCap, (int)ReadRaw(dev.CpuFan));
+            int gpuF = Math.Min(dutyCap, (int)ReadRaw(dev.GpuFan));
             int chg = ReadRaw(dev.ChargeCtrl) & 0x7F;
             int cpuRpm = RpmFrom(dev.CpuRpmAddr, dev.RpmConst);
             int gpuRpm = RpmFrom(dev.GpuRpmAddr, dev.RpmConst);
