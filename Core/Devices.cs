@@ -95,7 +95,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260825;
+    public const int DataVersion = 20260826;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -576,10 +576,14 @@ public static class Devices
         //   C4's superior on the Stealth 16 AI+. Recorded so the app reads that state as Extreme
         //   instead of logging a change every poll, and so the Power test probes it. Named after
         //   what it is here - the value MSI Center itself writes - not after Stealth's "Apex".
+        //   Re-confirmed on firmware .113 by a second owner (issues #113/#114, MSI Center 2.0.48,
+        //   A2XWHG-275US): the snapshot matches every recipe byte, the test curve landed at the
+        //   shipped 0x72/0x8A again, and both tachs are alive - credit shared with the original
+        //   reporter as thanks.
         new() { Name = "MSI Vector 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
+                Credit = "xulu19861102-hub, mithril01", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         new() { Name = "MSI Raider GE78 HX 14VHG",          FirmwarePrefixes = new[] { "17S1IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Raider GE78 HX Smart Touchpad 13V", FirmwarePrefixes = new[] { "17S2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Vector 17 HX AI A2XWHG",        FirmwarePrefixes = new[] { "17S3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

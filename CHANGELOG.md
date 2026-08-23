@@ -17,6 +17,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   msi-ec still lists only the sibling board.
 
 ### Changed
+- **MSI Thin 15 B12UCX / B12VE (`16R8IMS2`): fan curve verified, single-fan layout, CPU fan RPM**
+  ([#111](../../issues/111), thanks @arcfybrr) - the owner's test curve sits byte for byte at the
+  shipped CPU address; the missing GPU half matches the single-fan Thin B12 chassis (the same
+  signature as the sibling Thin GF63 12VE, and teardowns confirm one fan), and the CPU tachometer
+  is live in his capture. The model itself stays experimental until a clean power test.
+- **Vector 16 HX AI (`15M3EMS1`) re-confirmed on firmware .113** ([#113](../../issues/113),
+  [#114](../../issues/114)) - a second owner's capture matches every recipe byte and finds the
+  test curve at the verified addresses again; @mithril01 joins the entry's credit.
 - **The `17S2IMS2` entry is named "MSI Raider GE78HX 13V / Vector 17 HX A14V"** - every report
   of that firmware on record comes from Vector 17 HX owners ([#32](../../issues/32)), so the
   entry now names the machines that supplied the evidence.
