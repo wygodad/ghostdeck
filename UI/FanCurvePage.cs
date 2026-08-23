@@ -1753,7 +1753,9 @@ public sealed class FanCurvePage : ThemedPage
             return;
         }
         int ty = pnl.Y + S(14) + titleF.Height + S(4);
-        TextRenderer.DrawText(g, Lang.T(_dev is { CpuRpmAddr: 0, GpuRpmAddr: 0 } ? "fc_sweep_note_notach" : "fc_sweep_note"), subF,
+        TextRenderer.DrawText(g, _dev is { CpuRpmAddr: 0, GpuRpmAddr: 0 }
+                ? Lang.T("fc_sweep_note_notach")
+                : string.Format(Lang.T("fc_sweep_note"), string.Join(" / ", _dev is { } dv ? FanSweep.StepsFor(dv) : FanSweep.DefaultSteps)), subF,
             new Rectangle(pnl.X + S(16), ty + S(4), Math.Max(S(240), _sweepHelp.Left - pnl.X - S(28)), subF.Height * 3),
             Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
         int top = ty + subF.Height * 3 + S(8);
