@@ -744,12 +744,13 @@ public static class Devices
         // 7 C cooler on slower fans, Extreme unlocks +34% (4472 MHz), recipes read back intact
         // each phase. 0xD6 flips to 03 in Extreme by itself - FIFTH board for the #52
         // observation. RPM at 0xC9/0xCB, single-byte divisors alive (86/87/A0 = ~2700-2840 rpm).
-        // NO FanCurve ON PURPOSE (issue #129): the owner's test curve landed OFF the family
-        // layout - the first four points one byte high (CPU 0x73-0x76, GPU 0x8B-0x8E) and the
-        // last two slots of both tables holding 0x82 (130). MControlCenter reports working fan
-        // control on this exact firmware using SEVEN speed slots from 0x72, so the board is
-        // controllable, but until the slot mapping is decoded we do not write fan tables here.
-        // A second capture with a different test curve was requested in #129.
+        // NO FanCurve ON PURPOSE (issue #129): this family runs a SEVEN-slot speed table at the
+        // same bases (CPU 0x72-0x78, GPU 0x8A-0x90, six temp thresholds between the slots -
+        // exactly MControlCenter's model, which reports working fan control on this firmware).
+        // The owner's screenshot shows seven sliders per fan, the first pinned at 0% and the
+        // stock top at 130% (0x82), and his dump matches that screen byte for byte. Our 6-point
+        // reader/writer would misalign this table, so no fan-table writes until the app grows a
+        // per-model 7-slot format with the 130% range (research list).
         new() { Name = "MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT", FirmwarePrefixes = new[] { "1594EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Flo827", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/127" },
