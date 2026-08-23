@@ -2288,7 +2288,9 @@ public sealed class FanCurvePage : ThemedPage
                 float y1 = p.Bottom - hi / (float)MaxPct * p.Height, y2 = p.Bottom - lo / (float)MaxPct * p.Height;
                 using var br = new SolidBrush(Color.FromArgb(Theme.Dark ? 16 : 22, c));
                 g.FillRectangle(br, p.Left, y1, p.Width, y2 - y1);
-                TextRenderer.DrawText(g, Lang.T(key), zf, new Rectangle(p.Right - 90, (int)y1 + 3, 88, 14),
+                // measured + DPI-scaled: a fixed 14 px height clipped the label's descender at 140 % scaling
+                int zw = TextRenderer.MeasureText(g, Lang.T(key), zf).Width + S(4);
+                TextRenderer.DrawText(g, Lang.T(key), zf, new Rectangle(p.Right - zw - S(6), (int)y1 + S(3), zw, zf.Height),
                     Color.FromArgb(150, c), TextFormatFlags.Right | TextFormatFlags.Top | TextFormatFlags.NoPadding);
             }
         }
