@@ -64,7 +64,7 @@ public sealed class FanCurvePage : ThemedPage
     private int _scrollGrabDy;     // grab point inside the thumb
 
     // ---- chart-view options bar (audibility zones, intent tiles, comparison layers, table) ----
-    private readonly CheckItem _optZones, _optIntents, _optTrail;
+    private readonly CheckItem _optZones, _optIntents, _optTrail, _optCompare;
     private readonly HelpDot _optHelp = new();
     private readonly Button _optTable = new();
     private readonly List<(string name, int[] cpu, int[] gpu, Color color)> _layers = new();   // resolved comparison layers
@@ -134,10 +134,13 @@ public sealed class FanCurvePage : ThemedPage
         _optIntents.Toggled += v => { D.Settings.FanCurveIntents = v; D.SaveSettings(); LayoutButtons(); Invalidate(); };
         _optTrail = new CheckItem(Lang.T("fc_opt_trail"), d.Settings.FanCurveTrail);
         _optTrail.Toggled += v => { D.Settings.FanCurveTrail = v; D.SaveSettings(); Invalidate(); };
+        _optCompare = new CheckItem(CompareCaption(), d.Settings.FanCurveCompareBar);
+        _optCompare.Toggled += v => { D.Settings.FanCurveCompareBar = v; D.SaveSettings(); LayoutButtons(); Invalidate(); };
         _optHelp.TextProvider = () => Lang.T("fc_opt_help");
         Controls.Add(_optZones);
         Controls.Add(_optIntents);
         Controls.Add(_optTrail);
+        Controls.Add(_optCompare);
         Controls.Add(_optHelp);
         _optTable.Click += (_, _) =>
         {
@@ -560,9 +563,10 @@ public sealed class FanCurvePage : ThemedPage
         _optTable.Text = (D.Settings.FanCurveTable ? "▴  " : "▾  ") + Lang.T("fc_opt_table");
         _optTable.Width = TextRenderer.MeasureText(_optTable.Text, _optTable.Font).Width + 26;
         _optZones.Text = Lang.T("fc_opt_zones");
+        _optCompare.Text = CompareCaption();
         _optIntents.Text = Lang.T("fc_opt_intents");
         _optTrail.Text = Lang.T("fc_opt_trail");
-        foreach (var c in new Control[] { _optZones, _optIntents, _optTrail, _optHelp }) { c.ForeColor = Theme.Text; c.BackColor = Theme.Surface; }
+        foreach (var c in new Control[] { _optZones, _optIntents, _optTrail, _optCompare, _optHelp }) { c.ForeColor = Theme.Text; c.BackColor = Theme.Surface; }
         // playground buttons
         if (_sweepCts != null) { Ui.StyleGhost(_sweepStart); _sweepStart.Text = Lang.T("fc_sweep_stop"); }
         else { Ui.StylePrimary(_sweepStart); _sweepStart.Text = Lang.T("fc_sweep_start"); }
@@ -630,7 +634,10 @@ public sealed class FanCurvePage : ThemedPage
     private int PresetY => ViewsY + S(52);
     // Content starts under the preset bar, or right under the sub-tabs on the view that
     // hides that bar (nothing should sit in an empty strip).
-    private int ContentTop => _view == ViewPlay ? ViewsY + S(46) : PresetY + S(44);
+    // The comparison-chip row sits between the preset bar and the tiles; when it is on, the
+    // whole content stack below it moves down by one row.
+    private bool CompareRowOn => _view == ViewChart && D.Settings.FanCurveCompareBar && _fc != null;
+    private int ContentTop => _view == ViewPlay ? ViewsY + S(46) : PresetY + S(44) + (CompareRowOn ? S(34) : 0);
 
     private void LayoutButtons()
     {
@@ -678,7 +685,7 @@ public sealed class FanCurvePage : ThemedPage
         // chart-view options, right-aligned on the same row: [Table] [?] [Trail] [Tiles] [Zones]
         // (comparison chips are painted to their left, see DrawLayerChips)
         bool chart = _view == ViewChart && _fc != null;
-        _optTable.Visible = _optZones.Visible = _optIntents.Visible = _optTrail.Visible = _optHelp.Visible = chart;
+        _optTable.Visible = _optZones.Visible = _optIntents.Visible = _optTrail.Visible = _optCompare.Visible = _optHelp.Visible = chart;
         if (chart)
         {
             int rx = Width - Pad;
@@ -687,7 +694,7 @@ public sealed class FanCurvePage : ThemedPage
             _optHelp.Size = new Size(S(22), S(22));
             _optHelp.SetBounds(rx - _optHelp.Width, py + (barH - _optHelp.Height) / 2, _optHelp.Width, _optHelp.Height);
             rx = _optHelp.Left - S(10);
-            foreach (var c in new[] { _optTrail, _optIntents, _optZones })
+            foreach (var c in new[] { _optTrail, _optIntents, _optZones, _optCompare })
             {
                 c.Height = S(26);
                 c.Width = c.PreferredWidth;
@@ -2158,7 +2165,8 @@ public sealed class FanCurvePage : ThemedPage
         switch (_view)
         {
             case ViewChart:
-                DrawLayerChips(g);
+                if (CompareRowOn) DrawLayerChips(g);
+                else { _layerChips = Array.Empty<Rectangle>(); _layerNames = Array.Empty<string>(); }
                 if (ShowIntents) DrawIntentTiles(g);
                 DrawFan(g, 0, Lang.T(Single ? "fc_fan_single" : "fc_fan_cpu"), _cpuT, _cpuS);
                 if (!Single) DrawFan(g, 1, Lang.T("fc_fan_gpu"), _gpuT, _gpuS);
@@ -2446,59 +2454,51 @@ public sealed class FanCurvePage : ThemedPage
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
 
-    // (04) comparison chips, painted left of the option checkboxes on the preset row.
-    // Filled chip = layer on (in its layer colour), outline = available. Chips are hit rects.
+    // The Compare checkbox reuses the chip-row caption; the caption carries a trailing colon
+    // (fullwidth in CJK, preceded by a space in French), which a checkbox label must not.
+    private static string CompareCaption() => Lang.T("fc_compare").TrimEnd(':', '：', ' ', ' ');
+
+    // (04) comparison chips on their own row, between the preset bar and the tiles. They used
+    // to share the preset row, where the overlap guard silently swallowed them on narrow
+    // windows; a full-width row of their own fits every chip, and the Compare checkbox turns
+    // the whole row off. Filled chip = layer on (in its layer colour), outline = available.
     private void DrawLayerChips(Graphics g)
     {
         var chips = new List<Rectangle>();
+        var kept = new List<string>();
         using var cf = new Font("Segoe UI", 9f, FontStyle.Bold);
-        int right = (_optZones.Visible ? _optZones.Left : Width - Pad) - S(18);
         int h = cf.Height + S(8);
-        int y = PresetY + (S(34) - h) / 2;
-        // label "Compare:" then chips right-to-left so the row hugs the option controls
-        var names = AllLayerNames();
-        int x = right;
-        // never run into the preset bar: the left limit is the right edge of its last visible
-        // control (+ room for the "Compare:" caption)
-        int leftLimit = new Control[] { _psShare, _psExport, _psImport, _psDelete, _psRename, _psSaveAs, _psSave, _presetCombo }
-            .Where(c => c.Visible).Select(c => c.Right).DefaultIfEmpty(Pad + 300).Max() + S(24);
+        int y = PresetY + S(42);
         string cap = Lang.T("fc_compare");
         using var capF = new Font("Segoe UI", 9.5f);
         int capW = TextRenderer.MeasureText(g, cap, capF).Width;
-        var rects = new Rectangle[names.Length];
-        for (int i = names.Length - 1; i >= 0; i--)
+        TextRenderer.DrawText(g, cap, capF, new Rectangle(Pad, y, capW, h), Theme.Muted,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        int x = Pad + capW + S(10);
+        int right = Width - Pad;
+        foreach (var name in AllLayerNames())
         {
-            string text = names[i].Length == 0 ? Lang.T("fc_layer_default") : names[i];
+            string text = name.Length == 0 ? Lang.T("fc_layer_default") : name;
             int w = TextRenderer.MeasureText(g, text, cf).Width + S(18);
-            if (x - w < leftLimit + capW + S(16)) { rects[i] = Rectangle.Empty; continue; }   // no room: chip hidden
-            x -= w;
-            rects[i] = new Rectangle(x, y, w, h);
-            x -= S(6);
-        }
-        int firstX = rects.Where(r => !r.IsEmpty).Select(r => r.X).DefaultIfEmpty(right).Min();
-        if (rects.Any(r => !r.IsEmpty))
-            TextRenderer.DrawText(g, cap, capF, new Rectangle(firstX - capW - S(10), y, capW, h), Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-        for (int i = 0; i < names.Length; i++)
-        {
-            var r = rects[i];
-            if (r.IsEmpty) continue;
-            chips.Add(r);
-            int li = D.Settings.FanCurveCompare.IndexOf(names[i]);
+            if (x + w > right) break;   // narrower than the full set: the tail waits for a wider window
+            var r = new Rectangle(x, y, w, h);
+            x += w + S(6);
+            int li = D.Settings.FanCurveCompare.IndexOf(name);
             bool on = li >= 0;
             var col = on ? LayerColors[Math.Min(li, LayerColors.Length - 1)] : Theme.Muted;
             using var path = Theme.RoundRect(new RectangleF(r.X + .5f, r.Y + .5f, r.Width - 1, r.Height - 1), h / 2f);
             if (on) { using var fb = new SolidBrush(Color.FromArgb(Theme.Dark ? 60 : 40, col)); g.FillPath(fb, path); }
-            using var pen = new Pen(chips.Count - 1 == _hoverChip ? Theme.Text : col, on ? 1.6f : 1f);
+            using var pen = new Pen(chips.Count == _hoverChip ? Theme.Text : col, on ? 1.6f : 1f);
             g.DrawPath(pen, path);
-            string text = names[i].Length == 0 ? Lang.T("fc_layer_default") : names[i];
             TextRenderer.DrawText(g, text, cf, r, on ? col : Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            chips.Add(r);
+            kept.Add(name);
         }
         // hit-testing sees only the chips that fit; RebuildLayers restores the full name list
         // on the next settings change, and every paint re-filters it here
         _layerChips = chips.ToArray();
-        _layerNames = names.Where((_, i) => !rects[i].IsEmpty).ToArray();
+        _layerNames = kept.ToArray();
     }
 
     // (08) intent tiles: four shapes derived from the factory default; the one matching the

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- **The fan-curve comparison chips moved to their own row, with an on/off checkbox** - they
+  shared the preset row, where narrow windows silently clipped them away; now they sit on a
+  full-width row between the preset bar and the built-in curve tiles, every chip fits, and a
+  Compare checkbox next to Zones/Tiles/Trail hides the row entirely when it is not needed.
+
 ### Fixed
 - **The tray's Fan curve submenu now marks the active preset** ([#100](../../issues/100)) -
   a check lands on "Auto (stock)" or on the preset that is actually live in the EC. The fan
