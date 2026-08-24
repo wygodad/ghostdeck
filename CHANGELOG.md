@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **MSI Vector A16 HX A8WIG (`15MMIMS1`) promoted to tested** ([#133](../../issues/133),
+  [#134](../../issues/134), [#135](../../issues/135), thanks @Matt99-sys) - the owner's clean
+  power-test run shows a real Silent cap: 69 % of Balanced's work at 58 C vs 72 C on slower
+  fans (3023 vs 3950 rpm), Extreme +8 % with the fans opened to ~6125 rpm, and every phase
+  reading its bytes back intact at 4 % drift. The first two runs were disturbed mid-measurement
+  (the repeat phase read back an eco shift) and were not scored. 29 models tested.
+
 ## [1.36.0] - 2026-08-24
 ### Added
 - **Fan-curve speeds above 100 %** ([#115](../../issues/115), [#129](../../issues/129), also

@@ -103,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260831;
+    public const int DataVersion = 20260901;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -570,7 +570,14 @@ public static class Devices
         // register (0xEB reads 00 in every scenario), so the eco recipe is the mode byte alone.
         // Curve VERIFIED on the spot: his test curve sits byte-for-byte at the shipped 0x72/0x8A.
         // RPM at 0xC9/0xCB, single-byte divisors alive (9F/CD = ~2350-3000 rpm).
-        new() { Name = "MSI Vector A16 HX A8WIG",           FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Experimental,
+        // TESTED (issue #135, the owner's clean third power-test run on 1.36.0): Silent does 69%
+        // of Balanced's work at 58 vs 72 C and 3023 vs 3950 rpm - a real Silent cap; Extreme
+        // adds 8% with the fans opened to ~6125 rpm; every phase read its bytes back intact and
+        // the run drifted 4%. His first two runs (#133/#134) were disturbed mid-measurement
+        // (repeat phase read back an eco shift) and were not scored. Board quirk to watch: the
+        // fan DUTY bytes read implausible constants under load (103/112, once 150) while both
+        // tachometers stay live and plausible - RPM is the readout to trust here.
+        new() { Name = "MSI Vector A16 HX A8WIG",           FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Matt99-sys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130" },
         // Raider GE68 HX 14VIG board (15M1IMS2), also sold as Vector 16 HX A13V - the owner's
