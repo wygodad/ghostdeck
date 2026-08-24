@@ -94,7 +94,10 @@ persisted and all can be switched off:
   default, Cool = default +10 pp, Max = the default up to 55 °C then a straight ramp to 100 % by
   70 °C. Clicking loads the shape; the tile matching the current shape is lit; a drag un-lights it.
 - **Comparison layers** - chips for the factory default and every saved preset, up to three drawn
-  at once as dashed lines (violet / amber / green). Layers only paint, they never edit.
+  at once as dashed lines (violet / amber / green). Layers only paint, they never edit. Since
+  1.36.0 the chips sit on their own full-width row between the preset bar and the intent tiles
+  (narrow windows used to clip them silently), and a **Compare** checkbox next to
+  Zones / Tiles / Trail hides the row when it is not needed.
 - **Coupled points table** - ONE table under both charts, one row per node index: Temp CPU | % CPU |
   Temp GPU | % GPU | band | vs. MSI default. Hovering a row halos that node on **both** charts;
   clicking a % cell opens an inline `TextBox` (Enter commits, Escape cancels, focus loss commits)

@@ -463,6 +463,14 @@ firmware or another tool clears it.
 this EC); the disable is immediate at the register, the mechanical wind-down is not. The app's
 tooltip warns about this.
 
+### 17.8 The tray Fan curve submenu marks the active preset (1.36)
+
+Issue #100: the submenu listed presets but never showed which one was live. Three decisions make the mark truthful:
+
+- **The live fan byte decides whether a custom curve is engaged at all.** `0xD4` is read at the moment the submenu opens (not taken from cached state), so the mark survives profile switches, scenes and external writes; a non-curve value ticks "Auto (stock)".
+- **The active preset is recognised by its POINTS** (`SequenceEqual` on all four tables against the recorded active curve), not by name - the Fan curve tab records applied curves without a name, so a name match alone would never tick anything applied from the tab. A hand-edited curve matches no preset and ticks nothing, which is correct.
+- **Applying a preset from the tray mirrors into the Fan curve tab** (`MainForm.SyncFanCurvePreset` -> `FanCurvePage.SyncExternalPreset`): the picker and the chart follow without re-applying to the EC, so both surfaces tell the same story.
+
 ## 18. Supported model families (bulk import)
 
 Beyond the tested GE78HX, the app recognises **145 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:

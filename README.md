@@ -207,7 +207,7 @@ is unsigned, which is expected and not a warning sign.
 
 Each model is **✅ tested** (verified on real hardware) or **⚗️ experimental** (built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps but not yet verified - the "Silent" power-cap behaviour is unconfirmed). On an **unrecognized firmware** the app runs **read-only** (Status works, writes disabled), so it never writes wrong registers on an untested machine.
 
-Experimental models are **opt-in**: enable them in *Settings → Power → "Enable experimental models"*. They write only documented MSI shift/fan registers (low risk), but switching may not give the same low-power "Silent" until an owner confirms it.
+Experimental models are **opt-in per machine** (since 1.36.0): when the detected laptop is experimental, *Settings → System → "Startup & tray"* shows an **"Enable writes for this model (\<firmware\> - unverified)"** switch that unlocks writes for that machine alone - a firmware change puts it back on read-only until you consent again. Experimental entries write only documented MSI shift/fan registers (low risk), but switching may not give the same low-power "Silent" until an owner confirms it.
 
 **148 models** are recognised, grouped into EC families using hardware mapping information documented by [msi-ec](https://github.com/BeardOverflow/msi-ec), with fan and temperature register layouts cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter):
 
