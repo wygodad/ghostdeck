@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.36.0] - 2026-08-24
 ### Added
 - **Fan-curve speeds above 100 %** ([#115](../../issues/115), [#129](../../issues/129), also
   asked for in [#43](../../issues/43)) - the editor's speed scale now reaches **150 %**, the
