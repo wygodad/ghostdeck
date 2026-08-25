@@ -34,7 +34,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Pulse/Katana 17 B13V/GK | `17L5EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Raider GE67 HX 12U | `1545IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
-| MSI Raider GE68 HX 14VIG / Vector 16 HX A13V | `15M1IMS2` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &#10003; 0xC9/0xCB |
+| MSI Raider GE68 HX 14VIG / Vector 16 HX A13V | `15M1IMS2` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Raider GE76 12UE / 12UGS | `17K4EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Raider GE78 HX 14VHG | `17S1IMS2` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Raider GE78HX 13V / Vector 17 HX A14V | `17S1IMS1`, `17S2IMS2` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |

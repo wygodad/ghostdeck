@@ -5,6 +5,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`): fan curve verified**
+  ([#138](../../issues/138), thanks @dodi6161) - the owner's test curve sits byte for byte at
+  the shipped addresses, so the curve editor drops its unverified caution on this board.
+- **Katana GF66 11UE / 11UG (`1581EMS1`): fan RPM confirmed against HWiNFO64**
+  ([#121](../../issues/121), thanks @vlf1e) - the owner's side-by-side screenshots match, so
+  the tachometer addresses are owner-confirmed rather than inferred.
 - **Vector 16 HX AI (`15M3EMS1`) re-confirmed on firmware .304** ([#136](../../issues/136),
   [#137](../../issues/137)) - a third owner's capture matches every recipe byte with a real
   Silent, the test curve landed at the verified addresses again, and both tachometers are

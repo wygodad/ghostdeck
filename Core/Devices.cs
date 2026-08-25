@@ -103,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260902;
+    public const int DataVersion = 20260903;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -437,6 +437,8 @@ public static class Devices
         //   (D1-D3 idle, 96/CA under the test curve = ~2260-3190 rpm, high bytes always 00,
         //   unlike the 16-bit sibling 1585EMS1) - RPM enabled, reporter asked to cross-check
         //   against HWiNFO64. Credit shared as thanks.
+        //   RPM CONFIRMED by that owner 2026-08-25 (#121 follow-up): GhostDeck's readout matches
+        //   HWiNFO64 on his machine (screenshots), so the divisor scheme is hardware fact here too.
         new() { Name = "MSI Katana GF66 11UE / 11UG", FirmwarePrefixes = new[] { "1581EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "mewmrow, vlf1e", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/34" },
@@ -590,16 +592,18 @@ public static class Devices
         // unverified on hardware; the power test covers the three main profiles.
         // TESTED 2026-08-23 on the owner's power-test run (#105): Silent completes 73% of
         // Balanced's work at 2474 vs 3364 MHz, Extreme adds 10% on top (3649 MHz), recipe bytes
-        // read back intact after every phase, 2% baseline drift. Curve tables hold the family
-        // layout at the shipped ModernCurve addresses (ascending values) - no test curve, so the
-        // curve stays unverified. RPM: single-byte divisors at 0xC9/0xCB as on the Pulse 16 AI
-        // (0xC9 = C8/C8/C8/CD = ~2390-2330 rpm, 0xCB = EB/A6 = ~2030-2880 rpm where the GPU fan
-        // was awake; the wide-pair bytes 0xC8/0xCA sit at 00 in all four columns) - enabled as
-        // the family scheme, owner asked to cross-check against HWiNFO.
+        // read back intact after every phase, 2% baseline drift. RPM: single-byte divisors at
+        // 0xC9/0xCB as on the Pulse 16 AI (0xC9 = C8/C8/C8/CD = ~2390-2330 rpm, 0xCB = EB/A6 =
+        // ~2030-2880 rpm where the GPU fan was awake; the wide-pair bytes 0xC8/0xCA sit at 00 in
+        // all four columns) - enabled as the family scheme, owner asked to cross-check with HWiNFO.
         //   RPM CONFIRMED by the owner 2026-08-22 (#104 follow-up): GhostDeck's readout matches
         //   HWiNFO64 "100 percent" on his machine - the divisor hypothesis is hardware fact.
+        //   Curve VERIFIED 2026-08-25 (issue #138): the owner set the test curve in MSI Center
+        //   2.0.48 and the wizard found it byte-for-byte at the shipped 0x72 / 0x8A. His capture
+        //   also shows MSI Center engaging the curve as 0xD4 = 0x9D (bit 7 on the value already
+        //   there) where we write the constant 0x8D - both reach advanced mode.
         new() { Name = "MSI Raider GE68 HX 14VIG / Vector 16 HX A13V", FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, ShiftEcoValue = 0xC6,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, ShiftEcoValue = 0xC6,
                 Recipes = new()
                 {
                     [ProfileId.Silent]       = new (byte, byte)[] { (0xD2, 0xC1), (0xD4, 0x1D) },
