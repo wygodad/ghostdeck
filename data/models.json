@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260901,
+  "dataVersion": 20260902,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -1143,7 +1143,7 @@
         "name": "MSI Center Extreme",
         "shiftValue": "0xC5"
       },
-      "credit": "xulu19861102-hub, mithril01",
+      "credit": "xulu19861102-hub, mithril01, H0tSTUff",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
       "recipes": {
         "Silent": [

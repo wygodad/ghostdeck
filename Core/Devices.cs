@@ -103,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260901;
+    public const int DataVersion = 20260902;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -629,10 +629,16 @@ public static class Devices
         //   A2XWHG-275US): the snapshot matches every recipe byte, the test curve landed at the
         //   shipped 0x72/0x8A again, and both tachs are alive - credit shared with the original
         //   reporter as thanks.
+        //   Re-confirmed on firmware .304 by a third owner (issues #136/#137, MSI Center 2.0.48):
+        //   snapshot = recipes 1:1 with a real Silent, the test curve landed at the shipped
+        //   0x72/0x8A again, and both tachs are alive. His vendor "Extreme Performance" wrote
+        //   0xD2 = C4 (not C5), so the C5 fourth value looks build- or firmware-dependent - it
+        //   stays recorded for detection, which accepts both. 0xD6 self-set 03 in Extreme =
+        //   sixth board for the #52 observation.
         new() { Name = "MSI Vector 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,

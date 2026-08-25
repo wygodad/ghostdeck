@@ -5,6 +5,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **Vector 16 HX AI (`15M3EMS1`) re-confirmed on firmware .304** ([#136](../../issues/136),
+  [#137](../../issues/137)) - a third owner's capture matches every recipe byte with a real
+  Silent, the test curve landed at the verified addresses again, and both tachometers are
+  alive; @H0tSTUff joins the entry's credit. His MSI Center's Extreme wrote `0xD2 = C4`
+  rather than the `C5` recorded from the original owner's capture, so the fourth value stays
+  as a detection aid that accepts both.
 - **MSI Vector A16 HX A8WIG (`15MMIMS1`) promoted to tested** ([#133](../../issues/133),
   [#134](../../issues/134), [#135](../../issues/135), thanks @Matt99-sys) - the owner's clean
   power-test run shows a real Silent cap: 69 % of Balanced's work at 58 C vs 72 C on slower
