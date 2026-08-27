@@ -5,6 +5,26 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) promoted to tested**
+  ([#97](../../issues/97), [#140](../../issues/140), [#146](../../issues/146), thanks
+  @parkisutama and @tenduo) - two owners' captures match the standard recipes byte for byte,
+  and the second owner's clean power test measures the board's character: Extreme delivers
+  +16 % work, while Silent keeps the fan ramp lower without capping CPU power (104 % of
+  Balanced's work at near-identical temperatures) - recorded in the entry as a trait of this
+  board, seen identically by both owners. 32 models tested.
+- **MSI Crosshair 15 B12UEZ / B12UGSZ (`1583EMS1`) promoted to tested, with fan RPM**
+  ([#142](../../issues/142), thanks @VamiCLAY) - the owner's per-scenario capture matches the
+  standard recipes byte for byte with a real Silent on MSI Center 2.0.48, all three hardware
+  checks are confirmed, and his dumps carry live single-byte tachometer divisors at
+  `0xC9`/`0xCB` (the Katana-family scheme, asked to cross-check against HWiNFO64).
+  31 models tested.
+- **Vector 16 HX AI (`15M3EMS1`) renamed "Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG"**
+  ([#144](../../issues/144), following [#136](../../issues/136)) - the third owner's machine
+  is a Raider 16 HX AI, a retail line matching his configuration exactly, on the same MS-15M3
+  board. His zero-drift power test on firmware .304 also delivers the first measurement of the
+  `C5` fourth mode on this board: the write is accepted and cleanly reverted, and it buys 2 %
+  more work than `C4` at much higher fan speeds and 95 C - so the app's Extreme recipe stays
+  on `C4`.
 - **MSI Sword 17 HX B14VGKG (`17T2EMS1`) promoted to tested, fan curve verified**
   ([#139](../../issues/139), thanks @GalacticPasha) - his test curve sits byte for byte at the
   shipped addresses, and his power test shows a real Silent cap read against the run's own
@@ -30,6 +50,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   fans (3023 vs 3950 rpm), Extreme +8 % with the fans opened to ~6125 rpm, and every phase
   reading its bytes back intact at 4 % drift. The first two runs were disturbed mid-measurement
   (the repeat phase read back an eco shift) and were not scored. 29 models tested.
+### Fixed
+- **Power test: the "machine was not idle" check now scales with the processor**
+  ([#146](../../issues/146)) - the bar was a fixed 85 % share of the machine, which a clean
+  run can only reach on CPUs with enough logical processors (the load deliberately leaves two
+  of them free for the controller reads). On a 12-thread machine an idle run reads exactly
+  83 % and could never pass, so every report was flagged busy. The bar now sits five points
+  below the share a clean run gets on that processor, and the warning prints that expected
+  share next to the measured ones.
 
 ## [1.36.0] - 2026-08-24
 ### Added

@@ -103,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260904;
+    public const int DataVersion = 20260905;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -639,7 +639,21 @@ public static class Devices
         //   0xD2 = C4 (not C5), so the C5 fourth value looks build- or firmware-dependent - it
         //   stays recorded for detection, which accepts both. 0xD6 self-set 03 in Extreme =
         //   sixth board for the #52 observation.
-        new() { Name = "MSI Vector 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
+        //   Re-confirmed a fourth time by the same third owner's power test on .304 (issue
+        //   #144, zero drift, clean read-backs): Silent held 97 % of Balanced's work at 74 C
+        //   and 3554/3549 rpm against 85 C and 4669/4900; Extreme added 3 %. First
+        //   measurement of the C5 fourth mode on this board: the write was accepted and
+        //   cleanly reverted, and it delivered 105 % against Extreme's 103 % while pushing
+        //   the fans to 6331/6853 rpm and the CPU to 95 C - 2 % more work for a lot more
+        //   noise and heat, so the app's Extreme recipe stays on C4.
+        //   Dual retail name (issues #136/#144): the third owner's machine is a Raider 16 HX
+        //   AI - the Raider 16 HX AI A2XW retail line matches his configuration exactly -
+        //   on the same MS-15M3 board, hence both names in the entry.
+        //   Stock fan tables in his dumps: CPU 0/40/48/60/75/89 (+ hidden 103 %), GPU
+        //   0/48/60/70/82/93 (+ hidden 112 %) - exactly the values behind the app's
+        //   "MSI default" button. The 38-86 set posted in #137 appears in no dump (it reads
+        //   like the vendor editor's starting template, kept in that thread for reference).
+        new() { Name = "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
                 Credit = "xulu19861102-hub, mithril01, H0tSTUff", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
@@ -729,7 +743,29 @@ public static class Devices
         new() { Name = "MSI Stealth 15M A11UEK",            FirmwarePrefixes = new[] { "1563EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator Z16 A11UE",             FirmwarePrefixes = new[] { "1571EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator Z16 A12U",              FirmwarePrefixes = new[] { "1572EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Crosshair 15 B12UEZ / B12UGSZ", FirmwarePrefixes = new[] { "1583EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Crosshair 15 B12UEZ / B12UGSZ (1583EMS1) - owner-verified (issue #142, MSI Center
+        // 2.0.48, the last lineup with the real Silent scenario). The per-scenario capture
+        // matches StdRecipes 1:1 on the three main profiles (shift 0xD2 C1/C1/C4, fan 0xD4
+        // 1D/0D/0D) with four distinct columns, and the owner confirmed all three hardware
+        // checks - the Tested bar. His power test (issue #143) could not be scored (uneven
+        // CPU shares between phases, 16 % baseline drift, thermally saturated), but every
+        // phase read its recipe bytes back intact under load.
+        //   RPM: single-byte divisors at 0xC9/0xCB with the high bytes 0xC8/0xCA at 00 in
+        //   every column, moving with load across his power-test dumps (B2 = ~2690, 84 =
+        //   ~3620, 5E = ~5085 rpm) - the 1581/1584 sister scheme; owner asked to cross-check
+        //   against HWiNFO.
+        //   Super Battery observation: his vendor tile set the battery limiter (0xEB=0F) and
+        //   turned the kbd backlight off (0xD3 80) but left the shift byte where Extreme put
+        //   it (0xD2=C4), where the same MSI Center build writes C2 on other boards. One
+        //   capture is not enough to drop the C2 write, so the recipe keeps the family
+        //   standard; the owner was asked for a read-only Silent-to-SuperBattery check.
+        //   0xD6 read 03 in the vendor's Extreme column only (05 elsewhere), yet stayed 05
+        //   in the app's own Extreme phase of the power test - seventh board for the #52
+        //   observation, and the first to show the value under the vendor's Extreme but not
+        //   under ours.
+        new() { Name = "MSI Crosshair 15 B12UEZ / B12UGSZ", FirmwarePrefixes = new[] { "1583EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "VamiCLAY", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/142" },
         // Katana GF66 12U / Sword 15 A12UC (1584EMS1) - one board behind two retail lines.
         // Tested via the Katana 12UD owner (issue #116: snapshot = StdRecipes 1:1 on MSI Center
         // 2.0.48, all three hardware checks confirmed, no dump). The Sword 15 A12UC owner
@@ -805,7 +841,26 @@ public static class Devices
         new() { Name = "MSI Modern 15 H B13M",              FirmwarePrefixes = new[] { "15H4IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG", FirmwarePrefixes = new[] { "15Q3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (15Q3EMS1) - Tested on two owners' evidence.
+        // Recipes: the first owner's vendor capture (issue #97) and the second owner's
+        // snapshot (issue #140) both match StdRecipes 1:1. Measured (issue #146; the run was
+        // clean - the report's not-idle warning was the fixed-bar false alarm on a 12-thread
+        // CPU, shares were an even 83 % everywhere with 3 % drift): Extreme delivers +16 %
+        // work; Silent does NOT cap CPU power on this board (104 % of Balanced's work at
+        // near-identical temperatures) - it only keeps the fan ramp lower (GPU fan peaked
+        // 57 % against Balanced's 70 %). The first owner's run (#97) showed the same no-cap
+        // Silent, so this is a trait of the board, not a bad run - recorded here so nobody
+        // "fixes" it later.
+        //   Stock fan tables (consistent across the pre-experiment #145/#146 dumps):
+        //   0/39/43/48/57/70 at 0x72-0x77 AND 0x8A-0x8F - both fans identical - with the
+        //   hidden top byte 0x52 (82 %) at 0x78/0x90.
+        //   RPM deliberately not set: 0xCB reads 00 in every dump; 0xC9 moves plausibly but
+        //   one run is not enough (the #145 follow-up may settle it).
+        //   Curve map unverified: the #145 capture entered the test values from the second
+        //   slider onward (first slot stayed 0, Fan 2 never saved) - re-capture requested.
+        new() { Name = "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG", FirmwarePrefixes = new[] { "15Q3EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "parkisutama, tenduo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/97" },
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

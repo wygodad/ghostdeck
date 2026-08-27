@@ -2,7 +2,7 @@
 
 > Auto-generated from [`Devices.cs`](../Core/Devices.cs) - the single source of truth. Do not edit by hand: regenerate with `GhostDeck.exe --dump-supported-md docs/SUPPORTED_MODELS.md` (CI fails when this file drifts from the code).
 
-**148 laptop models** are recognised: **30 tested** on real hardware (MSI Bravo 15 B7ED; MSI Bravo 17 C7VE / D7VFK; MSI Creator M14 A13VE; MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK; MSI Crosshair 16 HX AI D2XW; MSI Crosshair A16 HX (D7W/D8W); MSI Cyborg 15 A12VF / A13VF; MSI GE66 Raider / GP66 Leopard; MSI GF63 Thin 11UC / 11SC; MSI Katana 15 HX B14WEK; MSI Katana GF66 11UE / 11UG; MSI Katana GF66 12U / Sword 15 A12UC; MSI Modern 14 C12M; MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT; MSI Pulse 16 AI C1VGKG/C1VFKG; MSI Pulse/Katana 17 B13V/GK; MSI Raider A18 HX A7VIG; MSI Raider GE67 HX 12U; MSI Raider GE68 HX 14VIG / Vector 16 HX A13V; MSI Raider GE76 12UE / 12UGS; MSI Raider GE78 HX 14VHG; MSI Raider GE78HX 13V / Vector 17 HX A14V; MSI Stealth 14 Studio A13VF; MSI Sword 16 HX B13V / B14V; MSI Sword 17 HX B14VGKG; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Vector 16 HX AI A2XWHG / A2XWIG; MSI Vector A16 HX A8WIG; MSI Vector A18 HX A9WHG) and **118 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps, with fan and temperature registers cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
+**148 laptop models** are recognised: **32 tested** on real hardware (MSI Bravo 15 B7ED; MSI Bravo 17 C7VE / D7VFK; MSI Creator M14 A13VE; MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK; MSI Crosshair 15 B12UEZ / B12UGSZ; MSI Crosshair 16 HX AI D2XW; MSI Crosshair A16 HX (D7W/D8W); MSI Cyborg 15 A12VF / A13VF; MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG; MSI GE66 Raider / GP66 Leopard; MSI GF63 Thin 11UC / 11SC; MSI Katana 15 HX B14WEK; MSI Katana GF66 11UE / 11UG; MSI Katana GF66 12U / Sword 15 A12UC; MSI Modern 14 C12M; MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT; MSI Pulse 16 AI C1VGKG/C1VFKG; MSI Pulse/Katana 17 B13V/GK; MSI Raider A18 HX A7VIG; MSI Raider GE67 HX 12U; MSI Raider GE68 HX 14VIG / Vector 16 HX A13V; MSI Raider GE76 12UE / 12UGS; MSI Raider GE78 HX 14VHG; MSI Raider GE78HX 13V / Vector 17 HX A14V; MSI Stealth 14 Studio A13VF; MSI Sword 16 HX B13V / B14V; MSI Sword 17 HX B14VGKG; MSI Thin GF63 12VE; MSI Titan 18 HX Dragon Edition; MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG; MSI Vector A16 HX A8WIG; MSI Vector A18 HX A9WHG) and **116 experimental** (opt-in), built from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps, with fan and temperature registers cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter). Keyboard-backlight control covers models where msi-ec documents the EC brightness register; laptops with **per-key RGB keyboards** (SteelSeries) do not expose it and keep using their own Fn key (see [LIGHTING.md](LIGHTING.md) for the hardware research behind that). On an **unrecognised firmware the app stays read-only** (Status works, no writes), so it never touches wrong registers.
 
 Column meaning:
 
@@ -20,9 +20,11 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Bravo 17 C7VE / D7VFK | `17LNIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &mdash; |
 | MSI Creator M14 A13VE | `14P1IWS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9 |
 | MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK | `1585EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &mdash; |
+| MSI Crosshair 15 B12UEZ / B12UGSZ | `1583EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Crosshair 16 HX AI D2XW | `15P4EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Crosshair A16 HX (D7W/D8W) | `15PLIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Cyborg 15 A12VF / A13VF | `15K1IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG | `15Q3EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &mdash; |
 | MSI GE66 Raider / GP66 Leopard | `1543EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI GF63 Thin 11UC / 11SC | `16R6EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9 |
 | MSI Katana 15 HX B14WEK | `1587EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
@@ -43,7 +45,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Sword 17 HX B14VGKG | `17T2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Thin GF63 12VE | `16R8IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Titan 18 HX Dragon Edition | `1824EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Vector 16 HX AI A2XWHG / A2XWIG | `15M3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG | `15M3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Vector A16 HX A8WIG | `15MMIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Vector A18 HX A9WHG | `182LIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
 | MSI Alpha 17 C7VF / C7VG | `17KKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
@@ -54,11 +56,9 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Creator Z16 A12U | `1572EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator Z17 A12UGST | `17N1EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &mdash; |
 | MSI CreatorPro Z16HXStudio B13VJTO / B13VKTO | `15G2EWS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Crosshair 15 B12UEZ / B12UGSZ | `1583EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Crosshair 17 B12UGZ | `17L3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Cyborg 14 A13VF | `14P1IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Cyborg 15 AI A1VFK | `15K2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG | `15Q3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI GE76 Raider 11U / 11UH | `17K3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI GS66 Stealth 11UE / 11UG | `16V4EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Katana 15 B12VEK / B12VFK / B12VGK | `1585EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260904,
+  "dataVersion": 20260905,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -1122,7 +1122,7 @@
       }
     },
     {
-      "name": "MSI Vector 16 HX AI A2XWHG / A2XWIG",
+      "name": "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG",
       "prefixes": [
         "15M3EMS1"
       ],
@@ -2276,7 +2276,9 @@
       "prefixes": [
         "1583EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2287,6 +2289,8 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "VamiCLAY",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/142",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3341,7 +3345,7 @@
       "prefixes": [
         "15Q3EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3352,6 +3356,8 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "parkisutama, tenduo",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/97",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
