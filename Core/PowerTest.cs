@@ -34,9 +34,13 @@ public static class PowerTest
     // coping at all, so the run stops instead of sitting at the ceiling for another minute.
     private const int HotCeiling = 99;
     private const int HotSamplesToAbort = 5;
-    // Below this share of the machine, or with a sample this far from its second, the load was not
-    // the only thing running and the comparison stops meaning what it says.
-    private const int OwnShareFloor = 85;
+    // A clean run's share of the machine is (threads - headroom) / threads: 90 % on a 20-thread
+    // CPU but only 83 % on a 12-thread one, so the busy bar has to scale with the processor or a
+    // small machine can never pass it (issue #146: a perfectly idle 12-thread board was flagged
+    // on every run against the old fixed 85). The bar sits this many points below that expected
+    // share; below it, or with a sample this far from its second, the load was not the only
+    // thing running and the comparison stops meaning what it says.
+    private const int OwnShareSlack = 5;
     private const int SlowSampleMs = 3000;
     // A shortfall shared equally by every phase cancels out of the ratio the table reports. An
     // UNEVEN one does not: it bends the comparison itself, which is the only thing the table is
@@ -641,6 +645,8 @@ public static class PowerTest
             sb.AppendLine("!! THE MACHINE WAS NOT IDLE. Treat the work column as unreliable and re-run !!");
             foreach (var l in loads)
                 sb.AppendLine($"   {l.Name,-14} had {l.Own,5:F1} % of the CPU");
+            sb.AppendLine($"   A clean run on this processor sits near {ExpectedOwn(r):F0} % " +
+                          $"({LoadThreadHeadroom} of the {r.Threads} logical processors are deliberately left free).");
 
             // An equal shortfall cancels out of the ratio; an uneven one does not. Name the phases
             // whose share differed from the baseline's, and which way it pushed their work column,
@@ -749,8 +755,14 @@ public static class PowerTest
     public static bool WasBusy(Result r)
     {
         var loads = Loads(r);
-        return loads.Any(l => l.Own < OwnShareFloor || Math.Abs(Skew(loads, l) - 1) > MaxShareSkew);
+        double floor = ExpectedOwn(r) - OwnShareSlack;
+        return loads.Any(l => l.Own < floor || Math.Abs(Skew(loads, l) - 1) > MaxShareSkew);
     }
+
+    /// <summary>The share of the machine a clean run's load gets: every logical processor
+    /// except the reserved headroom. The busy bar is this minus <see cref="OwnShareSlack"/>.</summary>
+    private static double ExpectedOwn(Result r) =>
+        Math.Max(1, r.Threads - LoadThreadHeadroom) * 100.0 / Math.Max(1, r.Threads);
 
     /// <summary>How much of the machine each phase actually got, and its worst sampling gap.</summary>
     private sealed record PhaseLoad(string Name, double Own, int SlowestMs);
