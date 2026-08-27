@@ -103,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260903;
+    public const int DataVersion = 20260904;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -860,7 +860,18 @@ public static class Devices
         new() { Name = "MSI Stealth 17 Studio A13VI",       FirmwarePrefixes = new[] { "17P2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Titan GT77 12UHS",              FirmwarePrefixes = new[] { "17Q1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Titan GT77HX 13VH",             FirmwarePrefixes = new[] { "17Q2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Sword 17 HX B14VGKG",           FirmwarePrefixes = new[] { "17T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Sword 17 HX B14VGKG (17T2EMS1) - owner report and verification (issue #139, MSI Center
+        // 2.0.72, app 1.36.0). Curve VERIFIED: his test curve (CPU 25/35/45/55/65/75, GPU
+        // 20/30/40/50/60/70) sits byte-for-byte at the shipped 0x72/0x8A.
+        // TESTED on his power test, read with the run's own caveat: it is heat-limited (86 C
+        // ceiling, 17% end-to-end drift), so Extreme and Balanced converge and cannot be ranked
+        // apart. Silent still shows a real cap - it ran first, when the machine was coolest and
+        // therefore fastest, yet delivered 88% of Balanced's work at 5 C lower CPU (72% vs 80%
+        // CPU load), and every phase read its bytes back intact. No fan RPM in the capture (both
+        // tachometer columns blank), so RPM stays off until a dump shows it.
+        new() { Name = "MSI Sword 17 HX B14VGKG",           FirmwarePrefixes = new[] { "17T2EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "GalacticPasha", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/139" },
         new() { Name = "MSI Titan 18 HX A14V",              FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Raider A18 HX A7VIG (182KIMS1) — owner per-scenario dump (issue #50) matches StdRecipes on
         // shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D, and all three hardware checks passed, so

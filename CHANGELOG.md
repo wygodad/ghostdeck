@@ -5,6 +5,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **MSI Sword 17 HX B14VGKG (`17T2EMS1`) promoted to tested, fan curve verified**
+  ([#139](../../issues/139), thanks @GalacticPasha) - his test curve sits byte for byte at the
+  shipped addresses, and his power test shows a real Silent cap read against the run's own
+  caveat: the machine is heat-limited (86 C ceiling, 17 % end-to-end drift), so Extreme and
+  Balanced converge, but Silent ran first (when the machine was coolest and fastest) and still
+  delivered 88 % of Balanced's work at 5 C lower CPU, with every phase reading its bytes back
+  intact. 30 models tested.
 - **Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`): fan curve verified**
   ([#138](../../issues/138), thanks @dodi6161) - the owner's test curve sits byte for byte at
   the shipped addresses, so the curve editor drops its unverified caution on this board.
