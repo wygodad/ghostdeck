@@ -172,6 +172,11 @@ public sealed class AppSettings
     // UI: presety 30 s / 1 / 2 / 3 / 5 / 10 / 15 min + wlasna wartosc w minutach (do 120).
     public int FanBoostSeconds { get; set; }
 
+    // ---- karta "Zasilanie Windows" (#141; roadmapa #109 + #36) ----
+    public bool PowerModeSync { get; set; }                                  // tryb zasilania Windows podaza za profilem
+    public Dictionary<string, int[]> TurboSnapshots { get; set; } = new();   // GUID planu -> [AC, DC] sprzed wylaczenia turbo (zapis planu jest trwaly)
+    public long BoostAttrOriginal { get; set; } = -1;                        // pelny DWORD atrybutow PERFBOOSTMODE sprzed odkrycia w Panelu; -1 = nietkniete
+
     // opt-in (#49): przywroc ostatnia AKTYWNA krzywa wentylatora po starcie/wznowieniu -
     // EC przy zimnym starcie wraca do fabrycznego trybu i gubi kazda wlasna krzywa
     public bool RestoreCurveOnResume { get; set; }
@@ -515,6 +520,9 @@ public sealed class AppSettings
         RestoreProfileOnResume = src.RestoreProfileOnResume;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
         FanBoostSeconds = src.FanBoostSeconds;
+        PowerModeSync = src.PowerModeSync;
+        // Turbo snapshots and the attribute original are MACHINE state (this Windows, its power
+        // plans), not preferences - an imported file must not overwrite what this machine saved.
         ScheduleEnabled = src.ScheduleEnabled;
         Schedules.Clear();
         foreach (var r in src.Schedules) Schedules.Add(r.Clone());
@@ -602,6 +610,8 @@ public sealed class AppSettings
             RestoreProfileOnResume = RestoreProfileOnResume,
             RestoreCurveOnResume = RestoreCurveOnResume,
             FanBoostSeconds = FanBoostSeconds,
+            PowerModeSync = PowerModeSync,
+            BoostAttrOriginal = BoostAttrOriginal,
             ScheduleEnabled = ScheduleEnabled,
             BattRulesEnabled = BattRulesEnabled,
             BattLowEnabled = BattLowEnabled, BattLowPct = BattLowPct, BattLowAction = BattLowAction,
@@ -615,6 +625,7 @@ public sealed class AppSettings
         foreach (var (k, v) in ProfileCurves) c.ProfileCurves[k] = v;
         foreach (var s in Scenes) c.Scenes.Add(s.Clone());   // (#21)
         foreach (var r in Schedules) c.Schedules.Add(r.Clone());
+        foreach (var (k, v) in TurboSnapshots) c.TurboSnapshots[k] = (int[])v.Clone();
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
         c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;

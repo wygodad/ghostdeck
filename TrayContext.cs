@@ -343,6 +343,16 @@ public sealed class TrayContext : ApplicationContext
                     }
                     return "0|refresh rate: " + hz + " Hz";
                 }
+                case CliKind.Turbo:
+                {
+                    // Windows power-plan API (#141), independent of EC writability.
+                    if (cmd.Arg == "status") return "0|" + PowerPlan.TurboStatus();
+                    string err = cmd.Arg == "off" ? PowerPlan.TurboOff(_settings) : PowerPlan.TurboOn(_settings);
+                    if (err.Length > 0) return "1|" + err;
+                    ChangeLog.Add(ChangeSource.Cli, $"CPU turbo boost: {cmd.Arg}");
+                    if (_main is { IsDisposed: false }) _main.RefreshActive();
+                    return "0|" + PowerPlan.TurboStatus();
+                }
             }
 
             if (!Writable) return "1|" + (Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
@@ -941,6 +951,7 @@ public sealed class TrayContext : ApplicationContext
             // remember the deliberate choice (external syncs don't land here) for the
             // startup / resume restore option
             if (_settings.LastProfile != id.ToString()) { _settings.LastProfile = id.ToString(); _settings.Save(); }
+            ApplyPowerModeSync(id, source);
             UpdateUi(id);
             if (osd) ShowOsd(id);
         }
@@ -949,6 +960,20 @@ public sealed class TrayContext : ApplicationContext
             ChangeLog.Add(source, Profiles.Get(id).Label, Lang.T("log_err") + ": " + ex.Message);
             _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
         }
+    }
+
+    // (#36 / discussion #141) Windows power mode follows the profile - fired only HERE, on a
+    // profile change, never enforced in the background: if the user then moves the Windows
+    // slider by hand, their choice stands until the next profile switch. The mode is a "vote"
+    // Windows may temporarily override; the Settings card shows requested and effective apart.
+    private void ApplyPowerModeSync(ProfileId id, ChangeSource source)
+    {
+        if (!_settings.PowerModeSync) return;
+        var mode = PowerPlan.ModeForProfile(id);
+        if (PowerPlan.TrySetPowerMode(mode))
+            ChangeLog.Add(source, Lang.T("pw_mode_now") + ": " + Lang.T(PowerPlan.ModeKey(mode)));
+        else
+            ChangeLog.Add(source, Lang.T("pw_mode_now"), Lang.T("pw_err_write"));
     }
 
     private string RecipeStr(ProfileId id) =>

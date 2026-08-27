@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Turbo, DumpModels, VerifyModels, DumpSupportedMd }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -39,6 +39,7 @@ public static class Cli
           GhostDeck.exe --brightness <0-100>    internal-panel brightness (works on any machine)
           GhostDeck.exe --hdr <on|off>          HDR / advanced color (HDR-capable displays)
           GhostDeck.exe --touchpad <on|off>     enable/disable the precision touchpad (device level)
+          GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
           GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
@@ -110,6 +111,8 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.HdrSwitch, Arg1().ToLowerInvariant()) : null;
             case "--touchpad":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Touchpad, Arg1().ToLowerInvariant()) : null;
+            case "--turbo":
+                return Arg1().ToLowerInvariant() is "on" or "off" or "status" ? new CliCommand(CliKind.Turbo, Arg1().ToLowerInvariant()) : null;
             case "--scene":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
             case "--panic": return new CliCommand(CliKind.Panic);
@@ -325,6 +328,17 @@ public static class Cli
                     ChangeLog.Load();
                     ChangeLog.Add(ChangeSource.Cli, $"Brightness: {pct} %");
                     Console.WriteLine($"brightness: {pct}");
+                    return 0;
+                }
+                case CliKind.Turbo:
+                {
+                    // Windows power-plan API (#141), no EC needed - works on unsupported hardware too.
+                    if (cmd.Arg == "status") { Console.WriteLine(PowerPlan.TurboStatus()); return 0; }
+                    string err = cmd.Arg == "off" ? PowerPlan.TurboOff(settings) : PowerPlan.TurboOn(settings);
+                    if (err.Length > 0) { Console.WriteLine(err); return 1; }
+                    ChangeLog.Load();
+                    ChangeLog.Add(ChangeSource.Cli, $"CPU turbo boost: {cmd.Arg}");
+                    Console.WriteLine(PowerPlan.TurboStatus());
                     return 0;
                 }
                 case CliKind.HdrSwitch:

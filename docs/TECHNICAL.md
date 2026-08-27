@@ -2610,3 +2610,50 @@ measured whether every firmware honours them exactly - the honest position, not 
 **Scenes.** The scene editor lists the three presets plus, when one is in play, the custom
 threshold (from the scene being edited or from the current setting). Without that, saving a scene
 would silently round a custom limit down to a preset.
+
+## 70. The Windows power card: turbo boost and power-mode sync (discussion #141)
+
+Two controls that touch no EC register at all: both drive documented user-mode Windows power
+APIs (`powrprof.dll`, `Core/PowerPlan.cs`), so the card works even on firmware the EC side does
+not support - which is exactly where it was requested (a GF65 whose `MSI_ACPI` interface is
+unavailable).
+
+**CPU turbo boost.** The toggle edits the `PERFBOOSTMODE` setting
+(`be337238-0d82-4146-a960-4f3749d470c7`, processor subgroup) of the ACTIVE power plan via
+`PowerRead/WriteACValueIndex` + `PowerRead/WriteDCValueIndex`, followed by `PowerSetActiveScheme`
+(the documented apply step) - only when the written plan is the active one, never to switch
+plans. A power-plan write is persistent, unlike the app's volatile EC writes, which drives four
+rules: (1) before writing 0/0 the previous AC/DC pair is snapshotted PER PLAN GUID
+(`AppSettings.TurboSnapshots`) - restoring plan A's values into plan B would be wrong; (2) a
+snapshot is taken only on a non-zero -> 0 transition, so an original can never be overwritten
+with zeros; (3) when no snapshot exists (turbo was disabled outside the app), re-enabling uses
+the app's own fallback - Aggressive if this Windows enumerates it, else Enabled, else the first
+non-zero mode, else nothing is written - and the status line says so in plain words ("comes
+back" appears only when a snapshot really exists); (4) AC and DC can genuinely differ, and that
+MIXED state is named in the status line rather than shown as a plain ON. Boost mode values and
+names are enumerated live (`PowerReadPossibleValue` / `PowerReadPossibleFriendlyName`) - no
+hardcoded 0..6, and the names arrive already localized by Windows itself.
+
+**Power-mode sync.** Opt-in; fired only inside `SetProfile`, never enforced in the background -
+a hand-moved Windows slider stands until the next profile switch. Silent and Super Battery map
+to best power efficiency, Balanced to the default mode, Extreme to best performance, written
+for both power sources through the official Windows 11 API
+(`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but undocumented
+`PowerSetActiveOverlayScheme` stays as a fallback for builds without the export). The mode is a
+request Windows may temporarily override, so the card shows the requested and the effective
+mode side by side; the effective one comes from the documented
+`PowerRegisterForEffectivePowerModeNotifications` callback and lives in a DIFFERENT value space
+(battery saver, better battery, balanced, high/maximum performance, game mode, mixed reality) -
+the two are never compared 1:1.
+
+**The advanced buttons.** "Show this setting in Windows power options" clears only the HIDE bit
+of the setting attributes after storing the full original DWORD (`PowerRead/
+WriteSettingAttributes`), and the re-hide writes that exact DWORD back - no other attribute bit
+is ever lost. "Restore Windows settings" writes every snapshot back into the plan it came from
+(without activating any plan; one `PowerSetActiveScheme` at the end for the plan that was
+already active), skips and discards snapshots of deleted plans, keeps the snapshot of any
+failed write for a retry, and reports all three counts. Both buttons sit behind an explicit
+confirmation dialog describing the consequences, because both change persistent Windows state.
+
+CLI: `--turbo <on|off|status>`, forwarded to the running instance or executed one-shot; output
+stays English like the rest of the CLI.

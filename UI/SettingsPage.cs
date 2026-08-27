@@ -50,6 +50,7 @@ public sealed class SettingsPage : ThemedPage
     private string _uiLang = Lang.CurrentCode; // language the form was built with
     private bool _builtTravelOn;               // travel/charge snapshot the Power card was built from...
     private int _builtCharge;                  // ...compared in SyncTravelRow (rebuild only on a real change)
+    private Action? _syncPowerCard;            // re-reads the live Windows-power card values (#141)
     private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
 
     public SettingsPage(MainDeps d) : base(d)
@@ -59,6 +60,13 @@ public sealed class SettingsPage : ThemedPage
         Controls.Add(_title);
         BuildForm();
         Resize += (_, _) => Layout2();
+        // The effective power mode arrives on a native callback thread; hop to the UI thread
+        // and refresh the card. Wired once - BuildForm re-points _syncPowerCard itself.
+        PowerPlan.EffectiveModeChanged += () =>
+        {
+            try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => _syncPowerCard?.Invoke()); }
+            catch { }
+        };
     }
 
     private IEnumerable<CardSection> AllCards() =>
@@ -99,7 +107,7 @@ public sealed class SettingsPage : ThemedPage
         // the sub-tab you left. FocusScenVisibility runs AFTER OnEnter, so the gear deep link
         // from the Scenarios tab still wins - do not reorder those two.
         if (D.Settings.SettingsAlwaysStart && _cur != SubHome) SelectSub(SubHome, save: false);
-        SyncTravelRow(); SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
+        SyncTravelRow(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
     }
 
     // Thin themed rule between unrelated option groups inside one card (the Notifications
@@ -456,6 +464,128 @@ public sealed class SettingsPage : ThemedPage
         power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
         _gLeft[SubPower].Add(power);
+
+        // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost setting of the
+        // active power plan and the Windows power-mode slider. Everything is user-mode powrprof
+        // API (PowerPlan.cs) - no EC involved, so the card works on unsupported firmware too.
+        // Transparency by design (the Battery-health rule): the top rows always show the LIVE
+        // system state, and the status line spells out exactly what a re-enable will write,
+        // because a power-plan change persists until something changes it back.
+        var wp = new CardSection(Lang.T("pw_grp"), "");   // MDL2 PowerButton
+        Label WpVal() => new() { AutoSize = true, MaximumSize = new Size(360, 0), Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+        var wpPlan = WpVal(); var wpBoost = WpVal(); var wpMode = WpVal();
+        wp.AddRow(Lang.T("pw_active_plan"), wpPlan);
+        wp.AddRow(Lang.T("pw_boost_now"), wpBoost);
+        wp.AddRow(Lang.T("pw_mode_now"), wpMode);
+        wp.AddRow(null, new SepLine());
+        var wpState = new Label { AutoSize = true, MaximumSize = new Size(360, 0), Font = new Font("Segoe UI", 9f), Tag = "muted" };
+        Control WithWpHelp(Control main, string key)
+        {
+            var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
+            main.Margin = new Padding(0);
+            flow.Controls.Add(main);
+            flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T(key), Margin = new Padding(6, 4, 0, 0) });
+            return flow;
+        }
+        var wpToggle = Toggle(false, v =>
+        {
+            string err = v ? PowerPlan.TurboOn(D.Settings) : PowerPlan.TurboOff(D.Settings);
+            if (err.Length > 0)
+                MessageBox.Show(FindForm(), Lang.T("pw_err_write") + "\n" + err, "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            else
+                ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost: " + (v ? "on" : "off"));
+            _syncPowerCard?.Invoke();
+        });
+        wp.AddRow(Lang.T("pw_turbo_label"), WithWpHelp(wpToggle, "pw_turbo_help"));
+        wp.AddRow(null, wpState);
+        wp.AddRow(null, new SepLine());
+        var wpSync = Toggle(D.Settings.PowerModeSync, v => { D.Settings.PowerModeSync = v; D.SaveSettings(); });
+        wp.AddRow(Lang.T("pw_sync_label"), WithWpHelp(wpSync, "pw_sync_help"));
+        wp.AddRow(null, new Label
+        {
+            Text = Lang.T("pw_sync_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        });
+        wp.AddRow(null, new SepLine());
+        // Both buttons change PERSISTENT Windows state, so both sit behind an explicit
+        // confirmation dialog that describes the consequences (the scene-delete rule) -
+        // never a single click.
+        var wpReveal = new Button { AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+        Ui.StyleGhost(wpReveal);
+        wpReveal.Click += (_, _) =>
+        {
+            bool hidden = PowerPlan.HiddenInControlPanel();
+            if (MessageBox.Show(FindForm(), Lang.T(hidden ? "pw_show_confirm" : "pw_hide_confirm"), "GhostDeck",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            if (!PowerPlan.SetRevealed(D.Settings, hidden))
+                MessageBox.Show(FindForm(), Lang.T("pw_err_write"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            else
+                ChangeLog.Add(ChangeSource.Panel, "PERFBOOSTMODE " + (hidden ? "revealed in" : "re-hidden from") + " Windows power options");
+            _syncPowerCard?.Invoke();
+        };
+        var wpRestore = new Button { Text = Lang.T("pw_restore_btn"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+        Ui.StyleGhost(wpRestore);
+        wpRestore.Click += (_, _) =>
+        {
+            if (MessageBox.Show(FindForm(), Lang.T("pw_restore_confirm"), "GhostDeck",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            var (ok, missing, failed) = PowerPlan.RestoreAll(D.Settings);
+            if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); wpSync.Checked = false; }
+            ChangeLog.Add(ChangeSource.Panel, $"Windows power restore: {ok} restored, {missing} plans gone, {failed} failed");
+            MessageBox.Show(FindForm(), string.Format(Lang.T("pw_restore_result_fmt"), ok, missing, failed),
+                "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _syncPowerCard?.Invoke();
+        };
+        wp.AddRow(null, wpReveal);
+        wp.AddRow(null, wpRestore);
+        _syncPowerCard = () =>
+        {
+            if (wp.IsDisposed) return;
+            bool haveScheme = PowerPlan.TryGetActiveScheme(out var scheme);
+            string planName = haveScheme ? PowerPlan.SchemeName(scheme) : "";
+            wpPlan.Text = planName.Length > 0 ? planName : "—";
+            uint acV = 0, dcV = 0;
+            bool haveBoost = haveScheme && PowerPlan.TryReadBoost(scheme, out acV, out dcV);
+            if (haveBoost)
+            {
+                string an = PowerPlan.BoostName(acV), dn = PowerPlan.BoostName(dcV);
+                wpBoost.Text = string.Format(Lang.T("pw_acdc_fmt"), an, dn);
+                wpToggle.Enabled = true;
+                wpToggle.Checked = !(acV == 0 && dcV == 0);   // Checked setter never fires Toggled
+                if (acV == 0 && dcV == 0)
+                {
+                    // Two honest OFF texts: "comes back" ONLY when a snapshot really exists;
+                    // otherwise turbo was disabled outside the app and re-enabling uses the
+                    // enumeration-validated GhostDeck fallback, said in so many words.
+                    wpState.Text = D.Settings.TurboSnapshots.TryGetValue(scheme.ToString("D").ToLowerInvariant(), out var sn) && sn is { Length: 2 }
+                        ? string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)sn[0]), PowerPlan.BoostName((uint)sn[1]))
+                        : string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—");
+                }
+                else if (acV != 0 && dcV != 0)
+                    wpState.Text = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn);
+                else
+                    // a real MIXED state (e.g. AC on, battery off) - named, never shown as plain ON
+                    wpState.Text = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn);
+            }
+            else
+            {
+                wpBoost.Text = "—";
+                wpToggle.Enabled = false;
+                wpState.Text = Lang.T("pw_unavailable");
+            }
+            string req = PowerPlan.TryGetUserPowerMode(out var mAc, out var mDc)
+                ? (mAc == mDc ? Lang.T(PowerPlan.ModeKey(mAc))
+                              : string.Format(Lang.T("pw_acdc_fmt"), Lang.T(PowerPlan.ModeKey(mAc)), Lang.T(PowerPlan.ModeKey(mDc))))
+                : "—";
+            string effKey = PowerPlan.EffectiveKey(PowerPlan.EffectiveMode);
+            // requested and effective live in DIFFERENT value spaces (the effective enum is
+            // richer), so both are shown side by side and never compared or merged
+            wpMode.Text = string.Format(Lang.T("pw_mode_req_eff_fmt"), req, effKey.Length > 0 ? Lang.T(effKey) : "—");
+            wpReveal.Text = Lang.T(PowerPlan.HiddenInControlPanel() ? "pw_show_btn" : "pw_hide_btn");
+        };
+        PowerPlan.EnsureEffectiveWatch();
+        _syncPowerCard();
+        _gLeft[SubPower].Add(wp);
 
         // Scene schedule: different settings for work hours, nights and weekends. Rules are
         // edited in a small dialog; the whole page rebuilds after a change (import pattern).

@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Windows power card: CPU turbo boost switch and power-mode sync**
+  ([discussion #141](../../discussions/141), thanks @scorvus99) - a new card in
+  Settings → Power drives two documented user-mode Windows power APIs, no EC involved,
+  so it works even on machines whose EC interface the app cannot reach. The **CPU turbo
+  boost** toggle edits the (normally hidden) "Processor performance boost mode" setting
+  of the active power plan; because a plan write is persistent, the previous AC/battery
+  values are saved per plan and the card says at every stage exactly what turning it
+  back on will write. **"Windows power mode follows the profile"** (opt-in) sets the
+  Windows power-mode slider on every profile switch - Silent and Super Battery choose
+  best power efficiency, Balanced the balanced mode, Extreme best performance - and the
+  card shows the requested and the effective mode side by side, since Windows may
+  temporarily override the request. Two guarded buttons round it off: revealing the
+  hidden setting in the Windows power options (optional, confirmed, fully reversible)
+  and restoring every saved value back into its plan. CLI: `--turbo <on|off|status>`.
 ### Changed
 - **MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) promoted to tested**
   ([#97](../../issues/97), [#140](../../issues/140), [#146](../../issues/146), thanks
