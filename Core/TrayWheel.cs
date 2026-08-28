@@ -30,9 +30,10 @@ public enum TrayWheelMode
 }
 
 /// <summary>
-/// Mouse-wheel support for the tray icon (#23). Windows never routes wheel messages to
+/// Mouse-wheel support for the tray icons (#23). Windows never routes wheel messages to
 /// notification icons, so a low-level mouse hook (WH_MOUSE_LL) watches WM_MOUSEWHEEL and
-/// matches the cursor against the icon's screen rectangle (Shell_NotifyIconGetRect).
+/// matches the cursor against the watched icons' screen rectangles (Shell_NotifyIconGetRect) -
+/// the main icon plus, when shown, the temperature icons (SetIcons).
 /// The hook lives on its own message-loop thread: its callback must stay fast and must
 /// never wait on a busy UI thread, or every mouse event in the system would lag behind it
 /// (Windows silently drops hooks that exceed its low-level-hook timeout).
@@ -70,28 +71,61 @@ public sealed class TrayWheel : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandleW(string? name);
     [DllImport("shell32.dll")] private static extern int Shell_NotifyIconGetRect(ref NOTIFYICONIDENTIFIER identifier, out RECT rect);
 
-    private readonly NotifyIcon _icon;
+    // One watched notification icon. Identity (message window handle + id) is resolved once
+    // via reflection; the icon's screen rect is cached briefly so a wheel spin does one shell
+    // query per icon, not one per notch. Rect/identity fields are touched only on the hook
+    // thread; the UI thread swaps whole arrays (volatile _tracked below), never entries.
+    private sealed class Tracked
+    {
+        public readonly NotifyIcon Icon;
+        public IntPtr Hwnd;
+        public uint Id;
+        public RECT Rect;
+        public long FetchedTicks;
+        public Tracked(NotifyIcon icon) => Icon = icon;
+    }
+
     private readonly SynchronizationContext _ui;
     private readonly Action<int> _onWheel;      // raw wheel delta (multiples of ±120), on the UI thread
     private readonly HookProc _proc;            // field keeps the delegate alive for the native hook
     private IntPtr _hook;
     private uint _threadId;
     private volatile bool _stopped;
-
-    // Icon identity (message window handle + id) resolved once via reflection; the icon's
-    // screen rect is cached briefly so a wheel spin does one shell query, not one per notch.
-    private IntPtr _iconHwnd;
-    private uint _iconId;
-    private RECT _rect;
-    private long _rectFetchedTicks;
+    private volatile Tracked[] _tracked;
 
     public TrayWheel(NotifyIcon icon, SynchronizationContext ui, Action<int> onWheel)
     {
-        _icon = icon;
+        _tracked = new[] { new Tracked(icon) };
         _ui = ui;
         _onWheel = onWheel;
         _proc = Callback;
         new Thread(Loop) { IsBackground = true, Name = "GhostDeckTrayWheel", Priority = ThreadPriority.AboveNormal }.Start();
+    }
+
+    /// <summary>
+    /// Replace the set of icons the wheel reacts over (the main icon plus any temperature
+    /// icons - they mirror the main icon's mouse actions). Still ONE global hook; the callback
+    /// just checks a few rectangles instead of one. No-op when the set is unchanged, so it is
+    /// safe to call on every poll. Entries that stay keep their resolved identity and rect.
+    /// </summary>
+    public void SetIcons(NotifyIcon[] icons)
+    {
+        var cur = _tracked;
+        if (cur.Length == icons.Length)
+        {
+            bool same = true;
+            for (int i = 0; i < icons.Length; i++)
+                if (!ReferenceEquals(cur[i].Icon, icons[i])) { same = false; break; }
+            if (same) return;
+        }
+        var next = new Tracked[icons.Length];
+        for (int i = 0; i < icons.Length; i++)
+        {
+            Tracked? kept = null;
+            foreach (var t in cur) if (ReferenceEquals(t.Icon, icons[i])) { kept = t; break; }
+            next[i] = kept ?? new Tracked(icons[i]);
+        }
+        _tracked = next;
     }
 
     private void Loop()
@@ -111,7 +145,7 @@ public sealed class TrayWheel : IDisposable
             try
             {
                 var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-                if (OverIcon(info.Pt.X, info.Pt.Y))
+                if (OverAnyIcon(info.Pt.X, info.Pt.Y))
                 {
                     int delta = (short)(info.MouseData >> 16);
                     _ui.Post(_ => { if (!_stopped) _onWheel(delta); }, null);
@@ -122,42 +156,47 @@ public sealed class TrayWheel : IDisposable
         return CallNextHookEx(_hook, nCode, wParam, lParam);
     }
 
-    private bool OverIcon(int x, int y)
+    private bool OverAnyIcon(int x, int y)
     {
         // Both the hook coordinates and Shell_NotifyIconGetRect are physical pixels for a
         // PerMonitorV2 process, so the comparison needs no DPI conversion.
         long now = Environment.TickCount64;
-        if (now - _rectFetchedTicks > 1500)
+        foreach (var t in _tracked)
         {
-            if (!FetchRect()) return false;
-            _rectFetchedTicks = now;
+            if (now - t.FetchedTicks > 1500)
+            {
+                if (!FetchRect(t)) continue;   // unresolved/disposed icon -> just skip it
+                t.FetchedTicks = now;
+            }
+            if (x >= t.Rect.Left && x < t.Rect.Right && y >= t.Rect.Top && y < t.Rect.Bottom)
+                return true;
         }
-        return x >= _rect.Left && x < _rect.Right && y >= _rect.Top && y < _rect.Bottom;
+        return false;
     }
 
-    private bool FetchRect()
+    private static bool FetchRect(Tracked t)
     {
-        if (_iconHwnd == IntPtr.Zero && !ResolveIconIdentity()) return false;
-        var ident = new NOTIFYICONIDENTIFIER { CbSize = Marshal.SizeOf<NOTIFYICONIDENTIFIER>(), HWnd = _iconHwnd, UId = _iconId };
-        return Shell_NotifyIconGetRect(ref ident, out _rect) == 0;
+        if (t.Hwnd == IntPtr.Zero && !ResolveIconIdentity(t)) return false;
+        var ident = new NOTIFYICONIDENTIFIER { CbSize = Marshal.SizeOf<NOTIFYICONIDENTIFIER>(), HWnd = t.Hwnd, UId = t.Id };
+        return Shell_NotifyIconGetRect(ref ident, out t.Rect) == 0;
     }
 
     // WinForms offers no public access to the Shell_NotifyIcon identity, so read the private
     // id + message-window fields (named "_id"/"_window" on .NET Core, "id"/"window" on
     // Framework). The id is uint on .NET 8 and int on Framework - convert, don't pattern-match.
-    private bool ResolveIconIdentity()
+    private static bool ResolveIconIdentity(Tracked t)
     {
         try
         {
             const System.Reflection.BindingFlags F =
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            var t = typeof(NotifyIcon);
-            var idField = t.GetField("_id", F) ?? t.GetField("id", F);
-            var winField = t.GetField("_window", F) ?? t.GetField("window", F);
-            if (idField?.GetValue(_icon) is not { } idVal) return false;
-            if (winField?.GetValue(_icon) is not NativeWindow win || win.Handle == IntPtr.Zero) return false;
-            _iconHwnd = win.Handle;
-            _iconId = Convert.ToUInt32(idVal);
+            var ty = typeof(NotifyIcon);
+            var idField = ty.GetField("_id", F) ?? ty.GetField("id", F);
+            var winField = ty.GetField("_window", F) ?? ty.GetField("window", F);
+            if (idField?.GetValue(t.Icon) is not { } idVal) return false;
+            if (winField?.GetValue(t.Icon) is not NativeWindow win || win.Handle == IntPtr.Zero) return false;
+            t.Hwnd = win.Handle;
+            t.Id = Convert.ToUInt32(idVal);
             return true;
         }
         catch { return false; }

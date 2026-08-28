@@ -5,6 +5,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Tray temperature icons respond to the mouse like the main icon** - the CPU and GPU
+  temperature icons now run the same configurable left/middle-click actions and the same
+  scroll-wheel action as the main tray icon, and their right-click menu stays current after a
+  language change. The "Temperature in the tray" settings card notes that the actions are
+  picked in the Tray menu section.
 - **Fan RPM on boards with 16-bit tachometers** ([#76](../../issues/76), [#90](../../issues/90),
   [#145](../../issues/145)) - Pulse/Katana 17 B13V/GK (`17L5EMS1`), Creator M16 / Pulse 15 /
   Katana 15 B13 (`1585EMS1`) and Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) report fan

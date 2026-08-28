@@ -1585,6 +1585,24 @@ public static class Lang
             "Menampilkan suhu sebagai angka di samping jam, tanpa membuka apa pun. Dua ikon terpisah, karena ikon tray hanya muat dua digit. Windows awalnya menyembunyikan ikon baru di area luapan - seret ke taskbar agar tetap terlihat.",
             "Mostra la temperatura come numero accanto all'orologio, senza aprire nulla. Due icone separate, perché un'icona tray contiene solo due cifre. Windows nasconde all'inizio le nuove icone nell'area overflow - trascinale sulla barra per tenerle visibili."
         };
+        m["temptray_mirror"]  = new[]
+        {
+            "Clicks and the mouse wheel work on these icons exactly like on the main tray icon - pick the actions in the Tray menu section.",
+            "Kliknięcia i kółko myszy działają na tych ikonach tak samo jak na głównej ikonie - akcje wybierzesz w sekcji Menu w zasobniku.",
+            "Klicks und Mausrad funktionieren auf diesen Symbolen genauso wie auf dem Hauptsymbol - die Aktionen wählst du im Abschnitt Infobereichsmenü.",
+            "Les clics et la molette fonctionnent sur ces icônes comme sur l'icône principale - choisissez les actions dans la section Menu de la barre d'état.",
+            "Los clics y la rueda del ratón funcionan en estos iconos igual que en el icono principal: elige las acciones en la sección Menú de bandeja.",
+            "在这些图标上，单击和滚轮的行为与主托盘图标完全相同 - 请在“托盘菜单”部分选择操作。",
+            "Cliques e roda do mouse funcionam nesses ícones exatamente como no ícone principal - escolha as ações na seção Menu da bandeja.",
+            "Клики и колесо мыши работают на этих значках так же, как на основном значке - действия выбираются в разделе «Меню в трее».",
+            "これらのアイコンでも、クリックとホイールはメインのトレイアイコンと同じように動作します。動作は「トレイメニュー」セクションで選べます。",
+            "이 아이콘에서도 클릭과 스크롤 휠이 기본 트레이 아이콘과 똑같이 동작합니다. 동작은 '트레이 메뉴' 섹션에서 선택하세요.",
+            "在這些圖示上，按一下與滾輪的行為與主系統匣圖示完全相同 - 請在「系統匣選單」區段選擇動作。",
+            "Tıklamalar ve fare tekerleği bu simgelerde ana tepsi simgesindekiyle aynı şekilde çalışır - eylemleri Tepsi menüsü bölümünden seçin.",
+            "Nhấp chuột và con lăn hoạt động trên các biểu tượng này giống hệt biểu tượng khay chính - chọn hành động trong mục Menu khay.",
+            "Klik dan roda mouse bekerja pada ikon-ikon ini persis seperti pada ikon tray utama - pilih aksinya di bagian Menu tray.",
+            "Clic e rotellina funzionano su queste icone esattamente come sull'icona principale - scegli le azioni nella sezione Menu tray."
+        };
         m["set_grp_nav"]      = new[] { "Navigation", "Nawigacja", "Navigation", "Navigation", "Navegación", "导航", "Navegação", "Навигация", "ナビゲーション", "탐색", "導覽", "Gezinme", "Điều hướng", "Navigasi", "Navigazione" };
         m["set_always_start"] = new[] { "Always open on Start", "Zawsze otwieraj na Start", "Immer auf Start öffnen", "Toujours ouvrir sur Accueil", "Abrir siempre en Inicio", "总是从起始页打开", "Abrir sempre no Início", "Всегда открывать на Старте", "常にスタートで開く", "항상 시작 페이지로 열기", "一律從起始頁開啟", "Her zaman Başlangıç'ta aç", "Luôn mở ở Bắt đầu", "Selalu buka di Mulai", "Apri sempre su Inizio" };
         m["set_always_start_desc"] = new[]

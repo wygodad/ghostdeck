@@ -1002,6 +1002,12 @@ public sealed class SettingsPage : ThemedPage
                 Font = new Font("Segoe UI", 9f), Tag = "muted",
             };
             tt.AddRow(null, ttInfo);
+            var ttMirror = new Label
+            {
+                Text = Lang.T("temptray_mirror"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            tt.AddRow(null, ttMirror);
             tt.AddRow(Lang.T("st_cpu_temp"), Toggle(D.Settings.TempTrayCpu,
                 v => { D.Settings.TempTrayCpu = v; D.SaveSettings(); D.SettingsChanged(); }));
             tt.AddRow(Lang.T("st_gpu_temp"), Toggle(D.Settings.TempTrayGpu,

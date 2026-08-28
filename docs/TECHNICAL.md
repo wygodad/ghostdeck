@@ -1877,7 +1877,21 @@ Measured ink height of "71": 10 px → 13 px at a 16 px icon, 14 px → 19 px at
 
 Both are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
 in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card
-from "Tray menu" (`set_grp_tray`, the mouse actions). `ApplyTempTray` gates on the rendered TEXT, not the raw
+from "Tray menu" (`set_grp_tray`, the mouse actions).
+
+The temperature icons mirror the main icon's mouse behaviour, and the card says so
+(`temptray_mirror`): the same shared right-click menu (the strip reference is re-assigned on
+every update because `BuildMenu` replaces the strip object on language or menu changes), the
+same configurable left/middle-click actions (the icons attach the main `TrayClick` handler),
+and the same wheel action - `TrayWheel` watches a set of icons (`SetIcons`), still through ONE
+low-level hook whose callback now checks up to three cached icon rectangles instead of one.
+The set is refreshed from `UpdateTempTrays`/`SyncTempTrays`; `SetIcons` is a no-op while the
+set is unchanged, and entries that stay keep their resolved shell identity and cached rect.
+Cost of the mirroring is negligible by construction: clicks and the menu are plain
+shell-delivered events, and the hook exists only while a wheel mode is selected - exactly as
+before.
+
+`ApplyTempTray` gates on the rendered TEXT, not the raw
 temperature, so an unchanged reading does not rebuild the icon; the previous `Icon` is disposed
 only AFTER the new one is assigned, because disposing it while the shell still references it
 flashes a blank icon.

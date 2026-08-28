@@ -814,8 +814,18 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyTrayWheel()
     {
         bool want = _settings.TrayWheelMode != (int)TrayWheelMode.None && _ui != null;
-        if (want && _wheel == null) _wheel = new TrayWheel(_tray, _ui!, OnTrayWheel);
+        if (want && _wheel == null) { _wheel = new TrayWheel(_tray, _ui!, OnTrayWheel); _wheel.SetIcons(WheelIcons()); }
         else if (!want && _wheel != null) { _wheel.Dispose(); _wheel = null; }
+    }
+
+    // Every icon the app owns reacts to the wheel: the main one plus the temperature icons
+    // while they are shown (the temp icons mirror the main icon's mouse actions).
+    private NotifyIcon[] WheelIcons()
+    {
+        var list = new List<NotifyIcon>(3) { _tray };
+        if (_cpuTray != null) list.Add(_cpuTray);
+        if (_gpuTray != null) list.Add(_gpuTray);
+        return list.ToArray();
     }
 
     private void OnTrayWheel(int delta)
@@ -2166,6 +2176,7 @@ public sealed class TrayContext : ApplicationContext
             _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"));
         ApplyTempTray(ref _gpuTray, ref _gpuTrayIcon, ref _gpuTrayText,
             _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"));
+        _wheel?.SetIcons(WheelIcons());   // no-op unless an icon appeared or went away
     }
 
     private void ApplyTempTray(ref NotifyIcon? icon, ref Icon? current, ref string shown,
@@ -2182,7 +2193,18 @@ public sealed class TrayContext : ApplicationContext
         // Deliberately none of the user's Ok/Warn/Hot colours, so a dash never reads as "fine".
         bool noReading = temp <= 0;
         string text = noReading ? "--" : temp >= 100 ? "99+" : temp.ToString();
-        icon ??= new NotifyIcon { ContextMenuStrip = _tray.ContextMenuStrip, Visible = true };
+        if (icon == null)
+        {
+            // The temperature icons mirror the main icon's mouse behaviour: the same shared
+            // right-click menu (strip below), the same configurable left/middle-click actions
+            // (TrayClick), and the wheel hook watches them too (WheelIcons/SetIcons).
+            icon = new NotifyIcon { Visible = true };
+            icon.MouseClick += TrayClick;
+        }
+        // Re-assigned on every update, not just at creation: BuildMenu replaces the strip
+        // object (language change, menu options), and a stale reference would leave these
+        // icons with the previous menu.
+        icon.ContextMenuStrip = _tray.ContextMenuStrip;
         icon.Text = noReading ? $"{label} --" : $"{label} {temp} °C";
         if (text == shown) return;                       // nothing to redraw
         var next = TrayIconFactory.TextIcon(text, noReading ? Theme.Faint : TempTrayColor(temp));
@@ -2207,6 +2229,7 @@ public sealed class TrayContext : ApplicationContext
         { _cpuTray.Visible = false; _cpuTray.Dispose(); _cpuTray = null; _cpuTrayIcon?.Dispose(); _cpuTrayIcon = null; _cpuTrayText = ""; }
         if (!_settings.TempTrayGpu && _gpuTray != null)
         { _gpuTray.Visible = false; _gpuTray.Dispose(); _gpuTray = null; _gpuTrayIcon?.Dispose(); _gpuTrayIcon = null; _gpuTrayText = ""; }
+        _wheel?.SetIcons(WheelIcons());
     }
 
     private void OnThermalSample(HwSnapshot hw)
