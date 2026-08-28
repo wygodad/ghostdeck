@@ -142,7 +142,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI GE76 Raider 10UG | `17K2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 8RC-249 | `16R1EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 Thin 10SCX / 10SCS | `16R4EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
-| MSI GF63 Thin 10U / 10SC | `16R5EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
+| MSI GF63 Thin 10U / 10SC / 10UC | `16R5EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 Thin 9SC | `16R3EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 Thin 9SCSR | `16R4EMS2` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF65 Thin | `16W2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |

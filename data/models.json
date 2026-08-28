@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260907,
+  "dataVersion": 20260908,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -5270,7 +5270,7 @@
       }
     },
     {
-      "name": "MSI GF63 Thin 10U / 10SC",
+      "name": "MSI GF63 Thin 10U / 10SC / 10UC",
       "prefixes": [
         "16R5EMS1"
       ],

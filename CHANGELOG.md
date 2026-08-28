@@ -14,6 +14,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **GF63 Thin 10U / 10SC (`16R5EMS1`) renamed "GF63 Thin 10U / 10SC / 10UC"**
+  ([#86](../../issues/86)) - an owner's 10UC report runs on this firmware, with Silent audibly
+  working and profile switching stable, which also makes it the first behavioural confirmation
+  of the older G1 register generation. The entry stays experimental until his power test.
 - **New model: MSI Crosshair 17 HX AI D2XW (`17T4EMS1`), tested, with fan RPM**
   ([#148](../../issues/148), thanks @SpeedPlayzz) - the owner's per-scenario capture from a
   machine the app did not yet recognise matches the standard recipes byte for byte with a real

@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260907;
+    public const int DataVersion = 20260908;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1039,7 +1039,14 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GF63 Thin 9SCSR", FirmwarePrefixes = new[] { "16R4EMS2" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
-        new() { Name = "MSI GF63 Thin 10U / 10SC", FirmwarePrefixes = new[] { "16R5EMS1" }, Tier = Tier.Experimental,
+        // 10UC added on an owner's report (issue #86, GF63 Thin 10UC on 16R5EMS1): the machine
+        // ships with Dragon Center (no MSI Center, so no per-scenario capture is possible), yet
+        // two of the three hardware checks passed - Silent audibly quiets the machine and
+        // profile switching is stable with the app state matching. That makes it the only
+        // behavioural confirmation of the whole G1 register set so far. Tier stays Experimental
+        // and no credit yet: promotion was publicly tied to a power-test run that has not
+        // arrived, and we hold no dump from this generation at all.
+        new() { Name = "MSI GF63 Thin 10U / 10SC / 10UC", FirmwarePrefixes = new[] { "16R5EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI PS63 MODERN 8RD", FirmwarePrefixes = new[] { "16S1EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
