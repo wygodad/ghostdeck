@@ -5,6 +5,18 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **New model: MSI Crosshair 17 HX AI D2XW (`17T4EMS1`), tested, with fan RPM**
+  ([#148](../../issues/148), thanks @SpeedPlayzz) - the owner's per-scenario capture from a
+  machine the app did not yet recognise matches the standard recipes byte for byte with a real
+  Silent column on MSI Center 2.0.48, all three hardware checks are confirmed, and his dumps
+  carry live single-byte tachometer divisors at `0xC9`/`0xCB` (the Katana-family scheme, asked
+  to cross-check against HWiNFO64). 149 models recognised, 33 tested.
+- **Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`): fan curve verified, single fan**
+  ([#145](../../issues/145), thanks @tenduo) - the owner's second capture sets all six sliders
+  and the test curve sits byte for byte at the shipped address from the first slot, so the
+  curve editor drops its unverified caution. The GPU table stayed factory through both passes,
+  the owner confirms the machine has one fan and chassis teardowns agree, so the board is
+  marked single-fan and the editor shows one curve.
 - **MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) promoted to tested**
   ([#97](../../issues/97), [#140](../../issues/140), [#146](../../issues/146), thanks
   @parkisutama and @tenduo) - two owners' captures match the standard recipes byte for byte,

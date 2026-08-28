@@ -103,7 +103,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260905;
+    public const int DataVersion = 20260906;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -854,12 +854,17 @@ public static class Devices
         //   Stock fan tables (consistent across the pre-experiment #145/#146 dumps):
         //   0/39/43/48/57/70 at 0x72-0x77 AND 0x8A-0x8F - both fans identical - with the
         //   hidden top byte 0x52 (82 %) at 0x78/0x90.
-        //   RPM deliberately not set: 0xCB reads 00 in every dump; 0xC9 moves plausibly but
-        //   one run is not enough (the #145 follow-up may settle it).
-        //   Curve map unverified: the #145 capture entered the test values from the second
-        //   slider onward (first slot stayed 0, Fan 2 never saved) - re-capture requested.
+        //   RPM deliberately not set: 0xCB reads 00 in every dump, and the #145 re-capture
+        //   shows 0xC8:0xC9 as 01:19 - a wide-tach-looking pair, not the single-byte divisor
+        //   scheme (0xC8 stays 00 there); one capture, so nothing ships (the wide-tach class
+        //   is unsupported anyway, see 17L5EMS1).
+        //   Curve VERIFIED, single fan (#145 re-capture): the owner's second pass set all six
+        //   sliders and the test curve sits byte-for-byte at the shipped 0x72 from the first
+        //   slot. The GPU table stayed factory through both passes, the owner states his
+        //   machine has one fan, and Cyborg 15 chassis teardowns (LaptopMedia A12V/A13V) show
+        //   a single shared fan - the Thin GF63 12VE single-curve pattern.
         new() { Name = "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG", FirmwarePrefixes = new[] { "15Q3EMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "parkisutama, tenduo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/97" },
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
@@ -927,6 +932,20 @@ public static class Devices
         new() { Name = "MSI Sword 17 HX B14VGKG",           FirmwarePrefixes = new[] { "17T2EMS1" }, Tier = Tier.Tested,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "GalacticPasha", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/139" },
+        // Crosshair 17 HX AI D2XW (17T4EMS1) - owner per-scenario dump (issue #148, MSI Center
+        // 2.0.48, app 1.36.0, firmware .103) matches StdRecipes 1:1: shift 0xD2 C1/C1/C4/C2,
+        // fan 0xD4 1D/0D/0D/0D with a real Silent column, 0xEB=0F only in Super Battery, four
+        // distinct columns. All three hardware checks confirmed - the Tested bar. 0x34 reads
+        // 01 in every scenario (the GE78 HX 14VHG pattern), so the recipes leave it alone.
+        //   RPM: live single-byte divisors at 0xC9/0xCB with the high bytes 0xC8/0xCA at 00
+        //   in every column (C2/C3 = ~2460 rpm idle in Silent) - the Katana-family scheme;
+        //   owner asked to cross-check against HWiNFO64.
+        //   Kbd backlight observation: 0xD3 read 83 in every column but 80 in the vendor's
+        //   Super Battery (the 1583 pattern). Not wired up - 17T4EMS1 is absent from msi-ec,
+        //   so the register stays observation-only until an owner write-check.
+        new() { Name = "MSI Crosshair 17 HX AI D2XW",       FirmwarePrefixes = new[] { "17T4EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "SpeedPlayzz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/148" },
         new() { Name = "MSI Titan 18 HX A14V",              FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Raider A18 HX A7VIG (182KIMS1) — owner per-scenario dump (issue #50) matches StdRecipes on
         // shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D, and all three hardware checks passed, so
