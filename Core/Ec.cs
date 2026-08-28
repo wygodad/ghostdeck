@@ -354,8 +354,10 @@ public static class Ec
             int cpuF = Math.Min(dutyCap, (int)ReadRaw(dev.CpuFan));
             int gpuF = Math.Min(dutyCap, (int)ReadRaw(dev.GpuFan));
             int chg = ReadRaw(dev.ChargeCtrl) & 0x7F;
-            int cpuRpm = RpmFrom(dev.CpuRpmAddr, dev.RpmConst);
-            int gpuRpm = RpmFrom(dev.GpuRpmAddr, dev.RpmConst);
+            int cpuRpm = dev.CpuRpmAddr16 != 0 ? RpmFromWide(dev.CpuRpmAddr16, dev.RpmConst)
+                                               : RpmFrom(dev.CpuRpmAddr, dev.RpmConst);
+            int gpuRpm = dev.GpuRpmAddr16 != 0 ? RpmFromWide(dev.GpuRpmAddr16, dev.RpmConst)
+                                               : RpmFrom(dev.GpuRpmAddr, dev.RpmConst);
             string fw = WithSession((inst, _) => ReadFirmware(inst));
             return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, fw, cpuRpm, gpuRpm);
         }
@@ -378,6 +380,18 @@ public static class Ec
     {
         if (addr == 0) return 0;
         int raw = ReadRaw(addr);
+        if (raw == 0) return 0;
+        int rpm = rpmConst / raw;
+        return rpm <= MaxPlausibleRpm ? rpm : 0;
+    }
+
+    // Wide-tach variant: the divisor is a big-endian byte pair at addr (high) : addr+1 (low).
+    // The two reads are not atomic, so a value torn between EC updates can occur; like the
+    // single-byte mid-update case it lands outside the plausibility window and is dropped.
+    private static int RpmFromWide(byte addr, int rpmConst)
+    {
+        if (addr == 0) return 0;
+        int raw = (ReadRaw(addr) << 8) | ReadRaw((byte)(addr + 1));
         if (raw == 0) return 0;
         int rpm = rpmConst / raw;
         return rpm <= MaxPlausibleRpm ? rpm : 0;

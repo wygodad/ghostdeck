@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Fan RPM on boards with 16-bit tachometers** ([#76](../../issues/76), [#90](../../issues/90),
+  [#145](../../issues/145)) - Pulse/Katana 17 B13V/GK (`17L5EMS1`), Creator M16 / Pulse 15 /
+  Katana 15 B13 (`1585EMS1`) and Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) report fan
+  speed as a two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`, a format the app could not
+  read, so their RPM readout stayed off. The app now reads the pair and RPM turns on for all
+  three (the Cyborg has the CPU pair only - it is a single-fan board). Older app versions keep
+  showing no RPM on these boards rather than misreading half of the pair.
+
 ### Changed
 - **New model: MSI Crosshair 17 HX AI D2XW (`17T4EMS1`), tested, with fan RPM**
   ([#148](../../issues/148), thanks @SpeedPlayzz) - the owner's per-scenario capture from a

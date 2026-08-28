@@ -67,6 +67,13 @@ public sealed class DeviceProfile
     // Fan tachometer registers (0 = unknown -> RPM not shown). RPM = RpmConst / raw.
     public byte CpuRpmAddr { get; init; }
     public byte GpuRpmAddr { get; init; }
+    // Wide (16-bit) tachometers: some boards hold the divisor as a big-endian byte PAIR at
+    // addr (high) : addr+1 (low) - carriers so far read 0xC8:0xC9 / 0xCA:0xCB. A single-byte
+    // read of such a pair yields garbage (~10000 rpm), which is why these boards kept RPM off
+    // before this format existed. A model sets either the single-byte fields above or these,
+    // never both; these fields hold the HIGH-byte address.
+    public byte CpuRpmAddr16 { get; init; }
+    public byte GpuRpmAddr16 { get; init; }
     public FanCurveSpec? FanCurve { get; init; }
     public int RpmConst { get; init; } = 478000;
 
@@ -103,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260906;
+    public const int DataVersion = 20260907;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -454,9 +461,12 @@ public static class Devices
 
         // Pulse/Katana 17 B13V/GK (17L5EMS1) — owner per-scenario dump (issue #38) matches
         // StdRecipes 1:1. Fan curve VERIFIED (issue #39): the wizard found the test curve at
-        // exactly 0x72 / 0x8A. RPM left OFF: single-byte 0xC9 reads implausible here; the dump
-        // suggests 16-bit counters at 0xC8-0xC9 / 0xCA-0xCB (~1750/1530 RPM) — owner check first.
+        // exactly 0x72 / 0x8A. RPM: wide-tach 16-bit pairs 0xC8:0xC9 / 0xCA:0xCB (issue #76
+        // dumps compute to ~1750/1530 RPM; a single-byte 0xC9 read was implausible, which is
+        // how the format was found). First carrier of the wide-tach format; owner asked to
+        // cross-check against HWiNFO64 once the readout ships.
         new() { Name = "MSI Pulse/Katana 17 B13V/GK", FirmwarePrefixes = new[] { "17L5EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "eaglent1", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/38" },
 
@@ -510,11 +520,12 @@ public static class Devices
         // Battery; #89 (Katana 15 B13UDXK, MSI Center 2.0.72 - its "Silent" column shows the known
         // ECO-Silent/Super Battery artifact) confirmed all three hardware checks. Curve tables hold
         // the family-standard layout (structural only, no test curve captured - NOT curve-verified).
-        // Fan tachometers exist but as 16-BIT PAIRS 0xC8:0xC9 / 0xCA:0xCB (a single-byte read would
-        // show ~10000 rpm garbage), so RPM stays off until the app grows the wide-tach format
-        // (second carrier after 17L5EMS1).
+        // Fan tachometers are 16-BIT PAIRS 0xC8:0xC9 / 0xCA:0xCB (issue #90 dumps; a single-byte
+        // read would show ~10000 rpm garbage) - wide-tach readout enabled, second carrier after
+        // 17L5EMS1; owners asked to cross-check against HWiNFO64 once the readout ships.
         new() { Name = "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK",
                 FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Punssama & Gangan-Lin", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/90" },
 
@@ -854,16 +865,18 @@ public static class Devices
         //   Stock fan tables (consistent across the pre-experiment #145/#146 dumps):
         //   0/39/43/48/57/70 at 0x72-0x77 AND 0x8A-0x8F - both fans identical - with the
         //   hidden top byte 0x52 (82 %) at 0x78/0x90.
-        //   RPM deliberately not set: 0xCB reads 00 in every dump, and the #145 re-capture
-        //   shows 0xC8:0xC9 as 01:19 - a wide-tach-looking pair, not the single-byte divisor
-        //   scheme (0xC8 stays 00 there); one capture, so nothing ships (the wide-tach class
-        //   is unsupported anyway, see 17L5EMS1).
+        //   RPM: wide-tach 16-bit pair 0xC8:0xC9, CPU only (single fan; 0xCA:0xCB read 00 in
+        //   every dump). The #145 re-capture shows 0xC8:0xC9 = 01:19 = ~1700 rpm as a pair,
+        //   while a single-byte read of 0xC9 would give 19120 rpm garbage - the same wide
+        //   format as 17L5EMS1/1585EMS1 (third carrier); owner asked to cross-check against
+        //   HWiNFO64 once the readout ships.
         //   Curve VERIFIED, single fan (#145 re-capture): the owner's second pass set all six
         //   sliders and the test curve sits byte-for-byte at the shipped 0x72 from the first
         //   slot. The GPU table stayed factory through both passes, the owner states his
         //   machine has one fan, and Cyborg 15 chassis teardowns (LaptopMedia A12V/A13V) show
         //   a single shared fan - the Thin GF63 12VE single-curve pattern.
         new() { Name = "MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG", FirmwarePrefixes = new[] { "15Q3EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8,
                 FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "parkisutama, tenduo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/97" },
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -903,8 +916,8 @@ public static class Devices
         // columns (the machine sat in one scenario throughout, the same procedure slip as
         // issue #58 on this prefix) and his power test (issue #126) ran with Fan Boost ON and
         // 8% drift, so both await clean re-runs. RPM stays off on purpose: the sibling
-        // 17L5EMS1 reports fan speed as 16-bit pairs (wide-tach, TODO 19), and one dump with
-        // low-byte-only values cannot rule that out here.
+        // 17L5EMS1 reports fan speed as 16-bit wide-tach pairs, and one dump with
+        // low-byte-only values cannot rule that out here - a dump with a live 0xC8 would.
         new() { Name = "MSI Katana 17 B12UCXK / B12VGK",    FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Dkrimz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125" },

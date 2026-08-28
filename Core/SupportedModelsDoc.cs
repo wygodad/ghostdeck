@@ -61,7 +61,10 @@ internal static class SupportedModelsDoc
 
             bool sbat = m.Recipes.TryGetValue(ProfileId.SuperBattery, out var sr) && sr.Any(x => x.val == 0x0F);
             string sbStr = sbat ? "&#10003;" : "&mdash;";
-            string rpm = m.CpuRpmAddr == 0 ? "&mdash;"
+            string rpm = m.CpuRpmAddr16 != 0
+                ? (m.GpuRpmAddr16 == 0 ? $"&#10003; 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2} (16-bit)"
+                                       : $"&#10003; 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}/0x{m.GpuRpmAddr16:X2}:{m.GpuRpmAddr16 + 1:X2} (16-bit)")
+                : m.CpuRpmAddr == 0 ? "&mdash;"
                 : m.GpuRpmAddr == 0 ? $"&#10003; 0x{m.CpuRpmAddr:X2}"
                 : $"&#10003; 0x{m.CpuRpmAddr:X2}/0x{m.GpuRpmAddr:X2}";
 

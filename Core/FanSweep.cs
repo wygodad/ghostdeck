@@ -47,7 +47,7 @@ public static class FanSweep
     public static Result Run(DeviceProfile dev, int[] steps, Action<int, int, string> progress, CancellationToken ct)
     {
         var fc = dev.FanCurve ?? throw new InvalidOperationException("no fan-curve tables on this model");
-        var res = new Result { HasTach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 };
+        var res = new Result { HasTach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0 };
         var t0 = DateTime.Now;
         try
         {
@@ -150,7 +150,9 @@ public static class FanSweep
         sb.AppendLine($"App version: {appVersion}");
         sb.AppendLine($"EC firmware: {firmware}");
         sb.AppendLine($"Model: {dev.Name}  ({dev.Tier})");
-        sb.AppendLine($"Tachometers: {(r.HasTach ? $"CPU 0x{dev.CpuRpmAddr:X2} / GPU 0x{dev.GpuRpmAddr:X2}" : "none on this model - duty readback only")}");
+        string cpuTach = dev.CpuRpmAddr16 != 0 ? $"0x{dev.CpuRpmAddr16:X2}:{dev.CpuRpmAddr16 + 1:X2} (16-bit)" : $"0x{dev.CpuRpmAddr:X2}";
+        string gpuTach = dev.GpuRpmAddr16 != 0 ? $"0x{dev.GpuRpmAddr16:X2}:{dev.GpuRpmAddr16 + 1:X2} (16-bit)" : $"0x{dev.GpuRpmAddr:X2}";
+        sb.AppendLine($"Tachometers: {(r.HasTach ? $"CPU {cpuTach} / GPU {gpuTach}" : "none on this model - duty readback only")}");
         sb.AppendLine($"Duration: {r.Duration.TotalSeconds:0} s{(r.Aborted ? "  (ABORTED)" : "")}{(r.Error != null ? "  ERROR: " + r.Error : "")}");
         sb.AppendLine();
         sb.AppendLine("--- Steps (each held 6 s, last 3 s averaged) ---");

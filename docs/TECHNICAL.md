@@ -344,6 +344,16 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   left in it is not a reading, and dividing it anyway produced ~9958 RPM in Status and in reports.
   Readings above **8000 RPM** are therefore dropped (shown as "--"); the fastest fan ever logged on
   any model is 7206 RPM, on a GE66 under load with Fan Boost.
+
+  **Wide (16-bit) tachometers.** Some boards hold the divisor as a big-endian byte pair instead of
+  a single byte - `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, still with
+  `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
+  ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
+  issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145). In the signed
+  database the pair ships as `cpuRpmAddr16` / `gpuRpmAddr16` (the high-byte address; the low byte
+  sits at address+1); the single-byte fields stay unset on these models, so an older app keeps
+  showing no RPM there instead of misreading one byte of the pair. The two reads are not atomic;
+  a value torn between EC updates lands outside the plausibility window above and is dropped.
 - **Live RPM** — continuous read of `0xC9` / `0xCB` for comparing against MSI Center.
 - **Save EC dump to file** — read-only 256-byte dump, used to locate fan-curve table addresses.
 - **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.

@@ -343,7 +343,10 @@ public sealed class ModelsPage : ThemedPage
                 bool sb = m.Recipes.TryGetValue(ProfileId.SuperBattery, out var sr) && sr.Any(x => x.val == 0x0F);
                 string sbStr = sb ? "✓" : "—";
 
-                string rpm = m.CpuRpmAddr == 0 ? "—"
+                string rpm = m.CpuRpmAddr16 != 0
+                    ? (m.GpuRpmAddr16 == 0 ? $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}"   // wide (16-bit) pairs
+                                           : $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}/{m.GpuRpmAddr16:X2}:{m.GpuRpmAddr16 + 1:X2}")
+                    : m.CpuRpmAddr == 0 ? "—"
                     : m.GpuRpmAddr == 0 ? $"✓ 0x{m.CpuRpmAddr:X2}"   // single-tach boards (iGPU)
                     : $"✓ 0x{m.CpuRpmAddr:X2}/0x{m.GpuRpmAddr:X2}";
                 string fw = string.Join(", ", m.FirmwarePrefixes);
@@ -354,7 +357,8 @@ public sealed class ModelsPage : ThemedPage
                 Cell(g, cx, 3, ry, ColW(3), status, FCell, statusCol);
                 Cell(g, cx, 4, ry, ColW(4), curve, FCell, curveCol);
                 Cell(g, cx, 5, ry, ColW(5), sbStr, FCell, sb ? Theme.Text : Theme.Muted);
-                Cell(g, cx, 6, ry, ColW(6), rpm, m.CpuRpmAddr != 0 ? FMono : FCell, m.CpuRpmAddr != 0 ? Theme.Text : Theme.Muted);
+                bool hasRpm = m.CpuRpmAddr != 0 || m.CpuRpmAddr16 != 0;
+                Cell(g, cx, 6, ry, ColW(6), rpm, hasRpm ? FMono : FCell, hasRpm ? Theme.Text : Theme.Muted);
 
                 // Thank-you column: the reporter's GitHub login, clickable -> their issue.
                 if (m.Credit.Length > 0)
