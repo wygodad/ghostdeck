@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260908,
+  "dataVersion": 20260909,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -2293,7 +2293,7 @@
         "verified": false,
         "singleFan": false
       },
-      "credit": "VamiCLAY",
+      "credit": "VamiCLAY, SvinoSuper",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/142",
       "recipes": {
         "Silent": [
@@ -3957,7 +3957,9 @@
       "prefixes": [
         "17KKIMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3965,9 +3967,11 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
+      "credit": "Liuwins",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/152",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",

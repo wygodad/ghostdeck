@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260908;
+    public const int DataVersion = 20260909;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -765,18 +765,18 @@ public static class Devices
         //   every column, moving with load across his power-test dumps (B2 = ~2690, 84 =
         //   ~3620, 5E = ~5085 rpm) - the 1581/1584 sister scheme; owner asked to cross-check
         //   against HWiNFO.
-        //   Super Battery observation: his vendor tile set the battery limiter (0xEB=0F) and
-        //   turned the kbd backlight off (0xD3 80) but left the shift byte where Extreme put
-        //   it (0xD2=C4), where the same MSI Center build writes C2 on other boards. One
-        //   capture is not enough to drop the C2 write, so the recipe keeps the family
-        //   standard; the owner was asked for a read-only Silent-to-SuperBattery check.
+        //   Super Battery: RESOLVED by a second owner (issue #154, firmware .111, four distinct
+        //   columns matching the recipes 1:1) - his vendor capture shows Super Battery writing
+        //   the standard 0xD2=C2, so the C4 left behind in the first owner's SB column (#142)
+        //   was a stale leftover of that one capture, not a board trait. The C2 recipe stands,
+        //   now vendor-confirmed on this board.
         //   0xD6 read 03 in the vendor's Extreme column only (05 elsewhere), yet stayed 05
         //   in the app's own Extreme phase of the power test - seventh board for the #52
         //   observation, and the first to show the value under the vendor's Extreme but not
         //   under ours.
         new() { Name = "MSI Crosshair 15 B12UEZ / B12UGSZ", FirmwarePrefixes = new[] { "1583EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "VamiCLAY", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/142" },
+                Credit = "VamiCLAY, SvinoSuper", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/142" },
         // Katana GF66 12U / Sword 15 A12UC (1584EMS1) - one board behind two retail lines.
         // Tested via the Katana 12UD owner (issue #116: snapshot = StdRecipes 1:1 on MSI Center
         // 2.0.48, all three hardware checks confirmed, no dump). The Sword 15 A12UC owner
@@ -906,7 +906,20 @@ public static class Devices
         new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Alpha 17 C7VF / C7VG (17KKIMS1) - owner-verified (issues #152/#153, MSI Center 2.0.48,
+        // app 1.36.0, firmware .115), the first Alpha-line board confirmed on real hardware.
+        // Curve VERIFIED (#152): the test curve sits byte-for-byte at the shipped 0x72/0x8A on
+        // BOTH fans. TESTED on his power test (#153): the run tripped the 99-C guard in Extreme
+        // (thermally tight chassis - the safety cutoff working, noted, not a defect), but the
+        // data is clean (own share an even 93 throughout): Silent delivers 89% of Balanced's
+        // work at 76 vs 85 C on slower fans (57 vs 80% duty) - a real cap - and Extreme ran
+        // +16% before the cutoff, with every phase reading its bytes back intact.
+        //   RPM: live single-byte divisors at 0xC9/0xCB with high bytes 00 (Silent loaded
+        //   A3 = ~2930 rpm, Extreme loaded 60 = ~4980) - the Katana-family scheme; owner
+        //   asked to cross-check against HWiNFO64.
+        new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Liuwins", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/152" },
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 12UC",              FirmwarePrefixes = new[] { "17L4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

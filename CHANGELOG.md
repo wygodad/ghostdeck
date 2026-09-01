@@ -19,6 +19,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Alpha 17 C7VF / C7VG (`17KKIMS1`) promoted to tested, curve verified, fan RPM**
+  ([#152](../../issues/152), [#153](../../issues/153), thanks @Liuwins) - the first Alpha-line
+  board confirmed on real hardware: his test curve sits byte for byte at the shipped addresses
+  on both fans, and his power test measures a real Silent cap (89 % of Balanced's work at 76 vs
+  85 C on slower fans) with Extreme at +16 % before the run tripped the 99 C safety cutoff on
+  this thermally tight chassis. Tachometers live at `0xC9`/`0xCB`. 34 models tested.
+- **Crosshair 15 B12UEZ / B12UGSZ (`1583EMS1`): Super Battery recipe vendor-confirmed**
+  ([#154](../../issues/154), thanks @SvinoSuper, who joins the entry's credit) - a second
+  owner's capture on firmware .111 matches every recipe byte with four distinct columns, and
+  his Super Battery column shows the vendor writing the standard `C2`, settling the leftover
+  `C4` observed in the first owner's capture as a one-off, not a board trait.
 - **GF63 Thin 10U / 10SC (`16R5EMS1`) renamed "GF63 Thin 10U / 10SC / 10UC"**
   ([#86](../../issues/86)) - an owner's 10UC report runs on this firmware, with Silent audibly
   working and profile switching stable, which also makes it the first behavioural confirmation
