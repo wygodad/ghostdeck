@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260909;
+    public const int DataVersion = 20260910;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -697,7 +697,14 @@ public static class Devices
         new() { Name = "MSI Prestige 14 Evo A12M",          FirmwarePrefixes = new[] { "14C6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 B11M",                FirmwarePrefixes = new[] { "14D2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 B11MOU",              FirmwarePrefixes = new[] { "14D3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Summit E14 Flip Evo A12MT",     FirmwarePrefixes = new[] { "14F1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Prestige 14 H B13U added on an owner's report (issue #160): his Prestige 14 H
+        // B13UCX-601US (BIOS E14F1IMS.50F) runs this same 14F1EMS1 EC firmware - two retail
+        // lines behind one EC identity, spotted by the reporter himself. His per-scenario
+        // capture matches StdRecipes 1:1 with a real Silent column and four distinct columns;
+        // 0xD6 read 03 only under the vendor's Extreme (the #52 observation), and 0xC9 moves
+        // like a live single-byte tach (0xCB stays 00) - nothing ships from one capture.
+        // Tier stays Experimental until a power test or the three hardware checks.
+        new() { Name = "MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U", FirmwarePrefixes = new[] { "14F1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // moved to the Tested block above (issues #60 / #61) - Modern 14 C12M (14J1IMS1)
         // Stealth 14 Studio A13VF (14K1EMS1) - owner-verified end to end in one evening (issues
         // #107/#108/#109, MSI Center 2.0.48, the last lineup with the real Silent scenario). The
@@ -886,14 +893,19 @@ public static class Devices
         // byte-for-byte at the shipped 0x72; the GPU part was not written, the same signature as
         // the sibling 16R8IMS1 (Thin GF63 12VE) on the same MS-16R8 board, and teardown videos of
         // the Thin 15 B12 chassis show a SINGLE fan, so SingleFan like the sibling. Fan RPM: 0xC9
-        // alive in the curve capture (0xCD = ~2320 rpm), no second tach on a one-fan chassis.
-        // Tier stays Experimental: the owner's per-scenario snapshot (issue #110) matches
-        // StdRecipes 1:1 on every recipe byte, but the power test (issue #112) ran on a busy
-        // machine (own ~82%, 9% drift, and the Extreme phase still carried MSI Center's advanced
-        // curve from the capture two minutes earlier), so the profile proof awaits a clean re-run.
-        new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Experimental,
+        // single-byte divisor, live through the whole power test (2791-5085 rpm).
+        // TESTED on the owner's clean re-run (issue #159; the "not idle" banner there was the
+        // fixed-bar false alarm on a 12-thread CPU - shares an even 83.2 everywhere, drift 3%):
+        // Silent is a real cap, 87% of Balanced's work at 78 vs 95 C on slower fans. Board
+        // trait recorded, not to be "fixed": EXTREME runs SLOWER than Balanced here (78% of its
+        // work) with the CPU pinned in a flat 3086-3099 MHz band at only 79 C on fast fans -
+        // a deliberate-looking clock cap under C4, not thermals (Balanced sat at 95 C and was
+        // faster). The owner was asked for an optional HWiNFO power reading to chase it.
+        // A second owner's per-scenario snapshot (issue #162) re-confirms every recipe byte
+        // with four distinct columns - both owners share the credit.
+        new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "arcfybrr", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/111" },
+                Credit = "arcfybrr, pushtamper-nice", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/111" },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 15 A11SCX",            FirmwarePrefixes = new[] { "16S6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -917,8 +929,13 @@ public static class Devices
         //   RPM: live single-byte divisors at 0xC9/0xCB with high bytes 00 (Silent loaded
         //   A3 = ~2930 rpm, Extreme loaded 60 = ~4980) - the Katana-family scheme; owner
         //   asked to cross-check against HWiNFO64.
+        //   Super Battery: no 0xEB write - the owner's per-scenario capture (issue #151, four
+        //   distinct columns, recipes 1:1 otherwise) shows 0xEB at 00 in EVERY column including
+        //   Super Battery, the same no-limiter pattern as the other AMD boards (Bravo 15/17,
+        //   Raider A18). 0x34 reads 01 everywhere (left alone), and 0xD6 read 03 only under
+        //   the vendor's Extreme (the #52 observation).
         new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Liuwins", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/152" },
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

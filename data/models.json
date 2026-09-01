@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260909,
+  "dataVersion": 20260910,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -1606,7 +1606,7 @@
       }
     },
     {
-      "name": "MSI Summit E14 Flip Evo A12MT",
+      "name": "MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U",
       "prefixes": [
         "14F1EMS1"
       ],
@@ -3497,7 +3497,7 @@
       "prefixes": [
         "16R8IMS2"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "fanCurve": {
         "advancedModeValue": "0x8D",
@@ -3509,7 +3509,7 @@
         "verified": true,
         "singleFan": true
       },
-      "credit": "arcfybrr",
+      "credit": "arcfybrr, pushtamper-nice",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/111",
       "recipes": {
         "Silent": [
@@ -3975,23 +3975,19 @@
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
+          "0xD4=0x1D"
         ],
         "Balanced": [
           "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "Extreme": [
           "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "SuperBattery": [
           "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
+          "0xD4=0x0D"
         ]
       }
     },

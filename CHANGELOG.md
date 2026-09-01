@@ -19,6 +19,19 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Thin 15 B12UCX / B12VE (`16R8IMS2`) promoted to tested** ([#159](../../issues/159),
+  [#162](../../issues/162), thanks @arcfybrr and @pushtamper-nice) - the owner's clean re-run
+  measures a real Silent cap (87 % of Balanced's work at 78 vs 95 C on slower fans), and a
+  second owner's capture re-confirms every recipe byte. Recorded as a board trait: Extreme
+  runs slower than Balanced here, with the CPU pinned near 3.09 GHz at low temperatures - a
+  clock cap under the turbo value, not thermals.
+- **Alpha 17 C7VF / C7VG (`17KKIMS1`): Super Battery no longer writes the battery limiter**
+  ([#151](../../issues/151)) - the owner's per-scenario capture shows `0xEB` untouched in
+  every scenario including Super Battery, the same pattern as the other AMD boards, so the
+  recipe drops that write.
+- **Summit E14 Flip Evo A12MT (`14F1EMS1`) renamed "Summit E14 Flip Evo A12MT / Prestige 14 H
+  B13U"** ([#160](../../issues/160)) - an owner's Prestige 14 H B13UCX runs the same EC
+  firmware, and his capture matches the standard recipes byte for byte.
 - **MSI Alpha 17 C7VF / C7VG (`17KKIMS1`) promoted to tested, curve verified, fan RPM**
   ([#152](../../issues/152), [#153](../../issues/153), thanks @Liuwins) - the first Alpha-line
   board confirmed on real hardware: his test curve sits byte for byte at the shipped addresses
