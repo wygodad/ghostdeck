@@ -19,6 +19,15 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Alpha 17 C7VF / C7VG (`17KKIMS1`) promoted to tested; fan curve and RPM verified**
+  ([#151](../../issues/151), [#152](../../issues/152), [#153](../../issues/153), thanks
+  @Liuwins) - the owner's per-scenario capture confirms the shift/fan recipes and all three
+  hardware checks; `0xEB` stayed `0x00` in every scenario, so Super Battery is left unset rather
+  than writing an unverified register. The test curve was found at CPU `0x72` / GPU `0x8A`, and
+  the dynamic tachometer divisors at `0xC9`/`0xCB` enable both RPM readouts. The power test safely
+  stopped during Extreme after five consecutive CPU readings at or above 99 °C; that result is
+  recorded as thermal saturation, not treated as a complete performance ranking, and the safety
+  stop remains enabled.
 - **GF63 Thin 10U / 10SC (`16R5EMS1`) renamed "GF63 Thin 10U / 10SC / 10UC"**
   ([#86](../../issues/86)) - an owner's 10UC report runs on this firmware, with Silent audibly
   working and profile switching stable, which also makes it the first behavioural confirmation

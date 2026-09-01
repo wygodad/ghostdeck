@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260908;
+    public const int DataVersion = 20260909;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -906,7 +906,19 @@ public static class Devices
         new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // MSI Alpha 17 C7VF / C7VG (17KKIMS1.115) — #151 confirms the shift/fan recipes:
+        // 0xD2 = C1/C1/C4/C2 and 0xD4 = 1D/0D/0D/0D. 0xEB stayed 00 in every MSI Center
+        // scenario, so this model deliberately has no Super Battery register in its recipe.
+        // The owner confirmed Silent, Extreme and stable switching on real hardware, so this
+        // model is promoted to Tested. The same report carries live single-byte tach divisors
+        // at 0xC9/0xCB (the high-byte positions 0xC8/0xCA stay 00), enabling both RPM readouts.
+        // #152 verifies MSI Center's test curve at CPU 0x72 / GPU 0x8A, so the curve addresses
+        // are marked verified. #153 reached the safety stop during Extreme (CPU >=99 C for 5 s):
+        // it is useful evidence of thermal saturation, not a complete ranking of all profiles;
+        // keep the 99 C stop in PowerTest unchanged.
+        new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "Liuwins", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/151" },
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 12UC",              FirmwarePrefixes = new[] { "17L4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
