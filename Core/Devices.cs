@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260910;
+    public const int DataVersion = 20260911;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -725,7 +725,20 @@ public static class Devices
         new() { Name = "MSI Stealth 14 AI Studio A1VGG / A1VFG", FirmwarePrefixes = new[] { "14K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 H D13M",              FirmwarePrefixes = new[] { "14L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 AI Evo C1MG",       FirmwarePrefixes = new[] { "14N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Prestige 14 AI Studio C1UDXG",  FirmwarePrefixes = new[] { "14N2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Prestige 14 AI Studio C1UDXG (14N2EMS1) - owner-verified end to end (issues #156/
+        // #157/#158, MSI Center 2.0.48, app 1.36.0, firmware .103). Snapshot matches StdRecipes
+        // 1:1 with a real Silent column (#156). Curve VERIFIED on both fans (#157): the GPU test
+        // curve sits at the shipped 0x8A, and the CPU re-capture with all six sliders set to the
+        // custom 26-76 values landed byte-for-byte at 0x72 from the first slot (the wizard's
+        // "not found" only means it looked for the standard 25-75 values). Power test (#158,
+        // read with its own caveats - 6% drift, a few percent of background load): Extreme
+        // +23%, clear beyond the noise; Silent does Balanced's work (99 vs 100) at 46 vs 71%
+        // fan duty and 3 C cooler - the "quieter, not slower" trait, recorded so nobody "fixes"
+        // it. RPM: live single-byte divisors at 0xC9/0xCB (D8/CC = ~2210/2340 rpm in the curve
+        // capture, high bytes 00) - the Katana-family scheme; owner asked to cross-check HWiNFO64.
+        new() { Name = "MSI Prestige 14 AI Studio C1UDXG",  FirmwarePrefixes = new[] { "14N2EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "gkyrios", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/156" },
         new() { Name = "MSI Cyborg 14 A13VF",               FirmwarePrefixes = new[] { "14P1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Creator M14 A13VE (14P1IWS1) - the Creator build of the SAME board as the Cyborg 14
         // above: its BIOS is E14P1IMS, and msi-ec carries the sibling prefix 14P1IMS1 in

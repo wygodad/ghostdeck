@@ -19,6 +19,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Prestige 14 AI Studio C1UDXG (`14N2EMS1`) promoted to tested, curve verified, fan RPM**
+  ([#156](../../issues/156), [#157](../../issues/157), [#158](../../issues/158), thanks
+  @gkyrios) - his per-scenario capture matches the standard recipes byte for byte, his test
+  curve sits at the shipped addresses on both fans, and his power test measures Extreme at
+  +23 % while Silent does Balanced's work on much slower fans (46 vs 71 % duty, 3 C cooler) -
+  the "quieter, not slower" trait, recorded in the entry. Tachometers live at `0xC9`/`0xCB`.
+  36 models tested.
 - **MSI Thin 15 B12UCX / B12VE (`16R8IMS2`) promoted to tested** ([#159](../../issues/159),
   [#162](../../issues/162), thanks @arcfybrr and @pushtamper-nice) - the owner's clean re-run
   measures a real Silent cap (87 % of Balanced's work at 78 vs 95 C on slower fans), and a
