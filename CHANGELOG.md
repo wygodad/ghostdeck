@@ -5,6 +5,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Startup profile** ([discussion #178](../../discussions/178)) - next to "Restore profile
+  after wake / at startup" the Power settings gain a "Startup profile" picker: "Last used"
+  (the previous behaviour) or one fixed profile that is applied at every app start, regardless
+  of what ran last. Waking from sleep still restores the profile that was active before sleep,
+  which is that path's whole point.
 - **Tray temperature icons respond to the mouse like the main icon** - the CPU and GPU
   temperature icons now run the same configurable left/middle-click actions and the same
   scroll-wheel action as the main tray icon, and their right-click menu stays current after a

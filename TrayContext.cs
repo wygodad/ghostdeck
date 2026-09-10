@@ -151,9 +151,14 @@ public sealed class TrayContext : ApplicationContext
         // Deliberately NO "already there" short-circuit: a cold boot loses the rest of the
         // profile state (fan mode, curve) even when the EC happens to wake in the same profile,
         // so restore always re-asserts the full recipe (re-writing identical bytes is harmless).
+        // (#178) StartupProfile can pin the choice: at APP START an explicit pick wins over the
+        // last-used profile ("" = last used, so TryParse falls through). The after-wake path
+        // keeps restoring what was active before sleep - that is its whole point, so the pin
+        // deliberately does not apply there.
         if (_settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && AutoWritable &&
-            Enum.TryParse<ProfileId>(_settings.LastProfile, out var lastProf))
-            SetProfile(lastProf, osd: false, ChangeSource.Restore, count: false);
+            (Enum.TryParse<ProfileId>(_settings.StartupProfile, out var startProf) ||
+             Enum.TryParse<ProfileId>(_settings.LastProfile, out startProf)))
+            SetProfile(startProf, osd: false, ChangeSource.Restore, count: false);
         if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
         TryRestoreCurve();   // (#49) after the profile settles; no-op unless opted in
         ApplyRefreshForPower(_lastPower.Value);   // align the panel with the current power source once at start

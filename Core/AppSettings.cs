@@ -167,6 +167,7 @@ public sealed class AppSettings
     // ---- profile restore (EC potrafi sam wskoczyc w Super Battery po wybudzeniu / hibernacji) ----
     public bool RestoreProfileOnResume { get; set; }                   // opt-in: przywroc profil po wznowieniu i przy starcie
     public string LastProfile { get; set; } = "";                      // ostatni profil ustawiony swiadomie (persist dla startu)
+    public string StartupProfile { get; set; } = "";                   // (#178) "" = ostatni uzywany; nazwa ProfileId = sztywny profil przy starcie aplikacji
 
     // (#51) auto-wylaczenie Fan Boost po N SEKUNDACH (0 = bez limitu, jak dotad).
     // UI: presety 30 s / 1 / 2 / 3 / 5 / 10 / 15 min + wlasna wartosc w minutach (do 120).
@@ -513,6 +514,7 @@ public sealed class AppSettings
         SessionPopupSeconds = src.SessionPopupSeconds;
         GameSessionKeep = src.GameSessionKeep;
         RestoreProfileOnResume = src.RestoreProfileOnResume;
+        StartupProfile = src.StartupProfile;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
         FanBoostSeconds = src.FanBoostSeconds;
         ScheduleEnabled = src.ScheduleEnabled;
@@ -600,6 +602,7 @@ public sealed class AppSettings
             SessionPopupSeconds = SessionPopupSeconds,
             GameSessionKeep = GameSessionKeep,
             RestoreProfileOnResume = RestoreProfileOnResume,
+            StartupProfile = StartupProfile,
             RestoreCurveOnResume = RestoreCurveOnResume,
             FanBoostSeconds = FanBoostSeconds,
             ScheduleEnabled = ScheduleEnabled,

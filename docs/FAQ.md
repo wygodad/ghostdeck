@@ -98,7 +98,7 @@ If a fan is audibly roaring and still shows "--", that is worth reporting: open 
 
 They are not supposed to survive, and that is by design, not a fault. Profiles, fan curves and Fan Boost live in the Embedded Controller's working memory, which is **volatile**: every shutdown or reboot clears it, and the firmware starts the machine with its own defaults, exactly as if no tool had ever run. GhostDeck deliberately flashes nothing permanent - that is what keeps every change fully reversible.
 
-To get your chosen profile back automatically, turn on **Settings → Power → "Restore profile after wake / at startup"** (there is a twin toggle for the fan curve). With it on, the app re-applies the last profile you picked every time it starts and after the machine wakes from sleep; combined with **Start with Windows**, the laptop lands on your profile at every boot. One exception: when the AC/battery auto-switch is enabled it takes precedence, since it already decides the profile for each power source.
+To get your chosen profile back automatically, turn on **Settings → Power → "Restore profile after wake / at startup"** (there is a twin toggle for the fan curve). With it on, the app re-applies the last profile you picked every time it starts and after the machine wakes from sleep; combined with **Start with Windows**, the laptop lands on your profile at every boot. The **"Startup profile"** picker next to the toggle can also pin one fixed profile that wins at every app start, regardless of what ran last (waking from sleep still restores what was active before sleep). One exception: when the AC/battery auto-switch is enabled it takes precedence, since it already decides the profile for each power source.
 
 ## Is there any risk of damaging my laptop?
 

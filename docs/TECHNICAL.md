@@ -1039,6 +1039,14 @@ The last deliberate profile also persists (`AppSettings.LastProfile`, written on
 are skipped when the AC/battery auto-switch is enabled (it owns the choice) and both respect
 `AutoWritable` (firmware guard).
 
+**Startup profile pin (discussion #178).** `AppSettings.StartupProfile` ("" by default) lets
+the startup half of the restore apply a FIXED profile instead of the last-used one: the
+Settings -> Power picker "Startup profile" offers "Last used" plus the four profiles, and at
+app start an explicit pick wins (`TryParse` on "" falls through to `LastProfile`). The
+after-wake path deliberately ignores the pin - waking should bring back whatever was active
+before sleep, which is that path's whole point. Same gates as above (restore toggle on,
+auto-switch off, `AutoWritable`).
+
 **Fan-curve restore (v1.24.x, discussion #49).** The EC cold-boots into its factory fan mode,
 so a custom curve never survives a restart; the per-profile preset only came back if something
 called `SetProfile` at startup (auto-switch on, or profile restore with a *different* boot

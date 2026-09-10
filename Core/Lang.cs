@@ -624,6 +624,9 @@ public static class Lang
             "Pulihkan profil setelah bangun / saat mulai",
             "Ripristina profilo dopo riattivazione / all'avvio"
         };
+        // (#178) startup profile picker next to the restore toggle
+        m["set_startup_profile"] = new[] { "Startup profile", "Profil startowy", "Startprofil", "Profil au démarrage", "Perfil de inicio", "启动配置文件", "Perfil inicial", "Профиль при запуске", "起動時のプロファイル", "시작 프로필", "啟動設定檔", "Başlangıç profili", "Hồ sơ khởi động", "Profil awal", "Profilo di avvio" };
+        m["set_startup_last"]    = new[] { "Last used", "Ostatnio używany", "Zuletzt verwendet", "Dernier utilisé", "Último usado", "上次使用的", "Último usado", "Последний использованный", "前回使用したもの", "마지막 사용", "上次使用的", "Son kullanılan", "Dùng gần nhất", "Terakhir dipakai", "Ultimo usato" };
         m["set_restore_curve"] = new[]
         {
             "Restore fan curve after wake / at startup",

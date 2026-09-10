@@ -452,6 +452,21 @@ public sealed class SettingsPage : ThemedPage
         // the chosen profile after resume and at startup (skipped while auto-switch manages profiles).
         power.AddRow(Lang.T("set_restore_profile"), Toggle(D.Settings.RestoreProfileOnResume,
             v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
+        // (#178) startup profile: "last used" (default) or a fixed pick that wins at app start;
+        // the after-wake restore keeps bringing back the profile active before sleep
+        var stOpts = new string[Profiles.Order.Length + 1];
+        stOpts[0] = Lang.T("set_startup_last");
+        for (int i = 0; i < Profiles.Order.Length; i++) stOpts[i + 1] = Profiles.Get(Profiles.Order[i]).Label;
+        int stIdx = 0;
+        for (int i = 0; i < Profiles.Order.Length; i++)
+            if (Profiles.Get(Profiles.Order[i]).Key == D.Settings.StartupProfile) stIdx = i + 1;
+        var st = Combo(stOpts, stIdx);
+        st.SelectedIndexChanged += (_, _) =>
+        {
+            D.Settings.StartupProfile = st.SelectedIndex <= 0 ? "" : Profiles.Get(Profiles.Order[st.SelectedIndex - 1]).Key;
+            D.SaveSettings();
+        };
+        power.AddRow(Lang.T("set_startup_profile"), st);
         // (#49) restore the last active fan curve too - the EC loses it on every cold boot
         power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
