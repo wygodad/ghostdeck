@@ -94,6 +94,12 @@ Usually not, and MSI Center does the same thing on the same machine. Two separat
 
 If a fan is audibly roaring and still shows "--", that is worth reporting: open an issue with your model, firmware and what MSI Center or HWiNFO64 shows at that moment.
 
+## Why does my laptop boot with a different profile than the one I picked? Do settings survive a reboot?
+
+They are not supposed to survive, and that is by design, not a fault. Profiles, fan curves and Fan Boost live in the Embedded Controller's working memory, which is **volatile**: every shutdown or reboot clears it, and the firmware starts the machine with its own defaults, exactly as if no tool had ever run. GhostDeck deliberately flashes nothing permanent - that is what keeps every change fully reversible.
+
+To get your chosen profile back automatically, turn on **Settings → Power → "Restore profile after wake / at startup"** (there is a twin toggle for the fan curve). With it on, the app re-applies the last profile you picked every time it starts and after the machine wakes from sleep; combined with **Start with Windows**, the laptop lands on your profile at every boot. One exception: when the AC/battery auto-switch is enabled it takes precedence, since it already decides the profile for each power source.
+
 ## Is there any risk of damaging my laptop?
 
 Very low. The app uses MSI's **official WMI interface** (the same channel MSI Center uses), writes only the exact register values MSI's own profiles use, and EC writes are **volatile** - a reboot resets the EC to firmware defaults (nothing is flashed). On an **unrecognized firmware it stays read-only** and writes nothing. The CPU also keeps its own hardware thermal protection that no EC write can disable. Experimental models are opt-in and write only documented mode registers.
