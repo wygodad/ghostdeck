@@ -235,11 +235,26 @@ public static class Ec
 
     public static void SetFanMode(DeviceProfile dev, byte value) => WriteRaw(dev.FanMode, value);
 
+    // Super Battery limiter: msi-ec drives 0xEB with a 0x0F MASK - the kernel driver changes
+    // only the low nibble and preserves the top bits. The Modern 14 B11MOU (issue #170) shows
+    // why that matters: its firmware keeps bit 7 of 0xEB set at all times, so a full-byte
+    // write of 00/0F would clear a flag that is not ours. Recipes still carry plain
+    // "0xEB=0x0F" values; the write path applies them through the mask. On every other board
+    // on record the high nibble reads 0, so the written byte is identical to before.
+    private const byte SuperBattAddr = 0xEB, SuperBattMask = 0x0F;
+
     public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
     {
         lock (_wmiLock)
             foreach (var (addr, val) in recipe)
-                WriteRaw(addr, val);
+            {
+                if (addr == SuperBattAddr)
+                {
+                    byte cur = ReadRaw(addr);
+                    WriteRaw(addr, (byte)((cur & ~SuperBattMask) | (val & SuperBattMask)));
+                }
+                else WriteRaw(addr, val);
+            }
     }
 
     public static void SetChargeLimit(DeviceProfile dev, int percent)

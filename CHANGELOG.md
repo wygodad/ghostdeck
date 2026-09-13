@@ -24,6 +24,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **The Super Battery register (`0xEB`) is now written through its documented `0x0F` mask**
+  ([#170](../../issues/170)) - the write changes only the low half of the byte and preserves
+  the top bits, exactly as the Linux msi-ec driver does. On every board on record the top
+  half reads zero, so nothing changes there; on boards like the Modern 14 B11MOU, whose
+  firmware keeps an own flag in bit 7 of that register, the app no longer overwrites it.
 - **Vector A18 HX A9WHG (`182LIMS1`) renamed "Vector A18 HX A9WHG / Raider A18 HX A9WIG",
   fan curve verified, fan RPM** ([#166](../../issues/166), [#167](../../issues/167),
   [#168](../../issues/168), thanks @bnjhdaskghsnlh, who joins the entry's credit) - a second
