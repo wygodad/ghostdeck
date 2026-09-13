@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260911;
+    public const int DataVersion = 20260912;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -361,10 +361,14 @@ public static class Devices
         // hardware-confirmed all three checks (Silent lowers power/noise vs Balanced, Extreme unlocks,
         // switching stable), so promoted to Tested. Fan curve VERIFIED (issue #16): the owner ran the wizard
         // and it reported the test curve at 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses.
-        // RPM not yet verified for this model.
+        //   RPM enabled from a second owner's Fan Boost capture (issue #164): at idle the
+        //   registers sit below the single-byte floor (readings gated), but with Fan Boost on
+        //   both tachs read live single-byte divisors at 0xC9/0xCB (62/61 = ~4880/4930 rpm,
+        //   0xC8/0xCA not part of the value) - the Katana-family scheme, not wide-tach as one
+        //   idle pair first suggested. Owner asked to cross-check against HWiNFO64.
         new() { Name = "MSI Raider GE67 HX 12U", FirmwarePrefixes = new[] { "1545IMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "alibi90", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/14" },
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "alibi90, Hobby-Schrauber-88", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/14" },
 
         // Raider GE76 12UE (17K4EMS1) — owner per-scenario snapshot (issue #47) matches StdRecipes:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/…/0D/0D, super-batt 0xEB=0F only in Super Battery.
@@ -950,7 +954,14 @@ public static class Devices
         new() { Name = "MSI Alpha 17 C7VF / C7VG",          FirmwarePrefixes = new[] { "17KKIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Liuwins", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/152" },
-        new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Katana GF76 11UC / 11UD (17L2EMS1) - owner per-scenario dump (issue #165, MSI Center
+        // 2.0.61, app 1.36.0) matches StdRecipes 1:1 with a real Silent column and four distinct
+        // columns; no hardware checks yet, so the tier stays Experimental until his power test.
+        // RPM: CPU tach live as a single-byte divisor at 0xC9 (D0-D5 = ~2250 rpm) with 0xCB at
+        // 00 in every column (GPU fan parked at idle, the GF63 pattern) - CPU address ships,
+        // owner asked to cross-check against HWiNFO64.
+        new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 12UC",              FirmwarePrefixes = new[] { "17L4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Katana 17 B12UCXK / B12VGK (17L5EMS2) - fan curve VERIFIED (issue #125): the B12VGK
@@ -1016,13 +1027,23 @@ public static class Devices
                 Credit = "afk789", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50" },
 
         // Vector A18 HX A9WHG (182LIMS1) — owner dump (issue #54) shows the same picture as its Raider
-        // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. RPM NOT added: 0xC9/0xCB
-        // read the same constant in every scenario, so there is no evidence they are live tachs here.
-        // All three hardware checks confirmed by the owner (Silent quieter, Extreme ramps, switching
-        // stable in daily use) → promoted to Tested.
-        new() { Name = "MSI Vector A18 HX A9WHG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "Skullkidsrevenge", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54" },
+        // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. All three hardware
+        // checks confirmed by the first owner → promoted to Tested.
+        //   Second owner (issues #166/#167/#168, firmware .111, MSI Center 2.0.71): his machine
+        //   is a RAIDER A18 HX A9WIG (msi.com line, RTX 5080 config 1:1) on the same MS-182L
+        //   board - dual name added. Fan curve VERIFIED (#167): the test curve sits
+        //   byte-for-byte at the shipped 0x72/0x8A on both fans. His power test (#168) is the
+        //   cleanest run on record for this board: 1% drift, Silent a hard cap at 25% of
+        //   Balanced's work (830 vs 3300 MHz), Extreme +30% with fan duty reading 150%, every
+        //   phase's bytes read back intact. RPM enabled: both tachs live as single-byte
+        //   divisors at 0xC9/0xCB, varying per scenario (9F-C8 = ~2390-3000 rpm) - unlike the
+        //   first owner's constant reads; asked to cross-check HWiNFO64. His snapshot columns
+        //   were shifted one tile (2.0.71 has no Silent), which the power test supersedes.
+        //   0xD6 read 03 under the vendor's Extreme column - the #52 observation, first AMD
+        //   board on that list.
+        new() { Name = "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "Skullkidsrevenge, bnjhdaskghsnlh", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54" },
 
         // Stealth 16 AI+ B3WI (2631EMS1) - the first board in this table with a documented FOURTH
         // shift-mode value. It is NOT in msi-ec's conf table, so every address below comes from the

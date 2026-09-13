@@ -24,6 +24,22 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **Vector A18 HX A9WHG (`182LIMS1`) renamed "Vector A18 HX A9WHG / Raider A18 HX A9WIG",
+  fan curve verified, fan RPM** ([#166](../../issues/166), [#167](../../issues/167),
+  [#168](../../issues/168), thanks @bnjhdaskghsnlh, who joins the entry's credit) - a second
+  owner's Raider A18 HX A9WIG runs the same board: his test curve sits byte for byte at the
+  shipped addresses on both fans, both tachometers read live divisors at `0xC9`/`0xCB`, and
+  his power test is the cleanest run on record for this board (1 % drift, Silent a hard cap
+  at 25 % of Balanced's work, Extreme +30 %).
+- **Raider GE67 HX 12U (`1545IMS1`): fan RPM enabled** ([#164](../../issues/164), thanks
+  @Hobby-Schrauber-88, who joins the entry's credit) - his Fan Boost capture shows both
+  tachometers as live single-byte divisors at `0xC9`/`0xCB` (~4900 rpm with boost on); at
+  idle they sit below what the single-byte format can express, which is why earlier captures
+  looked empty.
+- **Katana GF76 11UC / 11UD (`17L2EMS1`): CPU fan RPM enabled** ([#165](../../issues/165)) -
+  an owner's per-scenario dump matches the standard recipes byte for byte with a real Silent
+  column, and the CPU tachometer reads a live divisor at `0xC9`; the GPU register stayed 00
+  with the fan parked, so only the CPU address ships.
 - **MSI Prestige 14 AI Studio C1UDXG (`14N2EMS1`) promoted to tested, curve verified, fan RPM**
   ([#156](../../issues/156), [#157](../../issues/157), [#158](../../issues/158), thanks
   @gkyrios) - his per-scenario capture matches the standard recipes byte for byte, his test
