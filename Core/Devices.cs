@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260916;
+    public const int DataVersion = 20260917;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -866,9 +866,14 @@ public static class Devices
         //   name confirmed on msi.com, same 1587EMS1 firmware, hence the second name. His
         //   test curve sits byte-for-byte at 0x72/0x8A on both fans - the second independent
         //   curve confirmation.
+        //   Fourth report set (issues #192/#193, another B14WFK): snapshot 1:1 again, and a
+        //   power test with Extreme at +45% (clear beyond that run's 12% drift) and Silent
+        //   at 73% of Balanced's work on slower fans. Note the spread: the #177 machine's
+        //   Silent cut almost nothing while this one cuts a quarter - both runs look valid,
+        //   so it is recorded as unit-to-unit spread, not corrected either way.
         new() { Name = "MSI Katana 15 HX B14WEK / B14WFK", FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "zajebistylukasz-beep, DRLOGIC01, Osanosa", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63" },
+                Credit = "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63" },
         // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
         // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
         // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register
@@ -1165,16 +1170,25 @@ public static class Devices
         //   0xD2 across the four captures: C1, C4, C2 (with 0xEB=0F beside it) and C5. The first three
         //   are the comfort / turbo / eco values StdRecipes already writes, so the standard G2 recipe
         //   applies unchanged. C5 is the extra value, recorded in FourthMode.
-        //   0xD4 read 0D in all four captures and 8D in the curve capture, so the Silent fan value
-        //   0x1D is assumed from the family, not observed here - that is exactly what Power test measures.
         //   Fan curve VERIFIED: the wizard found the MSI Center test curve byte-for-byte at 0x72 (CPU:
         //   19 23 2D 37 41 4B) and 0x8A (GPU: 14 1E 28 32 3C 46) - the shipped ModernCurve addresses.
         //   RPM: 0xC9/0xCB read C6 / E2 (~2400 / ~2100 RPM at 478000/raw) in the capture where the fans
         //   were spinning, and 00 / 00 in the idle captures - live tachs at the family addresses.
-        new() { Name = "MSI Stealth 16 AI+ B3WI", FirmwarePrefixes = new[] { "2631EMS1" }, Tier = Tier.Experimental,
+        //   Tested via a second owner (issues #185-#189, a Stealth 16 AI+ B3WH - name confirmed
+        //   on msi.com, hence the second name): his snapshot shows the real Silent fan byte
+        //   0x1D (MSI Center 2.0.48), and his clean power test (#189, 0% drift) measures
+        //   Silent doing exactly Balanced's work on clearly slower fans (3376 vs 4401 rpm)
+        //   with clean byte readbacks across all five phases. Extreme = Balanced's CPU work
+        //   in both his runs - recorded, not held against promotion; both ran with the
+        //   graphics load on, and a combined load appears to share one power budget
+        //   (unverified). First Apex (C5) measurement on this board: accepted, correctly
+        //   reverted, performs like Extreme - the Extreme recipe stays at the standard turbo
+        //   value, the Vector 16 HX AI verdict. His curve capture re-confirms both tables
+        //   (GPU slider 4 stored as 49 for a requested 50 - a snap, not a mismatch).
+        new() { Name = "MSI Stealth 16 AI+ B3WI / B3WH", FirmwarePrefixes = new[] { "2631EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
-                Credit = "SteppinStone", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/66" },
+                Credit = "SteppinStone, AiM-lab-owl", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/66" },
 
         // G1 family (shift 0xF2 / fan 0xF4 / charge 0xEF) — older boards; super-batt addr unknown (null) unless noted.
         new() { Name = "MSI Prestige 14 A10SC", FirmwarePrefixes = new[] { "14C1EMS1" }, Tier = Tier.Experimental,

@@ -24,6 +24,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Stealth 16 AI+ (`2631EMS1`) promoted to tested, and a second retail name: B3WH**
+  ([#185](../../issues/185)-[#189](../../issues/189), thanks @AiM-lab-owl, who joins
+  @SteppinStone on the entry's credit) - a second owner's clean power test (0% drift) shows
+  Silent doing exactly Balanced's work on clearly slower fans, with stable switching across
+  all five phases. The run is also the first measurement of this board's Apex (`C5`) fourth
+  mode: accepted, correctly reverted, and performing like Extreme, so the app's Extreme
+  recipe stays at the standard turbo value - the same verdict as on the Vector 16 HX AI.
+  39 models tested.
+- **Katana 15 HX (`1587EMS1`): @sensini82 joins the entry's credit** ([#192](../../issues/192),
+  [#193](../../issues/193)) - a fourth report set for this board: recipes re-confirmed per
+  scenario, and a power test with Extreme at +45% and a genuine Silent cap.
 - **New model: MSI Stealth 18 HX AI A2XW (`1833EMS1`), experimental, curve verified, 16-bit
   fan RPM** ([#179](../../issues/179), [#180](../../issues/180)) - a brand-new board absent
   even from msi-ec, mapped from one owner's paired reports: standard recipes per scenario,

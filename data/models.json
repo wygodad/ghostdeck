@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260916,
+  "dataVersion": 20260917,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -2470,7 +2470,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa",
+      "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/63",
       "recipes": {
         "Silent": [
@@ -4840,11 +4840,11 @@
       }
     },
     {
-      "name": "MSI Stealth 16 AI\u002B B3WI",
+      "name": "MSI Stealth 16 AI\u002B B3WI / B3WH",
       "prefixes": [
         "2631EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
       "fanCurve": {
@@ -4861,7 +4861,7 @@
         "name": "Apex",
         "shiftValue": "0xC5"
       },
-      "credit": "SteppinStone",
+      "credit": "SteppinStone, AiM-lab-owl",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/66",
       "recipes": {
         "Silent": [
