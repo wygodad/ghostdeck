@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260912;
+    public const int DataVersion = 20260913;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -688,7 +688,15 @@ public static class Devices
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "OrbNRG", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/102" },
         new() { Name = "MSI Raider GE78 HX Smart Touchpad 13V", FirmwarePrefixes = new[] { "17S2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Vector 17 HX AI A2XWHG",        FirmwarePrefixes = new[] { "17S3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Vector 17 HX AI A2XWHG (17S3EMS1) - owner-verified (issue #171, firmware .107): the
+        // per-scenario snapshot matches StdRecipes 1:1 with a REAL Silent column (0xD4=1D) on
+        // MSI Center 2.0.73 - a 2.0.7x build showing a true Silent, recorded as-is - and all
+        // three hardware checks confirmed, the Tested bar. 0x34 reads 01 in every scenario
+        // (the GE78-family pattern), so the recipes leave it alone. No dumps in the report,
+        // so RPM stays off and the curve keeps the family-standard unverified layout.
+        new() { Name = "MSI Vector 17 HX AI A2XWHG",        FirmwarePrefixes = new[] { "17S3EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "A7GoD", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/171" },
 
         // G2 family (shift 0xD2 / fan 0xD4 / super-batt 0xEB). Fan-curve tables use the shared modern layout
         // (CPU 0x6A/0x72, GPU 0x82/0x8A) that MControlCenter writes for this whole family (src/operate.cpp) —
@@ -904,6 +912,27 @@ public static class Devices
                 FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "parkisutama, tenduo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/97" },
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Cyborg 15 C13WEO (15T1EMS1, board MS-15T1) - NEW prefix, absent from msi-ec; added
+        // from one owner's thorough report set (issues #173/#174/#175, i7-13620H + RTX 5050;
+        // sold in some markets as "Cyborg 15 Max C13WEO"). His own read-only MSI_ACPI captures
+        // (#174, scenario changes verified before each dump) show the standard recipes: the
+        // 2.0.71 "Silent" tile writes the Super Battery set (C2 + 0xEB=0F - the known lineup
+        // trap, which he identified himself), Balanced C1, Extreme C4; Apex adds 0xD2=C5 with
+        // companion bytes moving (0x5A 00->01, 0xD9 05->15, 0xED C2->DA - observation only,
+        // nothing written), so the C5 fourth mode ships for the power test to probe.
+        //   Curve VERIFIED, single fan: the wizard's test curve sits byte-for-byte at the
+        //   shipped 0x72 from the first slot (#175); MSI Center's hardware monitor lists
+        //   Fan 1 only, 0xCA:0xCB read 00 everywhere and the GPU table never changes - the
+        //   Cyborg 15Q3 pattern. Hidden trailing bytes 0x78/0x79 hold stock values above the
+        //   six sliders (the GE78 pattern) - not written, like everywhere else.
+        //   RPM: wide-tach 16-bit pair 0xC8:0xC9 (01:02 = ~1850 rpm idle), CPU only - the
+        //   fifth wide-tach carrier; readout arrives with the release that ships the format.
+        // Tier stays Experimental: the app could not write on the unrecognised machine, so
+        // switching stability is unproven - his power test after the entry lands settles it.
+        new() { Name = "MSI Cyborg 15 C13WEO",              FirmwarePrefixes = new[] { "15T1EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr16 = 0xC8,
+                FourthMode = new FourthModeSpec("Apex", 0xC5),
+                FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Thin 15 B12UCX / B12VE (16R8IMS2) - fan curve VERIFIED (issue #111): the test curve sits
@@ -1041,9 +1070,13 @@ public static class Devices
         //   were shifted one tile (2.0.71 has no Silent), which the power test supersedes.
         //   0xD6 read 03 under the vendor's Extreme column - the #52 observation, first AMD
         //   board on that list.
-        new() { Name = "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
+        //   Third retail name (issue #172): a Raider A18 HX A9WJG (9955HX3D + RTX 5090, the
+        //   line exists on msi.com) runs the same firmware. That owner's capture is also the
+        //   first on this board with a REAL Silent column (MSI Center 2.0.48): recipes 1:1,
+        //   0xEB=00 in every column re-confirmed, 0xD6=03 under the vendor's Extreme again.
+        new() { Name = "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG / A9WJG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "Skullkidsrevenge, bnjhdaskghsnlh", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54" },
+                Credit = "Skullkidsrevenge, bnjhdaskghsnlh, UzaydaGezen", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54" },
 
         // Stealth 16 AI+ B3WI (2631EMS1) - the first board in this table with a documented FOURTH
         // shift-mode value. It is NOT in msi-ec's conf table, so every address below comes from the

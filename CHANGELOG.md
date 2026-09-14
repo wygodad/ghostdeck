@@ -24,6 +24,20 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **New model: MSI Cyborg 15 C13WEO (`15T1EMS1`), experimental, curve verified, single fan**
+  ([#173](../../issues/173), [#174](../../issues/174), [#175](../../issues/175), thanks
+  @Achillesfeel) - a brand-new board absent even from msi-ec, mapped from one owner's
+  exceptionally thorough report set: standard recipes confirmed per scenario (his own
+  read-only captures, scenario changes verified), the `C5` Apex fourth mode recorded for the
+  power test to probe, the test curve byte for byte at the shipped address, one physical fan,
+  and a 16-bit tachometer pair that turns on with the next release. 150 models recognised.
+- **MSI Vector 17 HX AI A2XWHG (`17S3EMS1`) promoted to tested** ([#171](../../issues/171),
+  thanks @A7GoD) - the owner's snapshot matches the standard recipes byte for byte with a real
+  Silent column, and all three hardware checks are confirmed. 37 models tested.
+- **Vector A18 HX (`182LIMS1`) gains a third retail name: Raider A18 HX A9WJG**
+  ([#172](../../issues/172), thanks @UzaydaGezen, who joins the entry's credit) - his capture
+  is also the first on this board with a real Silent column (MSI Center 2.0.48), re-confirming
+  every recipe byte and the unused battery limiter.
 - **The Super Battery register (`0xEB`) is now written through its documented `0x0F` mask**
   ([#170](../../issues/170)) - the write changes only the low half of the byte and preserves
   the top bits, exactly as the Linux msi-ec driver does. On every board on record the top
