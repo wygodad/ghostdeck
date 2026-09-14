@@ -24,6 +24,32 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **New model: MSI Stealth 18 HX AI A2XW (`1833EMS1`), experimental, curve verified, 16-bit
+  fan RPM** ([#179](../../issues/179), [#180](../../issues/180)) - a brand-new board absent
+  even from msi-ec, mapped from one owner's paired reports: standard recipes per scenario,
+  the test curve byte for byte at the shipped addresses, and both tachometers as 16-bit
+  pairs proven at idle. His MSI Center 2.0.73 writes the Super Battery set under its
+  "Silent" tile, so the capture also documents that the tile lineup follows the machine,
+  not the app version.
+- **New model: MSI Crosshair 18 HX AI A2XW (`1841EMS1`), experimental, 16-bit fan RPM**
+  ([#183](../../issues/183)) - another board absent from msi-ec, mapped from an owner's full
+  per-scenario dumps with a real Silent column. The vendor never touches the battery
+  limiter register on it, so neither does the app, and both tachometers are 16-bit pairs.
+- **New model: MSI Pulse 17 AI C1VGKG / C1VFKG (`17T3EMS1`), experimental**
+  ([#182](../../issues/182)) - the Pulse 16 AI's 17-inch sibling, absent from msi-ec, added
+  from an owner's per-scenario snapshot with the standard recipes. 153 models recognised.
+- **Katana 15 B12VEK / B12VFK / B12VGK (`1585EMS2`): fan RPM enabled as 16-bit pairs**
+  ([#184](../../issues/184)) - an owner's full dump set re-confirms the standard recipes
+  with a real Silent column; the tachometers follow the sibling `1585EMS1`'s two-byte
+  format, so the readout arrives with the release that ships the 16-bit reader.
+- **Creator M16 / Pulse 15 / Katana 15 B13 board (`1585EMS1`) gains a fourth retail name:
+  Crosshair 16 A13V** ([#190](../../issues/190), thanks @GabrielGby, who joins the entry's
+  credit) - his clean power test re-confirms the board: Silent does 92% of Balanced's work
+  on far slower fans and 15 degrees cooler.
+- **Katana 15 HX (`1587EMS1`) gains a second retail name: B14WFK** ([#191](../../issues/191),
+  thanks @Osanosa, who joins the entry's credit) - the RTX 50 refresh of the line runs the
+  same firmware, and his capture is the second independent byte-for-byte confirmation of
+  the curve addresses.
 - **MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U (`14F1EMS1`) promoted to tested, curve
   verified, single fan, CPU fan RPM** ([#160](../../issues/160), thanks @Acoustichayes) - the
   owner's clean power test (0% drift) shows Silent doing the same work as Balanced on slower,

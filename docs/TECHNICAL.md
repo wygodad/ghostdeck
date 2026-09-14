@@ -350,7 +350,8 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
   ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
   issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145), `15T1EMS1`
-  (CPU pair only - single fan, #174), `1545IMS1` (#164). Detection caveat: above ~1870 RPM the
+  (CPU pair only - single fan, #174), `1545IMS1` (#164), `1833EMS1` (#180), `1841EMS1`
+  (#183), `1585EMS2` (#184, on the sibling 1585EMS1's evidence). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed
