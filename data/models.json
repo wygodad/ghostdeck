@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260915,
+  "dataVersion": 20260916,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -2412,7 +2412,7 @@
       }
     },
     {
-      "name": "MSI Katana 15 B12VEK / B12VFK / B12VGK",
+      "name": "MSI Katana 15 B12VEK / B12VFK / B12VGK / B12UDXK",
       "prefixes": [
         "1585EMS2"
       ],

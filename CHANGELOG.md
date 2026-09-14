@@ -38,10 +38,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **New model: MSI Pulse 17 AI C1VGKG / C1VFKG (`17T3EMS1`), experimental**
   ([#182](../../issues/182)) - the Pulse 16 AI's 17-inch sibling, absent from msi-ec, added
   from an owner's per-scenario snapshot with the standard recipes. 153 models recognised.
-- **Katana 15 B12VEK / B12VFK / B12VGK (`1585EMS2`): fan RPM enabled as 16-bit pairs**
-  ([#184](../../issues/184)) - an owner's full dump set re-confirms the standard recipes
-  with a real Silent column; the tachometers follow the sibling `1585EMS1`'s two-byte
-  format, so the readout arrives with the release that ships the 16-bit reader.
+- **Katana 15 B12V board (`1585EMS2`): fan RPM enabled as 16-bit pairs, and a fourth retail
+  name, B12UDXK** ([#184](../../issues/184)) - an owner's full dump set re-confirms the
+  standard recipes with a real Silent column; the tachometers follow the sibling
+  `1585EMS1`'s two-byte format, so the readout arrives with the release that ships the
+  16-bit reader. His machine is a Katana 15 B12UDXK on the same firmware, so the entry now
+  carries that name too.
 - **Creator M16 / Pulse 15 / Katana 15 B13 board (`1585EMS1`) gains a fourth retail name:
   Crosshair 16 A13V** ([#190](../../issues/190), thanks @GabrielGby, who joins the entry's
   credit) - his clean power test re-confirms the board: Silent does 92% of Balanced's work

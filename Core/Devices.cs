@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260915;
+    public const int DataVersion = 20260916;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -839,13 +839,16 @@ public static class Devices
         new() { Name = "MSI Katana GF66 12UDO",             FirmwarePrefixes = new[] { "1584IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Katana 15 B12VEK / B12VFK / B12VGK (1585EMS2) - an owner's per-scenario dump set
         // (issue #184, MSI Center 2.0.48) matches StdRecipes 1:1 with a real Silent column;
+        // his machine is a Katana 15 B12UDXK (name confirmed on msi.com, i5-12450H/i7-12650H
+        // + RTX 3050 - the fourth retail line on this firmware, from the form's "Actual
+        // model" field), hence the added name.
         // still Experimental until a power test or the three hardware checks. 0xD6 read 03
         // only under the vendor's Extreme (the #52 observation, twelfth board). RPM: 16-bit
         // pairs 0xC8:0xC9 / 0xCA:0xCB like the sibling 1585EMS1; in his captures the GPU pair
         // read 00:BA-00:C2 (~2500-2570 rpm, where the two formats coincide) and the CPU pair
         // 00:00 (fan parked) - enabled as pairs on the sibling's evidence, owner asked to
         // cross-check HWiNFO64 once the 16-bit readout ships.
-        new() { Name = "MSI Katana 15 B12VEK / B12VFK / B12VGK", FirmwarePrefixes = new[] { "1585EMS2" }, Tier = Tier.Experimental,
+        new() { Name = "MSI Katana 15 B12VEK / B12VFK / B12VGK / B12UDXK", FirmwarePrefixes = new[] { "1585EMS2" }, Tier = Tier.Experimental,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Katana 15 HX B14WEK (1587EMS1) - owner per-scenario snapshot (issue #63) matches StdRecipes
