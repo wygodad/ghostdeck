@@ -349,7 +349,11 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   a single byte - `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, still with
   `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
   ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
-  issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145). In the signed
+  issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145), `15T1EMS1`
+  (CPU pair only - single fan, #174), `1545IMS1` (#164). Detection caveat: above ~1870 RPM the
+  raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
+  with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
+  (raw > 255), where the pair and the single byte diverge. In the signed
   database the pair ships as `cpuRpmAddr16` / `gpuRpmAddr16` (the high-byte address; the low byte
   sits at address+1); the single-byte fields stay unset on these models, so an older app keeps
   showing no RPM there instead of misreading one byte of the pair. The two reads are not atomic;

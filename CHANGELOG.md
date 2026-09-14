@@ -24,6 +24,22 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U (`14F1EMS1`) promoted to tested, curve
+  verified, single fan, CPU fan RPM** ([#160](../../issues/160), thanks @Acoustichayes) - the
+  owner's clean power test (0% drift) shows Silent doing the same work as Balanced on slower,
+  cooler fans, with Extreme measuring only +4% on this thin chassis (a board trait, recorded
+  in the entry). His test curve sits byte for byte at the shipped CPU address; the GPU table
+  stayed factory and the machine has no GPU fan, so the curve editor now shows Fan 1 only.
+  38 models tested.
+- **Raider GE67 HX 12U (`1545IMS1`) fan RPM switched to the 16-bit tachometer pair**
+  ([#164](../../issues/164)) - an owner's idle side-by-side against HWiNFO64 and MSI Center
+  shows the board reports RPM as the two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`.
+  Above roughly 1870 rpm the raw value fits in one byte, so the earlier full-fan capture
+  could not tell the two formats apart. Until the release that reads 16-bit pairs ships,
+  the app shows no RPM on this board rather than a wrong number.
+- **Katana 15 HX B14WEK (`1587EMS1`): @DRLOGIC01 joins the entry's credit**
+  ([#176](../../issues/176), [#177](../../issues/177)) - a second owner independently
+  re-confirmed the curve addresses and delivered a clean power test (0% drift, Extreme +63%).
 - **New model: MSI Cyborg 15 C13WEO (`15T1EMS1`), experimental, curve verified, single fan**
   ([#173](../../issues/173), [#174](../../issues/174), [#175](../../issues/175), thanks
   @Achillesfeel) - a brand-new board absent even from msi-ec, mapped from one owner's

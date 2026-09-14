@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260913;
+    public const int DataVersion = 20260914;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -361,13 +361,15 @@ public static class Devices
         // hardware-confirmed all three checks (Silent lowers power/noise vs Balanced, Extreme unlocks,
         // switching stable), so promoted to Tested. Fan curve VERIFIED (issue #16): the owner ran the wizard
         // and it reported the test curve at 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses.
-        //   RPM enabled from a second owner's Fan Boost capture (issue #164): at idle the
-        //   registers sit below the single-byte floor (readings gated), but with Fan Boost on
-        //   both tachs read live single-byte divisors at 0xC9/0xCB (62/61 = ~4880/4930 rpm,
-        //   0xC8/0xCA not part of the value) - the Katana-family scheme, not wide-tach as one
-        //   idle pair first suggested. Owner asked to cross-check against HWiNFO64.
+        //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB (the sixth wide-tach carrier).
+        //   The two formats cannot be told apart above ~1870 rpm, because there the raw
+        //   divisor fits in one byte and the high byte reads 00 - which is why a second
+        //   owner's Fan Boost capture (issue #164, 62/61 = ~4880/4930 rpm) looked single-byte.
+        //   His idle side-by-side settles it: a single-byte read of 0xC9=0x4D shows 6207 rpm
+        //   where HWiNFO64 and MSI Center read ~1435-1500, and the pair 0x01:0x4D = 333 as
+        //   one 16-bit divisor is exactly HWiNFO's recorded 1435 rpm minimum.
         new() { Name = "MSI Raider GE67 HX 12U", FirmwarePrefixes = new[] { "1545IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "alibi90, Hobby-Schrauber-88", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/14" },
 
         // Raider GE76 12UE (17K4EMS1) — owner per-scenario snapshot (issue #47) matches StdRecipes:
@@ -713,10 +715,20 @@ public static class Devices
         // B13UCX-601US (BIOS E14F1IMS.50F) runs this same 14F1EMS1 EC firmware - two retail
         // lines behind one EC identity, spotted by the reporter himself. His per-scenario
         // capture matches StdRecipes 1:1 with a real Silent column and four distinct columns;
-        // 0xD6 read 03 only under the vendor's Extreme (the #52 observation), and 0xC9 moves
-        // like a live single-byte tach (0xCB stays 00) - nothing ships from one capture.
-        // Tier stays Experimental until a power test or the three hardware checks.
-        new() { Name = "MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U", FirmwarePrefixes = new[] { "14F1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // 0xD6 read 03 only under the vendor's Extreme (the #52 observation).
+        //   Tested via the same owner's clean power test (issue #160, drift 0%): Silent does
+        //   the same work as Balanced on slower, cooler fans (duty 92 vs 110, 84 vs 88 C) -
+        //   the fan-side Silent criterion; Extreme measured only +4% on this thin chassis
+        //   (board trait, recorded, does not block promotion).
+        //   Curve VERIFIED (CPU): his test curve sits byte-for-byte at the shipped 0x72.
+        //   Single fan: the GPU table stayed factory with Fan 2 set in the wizard and the
+        //   owner confirms the machine has no GPU fan (his Radeon is an external card) -
+        //   the Thin 15 B12 signature. RPM: CPU tach live at 0xC9, single-byte divisor
+        //   (0xCB stays 00).
+        new() { Name = "MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U", FirmwarePrefixes = new[] { "14F1EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9,
+                FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Acoustichayes", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/160" },
         // moved to the Tested block above (issues #60 / #61) - Modern 14 C12M (14J1IMS1)
         // Stealth 14 Studio A13VF (14K1EMS1) - owner-verified end to end in one evening (issues
         // #107/#108/#109, MSI Center 2.0.48, the last lineup with the real Silent scenario). The
@@ -827,9 +839,15 @@ public static class Devices
         // All three hardware checks confirmed by the owner, so Tested. Fan curve VERIFIED (issue #64)
         // on BOTH fans: the test curve sits byte-for-byte at 0x72 and 0x8A, and the temperature tables
         // at 0x69 / 0x81 are ascending. RPM 0xC9/0xCB vary per scenario (A3/90/81/88 = 2930-3710 RPM).
+        //   Re-confirmed by a second owner on .103 (issues #176/#177): a clean power test
+        //   (drift 0%) with Silent at 98% of Balanced's work on slower fans (2906 vs 3552 rpm,
+        //   67 vs 72 C) and Extreme at +63%, and his curve capture shows the test curve at the
+        //   shipped addresses again (GPU byte-for-byte at 0x8A; CPU at 0x72 with the first
+        //   slider stored as 26 for a requested 25 - a snap the wizard's exact-match search
+        //   does not tolerate, the layout itself is not in doubt).
         new() { Name = "MSI Katana 15 HX B14WEK", FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "zajebistylukasz-beep", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63" },
+                Credit = "zajebistylukasz-beep, DRLOGIC01", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63" },
         // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
         // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
         // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register
