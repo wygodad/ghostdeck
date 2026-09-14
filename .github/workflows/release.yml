@@ -113,6 +113,11 @@ jobs:
             $m = [regex]::Match($cl, "(?ms)^##\s*\[?$([regex]::Escape($v))\]?.*?(?=^##\s|\z)")
             if ($m.Success) { $body = $m.Value.Trim() }
           }
+          # Most visitors read this release page, not the wiki, so the full illustrated
+          # write-up is linked first. The wiki page is part of the release checklist and
+          # must exist under exactly this name: Whats-new-in-GhostDeck-<version>.
+          $wiki = "https://github.com/wygodad/ghostdeck/wiki/Whats-new-in-GhostDeck-$v"
+          $body = "**What's new in $v - [the full write-up, with screenshots]($wiki)**`n`n" + $body
           $body | Out-File release_notes.md -Encoding utf8
 
       - name: Utworz Release i dolacz exe
