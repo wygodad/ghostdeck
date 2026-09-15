@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260918;
+    public const int DataVersion = 20260919;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1086,12 +1086,17 @@ public static class Devices
         //   measured +8% on the five samples before the cutoff. Switching stable with clean
         //   byte readbacks in all three phases, which also confirms the assumed Silent fan
         //   byte 0x1D on real hardware.
-        //   RPM: the run's dumps show both tachs as live single-byte divisors at 0xC9/0xCB
-        //   (84/83 then 55/57 = ~3600 rising to ~5600 rpm with load, high bytes always 00;
-        //   00/00 with fans parked at idle) - the 17T4EMS1 sibling's scheme. Owner asked to
-        //   cross-check against HWiNFO64. Curve stays unverified (no curve capture yet).
+        //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB. The power-test dumps all sat
+        //   above ~1870 rpm, where the raw divisor fits in one byte and the two formats
+        //   coincide (84/83 then 55/57 rising with load, high bytes 00); the curve capture
+        //   (#196) caught the GPU fan slower and settles the format: 0xCA:0xCB = 01:10 =
+        //   272 = ~1757 rpm, high byte non-zero. Owner asked to cross-check HWiNFO64 once
+        //   the 16-bit readout ships.
+        //   Curve VERIFIED (#196): his test curve sits byte-for-byte at the shipped
+        //   0x72/0x8A on both fans.
         new() { Name = "MSI Pulse 17 AI C1VGKG / C1VFKG",   FirmwarePrefixes = new[] { "17T3EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "SorgZZ", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/195" },
         // Crosshair 17 HX AI D2XW (17T4EMS1) - owner per-scenario dump (issue #148, MSI Center
         // 2.0.48, app 1.36.0, firmware .103) matches StdRecipes 1:1: shift 0xD2 C1/C1/C4/C2,
