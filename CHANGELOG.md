@@ -24,6 +24,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Pulse 17 AI C1VGKG / C1VFKG (`17T3EMS1`) promoted to tested, with fan RPM**
+  ([#182](../../issues/182), [#195](../../issues/195), thanks @SorgZZ) - added to the
+  database one day, measured the next: the owner's power test shows Silent at 82% of
+  Balanced's work on far quieter fans, stable switching with clean readbacks, and Extreme
+  at +8% before the 99-degree safety fuse ended the run (a thermally tight chassis, noted
+  in the entry - the protection worked as designed). His dumps also show both tachometers
+  as plain single-byte divisors, so fan RPM readout turns on. 40 models tested.
 - **MSI Stealth 16 AI+ (`2631EMS1`) promoted to tested, and a second retail name: B3WH**
   ([#185](../../issues/185)-[#189](../../issues/189), thanks @AiM-lab-owl, who joins
   @SteppinStone on the entry's credit) - a second owner's clean power test (0% drift) shows

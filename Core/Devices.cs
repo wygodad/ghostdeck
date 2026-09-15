@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260917;
+    public const int DataVersion = 20260918;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1075,11 +1075,24 @@ public static class Devices
         // Pulse 17 AI C1VGKG / C1VFKG (17T3EMS1) - NEW prefix, absent from msi-ec; added from
         // an owner's per-scenario snapshot (issue #182; name confirmed on msi.com: Ultra 7
         // 155H + RTX 4070/4060, the Pulse 16 AI's 17-inch sibling). Balanced C1, Extreme C4,
-        // Super Battery C2 + 0xEB=0F; the "Silent" column shows the Super Battery set (the
-        // MSI Center 2.0.71 lineup trap), so the real Silent fan byte was not observed -
-        // StdRecipes assumed, as on the rest of the family. No dumps in the report: RPM off,
-        // curve unverified.
-        new() { Name = "MSI Pulse 17 AI C1VGKG / C1VFKG",   FirmwarePrefixes = new[] { "17T3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Super Battery C2 + 0xEB=0F; the "Silent" column showed the Super Battery set (the
+        // MSI Center 2.0.71 lineup trap).
+        //   Tested via the same owner's power test (issue #195): the run tripped the 99 C
+        //   safety fuse during Extreme (thermally tight chassis - the Alpha 17 pattern,
+        //   recorded here, protection working as designed), but the data before the cutoff
+        //   is decisive: Silent at 82% of Balanced's work on far quieter fans (duty 35 vs
+        //   60, 78 vs 92 C) - and Silent ran FIRST, in the coolest phase, so the cut is
+        //   drift-resistant even though the aborted run has no baseline repeat. Extreme
+        //   measured +8% on the five samples before the cutoff. Switching stable with clean
+        //   byte readbacks in all three phases, which also confirms the assumed Silent fan
+        //   byte 0x1D on real hardware.
+        //   RPM: the run's dumps show both tachs as live single-byte divisors at 0xC9/0xCB
+        //   (84/83 then 55/57 = ~3600 rising to ~5600 rpm with load, high bytes always 00;
+        //   00/00 with fans parked at idle) - the 17T4EMS1 sibling's scheme. Owner asked to
+        //   cross-check against HWiNFO64. Curve stays unverified (no curve capture yet).
+        new() { Name = "MSI Pulse 17 AI C1VGKG / C1VFKG",   FirmwarePrefixes = new[] { "17T3EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "SorgZZ", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/195" },
         // Crosshair 17 HX AI D2XW (17T4EMS1) - owner per-scenario dump (issue #148, MSI Center
         // 2.0.48, app 1.36.0, firmware .103) matches StdRecipes 1:1: shift 0xD2 C1/C1/C4/C2,
         // fan 0xD4 1D/0D/0D/0D with a real Silent column, 0xEB=0F only in Super Battery, four
