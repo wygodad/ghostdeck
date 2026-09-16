@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Fixed
+- **Long toast messages no longer stretch across the whole screen** - the on-screen toast
+  (profile switches, the temperature alert, the "charge limit changed outside the app"
+  notice and every other message) sized itself to fit the longest line in one line, so a
+  full-sentence message in a wordier language spanned the display. The toast now caps its
+  width and wraps the text into more lines instead, growing downwards; short messages look
+  exactly as before.
+
 ### Added
 - **Startup profile** ([discussion #178](../../discussions/178)) - next to "Restore profile
   after wake / at startup" the Power settings gain a "Startup profile" picker: "Last used"

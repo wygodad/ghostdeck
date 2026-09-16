@@ -9,6 +9,12 @@ public sealed class OsdForm : Form
     private string _title = "";
     private string _sub = "";
     private Color _accent = Color.Gray;
+    private int _subY = 58;
+
+    // Text block geometry: title starts at x=64, subtitle at x=66, right margin 34.
+    private const int TitleX = 64, SubX = 66, RightMargin = 34;
+    // Long messages wrap instead of stretching the toast across the screen.
+    private const int MaxToastWidth = 720;
 
     private readonly System.Windows.Forms.Timer _anim = new() { Interval = 15 };
     private enum Phase { Idle, In, Hold, Out }
@@ -64,23 +70,36 @@ public sealed class OsdForm : Form
         _title = title; _sub = sub; _accent = accent;
         _holdMs = Math.Max(HoldSeconds, minSeconds) * 1000;
 
-        // dopasuj szerokosc do dluzszej z linii (tytul np. "SUPER BATTERY" albo dluzszy podtytul)
+        var wa = Screen.PrimaryScreen!.WorkingArea;
+
+        // Dopasuj szerokosc do dluzszej z linii (tytul np. "SUPER BATTERY" albo dluzszy
+        // podtytul), ale nie szerzej niz MaxToastWidth / ekran: dluzszy tekst zawija sie
+        // w kolejne linie, a okno rosnie w dol zamiast w bok.
         using (var g = CreateGraphics())
         using (var tF = new Font("Segoe UI", 19f, FontStyle.Bold))
         using (var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold))
         {
+            int maxW = Math.Min(MaxToastWidth, wa.Width - 120);
+            int maxTextW = maxW - TitleX - RightMargin;
             int titleW = (int)Math.Ceiling(g.MeasureString(title, tF).Width);
             int subW = (int)Math.Ceiling(g.MeasureString(sub, sF).Width);
-            int textW = Math.Max(titleW, subW);
-            int w = Math.Max(440, textW + 64 + 34);
-            if (w != Width)
+            int textW = Math.Min(Math.Max(titleW, subW), maxTextW);
+            int w = Math.Max(440, textW + TitleX + RightMargin);
+
+            // Wysokosci zmierzone przy finalnej szerokosci zawijania.
+            int wrapW = w - TitleX - RightMargin;
+            int titleH = (int)Math.Ceiling(g.MeasureString(title, tF, wrapW).Height);
+            int subH = (int)Math.Ceiling(g.MeasureString(sub, sF, wrapW).Height);
+            _subY = 14 + Math.Max(44, titleH + 2);          // jedna linia tytulu = dzisiejsze y=58
+            int h = Math.Max(104, _subY + subH + 21);        // jedna linia podtytulu = dzisiejsze 104
+
+            if (w != Width || h != Height)
             {
-                Size = new Size(w, Height);
+                Size = new Size(w, h);
                 Region = RoundedRegion(Width, Height, 18);
             }
         }
 
-        var wa = Screen.PrimaryScreen!.WorkingArea;
         Location = new Point(wa.X + (wa.Width - Width) / 2, wa.Y + 90);
         Invalidate();
         if (!Visible) Show();
@@ -138,8 +157,9 @@ public sealed class OsdForm : Form
         using var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold);
         using var tB = new SolidBrush(Color.White);
         using var sB = new SolidBrush(ColorTranslator.FromHtml("#C2C7D0"));
-        g.DrawString(_title, tF, tB, 64, 14);
-        g.DrawString(_sub, sF, sB, 66, 58);
+        // Prostokaty zamiast punktow: tekst zawija sie w szerokosci okna (patrz ShowProfile).
+        g.DrawString(_title, tF, tB, new RectangleF(TitleX, 14, Width - TitleX - RightMargin, _subY - 14));
+        g.DrawString(_sub, sF, sB, new RectangleF(SubX, _subY, Width - SubX - RightMargin, Height - _subY));
     }
 
     protected override void Dispose(bool disposing)
