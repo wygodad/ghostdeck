@@ -167,6 +167,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Temperature in the tray** - CPU and GPU as their own icons next to the clock, colour by your own thresholds | **Narrow window** - the sub-tab strip drops to icons instead of pushing a scrollbar; the tab you are on keeps its label |
 | ![Settings Notifications](docs/images/settings_notifications.png) | ![Travel mode](docs/images/travel_mode.png) |
 | **Settings → Notifications** - CPU/GPU and SSD temperature alerts with their own thresholds, OSD display time and one-click restore defaults | **Travel mode** - charge to 100 % for a trip; the previous limit returns on its own after the chosen number of days |
+| ![Wrapped OSD toast](docs/images/osd_wrapped_toast.png) | |
+| **Notifications that explain themselves** - when something outside the app changes a setting (here: the battery charge limit), the toast says what happened, who does that, and what to do; long messages wrap instead of stretching across the screen | |
 
 ## Download
 

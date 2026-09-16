@@ -813,6 +813,14 @@ every OSD toast stays fully visible (`OsdForm.HoldSeconds`; the fade in/out is u
 temperature alert passes `minSeconds: 5` to `ShowProfile`, so it stays up at least 5 s even when
 the user prefers short OSDs for profile switches.
 
+**OSD sizing.** The toast fits its width to the longer of the two text lines, capped at 720 px
+(less on narrow screens: working-area width minus a margin). Longer titles and messages wrap
+inside that width - `MeasureString`/`DrawString` with a `RectangleF`, so GDI+ does the wrapping -
+and the toast grows downwards to fit the lines; the left accent bar scales with the height.
+A single-line toast keeps the classic 440x104 geometry, so profile switches look unchanged.
+
+![Wrapped OSD toast](images/osd_wrapped_toast.png)
+
 **Panic reset hotkey (default Ctrl+Alt+F10).** One press back to a safe stock state: clears the
 Fan Boost bit, then applies the **Balanced** recipe. No separate fan write is needed — the recipe
 rewrites the fan-mode byte to auto (`0x0D`), which by design also releases a custom fan curve

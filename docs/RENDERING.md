@@ -171,7 +171,11 @@ current position so focusing a child does **not** yank the page to the top.
   it calls `ApplyScroll` and therefore draws every label through `Ui.DrawText` (§5.1a).
 - **Chrome** ([`MainForm`](../UI/MainForm.cs)) — the tab strip, theme button and the announcement
   **banner** are custom-drawn controls; the banner is a top-docked `Panel` shown on demand.
-- **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change
+- **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change.
+  Width is capped at 720 px (less on narrow screens); longer titles and messages wrap inside that
+  width via GDI+ `DrawString` into a `RectangleF` and the toast grows downwards, so a full-sentence
+  notification in a wordy language never spans the display. Single-line toasts keep the fixed
+  440x104 geometry.
   is a separate rounded, fading, non-activating window (simpler than the gaming overlay).
 
 Shared primitives live in the `Ui`, `Theme` and `IconPainter` helpers (rounded rects, pills, cards,
