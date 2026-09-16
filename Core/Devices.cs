@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260919;
+    public const int DataVersion = 20260920;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -956,6 +956,15 @@ public static class Devices
                 FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "parkisutama, tenduo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/97" },
         new() { Name = "MSI Venture A15 AI A2HMG / A2HMTG", FirmwarePrefixes = new[] { "15QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Cyborg A15 AI B2HWGKG / B2HWEKG (15QLIMS1) - NEW prefix, absent from msi-ec;
+        // registered from an owner's report (issue #198; name confirmed on msi.com:
+        // Ryzen 9 270 + RTX 5070, and a B2HWEKG line with Ryzen 7 260 + RTX 5060). His
+        // read-only captures (his own script) show all four columns identical (0xD2=C2,
+        // fan 0D, 0xEB=00), i.e. the machine stayed in one state throughout - no
+        // per-scenario evidence yet, so StdRecipes ships as the family default and his
+        // power test settles both the recipes and promotion. Tachometers read 00 in
+        // every capture - RPM stays off.
+        new() { Name = "MSI Cyborg A15 AI B2HWGKG / B2HWEKG", FirmwarePrefixes = new[] { "15QLIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Cyborg 15 C13WEO (15T1EMS1, board MS-15T1) - NEW prefix, absent from msi-ec; added
         // from one owner's thorough report set (issues #173/#174/#175, i7-13620H + RTX 5050;
         // sold in some markets as "Cyborg 15 Max C13WEO"). His own read-only MSI_ACPI captures
@@ -1176,11 +1185,17 @@ public static class Devices
         //   pair is proven at idle (01:00 and 01:01 = raw 256-257 = ~1860 rpm, high byte
         //   non-zero); the CPU pair read 00:FB there (the formats coincide above ~1870 rpm)
         //   and follows the board's format.
-        // Tier stays Experimental: the hardware-check boxes were not ticked - a power test
-        // or the three checks settle promotion.
-        new() { Name = "MSI Crosshair 18 HX AI A2XW",       FirmwarePrefixes = new[] { "1841EMS1" }, Tier = Tier.Experimental,
+        //   Tested via the owner's CPU-only power test (issue #197, firmware .108): a
+        //   complete run with the drift check - it ended 9% faster than it started, so
+        //   profile gaps under 9% carry that caveat. Silent sits far beyond it: 63% of
+        //   Balanced's work at 58 vs 66 C, and Silent ran first, in the run's slowest
+        //   stretch, so the cut is real. Extreme measured +14%. Switching stable with
+        //   clean byte readbacks in all four phases. Curve stays unverified (no curve
+        //   capture yet).
+        new() { Name = "MSI Crosshair 18 HX AI A2XW",       FirmwarePrefixes = new[] { "1841EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null) },
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "sw1n3flu80085", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/197" },
 
         // Stealth 16 AI+ B3WI (2631EMS1) - the first board in this table with a documented FOURTH
         // shift-mode value. It is NOT in msi-ec's conf table, so every address below comes from the

@@ -32,6 +32,15 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Crosshair 18 HX AI A2XW (`1841EMS1`) promoted to tested** ([#183](../../issues/183),
+  [#197](../../issues/197), thanks @sw1n3flu80085) - the owner's complete CPU-only power
+  test shows Silent at 63% of Balanced's work and 8 degrees cooler, Extreme at +14%, and
+  stable switching with clean readbacks in all four phases. The run's own drift check
+  (9%) is noted with the numbers. 41 models tested.
+- **New model: MSI Cyborg A15 AI B2HWGKG / B2HWEKG (`15QLIMS1`), experimental**
+  ([#198](../../issues/198)) - a brand-new AMD board absent even from msi-ec, registered
+  from an owner's report; the recipes ship as the family standard until his measurements
+  settle them. 154 models recognised.
 - **MSI Pulse 17 AI C1VGKG / C1VFKG (`17T3EMS1`) promoted to tested, curve verified, with
   16-bit fan RPM** ([#182](../../issues/182), [#195](../../issues/195),
   [#196](../../issues/196), thanks @SorgZZ) - added to the database one day, fully measured
