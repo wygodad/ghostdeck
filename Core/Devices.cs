@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260922;
+    public const int DataVersion = 20260923;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -934,7 +934,15 @@ public static class Devices
         //   every capture - RPM stays off. The factory fan tables sit at 0x73-0x78 /
         //   0x8B-0x90, one byte past the shipped map (looks like the 1594-style shifted
         //   layout - unverified), so the curve wizard should run before the curve editor.
-        new() { Name = "MSI Stealth A16 AI+ A3XWHG",        FirmwarePrefixes = new[] { "15FLIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null) },
+        //   Tested via the hardware-checks path (issue #199): the numeric power test is
+        //   unreadable on this Strix Point platform - two runs ended 38% and 15% faster
+        //   than they started, with clean byte readbacks both times (TECHNICAL 60.6, the
+        //   STAPM write-up) - so the owner confirmed the checks in-game instead: Silent
+        //   noticeably quieter than Balanced under the same load, Extreme ramping the fans
+        //   clearly faster, and switching already proven stable by the two runs.
+        new() { Name = "MSI Stealth A16 AI+ A3XWHG",        FirmwarePrefixes = new[] { "15FLIMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "Sagajaz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/199" },
         new() { Name = "MSI Stealth A16 Mercedes AMG AI+ A3XWGG", FirmwarePrefixes = new[] { "15FMIBA1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI CreatorPro Z16HXStudio B13VJTO / B13VKTO", FirmwarePrefixes = new[] { "15G2EWS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B13M",                FirmwarePrefixes = new[] { "15H1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

@@ -32,6 +32,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Stealth A16 AI+ A3XWHG (`15FLIMS1`) promoted to tested** ([#199](../../issues/199),
+  thanks @Sagajaz) - promoted on the hardware checks: Silent noticeably quieter than
+  Balanced under the same in-game load, Extreme ramping the fans clearly faster, and
+  switching proven stable twice over with clean byte readbacks. The numeric power test is
+  unreadable on this Strix Point platform - its power budget follows chassis temperature
+  over minutes, slower than the test's phases - and the entry records that.
+  43 models tested.
 - **MSI Cyborg A15 AI B2HWGKG / B2HWEKG (`15QLIMS1`) promoted to tested** ([#198](../../issues/198),
   thanks @ondrapa150) - his power test ran with 0% drift and clean readbacks in every phase:
   CPU work and clocks identical across profiles under the combined CPU+GPU load, with Silent
