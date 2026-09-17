@@ -2367,6 +2367,35 @@ The load threads run at `BelowNormal` priority so the window keeps repainting. T
 in every phase and therefore cancels out of the comparison, which is the only property the ratio
 needs.
 
+### 60.6 Platforms the test cannot score: chassis-temperature power management (STAPM)
+
+Two runs on a Stealth A16 AI+ A3XWHG (`15FLIMS1`, Ryzen AI 9 HX 370 "Strix Point", issue #199)
+showed the same signature: the run ends much faster than it starts (38%, then 15% on a quiet
+machine), the phase measured in the *faster* stretch can still score below an earlier one
+(Extreme 19% under Balanced), and the CPU clock swings inside a single phase (3.0-3.5 GHz in
+one Balanced minute). The byte writes and readbacks were clean both times - the profiles switch
+fine; it is the *comparison* that cannot settle.
+
+The mechanism fits AMD's STAPM (Skin Temperature Aware Power Management): since 2014 the APU's
+power budget follows the **chassis** temperature, not just the die, and the OEM can move the
+limit across a wide band (28-54 W on this part). Chassis temperature - and the EC's fan ramp
+that chases it - changes over *minutes*, slower than the test's one-minute phases, so every
+phase inherits the thermal state of the previous one and the budget keeps being re-dealt
+mid-run; in the #199 runs the fans only reached full stride (72% duty) in the final phase.
+Classified as a working hypothesis for that specific machine, but the mechanism itself is
+documented: [AMD's HX 370 page](https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-9-hx-370.html)
+(configurable 28-54 W), [TechPowerUp on STAPM](https://www.techpowerup.com/318566/amd-to-fix-ryzen-8000g-desktop-apu-stapm-feature-via-motherboard-bios-updates),
+[RyzenAdj issue #309](https://github.com/FlyGoat/RyzenAdj/issues/309) (these controls on the
+HX 365/370). Note the graphics load is not optional (§60.5's `GpuLoad` is always attempted;
+"Graphics load: OFF" in a report means it failed to come up), so a CPU-only variant is not
+something a reporter can select.
+
+Operational consequence: on a Strix-Point-class machine, do not grind the reporter through
+repeats - two same-signature runs are enough to conclude the platform, not the run, is the
+problem. The hardware-checks path (Silent audibly/thermally quieter, Extreme ramps under load,
+switching stable - the last one usually already proven by the runs' clean readbacks) promotes
+the model instead, and the entry records that the numeric power test is unreadable there and why.
+
 ## 61. GPU telemetry without vendor software (v1.31)
 
 Status shows the discrete card's core clock next to that clock's ceiling ("GPU clock:
