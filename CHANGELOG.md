@@ -32,6 +32,15 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Cyborg A15 AI B2HWGKG / B2HWEKG (`15QLIMS1`) promoted to tested** ([#198](../../issues/198),
+  thanks @ondrapa150) - his power test ran with 0% drift and clean readbacks in every phase:
+  CPU work and clocks identical across profiles under the combined CPU+GPU load, with Silent
+  doing that same work measurably quieter (fan duty 58/88 vs 70/100) and 7 degrees cooler.
+  The eco recipe also drops the battery-limiter write - the machine rests in eco with the
+  limiter untouched, like the other AMD boards. 42 models tested.
+- **GE76 Raider 11U / 11UH (`17K3EMS1`): fan RPM readout enabled** ([#200](../../issues/200)) -
+  an owner's per-scenario dumps re-confirm the standard recipes with a real Silent column and
+  show both tachometers as live single-byte divisors at the sibling GE76 12UE's addresses.
 - **Stealth A16 AI+ A3XWHG (`15FLIMS1`): the Super Battery recipe no longer writes the
   battery-limiter register** ([#199](../../issues/199)) - an owner's per-scenario dumps
   show the vendor leaves `0xEB` at zero in every scenario on this AMD board, so the eco

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260921,
+  "dataVersion": 20260922,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -3439,7 +3439,7 @@
       "prefixes": [
         "15QLIMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3450,26 +3450,24 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "ondrapa150",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/198",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
+          "0xD4=0x1D"
         ],
         "Balanced": [
           "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "Extreme": [
           "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "SuperBattery": [
           "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
+          "0xD4=0x0D"
         ]
       }
     },
@@ -3972,6 +3970,8 @@
         "17K3EMS1"
       ],
       "tier": "Experimental",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",

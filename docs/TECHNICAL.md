@@ -398,6 +398,32 @@ Each profile is just a specific combination (verified by diffing full EC dumps o
 
 The key fact: **Silent and Balanced differ in `0x34`? No — they differ ONLY in `0xD4`** (`1D` vs `0D`). Every other byte, `0x34` included, is identical between them. This is central to the fan-curve story below.
 
+**Boards that never write `0xEB` (the no-limiter pattern — predominantly AMD).** On a growing
+set of boards, owner per-scenario dumps show `0xEB` at `0x00` in *every* scenario, Super Battery
+included: the vendor software runs eco as the mode byte (`0xD2=C2`) alone and never touches the
+battery-limiter register. On those boards the app's eco recipe is also the mode byte alone
+(`StdRecipes(0xD2, 0xD4, null)`) — we copy what the vendor writes, nothing more. Note that msi-ec
+usually still maps `0xEB` for these confs (the Linux driver exposes it as a control), so the
+register may well *work*; the point is that the machine has never seen the vendor set it, and the
+app does not introduce values a board has not seen. The pattern is nearly universal on AMD boards
+and has one Intel member so far:
+
+- AMD: `17KKIMS1` Alpha 17 (#151 — the case that established the correction: the entry briefly
+  shipped with `0xEB` and a per-scenario dump removed it the next day), `158PIMS1` Bravo 15 B7ED,
+  `17LNIMS1` Bravo 17, `158NIMS1` Bravo 15 C7V / Katana A15 AI, `15PLIMS1` Crosshair A16 HX,
+  `15MMIMS1` Vector A16 HX (#130), `182KIMS1` Raider A18 HX (#50), `182LIMS1` Vector/Raider A18 HX
+  (#54), `15FLIMS1` Stealth A16 AI+ (#199), `15QLIMS1` Cyborg A15 AI (#198 — the resting state
+  itself is eco `C2` with `0xEB=00`).
+- Intel: `1841EMS1` Crosshair 18 HX AI (#183).
+
+A related but distinct exception is `15M1IMS2` (Raider GE68 HX / Vector 16 HX A13V, #104):
+`0xEB` also unused, but its eco writes a non-standard shift value `0xC6` — see the model entry.
+
+Practical rule when a new per-scenario dump arrives: if the Super Battery column shows
+`0xEB=00`, the entry's eco recipe drops the limiter write; a single per-scenario dump is
+sufficient evidence for this *removal* (it makes the recipe write less, never more — the
+conservative direction), unlike adding a write to a new register, which needs stronger proof.
+
 Three shift values cover the four profiles, and on most boards that is the whole set. Some newer
 boards accept a **fourth** value in the same register, which their MSI Center build presents as a
 switch inside the top scenario rather than as a scenario of its own; see §60.

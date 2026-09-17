@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260921;
+    public const int DataVersion = 20260922;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -973,12 +973,22 @@ public static class Devices
         // Cyborg A15 AI B2HWGKG / B2HWEKG (15QLIMS1) - NEW prefix, absent from msi-ec;
         // registered from an owner's report (issue #198; name confirmed on msi.com:
         // Ryzen 9 270 + RTX 5070, and a B2HWEKG line with Ryzen 7 260 + RTX 5060). His
-        // read-only captures (his own script) show all four columns identical (0xD2=C2,
-        // fan 0D, 0xEB=00), i.e. the machine stayed in one state throughout - no
-        // per-scenario evidence yet, so StdRecipes ships as the family default and his
-        // power test settles both the recipes and promotion. Tachometers read 00 in
-        // every capture - RPM stays off.
-        new() { Name = "MSI Cyborg A15 AI B2HWGKG / B2HWEKG", FirmwarePrefixes = new[] { "15QLIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // read-only captures (his own script) showed all four columns identical (0xD2=C2,
+        // fan 0D, 0xEB=00) - the machine's resting state, which is the vendor's eco with
+        // the battery limiter untouched.
+        //   Tested via the same owner's power test (issue #198, firmware .704): 0% drift,
+        //   full sample counts, clean byte readbacks in all four phases - the recipes work
+        //   on the hardware. CPU work and clocks identical across profiles (2470 MHz flat,
+        //   graphics load on - the shared-budget pattern), and Silent measurably quiets
+        //   the machine at that unchanged work: fan duty 58/88 vs Balanced's 70/100 and
+        //   7 C cooler - the fan-side Silent criterion, the Stealth 16 AI+ verdict.
+        //   Extreme = Balanced under the combined load - recorded, not held against it.
+        //   0xEB dropped from the recipe: the machine rests in eco with 0xEB=00 (both his
+        //   capture set and the run's starting state), the no-0xEB pattern (TECHNICAL 17).
+        //   Tachometers read 00 in every capture - RPM stays off.
+        new() { Name = "MSI Cyborg A15 AI B2HWGKG / B2HWEKG", FirmwarePrefixes = new[] { "15QLIMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "ondrapa150", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/198" },
         // Cyborg 15 C13WEO (15T1EMS1, board MS-15T1) - NEW prefix, absent from msi-ec; added
         // from one owner's thorough report set (issues #173/#174/#175, i7-13620H + RTX 5050;
         // sold in some markets as "Cyborg 15 Max C13WEO"). His own read-only MSI_ACPI captures
@@ -1028,7 +1038,20 @@ public static class Devices
         new() { Name = "MSI Stealth GS66 12UE / 12UGS",     FirmwarePrefixes = new[] { "16V5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15 A13V",               FirmwarePrefixes = new[] { "16V6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GE76 Raider 10UG",              FirmwarePrefixes = new[] { "17K2EMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
-        new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // GE76 Raider 11U / 11UH (17K3EMS1) - owner per-scenario dump set (issue #200,
+        // MSI Center 2.0.48, firmware .115): all four vendor states present with a real
+        // Silent column (0xD4=1D) - the Extreme and Super Battery tiles were clicked in
+        // swapped order, so those two columns hold each other's state, but the data is
+        // complete and matches StdRecipes 1:1 (0xEB=0F in the eco state - this Intel board
+        // uses the limiter normally). Still Experimental until a power test or the three
+        // hardware checks.
+        //   RPM: both tachs live at 0xC9/0xCB as single-byte divisors (90-A9 = ~2830-3320
+        //   rpm, high bytes always 00) - readings sit above ~1870 rpm where the formats
+        //   coincide, so the format follows the sibling 17K4EMS1 (GE76 12UE, Tested,
+        //   single-byte). Owner asked to cross-check against HWiNFO64.
+        new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Alpha 17 C7VF / C7VG (17KKIMS1) - owner-verified (issues #152/#153, MSI Center 2.0.48,
