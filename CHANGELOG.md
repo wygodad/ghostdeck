@@ -32,6 +32,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **Stealth A16 AI+ A3XWHG (`15FLIMS1`): the Super Battery recipe no longer writes the
+  battery-limiter register** ([#199](../../issues/199)) - an owner's per-scenario dumps
+  show the vendor leaves `0xEB` at zero in every scenario on this AMD board, so the eco
+  recipe is the mode byte alone, matching the other AMD entries.
 - **MSI Crosshair 18 HX AI A2XW (`1841EMS1`) promoted to tested** ([#183](../../issues/183),
   [#197](../../issues/197), thanks @sw1n3flu80085) - the owner's complete CPU-only power
   test shows Silent at 63% of Balanced's work and 8 degrees cooler, Extreme at +14%, and

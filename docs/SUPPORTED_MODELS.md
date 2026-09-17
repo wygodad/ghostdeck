@@ -114,7 +114,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Stealth 17 Studio A13VI | `17P2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth 18 HX AI A2XW | `1833EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Stealth A16 AI+ A3XVFG / A3XVGG | `15FKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Stealth A16 AI+ A3XWHG | `15FLIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
+| MSI Stealth A16 AI+ A3XWHG | `15FLIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &mdash; | &mdash; |
 | MSI Stealth A16 Mercedes AMG AI+ A3XWGG | `15FMIBA1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth GS66 12UE / 12UGS | `16V5EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Stealth GS76 11UG | `17M1EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260920;
+    public const int DataVersion = 20260921;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -920,7 +920,21 @@ public static class Devices
         new() { Name = "MSI Stealth 16 AI Studio A1VFG",    FirmwarePrefixes = new[] { "15F4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI A2HWFG",          FirmwarePrefixes = new[] { "15F5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth A16 AI+ A3XVFG / A3XVGG", FirmwarePrefixes = new[] { "15FKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Stealth A16 AI+ A3XWHG",        FirmwarePrefixes = new[] { "15FLIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Stealth A16 AI+ A3XWHG (15FLIMS1) - owner per-scenario dump set (issue #199,
+        // MSI Center 2.0.48, firmware .103): four correctly switched columns, shift 0xD2
+        // C1/C1/C4/C2. 0xEB reads 00 in every column including Super Battery, so the eco
+        // recipe is the mode byte alone (the AMD pattern: Alpha 17, A18, Vector A16,
+        // Crosshair 18) - even though msi-ec maps 0xEB for this conf, the vendor does not
+        // touch it here. The vendor's Silent tile leaves the fan byte at 0x0D; our recipe
+        // keeps writing 0x1D, which msi-ec documents as this conf's Silent fan value
+        // (CONF_G2_10) - his power test will show what it does on the hardware.
+        //   Observations: 0xD6 reads 03 only under the vendor's Extreme (the #52
+        //   observation, thirteenth board); 0x34 reads 01 only in Extreme - the inverse of
+        //   the GE78 canon - and we do not write it here. Tachometers 0xC8-0xCB read 00 in
+        //   every capture - RPM stays off. The factory fan tables sit at 0x73-0x78 /
+        //   0x8B-0x90, one byte past the shipped map (looks like the 1594-style shifted
+        //   layout - unverified), so the curve wizard should run before the curve editor.
+        new() { Name = "MSI Stealth A16 AI+ A3XWHG",        FirmwarePrefixes = new[] { "15FLIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null) },
         new() { Name = "MSI Stealth A16 Mercedes AMG AI+ A3XWGG", FirmwarePrefixes = new[] { "15FMIBA1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI CreatorPro Z16HXStudio B13VJTO / B13VKTO", FirmwarePrefixes = new[] { "15G2EWS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B13M",                FirmwarePrefixes = new[] { "15H1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
