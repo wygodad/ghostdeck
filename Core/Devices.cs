@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260923;
+    public const int DataVersion = 20260924;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1215,10 +1215,17 @@ public static class Devices
         //   tables in the other scenarios (observation only; our curve writes are direct).
         //   RPM: joins the wide-tach carriers - 16-bit pairs 0xC8:0xC9 / 0xCA:0xCB, both
         //   proven at idle (01:12 = 274 = ~1745 rpm, high byte non-zero).
-        // Tier stays Experimental until a power test or the three hardware checks.
-        new() { Name = "MSI Stealth 18 HX AI A2XW",         FirmwarePrefixes = new[] { "1833EMS1" }, Tier = Tier.Experimental,
+        //   Tested via a second owner's clean power test (issue #202, an A2XW with the
+        //   RTX 5080, firmware .310, drift 4%): Silent is a deep real cap - 71% of
+        //   Balanced's work at duty 48/48 vs 56/56 and 17 C cooler - and Extreme measured
+        //   +5%, a modest jump right at the drift bar (recorded as such; the CPU sat at
+        //   89 C there). Switching stable with clean byte readbacks in all four phases.
+        //   Credit shared: the first owner built the entry (registration, verified curve,
+        //   the wide-tach discovery), the second delivered the deciding run.
+        new() { Name = "MSI Stealth 18 HX AI A2XW",         FirmwarePrefixes = new[] { "1833EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
-                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "funcompsition-hash, SorgZZ", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/180" },
 
         // Crosshair 18 HX AI A2XW (1841EMS1) - NEW prefix, absent from msi-ec; added from an
         // owner's per-scenario dump set (issue #183; name confirmed on msi.com, Ultra 9

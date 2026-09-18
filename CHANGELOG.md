@@ -32,6 +32,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Stealth 18 HX AI A2XW (`1833EMS1`) promoted to tested** ([#180](../../issues/180),
+  [#202](../../issues/202), thanks @funcompsition-hash and @SorgZZ) - the first owner built
+  the entry (registration, verified curve, the 16-bit tachometer discovery) and the second
+  delivered a clean power test four days later: 4% drift, Silent at 71% of Balanced's work
+  on slower fans and 17 degrees cooler, Extreme at +5%, stable switching with clean
+  readbacks throughout. 44 models tested.
 - **MSI Stealth A16 AI+ A3XWHG (`15FLIMS1`) promoted to tested** ([#199](../../issues/199),
   thanks @Sagajaz) - promoted on the hardware checks: Silent noticeably quieter than
   Balanced under the same in-game load, Extreme ramping the fans clearly faster, and
