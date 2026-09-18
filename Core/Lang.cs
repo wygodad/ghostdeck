@@ -732,21 +732,21 @@ public static class Lang
         m["st_hist_now"]    = new[] { "now", "teraz", "jetzt", "maintenant", "ahora", "现在", "agora", "сейчас", "現在", "지금", "現在", "şimdi", "hiện tại", "sekarang", "adesso" };
         m["ta_alert_text"]   = new[]
         {
-            "CPU {0}°C / GPU {1}°C: above {2}°C for {3} s",
-            "CPU {0}°C / GPU {1}°C: powyżej {2}°C przez {3} s",
-            "CPU {0}°C / GPU {1}°C: über {2}°C seit {3} s",
-            "CPU {0}°C / GPU {1}°C : au-dessus de {2}°C depuis {3} s",
-            "CPU {0}°C / GPU {1}°C: por encima de {2}°C durante {3} s",
-            "CPU {0}°C / GPU {1}°C：超过 {2}°C 已持续 {3} 秒",
-            "CPU {0}°C / GPU {1}°C: acima de {2}°C por {3} s",
-            "CPU {0}°C / GPU {1}°C: выше {2}°C в течение {3} с",
-            "CPU {0}°C / GPU {1}°C：{2}°C 超過が {3} 秒継続",
+            "CPU {0}°C / GPU {1}°C: above {2}°C for {3} s",
+            "CPU {0}°C / GPU {1}°C: powyżej {2}°C przez {3} s",
+            "CPU {0}°C / GPU {1}°C: über {2}°C seit {3} s",
+            "CPU {0}°C / GPU {1}°C : au-dessus de {2}°C depuis {3} s",
+            "CPU {0}°C / GPU {1}°C: por encima de {2}°C durante {3} s",
+            "CPU {0}°C / GPU {1}°C：超过 {2}°C 已持续 {3} 秒",
+            "CPU {0}°C / GPU {1}°C: acima de {2}°C por {3} s",
+            "CPU {0}°C / GPU {1}°C: выше {2}°C в течение {3} с",
+            "CPU {0}°C / GPU {1}°C：{2}°C 超過が {3} 秒継続",
             "CPU {0}°C / GPU {1}°C: {2}°C 초과 {3}초 지속",
-            "CPU {0}°C / GPU {1}°C：超過 {2}°C 已持續 {3} 秒",
-            "CPU {0}°C / GPU {1}°C: {3} sn boyunca {2}°C üzerinde",
-            "CPU {0}°C / GPU {1}°C: trên {2}°C trong {3} giây",
-            "CPU {0}°C / GPU {1}°C: di atas {2}°C selama {3} dtk",
-            "CPU {0}°C / GPU {1}°C: oltre {2}°C da {3} s"
+            "CPU {0}°C / GPU {1}°C：超過 {2}°C 已持續 {3} 秒",
+            "CPU {0}°C / GPU {1}°C: {3} sn boyunca {2}°C üzerinde",
+            "CPU {0}°C / GPU {1}°C: trên {2}°C trong {3} giây",
+            "CPU {0}°C / GPU {1}°C: di atas {2}°C selama {3} dtk",
+            "CPU {0}°C / GPU {1}°C: oltre {2}°C da {3} s"
         };
 
         // ---- panic reset hotkey ----

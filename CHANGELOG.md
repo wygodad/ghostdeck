@@ -5,6 +5,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Fixed
+- **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured
+  the message's line count at a width 2 px wider than the width it was drawn at, so a
+  message could wrap into one more line than the window had grown for, and that line sat
+  cut off against the edge. Measured and drawn widths now match exactly. The temperature
+  alert also keeps the duration and its unit together ("10 s" no longer splits across
+  lines) in every language.
 - **Long toast messages no longer stretch across the whole screen** - the on-screen toast
   (profile switches, the temperature alert, the "charge limit changed outside the app"
   notice and every other message) sized itself to fit the longest line in one line, so a
@@ -32,6 +38,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **Toast titles now say "GhostDeck" instead of "MSI"** - every on-screen toast
+  ("GhostDeck · SILENT", "GhostDeck · High temperature", ...) is branded as the app that
+  actually shows it. "MSI" remains in the texts only where it describes the hardware.
 - **MSI Stealth 18 HX AI A2XW (`1833EMS1`) promoted to tested** ([#180](../../issues/180),
   [#202](../../issues/202), thanks @funcompsition-hash and @SorgZZ) - the first owner built
   the entry (registration, verified curve, the 16-bit tachometer discovery) and the second

@@ -86,10 +86,12 @@ public sealed class OsdForm : Form
             int textW = Math.Min(Math.Max(titleW, subW), maxTextW);
             int w = Math.Max(440, textW + TitleX + RightMargin);
 
-            // Wysokosci zmierzone przy finalnej szerokosci zawijania.
-            int wrapW = w - TitleX - RightMargin;
-            int titleH = (int)Math.Ceiling(g.MeasureString(title, tF, wrapW).Height);
-            int subH = (int)Math.Ceiling(g.MeasureString(sub, sF, wrapW).Height);
+            // Wysokosci zmierzone przy DOKLADNIE tych szerokosciach, przy ktorych OnPaint
+            // rysuje (tytul od TitleX, podtytul od SubX) - kazda rozbieznosc potrafi dac
+            // przy rysowaniu jedna linie wiecej, niz zmierzono, i ta linia wypada uciata
+            // przy dolnej krawedzi.
+            int titleH = (int)Math.Ceiling(g.MeasureString(title, tF, w - TitleX - RightMargin).Height);
+            int subH = (int)Math.Ceiling(g.MeasureString(sub, sF, w - SubX - RightMargin).Height);
             _subY = 14 + Math.Max(44, titleH + 2);          // jedna linia tytulu = dzisiejsze y=58
             int h = Math.Max(104, _subY + subH + 21);        // jedna linia podtytulu = dzisiejsze 104
 
