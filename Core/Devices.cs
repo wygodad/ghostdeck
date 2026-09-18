@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260924;
+    public const int DataVersion = 20260925;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1046,7 +1046,11 @@ public static class Devices
         new() { Name = "MSI Stealth GS66 12UE / 12UGS",     FirmwarePrefixes = new[] { "16V5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15 A13V",               FirmwarePrefixes = new[] { "16V6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GE76 Raider 10UG",              FirmwarePrefixes = new[] { "17K2EMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
-        // GE76 Raider 11U / 11UH (17K3EMS1) - owner per-scenario dump set (issue #200,
+        // GE76 Raider 11U / 11UH / GP76 Leopard 11UG (17K3EMS1) - the reporter's machine is
+        // a GP76 Leopard 11UG (issue #200 follow-up; name confirmed on msi.com, and its
+        // product code 9S7-17K3xx carries the same MS-17K3 board id) - the GE76/GP76 twin
+        // lines share the board, the GE66/GP66 pattern.
+        // Owner per-scenario dump set (issue #200,
         // MSI Center 2.0.48, firmware .115): all four vendor states present with a real
         // Silent column (0xD4=1D) - the Extreme and Super Battery tiles were clicked in
         // swapped order, so those two columns hold each other's state, but the data is
@@ -1057,7 +1061,14 @@ public static class Devices
         //   rpm, high bytes always 00) - readings sit above ~1870 rpm where the formats
         //   coincide, so the format follows the sibling 17K4EMS1 (GE76 12UE, Tested,
         //   single-byte). Owner asked to cross-check against HWiNFO64.
-        new() { Name = "MSI GE76 Raider 11U / 11UH",        FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental,
+        //   His power test (#200, 2026-09-18) could not be scored (its own drift check read
+        //   273%): the CPU sat pinned near 800 MHz through the Silent and Balanced phases
+        //   and left that state during Extreme - the repeat Balanced, same bytes, then ran
+        //   at 2.5 GHz, so whatever held it down was not the profile bytes (hypothesis: a
+        //   low-power state the Extreme phase shook loose; a repeat after a reboot will
+        //   tell). The run's live RPM readings (2800-5100 rpm, rising per phase) are the
+        //   first on-hardware validation of the single-byte readout on this board.
+        new() { Name = "MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG", FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)

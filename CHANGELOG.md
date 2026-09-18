@@ -60,9 +60,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   doing that same work measurably quieter (fan duty 58/88 vs 70/100) and 7 degrees cooler.
   The eco recipe also drops the battery-limiter write - the machine rests in eco with the
   limiter untouched, like the other AMD boards. 42 models tested.
-- **GE76 Raider 11U / 11UH (`17K3EMS1`): fan RPM readout enabled** ([#200](../../issues/200)) -
-  an owner's per-scenario dumps re-confirm the standard recipes with a real Silent column and
-  show both tachometers as live single-byte divisors at the sibling GE76 12UE's addresses.
+- **GE76 Raider 11U / 11UH board (`17K3EMS1`) gains a third retail name: GP76 Leopard 11UG,
+  and fan RPM readout** ([#200](../../issues/200)) - an owner's per-scenario dumps re-confirm
+  the standard recipes with a real Silent column and show both tachometers as live
+  single-byte divisors at the sibling GE76 12UE's addresses; his machine is a GP76 Leopard
+  11UG on the same MS-17K3 board, so the entry carries that name too - the GE76/GP76 twin
+  lines, like the GE66/GP66 before them.
 - **Stealth A16 AI+ A3XWHG (`15FLIMS1`): the Super Battery recipe no longer writes the
   battery-limiter register** ([#199](../../issues/199)) - an owner's per-scenario dumps
   show the vendor leaves `0xEB` at zero in every scenario on this AMD board, so the eco

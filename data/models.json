@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260924,
+  "dataVersion": 20260925,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -3967,7 +3967,7 @@
       }
     },
     {
-      "name": "MSI GE76 Raider 11U / 11UH",
+      "name": "MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG",
       "prefixes": [
         "17K3EMS1"
       ],

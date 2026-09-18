@@ -71,7 +71,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Cyborg 14 A13VF | `14P1IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Cyborg 15 AI A1VFK | `15K2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Cyborg 15 C13WEO | `15T1EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
-| MSI GE76 Raider 11U / 11UH | `17K3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
+| MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG | `17K3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI GS66 Stealth 11UE / 11UG | `16V4EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Katana 15 B12VEK / B12VFK / B12VGK / B12UDXK | `1585EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Katana 17 B12UCXK / B12VGK | `17L5EMS2` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &mdash; |
