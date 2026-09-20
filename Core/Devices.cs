@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260925;
+    public const int DataVersion = 20260926;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1055,22 +1055,20 @@ public static class Devices
         // Silent column (0xD4=1D) - the Extreme and Super Battery tiles were clicked in
         // swapped order, so those two columns hold each other's state, but the data is
         // complete and matches StdRecipes 1:1 (0xEB=0F in the eco state - this Intel board
-        // uses the limiter normally). Still Experimental until a power test or the three
-        // hardware checks.
-        //   RPM: both tachs live at 0xC9/0xCB as single-byte divisors (90-A9 = ~2830-3320
-        //   rpm, high bytes always 00) - readings sit above ~1870 rpm where the formats
-        //   coincide, so the format follows the sibling 17K4EMS1 (GE76 12UE, Tested,
-        //   single-byte). Owner asked to cross-check against HWiNFO64.
-        //   His power test (#200, 2026-09-18) could not be scored (its own drift check read
-        //   273%): the CPU sat pinned near 800 MHz through the Silent and Balanced phases
-        //   and left that state during Extreme - the repeat Balanced, same bytes, then ran
-        //   at 2.5 GHz, so whatever held it down was not the profile bytes (hypothesis: a
-        //   low-power state the Extreme phase shook loose; a repeat after a reboot will
-        //   tell). The run's live RPM readings (2800-5100 rpm, rising per phase) are the
-        //   first on-hardware validation of the single-byte readout on this board.
-        new() { Name = "MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG", FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Experimental,
+        // uses the limiter normally).
+        //   Tested via the same owner's power test (issue #200, 2026-09-20): baseline
+        //   drift 1%, Silent at 91% of Balanced's work on far slower fans (~2800 rpm on
+        //   both against 3571/3874), Extreme +14% (4756/5108 rpm). CPU sat at 94 C in
+        //   every phase - a hot chassis, but no thermal cutoff. Switching stable with
+        //   clean byte readbacks in all four phases.
+        //   RPM: both tachs live at 0xC9/0xCB as single-byte divisors, format shared with
+        //   the sibling 17K4EMS1 (GE76 12UE, Tested). Hardware-confirmed: the owner's
+        //   per-profile HWiNFO64 readings (~2800 Silent, ~3400/3800 Balanced, ~4780 CPU
+        //   in Extreme) line up with the app's readout from the same profiles.
+        new() { Name = "MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG", FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "ezn24", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/200" },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Alpha 17 C7VF / C7VG (17KKIMS1) - owner-verified (issues #152/#153, MSI Center 2.0.48,

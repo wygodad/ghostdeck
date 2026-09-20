@@ -38,6 +38,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG (`17K3EMS1`) promoted to tested**
+  ([#200](../../issues/200), thanks @ezn24) - a clean power test: 1% drift, Silent at 91%
+  of Balanced's work on far slower fans (~2800 rpm against 3571/3874), Extreme at +14%,
+  stable switching with clean byte readbacks in all four phases. His per-profile HWiNFO64
+  readings match the app's fan readout, so the RPM addresses are hardware-confirmed.
+  45 models tested.
 - **Toast titles now say "GhostDeck" instead of "MSI"** - every on-screen toast
   ("GhostDeck · SILENT", "GhostDeck · High temperature", ...) is branded as the app that
   actually shows it. "MSI" remains in the texts only where it describes the hardware.
