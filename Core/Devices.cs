@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260926;
+    public const int DataVersion = 20260927;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1266,8 +1266,11 @@ public static class Devices
         //   applies unchanged. C5 is the extra value, recorded in FourthMode.
         //   Fan curve VERIFIED: the wizard found the MSI Center test curve byte-for-byte at 0x72 (CPU:
         //   19 23 2D 37 41 4B) and 0x8A (GPU: 14 1E 28 32 3C 46) - the shipped ModernCurve addresses.
-        //   RPM: 0xC9/0xCB read C6 / E2 (~2400 / ~2100 RPM at 478000/raw) in the capture where the fans
-        //   were spinning, and 00 / 00 in the idle captures - live tachs at the family addresses.
+        //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB (#205). Every earlier reading sat
+        //   above ~1870 rpm, where the raw divisor fits in one byte and the two formats coincide
+        //   (high bytes 00); an idle Status screenshot settled the format - "7353 rpm" at 20%
+        //   fan duty is the low byte alone (0x41 = 65), i.e. the pair 01:41 = 321 = ~1489 rpm.
+        //   Owner asked to cross-check against HWiNFO64 once the 16-bit readout ships.
         //   Tested via a second owner (issues #185-#189, a Stealth 16 AI+ B3WH - name confirmed
         //   on msi.com, hence the second name): his snapshot shows the real Silent fan byte
         //   0x1D (MSI Center 2.0.48), and his clean power test (#189, 0% drift) measures
@@ -1280,7 +1283,7 @@ public static class Devices
         //   value, the Vector 16 HX AI verdict. His curve capture re-confirms both tables
         //   (GPU slider 4 stored as 49 for a requested 50 - a snap, not a mismatch).
         new() { Name = "MSI Stealth 16 AI+ B3WI / B3WH", FirmwarePrefixes = new[] { "2631EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
                 Credit = "SteppinStone, AiM-lab-owl", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/66" },
 

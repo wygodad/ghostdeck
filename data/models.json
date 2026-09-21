@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260926,
+  "dataVersion": 20260927,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -4892,8 +4892,8 @@
         "2631EMS1"
       ],
       "tier": "Tested",
-      "cpuRpmAddr": "0xC9",
-      "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",

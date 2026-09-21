@@ -48,7 +48,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Raider GE78 HX 14VHG | `17S1IMS2` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Raider GE78HX 13V / Vector 17 HX A14V | `17S1IMS1`, `17S2IMS2` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Stealth 14 Studio A13VF | `14K1EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Stealth 16 AI+ B3WI / B3WH | `2631EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Stealth 16 AI+ B3WI / B3WH | `2631EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Stealth 18 HX AI A2XW | `1833EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Stealth A16 AI+ A3XWHG | `15FLIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
 | MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U | `14F1EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |

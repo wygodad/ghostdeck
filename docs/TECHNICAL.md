@@ -353,7 +353,9 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   (CPU pair only - single fan, #174), `1545IMS1` (#164), `1833EMS1` (#180), `1841EMS1`
   (#183), `1585EMS2` (#184, on the sibling 1585EMS1's evidence), `17T3EMS1` (#196 - the
   power-test dumps all sat in the coinciding zone; the curve capture caught the GPU fan at
-  ~1757 rpm with a non-zero high byte). Detection caveat: above ~1870 RPM the
+  ~1757 rpm with a non-zero high byte), `2631EMS1` (#205 - every capture sat in the coinciding
+  zone; an idle Status screenshot settled it, showing "7353 rpm" at 20% fan duty, i.e. the low
+  byte `0x41` of the pair `01:41` = 321 = ~1489 rpm). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed

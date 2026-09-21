@@ -38,6 +38,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Stealth 16 AI+ B3WI / B3WH (`2631EMS1`): fan RPM switched to the 16-bit tachometer
+  pairs** ([#205](../../issues/205), thanks @AiM-lab-owl) - the board reports fan speed as a
+  two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`; every earlier capture sat above
+  ~1870 rpm, where the two formats read identically, and an idle Status screenshot settled
+  it (a "7353 rpm" reading at 20% fan duty is the pair's low byte alone - the real value is
+  ~1489 rpm). Until the next release the app shows no RPM on this model rather than
+  misreading half of the pair; the 16-bit readout ships with the next release.
 - **MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG (`17K3EMS1`) promoted to tested**
   ([#200](../../issues/200), thanks @ezn24) - a clean power test: 1% drift, Silent at 91%
   of Balanced's work on far slower fans (~2800 rpm against 3571/3874), Extreme at +14%,
