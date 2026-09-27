@@ -48,6 +48,7 @@ public sealed class TrayContext : ApplicationContext
     private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
+    private bool _fwDialogShown;               // the guard dialog opens at most once per run
     private bool _coolerBoost;                 // Cooler Boost (max fans) currently on
     private byte? _fanBeforeBoost;             // fan-mode byte captured before boost, restored on off
     private DateTime? _tempOverSince;          // when CPU/GPU first crossed the thermal-alert threshold
@@ -170,7 +171,7 @@ public sealed class TrayContext : ApplicationContext
         _poll.Start();
 
         ShowState();
-        if (_firmwareChanged) ShowFirmwareWarning();
+        if (_firmwareChanged) ShowFirmwareDialog();
         if (travelEnded != null)
         {
             _balloonUrl = null;
@@ -445,11 +446,35 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
-    private void ShowFirmwareWarning()
+    // The guard used to announce itself only through a 9-second tray balloon; whoever missed it
+    // had no pointer to the tray item and re-enabled everything by hand every boot (#212). The
+    // dialog carries the explanation, the versions and the unblock button; "Later" keeps the
+    // tray-menu path. Shown via a one-shot timer so it opens once the message loop is running.
+    private void ShowFirmwareDialog()
     {
-        _tray.BalloonTipTitle = Lang.T("fw_changed_title");
-        _tray.BalloonTipText = Lang.T("fw_changed_text");
-        _tray.ShowBalloonTip(9000);
+        if (_fwDialogShown) return;
+        _fwDialogShown = true;
+        var t = new System.Windows.Forms.Timer { Interval = 1500 };
+        t.Tick += (_, _) =>
+        {
+            t.Stop();
+            t.Dispose();
+            if (!_firmwareChanged) return;   // acknowledged from the tray in the meantime
+            var ack = new TaskDialogButton(Lang.T("fw_dlg_ack"));
+            var later = new TaskDialogButton(Lang.T("fw_dlg_later"));
+            var page = new TaskDialogPage
+            {
+                Caption = "GhostDeck",
+                Heading = Lang.T("fw_changed_title"),
+                Text = string.Format(Lang.T("fw_dlg_text"), _settings.LastFirmware, _firmware),
+                Icon = TaskDialogIcon.Warning,
+                Buttons = { ack, later },
+                DefaultButton = later,   // the safe choice stays one Enter away
+                AllowCancel = true,
+            };
+            if (TaskDialog.ShowDialog(page) == ack) AcknowledgeFirmware();
+        };
+        t.Start();
     }
 
     private void AcknowledgeFirmware()
@@ -530,11 +555,11 @@ public sealed class TrayContext : ApplicationContext
             {
                 DisarmProbeRetry();
                 _firmware = probe.Firmware;
-                // detect BEFORE the rebuild: the acknowledge menu item and the warning balloon
+                // detect BEFORE the rebuild: the acknowledge menu item and the guard dialog
                 // only exist when the flag is set by the time BuildMenu runs
                 DetectFirmwareChange();
                 RedetectFromFirmware();
-                if (_firmwareChanged) ShowFirmwareWarning();
+                if (_firmwareChanged) ShowFirmwareDialog();
                 if (AutoWritable) TryApplyChargeLimit();
                 // deliberately minimal beyond this point: profile restore / schedules catch up
                 // through the normal Poll cadence rather than replaying the ctor chain here

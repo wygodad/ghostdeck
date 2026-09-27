@@ -19,6 +19,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **The firmware guard now explains itself in a dialog** ([#212](../../issues/212), thanks
+  @Acoustichayes) - when the EC firmware version changes (usually a BIOS update), the app
+  pauses automatic writes until the owner confirms the machine still behaves. That state
+  used to announce itself only through a 9-second tray balloon; whoever missed it had to
+  re-enable the fan curve by hand after every boot without knowing why. Now a dialog opens
+  at startup with the old and new version, a list of what is paused, and a "Restore
+  automatic writes" button; "Later" keeps the existing tray-menu entry as the fallback
+  path.
 - **Startup profile** ([discussion #178](../../discussions/178)) - next to "Restore profile
   after wake / at startup" the Power settings gain a "Startup profile" picker: "Last used"
   (the previous behaviour) or one fixed profile that is applied at every app start, regardless
