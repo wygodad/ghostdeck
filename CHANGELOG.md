@@ -46,6 +46,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Vector 16 HX AI / Raider 16 HX AI: unit spread recorded** ([#215](../../issues/215),
+  thanks @STRIEH) - the cleanest run this board has had (1% drift, an RTX 5080 unit) is the
+  first where Silent measurably caps power (82% of Balanced's work on far slower fans);
+  earlier units measured 97-99%, so the behaviour varies between units and configurations.
+  Recipes unchanged; the C5 value was accepted and cleanly reverted once again.
 - **MSI Stealth 16 Studio A13VG (`15F2EMS1`) promoted to tested** ([#206](../../issues/206),
   thanks @sevi-05) - his per-scenario capture matches the standard recipes 1:1 with a real
   Silent column, and he confirmed all three hardware checks (Silent quieter, Extreme ramps,

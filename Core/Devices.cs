@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260928;
+    public const int DataVersion = 20260929;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -674,10 +674,19 @@ public static class Devices
         //   0/48/60/70/82/93 (+ hidden 112 %) - exactly the values behind the app's
         //   "MSI default" button. The 38-86 set posted in #137 appears in no dump (it reads
         //   like the vendor editor's starting template, kept in that thread for reference).
+        //   Unit spread (issues #213-#215, firmware .113, an RTX 5080 unit, the cleanest run
+        //   this board has had - 1% drift): the FIRST unit where Silent measurably caps power,
+        //   82% of Balanced's work on far slower fans (3491/3549 vs 4671/4907 rpm, 68 vs
+        //   84 C), where earlier units measured 97-99% - the behaviour varies between units/
+        //   configurations, both readings look valid. His Extreme ran the CPU slightly below
+        //   Balanced (93%) while the GPU got more (112% vs 98% load) - the shared-budget
+        //   behaviour again. C5 accepted and cleanly reverted once more (97%, still level
+        //   with the turbo value) - the Extreme recipe stays on C4. His snapshot and curve
+        //   capture re-confirm the recipes and both tables 1:1 on .113.
         new() { Name = "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
