@@ -46,6 +46,15 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Stealth 16 Studio A13VG (`15F2EMS1`) promoted to tested** ([#206](../../issues/206),
+  thanks @sevi-05) - his per-scenario capture matches the standard recipes 1:1 with a real
+  Silent column, and he confirmed all three hardware checks (Silent quieter, Extreme ramps,
+  switching stable). 46 models tested.
+- **MSI Stealth GS66 12UE / 12UGS (`16V5EMS1`): fan curve verified** ([#209](../../issues/209),
+  thanks @Themazin) - his test curve sits byte-for-byte at the shipped table addresses on
+  both fans, so the curve editor loses its "unverified" warning on this model. His capture
+  (#208) also re-confirms every profile recipe 1:1, eco included; the model itself stays
+  experimental until a readable power test (#210).
 - **MSI Stealth 16 AI+ B3WI / B3WH (`2631EMS1`): fan RPM switched to the 16-bit tachometer
   pairs** ([#205](../../issues/205), thanks @AiM-lab-owl) - the board reports fan speed as a
   two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`; every earlier capture sat above

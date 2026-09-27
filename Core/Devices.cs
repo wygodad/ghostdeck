@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260927;
+    public const int DataVersion = 20260928;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -677,7 +677,7 @@ public static class Devices
         new() { Name = "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
@@ -915,7 +915,18 @@ public static class Devices
         new() { Name = "MSI Prestige 16 AI Evo B1MG",       FirmwarePrefixes = new[] { "15A1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI+ Evo B2VMG",     FirmwarePrefixes = new[] { "15A3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M B12UE",             FirmwarePrefixes = new[] { "15B1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Stealth 16 Studio A13VG",       FirmwarePrefixes = new[] { "15F2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Stealth 16 Studio A13VG (15F2EMS1) - owner-verified via the form path (issue #206,
+        // MSI Center 2.0.48, firmware .109): the capture matches StdRecipes 1:1 with a real
+        // Silent column (0xD4=1D) in Silent / Balanced / Extreme, and the owner confirmed all
+        // three hardware checks. The Super Battery column repeats the Extreme state (that tile
+        // was not clicked), so the eco recipe rides on the family standard, unconfirmed by a
+        // capture. 0xD6 sits at 03 under the vendor's Extreme and 05 elsewhere (the #52
+        // self-setting observation, 14th board). RPM: 0xC9/0xCB moved per scenario but every
+        // reading sat above ~1870 rpm where the single-byte and 16-bit formats coincide
+        // (TECHNICAL 16) - left off until an idle reading classifies the format.
+        new() { Name = "MSI Stealth 16 Studio A13VG",       FirmwarePrefixes = new[] { "15F2EMS1" }, Tier = Tier.Tested,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "sevi-05", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/206" },
         new() { Name = "MSI Stealth 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI Studio A1VFG",    FirmwarePrefixes = new[] { "15F4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI A2HWFG",          FirmwarePrefixes = new[] { "15F5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -1043,7 +1054,19 @@ public static class Devices
         new() { Name = "MSI Prestige 15 A12SC / A12UC",     FirmwarePrefixes = new[] { "16S8EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GS66 Stealth 11UE / 11UG",      FirmwarePrefixes = new[] { "16V4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator 15 A11UE",              FirmwarePrefixes = new[] { "16V4EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Stealth GS66 12UE / 12UGS",     FirmwarePrefixes = new[] { "16V5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Stealth GS66 12UE / 12UGS (16V5EMS1) - owner per-scenario capture (issue #208, MSI
+        // Center 2.0.48, firmware .107, a 12UGS unit) matches StdRecipes 1:1 in all four
+        // scenarios, real Silent column (0xD4=1D) and eco 0xEB=0F included. Curve VERIFIED
+        // (#209): his test curve sits byte-for-byte at the shipped 0x72/0x8A on both fans.
+        // Still Experimental: his power test (#210) could not be scored (19% baseline drift;
+        // its Extreme phase ran at 1.8 GHz and 68 C - the coolest and slowest phase at once,
+        // hypothesis: the budget shifts to the GPU under a combined load, unverified) - a
+        // readable run or the remaining two hardware checks promote it. RPM: 0xC9/0xCB moved
+        // per scenario but all readings sat in the coinciding zone above ~1870 rpm
+        // (TECHNICAL 16) - left off until an idle reading classifies the format.
+        new() { Name = "MSI Stealth GS66 12UE / 12UGS",     FirmwarePrefixes = new[] { "16V5EMS1" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Themazin", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/208" },
         new() { Name = "MSI Stealth 15 A13V",               FirmwarePrefixes = new[] { "16V6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GE76 Raider 10UG",              FirmwarePrefixes = new[] { "17K2EMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         // GE76 Raider 11U / 11UH / GP76 Leopard 11UG (17K3EMS1) - the reporter's machine is
