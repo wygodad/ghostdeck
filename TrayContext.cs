@@ -460,19 +460,11 @@ public sealed class TrayContext : ApplicationContext
             t.Stop();
             t.Dispose();
             if (!_firmwareChanged) return;   // acknowledged from the tray in the meantime
-            var ack = new TaskDialogButton(Lang.T("fw_dlg_ack"));
-            var later = new TaskDialogButton(Lang.T("fw_dlg_later"));
-            var page = new TaskDialogPage
-            {
-                Caption = "GhostDeck",
-                Heading = Lang.T("fw_changed_title"),
-                Text = string.Format(Lang.T("fw_dlg_text"), _settings.LastFirmware, _firmware),
-                Icon = TaskDialogIcon.Warning,
-                Buttons = { ack, later },
-                DefaultButton = later,   // the safe choice stays one Enter away
-                AllowCancel = true,
-            };
-            if (TaskDialog.ShowDialog(page) == ack) AcknowledgeFirmware();
+            var dlg = new FirmwareGuardForm(
+                string.Format(Lang.T("fw_dlg_text"), _settings.LastFirmware, _firmware),
+                AcknowledgeFirmware);
+            dlg.Show();
+            dlg.Activate();
         };
         t.Start();
     }
