@@ -226,10 +226,11 @@ public sealed class FirmwareGuardForm : Form
         g.DrawString("Ghost", wordF, whiteB, wx, wy);
         float ghostW = g.MeasureString("Ghost", wordF, PointF.Empty, StringFormat.GenericTypographic).Width;
         g.DrawString("Deck", wordF, cyanB, wx + ghostW + 1 * k, wy);
+        int xs = Ce(20 * k);                         // ✕ size, reserved right of the scan tag
         using (var scanB = new SolidBrush(Color.FromArgb(200, Amber)))
         {
             var sz = g.MeasureString("//FIRMWARE-GUARD", scanF);
-            g.DrawString("//FIRMWARE-GUARD", scanF, scanB, cx + cw - sz.Width, yHdr + (hHdr - sz.Height) / 2f);
+            g.DrawString("//FIRMWARE-GUARD", scanF, scanB, cx + cw - sz.Width - xs - 8 * k, yHdr + (hHdr - sz.Height) / 2f);
         }
 
         // ---- heading + body ----
@@ -262,7 +263,6 @@ public sealed class FirmwareGuardForm : Form
         Button(1, xLater, wLater, laterTxt, accent: false);
 
         // small ✕ top-right (= Later)
-        int xs = Ce(20 * k);
         var xr = new Rectangle(W - xs - Ce(10 * k), yHdr + (hHdr - xs) / 2, xs, xs);
         _btn[2] = new Rectangle(xr.X + pad, xr.Y + pad, xr.Width, xr.Height);
         using (var xp = new Pen(_hotBtn == 2 ? White : Muted, Math.Max(1.2f, 1.5f * k)) { StartCap = LineCap.Round, EndCap = LineCap.Round })
