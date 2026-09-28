@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260930;
+    public const int DataVersion = 20261001;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1348,6 +1348,21 @@ public static class Devices
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
                 Credit = "SteppinStone, AiM-lab-owl", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/66" },
+
+        // Raider 16 Max HX B2WJ (2651EMS1) - NEW prefix, absent from msi-ec; added from an
+        // owner's per-scenario capture (issue #221, MSI Center 2.0.71, firmware .111; retail
+        // name confirmed - the B2WJ line ships Core Ultra 9 275HX + RTX 50). His capture
+        // confirms Balanced C1, Extreme C4 and eco C2 + 0xEB=0F; the "Silent" column holds
+        // the Super Battery byte set (on MSI Center 2.0.7x the tile named Silent writes the
+        // eco state), so the real Silent fan byte 0x1D is the family assumption - his power
+        // test's readbacks will verify it (the Cyborg 15 C13WEO pattern, #174).
+        //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB, proven directly from his IDLE
+        //   capture - high bytes non-zero (01:39 / 01:37 = ~1530 / ~1540 rpm), the reading
+        //   the TECHNICAL 16 rule asks for. Eleventh carrier; readout ships with the next
+        //   release. 0xCC/0xCD also move per scenario - observation only, nothing written.
+        new() { Name = "MSI Raider 16 Max HX B2WJ",         FirmwarePrefixes = new[] { "2651EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 
         // G1 family (shift 0xF2 / fan 0xF4 / charge 0xEF) — older boards; super-batt addr unknown (null) unless noted.
         new() { Name = "MSI Prestige 14 A10SC", FirmwarePrefixes = new[] { "14C1EMS1" }, Tier = Tier.Experimental,

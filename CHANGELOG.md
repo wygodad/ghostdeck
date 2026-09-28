@@ -19,6 +19,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **New model: MSI Raider 16 Max HX B2WJ (`2651EMS1`), experimental, 16-bit tachometers**
+  ([#221](../../issues/221), thanks @Giperzvuk) - a brand-new firmware prefix, absent even
+  from msi-ec, registered from an owner's per-scenario capture: Balanced, Extreme and the
+  eco state confirmed 1:1 with the family standard. His idle capture also proves the
+  16-bit fan-tachometer pairs directly (non-zero high bytes at ~1530 rpm), so live RPM
+  arrives with the next release. Recognition grows to 155 firmware ids.
 - **The firmware guard now explains itself in a dialog** ([#212](../../issues/212), thanks
   @Acoustichayes) - when the EC firmware version changes (usually a BIOS update), the app
   pauses automatic writes until the owner confirms the machine still behaves. That state
