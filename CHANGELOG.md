@@ -46,6 +46,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Modern 14 B11MOU (`14D3EMS1`): the Extreme recipe now writes the vendor's value**
+  ([#170](../../issues/170), thanks @userman21-d) - two independent captures from the
+  owner's machine show MSI Center Pro writing shift `0xD2 = C0` for its high-performance
+  tile, not the family's `C4`, so the entry now writes and recognises `C0` as Extreme.
+  The other profiles stay the family standard.
+- **MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG (`17K3EMS1`): fan curve verified**
+  ([#219](../../issues/219), thanks @ezn24) - his test curve sits byte-for-byte at the
+  shipped table addresses on both fans, completing the entry after the #200 promotion.
+- **`17L3EMS1` gains a second retail name: Katana GF76 12UE** ([#217](../../issues/217),
+  thanks @knyaz-ostrov) - the Crosshair 17 B12 and the Katana GF76 12UE share the MS-17L3
+  board; his capture also re-confirms every profile recipe 1:1, real Silent included.
 - **MSI Vector 16 HX AI / Raider 16 HX AI: unit spread recorded** ([#215](../../issues/215),
   thanks @STRIEH) - the cleanest run this board has had (1% drift, an RTX 5080 unit) is the
   first where Silent measurably caps power (82% of Balanced's work on far slower fans);

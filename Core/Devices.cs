@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20260929;
+    public const int DataVersion = 20260930;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -401,7 +401,7 @@ public static class Devices
         // EB=0F), byte-identical to this recipe's Super Battery; Balanced/Extreme match 1:1.
         new() { Name = "MSI Cyborg 15 A12VF / A13VF", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "hengeleng10-tech, M-Essa11", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
+                Credit = "hengeleng10-tech, M-Essa11, qq588849", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
 
         // Thin GF63 12VE (16R8IMS1) — owner per-scenario dump (issue #21) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
@@ -723,7 +723,24 @@ public static class Devices
         new() { Name = "MSI Prestige 14 A11SCX",            FirmwarePrefixes = new[] { "14C4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 Evo A12M",          FirmwarePrefixes = new[] { "14C6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 B11M",                FirmwarePrefixes = new[] { "14D2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Modern 14 B11MOU",              FirmwarePrefixes = new[] { "14D3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Modern 14 B11MOU (14D3EMS1) - the vendor's high-performance tile writes shift
+        // 0xD2 = C0, not the family's C4: two independent per-scenario captures from the
+        // owner's machine agree (issue #170, MSI Center Pro 2.1.42, firmware .116 - the Pro
+        // lineup there carries a real Silent tile, 0xD4=1D). The recipe mirrors the vendor
+        // (C0), and ShiftTurboValue makes detection report C0 as Extreme. The other three
+        // profiles are the family standard, eco C2 + 0xEB=0F included; 0xEB additionally
+        // holds a vendor flag in bit 7 on this board (80/8F), which the masked 0xEB write
+        // preserves. His power test could not be scored (20% baseline drift) - promotion
+        // awaits a readable run.
+        new() { Name = "MSI Modern 14 B11MOU",              FirmwarePrefixes = new[] { "14D3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve,
+                ShiftTurboValue = 0xC0,
+                Recipes = new()
+                {
+                    [ProfileId.Silent]       = new (byte, byte)[] { (0xD2, 0xC1), (0xD4, 0x1D), (0xEB, 0x00) },
+                    [ProfileId.Balanced]     = new (byte, byte)[] { (0xD2, 0xC1), (0xD4, 0x0D), (0xEB, 0x00) },
+                    [ProfileId.Extreme]      = new (byte, byte)[] { (0xD2, 0xC0), (0xD4, 0x0D), (0xEB, 0x00) },
+                    [ProfileId.SuperBattery] = new (byte, byte)[] { (0xD2, 0xC2), (0xD4, 0x0D), (0xEB, 0x0F) },
+                } },
         // Prestige 14 H B13U added on an owner's report (issue #160): his Prestige 14 H
         // B13UCX-601US (BIOS E14F1IMS.50F) runs this same 14F1EMS1 EC firmware - two retail
         // lines behind one EC identity, spotted by the reporter himself. His per-scenario
@@ -1097,9 +1114,13 @@ public static class Devices
         //   the sibling 17K4EMS1 (GE76 12UE, Tested). Hardware-confirmed: the owner's
         //   per-profile HWiNFO64 readings (~2800 Silent, ~3400/3800 Balanced, ~4780 CPU
         //   in Extreme) line up with the app's readout from the same profiles.
+        //   Curve VERIFIED (#219): his test curve sits byte-for-byte at the shipped 0x72/0x8A
+        //   on both fans. Capture note worth keeping: on this machine MSI Center allows
+        //   editing the fan curve only in the "User" scenario (Performance Level "Turbo" +
+        //   Fan Speed "Advanced") - useful wording for future capture instructions.
         new() { Name = "MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG", FirmwarePrefixes = new[] { "17K3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "ezn24", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/200" },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -1130,7 +1151,16 @@ public static class Devices
         // owner asked to cross-check against HWiNFO64.
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr = 0xC9, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Crosshair 17 B12UGZ",           FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Crosshair 17 B12UGZ / Katana GF76 12UE (17L3EMS1) - the twin lines share the
+        // MS-17L3 board (the reporter's machine in issue #217 is a Katana GF76 12UE-655XRU,
+        // caught in the "Actual model" field; board id confirmed via MS-17L3 service parts).
+        // His per-scenario capture (MSI Center 2.0.48, firmware .108) matches StdRecipes 1:1
+        // in all four scenarios, real Silent column and eco 0xEB=0F included. Still
+        // Experimental: his power test (#218) could not be scored (21% drift, the machine sat
+        // thermally saturated at 84-86 C through every phase). RPM: 0xC9/0xCB moved per
+        // scenario but every reading sat above ~1870 rpm where the single-byte and 16-bit
+        // formats coincide (TECHNICAL 16) - left off until an idle reading classifies it.
+        new() { Name = "MSI Crosshair 17 B12UGZ / Katana GF76 12UE", FirmwarePrefixes = new[] { "17L3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76 12UC",              FirmwarePrefixes = new[] { "17L4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Katana 17 B12UCXK / B12VGK (17L5EMS2) - fan curve VERIFIED (issue #125): the B12VGK
         // owner's test curve sits byte-for-byte at the shipped 0x72/0x8A. Tier stays
