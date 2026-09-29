@@ -52,6 +52,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **`15K1IMS1` gains a third retail name: Cyborg 15 A13VE** ([#224](../../issues/224),
+  thanks @DeimosCreator) - the RTX 4050 sibling of the Cyborg 15 A13V family, listed
+  beside the A13VF on msi.com's own spec page, same board.
 - **MSI Modern 14 B11MOU (`14D3EMS1`): the Extreme recipe now writes the vendor's value**
   ([#170](../../issues/170), thanks @userman21-d) - two independent captures from the
   owner's machine show MSI Center Pro writing shift `0xD2 = C0` for its high-performance

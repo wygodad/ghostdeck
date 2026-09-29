@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261001;
+    public const int DataVersion = 20261002;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -399,9 +399,12 @@ public static class Devices
         // incl. the classic Silent cap, plus live RPM. Note for triage: MSI Center 2.0.72 on the
         // A13VF ships only 3 scenarios — its "Silent" writes the super-battery state (D2=C2 +
         // EB=0F), byte-identical to this recipe's Super Battery; Balanced/Extreme match 1:1.
-        new() { Name = "MSI Cyborg 15 A12VF / A13VF", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
+        // Third retail name (issue #224): the reporter's machine is a Cyborg 15 A13VE - the
+        // RTX 4050 sibling of the same Cyborg 15 A13V family, listed beside the A13VF on
+        // msi.com's own spec page (one chassis, same MS-15K1 board, firmware .108).
+        new() { Name = "MSI Cyborg 15 A12VF / A13VF / A13VE", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "hengeleng10-tech, M-Essa11, qq588849", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
+                Credit = "hengeleng10-tech, M-Essa11, qq588849, DeimosCreator", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19" },
 
         // Thin GF63 12VE (16R8IMS1) — owner per-scenario dump (issue #21) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
