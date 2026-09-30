@@ -458,10 +458,28 @@ public sealed class ScenariosPage : ThemedPage
         private readonly MainDeps _d;
         private readonly ProfileId _id;
         private bool _hover;
+        private Rectangle _apexSw = Rectangle.Empty;    // Apex toggle hit area (Extreme tile only)
+        private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it
+        private bool ApexRow => _id == ProfileId.Extreme && _d.ApexAvailable();
         public Tile(MainDeps d, ProfileId id)
         {
             _d = d; _id = id; DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
-            Click += (_, _) => { if (_d.Writable()) { _d.SetProfile(_id); Parent?.Invalidate(true); } };
+        }
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button != MouseButtons.Left) return;
+            if (ApexRow && _apexDot.Contains(e.Location))
+            {
+                HelpPopup.Toggle(this, _apexDot, Lang.T("apex_help"), this);
+                return;
+            }
+            if (ApexRow && _apexSw.Contains(e.Location))
+            {
+                if (_d.Writable()) { _d.SetApex(!_d.ApexOn()); Parent?.Invalidate(true); Invalidate(); }
+                return;
+            }
+            if (_d.Writable()) { _d.SetProfile(_id); Parent?.Invalidate(true); }
         }
         public void Refresh2() => Invalidate();
         protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); }
@@ -505,6 +523,21 @@ public sealed class ScenariosPage : ThemedPage
             Ui.DrawText(g, def.Label, nameFont,
                 new Rectangle(12, top + iconBox + g1, textW, nameH), Theme.Text,
                 TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
+            if (ApexRow && _d.ApexOn())
+            {
+                // small amber badge right of the centred name: the tile says what Extreme writes
+                var bf = new Font("Segoe UI", 7.5f, FontStyle.Bold);
+                var bs = TextRenderer.MeasureText("APEX", bf);
+                int nw = TextRenderer.MeasureText(def.Label, nameFont).Width;
+                var br = new RectangleF(Math.Min((Width + nw) / 2f + 6, Width - bs.Width - 14),
+                                        top + iconBox + g1 + (nameH - bs.Height - 4) / 2f,
+                                        bs.Width + 10, bs.Height + 4);
+                using var bp = Theme.RoundRect(br, (int)(br.Height / 2));
+                using var pen = new Pen(Theme.Amber, 1f);
+                g.DrawPath(pen, bp);
+                Ui.DrawText(g, "APEX", bf, Rectangle.Round(br), Theme.Amber,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
             Ui.DrawText(g, Lang.T(def.SubKey), subFont,
                 new Rectangle(12, top + iconBox + g1 + nameH + g2, textW, subH), Theme.Muted,
                 TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
@@ -522,6 +555,43 @@ public sealed class ScenariosPage : ThemedPage
                     _hover ? Theme.Muted : Theme.Faint,
                     TextFormatFlags.Top | TextFormatFlags.HorizontalCenter);
             }
+            DrawApexRow(g);
+        }
+
+        // Apex row, pinned to the tile's bottom edge (Extreme tile, fourth-mode boards only):
+        // dashed separator, toggle, "APEX" with the short subtitle, help dot on the right.
+        private void DrawApexRow(Graphics g)
+        {
+            _apexSw = _apexDot = Rectangle.Empty;
+            if (!ApexRow) return;
+            bool on = _d.ApexOn();
+            var subFont = new Font("Segoe UI", 8.5f);
+            var lblFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            int rowH = 12 + Math.Max(30, lblFont.Height + subFont.Height + 4);
+            int y0 = Height - rowH;
+            using (var dash = new Pen(Theme.Border) { DashStyle = DashStyle.Dash })
+                g.DrawLine(dash, 14, y0, Width - 14, y0);
+
+            // toggle (drawn, not a control - the tile is a painted surface)
+            int swW = 38, swH = 20;
+            int cy = y0 + (rowH - swH) / 2 + 2;
+            _apexSw = new Rectangle(14, cy, swW, swH);
+            using (var tp = Theme.RoundRect(new RectangleF(_apexSw.X, _apexSw.Y, swW, swH), swH / 2))
+            using (var tb = new SolidBrush(on ? Theme.AccentFill : Theme.BorderStrong))
+                g.FillPath(tb, tp);
+            using (var kb = new SolidBrush(on ? Color.White : Theme.Muted))
+                g.FillEllipse(kb, on ? _apexSw.Right - swH + 2 : _apexSw.X + 2, cy + 2, swH - 4, swH - 4);
+
+            int tx = _apexSw.Right + 10;
+            int dotSize = 22;
+            _apexDot = new Rectangle(Width - dotSize - 10, y0 + (rowH - dotSize) / 2 + 2, dotSize, dotSize);
+            int txW = _apexDot.X - tx - 4;
+            Ui.DrawText(g, "APEX", lblFont, new Rectangle(tx, cy - 2, txW, lblFont.Height),
+                on ? Theme.Text : Theme.Muted, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+            Ui.DrawText(g, Lang.T("apex_sub"), subFont,
+                new Rectangle(tx, cy - 2 + lblFont.Height, txW, subFont.Height),
+                Theme.Amber, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+            HelpDot.Render(g, _apexDot);
         }
     }
 

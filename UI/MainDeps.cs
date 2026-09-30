@@ -14,6 +14,11 @@ public sealed class MainDeps
     public required Action<ProfileId> SetProfile { get; init; }
     public required Func<bool> Writable { get; init; }
     public required Func<ProfileId, Color> ColorOf { get; init; }
+    // Apex (fourth shift mode): available = the model's entry carries one; on = the per-model
+    // opt-in is set; SetApex runs the one-time explainer card on the very first enable.
+    public required Func<bool> ApexAvailable { get; init; }
+    public required Func<bool> ApexOn { get; init; }
+    public required Action<bool> SetApex { get; init; }
     // A getter, not a captured string: the startup probe may fill the firmware in a few
     // seconds late (transient-WMI retry), and pages re-detect via this on OnDeviceDbChanged.
     public required Func<string> Firmware { get; init; }

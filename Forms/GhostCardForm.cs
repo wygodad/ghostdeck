@@ -6,17 +6,21 @@ using System.Runtime.InteropServices;
 namespace GhostDeck;
 
 /// <summary>
-/// Firmware-guard decision card (#212): shown at startup when the EC firmware version differs
-/// from the last-seen one and automatic writes are paused. Same visual language as the
-/// game-session card (SessionReportForm): dark card with the cyan→violet rail, GhostDeck
-/// wordmark and a scan tag, rendered per-pixel with UpdateLayeredWindow - but this one is a
-/// decision, so it takes focus, sits in the centre of the screen and offers two text buttons:
-/// restore automatic writes (accent) or decide later (the tray-menu item remains either way).
-/// Enter = restore, Esc / ✕ = later. Draggable by the body.
+/// The GhostDeck decision card: a user-facing message with two text buttons, in the same
+/// visual language as the game-session card (SessionReportForm) - dark card with the
+/// cyan→violet rail, GhostDeck wordmark and a scan tag, rendered per-pixel with
+/// UpdateLayeredWindow. It is a decision, so it takes focus, sits in the centre of the
+/// screen, Enter = accent action, Esc / ✕ = later. Draggable by the body.
+/// Carriers: the firmware guard (#212) and the Apex first-enable explainer; any future
+/// user-facing question uses this rather than MessageBox/TaskDialog (RENDERING.md 11).
 /// </summary>
-public sealed class FirmwareGuardForm : Form
+public sealed class GhostCardForm : Form
 {
+    private readonly string _scanTag;
+    private readonly string _heading;
     private readonly string _body;
+    private readonly string _ackLabel;
+    private readonly string _laterLabel;
     private readonly Action _onAck;
     private int _hotBtn = -1;                       // 0 = restore, 1 = later, 2 = ✕
     private readonly Rectangle[] _btn = new Rectangle[3];
@@ -55,9 +59,14 @@ public sealed class FirmwareGuardForm : Form
     [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
     [DllImport("user32.dll")] private static extern bool UpdateLayeredWindow(IntPtr hwnd, IntPtr dstDc, ref POINT dst, ref SIZE size, IntPtr srcDc, ref POINT src, int key, ref BLENDFUNCTION blend, int flags);
 
-    public FirmwareGuardForm(string body, Action onAck)
+    public GhostCardForm(string scanTag, string heading, string body,
+                         string ackLabel, string laterLabel, Action onAck)
     {
+        _scanTag = scanTag;
+        _heading = heading;
         _body = body;
+        _ackLabel = ackLabel;
+        _laterLabel = laterLabel;
         _onAck = onAck;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
@@ -229,17 +238,17 @@ public sealed class FirmwareGuardForm : Form
         int xs = Ce(20 * k);                         // ✕ size, reserved right of the scan tag
         using (var scanB = new SolidBrush(Color.FromArgb(200, Amber)))
         {
-            var sz = g.MeasureString("//FIRMWARE-GUARD", scanF);
-            g.DrawString("//FIRMWARE-GUARD", scanF, scanB, cx + cw - sz.Width - xs - 8 * k, yHdr + (hHdr - sz.Height) / 2f);
+            var sz = g.MeasureString(_scanTag, scanF);
+            g.DrawString(_scanTag, scanF, scanB, cx + cw - sz.Width - xs - 8 * k, yHdr + (hHdr - sz.Height) / 2f);
         }
 
         // ---- heading + body ----
-        g.DrawString(Lang.T("fw_changed_title"), titleF, whiteB, cx - 2 * k, yTitle);
+        g.DrawString(_heading, titleF, whiteB, cx - 2 * k, yTitle);
         using (var ib = new SolidBrush(Ink))
             g.DrawString(_body, bodyF, ib, new RectangleF(cx, yBody, cw, hBody + 4 * k));
 
-        // ---- buttons: [Restore automatic writes] (accent)  [Later], right-aligned ----
-        string ackTxt = Lang.T("fw_dlg_ack"), laterTxt = Lang.T("fw_dlg_later");
+        // ---- buttons: [accent action]  [later], right-aligned ----
+        string ackTxt = _ackLabel, laterTxt = _laterLabel;
         int padX = Ce(14 * k), bgap = Ce(8 * k);
         int wAck = Ce(g.MeasureString(ackTxt, btnF).Width) + padX * 2;
         int wLater = Ce(g.MeasureString(laterTxt, btnF).Width) + padX * 2;

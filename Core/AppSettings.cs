@@ -90,6 +90,16 @@ public sealed class AppSettings
     public bool ExperimentalWriteAllowedFor(string? prefix) =>
         prefix != null && ExperimentalWriteFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
 
+    // Apex: per-model opt-in for the fourth shift mode (the Extreme recipe then writes the
+    // entry's FourthMode value instead of the turbo one). Keyed by firmware prefix, same
+    // pattern as the experimental-writes consent. ApexConfirmed = the one-time explainer
+    // card was acknowledged once; it is not asked again on other machines.
+    public List<string> ApexFw { get; set; } = new();
+    public bool ApexConfirmed { get; set; } = false;
+
+    public bool ApexEnabledFor(string? prefix) =>
+        prefix != null && ApexFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>One-time migration of the legacy global flag: consent narrows to the machine
     /// it was actually given on. Returns true when something changed and needs a save.</summary>
     public bool MigrateExperimentalFlag(string? matchedPrefix, bool deviceIsExperimental)
@@ -487,6 +497,8 @@ public sealed class AppSettings
         StatusOnTop = src.StatusOnTop;
         ExperimentalEnabled = src.ExperimentalEnabled;
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
+        ApexFw = new List<string>(src.ApexFw ?? new());
+        ApexConfirmed = src.ApexConfirmed;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
@@ -561,6 +573,8 @@ public sealed class AppSettings
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
             ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),
+            ApexFw = new List<string>(ApexFw),
+            ApexConfirmed = ApexConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,

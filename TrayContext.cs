@@ -460,8 +460,9 @@ public sealed class TrayContext : ApplicationContext
             t.Stop();
             t.Dispose();
             if (!_firmwareChanged) return;   // acknowledged from the tray in the meantime
-            var dlg = new FirmwareGuardForm(
+            var dlg = new GhostCardForm("//FIRMWARE-GUARD", Lang.T("fw_changed_title"),
                 string.Format(Lang.T("fw_dlg_text"), _settings.LastFirmware, _firmware),
+                Lang.T("fw_dlg_ack"), Lang.T("fw_dlg_later"),
                 AcknowledgeFirmware);
             dlg.Show();
             dlg.Activate();
@@ -987,13 +988,58 @@ public sealed class TrayContext : ApplicationContext
     }
 
     private string RecipeStr(ProfileId id) =>
-        string.Join(" ", _device!.Recipes[id].Select(r => $"{r.addr:X2}={r.val:X2}"));
+        string.Join(" ", EffectiveRecipe(id).Select(r => $"{r.addr:X2}={r.val:X2}"));
+
+    // ---------------- Apex (fourth shift mode) ----------------
+    // With the per-model opt-in on, the Extreme recipe writes the entry's fourth-mode value
+    // instead of the turbo one - one substituted byte, the same write path as ever. Detection
+    // already reports the fourth-mode value as Extreme (Ec.GetCurrent).
+    private bool ApexOn =>
+        _device is { FourthMode: not null } d && _settings.ApexEnabledFor(d.MatchedPrefix(_firmware));
+
+    private (byte addr, byte val)[] EffectiveRecipe(ProfileId id)
+    {
+        var recipe = _device!.Recipes[id];
+        if (id != ProfileId.Extreme || _device.FourthMode is not { } fm || !ApexOn) return recipe;
+        return recipe.Select(r => r.addr == _device.ShiftMode ? (r.addr, fm.ShiftValue) : r).ToArray();
+    }
+
+    // The one-time explainer runs only on the very first enable anywhere; after that the
+    // toggle acts immediately. Turning Apex on or off while Extreme is active rewrites the
+    // profile so the byte on the wire matches the switch.
+    private void SetApex(bool on)
+    {
+        if (_device?.FourthMode == null) return;
+        string? fw = _device.MatchedPrefix(_firmware);
+        if (fw == null) return;
+        if (on && !_settings.ApexConfirmed)
+        {
+            var dlg = new GhostCardForm("//APEX", Lang.T("apex_dlg_title"), Lang.T("apex_dlg_text"),
+                Lang.T("apex_dlg_on"), Lang.T("fw_dlg_later"),
+                () => { _settings.ApexConfirmed = true; ApplyApex(fw, true); });
+            dlg.Show();
+            dlg.Activate();
+            return;
+        }
+        ApplyApex(fw, on);
+    }
+
+    private void ApplyApex(string fw, bool on)
+    {
+        if (on) { if (!_settings.ApexEnabledFor(fw)) _settings.ApexFw.Add(fw); }
+        else _settings.ApexFw.RemoveAll(x => string.Equals(x, fw, StringComparison.OrdinalIgnoreCase));
+        _settings.Save();
+        ChangeLog.Add(ChangeSource.Tray, Lang.T(on ? "log_apex_on" : "log_apex_off"),
+            $"{_device!.ShiftMode:X2}={(on ? _device.FourthMode!.ShiftValue : _device.ShiftTurboValue):X2}");
+        if (Writable && _current == ProfileId.Extreme)
+            SetProfile(ProfileId.Extreme, osd: true, ChangeSource.Tray, count: false);
+    }
 
     // Apply the recipe, then read the same addresses back (informational only, see TECHNICAL §19.4)
     // and record both in the history log.
     private void ApplyRecipeLogged(ProfileId id, ChangeSource source)
     {
-        var recipe = _device!.Recipes[id];
+        var recipe = EffectiveRecipe(id);
         Ec.Apply(recipe);
         string read;
         try
@@ -1640,7 +1686,8 @@ public sealed class TrayContext : ApplicationContext
     private void ShowOsd(ProfileId id)
     {
         var def = Profiles.Get(id);
-        _osd.ShowProfile(OsdPrefix + def.Label, Lang.T(def.SubKey), _settings.ColorFor(id));
+        string label = id == ProfileId.Extreme && ApexOn ? def.Label + " · APEX" : def.Label;
+        _osd.ShowProfile(OsdPrefix + label, Lang.T(def.SubKey), _settings.ColorFor(id));
     }
 
     private void UpdateUi(ProfileId id)
@@ -1780,6 +1827,9 @@ public sealed class TrayContext : ApplicationContext
         SetProfile = id => SetProfile(id, osd: true, ChangeSource.Panel),
         Writable = () => Writable,
         ColorOf = id => _settings.ColorFor(id),
+        ApexAvailable = () => _device?.FourthMode != null,
+        ApexOn = () => ApexOn,
+        SetApex = SetApex,
         Firmware = () => _firmware,
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),

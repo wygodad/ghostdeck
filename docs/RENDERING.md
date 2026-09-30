@@ -458,9 +458,11 @@ Two windows share one visual language and one rendering technique - the "GhostDe
 
 - `SessionReportForm` - the game-session summary popup (stats, sparkline, action icons), anchored
   at the tray corner with a speech-bubble tail; never steals focus.
-- `FirmwareGuardForm` (#212) - the firmware-guard decision card: heading, wrapped body text and
-  two text buttons ("Restore automatic writes" accent / "Later"), centred on screen, takes focus,
-  Enter = restore, Esc / ✕ = later, draggable by the body.
+- `GhostCardForm` (#212, born as `FirmwareGuardForm` and generalised for the Apex explainer) -
+  the decision card: a scan tag, heading, wrapped body text and two text buttons (accent action /
+  "Later"), all passed to the constructor; centred on screen, takes focus, Enter = act,
+  Esc / ✕ = later, draggable by the body. Carriers: the firmware guard (`//FIRMWARE-GUARD`) and
+  the one-time Apex consent (`//APEX`).
 
 Shared anatomy: a dark card (`#10151F` at 97% alpha) with square left corners and softly rounded
 right ones, a 5 px cyan→violet rail flush with the left edge, the ghost + GhostDeck wordmark, and
@@ -476,4 +478,5 @@ The system dialogs ignore the app theme entirely (see #212 - the guard originall
 a tray balloon, then briefly a `TaskDialog`, both visually foreign). `MessageBox` remains
 acceptable only inside developer/diagnostic tooling (TestDialog) and for file-dialog error paths
 where a themed card would be overkill. When a new message window is needed, start from
-`FirmwareGuardForm` (text + buttons) or `SessionReportForm` (rich content + icon actions).
+`GhostCardForm` (text + buttons - often no new class is needed at all, it takes its texts and
+action as constructor arguments) or `SessionReportForm` (rich content + icon actions).

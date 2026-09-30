@@ -32,6 +32,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 ## Features
 
 - 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Models / Report / Updates) with a **light / dark theme**; Settings is organized into **icon sub-tabs** (a Start page with tiles + General / Power / Notifications / Gaming / Hotkeys / System) and reopens on the sub-tab you used last (or always on Start, your choice). On a narrow window the sub-tab strip shrinks to icons instead of pushing a scrollbar, and clicking the tab you are already on takes you back to its first page
+- ⚡ **Apex switch** *(boards whose entry records a fourth performance value)* - the state above Extreme's normal turbo, the one some MSI Center versions bury as a switch inside their top scenario: a toggle on the Extreme tile makes Extreme write the Apex value instead, with an APEX badge on the tile and in the OSD while it is on. Whether it buys real performance is measured, not promised: on a Raider 16 Max HX the Power test clocked **+34 % more delivered work than Balanced** with Apex, against +16 % for plain Extreme - on other boards it may only spin the fans faster, and the Power test measures Apex as its own step so you can check yours. A one-time consent card explains the noise and heat cost, the switch is remembered per model, and a **panic reset always returns to plain Balanced**
 - 🎬 **Scenes** - one-click macros that set any mix of **profile + fan-curve preset + refresh rate + screen brightness + HDR + overlay + charge limit + keyboard backlight + webcam + Windows-key lock + touchpad + Fan Boost** in a single stroke ("Gaming": Extreme, 240 Hz, 80 % brightness, HDR on · "Work": Silent, 60 Hz, 45 %, HDR off). Run them from cards on the Scenarios tab, the tray menu, a **per-scene hotkey**, the tray scroll wheel or the CLI (`--scene "Name"`); an example set is one click away
 - ⏰ **Scene schedule** - different settings for **work hours, nights and weekends**: rules (weekdays + a time window, overnight ranges fine) apply a scene when the window starts, also right after boot. Edge-triggered, so your manual tweaks inside a window are respected; first matching rule wins (Settings → Power)
 - 🔋 **Battery-level rules** - e.g. **below 30 % → Super Battery, above 80 % → Balanced**: two direction-aware thresholds (the low one fires while discharging, the high one while charging, once per crossing), each running any profile or scene (Settings → Power)
@@ -88,6 +89,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 |---|:---:|:---:|
 | **Silent profile** | ❌ *(removed in 2.0)* | ✅ |
 | Balanced / Extreme / Super Battery modes | ✅ | ✅ |
+| Apex (the state above turbo) as a plain switch | ⚠️ *(inside the top scenario, selected models)* | ✅ *(toggle on the Extreme tile, gain measurable via the Power test)* |
 | Full fan speed (Fan Boost / MSI Cooler Boost) | ✅ | ✅ *(+ auto-off timer)* |
 | Battery charge limit | ✅ *(60/80/100)* | ✅ *(60/80/100 **or any value 20-100 %**)* |
 | Charge-limit travel mode (auto-revert after a trip) | ❌ | ✅ *(3-30 days, CLI 1-90)* |

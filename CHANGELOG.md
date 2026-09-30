@@ -19,6 +19,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **Apex switch** ([#226](../../issues/226), thanks @Giperzvuk) - on boards whose model entry
+  records a fourth performance value (the state some MSI Center versions bury as a switch
+  inside their top scenario), the Extreme tile gains an APEX row with a toggle and a help
+  bubble. While it is on, the Extreme profile writes the Apex value instead of the normal
+  turbo one, the tile and the OSD carry an APEX badge, and the choice is remembered per
+  model. The first enable shows a one-time consent card in the app's own card style: Apex
+  is louder and hotter, and whether it buys real performance on a given board is answered
+  by the Power test, which measures Apex as its own step - the first such measurement
+  ([#226](../../issues/226), Raider 16 Max HX B2WJ) came back at **+34 % delivered work
+  over Balanced**, against +16 % for plain Extreme. A panic reset always returns to plain
+  Balanced.
 - **New model: MSI Raider 16 Max HX B2WJ (`2651EMS1`), experimental, 16-bit tachometers**
   ([#221](../../issues/221), thanks @Giperzvuk) - a brand-new firmware prefix, absent even
   from msi-ec, registered from an owner's per-scenario capture: Balanced, Extreme and the
