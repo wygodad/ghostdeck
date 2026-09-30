@@ -52,6 +52,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Raider 16 Max HX B2WJ (`2651EMS1`): fan curve verified, Apex recorded**
+  ([#221](../../issues/221), [#225](../../issues/225), thanks @Giperzvuk) - his test curves
+  sit byte-for-byte at the shipped table addresses on both main fans, and his capture of
+  the "Extreme Performance + Apex Mode" tile shows it writes `C5`, now recorded as the
+  entry's fourth mode so the power test measures it. The board runs three fans (Cooler
+  Boost Trinity); a third tachometer pair was located and recorded - the readout carries
+  the two main fans.
 - **`15K1IMS1` gains a third retail name: Cyborg 15 A13VE** ([#224](../../issues/224),
   thanks @DeimosCreator) - the RTX 4050 sibling of the Cyborg 15 A13V family, listed
   beside the A13VF on msi.com's own spec page, same board.

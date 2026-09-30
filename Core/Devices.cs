@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261002;
+    public const int DataVersion = 20261003;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1362,10 +1362,27 @@ public static class Devices
         //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB, proven directly from his IDLE
         //   capture - high bytes non-zero (01:39 / 01:37 = ~1530 / ~1540 rpm), the reading
         //   the TECHNICAL 16 rule asks for. Eleventh carrier; readout ships with the next
-        //   release. 0xCC/0xCD also move per scenario - observation only, nothing written.
+        //   release.
+        //   THREE fans (Cooler Boost Trinity: two full-size + one small centre fan, 5
+        //   exhausts / 6 heatpipes - MSI's own spec and the B2WJ teardown): a THIRD 16-bit
+        //   tach pair sits at 0xCC:0xCD (01:3A = ~1520 rpm at idle, moves per scenario in
+        //   both captures) - the small fan's tachometer. The database carries two readouts,
+        //   so it stays a recorded observation; MSI Center exposes only two curve slider
+        //   sets, so the third fan looks firmware-managed.
+        //   Apex (issue #221 follow-up): the "Extreme Performance + Apex Mode" tile writes
+        //   0xD2 = C5 - captured by the owner clicking that tile during a wizard step. Same
+        //   value as the Stealth 16 AI+ / Vector 16 HX AI fourth modes; recorded in
+        //   FourthMode so detection accepts it and the power test measures it. Eco C2 +
+        //   0xEB=0F confirmed by both captures (his MSI Center, 2.0.71 then 2.0.74, names
+        //   the eco tile "Eco-Silent" and has no real Silent - the Silent fan byte stays
+        //   the family assumption pending his power test's readbacks).
+        //   Curve VERIFIED (issue #225): his test curves sit byte-for-byte at the shipped
+        //   0x72/0x8A on both (main) fans.
         new() { Name = "MSI Raider 16 Max HX B2WJ",         FirmwarePrefixes = new[] { "2651EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                FourthMode = new FourthModeSpec("Apex", 0xC5),
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Giperzvuk", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/221" },
 
         // G1 family (shift 0xF2 / fan 0xF4 / charge 0xEF) — older boards; super-batt addr unknown (null) unless noted.
         new() { Name = "MSI Prestige 14 A10SC", FirmwarePrefixes = new[] { "14C1EMS1" }, Tier = Tier.Experimental,

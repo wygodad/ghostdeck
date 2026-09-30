@@ -101,7 +101,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Prestige 16 AI Evo B1MG | `15A1EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige 16 AI+ Evo B2VMG | `15A3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Prestige A16 AI+ A3HMG | `159KIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Raider 16 Max HX B2WJ | `2651EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Raider 16 Max HX B2WJ | `2651EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider GE68 HX 14VGG | `15M2IMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE68HX 13V | `15M2IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Raider GE77 HX 12UGS | `17K5IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
