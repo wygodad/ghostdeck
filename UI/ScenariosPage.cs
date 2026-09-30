@@ -461,6 +461,16 @@ public sealed class ScenariosPage : ThemedPage
         private Rectangle _apexSw = Rectangle.Empty;    // Apex toggle hit area (Extreme tile only)
         private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it
         private bool ApexRow => _id == ProfileId.Extreme && _d.ApexAvailable();
+        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        // Row height from the two text lines (variant B: the tile keeps its height and the
+        // icon/name/badge block is centred in the space above this row, so nothing collides)
+        private int ApexRowH()
+        {
+            if (!ApexRow) return 0;
+            using var lbl = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            using var sub = new Font("Segoe UI", 8.5f);
+            return S(10) + lbl.Height + sub.Height + S(14);
+        }
         public Tile(MainDeps d, ProfileId id)
         {
             _d = d; _id = id; DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
@@ -517,7 +527,7 @@ public sealed class ScenariosPage : ThemedPage
             var footFont = new Font("Segoe UI", 9f, FontStyle.Bold);
             int nameH = nameFont.Height, subH = subFont.Height, g1 = 16, g2 = 6, g3 = 18, footH = footFont.Height + 12;
             int blockH = iconBox + g1 + nameH + g2 + subH + g3 + footH;
-            int top = Math.Max(16, (Height - blockH) / 2);
+            int top = Math.Max(16, (Height - ApexRowH() - blockH) / 2);
             IconPainter.Scenario(g, _id, new RectangleF((Width - iconBox) / 2f, top, iconBox, iconBox), col, 4f);
             int textW = Width - 24;
             Ui.DrawText(g, def.Label, nameFont,
@@ -558,8 +568,10 @@ public sealed class ScenariosPage : ThemedPage
             DrawApexRow(g);
         }
 
-        // Apex row, pinned to the tile's bottom edge (Extreme tile, fourth-mode boards only):
-        // dashed separator, toggle, "APEX" with the short subtitle, help dot on the right.
+        // Apex row at the tile's bottom (Extreme tile, fourth-mode boards only): dashed
+        // separator, toggle, "APEX" over the short subtitle, help dot on the right. Geometry
+        // follows the font heights and S() - the two text lines set the row height, the toggle
+        // and the dot centre on them (no literal-px rects, so 140 % scaling cannot clip it).
         private void DrawApexRow(Graphics g)
         {
             _apexSw = _apexDot = Rectangle.Empty;
@@ -567,29 +579,31 @@ public sealed class ScenariosPage : ThemedPage
             bool on = _d.ApexOn();
             var subFont = new Font("Segoe UI", 8.5f);
             var lblFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            int rowH = 12 + Math.Max(30, lblFont.Height + subFont.Height + 4);
-            int y0 = Height - rowH;
+            int y0 = Height - ApexRowH();
             using (var dash = new Pen(Theme.Border) { DashStyle = DashStyle.Dash })
-                g.DrawLine(dash, 14, y0, Width - 14, y0);
+                g.DrawLine(dash, S(14), y0, Width - S(14), y0);
+
+            int textH = lblFont.Height + subFont.Height;
+            int ty = y0 + S(10);                 // top of the two text lines
 
             // toggle (drawn, not a control - the tile is a painted surface)
-            int swW = 38, swH = 20;
-            int cy = y0 + (rowH - swH) / 2 + 2;
-            _apexSw = new Rectangle(14, cy, swW, swH);
+            int swW = S(38), swH = S(20);
+            _apexSw = new Rectangle(S(14), ty + (textH - swH) / 2, swW, swH);
             using (var tp = Theme.RoundRect(new RectangleF(_apexSw.X, _apexSw.Y, swW, swH), swH / 2))
             using (var tb = new SolidBrush(on ? Theme.AccentFill : Theme.BorderStrong))
                 g.FillPath(tb, tp);
             using (var kb = new SolidBrush(on ? Color.White : Theme.Muted))
-                g.FillEllipse(kb, on ? _apexSw.Right - swH + 2 : _apexSw.X + 2, cy + 2, swH - 4, swH - 4);
+                g.FillEllipse(kb, on ? _apexSw.Right - swH + S(2) : _apexSw.X + S(2),
+                    _apexSw.Y + S(2), swH - S(4), swH - S(4));
 
-            int tx = _apexSw.Right + 10;
-            int dotSize = 22;
-            _apexDot = new Rectangle(Width - dotSize - 10, y0 + (rowH - dotSize) / 2 + 2, dotSize, dotSize);
-            int txW = _apexDot.X - tx - 4;
-            Ui.DrawText(g, "APEX", lblFont, new Rectangle(tx, cy - 2, txW, lblFont.Height),
+            int dotSize = S(22);
+            _apexDot = new Rectangle(Width - dotSize - S(12), ty + (textH - dotSize) / 2, dotSize, dotSize);
+            int tx = _apexSw.Right + S(10);
+            int txW = _apexDot.X - tx - S(4);
+            Ui.DrawText(g, "APEX", lblFont, new Rectangle(tx, ty, txW, lblFont.Height),
                 on ? Theme.Text : Theme.Muted, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
             Ui.DrawText(g, Lang.T("apex_sub"), subFont,
-                new Rectangle(tx, cy - 2 + lblFont.Height, txW, subFont.Height),
+                new Rectangle(tx, ty + lblFont.Height, txW, subFont.Height),
                 Theme.Amber, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
             HelpDot.Render(g, _apexDot);
         }

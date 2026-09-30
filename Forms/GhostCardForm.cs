@@ -164,7 +164,7 @@ public sealed class GhostCardForm : Form
         int Ce(float v) => (int)Math.Ceiling(v);
 
         int pad = Ce(14 * k);                        // transparent margin (shadow lives here)
-        int W = Ce(430 * k);
+        int W = Ce(500 * k);
         int railW = Ce(5 * k);
         int r = Ce(12 * k);
         int cx = railW + Ce(15 * k);
@@ -172,14 +172,14 @@ public sealed class GhostCardForm : Form
 
         using var wordF = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var scanF = new Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var titleF = new Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var bodyF = new Font("Segoe UI", 11.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-        using var btnF = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var titleF = new Font("Segoe UI", 17f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var bodyF = new Font("Segoe UI", 13.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var btnF = new Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
 
         // measure the body first - the card grows with the text (and with the language)
         int yHdr = Ce(14 * k), hHdr = Ce(24 * k);
         int yTitle = yHdr + hHdr + Ce(8 * k);
-        int hTitle, hBody, hBtn = Ce(30 * k);
+        int hTitle, hBody, hBtn = Ce(34 * k);
         using (var probe = Graphics.FromImage(new Bitmap(1, 1)))
         {
             probe.TextRenderingHint = TextRenderingHint.AntiAlias;
