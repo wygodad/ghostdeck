@@ -366,16 +366,20 @@ public sealed class ScenariosPage : ThemedPage
 
         int avail = ClientSize.Width - Pad * 2;
         int tw = (avail - Gap * 3) / 4;                 // 4 in a row
+        // Fourth-mode boards: every tile grows by the Apex row's height (variant A), so the
+        // grid stays aligned and the Extreme tile has full room for the row; other boards
+        // keep the plain height. ApexRowH is 0 on every tile except an Extreme with a row.
+        int th = TileH + _tiles.Max(t => t.ApexRowH());
         for (int i = 0; i < _tiles.Length; i++)
-            _tiles[i].SetBounds(Pad + i * (tw + Gap) + ox, _headH + oy, tw, TileH);
+            _tiles[i].SetBounds(Pad + i * (tw + Gap) + ox, _headH + oy, tw, th);
 
         // Uniform feature bricks under the tiles (mockup W5 layout): two per row, three when
         // the window is wide enough for the 280 px segments to still fit. Bricks the user hid
         // (Settings → General → Scenarios tab) are skipped entirely.
         // the gear sits right-aligned in its own band between the tiles and the bricks,
         // fully visible with breathing room above and below
-        _gear.Location = new Point(Pad + avail - _gear.Width + ox, _headH + TileH + 6 + oy);
-        _bricksTop = _headH + TileH + 6 + _gear.Height + 10;
+        _gear.Location = new Point(Pad + avail - _gear.Width + ox, _headH + th + 6 + oy);
+        _bricksTop = _headH + th + 6 + _gear.Height + 10;
         int cols = avail >= 1080 ? 3 : 2;
         const int brickH = 82;
         int bw = (avail - Gap * (cols - 1)) / cols;
@@ -462,9 +466,10 @@ public sealed class ScenariosPage : ThemedPage
         private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it
         private bool ApexRow => _id == ProfileId.Extreme && _d.ApexAvailable();
         private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
-        // Row height from the two text lines (variant B: the tile keeps its height and the
-        // icon/name/badge block is centred in the space above this row, so nothing collides)
-        private int ApexRowH()
+        // Row height from the two text lines. Variant A: the page grows EVERY tile by this
+        // much on fourth-mode boards (grid stays aligned), and the icon/name/badge block is
+        // centred in the space above the row, so nothing collides at any scaling.
+        internal int ApexRowH()
         {
             if (!ApexRow) return 0;
             using var lbl = new Font("Segoe UI", 9.5f, FontStyle.Bold);
