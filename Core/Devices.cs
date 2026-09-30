@@ -1378,6 +1378,14 @@ public static class Devices
         //   the family assumption pending his power test's readbacks).
         //   Curve VERIFIED (issue #225): his test curves sit byte-for-byte at the shipped
         //   0x72/0x8A on both (main) fans.
+        //   Power test (issue #226, 0% drift, clean readbacks in every phase): the FIRST
+        //   board where the fourth mode outperforms the turbo value - Apex measured +34%
+        //   over Balanced at 6969 MHz and 98 C, against Extreme's +16% (on the Stealth 16
+        //   AI+ and Vector 16 HX AI the same C5 measured level with C4). The Extreme recipe
+        //   stays on the vendor's own Extreme value C4; Apex remains the vendor tile's
+        //   state. Silent capped nothing in that run (114% - it ran first from a cold
+        //   start, which flatters the first phase; GPU fan duty did sit lower, 48 vs 58) -
+        //   a second run on a warmed machine decides the Silent trait and the promotion.
         new() { Name = "MSI Raider 16 Max HX B2WJ",         FirmwarePrefixes = new[] { "2651EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
