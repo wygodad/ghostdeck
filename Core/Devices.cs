@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261004;
+    public const int DataVersion = 20261005;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -536,11 +536,19 @@ public static class Devices
         //   on msi.com, spotted via the report form's "Actual model" field) - that owner's
         //   clean power test (1% drift) shows Silent at 92% of Balanced's work with fans at
         //   duty 35 vs 85 and CPU 79 vs 94 C, and Extreme at +3%.
-        new() { Name = "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / Crosshair 16 A13V",
+        //   Fifth retail line: Katana 15 B13VFK (issue #227, i7-13620H + RTX 4060, name
+        //   confirmed in retail listings). That owner's canonical 2.0.48 snapshot re-confirms
+        //   the recipes 1:1 with the real Silent fan byte, and his clean power test (2% drift,
+        //   byte readbacks intact in every phase) shows a REAL Silent cap on his unit: 82% of
+        //   Balanced's work at 76 vs 94 C on slower fans - against #190's milder 92% (unit
+        //   spread, both runs look valid). Extreme level with Balanced (99) under the combined
+        //   CPU+GPU load - the family's shared-budget pattern, recorded, not held against the
+        //   entry.
+        new() { Name = "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / B13VFK / Crosshair 16 A13V",
                 FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Punssama & Gangan-Lin, GabrielGby", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/90" },
+                Credit = "Punssama & Gangan-Lin, GabrielGby, houstonmcknight790-byte", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/90" },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)

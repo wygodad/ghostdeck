@@ -19,6 +19,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **Katana 15 B13VFK - fifth retail line on the `1585EMS1` board**
+  ([#227](../../issues/227), thanks @houstonmcknight790-byte) - the Tested entry "Creator
+  M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / Crosshair 16 A13V" gains its fifth
+  confirmed market name (i7-13620H + RTX 4060). The owner's canonical snapshot re-confirms
+  every recipe byte, and his clean Power test (2 % drift) records a real Silent cap on his
+  unit: 82 % of Balanced's work at 76 °C against 94 °C. Signed model database
+  `DataVersion 20261005`.
 - **MSI Raider 16 Max HX B2WJ (`2651EMS1`) promoted to Tested - the 47th**
   ([#226](../../issues/226), thanks @Giperzvuk) - two clean Power-test runs (0 % drift in
   both) confirm the profiles and record a board trait: **Silent lowers fan speed only, it
