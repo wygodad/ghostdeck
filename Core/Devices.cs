@@ -1083,6 +1083,13 @@ public static class Devices
         // reading below ~1870 rpm decides. One more observation, nothing written: 0xF5 /
         // 0xF7 / 0xF9 move per scenario in his captures - not seen on other G2 boards,
         // meaning unknown.
+        //   First power test (#228, same day): internally clean (0% drift, byte readbacks
+        //   intact in all four phases - SWITCHING PROVEN on hardware, Silent 1D accepted),
+        //   but numerically flat: the CPU sat pinned at ~2605 MHz in every phase at 51 C
+        //   with the GPU load reading 0-1% despite the graphics load being on - the machine
+        //   never left an efficiency state, so no profile limit came into play (hypothesis,
+        //   unverified: Windows power mode / boost setting holds the clock, outside the EC).
+        //   Promotion awaits a rerun with Windows set to Best performance.
         new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Xakson", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/228" },
