@@ -84,6 +84,28 @@ Silent row does the same work as Balanced, your board is the fan-only kind. The 
 many words, and it measures Balanced twice so you can see whether the machine simply got hot during
 the run.
 
+## What is the APEX switch on my Extreme tile? Why don't I see it?
+
+Some newer boards have one more power state **above** Extreme's normal turbo - the one some MSI Center
+versions present as an "Apex" switch inside their top scenario. It is a fifth value of the same EC
+register the profiles already use, so GhostDeck treats it the same way: on boards whose database entry
+records that value, the Extreme tile grows an **APEX row with a toggle**. While it is on, the Extreme
+profile writes the Apex value instead of the normal turbo one, the tile and the on-screen display carry
+an APEX badge, and the choice is remembered for that machine. A panic reset always returns to plain
+Balanced, Apex or not.
+
+Whether Apex buys real performance differs by board, and the app measures rather than promises: the
+Power test runs Apex as its own step. On the first boards measured it only spun the fans faster
+(the Stealth 16 AI+ and Vector 16 HX AI did exactly Extreme's work), but on a Raider 16 Max HX an
+owner's clean run measured **+34 % more completed work than Balanced** with Apex, against +16 % for
+plain Extreme ([#226](https://github.com/wygodad/ghostdeck/issues/226)) - so on some boards it is the
+only way to reach the machine's top state. Expect it to be noticeably louder and hotter either way;
+the first enable shows a short explainer card.
+
+If you don't see the row: your board's entry has no recorded fourth value yet. It arrives like every
+other model-database update - from an owner's capture, without waiting for a release. If your MSI
+Center shows an Apex switch and GhostDeck doesn't, open a model report and we will register it.
+
 ## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
 
 Usually not, and MSI Center does the same thing on the same machine. Two separate causes:

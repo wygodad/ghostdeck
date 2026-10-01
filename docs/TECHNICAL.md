@@ -293,6 +293,11 @@ Addr   Silent  Balanced  Extreme  SuperBattery   Meaning
 0x98    02       02        02        02            (cooler boost bit7 — constant)
 ```
 
+Boards whose entry records a **fourth shift value** (usually `0xC5`, named "Apex" after the
+vendor tile) have a fifth `0xD2` state above turbo; it is per-model data, never a constant.
+Detection maps it to Extreme, the power test measures it as its own step, and with the Apex
+switch enabled the Extreme profile writes it instead of `0xC4` — see §60.2 and §70.
+
 ---
 
 ## 15. The native app — `GhostDeck.exe` (C# .NET 8)
@@ -399,6 +404,13 @@ Each profile is just a specific combination (verified by diffing full EC dumps o
 | **Super Battery** | `0xC2` eco | `0x01` | `0x0F` on | `0x0D` auto |
 
 The key fact: **Silent and Balanced differ in `0x34`? No — they differ ONLY in `0xD4`** (`1D` vs `0D`). Every other byte, `0x34` included, is identical between them. This is central to the fan-curve story below.
+
+**The fifth shift value on fourth-mode boards.** Some newer boards carry one more `0xD2`
+state above turbo — usually `0xC5`, presented by the vendor software as an "Apex" switch
+inside its top scenario rather than as a fifth tile. It is per-model data (`FourthMode` in
+the signed database, §60.2), the recipes above are unchanged by it, and the only thing that
+ever writes it is the Extreme profile **with the Apex switch turned on** (§70) — the shift
+byte is substituted at apply time, every other recipe byte stays as listed.
 
 **Boards that never write `0xEB` (the no-limiter pattern — predominantly AMD).** On a growing
 set of boards, owner per-scenario dumps show `0xEB` at `0x00` in *every* scenario, Super Battery
