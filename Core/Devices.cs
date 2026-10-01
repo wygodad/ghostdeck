@@ -1087,9 +1087,13 @@ public static class Devices
         //   intact in all four phases - SWITCHING PROVEN on hardware, Silent 1D accepted),
         //   but numerically flat: the CPU sat pinned at ~2605 MHz in every phase at 51 C
         //   with the GPU load reading 0-1% despite the graphics load being on - the machine
-        //   never left an efficiency state, so no profile limit came into play (hypothesis,
-        //   unverified: Windows power mode / boost setting holds the clock, outside the EC).
-        //   Promotion awaits a rerun with Windows set to Best performance.
+        //   never left an efficiency state, so no profile limit came into play. The owner
+        //   then confirmed the machine boosts past 4 GHz OUTSIDE the test with limits off -
+        //   the limiter correlates with the test itself: the third Ryzen AI machine whose
+        //   power test the numbers cannot score (TECHNICAL 60.6 - the below-normal-priority
+        //   load parked on the compact cores, hypothesis). No rerun asked; promotion goes
+        //   the hardware-checks path (switching already proven by the clean readbacks),
+        //   awaiting his two usage checks: Silent quieter/cooler vs Balanced, Extreme ramps.
         new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Xakson", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/228" },

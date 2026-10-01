@@ -2405,11 +2405,25 @@ HX 365/370). Note the graphics load is not optional (§60.5's `GpuLoad` is alway
 "Graphics load: OFF" in a report means it failed to come up), so a CPU-only variant is not
 something a reporter can select.
 
-Operational consequence: on a Strix-Point-class machine, do not grind the reporter through
-repeats - two same-signature runs are enough to conclude the platform, not the run, is the
-problem. The hardware-checks path (Silent audibly/thermally quieter, Extreme ramps under load,
-switching stable - the last one usually already proven by the runs' clean readbacks) promotes
-the model instead, and the entry records that the numeric power test is unreadable there and why.
+**A second Ryzen AI signature: the clock pinned flat (issue #228).** A Pulse A16 AI+ C3HWFKG
+(`15PKIMS1`, Ryzen AI 7 350) produced the opposite picture with the same conclusion: a run that
+is internally perfect - 0% drift, clean readbacks in all four phases - and perfectly useless,
+because the CPU sat at ~2605 MHz (spread 2604-2607) in *every* phase, at 51 °C with the fans on
+the curve's floor, and all four profiles scored an identical 100. The owner then confirmed the
+decisive fact: **outside the test the same machine boosts past 4 GHz**. The limiter correlates
+with the test, not with the EC or his settings. Working hypothesis, consistent with everything
+observed: the test's load threads deliberately run at below-normal priority (so the machine
+stays responsive and the controller readable, §60.8), and on Ryzen AI machines Windows parks
+below-normal background work on the compact Zen 5c cores at their fixed all-core clock,
+regardless of the power profile - so no limit a profile raises or lowers is ever reached. A
+third Ryzen AI machine, the Cyborg A15 AI (`15QLIMS1`, #198), showed the same flat-clock
+pattern (~2470 MHz in all phases) but got hot enough for Silent to show on the fan columns,
+which is what carried its promotion; on the Pulse A16 the pinned clock keeps the machine too
+cool for even that.
+
+Three Ryzen AI machines, three runs the numbers could not score. Same operational consequence
+as above, reached faster: on a Ryzen AI machine whose first run comes back flat (identical
+work, pinned clock, cold), skip the rerun entirely and go straight to the hardware-checks path.
 
 ## 61. GPU telemetry without vendor software (v1.31)
 
