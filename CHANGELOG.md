@@ -19,6 +19,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **MSI Raider 16 Max HX B2WJ (`2651EMS1`) promoted to Tested - the 47th**
+  ([#226](../../issues/226), thanks @Giperzvuk) - two clean Power-test runs (0 % drift in
+  both) confirm the profiles and record a board trait: **Silent lowers fan speed only, it
+  does not cap power on this board** (102-114 % of Balanced's work in both runs, once from
+  cold, once warm). The run readbacks also confirm the real Silent fan byte `0x1D`. Signed
+  model database `DataVersion 20261004` - reaches every installation without a release.
 - **Apex switch** ([#226](../../issues/226), thanks @Giperzvuk) - on boards whose model entry
   records a fourth performance value (the state some MSI Center versions bury as a switch
   inside their top scenario), the Extreme tile gains an APEX row with a toggle and a help

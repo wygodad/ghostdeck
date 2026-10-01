@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261003;
+    public const int DataVersion = 20261004;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1383,10 +1383,16 @@ public static class Devices
         //   over Balanced at 6969 MHz and 98 C, against Extreme's +16% (on the Stealth 16
         //   AI+ and Vector 16 HX AI the same C5 measured level with C4). The Extreme recipe
         //   stays on the vendor's own Extreme value C4; Apex remains the vendor tile's
-        //   state. Silent capped nothing in that run (114% - it ran first from a cold
-        //   start, which flatters the first phase; GPU fan duty did sit lower, 48 vs 58) -
-        //   a second run on a warmed machine decides the Silent trait and the promotion.
-        new() { Name = "MSI Raider 16 Max HX B2WJ",         FirmwarePrefixes = new[] { "2651EMS1" }, Tier = Tier.Experimental,
+        //   state. That stock-settings run is the entry's reference measurement.
+        //   SILENT TRAIT (second run, #226): Silent lowers fan speed only - it does NOT cap
+        //   power on this board. Run 1 (stock, cold start): Silent 114% of Balanced. Run 2
+        //   (machine warm, CPU+Ring undervolted -50 mV in BIOS, 0% drift): Silent 102%, and
+        //   all four profiles level at 99-102 - the undervolted CPU no longer reaches the
+        //   ceilings Extreme/Apex lift, which cannot mask a Silent CAP: the 22-thread load
+        //   still exceeds any aggressive limit, so a capped Silent would have dropped in
+        //   both runs. Two runs, no cap either time. The run-2 readbacks also confirm the
+        //   real Silent fan byte 0x1D on this board (closing the family assumption above).
+        new() { Name = "MSI Raider 16 Max HX B2WJ",         FirmwarePrefixes = new[] { "2651EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
