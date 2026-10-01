@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261005;
+    public const int DataVersion = 20261006;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1066,6 +1066,26 @@ public static class Devices
                 CpuRpmAddr16 = 0xC8,
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
                 FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+
+        // Pulse A16 AI+ C3HWFKG (15PKIMS1) - NEW prefix, absent from msi-ec; added from an
+        // owner's read-only per-scenario report (issue #228, Ryzen AI 7 350 + RTX 5060; retail
+        // name confirmed - the C3HW line also ships a GKG / RTX 5070 config). Captured on MSI
+        // Center 2.0.48 (the last lineup with the classic Silent scenario), so every value is
+        // first-hand: shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D with the REAL Silent
+        // byte; 0xEB stays 00 in all four states including Super Battery, so eco writes NO
+        // battery throttle - the AMD pattern (Alpha 17 / Cyborg A15 AI / Stealth A16 AI+ /
+        // A18 HX). 0x34 = 01 everywhere (the GE78-family pattern, dynamic - untouched).
+        // Charge limit alive at 0xD7 (0xBC = active at 60% on his unit). Curve tables hold
+        // the family-standard layout (structural only - NOT curve-verified). 0xD6 sits 05
+        // and flips to 03 under Extreme on its own - the 16th board of the #52 observation.
+        // RPM deliberately OFF: his tach reads (~1904 rpm, high bytes 00) sit in the zone
+        // where the 1-byte and 16-bit formats are indistinguishable (TECHNICAL §16); an idle
+        // reading below ~1870 rpm decides. One more observation, nothing written: 0xF5 /
+        // 0xF7 / 0xF9 move per scenario in his captures - not seen on other G2 boards,
+        // meaning unknown.
+        new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "Xakson", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/228" },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Thin 15 B12UCX / B12VE (16R8IMS2) - fan curve VERIFIED (issue #111): the test curve sits

@@ -19,6 +19,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **New model: MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`), experimental**
+  ([#228](../../issues/228), thanks @Xakson) - a brand-new firmware prefix, absent even
+  from msi-ec, registered from an owner's read-only per-scenario capture taken on MSI
+  Center 2.0.48, so the real Silent fan byte is first-hand. The AMD board writes its eco
+  state without the battery-throttle register (like every AMD entry on file), the charge
+  limit lives at the usual register, and the fan-curve tables hold the family-standard
+  layout. Recognition grows to 156 firmware ids. Signed model database
+  `DataVersion 20261006`.
 - **Katana 15 B13VFK - fifth retail line on the `1585EMS1` board**
   ([#227](../../issues/227), thanks @houstonmcknight790-byte) - the Tested entry "Creator
   M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / Crosshair 16 A13V" gains its fifth
