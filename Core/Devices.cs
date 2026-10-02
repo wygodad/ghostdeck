@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261006;
+    public const int DataVersion = 20261007;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1085,16 +1085,16 @@ public static class Devices
         // meaning unknown.
         //   First power test (#228, same day): internally clean (0% drift, byte readbacks
         //   intact in all four phases - SWITCHING PROVEN on hardware, Silent 1D accepted),
-        //   but numerically flat: the CPU sat pinned at ~2605 MHz in every phase at 51 C
-        //   with the GPU load reading 0-1% despite the graphics load being on - the machine
-        //   never left an efficiency state, so no profile limit came into play. The owner
-        //   then confirmed the machine boosts past 4 GHz OUTSIDE the test with limits off -
-        //   the limiter correlates with the test itself: the third Ryzen AI machine whose
-        //   power test the numbers cannot score (TECHNICAL 60.6 - the below-normal-priority
-        //   load parked on the compact cores, hypothesis). No rerun asked; promotion goes
-        //   the hardware-checks path (switching already proven by the clean readbacks),
-        //   awaiting his two usage checks: Silent quieter/cooler vs Balanced, Extreme ramps.
-        new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Experimental,
+        //   but numerically flat: the CPU sat pinned at ~2605 MHz in every phase at 51 C -
+        //   the machine never left an efficiency state (boosts past 4 GHz outside the test,
+        //   owner-confirmed), so no profile limit came into play. TECHNICAL 60.6 records
+        //   the signature; the state proved TRANSIENT on this machine - see below.
+        //   Tested via the owner's next run (#228, 2026-10-02, 1% drift, clean readbacks):
+        //   Silent = a REAL power cap, 83% of Balanced's work at 55 vs 71 C on slower fans
+        //   (duty 38 vs 54); Extreme a real +23% (4256 vs 3445 MHz) at 85 C with the fans
+        //   ramped. His usage checks said the same (Silent audibly quieter, Extreme ramps).
+        //   Whatever pinned the clock in run 1 did not recur; cause not established.
+        new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Tested,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Xakson", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/228" },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },

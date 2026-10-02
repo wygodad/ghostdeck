@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261006,
+  "dataVersion": 20261007,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -3525,7 +3525,7 @@
       "prefixes": [
         "15PKIMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",

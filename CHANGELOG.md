@@ -19,6 +19,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`) promoted to Tested - the 48th**
+  ([#228](../../issues/228), thanks @Xakson) - registration to promotion in a day, every
+  piece of evidence from one owner's machine: a canonical per-scenario capture with the
+  real Silent byte, and a clean Power test (1 % drift, readbacks intact) measuring a
+  **real Silent cap (83 % of Balanced's work at 55 °C against 71 °C on slower fans)**
+  and a real **Extreme jump of +23 %**. His first run sat pinned at ~2.6 GHz in every
+  profile - a transient efficiency state documented in TECHNICAL §60.6; the rerun scored
+  cleanly. Signed model database `DataVersion 20261007`.
 - **New model: MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`), experimental**
   ([#228](../../issues/228), thanks @Xakson) - a brand-new firmware prefix, absent even
   from msi-ec, registered from an owner's read-only per-scenario capture taken on MSI

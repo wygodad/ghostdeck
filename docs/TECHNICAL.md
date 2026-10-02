@@ -2405,25 +2405,30 @@ HX 365/370). Note the graphics load is not optional (§60.5's `GpuLoad` is alway
 "Graphics load: OFF" in a report means it failed to come up), so a CPU-only variant is not
 something a reporter can select.
 
-**A second Ryzen AI signature: the clock pinned flat (issue #228).** A Pulse A16 AI+ C3HWFKG
-(`15PKIMS1`, Ryzen AI 7 350) produced the opposite picture with the same conclusion: a run that
-is internally perfect - 0% drift, clean readbacks in all four phases - and perfectly useless,
+**A second Ryzen AI signature: the clock pinned flat - and transient (issue #228).** A Pulse
+A16 AI+ C3HWFKG (`15PKIMS1`, Ryzen AI 7 350) produced the opposite picture: a run that is
+internally perfect - 0% drift, clean readbacks in all four phases - and perfectly useless,
 because the CPU sat at ~2605 MHz (spread 2604-2607) in *every* phase, at 51 °C with the fans on
-the curve's floor, and all four profiles scored an identical 100. The owner then confirmed the
-decisive fact: **outside the test the same machine boosts past 4 GHz**. The limiter correlates
-with the test, not with the EC or his settings. Working hypothesis, consistent with everything
-observed: the test's load threads deliberately run at below-normal priority (so the machine
-stays responsive and the controller readable, §60.8), and on Ryzen AI machines Windows parks
-below-normal background work on the compact Zen 5c cores at their fixed all-core clock,
-regardless of the power profile - so no limit a profile raises or lowers is ever reached. A
-third Ryzen AI machine, the Cyborg A15 AI (`15QLIMS1`, #198), showed the same flat-clock
-pattern (~2470 MHz in all phases) but got hot enough for Silent to show on the fan columns,
-which is what carried its promotion; on the Pulse A16 the pinned clock keeps the machine too
-cool for even that.
+the curve's floor, and all four profiles scored an identical 100, while the same machine
+boosted past 4 GHz **outside** the test (owner-confirmed). The limiter correlates with the
+test's own load, which deliberately runs at below-normal priority (§60.8); the working
+hypothesis is Windows parking below-normal background work on the compact Zen 5c cores at
+their fixed all-core clock, so no limit a profile raises or lowers is ever reached. A related
+machine, the Cyborg A15 AI (`15QLIMS1`, #198), showed the same flat-clock pattern (~2470 MHz in
+all phases) but got hot enough for Silent to show on the fan columns, which carried its
+promotion.
 
-Three Ryzen AI machines, three runs the numbers could not score. Same operational consequence
-as above, reached faster: on a Ryzen AI machine whose first run comes back flat (identical
-work, pinned clock, cold), skip the rerun entirely and go straight to the hardware-checks path.
+The decisive difference from STAPM: **the pinned-clock state is transient.** The same owner's
+next run, a day later, scored cleanly and fully differentiated - Silent a real cap at 83% of
+Balanced's work (55 vs 71 °C, duty 38 vs 54), Extreme a real +23% at 85 °C, 1% drift - and
+promoted the model on the numbers alone. What ends the state is not established (the owner had
+set Windows to Best performance in between; the first run may also have simply caught the
+machine in an efficiency episode).
+
+Operational consequence, refined: a flat run on a Ryzen AI machine (identical work, pinned
+clock, cold) is not a verdict on the platform. First have the owner confirm the clock boosts
+outside the test, then ask for **one** rerun; only when the flat signature repeats - or the
+STAPM drift signature above appears - fall back to the hardware-checks path.
 
 ## 61. GPU telemetry without vendor software (v1.31)
 
