@@ -19,6 +19,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **Fan curve verified on the MSI Pulse A16 AI+ C3HWFKG**
+  ([#229](../../issues/229), thanks @Xakson) - the owner's test curve sits byte-for-byte
+  at the shipped table addresses on both fans, so the curve editor for this model loses
+  its "unverified" flag. Signed model database `DataVersion 20261008`.
 - **MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`) promoted to Tested - the 48th**
   ([#228](../../issues/228), thanks @Xakson) - registration to promotion in a day, every
   piece of evidence from one owner's machine: a canonical per-scenario capture with the

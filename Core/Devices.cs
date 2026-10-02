@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261007;
+    public const int DataVersion = 20261008;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1094,8 +1094,13 @@ public static class Devices
         //   (duty 38 vs 54); Extreme a real +23% (4256 vs 3445 MHz) at 85 C with the fans
         //   ramped. His usage checks said the same (Silent audibly quieter, Extreme ramps).
         //   Whatever pinned the clock in run 1 did not recur; cause not established.
+        //   Curve VERIFIED (issue #229, the same owner's third report): his test curve sits
+        //   byte-for-byte at the shipped 0x72 (25-75) and 0x8A (20-70) on both fans. His
+        //   MSI Center (2.0.71) enables the curve as 0xD4=9D - bit7 on the current value
+        //   instead of our fixed 8D, the known pattern from #138; both work. Tachometers
+        //   read 00 in that capture (fans stopped), so the RPM format stays unclassified.
         new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, null),
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Xakson", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/228" },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Thin GF63 12HW",                FirmwarePrefixes = new[] { "16R7IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

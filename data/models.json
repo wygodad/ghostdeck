@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261007,
+  "dataVersion": 20261008,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -3533,7 +3533,7 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
       "credit": "Xakson",
