@@ -26,13 +26,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   boost** toggle edits the (normally hidden) "Processor performance boost mode" setting
   of the active power plan; because a plan write is persistent, the previous AC/battery
   values are saved per plan and the card says exactly what turning it back on will
-  write. The **Windows power mode** row sets the same mode as the Windows power slider
-  directly, and an optional "Follow the GhostDeck profile" switch keeps it in step with
-  every profile change (Silent and Super Battery choose best power efficiency, Balanced
-  the balanced mode, Extreme best performance). A "Restore Windows settings" button
-  appears only while the app actually holds something to restore; revealing the hidden
-  setting in the Windows power options lives in the card's help bubble.
-  CLI: `--turbo <on|off|status>`.
+  write; a details expander adds per-source control, so "quiet on battery, full power
+  plugged in" is two clicks. The **Windows power mode** row is a four-segment picker: the
+  three modes of the Windows power slider set directly, plus "Auto: profile", which re-applies
+  the mode on every profile change (Silent and Super Battery choose best power efficiency,
+  Balanced the balanced mode, Extreme best performance - the mapping sits behind its own
+  expander). A "Restore Windows settings" button exists only while the app actually holds
+  something to restore, and says what will come back; a footer link can reveal the hidden
+  setting in the Windows power options (and hide it again). CLI: `--turbo <on|off|status>`.
 - **GF65 Thin 10UE: first live G1-generation capture confirms the entry**
   ([#230](../../issues/230), thanks @scorvus99) - the `16W2EMS1` entry gains its retail
   name and a hardware confirmation of the G1 recipe bytes (`0xF2`/`0xF4`, real Silent

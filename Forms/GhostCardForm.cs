@@ -248,11 +248,13 @@ public sealed class GhostCardForm : Form
             g.DrawString(_body, bodyF, ib, new RectangleF(cx, yBody, cw, hBody + 4 * k));
 
         // ---- buttons: [accent action]  [later], right-aligned ----
+        // An empty later label means an acknowledge-only card (results, errors): the second
+        // button is skipped entirely rather than drawn as an empty pill.
         string ackTxt = _ackLabel, laterTxt = _laterLabel;
         int padX = Ce(14 * k), bgap = Ce(8 * k);
         int wAck = Ce(g.MeasureString(ackTxt, btnF).Width) + padX * 2;
-        int wLater = Ce(g.MeasureString(laterTxt, btnF).Width) + padX * 2;
-        int xLater = cx + cw - wLater, xAck = xLater - bgap - wAck;
+        int wLater = laterTxt.Length == 0 ? 0 : Ce(g.MeasureString(laterTxt, btnF).Width) + padX * 2;
+        int xLater = cx + cw - wLater, xAck = (wLater == 0 ? cx + cw : xLater - bgap) - wAck;
         void Button(int i, int bx, int bw, string text, bool accent)
         {
             var rc = new Rectangle(bx, yBtns, bw, hBtn);
@@ -269,7 +271,8 @@ public sealed class GhostCardForm : Form
             g.DrawString(text, btnF, tb, rc.X + (rc.Width - sz.Width) / 2f, rc.Y + (rc.Height - sz.Height) / 2f);
         }
         Button(0, xAck, wAck, ackTxt, accent: true);
-        Button(1, xLater, wLater, laterTxt, accent: false);
+        if (wLater > 0) Button(1, xLater, wLater, laterTxt, accent: false);
+        else _btn[1] = Rectangle.Empty;
 
         // small ✕ top-right (= Later)
         var xr = new Rectangle(W - xs - Ce(10 * k), yHdr + (hHdr - xs) / 2, xs, xs);

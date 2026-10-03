@@ -2770,31 +2770,36 @@ MIXED state is named in the status line rather than shown as a plain ON. Boost m
 names are enumerated live (`PowerReadPossibleValue` / `PowerReadPossibleFriendlyName`) - no
 hardcoded 0..6, and the names arrive already localized by Windows itself.
 
-**The Windows power mode row.** A three-segment control sets the mode directly - the same
-choice as the Windows power slider - written for both power sources through the official
-Windows 11 API (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived
-but undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds without the
-export). Under it sits an opt-in **"Follow the GhostDeck profile"** switch: fired only inside
+**The Windows power mode row.** A FOUR-segment control: the three modes of the Windows power
+slider, set directly for both power sources through the official Windows 11 API
+(`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but
+undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds without the
+export), plus **"Auto: profile"** as the fourth segment - the follow-the-profile switch
+folded into the same group, so exactly one segment is ever lit. Auto fires only inside
 `SetProfile`, never enforced in the background - Silent and Super Battery map to best power
-efficiency, Balanced to the default mode, Extreme to best performance. Picking a segment by
-hand switches follow OFF (the manual choice wins), and a hand-moved Windows slider stands
-until the next profile switch. The mode is a request Windows may temporarily override; the
-effective state comes from the documented `PowerRegisterForEffectivePowerModeNotifications`
-callback and lives in a DIFFERENT value space (battery saver, better battery, balanced,
-high/maximum performance, game mode, mixed reality) - the two are never compared 1:1, and the
-card only annotates a mismatch instead of equating the names.
+efficiency, Balanced to the default mode, Extreme to best performance (the mapping sits
+behind a "Profile mapping" expander on the card). Picking one of the three modes by hand
+switches Auto OFF (the manual choice wins), and a hand-moved Windows slider stands until the
+next profile switch. The mode is a request Windows may temporarily override; the effective
+state comes from the documented `PowerRegisterForEffectivePowerModeNotifications` callback
+and lives in a DIFFERENT value space (battery saver, better battery, balanced, high/maximum
+performance, game mode, mixed reality) - so the card compares coarse GROUPS
+(efficiency/balanced/performance), never names, and only a real cross-group mismatch shows
+the amber "Windows is temporarily applying X" strip.
 
-**Restore and the help bubble.** "Restore Windows settings" is shown ONLY while the app
-actually holds something to restore (a turbo snapshot, a mode it set, or the follow switch
-being on) - on an untouched system the card ends at the follow switch. It writes every
-snapshot back into the plan it came from (without activating any plan; one
-`PowerSetActiveScheme` at the end for the plan that was already active), skips and discards
-snapshots of deleted plans, keeps the snapshot of any failed write for a retry, and reports
-all three counts, behind a confirmation dialog in the app's own card style. "Show this
-setting in Windows power options" is deliberately NOT a card button - it lives in the card's
-help bubble as an advanced action: it clears only the HIDE bit of the setting attributes
-after storing the full original DWORD (`PowerRead/WriteSettingAttributes`), and the re-hide
-writes that exact DWORD back - no other attribute bit is ever lost.
+**Restore and the reveal footer.** "Restore Windows settings" EXISTS only while the app
+actually holds something to restore (a turbo snapshot or Auto being on), with an amber line
+under it spelling out exactly what will come back - on an untouched system the card simply
+has no restore button. It writes every snapshot back into the plan it came from (without
+activating any plan; one `PowerSetActiveScheme` at the end for the plan that was already
+active), skips and discards snapshots of deleted plans, keeps the snapshot of any failed
+write for a retry, and reports the counts; the confirmation and any attention-worthy result
+are GhostCardForm cards, never MessageBox. "Show this setting in Windows power options" is
+deliberately NOT a first-class button: a muted footer sentence names the hidden Windows
+setting and a small link under it reveals or re-hides it (live state read from the
+attributes). The reveal clears only the HIDE bit after storing the full original DWORD
+(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back - no
+other attribute bit is ever lost.
 
 CLI: `--turbo <on|off|status>`, forwarded to the running instance or executed one-shot; output
 stays English like the rest of the CLI.

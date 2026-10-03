@@ -219,6 +219,38 @@ public static class PowerPlan
         return "";
     }
 
+    /// <summary>
+    /// Per-source turbo switch (the "control separately" rows inside the card's details).
+    /// Same snapshot rules as the main switch: the pre-change pair is captured once, before
+    /// the first write that destroys a non-zero value, and the snapshot is dropped only when
+    /// a write makes the live pair match it again (fully restored).
+    /// </summary>
+    public static string TurboSetSource(AppSettings s, bool acSide, bool on)
+    {
+        if (!TryGetActiveScheme(out var scheme)) return "cannot read the active power plan";
+        if (!TryReadBoost(scheme, out uint ac, out uint dc)) return "cannot read the boost setting";
+        string key = Key(scheme);
+        bool haveSnap = s.TurboSnapshots.TryGetValue(key, out var snap) && snap is { Length: 2 };
+        uint next = 0;
+        if (on)
+        {
+            int sv = haveSnap ? (acSide ? snap![0] : snap![1]) : 0;
+            if (sv != 0) next = (uint)sv;
+            else if (FallbackBoost() is { } fb) next = fb.Value;
+            else return "this Windows enumerates no usable boost mode";
+        }
+        else if ((acSide ? ac : dc) != 0 && !haveSnap)
+        {
+            s.TurboSnapshots[key] = new[] { (int)ac, (int)dc };
+            haveSnap = true; snap = s.TurboSnapshots[key];
+        }
+        uint nAc = acSide ? next : ac, nDc = acSide ? dc : next;
+        if (!WriteBoost(scheme, nAc, nDc)) return "Windows refused the boost write";
+        if (haveSnap && snap![0] == (int)nAc && snap[1] == (int)nDc) s.TurboSnapshots.Remove(key);
+        s.Save();
+        return "";
+    }
+
     public static string TurboStatus()
     {
         if (!TryGetActiveScheme(out var scheme) || !TryReadBoost(scheme, out uint ac, out uint dc))
@@ -312,6 +344,23 @@ public static class PowerPlan
         ProfileId.Silent or ProfileId.SuperBattery => ModeBestEfficiency,
         ProfileId.Extreme => ModeBestPerformance,
         _ => ModeBalanced,
+    };
+
+    /// <summary>
+    /// Coarse equivalence groups (0 = efficiency, 1 = balanced, 2 = performance, -1 = unknown)
+    /// so the requested mode and the RICHER effective enum can be compared for the card's
+    /// "Windows is temporarily applying X" note. Never a 1:1 name comparison: MaxPerformance
+    /// under a Best-Performance request is agreement, not an override.
+    /// </summary>
+    public static int ModeGroup(Guid m) =>
+        m == ModeBestEfficiency ? 0 : m == ModeBalanced ? 1 : m == ModeBestPerformance ? 2 : -1;
+
+    public static int EffectiveGroup(int mode) => mode switch
+    {
+        0 or 1 => 0,          // battery saver, better battery
+        2 => 1,               // balanced
+        3 or 4 or 5 => 2,     // high performance, max performance, game mode
+        _ => -1,              // mixed reality / unknown: never claim an override
     };
 
     /// <summary>Lang key for one of the three requested modes.</summary>

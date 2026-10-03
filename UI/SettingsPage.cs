@@ -480,20 +480,22 @@ public sealed class SettingsPage : ThemedPage
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
         _gLeft[SubPower].Add(power);
 
-        // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost setting of the
-        // active power plan and the Windows power-mode slider. Everything is user-mode powrprof
-        // API (PowerPlan.cs) - no EC involved, so the card works on unsupported firmware too.
-        // Transparency by design (the Battery-health rule): the top rows always show the LIVE
-        // system state, and the status line spells out exactly what a re-enable will write,
-        // because a power-plan change persists until something changes it back.
-        var wp = new CardSection(Lang.T("pw_grp"), "");   // MDL2 PowerButton
-        Label WpVal() => new() { AutoSize = true, MaximumSize = new Size(360, 0), Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
-        var wpPlan = WpVal(); var wpBoost = WpVal(); var wpMode = WpVal();
-        wp.AddRow(Lang.T("pw_active_plan"), wpPlan);
-        wp.AddRow(Lang.T("pw_boost_now"), wpBoost);
-        wp.AddRow(Lang.T("pw_mode_now"), wpMode);
-        wp.AddRow(null, new SepLine());
-        var wpState = new Label { AutoSize = true, MaximumSize = new Size(360, 0), Font = new Font("Segoe UI", 9f), Tag = "muted" };
+        // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost setting of
+        // the active plan and the Windows power-mode choice, in the owner-picked layout
+        // (2026-10-04, "bold accents"): two labelled groups inside one card; a plain-sentence
+        // status line under the turbo switch (tinted strips with a 3 px rail for the
+        // non-default states); the per-source matrix and the profile mapping behind expanders;
+        // a four-segment mode row whose fourth segment is "Auto: profile"; a restore button
+        // that EXISTS only while the app actually holds something to restore; and the
+        // reveal-in-Windows action as a small footer link, not a first-class button.
+        // Everything is user-mode powrprof API (PowerPlan.cs) - no EC involved, so the card
+        // works on unsupported firmware too. Dialogs are GhostCardForm (never MessageBox).
+        var wp = new CardSection(Lang.T("pw_grp"), "");   // MDL2 PowerButton
+        var wpSmall = new Font("Segoe UI", 9f);
+        var wpAmber = Color.FromArgb(0xE8, 0xB6, 0x4C);
+        var wpRed = Color.FromArgb(0xE0, 0x6C, 0x6C);
+        Color WpMix(Color a, Color b, float t) => Color.FromArgb(
+            (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
         Control WithWpHelp(Control main, string key)
         {
             var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
@@ -502,101 +504,286 @@ public sealed class SettingsPage : ThemedPage
             flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T(key), Margin = new Padding(6, 4, 0, 0) });
             return flow;
         }
+        void WpErr(string reason)
+        {
+            var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_grp"),
+                Lang.T("pw_err_write") + "\n" + reason, "OK", "", () => { });
+            dlg.Show(); dlg.Activate();
+        }
+        // group header: 3 px colored marker + uppercase label (the variant's signature)
+        Control WpGroup(string text, Color rail)
+        {
+            var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = new Padding(0, 6, 0, 0) };
+            flow.Controls.Add(new Panel { BackColor = rail, Size = new Size(3, 13), Margin = new Padding(0, 3, 7, 0) });
+            flow.Controls.Add(new Label { Text = text.ToUpperInvariant(), AutoSize = true, Font = new Font("Segoe UI", 8.25f, FontStyle.Bold), ForeColor = Theme.Muted, Margin = Padding.Empty });
+            return flow;
+        }
+        // status sentence; StyleStrip switches it between plain-muted and a tinted strip
+        // with a colored left rail (amber = app-made state / mixed, red = changed outside)
+        (FlowLayoutPanel Strip, Label Lbl) WpStrip()
+        {
+            var l = new Label { AutoSize = true, MaximumSize = new Size(322, 0), Font = wpSmall, Margin = Padding.Empty, BackColor = Color.Transparent };
+            var p = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = new Padding(0, 2, 0, 2) };
+            p.Controls.Add(l);
+            p.Paint += (_, pe) => { if (p.Tag is Color c) { using var b = new SolidBrush(c); pe.Graphics.FillRectangle(b, 0, 0, 3, p.Height); } };
+            return (p, l);
+        }
+        void StyleStrip(FlowLayoutPanel strip, Label l, Color? rail)
+        {
+            if (rail is { } c)
+            {
+                strip.Tag = c;
+                strip.BackColor = WpMix(Theme.Card, c, 0.10f);
+                strip.Padding = new Padding(9, 5, 9, 5);
+                l.ForeColor = c;
+            }
+            else
+            {
+                strip.Tag = null;
+                strip.BackColor = Color.Transparent;
+                strip.Padding = new Padding(0, 1, 0, 3);
+                l.ForeColor = Theme.Muted;
+            }
+            strip.Invalidate();
+        }
+        // expander (the owner's K3 pick): a clickable arrow header over a collapsible body;
+        // every manual layout pass goes through LayoutAndSyncScroll (the scrollbar invariant)
+        Control WpExpander(string title, Control body, bool open)
+        {
+            body.Visible = open;
+            var head = new Label { AutoSize = true, Font = wpSmall, ForeColor = Theme.Text, Cursor = Cursors.Hand, Margin = new Padding(0, 3, 0, 1) };
+            head.Text = (open ? "▾  " : "▸  ") + title;
+            head.Click += (_, _) => LayoutAndSyncScroll(() =>
+            {
+                body.Visible = !body.Visible;
+                head.Text = (body.Visible ? "▾  " : "▸  ") + title;
+            });
+            var wrap = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = Padding.Empty };
+            wrap.Controls.Add(head);
+            wrap.Controls.Add(body);
+            return wrap;
+        }
+
+        // ---- group 1: CPU turbo boost ----
         var wpToggle = Toggle(false, v =>
         {
             string err = v ? PowerPlan.TurboOn(D.Settings) : PowerPlan.TurboOff(D.Settings);
-            if (err.Length > 0)
-                MessageBox.Show(FindForm(), Lang.T("pw_err_write") + "\n" + err, "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            else
-                ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost: " + (v ? "on" : "off"));
+            if (err.Length > 0) WpErr(err);
+            else ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost: " + (v ? "on" : "off"));
             _syncPowerCard?.Invoke();
         });
+        wp.AddRow(null, WpGroup(Lang.T("pw_turbo_label"), Theme.Accent));
         wp.AddRow(Lang.T("pw_turbo_label"), WithWpHelp(wpToggle, "pw_turbo_help"));
-        wp.AddRow(null, wpState);
-        wp.AddRow(null, new SepLine());
-        var wpSync = Toggle(D.Settings.PowerModeSync, v => { D.Settings.PowerModeSync = v; D.SaveSettings(); });
-        wp.AddRow(Lang.T("pw_sync_label"), WithWpHelp(wpSync, "pw_sync_help"));
-        wp.AddRow(null, new Label
+        var (turboStrip, turboLbl) = WpStrip();
+        wp.AddRow(null, turboStrip);
+        // the technical matrix (K2): plan | plugged in | battery, with the saved pair and
+        // per-source switches for the deliberate "quiet on battery, full power plugged in"
+        Label MxCell(Color fore) => new() { AutoSize = true, Font = wpSmall, ForeColor = fore, Margin = new Padding(0, 5, 14, 1) };
+        var mxPlan = MxCell(Theme.Muted); var mxAcH = MxCell(Theme.Muted); var mxDcH = MxCell(Theme.Muted);
+        var mxNowL = MxCell(Theme.Muted); var mxNowAc = MxCell(Theme.Text); var mxNowDc = MxCell(Theme.Text);
+        var mxSavL = MxCell(Theme.Muted); var mxSavAc = MxCell(wpAmber); var mxSavDc = MxCell(wpAmber);
+        var mxSrcL = MxCell(Theme.Muted);
+        mxAcH.Text = Lang.T("pw_ac"); mxDcH.Text = Lang.T("pw_dc");
+        mxNowL.Text = Lang.T("pw_now"); mxSavL.Text = Lang.T("pw_saved"); mxSrcL.Text = Lang.T("pw_per_source");
+        var srcAc = Toggle(true, v =>
         {
-            Text = Lang.T("pw_sync_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
+            string err = PowerPlan.TurboSetSource(D.Settings, acSide: true, on: v);
+            if (err.Length > 0) WpErr(err);
+            else ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost (plugged in): " + (v ? "on" : "off"));
+            _syncPowerCard?.Invoke();
         });
-        wp.AddRow(null, new SepLine());
-        // Both buttons change PERSISTENT Windows state, so both sit behind an explicit
-        // confirmation dialog that describes the consequences (the scene-delete rule) -
-        // never a single click.
-        var wpReveal = new Button { AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
-        Ui.StyleGhost(wpReveal);
-        wpReveal.Click += (_, _) =>
+        var srcDc = Toggle(true, v =>
         {
-            bool hidden = PowerPlan.HiddenInControlPanel();
-            if (MessageBox.Show(FindForm(), Lang.T(hidden ? "pw_show_confirm" : "pw_hide_confirm"), "GhostDeck",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-            if (!PowerPlan.SetRevealed(D.Settings, hidden))
-                MessageBox.Show(FindForm(), Lang.T("pw_err_write"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            string err = PowerPlan.TurboSetSource(D.Settings, acSide: false, on: v);
+            if (err.Length > 0) WpErr(err);
+            else ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost (battery): " + (v ? "on" : "off"));
+            _syncPowerCard?.Invoke();
+        });
+        srcAc.Margin = srcDc.Margin = new Padding(0, 3, 14, 1);
+        var mx = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 3, RowCount = 4, Margin = new Padding(10, 0, 0, 3), BackColor = Color.Transparent };
+        mx.Controls.Add(mxPlan, 0, 0); mx.Controls.Add(mxAcH, 1, 0); mx.Controls.Add(mxDcH, 2, 0);
+        mx.Controls.Add(mxNowL, 0, 1); mx.Controls.Add(mxNowAc, 1, 1); mx.Controls.Add(mxNowDc, 2, 1);
+        mx.Controls.Add(mxSavL, 0, 2); mx.Controls.Add(mxSavAc, 1, 2); mx.Controls.Add(mxSavDc, 2, 2);
+        mx.Controls.Add(mxSrcL, 0, 3); mx.Controls.Add(srcAc, 1, 3); mx.Controls.Add(srcDc, 2, 3);
+        wp.AddRow(null, WpExpander(Lang.T("pw_details"), mx, open: false));
+
+        // ---- group 2: Windows power mode ----
+        wp.AddRow(null, WpGroup(Lang.T("pw_mode_now"), Theme.AccentFill));
+        var wpSeg = new SegControl(new[] { Lang.T("pwm_req_eff"), Lang.T("pwm_req_bal"), Lang.T("pwm_req_perf"), Lang.T("pw_auto_seg") }, 1) { Margin = new Padding(0, 4, 0, 1) };
+        wp.AddRow(null, wpSeg);
+        var autoLbl = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Muted, Margin = new Padding(0, 1, 0, 2) };
+        wp.AddRow(null, autoLbl);
+        var (ovStrip, ovLbl) = WpStrip();   // the yellow "Windows is temporarily applying X" note
+        wp.AddRow(null, ovStrip);
+        var mapBody = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 2, RowCount = 4, Margin = new Padding(10, 0, 0, 3), BackColor = Color.Transparent };
+        void MapRow(int r, string prof, string modeKey)
+        {
+            mapBody.Controls.Add(new Label { Text = prof, AutoSize = true, Font = wpSmall, ForeColor = Theme.Muted, Margin = new Padding(0, 3, 14, 1) }, 0, r);
+            mapBody.Controls.Add(new Label { Text = "→  " + Lang.T(modeKey), AutoSize = true, Font = wpSmall, ForeColor = Theme.Text, Margin = new Padding(0, 3, 0, 1) }, 1, r);
+        }
+        MapRow(0, "Super Battery", "pwm_req_eff");
+        MapRow(1, "Silent", "pwm_req_eff");
+        MapRow(2, "Balanced", "pwm_req_bal");
+        MapRow(3, "Extreme", "pwm_req_perf");
+        wp.AddRow(null, WpExpander(Lang.T("pw_mapping"), mapBody, open: false));
+        wpSeg.SelectedChanged += i =>
+        {
+            if (i == 3)
+            {
+                // Auto: follow the GhostDeck profile from now on, and apply it right away
+                D.Settings.PowerModeSync = true; D.SaveSettings();
+                Enum.TryParse<ProfileId>(D.Settings.LastProfile, out var prof);
+                if (!PowerPlan.TrySetPowerMode(PowerPlan.ModeForProfile(prof))) WpErr("Windows refused the power-mode write");
+                else ChangeLog.Add(ChangeSource.Panel, "Windows power mode: follow the profile");
+            }
             else
-                ChangeLog.Add(ChangeSource.Panel, "PERFBOOSTMODE " + (hidden ? "revealed in" : "re-hidden from") + " Windows power options");
+            {
+                // a manual pick always wins: it switches Auto off (nothing fights the user)
+                if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); }
+                var mode = i == 0 ? PowerPlan.ModeBestEfficiency : i == 2 ? PowerPlan.ModeBestPerformance : PowerPlan.ModeBalanced;
+                if (!PowerPlan.TrySetPowerMode(mode)) WpErr("Windows refused the power-mode write");
+                else ChangeLog.Add(ChangeSource.Panel, "Windows power mode: " + (i == 0 ? "best efficiency" : i == 2 ? "best performance" : "balanced"));
+            }
             _syncPowerCard?.Invoke();
         };
+
+        // ---- restore (exists only while something is held) + the reveal footer ----
+        wp.AddRow(null, new SepLine());
+        string RestoreDetails()
+        {
+            var items = new List<string>();
+            foreach (var (key, sn) in D.Settings.TurboSnapshots)
+                if (sn is { Length: 2 } && Guid.TryParse(key, out var g2))
+                    items.Add($"{PowerPlan.SchemeName(g2)}: {PowerPlan.BoostName((uint)sn[0])} / {PowerPlan.BoostName((uint)sn[1])}");
+            if (D.Settings.PowerModeSync) items.Add(Lang.T("pw_auto_seg"));
+            return string.Join("  ·  ", items);
+        }
         var wpRestore = new Button { Text = Lang.T("pw_restore_btn"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
         Ui.StyleGhost(wpRestore);
+        var restoreDesc = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = wpAmber, Margin = new Padding(0, 0, 0, 2) };
         wpRestore.Click += (_, _) =>
         {
-            if (MessageBox.Show(FindForm(), Lang.T("pw_restore_confirm"), "GhostDeck",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-            var (ok, missing, failed) = PowerPlan.RestoreAll(D.Settings);
-            if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); wpSync.Checked = false; }
-            ChangeLog.Add(ChangeSource.Panel, $"Windows power restore: {ok} restored, {missing} plans gone, {failed} failed");
-            MessageBox.Show(FindForm(), string.Format(Lang.T("pw_restore_result_fmt"), ok, missing, failed),
-                "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            _syncPowerCard?.Invoke();
+            var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_restore_btn"),
+                Lang.T("pw_restore_confirm") + "\n\n" + RestoreDetails(),
+                Lang.T("pw_restore_btn"), Lang.T("fw_dlg_later"), () =>
+                {
+                    var (ok, missing, failed) = PowerPlan.RestoreAll(D.Settings);
+                    if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); }
+                    ChangeLog.Add(ChangeSource.Panel, $"Windows power restore: {ok} restored, {missing} plans gone, {failed} failed");
+                    // a clean restore shows itself (the button disappears, the matrix empties);
+                    // a card appears only when something needs the owner's attention
+                    if (missing > 0 || failed > 0)
+                    {
+                        var res = new GhostCardForm("//WIN-POWER", Lang.T("pw_restore_btn"),
+                            string.Format(Lang.T("pw_restore_result_fmt"), ok, missing, failed), "OK", "", () => { });
+                        res.Show(); res.Activate();
+                    }
+                    _syncPowerCard?.Invoke();
+                });
+            dlg.Show(); dlg.Activate();
         };
-        wp.AddRow(null, wpReveal);
         wp.AddRow(null, wpRestore);
+        wp.AddRow(null, restoreDesc);
+        var wpFooter = new Label { Text = Lang.T("pw_footer"), AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Faint, Margin = new Padding(0, 4, 0, 0) };
+        var revealLink = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Accent, Cursor = Cursors.Hand, Margin = new Padding(0, 1, 0, 0) };
+        revealLink.Click += (_, _) =>
+        {
+            bool hidden = PowerPlan.HiddenInControlPanel();
+            var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_grp"),
+                Lang.T(hidden ? "pw_show_confirm" : "pw_hide_confirm"),
+                Lang.T(hidden ? "pw_show_btn" : "pw_hide_btn"), Lang.T("fw_dlg_later"), () =>
+                {
+                    if (!PowerPlan.SetRevealed(D.Settings, hidden)) WpErr("Windows refused the attribute write");
+                    else ChangeLog.Add(ChangeSource.Panel, "PERFBOOSTMODE " + (hidden ? "revealed in" : "re-hidden from") + " Windows power options");
+                    _syncPowerCard?.Invoke();
+                });
+            dlg.Show(); dlg.Activate();
+        };
+        wp.AddRow(null, wpFooter);
+        wp.AddRow(null, revealLink);
+
         _syncPowerCard = () =>
         {
             if (wp.IsDisposed) return;
             bool haveScheme = PowerPlan.TryGetActiveScheme(out var scheme);
-            string planName = haveScheme ? PowerPlan.SchemeName(scheme) : "";
-            wpPlan.Text = planName.Length > 0 ? planName : "—";
+            mxPlan.Text = string.Format(Lang.T("pw_plan_fmt"), haveScheme ? PowerPlan.SchemeName(scheme) : "—");
             uint acV = 0, dcV = 0;
             bool haveBoost = haveScheme && PowerPlan.TryReadBoost(scheme, out acV, out dcV);
+            int[]? sn = haveScheme
+                     && D.Settings.TurboSnapshots.TryGetValue(scheme.ToString("D").ToLowerInvariant(), out var snRaw)
+                     && snRaw is { Length: 2 } ? snRaw : null;
             if (haveBoost)
             {
                 string an = PowerPlan.BoostName(acV), dn = PowerPlan.BoostName(dcV);
-                wpBoost.Text = string.Format(Lang.T("pw_acdc_fmt"), an, dn);
-                wpToggle.Enabled = true;
+                wpToggle.Enabled = srcAc.Enabled = srcDc.Enabled = true;
                 wpToggle.Checked = !(acV == 0 && dcV == 0);   // Checked setter never fires Toggled
+                srcAc.Checked = acV != 0; srcDc.Checked = dcV != 0;
+                mxNowAc.Text = an; mxNowDc.Text = dn;
                 if (acV == 0 && dcV == 0)
                 {
-                    // Two honest OFF texts: "comes back" ONLY when a snapshot really exists;
-                    // otherwise turbo was disabled outside the app and re-enabling uses the
-                    // enumeration-validated GhostDeck fallback, said in so many words.
-                    wpState.Text = D.Settings.TurboSnapshots.TryGetValue(scheme.ToString("D").ToLowerInvariant(), out var sn) && sn is { Length: 2 }
-                        ? string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)sn[0]), PowerPlan.BoostName((uint)sn[1]))
-                        : string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—");
+                    // Two honest OFF texts: "comes back" ONLY when a snapshot really exists
+                    // (amber strip = our own doing); the red strip = turbo was disabled outside
+                    // the app, and re-enabling uses the enumeration-validated GhostDeck fallback.
+                    if (sn != null)
+                    {
+                        turboLbl.Text = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)sn[0]), PowerPlan.BoostName((uint)sn[1]));
+                        StyleStrip(turboStrip, turboLbl, wpAmber);
+                    }
+                    else
+                    {
+                        turboLbl.Text = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—");
+                        StyleStrip(turboStrip, turboLbl, wpRed);
+                    }
                 }
                 else if (acV != 0 && dcV != 0)
-                    wpState.Text = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn);
+                {
+                    turboLbl.Text = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn);
+                    StyleStrip(turboStrip, turboLbl, null);
+                }
                 else
-                    // a real MIXED state (e.g. AC on, battery off) - named, never shown as plain ON
-                    wpState.Text = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn);
+                {
+                    // a real MIXED state (e.g. AC on, battery off) - named, never a plain ON
+                    turboLbl.Text = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn);
+                    StyleStrip(turboStrip, turboLbl, wpAmber);
+                }
             }
             else
             {
-                wpBoost.Text = "—";
-                wpToggle.Enabled = false;
-                wpState.Text = Lang.T("pw_unavailable");
+                wpToggle.Enabled = srcAc.Enabled = srcDc.Enabled = false;
+                mxNowAc.Text = mxNowDc.Text = "—";
+                turboLbl.Text = Lang.T("pw_unavailable");
+                StyleStrip(turboStrip, turboLbl, null);
             }
-            string req = PowerPlan.TryGetUserPowerMode(out var mAc, out var mDc)
-                ? (mAc == mDc ? Lang.T(PowerPlan.ModeKey(mAc))
-                              : string.Format(Lang.T("pw_acdc_fmt"), Lang.T(PowerPlan.ModeKey(mAc)), Lang.T(PowerPlan.ModeKey(mDc))))
-                : "—";
+            mxSavAc.Text = sn != null ? PowerPlan.BoostName((uint)sn[0]) : "—";
+            mxSavDc.Text = sn != null ? PowerPlan.BoostName((uint)sn[1]) : "—";
+            // segment: Auto wins; otherwise the user-configured mode when both sources agree
+            // (ModeGroup indexes align with the segment order: efficiency, balanced, performance)
+            bool haveMode = PowerPlan.TryGetUserPowerMode(out var mAc, out var mDc);
+            Enum.TryParse<ProfileId>(D.Settings.LastProfile, out var curProf);
+            wpSeg.Selected = D.Settings.PowerModeSync ? 3
+                           : haveMode && mAc == mDc ? PowerPlan.ModeGroup(mAc) : -1;
+            autoLbl.Visible = D.Settings.PowerModeSync;
+            if (D.Settings.PowerModeSync)
+                autoLbl.Text = string.Format(Lang.T("pw_auto_fmt"),
+                    curProf == ProfileId.SuperBattery ? "Super Battery" : curProf.ToString(),
+                    Lang.T(PowerPlan.ModeKey(PowerPlan.ModeForProfile(curProf))));
+            // the yellow note appears ONLY on a real cross-group mismatch; the effective enum
+            // is richer than the three requested modes, so GROUPS are compared, never names
+            int reqGroup = D.Settings.PowerModeSync ? PowerPlan.ModeGroup(PowerPlan.ModeForProfile(curProf))
+                         : haveMode && mAc == mDc ? PowerPlan.ModeGroup(mAc) : -1;
+            int effGroup = PowerPlan.EffectiveGroup(PowerPlan.EffectiveMode);
             string effKey = PowerPlan.EffectiveKey(PowerPlan.EffectiveMode);
-            // requested and effective live in DIFFERENT value spaces (the effective enum is
-            // richer), so both are shown side by side and never compared or merged
-            wpMode.Text = string.Format(Lang.T("pw_mode_req_eff_fmt"), req, effKey.Length > 0 ? Lang.T(effKey) : "—");
-            wpReveal.Text = Lang.T(PowerPlan.HiddenInControlPanel() ? "pw_show_btn" : "pw_hide_btn");
+            bool overridden = reqGroup >= 0 && effGroup >= 0 && reqGroup != effGroup && effKey.Length > 0;
+            ovStrip.Visible = overridden;
+            if (overridden)
+            {
+                ovLbl.Text = string.Format(Lang.T("pw_override_fmt"), Lang.T(effKey));
+                StyleStrip(ovStrip, ovLbl, wpAmber);
+            }
+            string details = RestoreDetails();
+            wpRestore.Visible = restoreDesc.Visible = details.Length > 0;
+            if (details.Length > 0) restoreDesc.Text = string.Format(Lang.T("pw_restore_desc_fmt"), details);
+            revealLink.Text = Lang.T(PowerPlan.HiddenInControlPanel() ? "pw_show_btn" : "pw_hide_btn");
         };
         PowerPlan.EnsureEffectiveWatch();
         _syncPowerCard();
