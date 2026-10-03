@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261008,
+  "dataVersion": 20261009,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -939,7 +939,7 @@
       }
     },
     {
-      "name": "MSI GF65 Thin",
+      "name": "MSI GF65 Thin 10UE",
       "prefixes": [
         "16W2EMS1"
       ],
@@ -947,6 +947,8 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "credit": "scorvus99",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",

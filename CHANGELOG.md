@@ -19,6 +19,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exactly as before.
 
 ### Added
+- **GF65 Thin 10UE: first live G1-generation capture confirms the entry**
+  ([#230](../../issues/230), thanks @scorvus99) - the `16W2EMS1` entry gains its retail
+  name and a hardware confirmation of the G1 recipe bytes (`0xF2`/`0xF4`, real Silent
+  value included), captured on a Dragon-Center-era machine. The entry stays experimental:
+  on the reporter's own unit the standard MSI interface refuses calls, so the capture
+  came through an alternative read path he built - it validates the data, not the stock
+  app's path. Signed model database `DataVersion 20261009`.
 - **Fan curve verified on the MSI Pulse A16 AI+ C3HWFKG**
   ([#229](../../issues/229), thanks @Xakson) - the owner's test curve sits byte-for-byte
   at the shipped table addresses on both fans, so the curve editor for this model loses

@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261008;
+    public const int DataVersion = 20261009;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -583,8 +583,20 @@ public static class Devices
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
         new() { Name = "MSI GS65 Stealth", FirmwarePrefixes = new[] { "16Q4EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
-        new() { Name = "MSI GF65 Thin",    FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+        // GF65 Thin 10UE (16W2EMS1, msi-ec CONF_G1_7) - the first LIVE per-scenario capture
+        // from the G1 generation (issue #230, Dragon Center 2.0.155 era): 0xF2 C1/C1/C4/C2
+        // and 0xF4 1D/0D/0D/0D confirm the shipped recipe byte-for-byte, with the REAL
+        // Silent fan value. Observation, not written: the vendor's Super Battery also sets
+        // 0xF3 (this board's kbd-backlight register per msi-ec) from 0x83 to 0x80 - i.e.
+        // turns the backlight off in eco; our recipes leave 0xF3 alone.
+        //   PROVENANCE caveat: the reporter's own machine REFUSES the MSI_ACPI method
+        //   interface (0x8004100c - the #117 story), so his capture and hardware checks
+        //   came from his own build using the WMI data-block path (write-up archived
+        //   privately; research tracked separately). The tier therefore STAYS Experimental:
+        //   the stock app's own path has not been verified on this board by anyone yet.
+        new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Experimental,
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                Credit = "scorvus99", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/230" },
 
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====
         // G2 modern-HX siblings of the tested 17S1IMS1 board (same 0xD2/0xD4 layout).

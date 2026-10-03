@@ -152,8 +152,8 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI GF63 Thin 10U / 10SC / 10UC | `16R5EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 Thin 9SC | `16R3EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 Thin 9SCSR | `16R4EMS2` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
-| MSI GF65 Thin | `16W2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF65 Thin 10SCSXR / 10SD / 10SE | `16W1EMS2` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
+| MSI GF65 Thin 10UE | `16W2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF65 Thin 9SE / 9SD | `16W1EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GP66 Leopard 10UG / 10UE / 10UH | `1542EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GS65 Stealth | `16Q4EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
