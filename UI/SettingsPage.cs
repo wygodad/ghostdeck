@@ -490,7 +490,7 @@ public sealed class SettingsPage : ThemedPage
         // reveal-in-Windows action as a small footer link, not a first-class button.
         // Everything is user-mode powrprof API (PowerPlan.cs) - no EC involved, so the card
         // works on unsupported firmware too. Dialogs are GhostCardForm (never MessageBox).
-        var wp = new CardSection(Lang.T("pw_grp"), "");   // MDL2 PowerButton
+        var wp = new CardSection(Lang.T("pw_grp"), "");   // MDL2 PowerButton
         var wpSmall = new Font("Segoe UI", 9f);
         var wpAmber = Color.FromArgb(0xE8, 0xB6, 0x4C);
         var wpRed = Color.FromArgb(0xE0, 0x6C, 0x6C);
@@ -510,22 +510,33 @@ public sealed class SettingsPage : ThemedPage
                 Lang.T("pw_err_write") + "\n" + reason, "OK", "", () => { });
             dlg.Show(); dlg.Activate();
         }
+        float wk = DeviceDpi / 96f;
+        int WS(int v) => (int)Math.Ceiling(v * wk);
         // group header: 3 px colored marker + uppercase label (the variant's signature)
         Control WpGroup(string text, Color rail)
         {
             var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = new Padding(0, 6, 0, 0) };
-            flow.Controls.Add(new Panel { BackColor = rail, Size = new Size(3, 13), Margin = new Padding(0, 3, 7, 0) });
-            flow.Controls.Add(new Label { Text = text.ToUpperInvariant(), AutoSize = true, Font = new Font("Segoe UI", 8.25f, FontStyle.Bold), ForeColor = Theme.Muted, Margin = Padding.Empty });
+            flow.Controls.Add(new Panel { BackColor = rail, Size = new Size(3, WS(13)), Margin = new Padding(0, 3, 7, 0) });
+            flow.Controls.Add(new Label { Text = text.ToUpperInvariant(), AutoSize = true, Font = new Font("Segoe UI", 8.25f, FontStyle.Bold), ForeColor = Theme.Muted, Tag = "muted", Margin = Padding.Empty });
             return flow;
         }
-        // status sentence; StyleStrip switches it between plain-muted and a tinted strip
-        // with a colored left rail (amber = app-made state / mixed, red = changed outside)
+        // status sentence; StyleStrip switches it between plain-muted and a tinted full-width
+        // strip with a colored left rail (amber = app-made state / mixed, red = changed
+        // outside). The tint is painted, not BackColor - ApplyTheme repaints FlowLayoutPanels
+        // to the card colour and would wipe a BackColor tint.
         (FlowLayoutPanel Strip, Label Lbl) WpStrip()
         {
-            var l = new Label { AutoSize = true, MaximumSize = new Size(322, 0), Font = wpSmall, Margin = Padding.Empty, BackColor = Color.Transparent };
-            var p = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = new Padding(0, 2, 0, 2) };
+            var l = new Label { AutoSize = true, MaximumSize = new Size(WS(318), 0), Font = wpSmall, Margin = Padding.Empty, BackColor = Color.Transparent, Tag = "muted" };
+            var p = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = new Padding(0, 2, 0, 2), MinimumSize = new Size(WS(344), 0) };
             p.Controls.Add(l);
-            p.Paint += (_, pe) => { if (p.Tag is Color c) { using var b = new SolidBrush(c); pe.Graphics.FillRectangle(b, 0, 0, 3, p.Height); } };
+            p.Paint += (_, pe) =>
+            {
+                if (p.Tag is not Color c) return;
+                using var bb = new SolidBrush(WpMix(Theme.Card, c, 0.10f));
+                pe.Graphics.FillRectangle(bb, p.ClientRectangle);
+                using var rb = new SolidBrush(c);
+                pe.Graphics.FillRectangle(rb, 0, 0, 3, p.Height);
+            };
             return (p, l);
         }
         void StyleStrip(FlowLayoutPanel strip, Label l, Color? rail)
@@ -533,34 +544,45 @@ public sealed class SettingsPage : ThemedPage
             if (rail is { } c)
             {
                 strip.Tag = c;
-                strip.BackColor = WpMix(Theme.Card, c, 0.10f);
-                strip.Padding = new Padding(9, 5, 9, 5);
+                strip.Padding = new Padding(10, 5, 9, 5);
                 l.ForeColor = c;
+                l.Tag = "warn";   // keeps ApplyTheme on the semantic colour, not plain text
             }
             else
             {
                 strip.Tag = null;
-                strip.BackColor = Color.Transparent;
                 strip.Padding = new Padding(0, 1, 0, 3);
                 l.ForeColor = Theme.Muted;
+                l.Tag = "muted";
             }
             strip.Invalidate();
         }
-        // expander (the owner's K3 pick): a clickable arrow header over a collapsible body;
-        // every manual layout pass goes through LayoutAndSyncScroll (the scrollbar invariant)
+        // expander (the owner's K3 pick): a framed, clickable header row over a collapsible
+        // body, like the mock-up. Toggling re-runs the page layout (Layout2 already wraps the
+        // scrollbar invariant), because CardSection.Relayout measures row heights only when
+        // it is called - a grown child would otherwise overlap the rows below it.
         Control WpExpander(string title, Control body, bool open)
         {
             body.Visible = open;
-            var head = new Label { AutoSize = true, Font = wpSmall, ForeColor = Theme.Text, Cursor = Cursors.Hand, Margin = new Padding(0, 3, 0, 1) };
-            head.Text = (open ? "▾  " : "▸  ") + title;
-            head.Click += (_, _) => LayoutAndSyncScroll(() =>
-            {
-                body.Visible = !body.Visible;
-                head.Text = (body.Visible ? "▾  " : "▸  ") + title;
-            });
-            var wrap = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = Padding.Empty };
+            body.Margin = new Padding(9, 0, 9, 8);
+            var head = new Label { AutoSize = true, Font = new Font("Segoe UI", 9.5f), ForeColor = Theme.Text, Cursor = Cursors.Hand, Margin = new Padding(9, 7, 9, 7), BackColor = Color.Transparent };
+            head.Text = (open ? "▾   " : "▸   ") + title;
+            var wrap = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 2, 0, 2), MinimumSize = new Size(WS(344), 0) };
             wrap.Controls.Add(head);
             wrap.Controls.Add(body);
+            wrap.Paint += (_, pe) =>
+            {
+                using var pen = new Pen(Theme.Border);
+                using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, wrap.Width - 1, wrap.Height - 1), 7);
+                pe.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                pe.Graphics.DrawPath(pen, path);
+            };
+            head.Click += (_, _) =>
+            {
+                body.Visible = !body.Visible;
+                head.Text = (body.Visible ? "▾   " : "▸   ") + title;
+                Layout2();
+            };
             return wrap;
         }
 
@@ -610,8 +632,11 @@ public sealed class SettingsPage : ThemedPage
         // ---- group 2: Windows power mode ----
         wp.AddRow(null, WpGroup(Lang.T("pw_mode_now"), Theme.AccentFill));
         var wpSeg = new SegControl(new[] { Lang.T("pwm_req_eff"), Lang.T("pwm_req_bal"), Lang.T("pwm_req_perf"), Lang.T("pw_auto_seg") }, 1) { Margin = new Padding(0, 4, 0, 1) };
+        // SegControl's MinimumSize floors only the WIDTH; a bare Control has no height of its
+        // own, so without this the whole row renders as empty space (first test build).
+        wpSeg.Size = new Size(Math.Max(wpSeg.MinimumSize.Width, WS(344)), WS(30));
         wp.AddRow(null, wpSeg);
-        var autoLbl = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Muted, Margin = new Padding(0, 1, 0, 2) };
+        var autoLbl = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Muted, Tag = "muted", Margin = new Padding(0, 1, 0, 2) };
         wp.AddRow(null, autoLbl);
         var (ovStrip, ovLbl) = WpStrip();   // the yellow "Windows is temporarily applying X" note
         wp.AddRow(null, ovStrip);
@@ -660,7 +685,8 @@ public sealed class SettingsPage : ThemedPage
         }
         var wpRestore = new Button { Text = Lang.T("pw_restore_btn"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
         Ui.StyleGhost(wpRestore);
-        var restoreDesc = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = wpAmber, Margin = new Padding(0, 0, 0, 2) };
+        wpRestore.FlatAppearance.BorderColor = wpAmber;   // the mock-up's amber "held state" frame
+        var restoreDesc = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = wpAmber, Tag = "warn", Margin = new Padding(0, 0, 0, 2) };
         wpRestore.Click += (_, _) =>
         {
             var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_restore_btn"),
@@ -684,8 +710,9 @@ public sealed class SettingsPage : ThemedPage
         };
         wp.AddRow(null, wpRestore);
         wp.AddRow(null, restoreDesc);
-        var wpFooter = new Label { Text = Lang.T("pw_footer"), AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Faint, Margin = new Padding(0, 4, 0, 0) };
-        var revealLink = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Accent, Cursor = Cursors.Hand, Margin = new Padding(0, 1, 0, 0) };
+        var wpFooter = new Label { Text = Lang.T("pw_footer"), AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Faint, Tag = "muted", Margin = new Padding(0, 4, 0, 0) };
+        // a LinkLabel renders through LinkColor, which ApplyTheme's plain-label pass ignores
+        var revealLink = new LinkLabel { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, LinkColor = Theme.Accent, ActiveLinkColor = Theme.Text, LinkBehavior = LinkBehavior.HoverUnderline, Margin = new Padding(0, 1, 0, 0) };
         revealLink.Click += (_, _) =>
         {
             bool hidden = PowerPlan.HiddenInControlPanel();
@@ -784,6 +811,9 @@ public sealed class SettingsPage : ThemedPage
             wpRestore.Visible = restoreDesc.Visible = details.Length > 0;
             if (details.Length > 0) restoreDesc.Text = string.Format(Lang.T("pw_restore_desc_fmt"), details);
             revealLink.Text = Lang.T(PowerPlan.HiddenInControlPanel() ? "pw_show_btn" : "pw_hide_btn");
+            // visibility just changed on conditional rows (strips, restore) - reflow the page,
+            // except during BuildForm, where Layout2 runs right after anyway
+            if (wp.Parent != null) Layout2();
         };
         PowerPlan.EnsureEffectiveWatch();
         _syncPowerCard();
@@ -902,7 +932,7 @@ public sealed class SettingsPage : ThemedPage
             };
             sch.AddRow(null, add);
         }
-        _gLeft[SubPower].Add(sch);
+        _gRight[SubPower].Add(sch);   // owner request (2026-10-04): schedule lives in the right column
 
         // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
         // model. Pickers list only the modes the panel reports at its current resolution.
@@ -2068,6 +2098,9 @@ public sealed class SettingsPage : ThemedPage
             y += Math.Max(_head.Height, Ceil(26 * DeviceDpi / 96f)) + 14;
             foreach (var (l, ctl) in _rows)
             {
+                // a hidden full-width row (conditional strips, the restore button) takes no
+                // space - without this the card reserves blank gaps for invisible controls
+                if (l == null && !ctl.Visible) continue;
                 // full-width note labels (Tag "muted", e.g. the diagnostics blurb) rewrap to the
                 // card's current width instead of a fixed MaximumSize
                 if (l == null && ctl is Label note && note.Tag as string is "muted" or "warn")
