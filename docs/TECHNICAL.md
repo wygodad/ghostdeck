@@ -293,6 +293,11 @@ Addr   Silent  Balanced  Extreme  SuperBattery   Meaning
 0x98    02       02        02        02            (cooler boost bit7 — constant)
 ```
 
+Boards whose entry records a **fourth shift value** (usually `0xC5`, named "Apex" after the
+vendor tile) have a fifth `0xD2` state above turbo; it is per-model data, never a constant.
+Detection maps it to Extreme, the power test measures it as its own step, and with the Apex
+switch enabled the Extreme profile writes it instead of `0xC4` — see §60.2 and §70.
+
 ---
 
 ## 15. The native app — `GhostDeck.exe` (C# .NET 8)
@@ -344,6 +349,25 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   left in it is not a reading, and dividing it anyway produced ~9958 RPM in Status and in reports.
   Readings above **8000 RPM** are therefore dropped (shown as "--"); the fastest fan ever logged on
   any model is 7206 RPM, on a GE66 under load with Fan Boost.
+
+  **Wide (16-bit) tachometers.** Some boards hold the divisor as a big-endian byte pair instead of
+  a single byte - `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, still with
+  `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
+  ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
+  issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145), `15T1EMS1`
+  (CPU pair only - single fan, #174), `1545IMS1` (#164), `1833EMS1` (#180), `1841EMS1`
+  (#183), `1585EMS2` (#184, on the sibling 1585EMS1's evidence), `17T3EMS1` (#196 - the
+  power-test dumps all sat in the coinciding zone; the curve capture caught the GPU fan at
+  ~1757 rpm with a non-zero high byte), `2631EMS1` (#205 - every capture sat in the coinciding
+  zone; an idle Status screenshot settled it, showing "7353 rpm" at 20% fan duty, i.e. the low
+  byte `0x41` of the pair `01:41` = 321 = ~1489 rpm). Detection caveat: above ~1870 RPM the
+  raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
+  with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
+  (raw > 255), where the pair and the single byte diverge. In the signed
+  database the pair ships as `cpuRpmAddr16` / `gpuRpmAddr16` (the high-byte address; the low byte
+  sits at address+1); the single-byte fields stay unset on these models, so an older app keeps
+  showing no RPM there instead of misreading one byte of the pair. The two reads are not atomic;
+  a value torn between EC updates lands outside the plausibility window above and is dropped.
 - **Live RPM** — continuous read of `0xC9` / `0xCB` for comparing against MSI Center.
 - **Save EC dump to file** — read-only 256-byte dump, used to locate fan-curve table addresses.
 - **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.
@@ -367,7 +391,7 @@ The app surfaces all of this live: the Status tab shows the profile-byte matrix,
 |------|------|--------------|
 | `0xD2` | **Shift mode** (performance level) | The main power/performance state. `0xC1` = comfort, `0xC4` = turbo (max), `0xC2` = eco. |
 | `0x34` | **Extreme power unlock** | Written `0x00` in Extreme (lets turbo draw full power) and `0x01` elsewhere — but it reads **dynamically** and can momentarily show `00`/`01` in any comfort profile (e.g. Silent has been observed as both). It is NOT a Silent/Balanced marker and the app never uses it for detection. **Caveat:** the exact firmware purpose of `0x34` is *not officially documented* — "Extreme power unlock" is our empirical label from the observed values (`00` only in Extreme); no msi-ec / MControlCenter source names this byte, so treat the meaning as inferred, not confirmed. |
-| `0xEB` | **Super-battery flag** | `0x0F` = deepest battery throttle (lowest performance, longest runtime); `0x00` = off. Not about lighting — it is a performance/power throttle. |
+| `0xEB` | **Super-battery flag** | `0x0F` = deepest battery throttle (lowest performance, longest runtime); `0x00` = off. Not about lighting — it is a performance/power throttle. **Written through the `0x0F` mask** (read-modify-write of the low nibble in `Ec.Apply`), exactly as the msi-ec driver does: the Modern 14 B11MOU (#170) keeps an own flag in bit 7 of this register, and a full-byte write would clear it. On boards whose high nibble reads 0 the written byte is unchanged. |
 | `0xD4` | **Fan mode / scenario** | Which fan behaviour the firmware runs (see 17.2). On this firmware it also carries the **Silent power policy** — see 17.4. |
 
 Each profile is just a specific combination (verified by diffing full EC dumps of all four MSI Center 2.0.48 scenarios):
@@ -380,6 +404,39 @@ Each profile is just a specific combination (verified by diffing full EC dumps o
 | **Super Battery** | `0xC2` eco | `0x01` | `0x0F` on | `0x0D` auto |
 
 The key fact: **Silent and Balanced differ in `0x34`? No — they differ ONLY in `0xD4`** (`1D` vs `0D`). Every other byte, `0x34` included, is identical between them. This is central to the fan-curve story below.
+
+**The fifth shift value on fourth-mode boards.** Some newer boards carry one more `0xD2`
+state above turbo — usually `0xC5`, presented by the vendor software as an "Apex" switch
+inside its top scenario rather than as a fifth tile. It is per-model data (`FourthMode` in
+the signed database, §60.2), the recipes above are unchanged by it, and the only thing that
+ever writes it is the Extreme profile **with the Apex switch turned on** (§70) — the shift
+byte is substituted at apply time, every other recipe byte stays as listed.
+
+**Boards that never write `0xEB` (the no-limiter pattern — predominantly AMD).** On a growing
+set of boards, owner per-scenario dumps show `0xEB` at `0x00` in *every* scenario, Super Battery
+included: the vendor software runs eco as the mode byte (`0xD2=C2`) alone and never touches the
+battery-limiter register. On those boards the app's eco recipe is also the mode byte alone
+(`StdRecipes(0xD2, 0xD4, null)`) — we copy what the vendor writes, nothing more. Note that msi-ec
+usually still maps `0xEB` for these confs (the Linux driver exposes it as a control), so the
+register may well *work*; the point is that the machine has never seen the vendor set it, and the
+app does not introduce values a board has not seen. The pattern is nearly universal on AMD boards
+and has one Intel member so far:
+
+- AMD: `17KKIMS1` Alpha 17 (#151 — the case that established the correction: the entry briefly
+  shipped with `0xEB` and a per-scenario dump removed it the next day), `158PIMS1` Bravo 15 B7ED,
+  `17LNIMS1` Bravo 17, `158NIMS1` Bravo 15 C7V / Katana A15 AI, `15PLIMS1` Crosshair A16 HX,
+  `15MMIMS1` Vector A16 HX (#130), `182KIMS1` Raider A18 HX (#50), `182LIMS1` Vector/Raider A18 HX
+  (#54), `15FLIMS1` Stealth A16 AI+ (#199), `15QLIMS1` Cyborg A15 AI (#198 — the resting state
+  itself is eco `C2` with `0xEB=00`).
+- Intel: `1841EMS1` Crosshair 18 HX AI (#183).
+
+A related but distinct exception is `15M1IMS2` (Raider GE68 HX / Vector 16 HX A13V, #104):
+`0xEB` also unused, but its eco writes a non-standard shift value `0xC6` — see the model entry.
+
+Practical rule when a new per-scenario dump arrives: if the Super Battery column shows
+`0xEB=00`, the entry's eco recipe drops the limiter write; a single per-scenario dump is
+sufficient evidence for this *removal* (it makes the recipe write less, never more — the
+conservative direction), unlike adding a write to a new register, which needs stronger proof.
 
 Three shift values cover the four profiles, and on most boards that is the whole set. Some newer
 boards accept a **fourth** value in the same register, which their MSI Center build presents as a
@@ -796,6 +853,14 @@ every OSD toast stays fully visible (`OsdForm.HoldSeconds`; the fade in/out is u
 temperature alert passes `minSeconds: 5` to `ShowProfile`, so it stays up at least 5 s even when
 the user prefers short OSDs for profile switches.
 
+**OSD sizing.** The toast fits its width to the longer of the two text lines, capped at 720 px
+(less on narrow screens: working-area width minus a margin). Longer titles and messages wrap
+inside that width - `MeasureString`/`DrawString` with a `RectangleF`, so GDI+ does the wrapping -
+and the toast grows downwards to fit the lines; the left accent bar scales with the height.
+A single-line toast keeps the classic 440x104 geometry, so profile switches look unchanged.
+
+![Wrapped OSD toast](images/osd_wrapped_toast.png)
+
 **Panic reset hotkey (default Ctrl+Alt+F10).** One press back to a safe stock state: clears the
 Fan Boost bit, then applies the **Balanced** recipe. No separate fan write is needed — the recipe
 rewrites the fan-mode byte to auto (`0x0D`), which by design also releases a custom fan curve
@@ -1028,6 +1093,14 @@ The last deliberate profile also persists (`AppSettings.LastProfile`, written on
 `SetProfile` - external syncs never land there) and is re-applied once at startup. Both paths
 are skipped when the AC/battery auto-switch is enabled (it owns the choice) and both respect
 `AutoWritable` (firmware guard).
+
+**Startup profile pin (discussion #178).** `AppSettings.StartupProfile` ("" by default) lets
+the startup half of the restore apply a FIXED profile instead of the last-used one: the
+Settings -> Power picker "Startup profile" offers "Last used" plus the four profiles, and at
+app start an explicit pick wins (`TryParse` on "" falls through to `LastProfile`). The
+after-wake path deliberately ignores the pin - waking should bring back whatever was active
+before sleep, which is that path's whole point. Same gates as above (restore toggle on,
+auto-switch off, `AutoWritable`).
 
 **Fan-curve restore (v1.24.x, discussion #49).** The EC cold-boots into its factory fan mode,
 so a custom curve never survives a restart; the per-profile preset only came back if something
@@ -1867,7 +1940,21 @@ Measured ink height of "71": 10 px → 13 px at a 16 px icon, 14 px → 19 px at
 
 Both are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
 in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card
-from "Tray menu" (`set_grp_tray`, the mouse actions). `ApplyTempTray` gates on the rendered TEXT, not the raw
+from "Tray menu" (`set_grp_tray`, the mouse actions).
+
+The temperature icons mirror the main icon's mouse behaviour, and the card says so
+(`temptray_mirror`): the same shared right-click menu (the strip reference is re-assigned on
+every update because `BuildMenu` replaces the strip object on language or menu changes), the
+same configurable left/middle-click actions (the icons attach the main `TrayClick` handler),
+and the same wheel action - `TrayWheel` watches a set of icons (`SetIcons`), still through ONE
+low-level hook whose callback now checks up to three cached icon rectangles instead of one.
+The set is refreshed from `UpdateTempTrays`/`SyncTempTrays`; `SetIcons` is a no-op while the
+set is unchanged, and entries that stay keep their resolved shell identity and cached rect.
+Cost of the mirroring is negligible by construction: clicks and the menu are plain
+shell-delivered events, and the hook exists only while a wheel mode is selected - exactly as
+before.
+
+`ApplyTempTray` gates on the rendered TEXT, not the raw
 temperature, so an unchanged reading does not rebuild the icon; the previous `Icon` is disposed
 only AFTER the new one is assigned, because disposing it while the shell still references it
 flashes a blank icon.
@@ -2057,8 +2144,9 @@ than beside it, so reporting it as a variant of Extreme is the honest answer, an
 mapping the comfort branch would claim it and the 3 s poll would log a profile change every time
 the vendor software set that mode.
 
-Nothing writes the fourth value as a feature. It is data plus a probe, and stays that way until the
-probe answers the questions below.
+For a long time nothing wrote the fourth value as a feature - it was data plus a probe, waiting for
+the probe to answer the questions below. The first board where the answer was a measured performance
+gain (#226) turned it into one: the Apex switch, §70.
 
 ### 60.3 The probe, and its control pair
 
@@ -2293,6 +2381,54 @@ opens `power-test.yml` prefilled.
 The load threads run at `BelowNormal` priority so the window keeps repainting. That costs the same
 in every phase and therefore cancels out of the comparison, which is the only property the ratio
 needs.
+
+### 60.6 Platforms the test cannot score: chassis-temperature power management (STAPM)
+
+Two runs on a Stealth A16 AI+ A3XWHG (`15FLIMS1`, Ryzen AI 9 HX 370 "Strix Point", issue #199)
+showed the same signature: the run ends much faster than it starts (38%, then 15% on a quiet
+machine), the phase measured in the *faster* stretch can still score below an earlier one
+(Extreme 19% under Balanced), and the CPU clock swings inside a single phase (3.0-3.5 GHz in
+one Balanced minute). The byte writes and readbacks were clean both times - the profiles switch
+fine; it is the *comparison* that cannot settle.
+
+The mechanism fits AMD's STAPM (Skin Temperature Aware Power Management): since 2014 the APU's
+power budget follows the **chassis** temperature, not just the die, and the OEM can move the
+limit across a wide band (28-54 W on this part). Chassis temperature - and the EC's fan ramp
+that chases it - changes over *minutes*, slower than the test's one-minute phases, so every
+phase inherits the thermal state of the previous one and the budget keeps being re-dealt
+mid-run; in the #199 runs the fans only reached full stride (72% duty) in the final phase.
+Classified as a working hypothesis for that specific machine, but the mechanism itself is
+documented: [AMD's HX 370 page](https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-9-hx-370.html)
+(configurable 28-54 W), [TechPowerUp on STAPM](https://www.techpowerup.com/318566/amd-to-fix-ryzen-8000g-desktop-apu-stapm-feature-via-motherboard-bios-updates),
+[RyzenAdj issue #309](https://github.com/FlyGoat/RyzenAdj/issues/309) (these controls on the
+HX 365/370). Note the graphics load is not optional (§60.5's `GpuLoad` is always attempted;
+"Graphics load: OFF" in a report means it failed to come up), so a CPU-only variant is not
+something a reporter can select.
+
+**A second Ryzen AI signature: the clock pinned flat - and transient (issue #228).** A Pulse
+A16 AI+ C3HWFKG (`15PKIMS1`, Ryzen AI 7 350) produced the opposite picture: a run that is
+internally perfect - 0% drift, clean readbacks in all four phases - and perfectly useless,
+because the CPU sat at ~2605 MHz (spread 2604-2607) in *every* phase, at 51 °C with the fans on
+the curve's floor, and all four profiles scored an identical 100, while the same machine
+boosted past 4 GHz **outside** the test (owner-confirmed). The limiter correlates with the
+test's own load, which deliberately runs at below-normal priority (§60.8); the working
+hypothesis is Windows parking below-normal background work on the compact Zen 5c cores at
+their fixed all-core clock, so no limit a profile raises or lowers is ever reached. A related
+machine, the Cyborg A15 AI (`15QLIMS1`, #198), showed the same flat-clock pattern (~2470 MHz in
+all phases) but got hot enough for Silent to show on the fan columns, which carried its
+promotion.
+
+The decisive difference from STAPM: **the pinned-clock state is transient.** The same owner's
+next run, a day later, scored cleanly and fully differentiated - Silent a real cap at 83% of
+Balanced's work (55 vs 71 °C, duty 38 vs 54), Extreme a real +23% at 85 °C, 1% drift - and
+promoted the model on the numbers alone. What ends the state is not established (the owner had
+set Windows to Best performance in between; the first run may also have simply caught the
+machine in an efficiency episode).
+
+Operational consequence, refined: a flat run on a Ryzen AI machine (identical work, pinned
+clock, cold) is not a verdict on the platform. First have the owner confirm the clock boosts
+outside the test, then ask for **one** rerun; only when the flat signature repeats - or the
+STAPM drift signature above appears - fall back to the hardware-checks path.
 
 ## 61. GPU telemetry without vendor software (v1.31)
 
@@ -2611,7 +2747,7 @@ measured whether every firmware honours them exactly - the honest position, not 
 threshold (from the scene being edited or from the current setting). Without that, saving a scene
 would silently round a custom limit down to a preset.
 
-## 70. The Windows power card: turbo boost and power-mode sync (discussion #141)
+## 71. The Windows power card: turbo boost and the Windows power mode (discussion #141)
 
 Two controls that touch no EC register at all: both drive documented user-mode Windows power
 APIs (`powrprof.dll`, `Core/PowerPlan.cs`), so the card works even on firmware the EC side does
@@ -2634,26 +2770,81 @@ MIXED state is named in the status line rather than shown as a plain ON. Boost m
 names are enumerated live (`PowerReadPossibleValue` / `PowerReadPossibleFriendlyName`) - no
 hardcoded 0..6, and the names arrive already localized by Windows itself.
 
-**Power-mode sync.** Opt-in; fired only inside `SetProfile`, never enforced in the background -
-a hand-moved Windows slider stands until the next profile switch. Silent and Super Battery map
-to best power efficiency, Balanced to the default mode, Extreme to best performance, written
-for both power sources through the official Windows 11 API
-(`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but undocumented
-`PowerSetActiveOverlayScheme` stays as a fallback for builds without the export). The mode is a
-request Windows may temporarily override, so the card shows the requested and the effective
-mode side by side; the effective one comes from the documented
-`PowerRegisterForEffectivePowerModeNotifications` callback and lives in a DIFFERENT value space
-(battery saver, better battery, balanced, high/maximum performance, game mode, mixed reality) -
-the two are never compared 1:1.
+**The Windows power mode row.** A three-segment control sets the mode directly - the same
+choice as the Windows power slider - written for both power sources through the official
+Windows 11 API (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived
+but undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds without the
+export). Under it sits an opt-in **"Follow the GhostDeck profile"** switch: fired only inside
+`SetProfile`, never enforced in the background - Silent and Super Battery map to best power
+efficiency, Balanced to the default mode, Extreme to best performance. Picking a segment by
+hand switches follow OFF (the manual choice wins), and a hand-moved Windows slider stands
+until the next profile switch. The mode is a request Windows may temporarily override; the
+effective state comes from the documented `PowerRegisterForEffectivePowerModeNotifications`
+callback and lives in a DIFFERENT value space (battery saver, better battery, balanced,
+high/maximum performance, game mode, mixed reality) - the two are never compared 1:1, and the
+card only annotates a mismatch instead of equating the names.
 
-**The advanced buttons.** "Show this setting in Windows power options" clears only the HIDE bit
-of the setting attributes after storing the full original DWORD (`PowerRead/
-WriteSettingAttributes`), and the re-hide writes that exact DWORD back - no other attribute bit
-is ever lost. "Restore Windows settings" writes every snapshot back into the plan it came from
-(without activating any plan; one `PowerSetActiveScheme` at the end for the plan that was
-already active), skips and discards snapshots of deleted plans, keeps the snapshot of any
-failed write for a retry, and reports all three counts. Both buttons sit behind an explicit
-confirmation dialog describing the consequences, because both change persistent Windows state.
+**Restore and the help bubble.** "Restore Windows settings" is shown ONLY while the app
+actually holds something to restore (a turbo snapshot, a mode it set, or the follow switch
+being on) - on an untouched system the card ends at the follow switch. It writes every
+snapshot back into the plan it came from (without activating any plan; one
+`PowerSetActiveScheme` at the end for the plan that was already active), skips and discards
+snapshots of deleted plans, keeps the snapshot of any failed write for a retry, and reports
+all three counts, behind a confirmation dialog in the app's own card style. "Show this
+setting in Windows power options" is deliberately NOT a card button - it lives in the card's
+help bubble as an advanced action: it clears only the HIDE bit of the setting attributes
+after storing the full original DWORD (`PowerRead/WriteSettingAttributes`), and the re-hide
+writes that exact DWORD back - no other attribute bit is ever lost.
 
 CLI: `--turbo <on|off|status>`, forwarded to the running instance or executed one-shot; output
 stays English like the rest of the CLI.
+
+## 70. The Apex switch: the fourth mode becomes a feature (v1.37, issue #226)
+
+Section 60.2 introduced the fourth shift value as data plus a probe, and §60.3's probe existed to
+answer whether writing it from outside the vendor software changes anything measurable. On the
+first boards it reached, the answer was "only the fans". Issue #226 (Raider 16 Max HX B2WJ,
+`2651EMS1`, RTX 5090) delivered the first other answer: with the fourth value written, delivered
+work came in at **+34 % over Balanced at the same 98 °C ceiling**, against +16 % for plain
+Extreme, with a 0 % baseline drift - the fourth value outruns the turbo one on that board. That
+measurement is what unblocks writing it as a feature.
+
+### 70.1 Shape: a modifier on Extreme, not a fifth profile
+
+`Ec.GetCurrent` already maps the fourth value to `Extreme` (§60.2), the vendor software presents
+it as a switch inside its top scenario, and the value sits on top of the turbo state rather than
+beside it. The feature keeps that shape: a **toggle row on the Extreme tile** (Scenarios), not a
+fifth tile. While the toggle is on, the Extreme recipe is rewritten at apply time -
+`TrayContext.EffectiveRecipe` substitutes the model's `FourthMode.ShiftValue` for the shift-mode
+byte, and only that byte; every other recipe byte and every other profile is untouched. The OSD
+and the tile carry an "APEX" badge while it is on, so the state is never silent.
+
+This buys three things a fifth profile would lose: the hotkeys, scenes, CLI, auto-switch rules and
+battery rules all keep working unchanged (they say "Extreme" and get Extreme-with-Apex when the
+switch is on); the 3 s poll needs no new state (the fourth value already reads back as Extreme);
+and a **panic reset needs no new path** - it applies plain Balanced, which never carries the
+substitution.
+
+### 70.2 Consent and persistence
+
+The switch is per model, `AppSettings.ApexFw`, a list of firmware prefixes mirroring the
+`ExperimentalWriteFw` pattern - a settings file moved to another machine does not silently arm
+Apex there. The very first enable anywhere shows a one-time explainer card (`ApexConfirmed`) in
+the app's own card style (RENDERING.md §11, scan tag `//APEX`): louder and hotter for certain,
+faster only where measured, the Power test measures it as its own step, and the switch stays
+until turned off. Enabling or disabling writes a change-history entry, and when Extreme is the
+active profile the rewrite is applied immediately rather than on the next switch.
+
+The tile row also carries a help dot whose bubble gives the same explanation outside the consent
+moment, because the one-time card is by definition gone when the question comes back a month
+later.
+
+### 70.3 Availability
+
+The row appears on every board whose model entry carries a `fourthMode` (six at the time of
+writing, via the signed model database - no release needed to add one). It is deliberately **not**
+gated on a per-board measured verdict: the write is the same register the vendor software itself
+uses for its top scenario, the probe showed refusal is answered by a readback rather than by
+harm, and the Power test exists precisely so an owner can measure their own board instead of
+trusting a table.
+>>>>>>> origin/main

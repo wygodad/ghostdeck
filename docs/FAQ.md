@@ -84,6 +84,28 @@ Silent row does the same work as Balanced, your board is the fan-only kind. The 
 many words, and it measures Balanced twice so you can see whether the machine simply got hot during
 the run.
 
+## What is the APEX switch on my Extreme tile? Why don't I see it?
+
+Some newer boards have one more power state **above** Extreme's normal turbo - the one some MSI Center
+versions present as an "Apex" switch inside their top scenario. It is a fifth value of the same EC
+register the profiles already use, so GhostDeck treats it the same way: on boards whose database entry
+records that value, the Extreme tile grows an **APEX row with a toggle**. While it is on, the Extreme
+profile writes the Apex value instead of the normal turbo one, the tile and the on-screen display carry
+an APEX badge, and the choice is remembered for that machine. A panic reset always returns to plain
+Balanced, Apex or not.
+
+Whether Apex buys real performance differs by board, and the app measures rather than promises: the
+Power test runs Apex as its own step. On the first boards measured it only spun the fans faster
+(the Stealth 16 AI+ and Vector 16 HX AI did exactly Extreme's work), but on a Raider 16 Max HX an
+owner's clean run measured **+34 % more completed work than Balanced** with Apex, against +16 % for
+plain Extreme ([#226](https://github.com/wygodad/ghostdeck/issues/226)) - so on some boards it is the
+only way to reach the machine's top state. Expect it to be noticeably louder and hotter either way;
+the first enable shows a short explainer card.
+
+If you don't see the row: your board's entry has no recorded fourth value yet. It arrives like every
+other model-database update - from an owner's capture, without waiting for a release. If your MSI
+Center shows an Apex switch and GhostDeck doesn't, open a model report and we will register it.
+
 ## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
 
 Usually not, and MSI Center does the same thing on the same machine. Two separate causes:
@@ -94,6 +116,12 @@ Usually not, and MSI Center does the same thing on the same machine. Two separat
 
 If a fan is audibly roaring and still shows "--", that is worth reporting: open an issue with your model, firmware and what MSI Center or HWiNFO64 shows at that moment.
 
+## Why does my laptop boot with a different profile than the one I picked? Do settings survive a reboot?
+
+They are not supposed to survive, and that is by design, not a fault. Profiles, fan curves and Fan Boost live in the Embedded Controller's working memory, which is **volatile**: every shutdown or reboot clears it, and the firmware starts the machine with its own defaults, exactly as if no tool had ever run. GhostDeck deliberately flashes nothing permanent - that is what keeps every change fully reversible.
+
+To get your chosen profile back automatically, turn on **Settings → Power → "Restore profile after wake / at startup"** (there is a twin toggle for the fan curve). With it on, the app re-applies the last profile you picked every time it starts and after the machine wakes from sleep; combined with **Start with Windows**, the laptop lands on your profile at every boot. The **"Startup profile"** picker next to the toggle can also pin one fixed profile that wins at every app start, regardless of what ran last (waking from sleep still restores what was active before sleep). One exception: when the AC/battery auto-switch is enabled it takes precedence, since it already decides the profile for each power source.
+
 ## Is there any risk of damaging my laptop?
 
 Very low. The app uses MSI's **official WMI interface** (the same channel MSI Center uses), writes only the exact register values MSI's own profiles use, and EC writes are **volatile** - a reboot resets the EC to firmware defaults (nothing is flashed). On an **unrecognized firmware it stays read-only** and writes nothing. The CPU also keeps its own hardware thermal protection that no EC write can disable. Experimental models are opt-in and write only documented mode registers.
@@ -101,6 +129,8 @@ Very low. The app uses MSI's **official WMI interface** (the same channel MSI Ce
 ## My antivirus / VirusTotal flags GhostDeck.exe - is it malware?
 
 No - but the flag is understandable, and here is how to verify it yourself. GhostDeck ticks several boxes that antivirus heuristics dislike: it's a self-contained single-file exe (it self-extracts the .NET runtime), asks for administrator rights, talks to the Embedded Controller, registers global hotkeys and can update itself. Occasionally a single engine (typically a small one, via a generic "W32.Malware.*" heuristic name) flags it on VirusTotal while all the major engines stay clean - a classic false positive pattern.
+
+One thing GhostDeck **never** does: it does not install or load any kernel driver of its own, and it does not bundle third-party low-level drivers of the WinRing0 class (a known-vulnerable driver family that Microsoft's own security tooling flags on sight in other hardware utilities). The only hardware path is MSI's own signed ACPI/WMI interface, carried by Windows' built-in `wmiacpi.sys` - deployed once by MSI's software, as described in the clean-install question above. If your antivirus ever reports a *driver* alongside GhostDeck, it did not come from us.
 
 Since **v1.24.0 every release is digitally signed**: right-click the exe → Properties → **Digital Signatures** should show **"WYGODA DAWID FENIX INSPIRE"** (the developer's registered business) with a valid timestamp. A correct signature proves the file is an untampered official build; signing also gradually builds SmartScreen reputation, so "unknown publisher" warnings fade over time. Releases before 1.24.0 were unsigned.
 

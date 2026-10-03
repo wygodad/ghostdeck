@@ -69,7 +69,7 @@ public sealed class FanLiveFeed : IDisposable
             {
                 // Mode + the four sensor bytes are cheap (5 round-trips); the tachometers ride on
                 // the full snapshot only where the model has them (RPM addresses are per model).
-                bool tach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0;
+                bool tach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0;
                 if (tach && Ec.TryReadHw(dev, out var hw))
                 {
                     byte mode = Ec.ReadByte(dev.FanMode);

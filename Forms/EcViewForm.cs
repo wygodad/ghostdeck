@@ -67,12 +67,18 @@ public sealed class EcViewForm : Form
             {
                 foreach (byte a in new[] { dev.CpuTemp, dev.GpuTemp, dev.CpuFan, dev.GpuFan, dev.CpuRpmAddr, dev.GpuRpmAddr })
                     if (a != 0) _sensors.Add(a);
+                foreach (byte a in new[] { dev.CpuRpmAddr16, dev.GpuRpmAddr16 })
+                    if (a != 0) { _sensors.Add(a); _sensors.Add((byte)(a + 1)); }
                 L(dev.CpuTemp, "CPU temperature");
                 L(dev.GpuTemp, "GPU temperature");
                 L(dev.CpuFan, "CPU fan duty");
                 L(dev.GpuFan, "GPU fan duty");
                 L(dev.CpuRpmAddr, "fan 1 tachometer");
                 L(dev.GpuRpmAddr, "fan 2 tachometer");
+                L(dev.CpuRpmAddr16, "fan 1 tachometer (16-bit high)");
+                if (dev.CpuRpmAddr16 != 0) L((byte)(dev.CpuRpmAddr16 + 1), "fan 1 tachometer (16-bit low)");
+                L(dev.GpuRpmAddr16, "fan 2 tachometer (16-bit high)");
+                if (dev.GpuRpmAddr16 != 0) L((byte)(dev.GpuRpmAddr16 + 1), "fan 2 tachometer (16-bit low)");
                 L(dev.ShiftMode, "shift mode (profile)");
                 L(dev.FanMode, "fan mode / curve mode");
                 L(dev.ChargeCtrl, "battery charge limit");

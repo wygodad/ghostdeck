@@ -171,7 +171,11 @@ current position so focusing a child does **not** yank the page to the top.
   it calls `ApplyScroll` and therefore draws every label through `Ui.DrawText` (§5.1a).
 - **Chrome** ([`MainForm`](../UI/MainForm.cs)) — the tab strip, theme button and the announcement
   **banner** are custom-drawn controls; the banner is a top-docked `Panel` shown on demand.
-- **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change
+- **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change.
+  Width is capped at 720 px (less on narrow screens); longer titles and messages wrap inside that
+  width via GDI+ `DrawString` into a `RectangleF` and the toast grows downwards, so a full-sentence
+  notification in a wordy language never spans the display. Single-line toasts keep the fixed
+  440x104 geometry.
   is a separate rounded, fading, non-activating window (simpler than the gaming overlay).
 
 Shared primitives live in the `Ui`, `Theme` and `IconPainter` helpers (rounded rects, pills, cards,
@@ -447,3 +451,32 @@ Implementation notes, in case it ever needs touching:
 
 Used on: Scenarios feature bricks, the Models table''s Super Battery column header, and the Status
 GPU-clock tile (TECHNICAL.md §61).
+
+## 11. Branded pop-up cards: session summary and user-facing messages (v1.37)
+
+Two windows share one visual language and one rendering technique - the "GhostDeck card":
+
+- `SessionReportForm` - the game-session summary popup (stats, sparkline, action icons), anchored
+  at the tray corner with a speech-bubble tail; never steals focus.
+- `GhostCardForm` (#212, born as `FirmwareGuardForm` and generalised for the Apex explainer) -
+  the decision card: a scan tag, heading, wrapped body text and two text buttons (accent action /
+  "Later"), all passed to the constructor; centred on screen, takes focus, Enter = act,
+  Esc / ✕ = later, draggable by the body. Carriers: the firmware guard (`//FIRMWARE-GUARD`) and
+  the one-time Apex consent (`//APEX`).
+
+Shared anatomy: a dark card (`#10151F` at 97% alpha) with square left corners and softly rounded
+right ones, a 5 px cyan→violet rail flush with the left edge, the ghost + GhostDeck wordmark, and
+a Consolas "scan tag" in the top-right corner (`//SESSION-END` in cyan; `//FIRMWARE-GUARD` in
+amber - amber marks a warning). Both render per-pixel into a 32bpp ARGB bitmap pushed with
+`UpdateLayeredWindow` (the OverlayForm technique): true alpha for the irregular shape, a fake
+soft shadow from a few expanded low-alpha strokes (GDI+ has no blur), fonts sized in pixels and
+scaled by `dpi / 96`. Buttons are drawn, not controls: rounded rects hit-tested in `OnMouseMove`,
+with a hover repaint.
+
+**Rule: user-facing messages and decisions use these cards, not `MessageBox` / `TaskDialog`.**
+The system dialogs ignore the app theme entirely (see #212 - the guard originally spoke through
+a tray balloon, then briefly a `TaskDialog`, both visually foreign). `MessageBox` remains
+acceptable only inside developer/diagnostic tooling (TestDialog) and for file-dialog error paths
+where a themed card would be overkill. When a new message window is needed, start from
+`GhostCardForm` (text + buttons - often no new class is needed at all, it takes its texts and
+action as constructor arguments) or `SessionReportForm` (rich content + icon actions).

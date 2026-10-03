@@ -124,6 +124,8 @@ public static class ModelDb
         if (d.CoolerBoostMask != Def.CoolerBoostMask) w.WriteString("coolerBoostMask", Hex(d.CoolerBoostMask));
         if (d.CpuRpmAddr != 0) w.WriteString("cpuRpmAddr", Hex(d.CpuRpmAddr));
         if (d.GpuRpmAddr != 0) w.WriteString("gpuRpmAddr", Hex(d.GpuRpmAddr));
+        if (d.CpuRpmAddr16 != 0) w.WriteString("cpuRpmAddr16", Hex(d.CpuRpmAddr16));
+        if (d.GpuRpmAddr16 != 0) w.WriteString("gpuRpmAddr16", Hex(d.GpuRpmAddr16));
         if (d.RpmConst != Def.RpmConst) w.WriteNumber("rpmConst", d.RpmConst);
         if (d.FanSilentValue != Def.FanSilentValue) w.WriteString("fanSilentValue", Hex(d.FanSilentValue));
         if (d.ShiftTurboValue != Def.ShiftTurboValue) w.WriteString("shiftTurboValue", Hex(d.ShiftTurboValue));
@@ -255,6 +257,8 @@ public static class ModelDb
             CoolerBoostMask = B("coolerBoostMask", Def.CoolerBoostMask),
             CpuRpmAddr = B("cpuRpmAddr", 0),
             GpuRpmAddr = B("gpuRpmAddr", 0),
+            CpuRpmAddr16 = B("cpuRpmAddr16", 0),
+            GpuRpmAddr16 = B("gpuRpmAddr16", 0),
             RpmConst = m.TryGetProperty("rpmConst", out var rc) ? rc.GetInt32() : Def.RpmConst,
             FanSilentValue = B("fanSilentValue", Def.FanSilentValue),
             ShiftTurboValue = B("shiftTurboValue", Def.ShiftTurboValue),

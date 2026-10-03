@@ -90,6 +90,16 @@ public sealed class AppSettings
     public bool ExperimentalWriteAllowedFor(string? prefix) =>
         prefix != null && ExperimentalWriteFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
 
+    // Apex: per-model opt-in for the fourth shift mode (the Extreme recipe then writes the
+    // entry's FourthMode value instead of the turbo one). Keyed by firmware prefix, same
+    // pattern as the experimental-writes consent. ApexConfirmed = the one-time explainer
+    // card was acknowledged once; it is not asked again on other machines.
+    public List<string> ApexFw { get; set; } = new();
+    public bool ApexConfirmed { get; set; } = false;
+
+    public bool ApexEnabledFor(string? prefix) =>
+        prefix != null && ApexFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>One-time migration of the legacy global flag: consent narrows to the machine
     /// it was actually given on. Returns true when something changed and needs a save.</summary>
     public bool MigrateExperimentalFlag(string? matchedPrefix, bool deviceIsExperimental)
@@ -167,6 +177,7 @@ public sealed class AppSettings
     // ---- profile restore (EC potrafi sam wskoczyc w Super Battery po wybudzeniu / hibernacji) ----
     public bool RestoreProfileOnResume { get; set; }                   // opt-in: przywroc profil po wznowieniu i przy starcie
     public string LastProfile { get; set; } = "";                      // ostatni profil ustawiony swiadomie (persist dla startu)
+    public string StartupProfile { get; set; } = "";                   // (#178) "" = ostatni uzywany; nazwa ProfileId = sztywny profil przy starcie aplikacji
 
     // (#51) auto-wylaczenie Fan Boost po N SEKUNDACH (0 = bez limitu, jak dotad).
     // UI: presety 30 s / 1 / 2 / 3 / 5 / 10 / 15 min + wlasna wartosc w minutach (do 120).
@@ -491,6 +502,8 @@ public sealed class AppSettings
         StatusOnTop = src.StatusOnTop;
         ExperimentalEnabled = src.ExperimentalEnabled;
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
+        ApexFw = new List<string>(src.ApexFw ?? new());
+        ApexConfirmed = src.ApexConfirmed;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
@@ -518,6 +531,7 @@ public sealed class AppSettings
         SessionPopupSeconds = src.SessionPopupSeconds;
         GameSessionKeep = src.GameSessionKeep;
         RestoreProfileOnResume = src.RestoreProfileOnResume;
+        StartupProfile = src.StartupProfile;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
         FanBoostSeconds = src.FanBoostSeconds;
         PowerModeSync = src.PowerModeSync;
@@ -567,6 +581,8 @@ public sealed class AppSettings
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
             ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),
+            ApexFw = new List<string>(ApexFw),
+            ApexConfirmed = ApexConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
@@ -608,6 +624,7 @@ public sealed class AppSettings
             SessionPopupSeconds = SessionPopupSeconds,
             GameSessionKeep = GameSessionKeep,
             RestoreProfileOnResume = RestoreProfileOnResume,
+            StartupProfile = StartupProfile,
             RestoreCurveOnResume = RestoreCurveOnResume,
             FanBoostSeconds = FanBoostSeconds,
             PowerModeSync = PowerModeSync,

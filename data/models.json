@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20260905,
+  "dataVersion": 20261009,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -138,6 +138,8 @@
         "1545IMS1"
       ],
       "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -148,7 +150,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "alibi90",
+      "credit": "alibi90, Hobby-Schrauber-88",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/14",
       "recipes": {
         "Silent": [
@@ -217,7 +219,7 @@
       }
     },
     {
-      "name": "MSI Cyborg 15 A12VF / A13VF",
+      "name": "MSI Cyborg 15 A12VF / A13VF / A13VE",
       "prefixes": [
         "15K1IMS1"
       ],
@@ -234,7 +236,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "hengeleng10-tech, M-Essa11",
+      "credit": "hengeleng10-tech, M-Essa11, qq588849, DeimosCreator",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/19",
       "recipes": {
         "Silent": [
@@ -510,6 +512,8 @@
         "17L5EMS1"
       ],
       "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -672,11 +676,13 @@
       }
     },
     {
-      "name": "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK",
+      "name": "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / B13VFK / Crosshair 16 A13V",
       "prefixes": [
         "1585EMS1"
       ],
       "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -687,7 +693,7 @@
         "verified": false,
         "singleFan": false
       },
-      "credit": "Punssama \u0026 Gangan-Lin",
+      "credit": "Punssama \u0026 Gangan-Lin, GabrielGby, houstonmcknight790-byte",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/90",
       "recipes": {
         "Silent": [
@@ -933,7 +939,7 @@
       }
     },
     {
-      "name": "MSI GF65 Thin",
+      "name": "MSI GF65 Thin 10UE",
       "prefixes": [
         "16W2EMS1"
       ],
@@ -941,6 +947,8 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "credit": "scorvus99",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -1143,7 +1151,7 @@
         "name": "MSI Center Extreme",
         "shiftValue": "0xC5"
       },
-      "credit": "xulu19861102-hub, mithril01, H0tSTUff",
+      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
       "recipes": {
         "Silent": [
@@ -1255,7 +1263,7 @@
       "prefixes": [
         "17S3EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1266,6 +1274,8 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "A7GoD",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/171",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1568,6 +1578,7 @@
         "14D3EMS1"
       ],
       "tier": "Experimental",
+      "shiftTurboValue": "0xC0",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1590,7 +1601,7 @@
           "0xEB=0x00"
         ],
         "Extreme": [
-          "0xD2=0xC4",
+          "0xD2=0xC0",
           "0xD4=0x0D",
           "0xEB=0x00"
         ],
@@ -1602,11 +1613,12 @@
       }
     },
     {
-      "name": "MSI Summit E14 Flip Evo A12MT",
+      "name": "MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U",
       "prefixes": [
         "14F1EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1614,9 +1626,11 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
-        "singleFan": false
+        "verified": true,
+        "singleFan": true
       },
+      "credit": "Acoustichayes",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/160",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1805,7 +1819,9 @@
       "prefixes": [
         "14N2EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1813,9 +1829,11 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
+      "credit": "gkyrios",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/156",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2289,7 +2307,7 @@
         "verified": false,
         "singleFan": false
       },
-      "credit": "VamiCLAY",
+      "credit": "VamiCLAY, SvinoSuper",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/142",
       "recipes": {
         "Silent": [
@@ -2397,11 +2415,13 @@
       }
     },
     {
-      "name": "MSI Katana 15 B12VEK / B12VFK / B12VGK",
+      "name": "MSI Katana 15 B12VEK / B12VFK / B12VGK / B12UDXK",
       "prefixes": [
         "1585EMS2"
       ],
       "tier": "Experimental",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2436,7 +2456,7 @@
       }
     },
     {
-      "name": "MSI Katana 15 HX B14WEK",
+      "name": "MSI Katana 15 HX B14WEK / B14WFK",
       "prefixes": [
         "1587EMS1"
       ],
@@ -2453,7 +2473,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "zajebistylukasz-beep",
+      "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/63",
       "recipes": {
         "Silent": [
@@ -2838,7 +2858,7 @@
       "prefixes": [
         "15F2EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2849,6 +2869,8 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "sevi-05",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/206",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3033,7 +3055,7 @@
       "prefixes": [
         "15FLIMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3044,26 +3066,24 @@
         "verified": false,
         "singleFan": false
       },
+      "credit": "Sagajaz",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/199",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
+          "0xD4=0x1D"
         ],
         "Balanced": [
           "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "Extreme": [
           "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "SuperBattery": [
           "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
+          "0xD4=0x0D"
         ]
       }
     },
@@ -3346,6 +3366,7 @@
         "15Q3EMS1"
       ],
       "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3353,8 +3374,8 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
-        "singleFan": false
+        "verified": true,
+        "singleFan": true
       },
       "credit": "parkisutama, tenduo",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/97",
@@ -3417,6 +3438,124 @@
           "0xD2=0xC2",
           "0xD4=0x0D",
           "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Cyborg A15 AI B2HWGKG / B2HWEKG",
+      "prefixes": [
+        "15QLIMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "ondrapa150",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/198",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Cyborg 15 C13WEO",
+      "prefixes": [
+        "15T1EMS1"
+      ],
+      "tier": "Experimental",
+      "cpuRpmAddr16": "0xC8",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": true
+      },
+      "fourthMode": {
+        "name": "Apex",
+        "shiftValue": "0xC5"
+      },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Pulse A16 AI\u002B C3HWFKG",
+      "prefixes": [
+        "15PKIMS1"
+      ],
+      "tier": "Tested",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "Xakson",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/228",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
         ]
       }
     },
@@ -3492,7 +3631,7 @@
       "prefixes": [
         "16R8IMS2"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "fanCurve": {
         "advancedModeValue": "0x8D",
@@ -3504,7 +3643,7 @@
         "verified": true,
         "singleFan": true
       },
-      "credit": "arcfybrr",
+      "credit": "arcfybrr, pushtamper-nice",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/111",
       "recipes": {
         "Silent": [
@@ -3776,9 +3915,11 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
+      "credit": "Themazin",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/208",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3870,11 +4011,13 @@
       }
     },
     {
-      "name": "MSI GE76 Raider 11U / 11UH",
+      "name": "MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG",
       "prefixes": [
         "17K3EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3882,9 +4025,11 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
+      "credit": "ezn24",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/200",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3952,7 +4097,9 @@
       "prefixes": [
         "17KKIMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3960,29 +4107,27 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
+      "credit": "Liuwins",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/152",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
-          "0xD4=0x1D",
-          "0xEB=0x00"
+          "0xD4=0x1D"
         ],
         "Balanced": [
           "0xD2=0xC1",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "Extreme": [
           "0xD2=0xC4",
-          "0xD4=0x0D",
-          "0xEB=0x00"
+          "0xD4=0x0D"
         ],
         "SuperBattery": [
           "0xD2=0xC2",
-          "0xD4=0x0D",
-          "0xEB=0x0F"
+          "0xD4=0x0D"
         ]
       }
     },
@@ -3992,6 +4137,7 @@
         "17L2EMS1"
       ],
       "tier": "Experimental",
+      "cpuRpmAddr": "0xC9",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -4026,7 +4172,7 @@
       }
     },
     {
-      "name": "MSI Crosshair 17 B12UGZ",
+      "name": "MSI Crosshair 17 B12UGZ / Katana GF76 12UE",
       "prefixes": [
         "17L3EMS1"
       ],
@@ -4500,6 +4646,92 @@
       }
     },
     {
+      "name": "MSI Pulse 17 AI C1VGKG / C1VFKG",
+      "prefixes": [
+        "17T3EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "SorgZZ",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/195",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Crosshair 17 HX AI D2XW",
+      "prefixes": [
+        "17T4EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "SpeedPlayzz",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/148",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
       "name": "MSI Titan 18 HX A14V",
       "prefixes": [
         "1822EMS1"
@@ -4578,11 +4810,13 @@
       }
     },
     {
-      "name": "MSI Vector A18 HX A9WHG",
+      "name": "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG / A9WJG",
       "prefixes": [
         "182LIMS1"
       ],
       "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -4590,10 +4824,10 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
-      "credit": "Skullkidsrevenge",
+      "credit": "Skullkidsrevenge, bnjhdaskghsnlh, UzaydaGezen",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/54",
       "recipes": {
         "Silent": [
@@ -4615,13 +4849,95 @@
       }
     },
     {
-      "name": "MSI Stealth 16 AI\u002B B3WI",
+      "name": "MSI Stealth 18 HX AI A2XW",
+      "prefixes": [
+        "1833EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "funcompsition-hash, SorgZZ",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/180",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Crosshair 18 HX AI A2XW",
+      "prefixes": [
+        "1841EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "sw1n3flu80085",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/197",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D"
+        ]
+      }
+    },
+    {
+      "name": "MSI Stealth 16 AI\u002B B3WI / B3WH",
       "prefixes": [
         "2631EMS1"
       ],
-      "tier": "Experimental",
-      "cpuRpmAddr": "0xC9",
-      "gpuRpmAddr": "0xCB",
+      "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -4636,8 +4952,55 @@
         "name": "Apex",
         "shiftValue": "0xC5"
       },
-      "credit": "SteppinStone",
+      "credit": "SteppinStone, AiM-lab-owl",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/66",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Raider 16 Max HX B2WJ",
+      "prefixes": [
+        "2651EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "fourthMode": {
+        "name": "Apex",
+        "shiftValue": "0xC5"
+      },
+      "credit": "Giperzvuk",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/221",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -5222,7 +5585,7 @@
       }
     },
     {
-      "name": "MSI GF63 Thin 10U / 10SC",
+      "name": "MSI GF63 Thin 10U / 10SC / 10UC",
       "prefixes": [
         "16R5EMS1"
       ],

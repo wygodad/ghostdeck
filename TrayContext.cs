@@ -8,6 +8,9 @@ namespace GhostDeck;
 
 public sealed class TrayContext : ApplicationContext
 {
+    // One brand prefix for every OSD toast title ("GhostDeck  ·  SILENT" etc.).
+    private const string OsdPrefix = "GhostDeck  ·  ";
+
     private readonly NotifyIcon _tray = new();
     // (discussion #9) Optional CPU/GPU temperature readouts in the notification area. Two icons,
     // because at 100% scaling an icon is 16x16 px - room for two bold digits, not for two values.
@@ -45,6 +48,7 @@ public sealed class TrayContext : ApplicationContext
     private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
+    private bool _fwDialogShown;               // the guard dialog opens at most once per run
     private bool _coolerBoost;                 // Cooler Boost (max fans) currently on
     private byte? _fanBeforeBoost;             // fan-mode byte captured before boost, restored on off
     private DateTime? _tempOverSince;          // when CPU/GPU first crossed the thermal-alert threshold
@@ -151,9 +155,14 @@ public sealed class TrayContext : ApplicationContext
         // Deliberately NO "already there" short-circuit: a cold boot loses the rest of the
         // profile state (fan mode, curve) even when the EC happens to wake in the same profile,
         // so restore always re-asserts the full recipe (re-writing identical bytes is harmless).
+        // (#178) StartupProfile can pin the choice: at APP START an explicit pick wins over the
+        // last-used profile ("" = last used, so TryParse falls through). The after-wake path
+        // keeps restoring what was active before sleep - that is its whole point, so the pin
+        // deliberately does not apply there.
         if (_settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && AutoWritable &&
-            Enum.TryParse<ProfileId>(_settings.LastProfile, out var lastProf))
-            SetProfile(lastProf, osd: false, ChangeSource.Restore, count: false);
+            (Enum.TryParse<ProfileId>(_settings.StartupProfile, out var startProf) ||
+             Enum.TryParse<ProfileId>(_settings.LastProfile, out startProf)))
+            SetProfile(startProf, osd: false, ChangeSource.Restore, count: false);
         if (AutoWritable && _settings.AutoSwitchEnabled) ApplyForPower(_lastPower.Value, osd: false);
         TryRestoreCurve();   // (#49) after the profile settles; no-op unless opted in
         ApplyRefreshForPower(_lastPower.Value);   // align the panel with the current power source once at start
@@ -162,7 +171,7 @@ public sealed class TrayContext : ApplicationContext
         _poll.Start();
 
         ShowState();
-        if (_firmwareChanged) ShowFirmwareWarning();
+        if (_firmwareChanged) ShowFirmwareDialog();
         if (travelEnded != null)
         {
             _balloonUrl = null;
@@ -447,11 +456,28 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
-    private void ShowFirmwareWarning()
+    // The guard used to announce itself only through a 9-second tray balloon; whoever missed it
+    // had no pointer to the tray item and re-enabled everything by hand every boot (#212). The
+    // dialog carries the explanation, the versions and the unblock button; "Later" keeps the
+    // tray-menu path. Shown via a one-shot timer so it opens once the message loop is running.
+    private void ShowFirmwareDialog()
     {
-        _tray.BalloonTipTitle = Lang.T("fw_changed_title");
-        _tray.BalloonTipText = Lang.T("fw_changed_text");
-        _tray.ShowBalloonTip(9000);
+        if (_fwDialogShown) return;
+        _fwDialogShown = true;
+        var t = new System.Windows.Forms.Timer { Interval = 1500 };
+        t.Tick += (_, _) =>
+        {
+            t.Stop();
+            t.Dispose();
+            if (!_firmwareChanged) return;   // acknowledged from the tray in the meantime
+            var dlg = new GhostCardForm("//FIRMWARE-GUARD", Lang.T("fw_changed_title"),
+                string.Format(Lang.T("fw_dlg_text"), _settings.LastFirmware, _firmware),
+                Lang.T("fw_dlg_ack"), Lang.T("fw_dlg_later"),
+                AcknowledgeFirmware);
+            dlg.Show();
+            dlg.Activate();
+        };
+        t.Start();
     }
 
     private void AcknowledgeFirmware()
@@ -493,8 +519,8 @@ public sealed class TrayContext : ApplicationContext
     private void ShowState()
     {
         if (Writable) ShowOsd(_current);
-        else if (Known) _osd.ShowProfile("MSI  ·  " + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
-        else _osd.ShowProfile("MSI  ·  " + Lang.T("unsupported_title"), ProbeSubtitle(), Color.Gray);
+        else if (Known) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
+        else _osd.ShowProfile(OsdPrefix + Lang.T("unsupported_title"), ProbeSubtitle(), Color.Gray);
     }
 
     /// <summary>
@@ -532,11 +558,11 @@ public sealed class TrayContext : ApplicationContext
             {
                 DisarmProbeRetry();
                 _firmware = probe.Firmware;
-                // detect BEFORE the rebuild: the acknowledge menu item and the warning balloon
+                // detect BEFORE the rebuild: the acknowledge menu item and the guard dialog
                 // only exist when the flag is set by the time BuildMenu runs
                 DetectFirmwareChange();
                 RedetectFromFirmware();
-                if (_firmwareChanged) ShowFirmwareWarning();
+                if (_firmwareChanged) ShowFirmwareDialog();
                 if (AutoWritable) TryApplyChargeLimit();
                 // deliberately minimal beyond this point: profile restore / schedules catch up
                 // through the normal Poll cadence rather than replaying the ctor chain here
@@ -824,8 +850,18 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyTrayWheel()
     {
         bool want = _settings.TrayWheelMode != (int)TrayWheelMode.None && _ui != null;
-        if (want && _wheel == null) _wheel = new TrayWheel(_tray, _ui!, OnTrayWheel);
+        if (want && _wheel == null) { _wheel = new TrayWheel(_tray, _ui!, OnTrayWheel); _wheel.SetIcons(WheelIcons()); }
         else if (!want && _wheel != null) { _wheel.Dispose(); _wheel = null; }
+    }
+
+    // Every icon the app owns reacts to the wheel: the main one plus the temperature icons
+    // while they are shown (the temp icons mirror the main icon's mouse actions).
+    private NotifyIcon[] WheelIcons()
+    {
+        var list = new List<NotifyIcon>(3) { _tray };
+        if (_cpuTray != null) list.Add(_cpuTray);
+        if (_gpuTray != null) list.Add(_gpuTray);
+        return list.ToArray();
     }
 
     private void OnTrayWheel(int delta)
@@ -891,7 +927,7 @@ public sealed class TrayContext : ApplicationContext
             ? (steps > 0 ? 0 : n - 1)
             : ((_wheelSceneIdx + steps) % n + n) % n;
         var s = list[_wheelSceneIdx];
-        _osd.ShowProfile("MSI  ·  " + Lang.T("scene_title"), s.Name, _settings.ColorFor(_current));
+        _osd.ShowProfile(OsdPrefix + Lang.T("scene_title"), s.Name, _settings.ColorFor(_current));
         ArmWheelCommit(() =>
         {
             int idx = _wheelSceneIdx;
@@ -958,7 +994,7 @@ public sealed class TrayContext : ApplicationContext
         catch (Exception ex)
         {
             ChangeLog.Add(source, Profiles.Get(id).Label, Lang.T("log_err") + ": " + ex.Message);
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -977,13 +1013,58 @@ public sealed class TrayContext : ApplicationContext
     }
 
     private string RecipeStr(ProfileId id) =>
-        string.Join(" ", _device!.Recipes[id].Select(r => $"{r.addr:X2}={r.val:X2}"));
+        string.Join(" ", EffectiveRecipe(id).Select(r => $"{r.addr:X2}={r.val:X2}"));
+
+    // ---------------- Apex (fourth shift mode) ----------------
+    // With the per-model opt-in on, the Extreme recipe writes the entry's fourth-mode value
+    // instead of the turbo one - one substituted byte, the same write path as ever. Detection
+    // already reports the fourth-mode value as Extreme (Ec.GetCurrent).
+    private bool ApexOn =>
+        _device is { FourthMode: not null } d && _settings.ApexEnabledFor(d.MatchedPrefix(_firmware));
+
+    private (byte addr, byte val)[] EffectiveRecipe(ProfileId id)
+    {
+        var recipe = _device!.Recipes[id];
+        if (id != ProfileId.Extreme || _device.FourthMode is not { } fm || !ApexOn) return recipe;
+        return recipe.Select(r => r.addr == _device.ShiftMode ? (r.addr, fm.ShiftValue) : r).ToArray();
+    }
+
+    // The one-time explainer runs only on the very first enable anywhere; after that the
+    // toggle acts immediately. Turning Apex on or off while Extreme is active rewrites the
+    // profile so the byte on the wire matches the switch.
+    private void SetApex(bool on)
+    {
+        if (_device?.FourthMode == null) return;
+        string? fw = _device.MatchedPrefix(_firmware);
+        if (fw == null) return;
+        if (on && !_settings.ApexConfirmed)
+        {
+            var dlg = new GhostCardForm("//APEX", Lang.T("apex_dlg_title"), Lang.T("apex_dlg_text"),
+                Lang.T("apex_dlg_on"), Lang.T("fw_dlg_later"),
+                () => { _settings.ApexConfirmed = true; ApplyApex(fw, true); });
+            dlg.Show();
+            dlg.Activate();
+            return;
+        }
+        ApplyApex(fw, on);
+    }
+
+    private void ApplyApex(string fw, bool on)
+    {
+        if (on) { if (!_settings.ApexEnabledFor(fw)) _settings.ApexFw.Add(fw); }
+        else _settings.ApexFw.RemoveAll(x => string.Equals(x, fw, StringComparison.OrdinalIgnoreCase));
+        _settings.Save();
+        ChangeLog.Add(ChangeSource.Tray, Lang.T(on ? "log_apex_on" : "log_apex_off"),
+            $"{_device!.ShiftMode:X2}={(on ? _device.FourthMode!.ShiftValue : _device.ShiftTurboValue):X2}");
+        if (Writable && _current == ProfileId.Extreme)
+            SetProfile(ProfileId.Extreme, osd: true, ChangeSource.Tray, count: false);
+    }
 
     // Apply the recipe, then read the same addresses back (informational only, see TECHNICAL §19.4)
     // and record both in the history log.
     private void ApplyRecipeLogged(ProfileId id, ChangeSource source)
     {
-        var recipe = _device!.Recipes[id];
+        var recipe = EffectiveRecipe(id);
         Ec.Apply(recipe);
         string read;
         try
@@ -1050,7 +1131,7 @@ public sealed class TrayContext : ApplicationContext
                 if (!_simulate) Ec.SetFanMode(_device!, b);
                 _settings.ClearActiveCurve();   // (#49) back to profile fans = nothing to restore
                 ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_curve_off"), $"{_device!.FanMode:X2}={b:X2}");
-                if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), Lang.T("fc_preset_auto"), _settings.ColorFor(_current));
+                if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("fc_title"), Lang.T("fc_preset_auto"), _settings.ColorFor(_current));
                 return;
             }
             var p = _settings.FindPreset(name);
@@ -1068,11 +1149,11 @@ public sealed class TrayContext : ApplicationContext
                 string.Format(Lang.T("log_curve_preset"), p.Name),
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
             if (_main is { IsDisposed: false } mf) mf.SyncFanCurvePreset(p.Name);   // (#100) keep the editor's view current
-            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fc_title"), p.Name, _settings.ColorFor(_current));
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("fc_title"), p.Name, _settings.ColorFor(_current));
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1097,12 +1178,12 @@ public sealed class TrayContext : ApplicationContext
             string name = Lang.T(level switch { 0 => "kbd_off", 1 => "kbd_low", 2 => "kbd_mid", _ => "kbd_high" });
             ChangeLog.Add(source, Lang.T("kbd_title") + ": " + name,
                 _simulate ? "(simulate)" : $"{_kbdAddr:X2}={0x80 | level:X2}");
-            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("kbd_title"), name, Color.FromArgb(0x17, 0xC0, 0xEB));
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("kbd_title"), name, Color.FromArgb(0x17, 0xC0, 0xEB));
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1125,12 +1206,12 @@ public sealed class TrayContext : ApplicationContext
             string read = "(simulate)";
             if (!_simulate) { try { read = $"{fs.Addr:X2}={Ec.ReadByte(fs.Addr):X2}"; } catch { read = Lang.T("log_read_fail"); } }
             ChangeLog.Add(source, Lang.T("fnswap_title") + ": " + name, read);
-            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("fnswap_title"), name, Color.FromArgb(0x17, 0xC0, 0xEB));
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("fnswap_title"), name, Color.FromArgb(0x17, 0xC0, 0xEB));
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1149,13 +1230,13 @@ public sealed class TrayContext : ApplicationContext
         {
             Touchpad.Set(on);
             ChangeLog.Add(source, Lang.T("tp_title") + ": " + Lang.T(on ? "st_on" : "st_off"));
-            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("tp_title"),
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("tp_title"),
                 Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1168,7 +1249,7 @@ public sealed class TrayContext : ApplicationContext
         if (on == _winLock.Enabled) return;
         _winLock.Set(on);
         ChangeLog.Add(source, Lang.T("winlock_title") + ": " + Lang.T(on ? "st_on" : "st_off"));
-        if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("winlock_title"),
+        if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("winlock_title"),
             Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
         if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
@@ -1232,12 +1313,12 @@ public sealed class TrayContext : ApplicationContext
 
             ChangeLog.Add(ChangeSource.Scene, string.Format(Lang.T("log_scene"), s.Name), s.Summary());
             // no glyph in the OSD title: the OSD's text renderer has no emoji fallback (tofu)
-            _osd.ShowProfile("MSI  ·  " + s.Name, Lang.T("scene_applied"), _settings.ColorFor(_current));
+            _osd.ShowProfile(OsdPrefix + s.Name, Lang.T("scene_applied"), _settings.ColorFor(_current));
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1256,7 +1337,7 @@ public sealed class TrayContext : ApplicationContext
             {
                 if (on && Ec.GetWebcamBlock())
                 {
-                    _osd.ShowProfile("MSI  ·  " + Lang.T("webcam_title"), Lang.T("webcam_blocked_warn"), Theme.Amber);
+                    _osd.ShowProfile(OsdPrefix + Lang.T("webcam_title"), Lang.T("webcam_blocked_warn"), Theme.Amber);
                     return;
                 }
                 Ec.SetWebcam(on);
@@ -1265,13 +1346,13 @@ public sealed class TrayContext : ApplicationContext
             string read = "(simulate)";
             if (!_simulate) { try { read = $"2E={Ec.ReadByte(0x2E):X2}"; } catch { read = Lang.T("log_read_fail"); } }
             ChangeLog.Add(source, Lang.T("webcam_title") + ": " + Lang.T(on ? "st_on" : "st_off"), read);
-            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("webcam_title"),
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("webcam_title"),
                 Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1290,13 +1371,13 @@ public sealed class TrayContext : ApplicationContext
             string read = "(simulate)";
             if (!_simulate) { try { read = $"2F={Ec.ReadByte(0x2F):X2}"; } catch { read = Lang.T("log_read_fail"); } }
             ChangeLog.Add(ChangeSource.Panel, Lang.T("webcam_block") + ": " + Lang.T(blocked ? "st_on" : "st_off"), read);
-            _osd.ShowProfile("MSI  ·  " + Lang.T("webcam_title"),
+            _osd.ShowProfile(OsdPrefix + Lang.T("webcam_title"),
                 Lang.T(blocked ? "webcam_blocked" : "webcam_unblocked"), blocked ? Theme.Amber : Color.FromArgb(0x17, 0xC0, 0xEB));
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1368,14 +1449,14 @@ public sealed class TrayContext : ApplicationContext
                 Lang.T("cooler_boost") + ": " + (next ? Lang.T("st_on") : Lang.T("st_off"))
                     + (auto ? "  ·  " + Lang.T("fb_auto_off") : ""),
                 read);
-            if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("cooler_boost"),
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("cooler_boost"),
                 auto ? Lang.T("fb_auto_off") : Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
                 next ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             UpdateCoolerBoostMenu();
         }
         catch (Exception ex)
         {
-            _osd.ShowProfile("MSI  ·  " + Lang.T("err"), ex.Message, Color.Firebrick);
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
 
@@ -1407,7 +1488,7 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.OverlayEnabled != on) { _settings.OverlayEnabled = on; _settings.Save(); }
         UpdateOverlayMenu();
         UpdateFpsActive();
-        if (osd) _osd.ShowProfile("MSI  ·  " + Lang.T("overlay_title"),
+        if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("overlay_title"),
             Lang.T(on ? "st_on" : "st_off"), Color.FromArgb(0x17, 0xC0, 0xEB));
     }
 
@@ -1579,7 +1660,7 @@ public sealed class TrayContext : ApplicationContext
         _settings.Save();
         _overlay?.ApplySettings();
         UpdateOverlayMenu();
-        _osd.ShowProfile("MSI  ·  " + Lang.T("overlay_title"),
+        _osd.ShowProfile(OsdPrefix + Lang.T("overlay_title"),
             Lang.T(_settings.OverlayClickThrough ? "ov_locked" : "ov_unlocked"), Color.FromArgb(0x17, 0xC0, 0xEB));
     }
 
@@ -1630,7 +1711,8 @@ public sealed class TrayContext : ApplicationContext
     private void ShowOsd(ProfileId id)
     {
         var def = Profiles.Get(id);
-        _osd.ShowProfile("MSI  ·  " + def.Label, Lang.T(def.SubKey), _settings.ColorFor(id));
+        string label = id == ProfileId.Extreme && ApexOn ? def.Label + " · APEX" : def.Label;
+        _osd.ShowProfile(OsdPrefix + label, Lang.T(def.SubKey), _settings.ColorFor(id));
     }
 
     private void UpdateUi(ProfileId id)
@@ -1728,7 +1810,7 @@ public sealed class TrayContext : ApplicationContext
         // (#27) stock state includes a working camera: lift the hard block and re-enable the switch
         if (_webcamSupported && !_simulate) { try { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); _webcamOn = true; } catch { } }
         ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub"));
-        _osd.ShowProfile("MSI  ·  " + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
+        _osd.ShowProfile(OsdPrefix + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
     }
 
     // RegisterHotKey fails when another running app already owns the combination. That result
@@ -1770,6 +1852,9 @@ public sealed class TrayContext : ApplicationContext
         SetProfile = id => SetProfile(id, osd: true, ChangeSource.Panel),
         Writable = () => Writable,
         ColorOf = id => _settings.ColorFor(id),
+        ApexAvailable = () => _device?.FourthMode != null,
+        ApexOn = () => ApexOn,
+        SetApex = SetApex,
         Firmware = () => _firmware,
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),
@@ -2191,6 +2276,7 @@ public sealed class TrayContext : ApplicationContext
             _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"));
         ApplyTempTray(ref _gpuTray, ref _gpuTrayIcon, ref _gpuTrayText,
             _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"));
+        _wheel?.SetIcons(WheelIcons());   // no-op unless an icon appeared or went away
     }
 
     private void ApplyTempTray(ref NotifyIcon? icon, ref Icon? current, ref string shown,
@@ -2207,7 +2293,18 @@ public sealed class TrayContext : ApplicationContext
         // Deliberately none of the user's Ok/Warn/Hot colours, so a dash never reads as "fine".
         bool noReading = temp <= 0;
         string text = noReading ? "--" : temp >= 100 ? "99+" : temp.ToString();
-        icon ??= new NotifyIcon { ContextMenuStrip = _tray.ContextMenuStrip, Visible = true };
+        if (icon == null)
+        {
+            // The temperature icons mirror the main icon's mouse behaviour: the same shared
+            // right-click menu (strip below), the same configurable left/middle-click actions
+            // (TrayClick), and the wheel hook watches them too (WheelIcons/SetIcons).
+            icon = new NotifyIcon { Visible = true };
+            icon.MouseClick += TrayClick;
+        }
+        // Re-assigned on every update, not just at creation: BuildMenu replaces the strip
+        // object (language change, menu options), and a stale reference would leave these
+        // icons with the previous menu.
+        icon.ContextMenuStrip = _tray.ContextMenuStrip;
         icon.Text = noReading ? $"{label} --" : $"{label} {temp} °C";
         if (text == shown) return;                       // nothing to redraw
         var next = TrayIconFactory.TextIcon(text, noReading ? Theme.Faint : TempTrayColor(temp));
@@ -2232,6 +2329,7 @@ public sealed class TrayContext : ApplicationContext
         { _cpuTray.Visible = false; _cpuTray.Dispose(); _cpuTray = null; _cpuTrayIcon?.Dispose(); _cpuTrayIcon = null; _cpuTrayText = ""; }
         if (!_settings.TempTrayGpu && _gpuTray != null)
         { _gpuTray.Visible = false; _gpuTray.Dispose(); _gpuTray = null; _gpuTrayIcon?.Dispose(); _gpuTrayIcon = null; _gpuTrayText = ""; }
+        _wheel?.SetIcons(WheelIcons());
     }
 
     private void OnThermalSample(HwSnapshot hw)
@@ -2246,7 +2344,7 @@ public sealed class TrayContext : ApplicationContext
         _lastTempAlert = now;
         string text = string.Format(Lang.T("ta_alert_text"),
             hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
-        _osd.ShowProfile("MSI  ·  " + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
+        _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
         _balloonUrl = null;
         _tray.BalloonTipTitle = Lang.T("ta_alert_title");
         _tray.BalloonTipText = text;
@@ -2313,7 +2411,7 @@ public sealed class TrayContext : ApplicationContext
         BuildMenu();
         if (_main is { IsDisposed: false }) _main.RefreshActive();
         if (!_settings.ChargeExternalNotify) return;
-        _osd.ShowProfile("MSI  ·  " + Lang.T("charge_ext_title"), text, Theme.Amber);
+        _osd.ShowProfile(OsdPrefix + Lang.T("charge_ext_title"), text, Theme.Amber);
         _balloonUrl = null;
         _tray.BalloonTipTitle = Lang.T("charge_ext_title");
         _tray.BalloonTipText = text;
@@ -2334,7 +2432,7 @@ public sealed class TrayContext : ApplicationContext
         if (now - _lastSsdAlert < ThermalCooldown) return;
         _lastSsdAlert = now;
         string text = string.Format(Lang.T("ssd_alert_text"), name, temp, _settings.SsdAlertDegrees);
-        _osd.ShowProfile("MSI  ·  " + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
+        _osd.ShowProfile(OsdPrefix + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
         _balloonUrl = null;
         _tray.BalloonTipTitle = Lang.T("ssd_alert_title");
         _tray.BalloonTipText = text;
@@ -2354,7 +2452,7 @@ public sealed class TrayContext : ApplicationContext
         if (before == hz) return;
         if (!Display.SetRefresh(hz)) return;
         ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
-        _osd.ShowProfile("MSI  ·  " + Lang.T("ref_title"), $"{before} Hz → {hz} Hz", Theme.Accent);
+        _osd.ShowProfile(OsdPrefix + Lang.T("ref_title"), $"{before} Hz → {hz} Hz", Theme.Accent);
     }
 
     // (#15) Tray tooltip carries Windows' battery-time estimate while discharging.

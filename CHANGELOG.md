@@ -4,22 +4,355 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Fixed
+- **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured
+  the message's line count at a width 2 px wider than the width it was drawn at, so a
+  message could wrap into one more line than the window had grown for, and that line sat
+  cut off against the edge. Measured and drawn widths now match exactly. The temperature
+  alert also keeps the duration and its unit together ("10 s" no longer splits across
+  lines) in every language.
+- **Long toast messages no longer stretch across the whole screen** - the on-screen toast
+  (profile switches, the temperature alert, the "charge limit changed outside the app"
+  notice and every other message) sized itself to fit the longest line in one line, so a
+  full-sentence message in a wordier language spanned the display. The toast now caps its
+  width and wraps the text into more lines instead, growing downwards; short messages look
+  exactly as before.
+
 ### Added
-- **Windows power card: CPU turbo boost switch and power-mode sync**
+- **Windows power card: a CPU turbo boost switch and the Windows power mode in Settings**
   ([discussion #141](../../discussions/141), thanks @scorvus99) - a new card in
   Settings → Power drives two documented user-mode Windows power APIs, no EC involved,
   so it works even on machines whose EC interface the app cannot reach. The **CPU turbo
   boost** toggle edits the (normally hidden) "Processor performance boost mode" setting
   of the active power plan; because a plan write is persistent, the previous AC/battery
-  values are saved per plan and the card says at every stage exactly what turning it
-  back on will write. **"Windows power mode follows the profile"** (opt-in) sets the
-  Windows power-mode slider on every profile switch - Silent and Super Battery choose
-  best power efficiency, Balanced the balanced mode, Extreme best performance - and the
-  card shows the requested and the effective mode side by side, since Windows may
-  temporarily override the request. Two guarded buttons round it off: revealing the
-  hidden setting in the Windows power options (optional, confirmed, fully reversible)
-  and restoring every saved value back into its plan. CLI: `--turbo <on|off|status>`.
+  values are saved per plan and the card says exactly what turning it back on will
+  write. The **Windows power mode** row sets the same mode as the Windows power slider
+  directly, and an optional "Follow the GhostDeck profile" switch keeps it in step with
+  every profile change (Silent and Super Battery choose best power efficiency, Balanced
+  the balanced mode, Extreme best performance). A "Restore Windows settings" button
+  appears only while the app actually holds something to restore; revealing the hidden
+  setting in the Windows power options lives in the card's help bubble.
+  CLI: `--turbo <on|off|status>`.
+- **GF65 Thin 10UE: first live G1-generation capture confirms the entry**
+  ([#230](../../issues/230), thanks @scorvus99) - the `16W2EMS1` entry gains its retail
+  name and a hardware confirmation of the G1 recipe bytes (`0xF2`/`0xF4`, real Silent
+  value included), captured on a Dragon-Center-era machine. The entry stays experimental:
+  on the reporter's own unit the standard MSI interface refuses calls, so the capture
+  came through an alternative read path he built - it validates the data, not the stock
+  app's path. Signed model database `DataVersion 20261009`.
+- **Fan curve verified on the MSI Pulse A16 AI+ C3HWFKG**
+  ([#229](../../issues/229), thanks @Xakson) - the owner's test curve sits byte-for-byte
+  at the shipped table addresses on both fans, so the curve editor for this model loses
+  its "unverified" flag. Signed model database `DataVersion 20261008`.
+- **MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`) promoted to Tested - the 48th**
+  ([#228](../../issues/228), thanks @Xakson) - registration to promotion in a day, every
+  piece of evidence from one owner's machine: a canonical per-scenario capture with the
+  real Silent byte, and a clean Power test (1 % drift, readbacks intact) measuring a
+  **real Silent cap (83 % of Balanced's work at 55 °C against 71 °C on slower fans)**
+  and a real **Extreme jump of +23 %**. His first run sat pinned at ~2.6 GHz in every
+  profile - a transient efficiency state documented in TECHNICAL §60.6; the rerun scored
+  cleanly. Signed model database `DataVersion 20261007`.
+- **New model: MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`), experimental**
+  ([#228](../../issues/228), thanks @Xakson) - a brand-new firmware prefix, absent even
+  from msi-ec, registered from an owner's read-only per-scenario capture taken on MSI
+  Center 2.0.48, so the real Silent fan byte is first-hand. The AMD board writes its eco
+  state without the battery-throttle register (like every AMD entry on file), the charge
+  limit lives at the usual register, and the fan-curve tables hold the family-standard
+  layout. Recognition grows to 156 firmware ids. Signed model database
+  `DataVersion 20261006`.
+- **Katana 15 B13VFK - fifth retail line on the `1585EMS1` board**
+  ([#227](../../issues/227), thanks @houstonmcknight790-byte) - the Tested entry "Creator
+  M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / Crosshair 16 A13V" gains its fifth
+  confirmed market name (i7-13620H + RTX 4060). The owner's canonical snapshot re-confirms
+  every recipe byte, and his clean Power test (2 % drift) records a real Silent cap on his
+  unit: 82 % of Balanced's work at 76 °C against 94 °C. Signed model database
+  `DataVersion 20261005`.
+- **MSI Raider 16 Max HX B2WJ (`2651EMS1`) promoted to Tested - the 47th**
+  ([#226](../../issues/226), thanks @Giperzvuk) - two clean Power-test runs (0 % drift in
+  both) confirm the profiles and record a board trait: **Silent lowers fan speed only, it
+  does not cap power on this board** (102-114 % of Balanced's work in both runs, once from
+  cold, once warm). The run readbacks also confirm the real Silent fan byte `0x1D`. Signed
+  model database `DataVersion 20261004` - reaches every installation without a release.
+- **Apex switch** ([#226](../../issues/226), thanks @Giperzvuk) - on boards whose model entry
+  records a fourth performance value (the state some MSI Center versions bury as a switch
+  inside their top scenario), the Extreme tile gains an APEX row with a toggle and a help
+  bubble. While it is on, the Extreme profile writes the Apex value instead of the normal
+  turbo one, the tile and the OSD carry an APEX badge, and the choice is remembered per
+  model. The first enable shows a one-time consent card in the app's own card style: Apex
+  is louder and hotter, and whether it buys real performance on a given board is answered
+  by the Power test, which measures Apex as its own step - the first such measurement
+  ([#226](../../issues/226), Raider 16 Max HX B2WJ) came back at **+34 % delivered work
+  over Balanced**, against +16 % for plain Extreme. A panic reset always returns to plain
+  Balanced.
+- **New model: MSI Raider 16 Max HX B2WJ (`2651EMS1`), experimental, 16-bit tachometers**
+  ([#221](../../issues/221), thanks @Giperzvuk) - a brand-new firmware prefix, absent even
+  from msi-ec, registered from an owner's per-scenario capture: Balanced, Extreme and the
+  eco state confirmed 1:1 with the family standard. His idle capture also proves the
+  16-bit fan-tachometer pairs directly (non-zero high bytes at ~1530 rpm), so live RPM
+  arrives with the next release. Recognition grows to 155 firmware ids.
+- **The firmware guard now explains itself in a dialog** ([#212](../../issues/212), thanks
+  @Acoustichayes) - when the EC firmware version changes (usually a BIOS update), the app
+  pauses automatic writes until the owner confirms the machine still behaves. That state
+  used to announce itself only through a 9-second tray balloon; whoever missed it had to
+  re-enable the fan curve by hand after every boot without knowing why. Now a dialog opens
+  at startup with the old and new version, a list of what is paused, and a "Restore
+  automatic writes" button; "Later" keeps the existing tray-menu entry as the fallback
+  path.
+- **Startup profile** ([discussion #178](../../discussions/178)) - next to "Restore profile
+  after wake / at startup" the Power settings gain a "Startup profile" picker: "Last used"
+  (the previous behaviour) or one fixed profile that is applied at every app start, regardless
+  of what ran last. Waking from sleep still restores the profile that was active before sleep,
+  which is that path's whole point.
+- **Tray temperature icons respond to the mouse like the main icon** - the CPU and GPU
+  temperature icons now run the same configurable left/middle-click actions and the same
+  scroll-wheel action as the main tray icon, and their right-click menu stays current after a
+  language change. The "Temperature in the tray" settings card notes that the actions are
+  picked in the Tray menu section.
+- **Fan RPM on boards with 16-bit tachometers** ([#76](../../issues/76), [#90](../../issues/90),
+  [#145](../../issues/145)) - Pulse/Katana 17 B13V/GK (`17L5EMS1`), Creator M16 / Pulse 15 /
+  Katana 15 B13 (`1585EMS1`) and Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) report fan
+  speed as a two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`, a format the app could not
+  read, so their RPM readout stayed off. The app now reads the pair and RPM turns on for all
+  three (the Cyborg has the CPU pair only - it is a single-fan board). Older app versions keep
+  showing no RPM on these boards rather than misreading half of the pair.
+
 ### Changed
+- **MSI Raider 16 Max HX B2WJ (`2651EMS1`): fan curve verified, Apex recorded**
+  ([#221](../../issues/221), [#225](../../issues/225), thanks @Giperzvuk) - his test curves
+  sit byte-for-byte at the shipped table addresses on both main fans, and his capture of
+  the "Extreme Performance + Apex Mode" tile shows it writes `C5`, now recorded as the
+  entry's fourth mode so the power test measures it. The board runs three fans (Cooler
+  Boost Trinity); a third tachometer pair was located and recorded - the readout carries
+  the two main fans.
+- **`15K1IMS1` gains a third retail name: Cyborg 15 A13VE** ([#224](../../issues/224),
+  thanks @DeimosCreator) - the RTX 4050 sibling of the Cyborg 15 A13V family, listed
+  beside the A13VF on msi.com's own spec page, same board.
+- **MSI Modern 14 B11MOU (`14D3EMS1`): the Extreme recipe now writes the vendor's value**
+  ([#170](../../issues/170), thanks @userman21-d) - two independent captures from the
+  owner's machine show MSI Center Pro writing shift `0xD2 = C0` for its high-performance
+  tile, not the family's `C4`, so the entry now writes and recognises `C0` as Extreme.
+  The other profiles stay the family standard.
+- **MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG (`17K3EMS1`): fan curve verified**
+  ([#219](../../issues/219), thanks @ezn24) - his test curve sits byte-for-byte at the
+  shipped table addresses on both fans, completing the entry after the #200 promotion.
+- **`17L3EMS1` gains a second retail name: Katana GF76 12UE** ([#217](../../issues/217),
+  thanks @knyaz-ostrov) - the Crosshair 17 B12 and the Katana GF76 12UE share the MS-17L3
+  board; his capture also re-confirms every profile recipe 1:1, real Silent included.
+- **MSI Vector 16 HX AI / Raider 16 HX AI: unit spread recorded** ([#215](../../issues/215),
+  thanks @STRIEH) - the cleanest run this board has had (1% drift, an RTX 5080 unit) is the
+  first where Silent measurably caps power (82% of Balanced's work on far slower fans);
+  earlier units measured 97-99%, so the behaviour varies between units and configurations.
+  Recipes unchanged; the C5 value was accepted and cleanly reverted once again.
+- **MSI Stealth 16 Studio A13VG (`15F2EMS1`) promoted to tested** ([#206](../../issues/206),
+  thanks @sevi-05) - his per-scenario capture matches the standard recipes 1:1 with a real
+  Silent column, and he confirmed all three hardware checks (Silent quieter, Extreme ramps,
+  switching stable). 46 models tested.
+- **MSI Stealth GS66 12UE / 12UGS (`16V5EMS1`): fan curve verified** ([#209](../../issues/209),
+  thanks @Themazin) - his test curve sits byte-for-byte at the shipped table addresses on
+  both fans, so the curve editor loses its "unverified" warning on this model. His capture
+  (#208) also re-confirms every profile recipe 1:1, eco included; the model itself stays
+  experimental until a readable power test (#210).
+- **MSI Stealth 16 AI+ B3WI / B3WH (`2631EMS1`): fan RPM switched to the 16-bit tachometer
+  pairs** ([#205](../../issues/205), thanks @AiM-lab-owl) - the board reports fan speed as a
+  two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`; every earlier capture sat above
+  ~1870 rpm, where the two formats read identically, and an idle Status screenshot settled
+  it (a "7353 rpm" reading at 20% fan duty is the pair's low byte alone - the real value is
+  ~1489 rpm). Until the next release the app shows no RPM on this model rather than
+  misreading half of the pair; the 16-bit readout ships with the next release.
+- **MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG (`17K3EMS1`) promoted to tested**
+  ([#200](../../issues/200), thanks @ezn24) - a clean power test: 1% drift, Silent at 91%
+  of Balanced's work on far slower fans (~2800 rpm against 3571/3874), Extreme at +14%,
+  stable switching with clean byte readbacks in all four phases. His per-profile HWiNFO64
+  readings match the app's fan readout, so the RPM addresses are hardware-confirmed.
+  45 models tested.
+- **Toast titles now say "GhostDeck" instead of "MSI"** - every on-screen toast
+  ("GhostDeck · SILENT", "GhostDeck · High temperature", ...) is branded as the app that
+  actually shows it. "MSI" remains in the texts only where it describes the hardware.
+- **MSI Stealth 18 HX AI A2XW (`1833EMS1`) promoted to tested** ([#180](../../issues/180),
+  [#202](../../issues/202), thanks @funcompsition-hash and @SorgZZ) - the first owner built
+  the entry (registration, verified curve, the 16-bit tachometer discovery) and the second
+  delivered a clean power test four days later: 4% drift, Silent at 71% of Balanced's work
+  on slower fans and 17 degrees cooler, Extreme at +5%, stable switching with clean
+  readbacks throughout. 44 models tested.
+- **MSI Stealth A16 AI+ A3XWHG (`15FLIMS1`) promoted to tested** ([#199](../../issues/199),
+  thanks @Sagajaz) - promoted on the hardware checks: Silent noticeably quieter than
+  Balanced under the same in-game load, Extreme ramping the fans clearly faster, and
+  switching proven stable twice over with clean byte readbacks. The numeric power test is
+  unreadable on this Strix Point platform - its power budget follows chassis temperature
+  over minutes, slower than the test's phases - and the entry records that.
+  43 models tested.
+- **MSI Cyborg A15 AI B2HWGKG / B2HWEKG (`15QLIMS1`) promoted to tested** ([#198](../../issues/198),
+  thanks @ondrapa150) - his power test ran with 0% drift and clean readbacks in every phase:
+  CPU work and clocks identical across profiles under the combined CPU+GPU load, with Silent
+  doing that same work measurably quieter (fan duty 58/88 vs 70/100) and 7 degrees cooler.
+  The eco recipe also drops the battery-limiter write - the machine rests in eco with the
+  limiter untouched, like the other AMD boards. 42 models tested.
+- **GE76 Raider 11U / 11UH board (`17K3EMS1`) gains a third retail name: GP76 Leopard 11UG,
+  and fan RPM readout** ([#200](../../issues/200)) - an owner's per-scenario dumps re-confirm
+  the standard recipes with a real Silent column and show both tachometers as live
+  single-byte divisors at the sibling GE76 12UE's addresses; his machine is a GP76 Leopard
+  11UG on the same MS-17K3 board, so the entry carries that name too - the GE76/GP76 twin
+  lines, like the GE66/GP66 before them.
+- **Stealth A16 AI+ A3XWHG (`15FLIMS1`): the Super Battery recipe no longer writes the
+  battery-limiter register** ([#199](../../issues/199)) - an owner's per-scenario dumps
+  show the vendor leaves `0xEB` at zero in every scenario on this AMD board, so the eco
+  recipe is the mode byte alone, matching the other AMD entries.
+- **MSI Crosshair 18 HX AI A2XW (`1841EMS1`) promoted to tested** ([#183](../../issues/183),
+  [#197](../../issues/197), thanks @sw1n3flu80085) - the owner's complete CPU-only power
+  test shows Silent at 63% of Balanced's work and 8 degrees cooler, Extreme at +14%, and
+  stable switching with clean readbacks in all four phases. The run's own drift check
+  (9%) is noted with the numbers. 41 models tested.
+- **New model: MSI Cyborg A15 AI B2HWGKG / B2HWEKG (`15QLIMS1`), experimental**
+  ([#198](../../issues/198)) - a brand-new AMD board absent even from msi-ec, registered
+  from an owner's report; the recipes ship as the family standard until his measurements
+  settle them. 154 models recognised.
+- **MSI Pulse 17 AI C1VGKG / C1VFKG (`17T3EMS1`) promoted to tested, curve verified, with
+  16-bit fan RPM** ([#182](../../issues/182), [#195](../../issues/195),
+  [#196](../../issues/196), thanks @SorgZZ) - added to the database one day, fully measured
+  the next: the owner's power test shows Silent at 82% of Balanced's work on far quieter
+  fans, stable switching with clean readbacks, and Extreme at +8% before the 99-degree
+  safety fuse ended the run (a thermally tight chassis, noted in the entry - the protection
+  worked as designed). His curve capture sits byte for byte at the shipped addresses on
+  both fans, and it also pins the tachometer format: the board reports fan speed as
+  two-byte pairs, so the RPM readout arrives with the release that ships the 16-bit
+  reader. 40 models tested.
+- **MSI Stealth 16 AI+ (`2631EMS1`) promoted to tested, and a second retail name: B3WH**
+  ([#185](../../issues/185)-[#189](../../issues/189), thanks @AiM-lab-owl, who joins
+  @SteppinStone on the entry's credit) - a second owner's clean power test (0% drift) shows
+  Silent doing exactly Balanced's work on clearly slower fans, with stable switching across
+  all five phases. The run is also the first measurement of this board's Apex (`C5`) fourth
+  mode: accepted, correctly reverted, and performing like Extreme, so the app's Extreme
+  recipe stays at the standard turbo value - the same verdict as on the Vector 16 HX AI.
+  39 models tested.
+- **Katana 15 HX (`1587EMS1`): @sensini82 joins the entry's credit** ([#192](../../issues/192),
+  [#193](../../issues/193)) - a fourth report set for this board: recipes re-confirmed per
+  scenario, and a power test with Extreme at +45% and a genuine Silent cap.
+- **New model: MSI Stealth 18 HX AI A2XW (`1833EMS1`), experimental, curve verified, 16-bit
+  fan RPM** ([#179](../../issues/179), [#180](../../issues/180)) - a brand-new board absent
+  even from msi-ec, mapped from one owner's paired reports: standard recipes per scenario,
+  the test curve byte for byte at the shipped addresses, and both tachometers as 16-bit
+  pairs proven at idle. His MSI Center 2.0.73 writes the Super Battery set under its
+  "Silent" tile, so the capture also documents that the tile lineup follows the machine,
+  not the app version.
+- **New model: MSI Crosshair 18 HX AI A2XW (`1841EMS1`), experimental, 16-bit fan RPM**
+  ([#183](../../issues/183)) - another board absent from msi-ec, mapped from an owner's full
+  per-scenario dumps with a real Silent column. The vendor never touches the battery
+  limiter register on it, so neither does the app, and both tachometers are 16-bit pairs.
+- **New model: MSI Pulse 17 AI C1VGKG / C1VFKG (`17T3EMS1`), experimental**
+  ([#182](../../issues/182)) - the Pulse 16 AI's 17-inch sibling, absent from msi-ec, added
+  from an owner's per-scenario snapshot with the standard recipes. 153 models recognised.
+- **Katana 15 B12V board (`1585EMS2`): fan RPM enabled as 16-bit pairs, and a fourth retail
+  name, B12UDXK** ([#184](../../issues/184)) - an owner's full dump set re-confirms the
+  standard recipes with a real Silent column; the tachometers follow the sibling
+  `1585EMS1`'s two-byte format, so the readout arrives with the release that ships the
+  16-bit reader. His machine is a Katana 15 B12UDXK on the same firmware, so the entry now
+  carries that name too.
+- **Creator M16 / Pulse 15 / Katana 15 B13 board (`1585EMS1`) gains a fourth retail name:
+  Crosshair 16 A13V** ([#190](../../issues/190), thanks @GabrielGby, who joins the entry's
+  credit) - his clean power test re-confirms the board: Silent does 92% of Balanced's work
+  on far slower fans and 15 degrees cooler.
+- **Katana 15 HX (`1587EMS1`) gains a second retail name: B14WFK** ([#191](../../issues/191),
+  thanks @Osanosa, who joins the entry's credit) - the RTX 50 refresh of the line runs the
+  same firmware, and his capture is the second independent byte-for-byte confirmation of
+  the curve addresses.
+- **MSI Summit E14 Flip Evo A12MT / Prestige 14 H B13U (`14F1EMS1`) promoted to tested, curve
+  verified, single fan, CPU fan RPM** ([#160](../../issues/160), thanks @Acoustichayes) - the
+  owner's clean power test (0% drift) shows Silent doing the same work as Balanced on slower,
+  cooler fans, with Extreme measuring only +4% on this thin chassis (a board trait, recorded
+  in the entry). His test curve sits byte for byte at the shipped CPU address; the GPU table
+  stayed factory and the machine has no GPU fan, so the curve editor now shows Fan 1 only.
+  38 models tested.
+- **Raider GE67 HX 12U (`1545IMS1`) fan RPM switched to the 16-bit tachometer pair**
+  ([#164](../../issues/164)) - an owner's idle side-by-side against HWiNFO64 and MSI Center
+  shows the board reports RPM as the two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`.
+  Above roughly 1870 rpm the raw value fits in one byte, so the earlier full-fan capture
+  could not tell the two formats apart. Until the release that reads 16-bit pairs ships,
+  the app shows no RPM on this board rather than a wrong number.
+- **Katana 15 HX B14WEK (`1587EMS1`): @DRLOGIC01 joins the entry's credit**
+  ([#176](../../issues/176), [#177](../../issues/177)) - a second owner independently
+  re-confirmed the curve addresses and delivered a clean power test (0% drift, Extreme +63%).
+- **New model: MSI Cyborg 15 C13WEO (`15T1EMS1`), experimental, curve verified, single fan**
+  ([#173](../../issues/173), [#174](../../issues/174), [#175](../../issues/175), thanks
+  @Achillesfeel) - a brand-new board absent even from msi-ec, mapped from one owner's
+  exceptionally thorough report set: standard recipes confirmed per scenario (his own
+  read-only captures, scenario changes verified), the `C5` Apex fourth mode recorded for the
+  power test to probe, the test curve byte for byte at the shipped address, one physical fan,
+  and a 16-bit tachometer pair that turns on with the next release. 150 models recognised.
+- **MSI Vector 17 HX AI A2XWHG (`17S3EMS1`) promoted to tested** ([#171](../../issues/171),
+  thanks @A7GoD) - the owner's snapshot matches the standard recipes byte for byte with a real
+  Silent column, and all three hardware checks are confirmed. 37 models tested.
+- **Vector A18 HX (`182LIMS1`) gains a third retail name: Raider A18 HX A9WJG**
+  ([#172](../../issues/172), thanks @UzaydaGezen, who joins the entry's credit) - his capture
+  is also the first on this board with a real Silent column (MSI Center 2.0.48), re-confirming
+  every recipe byte and the unused battery limiter.
+- **The Super Battery register (`0xEB`) is now written through its documented `0x0F` mask**
+  ([#170](../../issues/170)) - the write changes only the low half of the byte and preserves
+  the top bits, exactly as the Linux msi-ec driver does. On every board on record the top
+  half reads zero, so nothing changes there; on boards like the Modern 14 B11MOU, whose
+  firmware keeps an own flag in bit 7 of that register, the app no longer overwrites it.
+- **Vector A18 HX A9WHG (`182LIMS1`) renamed "Vector A18 HX A9WHG / Raider A18 HX A9WIG",
+  fan curve verified, fan RPM** ([#166](../../issues/166), [#167](../../issues/167),
+  [#168](../../issues/168), thanks @bnjhdaskghsnlh, who joins the entry's credit) - a second
+  owner's Raider A18 HX A9WIG runs the same board: his test curve sits byte for byte at the
+  shipped addresses on both fans, both tachometers read live divisors at `0xC9`/`0xCB`, and
+  his power test is the cleanest run on record for this board (1 % drift, Silent a hard cap
+  at 25 % of Balanced's work, Extreme +30 %).
+- **Raider GE67 HX 12U (`1545IMS1`): fan RPM enabled** ([#164](../../issues/164), thanks
+  @Hobby-Schrauber-88, who joins the entry's credit) - his Fan Boost capture shows both
+  tachometers as live single-byte divisors at `0xC9`/`0xCB` (~4900 rpm with boost on); at
+  idle they sit below what the single-byte format can express, which is why earlier captures
+  looked empty.
+- **Katana GF76 11UC / 11UD (`17L2EMS1`): CPU fan RPM enabled** ([#165](../../issues/165)) -
+  an owner's per-scenario dump matches the standard recipes byte for byte with a real Silent
+  column, and the CPU tachometer reads a live divisor at `0xC9`; the GPU register stayed 00
+  with the fan parked, so only the CPU address ships.
+- **MSI Prestige 14 AI Studio C1UDXG (`14N2EMS1`) promoted to tested, curve verified, fan RPM**
+  ([#156](../../issues/156), [#157](../../issues/157), [#158](../../issues/158), thanks
+  @gkyrios) - his per-scenario capture matches the standard recipes byte for byte, his test
+  curve sits at the shipped addresses on both fans, and his power test measures Extreme at
+  +23 % while Silent does Balanced's work on much slower fans (46 vs 71 % duty, 3 C cooler) -
+  the "quieter, not slower" trait, recorded in the entry. Tachometers live at `0xC9`/`0xCB`.
+  36 models tested.
+- **MSI Thin 15 B12UCX / B12VE (`16R8IMS2`) promoted to tested** ([#159](../../issues/159),
+  [#162](../../issues/162), thanks @arcfybrr and @pushtamper-nice) - the owner's clean re-run
+  measures a real Silent cap (87 % of Balanced's work at 78 vs 95 C on slower fans), and a
+  second owner's capture re-confirms every recipe byte. Recorded as a board trait: Extreme
+  runs slower than Balanced here, with the CPU pinned near 3.09 GHz at low temperatures - a
+  clock cap under the turbo value, not thermals.
+- **Alpha 17 C7VF / C7VG (`17KKIMS1`): Super Battery no longer writes the battery limiter**
+  ([#151](../../issues/151)) - the owner's per-scenario capture shows `0xEB` untouched in
+  every scenario including Super Battery, the same pattern as the other AMD boards, so the
+  recipe drops that write.
+- **Summit E14 Flip Evo A12MT (`14F1EMS1`) renamed "Summit E14 Flip Evo A12MT / Prestige 14 H
+  B13U"** ([#160](../../issues/160)) - an owner's Prestige 14 H B13UCX runs the same EC
+  firmware, and his capture matches the standard recipes byte for byte.
+- **MSI Alpha 17 C7VF / C7VG (`17KKIMS1`) promoted to tested, curve verified, fan RPM**
+  ([#152](../../issues/152), [#153](../../issues/153), thanks @Liuwins) - the first Alpha-line
+  board confirmed on real hardware: his test curve sits byte for byte at the shipped addresses
+  on both fans, and his power test measures a real Silent cap (89 % of Balanced's work at 76 vs
+  85 C on slower fans) with Extreme at +16 % before the run tripped the 99 C safety cutoff on
+  this thermally tight chassis. Tachometers live at `0xC9`/`0xCB`. 34 models tested.
+- **Crosshair 15 B12UEZ / B12UGSZ (`1583EMS1`): Super Battery recipe vendor-confirmed**
+  ([#154](../../issues/154), thanks @SvinoSuper, who joins the entry's credit) - a second
+  owner's capture on firmware .111 matches every recipe byte with four distinct columns, and
+  his Super Battery column shows the vendor writing the standard `C2`, settling the leftover
+  `C4` observed in the first owner's capture as a one-off, not a board trait.
+- **GF63 Thin 10U / 10SC (`16R5EMS1`) renamed "GF63 Thin 10U / 10SC / 10UC"**
+  ([#86](../../issues/86)) - an owner's 10UC report runs on this firmware, with Silent audibly
+  working and profile switching stable, which also makes it the first behavioural confirmation
+  of the older G1 register generation. The entry stays experimental until his power test.
+- **New model: MSI Crosshair 17 HX AI D2XW (`17T4EMS1`), tested, with fan RPM**
+  ([#148](../../issues/148), thanks @SpeedPlayzz) - the owner's per-scenario capture from a
+  machine the app did not yet recognise matches the standard recipes byte for byte with a real
+  Silent column on MSI Center 2.0.48, all three hardware checks are confirmed, and his dumps
+  carry live single-byte tachometer divisors at `0xC9`/`0xCB` (the Katana-family scheme, asked
+  to cross-check against HWiNFO64). 149 models recognised, 33 tested.
+- **Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`): fan curve verified, single fan**
+  ([#145](../../issues/145), thanks @tenduo) - the owner's second capture sets all six sliders
+  and the test curve sits byte for byte at the shipped address from the first slot, so the
+  curve editor drops its unverified caution. The GPU table stayed factory through both passes,
+  the owner confirms the machine has one fan and chassis teardowns agree, so the board is
+  marked single-fan and the editor shows one curve.
 - **MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (`15Q3EMS1`) promoted to tested**
   ([#97](../../issues/97), [#140](../../issues/140), [#146](../../issues/146), thanks
   @parkisutama and @tenduo) - two owners' captures match the standard recipes byte for byte,
