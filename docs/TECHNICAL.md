@@ -1264,7 +1264,9 @@ The Start page is a dashboard, not just navigation:
   (enabled rules, only while the schedule is active), the temperature alert, the SSD alert,
   then the OSD time; a part that is off is left out, and "Off" appears only when none is on.
 - **Quick switches.** `GroupTile.AttachToggle(get, set)` embeds a ToggleSwitch top-right;
-  used on Automation (temp alert) and Gaming (overlay via `D.SetOverlay`). The toggle is a
+  used on Gaming only (overlay via `D.SetOverlay`). The Notifications tile carried one for
+  the temperature alert until v1.37; as Automation it has a schedule and several alerts
+  behind it, so one switch would not say what it turns off. The toggle is a
   child control, so clicking it never triggers the tile's navigate click; `SyncToggle` uses
   the silent `Checked` setter, so re-syncing cannot loop into the action.
 - **Status header.** `HomeHeader` draws model + tier pill (`Ui.Pill`) + firmware + version

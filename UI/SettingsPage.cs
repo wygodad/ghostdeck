@@ -1274,10 +1274,9 @@ public sealed class SettingsPage : ThemedPage
             _tiles.Add(tile);
             Controls.Add(tile);
         }
-        // Quick master switches straight on the Start tiles - only where the group has one
-        // obvious main on/off (Gaming = overlay, Automation = temperature alert).
-        _tiles[2].AttachToggle(() => D.Settings.TempAlertEnabled,
-            v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); RefreshTiles(); });
+        // A quick master switch straight on a Start tile - only where the group has one obvious
+        // main on/off (Gaming = overlay). Automation carries none: with a schedule and several
+        // alerts behind the tile, one switch would not say what it turns off.
         _tiles[3].AttachToggle(() => D.Settings.OverlayEnabled,
             v => { D.SetOverlay(v); RefreshTiles(); });
 

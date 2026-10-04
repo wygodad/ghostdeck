@@ -144,7 +144,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Settings Start page: the tiles follow what their tabs hold now** - the Power tile shows
   the Windows power mode and a switched-off turbo next to the charge limit, the Automation
   tile shows the number of active schedule rules and the SSD alert next to the temperature
-  alert.
+  alert. The Automation tile no longer carries a quick switch: with a schedule and several
+  alerts behind it, one switch did not say what it turned off.
 - **MSI Raider 16 Max HX B2WJ (`2651EMS1`): fan curve verified, Apex recorded**
   ([#221](../../issues/221), [#225](../../issues/225), thanks @Giperzvuk) - his test curves
   sit byte-for-byte at the shipped table addresses on both main fans, and his capture of

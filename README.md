@@ -152,7 +152,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | ![Scene editor](docs/images/scene_editor.png) | ![Settings General](docs/images/settings_general.png) |
 | **Scene editor** - switch on only the settings a scene should apply (brightness, HDR, Windows-key lock and touchpad included); everything else stays as it is | **Settings → General** - pick which bricks and sections the Scenarios tab shows; the gear on Scenarios jumps here and highlights this card |
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
-| **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs, live state on every group tile, quick switches |
+| **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs and the live state of every group on its tile |
 | ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
 | **Settings → Power** - Windows power (turbo boost and power mode), charge limit with travel mode, battery-level rules, battery health, Fan Boost auto-off timer, refresh rate and HDR | **Settings → System** - tray-icon mouse actions, tray temperature icons, camera privacy block, Windows-key lock, touchpad, Fn/Win keyboard layout, diagnostics, backup |
 | ![Settings Hotkeys](docs/images/settings_hotkeys.png) | ![Updates](docs/images/updates.png) |
@@ -169,12 +169,14 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Change log** - full history of profile switches and EC writes | **Fan Boost auto-off** - the OSD note when the boost timer hands the fans back |
 | ![Temperature in the tray](docs/images/tray-temps.png) | ![Compact sub-tabs](docs/images/subtabs-compact.png) |
 | **Temperature in the tray** - CPU and GPU as their own icons next to the clock, colour by your own thresholds | **Narrow window** - the sub-tab strip drops to icons instead of pushing a scrollbar; the tab you are on keeps its label |
-| ![Settings Notifications](docs/images/settings_notifications.png) | ![Travel mode](docs/images/travel_mode.png) |
+| ![Settings Automation](docs/images/settings_automation.png) | ![Travel mode](docs/images/travel_mode.png) |
 | **Settings → Automation** - the scene schedule, CPU/GPU and SSD temperature alerts with their own thresholds, OSD display time and one-click restore defaults | **Travel mode** - charge to 100 % for a trip; the previous limit returns on its own after the chosen number of days |
 | ![Windows power](docs/images/windows_power.png) | ![Profile mapping](docs/images/windows_power_mapping.png) |
 | **Windows power** - the CPU turbo boost switch with the saved values in plain view, the Windows power mode as four segments, and *Restore Windows settings* naming what comes back | **Profile mapping** - which Windows power mode each profile selects while *Auto: profile* is on |
 | ![Apex switch](docs/images/apex_scenario.png) | ![Apex, first enable](docs/images/apex_modal.png) |
 | **Apex switch** - on boards with a fourth performance value the Extreme tile carries its own toggle | **Apex, first enable** - one card explains what Apex is and what the switch does before it is turned on for the first time |
+| ![Restore Windows settings](docs/images/windows_power_restore.png) | ![Name prompt](docs/images/preset_name_prompt.png) |
+| **Restore Windows settings** - one card lists what comes back before anything is written | **Name prompt** - a preset name that is already taken is answered right under the field |
 | ![Wrapped OSD toast](docs/images/osd_wrapped_toast.png) | ![Firmware guard](docs/images/firmware_guard.png) |
 | **Notifications that explain themselves** - when something outside the app changes a setting (here: the battery charge limit), the toast says what happened, who does that, and what to do; long messages wrap instead of stretching across the screen | **Firmware guard** - after a BIOS update changes the EC firmware version the app pauses its automatic writes and says so in one card, with the way back |
 
