@@ -33,11 +33,19 @@ public static class BackupPathTest
 {
     public const int HoldSeconds = 6;          // a profile without load: is the write still there afterwards?
     public const int SettleSeconds = 4;
-    public const int LoadSeconds = 10;
-    private const int LoadSkipSeconds = 2;     // spin-up, excluded from the work figure
+    // A processor may run above its sustained limit for the first seconds of a load, in every
+    // mode, before the limit of the mode takes hold. The work figure therefore counts only what
+    // comes after that opening stretch; counting it would blur the very difference being looked for.
+    public const int LoadSeconds = 20;
+    private const int LoadSkipSeconds = 5;     // opening stretch, excluded from the work figure
     public const int CurveBaseSeconds = 12;
     public const int CurvePhaseSeconds = 40;
-    private const double EffectRatio = 0.90;   // Super Battery must deliver at most this share of Extreme's work
+    // Super Battery must deliver at most this share of Extreme's work. Two runs of the SAME mode
+    // differ by a few percent (up to 5 % seen when replaying a dump on a busy machine, the same
+    // bound the power test works with), while a power-saving shift mode is expected to cost tens of percent - the
+    // line sits in the gap between the two. The report prints the raw shares, so a verdict
+    // near the line can be judged by eye.
+    private const double EffectRatio = 0.90;
     private const int CurveRiseRpm = 500;
     private const byte FanAuto = 0x0D, FanSilent = 0x1D, FanAdvanced = 0x8D;
 
