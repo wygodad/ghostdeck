@@ -38,10 +38,7 @@ public sealed class SceneEditForm : GhostCardForm
     private readonly List<RowDef> _rows = new();
     private readonly List<Zone> _zones = new();
     private CardTextHost? _nameHost, _glyphHost;
-    private Font? _hostFont;
     private Rectangle _nameRect, _glyphRect;   // text areas of the two fields, window coordinates
-    private float _k = 1f;
-    private int _focus;                        // 1 = name, 2 = icon, 0 = neither
     private int _kbRow = -1;                   // keyboard row; its marker appears only once the arrows are used
     private bool _armed, _nameMissing;
 
@@ -61,7 +58,7 @@ public sealed class SceneEditForm : GhostCardForm
             Label = Lang.T("sc_profile"), Items = Profiles.Order.Select(id => Profiles.Get(id).Label).ToArray(),
             On = scene.Profile != null, Sel = profSel,
             Commit = (on, i) => _scene.Profile = on ? Profiles.Get(Profiles.Order[i]).Key : null,
-            Icon = i => (g, r, onFill) => IconPainter.Scenario(g, Profiles.Order[i], r, onFill ? Color.White : d.ColorOf(Profiles.Order[i]), 1.6f * _k),
+            Icon = i => (g, r, onFill) => IconPainter.Scenario(g, Profiles.Order[i], r, onFill ? Color.White : d.ColorOf(Profiles.Order[i]), 1.6f * UiScale),
         });
 
         if (d.HasFanCurve())
@@ -130,13 +127,6 @@ public sealed class SceneEditForm : GhostCardForm
             (on, i) => _scene.FanBoost = on ? i == 0 : null);
     }
 
-    /// <summary>Runs the editor as a modal card centred over <paramref name="owner"/>.</summary>
-    public DialogResult ShowOver(Form? owner)
-    {
-        HostWindow = owner;
-        return ShowDialog(owner);
-    }
-
     private void Row(string label, string[] items, bool set, int sel, Action<bool, int> commit) =>
         _rows.Add(new RowDef { Label = label, Items = items, On = set, Sel = Math.Clamp(sel, 0, items.Length - 1), Commit = commit });
 
@@ -164,7 +154,7 @@ public sealed class SceneEditForm : GhostCardForm
             // a scene needs a name: mark the field and put the caret there instead of closing
             _nameMissing = true;
             Rerender();
-            FocusHost(_nameHost);
+            FocusField(_nameHost);
             return false;
         }
         _scene.Name = n;
@@ -172,6 +162,13 @@ public sealed class SceneEditForm : GhostCardForm
         foreach (var r in _rows) r.Commit(r.On, r.Sel);
         DialogResult = DialogResult.OK;
         return true;
+    }
+
+    protected override void CreateTextFields()
+    {
+        _nameHost = AddTextField(_scene.Name, HorizontalAlignment.Left, () => _nameRect);
+        _glyphHost = AddTextField(_scene.Glyph, HorizontalAlignment.Center, () => _glyphRect);
+        _nameHost.Box.TextChanged += (_, _) => { if (_nameMissing) { _nameMissing = false; Rerender(); } };
     }
 
     private static int Ce(float v) => (int)Math.Ceiling(v);
@@ -191,39 +188,23 @@ public sealed class SceneEditForm : GhostCardForm
 
     protected override void PaintContent(Graphics g, float k, Rectangle area, Point origin)
     {
-        _k = k;
         _zones.Clear();
         Rectangle Win(Rectangle r) => new(r.X + origin.X, r.Y + origin.Y, r.Width, r.Height);
-
-        using var capF = new Font("Segoe UI", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var labelF = new Font("Segoe UI Semibold", 13.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-        using var cellF = new Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var center = new StringFormat(StringFormatFlags.NoWrap) { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
-        using var left = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
         using var whiteB = new SolidBrush(White);
         using var mutedB = new SolidBrush(Muted);
-        using var faintB = new SolidBrush(Color.FromArgb(150, Muted));
         using var hair = new Pen(Color.FromArgb(22, 243, 247, 255), 1f);
 
         // ---- name + icon: caption above, field below ----
-        string capName = Lang.T("scene_name").ToUpperInvariant(), capGlyph = Lang.T("scene_glyph").ToUpperInvariant();
-        int glyphW = Ce(56 * k), capGlyphW = Ce(g.MeasureString(capGlyph, capF).Width);
+        string capGlyph = Lang.T("scene_glyph");
+        int glyphW = Ce(56 * k), capGlyphW = Ce(g.MeasureString(capGlyph.ToUpperInvariant(), CaptionFont).Width);
         int glyphX = area.Right - Math.Max(glyphW, capGlyphW);
         int fy = area.Y + CapH(k) + Ce(6 * k), fh = FieldH(k);
-        g.DrawString(capName, capF, mutedB, area.X, area.Y);
-        g.DrawString(capGlyph, capF, mutedB, glyphX, area.Y);
+        PaintCaption(g, Lang.T("scene_name"), area.X, area.Y);
+        PaintCaption(g, capGlyph, glyphX, area.Y);
         var nameField = new Rectangle(area.X, fy, glyphX - Ce(20 * k) - area.X, fh);
         var glyphField = new Rectangle(glyphX, fy, glyphW, fh);
-        void Field(Rectangle r, bool focused, bool missing, int padX, ref Rectangle textRect)
-        {
-            using var fp = RoundPath(r, Ce(8 * k));
-            using (var fb = new SolidBrush(FieldBg)) g.FillPath(fb, fp);
-            using var ep = new Pen(missing ? SoftRed : focused ? Color.FromArgb(190, Cyan) : Color.FromArgb(40, 243, 247, 255), 1f);
-            g.DrawPath(ep, fp);
-            textRect = Win(Rectangle.Inflate(r, -padX, -Ce(4 * k)));
-        }
-        Field(nameField, _focus == 1, _nameMissing, Ce(12 * k), ref _nameRect);
-        Field(glyphField, _focus == 2, false, Ce(6 * k), ref _glyphRect);
+        _nameRect = Win(PaintField(g, nameField, IsFocused(_nameHost), _nameMissing));
+        _glyphRect = Win(PaintField(g, glyphField, IsFocused(_glyphHost), padX: 6));
         _zones.Add(new Zone(Win(nameField), ZoneKind.Name, -1, 0));
         _zones.Add(new Zone(Win(glyphField), ZoneKind.Glyph, -1, 0));
 
@@ -238,61 +219,28 @@ public sealed class SceneEditForm : GhostCardForm
             int y = y0 + i * rowH;
             g.DrawLine(hair, area.X, y, area.Right, y);
 
-            // the switch
-            var tg = new Rectangle(area.X, y + (rowH - tgH) / 2, tgW, tgH);
-            using (var tp = RoundPath(tg, tgH / 2))
-            using (var tb = new SolidBrush(row.On ? Fill : Color.FromArgb(0x2E, 0x36, 0x46)))
-                g.FillPath(tb, tp);
-            float kd = tgH - 6 * k, kx = row.On ? tg.Right - kd - 3 * k : tg.X + 3 * k;
-            using (var kb = new SolidBrush(row.On ? Color.White : Color.FromArgb(0xAE, 0xB8, 0xC9)))
-                g.FillEllipse(kb, kx, tg.Y + (tgH - kd) / 2f, kd, kd);
+            PaintSwitch(g, new Rectangle(area.X, y + (rowH - tgH) / 2, tgW, tgH), row.On);
             // the whole left part of the row flips the switch - a bigger target than the knob
             _zones.Add(new Zone(Win(new Rectangle(area.X, y, pickX - Ce(8 * k) - area.X, rowH)), ZoneKind.Toggle, i, 0));
+            g.DrawString(row.Label, LabelFont, row.On ? whiteB : mutedB, new RectangleF(labelX, y, pickX - Ce(12 * k) - labelX, rowH), LeftText);
 
-            g.DrawString(row.Label, labelF, row.On ? whiteB : mutedB, new RectangleF(labelX, y, pickX - Ce(12 * k) - labelX, rowH), left);
-
-            // the picker
             var track = new Rectangle(pickX, y + (rowH - trackH) / 2, pickW, trackH);
             int n = row.Items.Length;
             int cellW = (pickW - inset * 2) / Math.Max(1, n);
-            bool segments = n is >= 2 and <= 4 && row.Items.All(t => g.MeasureString(t, cellF).Width + 8 * k <= cellW);
-            bool hotSelect = !segments && HotZone == _zones.Count;
-            using (var tp = RoundPath(track, Ce(9 * k)))
-            {
-                using var tb = new SolidBrush(Color.FromArgb(row.On ? 12 : 7, 255, 255, 255));
-                g.FillPath(tb, tp);
-                using var te = new Pen(i == _kbRow ? Color.FromArgb(170, Cyan) : Color.FromArgb(hotSelect ? 90 : row.On ? 34 : 22, 243, 247, 255), 1f);
-                g.DrawPath(te, tp);
-            }
+            bool segments = n is >= 2 and <= 4 && row.Items.All(t => g.MeasureString(t, CellFont).Width + 8 * k <= cellW);
             if (segments)
             {
+                PaintTrack(g, track, row.On, kbFocus: i == _kbRow);
                 for (int j = 0; j < n; j++)
                 {
                     var rc = new Rectangle(track.X + inset + j * cellW, track.Y + inset, cellW, trackH - inset * 2);
-                    bool sel = row.Sel == j, hot = HotZone == _zones.Count;
-                    if (sel || hot)
-                    {
-                        using var cp = RoundPath(rc, Ce(7 * k));
-                        using var cb = new SolidBrush(sel && row.On ? Fill : Color.FromArgb(sel ? 30 : 22, 255, 255, 255));
-                        g.FillPath(cb, cp);
-                    }
-                    g.DrawString(row.Items[j], cellF, row.On ? (sel || hot ? whiteB : mutedB) : (sel ? mutedB : faintB), rc, center);
+                    PaintCell(g, rc, row.Items[j], row.Sel == j, row.On, HotZone == _zones.Count);
                     _zones.Add(new Zone(Win(rc), ZoneKind.Cell, i, j));
                 }
             }
             else
             {
-                int x = track.X + Ce(12 * k), chev = Ce(8 * k), right = track.Right - Ce(12 * k) - chev;
-                if (row.Icon != null)
-                {
-                    int ic = Ce(18 * k);
-                    row.Icon(row.Sel)(g, new RectangleF(x, track.Y + (trackH - ic) / 2f, ic, ic), false);
-                    x += ic + Ce(9 * k);
-                }
-                g.DrawString(row.Items[row.Sel], labelF, row.On ? whiteB : mutedB, new RectangleF(x, track.Y, right - Ce(6 * k) - x, trackH), left);
-                using var cp = new Pen(row.On ? Ink : Color.FromArgb(150, Muted), 1.4f * k) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round };
-                float cy = track.Y + trackH / 2f;
-                g.DrawLines(cp, new[] { new PointF(right, cy - chev * 0.25f), new PointF(right + chev / 2f, cy + chev * 0.25f), new PointF(right + chev, cy - chev * 0.25f) });
+                PaintSelect(g, track, row.Items[row.Sel], row.On, HotZone == _zones.Count, i == _kbRow, row.Icon?.Invoke(row.Sel));
                 _zones.Add(new Zone(Win(track), ZoneKind.Select, i, 0));
             }
         }
@@ -311,8 +259,8 @@ public sealed class SceneEditForm : GhostCardForm
         var z = _zones[zone];
         switch (z.Kind)
         {
-            case ZoneKind.Name: FocusHost(_nameHost); break;
-            case ZoneKind.Glyph: FocusHost(_glyphHost); break;
+            case ZoneKind.Name: FocusField(_nameHost); break;
+            case ZoneKind.Glyph: FocusField(_glyphHost); break;
             case ZoneKind.Toggle:
                 _rows[z.Row].On = !_rows[z.Row].On;
                 Rerender();
@@ -332,7 +280,7 @@ public sealed class SceneEditForm : GhostCardForm
     {
         var row = _rows[rowIndex];
         var items = row.Items.Select((t, i) => new CardPopupList.Item(t, row.Icon?.Invoke(i))).ToArray();
-        CardPopupList.Open(this, new Rectangle(Left + field.X, Top + field.Y, field.Width, field.Height), items, row.Sel, _k, row, i =>
+        CardPopupList.Open(this, new Rectangle(Left + field.X, Top + field.Y, field.Width, field.Height), items, row.Sel, UiScale, row, i =>
         {
             row.Sel = i;
             row.On = true;
@@ -364,93 +312,9 @@ public sealed class SceneEditForm : GhostCardForm
                 Rerender();
                 return true;
             case Keys.Tab:
-                FocusHost(_nameHost);
+                FocusField(_nameHost);
                 return true;
         }
         return base.ProcessCmdKey(ref msg, keyData);
-    }
-
-    // ---------------- the two text boxes riding on the card ----------------
-
-    // The boxes come up in the same call that shows the card (not a message-loop turn later
-    // in OnShown), so the fields are never seen empty.
-    protected override void OnVisibleChanged(EventArgs e)
-    {
-        base.OnVisibleChanged(e);
-        if (!Visible || _nameHost != null) return;
-        _nameHost = MakeHost(_scene.Name, HorizontalAlignment.Left, 1);
-        _glyphHost = MakeHost(_scene.Glyph, HorizontalAlignment.Center, 2);
-        _nameHost.Box.TextChanged += (_, _) => { if (_nameMissing) { _nameMissing = false; Rerender(); } };
-        PlaceHosts();
-        _nameHost.Show(this);
-        _glyphHost.Show(this);
-        FocusHost(_nameHost);
-    }
-
-    // The modal loop activates the card itself after it becomes visible, so the caret is put
-    // into the name field once more when the card is fully up - typing works at once.
-    protected override void OnShown(EventArgs e)
-    {
-        base.OnShown(e);
-        FocusHost(_nameHost);
-    }
-
-    private CardTextHost MakeHost(string text, HorizontalAlignment align, int focusId)
-    {
-        var h = new CardTextHost(FieldBg, White, align);
-        h.Box.Text = text;
-        h.Activated += (_, _) => SetFocus(focusId);
-        h.Deactivate += (_, _) => { if (_focus == focusId) SetFocus(0); };
-        h.CommandKey += key =>
-        {
-            if (key == Keys.Enter) TriggerAck();
-            else if (key == Keys.Escape) Close();
-            else FocusHost(focusId == 1 ? _glyphHost : _nameHost);   // Tab
-        };
-        return h;
-    }
-
-    private void SetFocus(int id)
-    {
-        if (_focus == id || IsDisposed) return;
-        _focus = id;
-        Rerender();
-    }
-
-    private static void FocusHost(CardTextHost? h)
-    {
-        if (h == null || h.IsDisposed) return;
-        h.Activate();
-        h.Box.Focus();
-        h.Box.SelectionStart = h.Box.TextLength;
-    }
-
-    private void PlaceHosts()
-    {
-        if (_nameHost == null || _glyphHost == null || _nameRect.IsEmpty) return;
-        float px = 14f * _k;
-        if (_hostFont == null || Math.Abs(_hostFont.Size - px) > 0.01f)
-        {
-            _hostFont?.Dispose();
-            _hostFont = new Font("Segoe UI", px, FontStyle.Regular, GraphicsUnit.Pixel);
-        }
-        _nameHost.Place(new Rectangle(Left + _nameRect.X, Top + _nameRect.Y, _nameRect.Width, _nameRect.Height), _hostFont);
-        _glyphHost.Place(new Rectangle(Left + _glyphRect.X, Top + _glyphRect.Y, _glyphRect.Width, _glyphRect.Height), _hostFont);
-    }
-
-    protected override void OnRendered() => PlaceHosts();
-
-    protected override void OnMove(EventArgs e)
-    {
-        base.OnMove(e);
-        PlaceHosts();
-    }
-
-    protected override void OnFormClosed(FormClosedEventArgs e)
-    {
-        base.OnFormClosed(e);
-        _nameHost?.Dispose();
-        _glyphHost?.Dispose();
-        _hostFont?.Dispose();
     }
 }

@@ -172,18 +172,35 @@ public sealed class SettingsPage : ThemedPage
         _tiles[0].SetState(Lang.T(Theme.Dark ? "set_theme_dark" : "set_theme_light") + " · " + Lang.Names[li], null);
 
         string p = AppSettings.ChargeManaged(s.ChargeLimit) ? string.Format(Lang.T("st2_limit_on"), s.ChargeLimit) : Lang.T("st2_limit_off");
+        // Windows power (the card on this tab): the mode that is lit there, read live, and
+        // turbo only when it is off - the state worth noticing from the dashboard
+        string? winMode = s.PowerModeSync ? "Auto"
+            : PowerPlan.TryGetUserPowerMode(out var mAc, out var mDc) && mAc == mDc && PowerPlan.ModeGroup(mAc) is >= 0 and <= 2 and var mg
+                ? Lang.T(mg == 0 ? "pw_seg_eff" : mg == 1 ? "pw_seg_bal" : "pw_seg_perf")
+                : null;
+        if (winMode != null) p += " · Windows: " + winMode;
+        uint bAc = 1, bDc = 1;
+        bool turboOff = PowerPlan.TryGetActiveScheme(out var scheme) && PowerPlan.TryReadBoost(scheme, out bAc, out bDc) && (bAc == 0 || bDc == 0);
+        if (turboOff)   // off on one source only = named, e.g. "Turbo off (Battery)"
+            p += " · Turbo " + Lang.T("st_off") + (bAc == 0 && bDc == 0 ? "" : " (" + Lang.T(bAc == 0 ? "pw_ac" : "pw_dc") + ")");
         if (s.AutoSwitchEnabled &&
             Enum.TryParse<ProfileId>(s.ProfileOnAC, out var pa) && Enum.TryParse<ProfileId>(s.ProfileOnBattery, out var pb))
             p += " · " + Profiles.Get(pa).Label + " / " + Profiles.Get(pb).Label;
         if (s.RefreshSwitchEnabled && s.RefreshOnAC > 0 && s.RefreshOnBattery > 0)
             p += " · " + string.Format(Lang.T("st2_hz"), s.RefreshOnAC, s.RefreshOnBattery);
         if (Display.Current() is > 0 and var curHz) p += " · " + curHz + " Hz";   // live panel rate
-        _tiles[1].SetState(p, AppSettings.ChargeManaged(s.ChargeLimit) || s.RefreshSwitchEnabled);
+        _tiles[1].SetState(p, AppSettings.ChargeManaged(s.ChargeLimit) || s.RefreshSwitchEnabled || s.PowerModeSync || turboOff);
 
-        _tiles[2].SetState(s.TempAlertEnabled
-                ? $"{s.TempAlertDegrees} °C / {s.TempAlertSeconds} s · OSD {s.OsdSeconds} s"
-                : Lang.T("gen_off") + $" · OSD {s.OsdSeconds} s",
-            s.TempAlertEnabled);
+        // Automation: what runs on its own right now - active schedule rules, the two alerts -
+        // and the OSD time; a part that is off is left out rather than spelled as "off"
+        var auto = new List<string>();
+        int rules = s.ScheduleEnabled ? s.Schedules.Count(r => r.Enabled) : 0;
+        if (rules > 0) auto.Add(string.Format(Lang.T("st2_sched"), rules));
+        if (s.TempAlertEnabled) auto.Add($"{s.TempAlertDegrees} °C / {s.TempAlertSeconds} s");
+        if (s.SsdAlertEnabled) auto.Add($"SSD {s.SsdAlertDegrees} °C");
+        if (auto.Count == 0) auto.Add(Lang.T("gen_off"));
+        auto.Add($"OSD {s.OsdSeconds} s");
+        _tiles[2].SetState(string.Join(" · ", auto), rules > 0 || s.TempAlertEnabled || s.SsdAlertEnabled);
 
         int mc = Enum.GetValues<OverlayMetric>().Count(m => s.HasMetric(m));
         _tiles[3].SetState("Overlay " + Lang.T(s.OverlayEnabled ? "st_on" : "st_off") + " · " + string.Format(Lang.T("st2_metrics"), mc),
@@ -567,7 +584,7 @@ public sealed class SettingsPage : ThemedPage
             {
                 var copy = r.Clone();
                 using var dlg = new ScheduleRuleForm(D, copy);
-                if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+                if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
                 r.SceneId = copy.SceneId; r.Days = copy.Days; r.Start = copy.Start; r.End = copy.End;
                 RebuildAfterRules();
             };
@@ -602,7 +619,7 @@ public sealed class SettingsPage : ThemedPage
             {
                 var nr = new ScheduleRule();
                 using var dlg = new ScheduleRuleForm(D, nr);
-                if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+                if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
                 D.Settings.Schedules.Add(nr);
                 RebuildAfterRules();
             };
@@ -696,8 +713,10 @@ public sealed class SettingsPage : ThemedPage
         {
             if (fb.SelectedIndex == fb.Items.Count - 1)   // Custom…
             {
+                // a value outside 1-120 minutes marks the field and keeps the card open
                 string? txt = InputDialog.Ask(FindForm(), Lang.T("cooler_boost"), Lang.T("fb_custom_ask"),
-                    (Math.Max(60, D.Settings.FanBoostSeconds) / 60).ToString());
+                    (Math.Max(60, D.Settings.FanBoostSeconds) / 60).ToString(),
+                    validate: t => int.TryParse(t, out int m) && m is >= 1 and <= 120 ? null : "", tag: "//FAN-BOOST");
                 if (int.TryParse(txt, out int mins) && mins is >= 1 and <= 120)
                 {
                     D.Settings.FanBoostSeconds = mins * 60;
@@ -1256,7 +1275,7 @@ public sealed class SettingsPage : ThemedPage
             Controls.Add(tile);
         }
         // Quick master switches straight on the Start tiles - only where the group has one
-        // obvious main on/off (Gaming = overlay, Notifications = temperature alert).
+        // obvious main on/off (Gaming = overlay, Automation = temperature alert).
         _tiles[2].AttachToggle(() => D.Settings.TempAlertEnabled,
             v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); RefreshTiles(); });
         _tiles[3].AttachToggle(() => D.Settings.OverlayEnabled,

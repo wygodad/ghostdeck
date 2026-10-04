@@ -411,13 +411,9 @@ public sealed class FanCurvePage : ThemedPage
 
     private void SavePresetAs()
     {
-        string? name = InputDialog.Ask(FindForm(), Lang.T("fc_ps_saveas"), Lang.T("fc_ps_name"));
-        if (name == null) return;
-        if (D.Settings.FindPreset(name) != null)
-        {
-            MessageBox.Show(FindForm(), Lang.T("fc_ps_exists"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+        string? name = InputDialog.Ask(FindForm(), Lang.T("fc_ps_saveas").TrimEnd('…', '.'), Lang.T("fc_ps_name"),
+            validate: n => D.Settings.FindPreset(n) != null ? Lang.T("fc_ps_exists") : null, tag: "//FAN-CURVE");
+        if (name == null || D.Settings.FindPreset(name) != null) return;
         D.Settings.CurvePresets.Add(SnapshotPreset(name));
         D.SaveSettings();
         D.SettingsChanged();
@@ -428,13 +424,9 @@ public sealed class FanCurvePage : ThemedPage
     {
         var p = SelectedPreset();
         if (p == null) return;
-        string? name = InputDialog.Ask(FindForm(), Lang.T("fc_ps_rename"), Lang.T("fc_ps_name"), p.Name);
-        if (name == null || name == p.Name) return;
-        if (D.Settings.FindPreset(name) != null)
-        {
-            MessageBox.Show(FindForm(), Lang.T("fc_ps_exists"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+        string? name = InputDialog.Ask(FindForm(), Lang.T("fc_ps_rename").TrimEnd('…', '.'), Lang.T("fc_ps_name"), p.Name,
+            validate: n => n != p.Name && D.Settings.FindPreset(n) != null ? Lang.T("fc_ps_exists") : null, tag: "//FAN-CURVE");
+        if (name == null || name == p.Name || D.Settings.FindPreset(name) != null) return;
         foreach (var k in D.Settings.ProfileCurves.Keys.ToList())
             if (D.Settings.ProfileCurves[k] == p.Name) D.Settings.ProfileCurves[k] = name;
         p.Name = name;
