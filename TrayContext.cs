@@ -1005,7 +1005,7 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyPowerModeSync(ProfileId id, ChangeSource source)
     {
         if (!_settings.PowerModeSync) return;
-        var mode = PowerPlan.ModeForProfile(id);
+        var mode = PowerPlan.ModeForProfile(_settings, id);
         if (PowerPlan.TrySetPowerMode(mode))
             ChangeLog.Add(source, Lang.T("pw_mode_now") + ": " + Lang.T(PowerPlan.ModeKey(mode)));
         else

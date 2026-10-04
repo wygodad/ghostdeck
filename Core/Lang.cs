@@ -2447,6 +2447,29 @@ public static class Lang
         m["pw_seg_eff"] = new[] { "Efficiency", "Oszczędzanie", "Effizienz", "Efficacité", "Eficiencia", "节能", "Eficiência", "Экономия", "省電力", "절전", "節能", "Verimlilik", "Tiết kiệm", "Efisiensi", "Efficienza" };
         m["pw_seg_bal"] = new[] { "Balanced", "Zrównoważony", "Ausgewogen", "Équilibré", "Equilibrado", "平衡", "Equilibrado", "Баланс", "バランス", "균형", "平衡", "Dengeli", "Cân bằng", "Seimbang", "Bilanciato" };
         m["pw_seg_perf"] = new[] { "Performance", "Wydajność", "Leistung", "Performance", "Rendimiento", "性能", "Desempenho", "Производительность", "パフォーマンス", "성능", "效能", "Performans", "Hiệu năng", "Performa", "Prestazioni" };
+        m["pw_grp_mode"] = new[] { "Windows power mode", "Tryb zasilania Windows", "Windows-Energiemodus", "Mode d'alimentation Windows", "Modo de energía de Windows", "Windows 电源模式", "Modo de energia do Windows", "Режим питания Windows", "Windows 電源モード", "Windows 전원 모드", "Windows 電源模式", "Windows güç modu", "Chế độ nguồn Windows", "Mode daya Windows", "Modalità energetica di Windows" };
+        m["pw_map_edit_tip"] = new[] { "Edit the mapping", "Edytuj mapowanie", "Zuordnung bearbeiten", "Modifier la correspondance", "Editar la asignación", "编辑对应关系", "Editar o mapeamento", "Изменить соответствие", "対応を編集", "매핑 편집", "編輯對應關係", "Eşlemeyi düzenle", "Sửa ánh xạ", "Edit pemetaan", "Modifica la mappatura" };
+        m["pw_map_reset_tip"] = new[] { "Restore the default mapping", "Przywróć domyślne mapowanie", "Standardzuordnung wiederherstellen", "Rétablir la correspondance par défaut", "Restaurar la asignación predeterminada", "恢复默认对应关系", "Restaurar o mapeamento padrão", "Вернуть соответствие по умолчанию", "既定の対応に戻す", "기본 매핑 복원", "還原預設對應關係", "Varsayılan eşlemeyi geri yükle", "Khôi phục ánh xạ mặc định", "Pulihkan pemetaan bawaan", "Ripristina la mappatura predefinita" };
+        m["pw_map_reset_confirm"] = new[]
+        {
+            "The profile mapping goes back to the defaults: Silent and Super Battery - best power efficiency, Balanced - balanced, Extreme - best performance. Continue?",
+            "Mapowanie profili wróci do ustawień domyślnych: Silent i Super Battery - najlepsza efektywność energetyczna, Balanced - zrównoważony, Extreme - najwyższa wydajność. Kontynuować?",
+            "Die Profil-Zuordnung wird auf die Standardwerte zurückgesetzt: Silent und Super Battery - beste Energieeffizienz, Balanced - ausgewogen, Extreme - beste Leistung. Fortfahren?",
+            "La correspondance des profils revient aux valeurs par défaut : Silent et Super Battery - meilleure efficacité énergétique, Balanced - équilibré, Extreme - performances optimales. Continuer ?",
+            "La asignación de perfiles vuelve a los valores predeterminados: Silent y Super Battery - máxima eficiencia energética, Balanced - equilibrado, Extreme - máximo rendimiento. ¿Continuar?",
+            "配置对应关系将恢复为默认值：Silent 和 Super Battery - 最佳能效，Balanced - 平衡，Extreme - 最佳性能。继续吗？",
+            "O mapeamento de perfis volta ao padrão: Silent e Super Battery - melhor eficiência energética, Balanced - equilibrado, Extreme - melhor desempenho. Continuar?",
+            "Соответствие профилей вернётся к значениям по умолчанию: Silent и Super Battery - наилучшая энергоэффективность, Balanced - сбалансированный, Extreme - наилучшая производительность. Продолжить?",
+            "プロファイルの対応を既定に戻します: Silent と Super Battery - 最適な電力効率、Balanced - バランス、Extreme - 最適なパフォーマンス。続行しますか？",
+            "프로필 매핑이 기본값으로 돌아갑니다: Silent 및 Super Battery - 최고의 전원 효율성, Balanced - 균형, Extreme - 최고 성능. 계속할까요?",
+            "設定檔對應關係將還原為預設值：Silent 和 Super Battery - 最佳電源效率，Balanced - 平衡，Extreme - 最佳效能。要繼續嗎？",
+            "Profil eşlemesi varsayılanlara döner: Silent ve Super Battery - en iyi güç verimliliği, Balanced - dengeli, Extreme - en iyi performans. Devam edilsin mi?",
+            "Ánh xạ hồ sơ sẽ trở về mặc định: Silent và Super Battery - hiệu quả năng lượng tốt nhất, Balanced - cân bằng, Extreme - hiệu năng tốt nhất. Tiếp tục?",
+            "Pemetaan profil kembali ke bawaan: Silent dan Super Battery - efisiensi daya terbaik, Balanced - seimbang, Extreme - performa terbaik. Lanjutkan?",
+            "La mappatura dei profili torna ai valori predefiniti: Silent e Super Battery - massima efficienza energetica, Balanced - bilanciato, Extreme - prestazioni ottimali. Continuare?",
+        };
+        m["pw_show_link"] = new[] { "Show it there", "Pokaż je tam", "Dort anzeigen", "L'afficher là-bas", "Mostrarlo allí", "在那里显示", "Mostrar lá", "Показать там", "そちらに表示", "거기에 표시", "在那裡顯示", "Orada göster", "Hiện ở đó", "Tampilkan di sana", "Mostrala lì" };
+        m["pw_hide_link"] = new[] { "Hide it again", "Ukryj z powrotem", "Wieder ausblenden", "La masquer à nouveau", "Ocultarlo de nuevo", "重新隐藏", "Ocultar novamente", "Снова скрыть", "再び非表示", "다시 숨기기", "重新隱藏", "Yeniden gizle", "Ẩn lại", "Sembunyikan lagi", "Nascondila di nuovo" };
         m["pw_none"] = new[] { "none", "brak", "keine", "aucune", "ninguno", "无", "nenhum", "нет", "なし", "없음", "無", "yok", "không có", "tidak ada", "nessuno" };
         m["pw_show_ack"] = new[] { "Show", "Pokaż", "Anzeigen", "Afficher", "Mostrar", "显示", "Mostrar", "Показать", "表示", "표시", "顯示", "Göster", "Hiện", "Tampilkan", "Mostra" };
         m["pw_hide_ack"] = new[] { "Hide", "Ukryj", "Ausblenden", "Masquer", "Ocultar", "隐藏", "Ocultar", "Скрыть", "非表示", "숨기기", "隱藏", "Gizle", "Ẩn", "Sembunyikan", "Nascondi" };

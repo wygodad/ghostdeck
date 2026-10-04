@@ -2774,32 +2774,46 @@ hardcoded 0..6, and the names arrive already localized by Windows itself.
 slider, set directly for both power sources through the official Windows 11 API
 (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but
 undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds without the
-export), plus **"Auto: profile"** as the fourth segment - the follow-the-profile switch
-folded into the same group, so exactly one segment is ever lit. Auto fires only inside
-`SetProfile`, never enforced in the background - Silent and Super Battery map to best power
-efficiency, Balanced to the default mode, Extreme to best performance (the mapping sits
-behind a "Profile mapping" expander on the card). Picking one of the three modes by hand
-switches Auto OFF (the manual choice wins), and a hand-moved Windows slider stands until the
-next profile switch. The mode is a request Windows may temporarily override; the effective
-state comes from the documented `PowerRegisterForEffectivePowerModeNotifications` callback
-and lives in a DIFFERENT value space (battery saver, better battery, balanced, high/maximum
-performance, game mode, mixed reality) - so the card compares coarse GROUPS
-(efficiency/balanced/performance), never names, and only a real cross-group mismatch shows
-the amber "Windows is temporarily applying X" strip.
+export), plus **"Auto: profile"** as the fourth segment, so exactly one segment is ever lit.
+Auto fires only inside `SetProfile`, never enforced in the background. The profile → mode
+mapping is editable (`PowerMapForm`, opened from the pencil hotspot on the mapping caption;
+the second hotspot restores the defaults behind a confirmation card):
+`AppSettings.PowerModeMap` stores only the rows that differ from the defaults (Silent and
+Super Battery → best power efficiency, Balanced → balanced, Extreme → best performance), and
+`PowerPlan.ModeForProfile(settings, id)` is the single resolver for the card and the tray.
+Picking one of the three modes by hand switches Auto OFF (the manual choice wins), and a
+hand-moved Windows slider stands until the next profile switch. The mode is a request Windows
+may temporarily override; the effective state comes from the documented
+`PowerRegisterForEffectivePowerModeNotifications` callback and lives in a DIFFERENT value
+space (battery saver, better battery, balanced, high/maximum performance, game mode, mixed
+reality) - so the card compares coarse GROUPS (efficiency/balanced/performance), never names,
+and only a real cross-group mismatch shows the amber "Windows is temporarily applying X" note.
 
 **Restore and the reveal footer.** "Restore Windows settings" EXISTS only while the app
-actually holds something to restore (a turbo snapshot or Auto being on), with an amber line
-under it spelling out exactly what will come back - on an untouched system the card simply
-has no restore button. It writes every snapshot back into the plan it came from (without
+actually holds something to restore, and lists each item as a plain sentence: the turbo
+values per plan (the snapshots), the power mode the app found before its FIRST mode write
+(`AppSettings.PowerModePrev`, captured by `PowerPlan.RememberModeIfFirst` ahead of both the
+Auto and the manual path - without it, Auto left best-efficiency behind after a restore),
+and Auto itself. It writes every snapshot back into the plan it came from (without
 activating any plan; one `PowerSetActiveScheme` at the end for the plan that was already
 active), skips and discards snapshots of deleted plans, keeps the snapshot of any failed
 write for a retry, and reports the counts; the confirmation and any attention-worthy result
-are GhostCardForm cards, never MessageBox. "Show this setting in Windows power options" is
-deliberately NOT a first-class button: a muted footer sentence names the hidden Windows
-setting and a small link under it reveals or re-hides it (live state read from the
-attributes). The reveal clears only the HIDE bit after storing the full original DWORD
-(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back - no
-other attribute bit is ever lost.
+are GhostCardForm cards, never MessageBox. The reveal action is a footer link, not a button:
+it clears only the HIDE bit of the setting attributes after storing the full original DWORD
+(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back.
+
+**Rendering: one owner-drawn control.** The card body is `UI/Controls/WinPowerBody.cs`, a
+single double-buffered control. Its first builds were composed from ~35 nested AutoSize
+containers (FlowLayoutPanel / TableLayoutPanel); each layout pass made them re-measure one
+another and repaint one by one, and the Power tab visibly drew itself element by element for
+about a second (the powrprof reads were measured at ~5 ms per enumeration and are not the
+cause; the boost-mode list is cached anyway). In `WinPowerBody` one `Flow` routine owns the
+geometry - it measures when called without a Graphics (and positions the few real children:
+three ToggleSwitches, the SegControl, the HelpDot) and paints when called with one, so
+layout and paint cannot drift apart. Hotspots (mapping edit/reset, restore, the reveal link)
+are painted and hit-tested. The host card gives the control its width and reads the height
+back (`CardSection.Relayout`, the "wp-wide" rule); a height change caused by STATE (not by
+width) raises `ContentHeightChanged`, which runs one page layout.
 
 CLI: `--turbo <on|off|status>`, forwarded to the running instance or executed one-shot; output
 stays English like the rest of the CLI.

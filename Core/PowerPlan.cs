@@ -141,7 +141,13 @@ public static class PowerPlan
     /// The boost modes this Windows actually offers, enumerated dynamically (no hardcoded
     /// 0..6 - the list differs between builds). Names come localized from Windows itself.
     /// </summary>
-    public static List<BoostMode> BoostModes()
+    public static List<BoostMode> BoostModes() => _boostCache ??= EnumerateBoostModes();
+
+    // The enumeration costs ~5 ms (21 powrprof calls) and the card asks for names about ten
+    // times per refresh; the list cannot change while the app runs, so it is read once.
+    private static List<BoostMode>? _boostCache;
+
+    private static List<BoostMode> EnumerateBoostModes()
     {
         var list = new List<BoostMode>();
         try
@@ -353,12 +359,23 @@ public static class PowerPlan
         s.Save();
     }
 
-    public static Guid ModeForProfile(ProfileId id) => id switch
+    // Profile -> mode mapping. Groups: 0 = best efficiency, 1 = balanced, 2 = best
+    // performance. The defaults below apply unless the owner edited the map on the card
+    // (AppSettings.PowerModeMap holds only the rows that differ).
+    public static int DefaultModeGroup(ProfileId id) => id switch
     {
-        ProfileId.Silent or ProfileId.SuperBattery => ModeBestEfficiency,
-        ProfileId.Extreme => ModeBestPerformance,
-        _ => ModeBalanced,
+        ProfileId.Silent or ProfileId.SuperBattery => 0,
+        ProfileId.Extreme => 2,
+        _ => 1,
     };
+
+    public static int ModeGroupFor(AppSettings s, ProfileId id) =>
+        s.PowerModeMap.TryGetValue(id.ToString(), out int g) && g is >= 0 and <= 2 ? g : DefaultModeGroup(id);
+
+    public static Guid GroupMode(int group) =>
+        group == 0 ? ModeBestEfficiency : group == 2 ? ModeBestPerformance : ModeBalanced;
+
+    public static Guid ModeForProfile(AppSettings s, ProfileId id) => GroupMode(ModeGroupFor(s, id));
 
     /// <summary>
     /// Coarse equivalence groups (0 = efficiency, 1 = balanced, 2 = performance, -1 = unknown)

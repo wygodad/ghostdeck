@@ -64,7 +64,7 @@ public sealed class SettingsPage : ThemedPage
         // and refresh the card. Wired once - BuildForm re-points _syncPowerCard itself.
         PowerPlan.EffectiveModeChanged += () =>
         {
-            try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => { _syncPowerCard?.Invoke(); Layout2(); }); }
+            try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => _syncPowerCard?.Invoke()); }
             catch { }
         };
     }
@@ -480,471 +480,19 @@ public sealed class SettingsPage : ThemedPage
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
         _gLeft[SubPower].Add(power);
 
-        // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost setting of
-        // the active plan and the Windows power-mode choice, in the owner-picked layout
-        // (2026-10-04, "bold accents"): two labelled groups inside one card; a plain-sentence
-        // status line under the turbo switch (tinted strips with a 3 px rail for the
-        // non-default states); the per-source matrix and the profile mapping behind expanders;
-        // a four-segment mode row whose fourth segment is "Auto: profile"; a restore button
-        // that EXISTS only while the app actually holds something to restore; and the
-        // reveal-in-Windows action as a small footer link, not a first-class button.
+        // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost switch of
+        // the active plan and the Windows power mode. The whole body is ONE owner-drawn,
+        // double-buffered control (UI/Controls/WinPowerBody.cs): the earlier composition out
+        // of ~35 nested AutoSize containers made this tab draw itself element by element.
         // Everything is user-mode powrprof API (PowerPlan.cs) - no EC involved, so the card
-        // works on unsupported firmware too. Dialogs are GhostCardForm (never MessageBox).
-        var wp = new CardSection(Lang.T("pw_grp"), "");   // MDL2 PowerButton
-        var wpSmall = new Font("Segoe UI", 9.75f);
-        var wpAmber = Color.FromArgb(0xE8, 0xB6, 0x4C);
-        var wpRed = Color.FromArgb(0xE0, 0x6C, 0x6C);
-        Color wpInner;   // frame fill, a step darker than the card; also the ambient BackColor
-                         // of everything inside, because ToggleSwitch/SegControl clear to
-                         // Parent.BackColor - a Transparent parent cleared to BLACK (the boxes)
-        Color WpMix(Color a, Color b, float t) => Color.FromArgb(
-            (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
-        wpInner = WpMix(Theme.Card, Color.Black, 0.18f);
-        Control WithWpHelp(Control main, string key)
-        {
-            var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
-            main.Margin = new Padding(0);
-            flow.Controls.Add(main);
-            flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T(key), Margin = new Padding(6, 4, 0, 0) });
-            return flow;
-        }
-        void WpRefresh()
-        {
-            _syncPowerCard?.Invoke();
-            if (wp.Parent != null) Layout2();   // plain pass: WinForms repaints only what moved
-        }
-        void WpErr(string reason)
-        {
-            var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_grp"),
-                Lang.T("pw_err_write") + "\n" + reason, "OK", "", () => { });
-            dlg.Show(); dlg.Activate();
-        }
-        float wk = DeviceDpi / 96f;
-        int WS(int v) => (int)Math.Ceiling(v * wk);
-        // group header (mock-up): colored marker + ACCENT uppercase caption + a hairline
-        // running to the card edge. Self-painted (no child Label), because ApplyTheme only
-        // knows muted/warn/text for nested labels and would repaint the accent away.
-        Control WpGroup(string text, Color rail)
-        {
-            var p = new WpPanel { AutoSize = false, Height = WS(20), Margin = new Padding(0, 6, 0, 0), BackColor = Color.Transparent, Name = "wp-wide" };
-            p.Paint += (_, pe) =>
-            {
-                var g = pe.Graphics;
-                using var rb = new SolidBrush(rail);
-                g.FillRectangle(rb, 0, (p.Height - WS(13)) / 2, 3, WS(13));
-                using var f = new Font("Segoe UI", 8.25f, FontStyle.Bold);
-                string t = text.ToUpperInvariant();
-                var ts = TextRenderer.MeasureText(t, f);
-                TextRenderer.DrawText(g, t, f, new Point(WS(10), (p.Height - ts.Height) / 2), rail);
-                using var lp = new Pen(Theme.Border);
-                int lx = WS(10) + ts.Width + WS(10);
-                if (lx < p.Width - 4) g.DrawLine(lp, lx, p.Height / 2, p.Width - 2, p.Height / 2);
-            };
-            return p;
-        }
-        // status sentence; StyleStrip switches it between plain-muted and a tinted full-width
-        // strip with a colored left rail (amber = app-made state / mixed, red = changed
-        // outside). The tint is painted, not BackColor - ApplyTheme repaints FlowLayoutPanels
-        // to the card colour and would wipe a BackColor tint.
-        (WpPanel Strip, Label Lbl) WpStrip(bool warnIcon = false)
-        {
-            var l = new Label { AutoSize = true, MaximumSize = new Size(WS(400), 0), Font = wpSmall, Margin = warnIcon ? new Padding(WS(26), 0, 0, 0) : Padding.Empty, BackColor = Color.Transparent, Tag = "muted" };
-            var p = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = new Padding(0, 2, 0, 2), BackColor = Theme.Card, Name = "wp-wide" };
-            p.Controls.Add(l);
-            p.Paint += (_, pe) =>
-            {
-                if (p.Tag is not Color c) return;
-                var g = pe.Graphics;
-                using var bb = new SolidBrush(WpMix(Theme.Card, c, 0.10f));
-                g.FillRectangle(bb, p.ClientRectangle);
-                using var rb = new SolidBrush(c);
-                g.FillRectangle(rb, 0, 0, 3, p.Height);
-                if (!warnIcon) return;
-                // the mock-up's little "!" chip in front of the override note
-                var cr = new Rectangle(WS(10), (p.Height - WS(16)) / 2, WS(16), WS(16));
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                using var cpath = Theme.RoundRect(new RectangleF(cr.X + 0.5f, cr.Y + 0.5f, cr.Width - 1, cr.Height - 1), 4);
-                using var cp = new Pen(c);
-                g.DrawPath(cp, cpath);
-                using var cf = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-                TextRenderer.DrawText(g, "!", cf, cr, c, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            };
-            return (p, l);
-        }
-        void StyleStrip(WpPanel strip, Label l, Color? rail)
-        {
-            if (rail is { } c)
-            {
-                strip.Tag = c;
-                strip.Padding = new Padding(WS(12), WS(7), WS(12), WS(7));
-                l.ForeColor = c;
-                l.Tag = "warn";   // keeps ApplyTheme on the semantic colour, not plain text
-            }
-            else
-            {
-                strip.Tag = null;
-                strip.Padding = new Padding(0, 2, 0, 4);
-                l.ForeColor = Theme.Muted;
-                l.Tag = "muted";
-            }
-            strip.Invalidate();
-        }
-        // expander (the owner's K3 pick): a framed, clickable header row over a collapsible
-        // body, like the mock-up. Toggling re-runs the page layout (Layout2 already wraps the
-        // scrollbar invariant), because CardSection.Relayout measures row heights only when
-        // it is called - a grown child would otherwise overlap the rows below it.
-        Control WpExpander(string title, Control body, bool open)
-        {
-            body.Visible = open;
-            body.Margin = new Padding(WS(12), WS(2), WS(12), WS(10));
-            body.BackColor = Color.Transparent;
-            // header: title left, arrow RIGHT (the mock-up), self-painted on a buffered panel
-            var head = new WpPanel { AutoSize = false, Height = WS(34), Margin = Padding.Empty, BackColor = Color.Transparent, Cursor = Cursors.Hand };
-            head.Paint += (_, pe) =>
-            {
-                using var f = new Font("Segoe UI", 10f);
-                TextRenderer.DrawText(pe.Graphics, title, f, new Rectangle(WS(12), 0, Math.Max(10, head.Width - WS(44)), head.Height), Theme.Text,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
-                TextRenderer.DrawText(pe.Graphics, body.Visible ? "▾" : "▸", f, new Rectangle(Math.Max(0, head.Width - WS(26)), 0, WS(18), head.Height), Theme.Muted,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            };
-            var wrap = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 3, 0, 3), BackColor = wpInner, Name = "wp-wide" };
-            wrap.Controls.Add(head);
-            wrap.Controls.Add(body);
-            wrap.Paint += (_, pe) =>
-            {
-                // a filled, slightly darker frame (the mock-up's inner-panel look); painted
-                // here because ApplyTheme resets BackColor on FlowLayoutPanels to the card
-                var g = pe.Graphics;
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, wrap.Width - 1, wrap.Height - 1), 7);
-                // corners outside the rounded path stay card-coloured; the fill is a touch
-                // darker than the card (the mock-up ratio), never the page-dark Surface
-                using var cb = new SolidBrush(Theme.Card);
-                g.FillRectangle(cb, wrap.ClientRectangle);
-                using var bb = new SolidBrush(wpInner);
-                g.FillPath(bb, path);
-                using var pen = new Pen(Theme.Border);
-                g.DrawPath(pen, path);
-            };
-            wrap.Resize += (_, _) =>
-            {
-                head.Width = wrap.ClientSize.Width;
-                head.Invalidate();
-                // tables inside stretch to the frame (full-width rows, mock-up)
-                body.MinimumSize = new Size(Math.Max(0, wrap.ClientSize.Width - body.Margin.Horizontal), 0);
-            };
-            head.Click += (_, _) =>
-            {
-                body.Visible = !body.Visible;
-                head.Invalidate();
-                Layout2();
-            };
-            return wrap;
-        }
-
-        // ---- group 1: CPU turbo boost ----
-        var wpToggle = Toggle(false, v =>
-        {
-            string err = v ? PowerPlan.TurboOn(D.Settings) : PowerPlan.TurboOff(D.Settings);
-            if (err.Length > 0) WpErr(err);
-            else ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost: " + (v ? "on" : "off"));
-            WpRefresh();
-        });
-        wp.AddRow(null, WpGroup(Lang.T("pw_turbo_label"), Theme.Accent));
-        // the main row: semibold title (mock-up), toggle pinned to the card's right edge
-        var turboRow = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 2, BackColor = Color.Transparent, Margin = new Padding(0, 2, 0, 0), Name = "wp-wide" };
-        turboRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-        turboRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        turboRow.Controls.Add(new Label { Text = Lang.T("pw_turbo_label"), AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold), ForeColor = Theme.Text, BackColor = Color.Transparent, Anchor = AnchorStyles.Left, Margin = new Padding(0, 4, 0, 4) }, 0, 0);
-        var turboRight = WithWpHelp(wpToggle, "pw_turbo_help");
-        turboRight.Anchor = AnchorStyles.Right;
-        turboRow.Controls.Add(turboRight, 1, 0);
-        wp.AddRow(null, turboRow);
-        var (turboStrip, turboLbl) = WpStrip();
-        wp.AddRow(null, turboStrip);
-        // the technical matrix (K2): plan | plugged in | battery, with the saved pair and
-        // per-source switches for the deliberate "quiet on battery, full power plugged in"
-        var wpBody = new Font("Segoe UI", 10f);
-        Label MxCell(Color fore) => new() { AutoSize = true, Font = wpBody, ForeColor = fore, BackColor = Color.Transparent, Margin = new Padding(0, 7, WS(18), 6) };
-        // small-caps header row (the mock-up's table head), with a hairline painted under it
-        var wpTiny = new Font("Segoe UI", 7.5f, FontStyle.Bold);
-        Label MxHead() => new() { AutoSize = true, Font = wpTiny, ForeColor = Theme.Faint, Tag = "muted", BackColor = Color.Transparent, Margin = new Padding(0, 9, WS(18), 7) };
-        var mxPlan = MxHead(); var mxAcH = MxHead(); var mxDcH = MxHead();
-        var mxNowL = MxCell(Theme.Muted); var mxNowAc = MxCell(Theme.Text); var mxNowDc = MxCell(Theme.Text);
-        var mxSavL = MxCell(Theme.Muted); var mxSavAc = MxCell(wpAmber); var mxSavDc = MxCell(wpAmber);
-        var mxSrcL = MxCell(Theme.Muted);
-        mxAcH.Text = Lang.T("pw_ac").ToUpperInvariant(); mxDcH.Text = Lang.T("pw_dc").ToUpperInvariant();
-        mxNowL.Text = Lang.T("pw_now"); mxSavL.Text = Lang.T("pw_saved"); mxSrcL.Text = Lang.T("pw_per_source");
-        var srcAc = Toggle(true, v =>
-        {
-            string err = PowerPlan.TurboSetSource(D.Settings, acSide: true, on: v);
-            if (err.Length > 0) WpErr(err);
-            else ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost (plugged in): " + (v ? "on" : "off"));
-            WpRefresh();
-        });
-        var srcDc = Toggle(true, v =>
-        {
-            string err = PowerPlan.TurboSetSource(D.Settings, acSide: false, on: v);
-            if (err.Length > 0) WpErr(err);
-            else ChangeLog.Add(ChangeSource.Panel, "CPU turbo boost (battery): " + (v ? "on" : "off"));
-            WpRefresh();
-        });
-        srcAc.Margin = srcDc.Margin = new Padding(0, 4, WS(18), 2);
-        var mx = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 3, RowCount = 4, Margin = new Padding(10, 0, 0, 3), BackColor = wpInner };
-        mx.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        mx.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
-        mx.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
-        mx.Controls.Add(mxPlan, 0, 0); mx.Controls.Add(mxAcH, 1, 0); mx.Controls.Add(mxDcH, 2, 0);
-        mx.Controls.Add(mxNowL, 0, 1); mx.Controls.Add(mxNowAc, 1, 1); mx.Controls.Add(mxNowDc, 2, 1);
-        mx.Controls.Add(mxSavL, 0, 2); mx.Controls.Add(mxSavAc, 1, 2); mx.Controls.Add(mxSavDc, 2, 2);
-        mx.Controls.Add(mxSrcL, 0, 3); mx.Controls.Add(srcAc, 1, 3); mx.Controls.Add(srcDc, 2, 3);
-        mx.CellPaint += (_, ce) =>
-        {
-            if (ce.Row != 0) return;
-            using var pen = new Pen(Theme.Border);
-            ce.Graphics.DrawLine(pen, ce.CellBounds.Left, ce.CellBounds.Bottom - 1, ce.CellBounds.Right, ce.CellBounds.Bottom - 1);
-        };
-        wp.AddRow(null, WpExpander(Lang.T("pw_details"), mx, open: false));
-
-        // ---- group 2: Windows power mode ----
-        wp.AddRow(null, WpGroup(Lang.T("pw_mode_now"), Theme.AccentFill));
-        // SHORT segment captions (pw_seg_*), like the approved mock-up - the full Windows mode
-        // names (pwm_req_*) stay in the sentences. The width floor is lifted: the card clamps
-        // this row to its content width ("wp-wide"), and SegControl ellipsizes if a language
-        // still outgrows a cell.
-        var wpSeg = new SegControl(new[] { Lang.T("pw_seg_eff"), Lang.T("pw_seg_bal"), Lang.T("pw_seg_perf"), Lang.T("pw_auto_seg") }, 1) { Margin = new Padding(0, 6, 0, 4), Name = "wp-wide" };
-        wpSeg.MinimumSize = Size.Empty;
-        // a bare Control has no height of its own - without this the row renders as empty space
-        wpSeg.Size = new Size(WS(344), WS(38));
-        wp.AddRow(null, wpSeg);
-        var autoLbl = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Muted, Tag = "muted", Margin = new Padding(0, 2, 0, 4) };
-        wp.AddRow(null, autoLbl);
-        var (ovStrip, ovLbl) = WpStrip(warnIcon: true);   // the yellow "Windows is temporarily applying X" note
-        wp.AddRow(null, ovStrip);
-        // the map, painted: each profile row carries its ghost in the PROFILE colour (the
-        // same colours the tray uses), name, then the full Windows mode name
-        var mapRows = new (ProfileId Id, string Name, string ModeKey)[]
-        {
-            (ProfileId.SuperBattery, "Super Battery", "pwm_req_eff"),
-            (ProfileId.Silent, "Silent", "pwm_req_eff"),
-            (ProfileId.Balanced, "Balanced", "pwm_req_bal"),
-            (ProfileId.Extreme, "Extreme", "pwm_req_perf"),
-        };
-        var mapBody = new WpPanel { AutoSize = false, Height = WS(27) * mapRows.Length + WS(6), BackColor = wpInner, Margin = Padding.Empty };
-        mapBody.Paint += (_, pe) =>
-        {
-            var g = pe.Graphics;
-            using var nf = new Font("Segoe UI", 10f);
-            int rowH = WS(27), nameW = 0;
-            foreach (var r in mapRows) nameW = Math.Max(nameW, TextRenderer.MeasureText(r.Name, nf).Width);
-            int gx = WS(2), nx = gx + WS(24), ax = nx + nameW + WS(16);
-            for (int i = 0; i < mapRows.Length; i++)
-            {
-                int cy = WS(3) + i * rowH;
-                TrayIconFactory.DrawGhost(g, gx, cy + (rowH - WS(15)) / 2f, WS(15), D.Settings.ColorFor(mapRows[i].Id), wpInner);
-                TextRenderer.DrawText(g, mapRows[i].Name, nf, new Rectangle(nx, cy, nameW + 6, rowH), Theme.Text,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-                TextRenderer.DrawText(g, "→   " + Lang.T(mapRows[i].ModeKey), nf, new Rectangle(ax, cy, Math.Max(10, mapBody.Width - ax - WS(6)), rowH), Theme.Muted,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
-            }
-        };
-        wp.AddRow(null, WpExpander(Lang.T("pw_mapping"), mapBody, open: false));
-        wpSeg.SelectedChanged += i =>
-        {
-            if (i == 3)
-            {
-                // Auto: follow the GhostDeck profile from now on, and apply it right away
-                PowerPlan.RememberModeIfFirst(D.Settings);   // so Restore can bring the mode back
-                D.Settings.PowerModeSync = true; D.SaveSettings();
-                Enum.TryParse<ProfileId>(D.Settings.LastProfile, out var prof);
-                if (!PowerPlan.TrySetPowerMode(PowerPlan.ModeForProfile(prof))) WpErr("Windows refused the power-mode write");
-                else ChangeLog.Add(ChangeSource.Panel, "Windows power mode: follow the profile");
-            }
-            else
-            {
-                // a manual pick always wins: it switches Auto off (nothing fights the user)
-                if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); }
-                PowerPlan.RememberModeIfFirst(D.Settings);   // so Restore can bring the mode back
-                var mode = i == 0 ? PowerPlan.ModeBestEfficiency : i == 2 ? PowerPlan.ModeBestPerformance : PowerPlan.ModeBalanced;
-                if (!PowerPlan.TrySetPowerMode(mode)) WpErr("Windows refused the power-mode write");
-                else ChangeLog.Add(ChangeSource.Panel, "Windows power mode: " + (i == 0 ? "best efficiency" : i == 2 ? "best performance" : "balanced"));
-            }
-            WpRefresh();
-        };
-
-        // ---- restore (exists only while something is held) + the reveal footer ----
-        wp.AddRow(null, new SepLine());
-        string RestoreDetails()
-        {
-            var items = new List<string>();
-            foreach (var (key, sn) in D.Settings.TurboSnapshots)
-                if (sn is { Length: 2 } && Guid.TryParse(key, out var g2))
-                    items.Add(string.Format(Lang.T("pw_restore_turbo_fmt"), PowerPlan.SchemeName(g2), PowerPlan.BoostName((uint)sn[0]), PowerPlan.BoostName((uint)sn[1])));
-            if (D.Settings.PowerModePrev.Length > 0 && Guid.TryParse(D.Settings.PowerModePrev, out var pm))
-                items.Add(string.Format(Lang.T("pw_restore_mode_fmt"), Lang.T(PowerPlan.ModeKey(pm))));
-            if (D.Settings.PowerModeSync) items.Add(Lang.T("pw_restore_auto"));
-            return string.Join("\n", items);
-        }
-        // restore = ONE framed box (the mock-up): semibold title with the amber detail line
-        // inside it, the whole panel clickable; it exists only while something is held
-        var restoreTitle = new Label { Text = Lang.T("pw_restore_btn"), AutoSize = true, Font = new Font("Segoe UI", 10.25f, FontStyle.Bold), ForeColor = Theme.Text, BackColor = Color.Transparent, Margin = Padding.Empty, Cursor = Cursors.Hand };
-        var restoreDesc = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = wpAmber, Tag = "warn", BackColor = Color.Transparent, Margin = new Padding(0, 4, 0, 0), Cursor = Cursors.Hand };
-        var wpRestore = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Name = "wp-wide", Cursor = Cursors.Hand, Margin = new Padding(0, 6, 0, 2), Padding = new Padding(WS(14), WS(10), WS(14), WS(11)), BackColor = wpInner };
-        wpRestore.Controls.Add(restoreTitle);
-        wpRestore.Controls.Add(restoreDesc);
-        wpRestore.Paint += (_, pe) =>
-        {
-            var g = pe.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, wpRestore.Width - 1, wpRestore.Height - 1), 8);
-            using var cb = new SolidBrush(Theme.Card);
-            g.FillRectangle(cb, wpRestore.ClientRectangle);
-            using var bb = new SolidBrush(wpInner);
-            g.FillPath(bb, path);
-            // solid pen - an alpha pen over the two fills left fringed corners
-            using var pen = new Pen(WpMix(Theme.Card, wpAmber, 0.6f));
-            g.DrawPath(pen, path);
-        };
-        void RestoreClick(object? s2, EventArgs e2)
-        {
-            var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_restore_btn"),
-                Lang.T("pw_restore_confirm") + "\n\n" + RestoreDetails(),
-                Lang.T("pw_restore_ack"), Lang.T("fw_dlg_later"), () =>
-                {
-                    var (ok, missing, failed) = PowerPlan.RestoreAll(D.Settings);
-                    if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); }
-                    // the mode GhostDeck changed goes back too (owner report: Auto left
-                    // best-efficiency behind); the memory is consumed only on success
-                    if (D.Settings.PowerModePrev.Length > 0 && Guid.TryParse(D.Settings.PowerModePrev, out var pm2))
-                    {
-                        if (PowerPlan.TrySetPowerMode(pm2)) { D.Settings.PowerModePrev = ""; D.SaveSettings(); }
-                        else failed++;
-                    }
-                    ChangeLog.Add(ChangeSource.Panel, $"Windows power restore: {ok} restored, {missing} plans gone, {failed} failed");
-                    // a clean restore shows itself (the button disappears, the matrix empties);
-                    // a card appears only when something needs the owner's attention
-                    if (missing > 0 || failed > 0)
-                    {
-                        var res = new GhostCardForm("//WIN-POWER", Lang.T("pw_restore_btn"),
-                            string.Format(Lang.T("pw_restore_result_fmt"), ok, missing, failed), "OK", "", () => { });
-                        res.Show(); res.Activate();
-                    }
-                    WpRefresh();
-                });
-            dlg.Show(); dlg.Activate();
-        }
-        wpRestore.Click += RestoreClick;
-        restoreTitle.Click += RestoreClick;
-        restoreDesc.Click += RestoreClick;
-        wp.AddRow(null, wpRestore);
-        var wpFooter = new Label { Text = Lang.T("pw_footer"), AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = Theme.Faint, Tag = "muted", Margin = new Padding(0, 4, 0, 0) };
-        // a LinkLabel renders through LinkColor, which ApplyTheme's plain-label pass ignores
-        var revealLink = new LinkLabel { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, LinkColor = Theme.Accent, ActiveLinkColor = Theme.Text, LinkBehavior = LinkBehavior.AlwaysUnderline, Tag = "muted", Margin = new Padding(0, 1, 0, 0) };
-        revealLink.Click += (_, _) =>
-        {
-            bool hidden = PowerPlan.HiddenInControlPanel();
-            var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_grp"),
-                Lang.T(hidden ? "pw_show_confirm" : "pw_hide_confirm"),
-                Lang.T(hidden ? "pw_show_ack" : "pw_hide_ack"), Lang.T("fw_dlg_later"), () =>
-                {
-                    if (!PowerPlan.SetRevealed(D.Settings, hidden)) WpErr("Windows refused the attribute write");
-                    else ChangeLog.Add(ChangeSource.Panel, "PERFBOOSTMODE " + (hidden ? "revealed in" : "re-hidden from") + " Windows power options");
-                    WpRefresh();
-                });
-            dlg.Show(); dlg.Activate();
-        };
-        wp.AddRow(null, wpFooter);
-        wp.AddRow(null, revealLink);
-
-        _syncPowerCard = () =>
-        {
-            if (wp.IsDisposed) return;
-            bool haveScheme = PowerPlan.TryGetActiveScheme(out var scheme);
-            mxPlan.Text = string.Format(Lang.T("pw_plan_fmt"), haveScheme ? PowerPlan.SchemeName(scheme) : "—").ToUpperInvariant();
-            uint acV = 0, dcV = 0;
-            bool haveBoost = haveScheme && PowerPlan.TryReadBoost(scheme, out acV, out dcV);
-            int[]? sn = haveScheme
-                     && D.Settings.TurboSnapshots.TryGetValue(scheme.ToString("D").ToLowerInvariant(), out var snRaw)
-                     && snRaw is { Length: 2 } ? snRaw : null;
-            if (haveBoost)
-            {
-                string an = PowerPlan.BoostName(acV), dn = PowerPlan.BoostName(dcV);
-                wpToggle.Enabled = srcAc.Enabled = srcDc.Enabled = true;
-                wpToggle.Checked = !(acV == 0 && dcV == 0);   // Checked setter never fires Toggled
-                srcAc.Checked = acV != 0; srcDc.Checked = dcV != 0;
-                mxNowAc.Text = an; mxNowDc.Text = dn;
-                if (acV == 0 && dcV == 0)
-                {
-                    // Two honest OFF texts: "comes back" ONLY when a snapshot really exists
-                    // (amber strip = our own doing); the red strip = turbo was disabled outside
-                    // the app, and re-enabling uses the enumeration-validated GhostDeck fallback.
-                    if (sn != null)
-                    {
-                        turboLbl.Text = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)sn[0]), PowerPlan.BoostName((uint)sn[1]));
-                        StyleStrip(turboStrip, turboLbl, wpAmber);
-                    }
-                    else
-                    {
-                        turboLbl.Text = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—");
-                        StyleStrip(turboStrip, turboLbl, wpRed);
-                    }
-                }
-                else if (acV != 0 && dcV != 0)
-                {
-                    turboLbl.Text = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn);
-                    StyleStrip(turboStrip, turboLbl, null);
-                }
-                else
-                {
-                    // a real MIXED state (e.g. AC on, battery off) - named, never a plain ON
-                    turboLbl.Text = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn);
-                    StyleStrip(turboStrip, turboLbl, wpAmber);
-                }
-            }
-            else
-            {
-                wpToggle.Enabled = srcAc.Enabled = srcDc.Enabled = false;
-                mxNowAc.Text = mxNowDc.Text = "—";
-                turboLbl.Text = Lang.T("pw_unavailable");
-                StyleStrip(turboStrip, turboLbl, null);
-            }
-            mxSavAc.Text = sn != null ? PowerPlan.BoostName((uint)sn[0]) : Lang.T("pw_none");
-            mxSavDc.Text = sn != null ? PowerPlan.BoostName((uint)sn[1]) : Lang.T("pw_none");
-            mxSavAc.ForeColor = mxSavDc.ForeColor = sn != null ? wpAmber : Theme.Faint;
-            // segment: Auto wins; otherwise the user-configured mode when both sources agree
-            // (ModeGroup indexes align with the segment order: efficiency, balanced, performance)
-            bool haveMode = PowerPlan.TryGetUserPowerMode(out var mAc, out var mDc);
-            Enum.TryParse<ProfileId>(D.Settings.LastProfile, out var curProf);
-            wpSeg.Selected = D.Settings.PowerModeSync ? 3
-                           : haveMode && mAc == mDc ? PowerPlan.ModeGroup(mAc) : -1;
-            autoLbl.Visible = D.Settings.PowerModeSync;
-            if (D.Settings.PowerModeSync)
-                autoLbl.Text = string.Format(Lang.T("pw_auto_fmt"),
-                    curProf == ProfileId.SuperBattery ? "Super Battery" : curProf.ToString(),
-                    Lang.T(PowerPlan.ModeKey(PowerPlan.ModeForProfile(curProf))));
-            // the yellow note appears ONLY on a real cross-group mismatch; the effective enum
-            // is richer than the three requested modes, so GROUPS are compared, never names
-            int reqGroup = D.Settings.PowerModeSync ? PowerPlan.ModeGroup(PowerPlan.ModeForProfile(curProf))
-                         : haveMode && mAc == mDc ? PowerPlan.ModeGroup(mAc) : -1;
-            int effGroup = PowerPlan.EffectiveGroup(PowerPlan.EffectiveMode);
-            string effKey = PowerPlan.EffectiveKey(PowerPlan.EffectiveMode);
-            bool overridden = reqGroup >= 0 && effGroup >= 0 && reqGroup != effGroup && effKey.Length > 0;
-            ovStrip.Visible = overridden;
-            if (overridden)
-            {
-                ovLbl.Text = string.Format(Lang.T("pw_override_fmt"), Lang.T(effKey));
-                StyleStrip(ovStrip, ovLbl, wpAmber);
-            }
-            string details = RestoreDetails();
-            wpRestore.Visible = details.Length > 0;
-            if (details.Length > 0) restoreDesc.Text = details;
-            revealLink.Text = Lang.T(PowerPlan.HiddenInControlPanel() ? "pw_show_btn" : "pw_hide_btn");
-            // sync only writes DATA + visibility; the caller runs ONE BatchRedraw(Layout2)
-            // afterwards (WpRefresh) - BatchRedraw does not nest, so sync must never layout
-        };
+        // works on unsupported firmware too.
+        var wp = new CardSection(Lang.T("pw_grp"), "\uE7E8");   // MDL2 PowerButton
+        var wpBody = new WinPowerBody(D) { Name = "wp-wide" };
+        wpBody.ContentHeightChanged += () => { if (wp.Parent != null) Layout2(); };
+        wp.AddRow(null, wpBody);
+        _syncPowerCard = wpBody.Sync;
         PowerPlan.EnsureEffectiveWatch();
-        _syncPowerCard();
+        wpBody.Sync();
         _gLeft[SubPower].Add(wp);
 
         // Scene schedule: different settings for work hours, nights and weekends. Rules are
@@ -1060,7 +608,7 @@ public sealed class SettingsPage : ThemedPage
             };
             sch.AddRow(null, add);
         }
-        _gRight[SubPower].Add(sch);   // owner request (2026-10-04): schedule lives in the right column
+        _gRight[SubNotif].Add(sch);   // owner decision (2026-10-04): the schedule lives on the Notifications sub-tab
 
         // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
         // model. Pickers list only the modes the panel reports at its current resolution.
@@ -2162,16 +1710,6 @@ public sealed class SettingsPage : ThemedPage
     }
 
     // ---------------- card ----------------
-    /// <summary>
-    /// FlowLayoutPanel with double buffering for the Windows-power card's painted rows
-    /// (tint strips, framed expanders). The stock panel repaints unbuffered, which showed
-    /// as flicker/artifacts while the Power tab laid itself out.
-    /// </summary>
-    private sealed class WpPanel : FlowLayoutPanel
-    {
-        public WpPanel() { DoubleBuffered = true; ResizeRedraw = true; }
-    }
-
     private sealed class CardSection : Panel
     {
         private readonly Label _head;
@@ -2239,18 +1777,9 @@ public sealed class SettingsPage : ThemedPage
                 // a hidden full-width row (conditional strips, the restore button) takes no
                 // space - without this the card reserves blank gaps for invisible controls
                 if (l == null && !ctl.Visible) continue;
-                // "wp-wide" rows stretch to the card's content width (the approved mock-up's
-                // full-width strips, expanders, segments and restore box), and their first-level
-                // labels rewrap to it
-                if (l == null && ctl.Name == "wp-wide")
-                {
-                    int cw = width - pad * 2;
-                    ctl.MinimumSize = new Size(cw, ctl.MinimumSize.Height);
-                    if (!ctl.AutoSize) ctl.Width = cw;
-                    foreach (Control ch in ctl.Controls)
-                        if (ch is Label lb && lb.AutoSize) lb.MaximumSize = new Size(cw - 24, 0);
-                    if (ctl is FlowLayoutPanel flp) flp.PerformLayout();
-                }
+                // a "wp-wide" row takes the card's content width and sizes its own height
+                // from it (WinPowerBody lays itself out inside the Width setter)
+                if (l == null && ctl.Name == "wp-wide") ctl.Width = width - pad * 2;
                 // full-width note labels (Tag "muted", e.g. the diagnostics blurb) rewrap to the
                 // card's current width instead of a fixed MaximumSize
                 if (l == null && ctl is Label note && note.Tag as string is "muted" or "warn")
@@ -2273,7 +1802,7 @@ public sealed class SettingsPage : ThemedPage
             foreach (var (l, ctl) in _rows)
             {
                 if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
-                if (ctl is FlowLayoutPanel fp && ctl is not WpPanel)
+                if (ctl is FlowLayoutPanel fp)
                 {
                     fp.BackColor = Theme.Card;
                     // Refresh the surface/border of nested buttons, but NEVER their ForeColor -

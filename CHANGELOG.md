@@ -24,16 +24,18 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Settings → Power drives two documented user-mode Windows power APIs, no EC involved,
   so it works even on machines whose EC interface the app cannot reach. The **CPU turbo
   boost** toggle edits the (normally hidden) "Processor performance boost mode" setting
-  of the active power plan; because a plan write is persistent, the previous AC/battery
-  values are saved per plan and the card says exactly what turning it back on will
-  write; a details expander adds per-source control, so "quiet on battery, full power
-  plugged in" is two clicks. The **Windows power mode** row is a four-segment picker: the
-  three modes of the Windows power slider set directly, plus "Auto: profile", which re-applies
-  the mode on every profile change (Silent and Super Battery choose best power efficiency,
-  Balanced the balanced mode, Extreme best performance - the mapping sits behind its own
-  expander). A "Restore Windows settings" button exists only while the app actually holds
-  something to restore, and says what will come back; a footer link can reveal the hidden
-  setting in the Windows power options (and hide it again). CLI: `--turbo <on|off|status>`.
+  of the active power plan; because a plan write is persistent, the previous plugged-in
+  and battery values are saved per plan, shown in an open details table, and the card
+  says exactly what turning it back on will write; the two power sources can also be
+  switched separately ("quiet on battery, full power plugged in"). The **Windows power
+  mode** row is a four-segment picker: the three modes of the Windows power slider set
+  directly, plus "Auto: profile", which re-applies the mode on every profile change
+  through a mapping you can edit (defaults: Silent and Super Battery choose best power
+  efficiency, Balanced the balanced mode, Extreme best performance). "Restore Windows
+  settings" exists only while the app actually holds something to restore and names each
+  item - the turbo values per plan, the power mode it found, Auto - and a footer link can
+  reveal the hidden setting in the Windows power options (and hide it again).
+  CLI: `--turbo <on|off|status>`.
 - **GF65 Thin 10UE: first live G1-generation capture confirms the entry**
   ([#230](../../issues/230), thanks @scorvus99) - the `16W2EMS1` entry gains its retail
   name and a hardware confirmation of the G1 recipe bytes (`0xF2`/`0xF4`, real Silent
@@ -118,6 +120,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **The scene schedule moved to the Notifications tab** - Settings → Power was getting
+  long; the schedule card now sits on the Notifications sub-tab, next to the alerts.
 - **MSI Raider 16 Max HX B2WJ (`2651EMS1`): fan curve verified, Apex recorded**
   ([#221](../../issues/221), [#225](../../issues/225), thanks @Giperzvuk) - his test curves
   sit byte-for-byte at the shipped table addresses on both main fans, and his capture of

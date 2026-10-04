@@ -187,6 +187,7 @@ public sealed class AppSettings
     public bool PowerModeSync { get; set; }                                  // tryb zasilania Windows podaza za profilem
     public Dictionary<string, int[]> TurboSnapshots { get; set; } = new();   // GUID planu -> [AC, DC] sprzed wylaczenia turbo (zapis planu jest trwaly)
     public long BoostAttrOriginal { get; set; } = -1;                        // pelny DWORD atrybutow PERFBOOSTMODE sprzed odkrycia w Panelu; -1 = nietkniete
+    public Dictionary<string, int> PowerModeMap { get; set; } = new();        // wlasne mapowanie profil -> tryb zasilania (0 efektywnosc, 1 zrownowazony, 2 wydajnosc); tylko wiersze ROZNE od domyslnych
     public string PowerModePrev { get; set; } = "";                         // GUID trybu zasilania SPRZED pierwszej zmiany przez GhostDeck ("" = nie zmienialismy); Przywroc go cofa
 
     // opt-in (#49): przywroc ostatnia AKTYWNA krzywa wentylatora po starcie/wznowieniu -
@@ -537,6 +538,7 @@ public sealed class AppSettings
         FanBoostSeconds = src.FanBoostSeconds;
         PowerModeSync = src.PowerModeSync;
         PowerModePrev = src.PowerModePrev;
+        PowerModeMap = new Dictionary<string, int>(src.PowerModeMap);
         // Turbo snapshots and the attribute original are MACHINE state (this Windows, its power
         // plans), not preferences - an imported file must not overwrite what this machine saved.
         ScheduleEnabled = src.ScheduleEnabled;
@@ -646,6 +648,7 @@ public sealed class AppSettings
         foreach (var s in Scenes) c.Scenes.Add(s.Clone());   // (#21)
         foreach (var r in Schedules) c.Schedules.Add(r.Clone());
         foreach (var (k, v) in TurboSnapshots) c.TurboSnapshots[k] = (int[])v.Clone();
+        foreach (var (k, v) in PowerModeMap) c.PowerModeMap[k] = v;
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
         c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;
