@@ -50,6 +50,8 @@ public sealed class SettingsPage : ThemedPage
     private (bool Internal, string? Name) _dispTarget;   // ...compared in OnDisplayChanged
     private string _uiLang = Lang.CurrentCode; // language the form was built with
     private ProfileId[] _builtOrder = Profiles.Shown;   // profile order the lists were built with (discussion #101)
+    private readonly List<Action> _orderSync = new();   // re-fill only what follows the profile order - no page rebuild
+    private bool _orderSyncing;                         // list handlers stay quiet while their items are swapped
     private bool _builtTravelOn;               // travel/charge snapshot the Power card was built from...
     private int _builtCharge;                  // ...compared in SyncTravelRow (rebuild only on a real change)
     private Action? _syncPowerCard;            // re-reads the live Windows-power card values (#141)
@@ -230,15 +232,37 @@ public sealed class SettingsPage : ThemedPage
     // theme drift = re-point the segment (Selected does not raise SelectedChanged, so no loop).
     private void SyncExternal()
     {
-        if (_uiLang != Lang.CurrentCode || !ReferenceEquals(_builtOrder, Profiles.Shown))
+        if (_uiLang != Lang.CurrentCode)
         {
             Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
             return;
         }
+        if (!ReferenceEquals(_builtOrder, Profiles.Shown)) SyncProfileOrder();
         if (_themeSeg is { } ts) ts.Selected = Theme.Dark ? 1 : 0;
         if (_refreshNow is { IsDisposed: false })
             _refreshNow.Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—";
         _syncRefreshMan?.Invoke();
+    }
+
+    // (discussion #101) A new profile order touches four colour rows and a handful of lists.
+    // Those are re-filled in place: a full BuildForm of this page recreates every control on
+    // it, which takes seconds and leaves the page blank meanwhile.
+    private void SyncProfileOrder()
+    {
+        _builtOrder = Profiles.Shown;
+        _orderSyncing = true;
+        try { foreach (var sync in _orderSync) sync(); }
+        finally { _orderSyncing = false; }
+        Layout2();
+    }
+
+    private static void Refill(ComboBox c, string[] items, int sel)
+    {
+        c.BeginUpdate();
+        c.Items.Clear();
+        c.Items.AddRange(items);
+        c.SelectedIndex = Math.Clamp(sel, 0, items.Length - 1);
+        c.EndUpdate();
     }
 
     public override void ApplyTheme()
@@ -342,7 +366,7 @@ public sealed class SettingsPage : ThemedPage
             (_gLeft[gi] ??= new()).Clear();
             (_gRight[gi] ??= new()).Clear();
         }
-        _boxes.Clear(); _swatches.Clear();
+        _boxes.Clear(); _swatches.Clear(); _orderSync.Clear();
         _uiLang = Lang.CurrentCode;   // the form now reflects this language (see SyncExternal)
         _builtOrder = Profiles.Shown; // ...and this profile order
 
@@ -361,7 +385,9 @@ public sealed class SettingsPage : ThemedPage
             Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
         };
         look.AddRow(Lang.T("set_language"), lang);
-        foreach (var id in Profiles.Shown) look.AddRow(Profiles.Get(id).Label, BuildSwatches(id));
+        var swatchRows = new Dictionary<ProfileId, Control>();
+        foreach (var id in Profiles.Shown) { swatchRows[id] = BuildSwatches(id); look.AddRow(Profiles.Get(id).Label, swatchRows[id]); }
+        _orderSync.Add(() => look.OrderRows(Profiles.Shown.Select(id => swatchRows[id]).ToList()));
         var resetColors = new Button { Text = Lang.T("set_colors_reset"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
         Ui.StyleGhost(resetColors);
         resetColors.Click += (_, _) =>
@@ -469,14 +495,15 @@ public sealed class SettingsPage : ThemedPage
             power.AddRow(null, travelNote);
         }
         power.AddRow(Lang.T("set_autoswitch"), Toggle(D.Settings.AutoSwitchEnabled, v => D.SetAutoSwitch(v)));
-        // one array for the items and for the lookups - the lists stay consistent with themselves
-        // even if the profile order changes before this page is rebuilt (see Profiles.Shown)
+        // one array for the items and for the lookups - the lists stay consistent with themselves;
+        // a new profile order swaps the array and the items together (see SyncProfileOrder)
         var order = Profiles.Shown;
-        var ac = Combo(order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(order, D.Settings.ProfileOnAC));
-        ac.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnAC = Profiles.Get(order[ac.SelectedIndex]).Key; D.SaveSettings(); };
+        string[] ProfileNames() => order.Select(id => Profiles.Get(id).Label).ToArray();
+        var ac = Combo(ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnAC));
+        ac.SelectedIndexChanged += (_, _) => { if (_orderSyncing) return; D.Settings.ProfileOnAC = Profiles.Get(order[ac.SelectedIndex]).Key; D.SaveSettings(); };
         power.AddRow(Lang.T("on_ac"), ac);
-        var bat = Combo(order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(order, D.Settings.ProfileOnBattery));
-        bat.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnBattery = Profiles.Get(order[bat.SelectedIndex]).Key; D.SaveSettings(); };
+        var bat = Combo(ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnBattery));
+        bat.SelectedIndexChanged += (_, _) => { if (_orderSyncing) return; D.Settings.ProfileOnBattery = Profiles.Get(order[bat.SelectedIndex]).Key; D.SaveSettings(); };
         power.AddRow(Lang.T("on_battery"), bat);
 
         // Some ECs wake from sleep/hibernation in Super Battery on their own — opt-in restore of
@@ -485,19 +512,28 @@ public sealed class SettingsPage : ThemedPage
             v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
         // (#178) startup profile: "last used" (default) or a fixed pick that wins at app start;
         // the after-wake restore keeps bringing back the profile active before sleep
-        var stOpts = new string[order.Length + 1];
-        stOpts[0] = Lang.T("set_startup_last");
-        for (int i = 0; i < order.Length; i++) stOpts[i + 1] = Profiles.Get(order[i]).Label;
-        int stIdx = 0;
-        for (int i = 0; i < order.Length; i++)
-            if (Profiles.Get(order[i]).Key == D.Settings.StartupProfile) stIdx = i + 1;
-        var st = Combo(stOpts, stIdx);
+        string[] StartupNames() => new[] { Lang.T("set_startup_last") }.Concat(ProfileNames()).ToArray();
+        int StartupIndex()
+        {
+            for (int i = 0; i < order.Length; i++)
+                if (Profiles.Get(order[i]).Key == D.Settings.StartupProfile) return i + 1;
+            return 0;
+        }
+        var st = Combo(StartupNames(), StartupIndex());
         st.SelectedIndexChanged += (_, _) =>
         {
+            if (_orderSyncing) return;
             D.Settings.StartupProfile = st.SelectedIndex <= 0 ? "" : Profiles.Get(order[st.SelectedIndex - 1]).Key;
             D.SaveSettings();
         };
         power.AddRow(Lang.T("set_startup_profile"), st);
+        _orderSync.Add(() =>
+        {
+            order = Profiles.Shown;
+            Refill(ac, ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnAC));
+            Refill(bat, ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnBattery));
+            Refill(st, StartupNames(), StartupIndex());
+        });
         // (#49) restore the last active fan curve too - the EC loses it on every cold boot
         power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
@@ -759,10 +795,13 @@ public sealed class SettingsPage : ThemedPage
         // master switch for the whole feature - some people simply don't want it running
         brc.AddRow(Lang.T("bat_enable"), Toggle(D.Settings.BattRulesEnabled,
             v => { D.Settings.BattRulesEnabled = v; D.SaveSettings(); }));
-        var actionVals = order.Select(id => "P:" + Profiles.Get(id).Key)
+        string[] ActionVals() => order.Select(id => "P:" + Profiles.Get(id).Key)
             .Concat(D.Settings.Scenes.Select(s => "S:" + s.Id)).ToArray();
-        var actionNames = order.Select(id => Profiles.Get(id).Label)
+        string[] ActionNames() => order.Select(id => Profiles.Get(id).Label)
             .Concat(D.Settings.Scenes.Select(s => "▶ " + s.Name)).ToArray();
+        var actionVals = ActionVals();
+        var actionNames = ActionNames();
+        var actCombos = new List<(ComboBox Combo, bool Low)>();
         var pctVals = Enumerable.Range(1, 19).Select(i => i * 5).ToArray();   // 5..95
         Panel BattRow(bool low)
         {
@@ -785,10 +824,12 @@ public sealed class SettingsPage : ThemedPage
             act.SelectedIndex = Math.Max(0, Array.IndexOf(actionVals, low ? D.Settings.BattLowAction : D.Settings.BattHighAction));
             act.SelectedIndexChanged += (_, _) =>
             {
+                if (_orderSyncing) return;
                 string v = actionVals[Math.Max(0, act.SelectedIndex)];
                 if (low) D.Settings.BattLowAction = v; else D.Settings.BattHighAction = v;
                 D.SaveSettings();
             };
+            actCombos.Add((act, low));
             var row = new Panel { Width = tg.Width + 8 + 84 + 8 + 168, Height = 30 };
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             pct.Location = new Point(tg.Width + 8, (row.Height - pct.Height) / 2);
@@ -798,6 +839,13 @@ public sealed class SettingsPage : ThemedPage
         }
         brc.AddRow(Lang.T("bat_below"), BattRow(true));
         brc.AddRow(Lang.T("bat_above"), BattRow(false));
+        _orderSync.Add(() =>   // runs after the Power card's entry, which has already swapped `order`
+        {
+            actionVals = ActionVals();
+            actionNames = ActionNames();
+            foreach (var (combo, low) in actCombos)
+                Refill(combo, actionNames, Math.Max(0, Array.IndexOf(actionVals, low ? D.Settings.BattLowAction : D.Settings.BattHighAction)));
+        });
         _gRight[SubPower].Add(brc);
 
         // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
@@ -1005,7 +1053,7 @@ public sealed class SettingsPage : ThemedPage
             using var dlg = new ProfileOrderForm(D.Settings, D.ColorOf);
             if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
             D.SettingsChanged();   // the tray menu follows
-            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+            SyncProfileOrder();
         };
         scenVis.AddRow(Lang.T("po_title"), orderBtn);
         VisRow("fanboost", Lang.T("cooler_boost"));
@@ -1814,6 +1862,18 @@ public sealed class SettingsPage : ThemedPage
             if (label != null) { l = new Label { Text = label, AutoSize = true, Font = new Font("Segoe UI", 10.5f) }; Controls.Add(l); }
             Controls.Add(ctl);
             _rows.Add((l, ctl));
+        }
+
+        /// <summary>
+        /// Puts the rows holding these controls into the given sequence; they keep the slots
+        /// they already occupy, every other row stays where it is.
+        /// </summary>
+        public void OrderRows(IReadOnlyList<Control> ctls)
+        {
+            var slots = Enumerable.Range(0, _rows.Count).Where(i => ctls.Contains(_rows[i].ctl)).ToList();
+            if (slots.Count != ctls.Count) return;
+            var moved = ctls.Select(c => _rows.First(r => r.ctl == c)).ToList();
+            for (int i = 0; i < slots.Count; i++) _rows[slots[i]] = moved[i];
         }
 
         public void Relayout(int width)
