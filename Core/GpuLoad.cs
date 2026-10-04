@@ -223,14 +223,19 @@ void main(uint3 id : SV_DispatchThreadID)
     }
 
     /// <summary>
-    /// The adapter with the most dedicated memory, which on a laptop is the discrete one. Returns 0
-    /// to let Direct3D pick, which is what happens on a machine with only integrated graphics.
+    /// The card the app calls "GPU" (GpuTelemetry.GetRoles, TECHNICAL §73): the discrete one on a
+    /// two-card laptop, picked by the driver's own integrated / discrete report, so the load lands
+    /// on the card whose clock and load Status shows. Most dedicated memory is the fallback only
+    /// when the roles are unknown - an integrated chip can be given more of it than the discrete
+    /// card has. Returns 0 to let Direct3D pick, which is what happens on a machine with only
+    /// integrated graphics.
     /// </summary>
     private static IntPtr PickDiscreteAdapter(out string name)
     {
         name = "";
         IntPtr factory = 0, best = 0;
         ulong bestMem = 0;
+        long mainLuid = GpuTelemetry.GetRoles().Main?.Luid ?? 0;
         try
         {
             var iid = new Guid("770aae78-f26f-4dba-a829-253c83d1b387");   // IDXGIFactory1
@@ -243,7 +248,9 @@ void main(uint3 id : SV_DispatchThreadID)
                 bool keep = false;
                 if (Call<GetDesc1Fn>(ad, 10)(ad, &desc) >= 0
                     && (desc.Flags & 2) == 0                       // not the software adapter
-                    && (ulong)desc.DedicatedVideoMemory > bestMem)
+                    && (mainLuid != 0
+                        ? (((long)desc.AdapterLuidHigh << 32) | desc.AdapterLuidLow) == mainLuid
+                        : (ulong)desc.DedicatedVideoMemory > bestMem))
                 {
                     bestMem = (ulong)desc.DedicatedVideoMemory;
                     Release(ref best);

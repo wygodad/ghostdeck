@@ -2351,7 +2351,9 @@ raised budget is one the two chips share, the only way to see it is to be asking
 So the run loads the discrete graphics chip for its whole duration, started before the first settle so
 temperatures stabilise with it already going, and identical in every phase - it has to be, or the
 comparison between phases measures the load rather than the profile. `Core/GpuLoad.cs` creates a
-Direct3D 11 device on the adapter with the most dedicated memory, compiles a small arithmetic compute
+Direct3D 11 device on the main card of §73 (the discrete one on a two-card laptop, chosen from the
+driver's own integrated / discrete report; most dedicated memory only when that report is
+unavailable, because an integrated chip can be given more of it), compiles a small arithmetic compute
 shader, and dispatches it into a buffer nothing ever reads. No window, no swap chain, nothing drawn.
 Every call goes through raw vtable pointers, so the app takes no dependency on a graphics package for
 one file. Failure anywhere leaves `Active` false and the run continues on the processor alone; the

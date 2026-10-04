@@ -32,6 +32,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   software renderer, so on a two-card laptop the integrated chip's load showed as "GPU load"
   while the discrete card slept. Status, the overlay and the power test now read the discrete
   card alone (the same card the GPU-clock tile names), and the VRAM total is that card's own.
+- **Power test: the graphics load always runs on the discrete card** - the test picked the card
+  with the most memory of its own, and an integrated chip can be given more of it than the
+  discrete card has (AMD's Variable Graphics Memory reaches 8, 16 or 32 GB), so on such a laptop
+  the load could land on the integrated chip. It now uses the same driver-reported choice as
+  Status.
 
 ### Changed
 - **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
