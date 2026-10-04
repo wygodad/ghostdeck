@@ -2776,7 +2776,8 @@ slider, set directly for both power sources through the official Windows 11 API
 undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds without the
 export), plus **"Auto: profile"** as the fourth segment, so exactly one segment is ever lit.
 Auto fires only inside `SetProfile`, never enforced in the background. The profile → mode
-mapping is editable (`PowerMapForm`, opened from the pencil hotspot on the mapping caption;
+mapping is editable (`PowerMapForm`, a GhostDeck card opened from the pencil hotspot on the
+mapping caption - one row per profile with a painted three-way picker, see RENDERING.md §11;
 the second hotspot restores the defaults behind a confirmation card):
 `AppSettings.PowerModeMap` stores only the rows that differ from the defaults (Silent and
 Super Battery → best power efficiency, Balanced → balanced, Extreme → best performance), and

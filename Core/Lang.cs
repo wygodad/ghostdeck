@@ -2450,6 +2450,24 @@ public static class Lang
         m["pw_grp_mode"] = new[] { "Windows power mode", "Tryb zasilania Windows", "Windows-Energiemodus", "Mode d'alimentation Windows", "Modo de energía de Windows", "Windows 电源模式", "Modo de energia do Windows", "Режим питания Windows", "Windows 電源モード", "Windows 전원 모드", "Windows 電源模式", "Windows güç modu", "Chế độ nguồn Windows", "Mode daya Windows", "Modalità energetica di Windows" };
         m["pw_map_edit_tip"] = new[] { "Edit the mapping", "Edytuj mapowanie", "Zuordnung bearbeiten", "Modifier la correspondance", "Editar la asignación", "编辑对应关系", "Editar o mapeamento", "Изменить соответствие", "対応を編集", "매핑 편집", "編輯對應關係", "Eşlemeyi düzenle", "Sửa ánh xạ", "Edit pemetaan", "Modifica la mappatura" };
         m["pw_map_reset_tip"] = new[] { "Restore the default mapping", "Przywróć domyślne mapowanie", "Standardzuordnung wiederherstellen", "Rétablir la correspondance par défaut", "Restaurar la asignación predeterminada", "恢复默认对应关系", "Restaurar o mapeamento padrão", "Вернуть соответствие по умолчанию", "既定の対応に戻す", "기본 매핑 복원", "還原預設對應關係", "Varsayılan eşlemeyi geri yükle", "Khôi phục ánh xạ mặc định", "Pulihkan pemetaan bawaan", "Ripristina la mappatura predefinita" };
+        m["pw_map_body"] = new[]
+        {
+            "Choose the Windows power mode for each profile. The mapping applies while \"{0}\" is selected.",
+            "Wybierz tryb zasilania Windows dla każdego profilu. Mapowanie działa, gdy wybrany jest „{0}”.",
+            "Wähle für jedes Profil den Windows-Energiemodus. Die Zuordnung gilt, solange „{0}“ ausgewählt ist.",
+            "Choisissez le mode d'alimentation Windows pour chaque profil. La correspondance s'applique tant que « {0} » est sélectionné.",
+            "Elige el modo de energía de Windows para cada perfil. La asignación se aplica mientras esté seleccionado «{0}».",
+            "为每个配置选择 Windows 电源模式。选中“{0}”时，此对应关系生效。",
+            "Escolha o modo de energia do Windows para cada perfil. O mapeamento vale enquanto \"{0}\" estiver selecionado.",
+            "Выберите режим питания Windows для каждого профиля. Соответствие действует, пока выбран «{0}».",
+            "プロファイルごとに Windows の電源モードを選択します。「{0}」が選択されている間、この対応が適用されます。",
+            "각 프로필에 사용할 Windows 전원 모드를 선택하세요. \"{0}\"이(가) 선택된 동안 매핑이 적용됩니다.",
+            "為每個設定檔選擇 Windows 電源模式。選取「{0}」時，此對應關係生效。",
+            "Her profil için Windows güç modunu seçin. Eşleme, \"{0}\" seçiliyken geçerlidir.",
+            "Chọn chế độ nguồn Windows cho từng hồ sơ. Ánh xạ có hiệu lực khi \"{0}\" đang được chọn.",
+            "Pilih mode daya Windows untuk setiap profil. Pemetaan berlaku selama \"{0}\" dipilih.",
+            "Scegli la modalità energetica di Windows per ogni profilo. La mappatura vale finché è selezionato \"{0}\".",
+        };
         m["pw_map_reset_confirm"] = new[]
         {
             "The profile mapping goes back to the defaults: Silent and Super Battery - best power efficiency, Balanced - balanced, Extreme - best performance. Continue?",

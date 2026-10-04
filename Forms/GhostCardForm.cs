@@ -13,8 +13,14 @@ namespace GhostDeck;
 /// screen, Enter = accent action, Esc / ✕ = later. Draggable by the body.
 /// Carriers: the firmware guard (#212) and the Apex first-enable explainer; any future
 /// user-facing question uses this rather than MessageBox/TaskDialog (RENDERING.md 11).
+///
+/// A card that has to EDIT something (the profile mapping of the Windows power card) derives
+/// from this class: a layered window cannot host child controls, so the subclass paints its
+/// own content block between the body text and the buttons and hit-tests it
+/// (<see cref="MeasureContent"/>, <see cref="PaintContent"/>, <see cref="ContentHit"/>,
+/// <see cref="ContentClick"/>). A plain message card overrides nothing.
 /// </summary>
-public sealed class GhostCardForm : Form
+public class GhostCardForm : Form
 {
     private readonly string _scanTag;
     private readonly string _heading;
@@ -23,6 +29,7 @@ public sealed class GhostCardForm : Form
     private readonly string _laterLabel;
     private readonly Action _onAck;
     private int _hotBtn = -1;                       // 0 = restore, 1 = later, 2 = ✕
+    private int _hotZone = -1;                      // content zone under the cursor (subclass-defined), -1 = none
     private readonly Rectangle[] _btn = new Rectangle[3];
     private Rectangle _cardRect;
     private bool _drag;
@@ -97,17 +104,42 @@ public sealed class GhostCardForm : Form
 
     private void Ack()
     {
-        try { _onAck(); } catch { }
+        try { Acknowledge(); } catch { }
         Close();
     }
 
+    // ---------------- content hooks (editor cards) ----------------
+    /// <summary>Card width in logical pixels.</summary>
+    protected virtual int CardWidth => 500;
+    /// <summary>Height in device pixels of the content block under the body text; 0 = none.</summary>
+    protected virtual int MeasureContent(Graphics g, float k, int width) => 0;
+    /// <summary>
+    /// Paints the content block into <paramref name="area"/>. Add <paramref name="origin"/> to a
+    /// painted rectangle to get the window coordinates <see cref="ContentHit"/> is asked about.
+    /// </summary>
+    protected virtual void PaintContent(Graphics g, float k, Rectangle area, Point origin) { }
+    /// <summary>Clickable content zone at a window point, -1 = none.</summary>
+    protected virtual int ContentHit(Point p) => -1;
+    protected virtual void ContentClick(int zone) { }
+    /// <summary>The accent action; the card closes afterwards.</summary>
+    protected virtual void Acknowledge() => _onAck();
+    /// <summary>The content zone under the cursor, for hover painting.</summary>
+    protected int HotZone => _hotZone;
+    protected void Rerender() => Render();
+
     // ---------------- mouse ----------------
-    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (_hotBtn != -1) { _hotBtn = -1; Render(); } }
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        if (_hotBtn == -1 && _hotZone == -1) return;
+        _hotBtn = _hotZone = -1;
+        Render();
+    }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
-        if (e.Button == MouseButtons.Left && _hotBtn == -1 && _cardRect.Contains(e.Location))
+        if (e.Button == MouseButtons.Left && _hotBtn == -1 && _hotZone == -1 && _cardRect.Contains(e.Location))
         {
             _drag = true;
             _dragMoved = false;
@@ -130,8 +162,9 @@ public sealed class GhostCardForm : Form
         }
         int hot = -1;
         for (int i = 0; i < _btn.Length; i++) if (_btn[i].Contains(e.Location)) hot = i;
-        Cursor = hot >= 0 ? Cursors.Hand : _cardRect.Contains(e.Location) ? Cursors.SizeAll : Cursors.Default;
-        if (hot != _hotBtn) { _hotBtn = hot; Render(); }
+        int zone = hot >= 0 ? -1 : ContentHit(e.Location);
+        Cursor = hot >= 0 || zone >= 0 ? Cursors.Hand : _cardRect.Contains(e.Location) ? Cursors.SizeAll : Cursors.Default;
+        if (hot != _hotBtn || zone != _hotZone) { _hotBtn = hot; _hotZone = zone; Render(); }
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
@@ -141,6 +174,7 @@ public sealed class GhostCardForm : Form
         bool wasDrag = _drag && _dragMoved;
         _drag = false;
         if (wasDrag) return;
+        if (_hotZone >= 0) { ContentClick(_hotZone); return; }
         switch (_hotBtn)
         {
             case 0: Ack(); return;
@@ -164,7 +198,7 @@ public sealed class GhostCardForm : Form
         int Ce(float v) => (int)Math.Ceiling(v);
 
         int pad = Ce(14 * k);                        // transparent margin (shadow lives here)
-        int W = Ce(500 * k);
+        int W = Ce(CardWidth * k);
         int railW = Ce(5 * k);
         int r = Ce(12 * k);
         int cx = railW + Ce(15 * k);
@@ -179,15 +213,17 @@ public sealed class GhostCardForm : Form
         // measure the body first - the card grows with the text (and with the language)
         int yHdr = Ce(14 * k), hHdr = Ce(24 * k);
         int yTitle = yHdr + hHdr + Ce(8 * k);
-        int hTitle, hBody, hBtn = Ce(34 * k);
+        int hTitle, hBody, hContent, hBtn = Ce(34 * k);
         using (var probe = Graphics.FromImage(new Bitmap(1, 1)))
         {
             probe.TextRenderingHint = TextRenderingHint.AntiAlias;
             hTitle = Ce(titleF.GetHeight(probe));
             hBody = Ce(probe.MeasureString(_body, bodyF, cw).Height);
+            hContent = MeasureContent(probe, k, cw);
         }
         int yBody = yTitle + hTitle + Ce(8 * k);
-        int yBtns = yBody + hBody + Ce(14 * k);
+        int yContent = yBody + hBody + (hContent > 0 ? Ce(14 * k) : 0);
+        int yBtns = yContent + hContent + Ce(14 * k);
         int H = yBtns + hBtn + Ce(14 * k);
 
         var bmp = new Bitmap(W + pad * 2, H + pad * 2, PixelFormat.Format32bppArgb);
@@ -246,6 +282,8 @@ public sealed class GhostCardForm : Form
         g.DrawString(_heading, titleF, whiteB, cx - 2 * k, yTitle);
         using (var ib = new SolidBrush(Ink))
             g.DrawString(_body, bodyF, ib, new RectangleF(cx, yBody, cw, hBody + 4 * k));
+
+        if (hContent > 0) PaintContent(g, k, new Rectangle(cx, yContent, cw, hContent), new Point(pad, pad));
 
         // ---- buttons: [accent action]  [later], right-aligned ----
         // An empty later label means an acknowledge-only card (results, errors): the second

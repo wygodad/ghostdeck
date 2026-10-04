@@ -46,6 +46,7 @@ public sealed class WinPowerBody : Control
     private Rectangle _rEdit, _rReset, _rRestore, _rLink;
     private int _hot = -1;                 // 0 edit, 1 reset, 2 restore, 3 link
     private bool _inLayout;
+    private PowerMapForm? _mapDlg;
 
     private static readonly (ProfileId Id, string Name)[] MapRows =
     {
@@ -132,11 +133,14 @@ public sealed class WinPowerBody : Control
 
     private void EditMapping()
     {
-        using var f = new PowerMapForm(_d);
-        if (f.ShowDialog(FindForm()) != DialogResult.OK) return;
-        ChangeLog.Add(ChangeSource.Panel, "Windows power mode: profile mapping edited");
-        ReapplyAuto();
-        Sync();
+        if (_mapDlg is { IsDisposed: false }) { _mapDlg.Activate(); return; }   // one editor at a time
+        _mapDlg = new PowerMapForm(_d.Settings, _d.ColorOf, () =>
+        {
+            ChangeLog.Add(ChangeSource.Panel, "Windows power mode: profile mapping edited");
+            ReapplyAuto();
+            Sync();
+        });
+        _mapDlg.Show(); _mapDlg.Activate();
     }
 
     private void ResetMapping() => Ask(Lang.T("pw_mapping"), Lang.T("pw_map_reset_confirm"), Lang.T("pw_restore_ack"), () =>

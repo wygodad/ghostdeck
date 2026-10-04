@@ -480,3 +480,14 @@ acceptable only inside developer/diagnostic tooling (TestDialog) and for file-di
 where a themed card would be overkill. When a new message window is needed, start from
 `GhostCardForm` (text + buttons - often no new class is needed at all, it takes its texts and
 action as constructor arguments) or `SessionReportForm` (rich content + icon actions).
+
+**Editor cards.** A small editor is a card too, not a titled dialog with stock controls. A
+layered window cannot host child controls, so `GhostCardForm` exposes a content block between
+the body text and the buttons: a subclass overrides `MeasureContent` / `PaintContent` (same
+bitmap, same `k = dpi / 96` scale), reports its clickable zones through `ContentHit` and reacts
+in `ContentClick`; `HotZone` gives the hovered zone for the hover repaint, `Acknowledge` is the
+accent action and `CardWidth` widens the card. Carrier: `PowerMapForm` (profile → Windows power
+mode, `//WIN-POWER`) - four rows of scenario icon, profile name and a three-way segmented
+picker (selected cell = `AccentFill` with white text, the token for filled controls), with
+↑/↓ and ←/→ as the keyboard path. Prefer choices that are all visible at once (segments,
+toggles) over anything that would need a drop-down list.

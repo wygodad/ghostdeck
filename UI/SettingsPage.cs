@@ -478,7 +478,7 @@ public sealed class SettingsPage : ThemedPage
         // (#49) restore the last active fan curve too - the EC loses it on every cold boot
         power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
             v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
-        _gLeft[SubPower].Add(power);
+        _gRight[SubPower].Add(power);   // top of the right column: the Windows power card is as tall as the other cards together and takes the left one
 
         // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost switch of
         // the active plan and the Windows power mode. The whole body is ONE owner-drawn,
