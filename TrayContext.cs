@@ -2349,18 +2349,24 @@ public sealed class TrayContext : ApplicationContext
     private void UpdateTempTrays(HwSnapshot hw, int ssdTemp)
     {
         ApplyTempTray(ref _cpuTray, ref _cpuTrayIcon, ref _cpuTrayText,
-            _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"));
+            _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"), Mark(_settings.TempTrayMarkCpu));
         ApplyTempTray(ref _gpuTray, ref _gpuTrayIcon, ref _gpuTrayText,
-            _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"));
+            _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"), Mark(_settings.TempTrayMarkGpu));
         // (discussion #150) the same thresholds and colours: 70 / 85 °C defaults sit where NVMe
         // drives report their own warning and critical temperatures
         ApplyTempTray(ref _ssdTray, ref _ssdTrayIcon, ref _ssdTrayText,
-            _settings.TempTraySsd, ssdTemp, Lang.T("st_ssd_temp"));
+            _settings.TempTraySsd, ssdTemp, Lang.T("st_ssd_temp"), Mark(_settings.TempTrayMarkSsd));
         _wheel?.SetIcons(WheelIcons());   // no-op unless an icon appeared or went away
     }
 
+    private Color? Mark(string hex)
+    {
+        if (!_settings.TempTrayMark) return null;
+        try { return ColorTranslator.FromHtml(hex); } catch { return null; }
+    }
+
     private void ApplyTempTray(ref NotifyIcon? icon, ref Icon? current, ref string shown,
-                               bool wanted, int temp, string label)
+                               bool wanted, int temp, string label, Color? mark)
     {
         if (!wanted)
         {
@@ -2386,12 +2392,15 @@ public sealed class TrayContext : ApplicationContext
         // icons with the previous menu.
         icon.ContextMenuStrip = _tray.ContextMenuStrip;
         icon.Text = noReading ? $"{label} --" : $"{label} {temp} °C";
-        if (text == shown) return;                       // nothing to redraw
-        var next = TrayIconFactory.TextIcon(text, noReading ? Theme.Faint : TempTrayColor(temp));
+        var fg = noReading ? Theme.Faint : TempTrayColor(temp);
+        // the key carries both colours, so a colour changed in Settings shows on the next update
+        string key = $"{text}|{fg.ToArgb()}|{mark?.ToArgb()}";
+        if (key == shown) return;                        // nothing to redraw
+        var next = TrayIconFactory.TextIcon(text, fg, mark);
         icon.Icon = next;
         current?.Dispose();
         current = next;
-        shown = text;
+        shown = key;
     }
 
     private Color TempTrayColor(int temp)

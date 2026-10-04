@@ -293,6 +293,12 @@ public sealed class AppSettings
     public string TempTrayColorOk { get; set; } = "#3DE3FF";   // brand cyan
     public string TempTrayColorWarn { get; set; } = "#F5B301";   // amber
     public string TempTrayColorHot { get; set; } = "#FF4D4F";   // red
+    // A colour bar under the digits says which reading an icon carries, so the icons can be told
+    // apart without hovering; one colour per source, none of them a threshold colour.
+    public bool TempTrayMark { get; set; } = true;
+    public string TempTrayMarkCpu { get; set; } = "#3C7DFF";    // blue
+    public string TempTrayMarkGpu { get; set; } = "#B07CFF";    // violet
+    public string TempTrayMarkSsd { get; set; } = "#61E7A4";    // green
 
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
@@ -567,6 +573,8 @@ public sealed class AppSettings
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
         TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
         TempTrayColorHot = src.TempTrayColorHot;
+        TempTrayMark = src.TempTrayMark; TempTrayMarkCpu = src.TempTrayMarkCpu;
+        TempTrayMarkGpu = src.TempTrayMarkGpu; TempTrayMarkSsd = src.TempTrayMarkSsd;
         EnsureDefaults();
     }
 
@@ -664,6 +672,8 @@ public sealed class AppSettings
         c.TempTrayWarn = TempTrayWarn; c.TempTrayHot = TempTrayHot;
         c.TempTrayColorOk = TempTrayColorOk; c.TempTrayColorWarn = TempTrayColorWarn;
         c.TempTrayColorHot = TempTrayColorHot;
+        c.TempTrayMark = TempTrayMark; c.TempTrayMarkCpu = TempTrayMarkCpu;
+        c.TempTrayMarkGpu = TempTrayMarkGpu; c.TempTrayMarkSsd = TempTrayMarkSsd;
         return c;
     }
 }

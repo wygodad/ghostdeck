@@ -1137,6 +1137,18 @@ public sealed class SettingsPage : ThemedPage
                 v => { D.Settings.TempTrayGpu = v; D.SaveSettings(); D.SettingsChanged(); }));
             tt.AddRow(Lang.T("st_ssd_temp"), Toggle(D.Settings.TempTraySsd,
                 v => { D.Settings.TempTraySsd = v; D.SaveSettings(); D.SettingsChanged(); }));
+            // amber, like the card's other notes: on a two-drive laptop the icon is the warmer one
+            tt.AddRow(null, new Label
+            {
+                Text = Lang.T("temptray_ssd_note"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "warn",
+            });
+            tt.AddRow(Lang.T("temptray_mark"), Toggle(D.Settings.TempTrayMark,
+                v => { D.Settings.TempTrayMark = v; D.SaveSettings(); D.SettingsChanged(); }));
+            tt.AddRow(null, ColorRow(
+                ("CPU", () => D.Settings.TempTrayMarkCpu, v => D.Settings.TempTrayMarkCpu = v),
+                ("GPU", () => D.Settings.TempTrayMarkGpu, v => D.Settings.TempTrayMarkGpu = v),
+                ("SSD", () => D.Settings.TempTrayMarkSsd, v => D.Settings.TempTrayMarkSsd = v)));
             var warnVals = new[] { 50, 55, 60, 65, 70, 75, 80 };
             var warn = Combo(warnVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(warnVals, D.Settings.TempTrayWarn)));
             warn.SelectedIndexChanged += (_, _) =>
@@ -1168,6 +1180,10 @@ public sealed class SettingsPage : ThemedPage
                 D.Settings.TempTrayColorHot = def.TempTrayColorHot;
                 D.Settings.TempTrayWarn = def.TempTrayWarn;
                 D.Settings.TempTrayHot = def.TempTrayHot;
+                D.Settings.TempTrayMark = def.TempTrayMark;
+                D.Settings.TempTrayMarkCpu = def.TempTrayMarkCpu;
+                D.Settings.TempTrayMarkGpu = def.TempTrayMarkGpu;
+                D.Settings.TempTrayMarkSsd = def.TempTrayMarkSsd;
                 D.SaveSettings(); D.SettingsChanged();
                 Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // swatches + combos follow
             };
