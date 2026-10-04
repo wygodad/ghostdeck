@@ -182,12 +182,16 @@ internal static class GpuTelemetry
     /// <summary>
     /// Integrated or discrete is the driver's own statement, not a guess from memory sizes. Two
     /// sources say it: DXCore's IsIntegrated property (Windows 10 2004+) and the hybrid flags in
-    /// the kernel adapter type, which drivers set on two-card laptops. Measured on a GE78HX: both
-    /// mark the Intel UHD integrated and the RTX discrete, and the Basic Render Driver (Windows'
-    /// software renderer, also present in the counters) is a software adapter. "Most memory of
-    /// its own" stays as the fallback among cards no source calls integrated, because an
-    /// integrated chip can be given more memory than the discrete card has (AMD's Variable
-    /// Graphics Memory reaches 16 GB and more).
+    /// the kernel adapter type, which drivers set on two-card laptops. IsIntegrated = false is an
+    /// answer ("not integrated"), not a missing one; only an unsupported property or a failed
+    /// query leaves the question open. Measured on a GE78HX: both sources mark the Intel UHD
+    /// integrated and the RTX discrete, and the Basic Render Driver (Windows' software renderer,
+    /// also present in the counters) is a software adapter.
+    /// The main card is the first non-integrated one by: the driver's hybrid-discrete flag, then
+    /// Windows' own high-performance order (IDXGIFactory6, documented as external, then discrete,
+    /// then integrated), and memory size only last - an integrated chip can be given more
+    /// "dedicated" memory than the discrete card has (AMD's Variable Graphics Memory reaches 8, 16
+    /// and 32 GB on a Radeon 890M).
     /// </summary>
     private static unsafe AdapterRoles Classify()
     {
@@ -197,6 +201,7 @@ internal static class GpuTelemetry
         if (CreateDXGIFactory1(ref iid, out IntPtr factory) < 0 || factory == 0)
             return new AdapterRoles(null, null, known);
         IntPtr dxcore = DxCoreFactory();
+        var perfRank = HighPerformanceRank();
         try
         {
             IntPtr fvt = *(IntPtr*)factory;
@@ -228,11 +233,48 @@ internal static class GpuTelemetry
             if (dxcore != 0) Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)dxcore))[2])(dxcore);
         }
 
-        Adapter? main = hw.Where(h => h.HybridDiscrete && !h.A.Integrated).Select(h => h.A).FirstOrDefault()
-            ?? hw.Where(h => !h.A.Integrated).OrderByDescending(h => h.A.DedicatedBytes).Select(h => h.A).FirstOrDefault()
-            ?? hw.Select(h => h.A).FirstOrDefault();   // an integrated-only laptop: its one card is "the GPU"
+        // an integrated-only laptop has no candidate: its one card is "the GPU"
+        var candidates = hw.Any(h => !h.A.Integrated) ? hw.Where(h => !h.A.Integrated) : hw;
+        Adapter? main = candidates
+            .OrderByDescending(h => h.HybridDiscrete)
+            .ThenBy(h => perfRank.TryGetValue(h.A.Luid, out int r) ? r : int.MaxValue)
+            .ThenByDescending(h => h.A.DedicatedBytes)
+            .Select(h => h.A).FirstOrDefault();
         Adapter? igpu = hw.Select(h => h.A).FirstOrDefault(a => a.Integrated && a != main);
         return new AdapterRoles(main, igpu, known);
+    }
+
+    /// <summary>
+    /// Position of each adapter in IDXGIFactory6::EnumAdapterByGpuPreference(HIGH_PERFORMANCE)
+    /// (vtable slot 29, counted off dxgi1_6.h); empty before Windows 10 1803 or on any failure.
+    /// </summary>
+    private static unsafe Dictionary<long, int> HighPerformanceRank()
+    {
+        var rank = new Dictionary<long, int>();
+        try
+        {
+            var iid6 = new Guid("c1b6694f-ff09-44a9-b03c-77900a0a1d17");   // IDXGIFactory6
+            if (CreateDXGIFactory1(ref iid6, out IntPtr f6) < 0 || f6 == 0) return rank;
+            try
+            {
+                var byPref = Marshal.GetDelegateForFunctionPointer<EnumByPreferenceFn>(((IntPtr*)(*(IntPtr*)f6))[29]);
+                var iidA = new Guid("29038f61-3839-4626-91fd-086879011a05");   // IDXGIAdapter1
+                for (uint i = 0; i < 16; i++)
+                {
+                    if (byPref(f6, i, 2, ref iidA, out IntPtr ad) < 0 || ad == 0) break;   // 2 = HIGH_PERFORMANCE
+                    try
+                    {
+                        var d = new AdapterDesc1();
+                        if (Marshal.GetDelegateForFunctionPointer<GetDesc1Fn>(((IntPtr*)(*(IntPtr*)ad))[10])(ad, ref d) >= 0)
+                            rank.TryAdd(((long)d.LuidHigh << 32) | d.LuidLow, (int)i);
+                    }
+                    finally { Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)ad))[2])(ad); }
+                }
+            }
+            finally { Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)f6))[2])(f6); }
+        }
+        catch { rank.Clear(); }
+        return rank;
     }
 
     /// <summary>D3DKMT_ADAPTERTYPE bits (KMTQAITYPE_ADAPTERTYPE = 15); 0 when unreadable.</summary>
@@ -288,6 +330,7 @@ internal static class GpuTelemetry
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetDesc1Fn(IntPtr self, ref AdapterDesc1 d);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint ReleaseFn(IntPtr self);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetAdapterByLuidFn(IntPtr self, ref long luid, ref Guid iid, out IntPtr ad);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int EnumByPreferenceFn(IntPtr self, uint i, int preference, ref Guid iid, out IntPtr ad);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] [return: MarshalAs(UnmanagedType.U1)] private delegate bool IsPropertySupportedFn(IntPtr self, uint property);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetPropertyFn(IntPtr self, uint property, nuint size, out byte value);
 
