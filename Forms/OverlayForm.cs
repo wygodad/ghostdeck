@@ -15,7 +15,8 @@ public readonly record struct OverlaySample(
     int GpuUsage, int VramMb, int CpuClock,
     int Fps = -1, double FrameMs = -1,    // foreground game via FpsMonitor; -1 = no game / monitor off
     int SsdTemp = -1, int BattMinutes = -1,    // NVMe S.M.A.R.T. temp (disk 0); Windows' battery-time estimate
-    int SsdTemp2 = -1);                        // second disk's temp (dual-SSD laptops), -1 = none
+    int SsdTemp2 = -1,                         // second disk's temp (dual-SSD laptops), -1 = none
+    int IgpuUsage = -1, string CpuName = "");  // integrated card's load (-1 = no such card); processor model
 
 /// <summary>
 /// Detachable, always-on-top mini status panel for gaming: temps / fan RPM / profile / load, in a
@@ -159,6 +160,8 @@ public sealed class OverlayForm : Form
         // FPS metrics lead the list — they're the reason the overlay is on screen during a game.
         Add(OverlayMetric.Fps, IconKind.Fps, "FPS", _s.Fps >= 0 ? _s.Fps.ToString() : "--");
         Add(OverlayMetric.FrameTime, IconKind.Fps, "Frame", _s.FrameMs > 0 ? $"{_s.FrameMs:0.0} ms" : "--");
+        // the processor's model heads the CPU readings (discussion #150)
+        Add(OverlayMetric.CpuName, IconKind.Cpu, "CPU", _s.CpuName.Length > 0 ? _s.CpuName : "--");
         // temps are also valid in telemetry-only mode (#48), where Known is false
         Add(OverlayMetric.CpuTemp, IconKind.Cpu, "CPU", _s.CpuTemp > 0 ? $"{_s.CpuTemp}°" : "--");
         Add(OverlayMetric.GpuTemp, IconKind.Gpu, "GPU", _s.GpuTemp > 0 ? $"{_s.GpuTemp}°" : "--");
@@ -171,6 +174,7 @@ public sealed class OverlayForm : Form
         Add(OverlayMetric.FanPct, IconKind.Fan, "Fans", $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
         Add(OverlayMetric.CpuLoad, IconKind.Load, "Load", $"{_s.CpuLoad}%");
         Add(OverlayMetric.GpuUsage, IconKind.Gpu, "GPU%", _s.GpuUsage >= 0 ? $"{_s.GpuUsage}%" : "--");
+        Add(OverlayMetric.IgpuUsage, IconKind.Gpu, "iGPU%", _s.IgpuUsage >= 0 ? $"{_s.IgpuUsage}%" : "--");
         Add(OverlayMetric.CpuClock, IconKind.Cpu, "CPU clk", _s.CpuClock > 0 ? $"{_s.CpuClock} MHz" : "--");
         Add(OverlayMetric.Ram, IconKind.Ram, "RAM", $"{_s.RamUsedGb:0.0} GB");
         Add(OverlayMetric.Vram, IconKind.Ram, "VRAM", _s.VramMb >= 0 ? $"{_s.VramMb} MB" : "--");

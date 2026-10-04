@@ -52,4 +52,40 @@ internal static class SysInfo
         double used = (m.TotalPhys - m.AvailPhys) / 1073741824.0;
         return ((int)m.MemoryLoad, total, used);
     }
+
+    private static string? _cpuName;
+
+    /// <summary>
+    /// The processor's model as people say it ("i9-13980HX", "Ultra 9 185H", "Ryzen AI 9 HX 370"),
+    /// cut out of the registry's ProcessorNameString, which carries vendor marks, generation
+    /// prefixes and the integrated graphics. Read once; "" when the registry has no name.
+    /// </summary>
+    public static string CpuShortName()
+    {
+        if (_cpuName != null) return _cpuName;
+        string raw = "";
+        try
+        {
+            raw = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+                "ProcessorNameString", "") as string ?? "";
+        }
+        catch { }
+        return _cpuName = ShortenCpuName(raw);
+    }
+
+    internal static string ShortenCpuName(string raw)
+    {
+        string s = raw.Replace("(R)", "").Replace("(TM)", "").Replace("(tm)", "");
+        foreach (var cut in new[] { " w/ ", " with ", "@" })
+        {
+            int at = s.IndexOf(cut, StringComparison.OrdinalIgnoreCase);
+            if (at > 0) s = s[..at];
+        }
+        // "Core" goes only before i3/i5/i7/i9 and Ultra: in "Core 7 240H" it is part of the model
+        s = System.Text.RegularExpressions.Regex.Replace(s,
+            @"\b(\d+(st|nd|rd|th) Gen|Intel|AMD|Processor|CPU|\d+-Core|Mobile)\b|\bCore\s+(?=i[3579]-|Ultra\b)", "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ").Trim();
+        return s.Length > 0 ? s : raw.Trim();
+    }
 }

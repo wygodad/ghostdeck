@@ -14,9 +14,9 @@ public sealed class TrayContext : ApplicationContext
     private readonly NotifyIcon _tray = new();
     // (discussion #9) Optional CPU/GPU temperature readouts in the notification area. Two icons,
     // because at 100% scaling an icon is 16x16 px - room for two bold digits, not for two values.
-    private NotifyIcon? _cpuTray, _gpuTray;
-    private Icon? _cpuTrayIcon, _gpuTrayIcon;
-    private string _cpuTrayText = "", _gpuTrayText = "";
+    private NotifyIcon? _cpuTray, _gpuTray, _ssdTray;
+    private Icon? _cpuTrayIcon, _gpuTrayIcon, _ssdTrayIcon;
+    private string _cpuTrayText = "", _gpuTrayText = "", _ssdTrayText = "";
     private readonly OsdForm _osd = new();
     private readonly HotkeyManager _hotkeys = new();
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
@@ -831,6 +831,7 @@ public sealed class TrayContext : ApplicationContext
         _tray.ContextMenuStrip = menu;
         if (_cpuTray != null) _cpuTray.ContextMenuStrip = menu;
         if (_gpuTray != null) _gpuTray.ContextMenuStrip = menu;
+        if (_ssdTray != null) _ssdTray.ContextMenuStrip = menu;
         _tray.MouseClick -= TrayClick;
         _tray.MouseClick += TrayClick;
 
@@ -883,9 +884,10 @@ public sealed class TrayContext : ApplicationContext
     // while they are shown (the temp icons mirror the main icon's mouse actions).
     private NotifyIcon[] WheelIcons()
     {
-        var list = new List<NotifyIcon>(3) { _tray };
+        var list = new List<NotifyIcon>(4) { _tray };
         if (_cpuTray != null) list.Add(_cpuTray);
         if (_gpuTray != null) list.Add(_gpuTray);
+        if (_ssdTray != null) list.Add(_ssdTray);
         return list.ToArray();
     }
 
@@ -1769,7 +1771,8 @@ public sealed class TrayContext : ApplicationContext
             load, ramPct, ramUsed, AppSettings.ChargeManaged(_settings.ChargeLimit) ? _settings.ChargeLimit : 0, batt, charging,
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
-            Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second);
+            Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second,
+            Perf.IgpuUsage(), SysInfo.CpuShortName());
     }
 
     private void ShowOsd(ProfileId id)
@@ -2325,7 +2328,13 @@ public sealed class TrayContext : ApplicationContext
                     (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
                 ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
-                if (_settings.TempTrayCpu || _settings.TempTrayGpu) ui?.Post(_ => UpdateTempTrays(hw), null);
+                if (_settings.TempTrayCpu || _settings.TempTrayGpu || _settings.TempTraySsd)
+                {
+                    // hottest disk, as the SSD alert sees it; Disks() caches for 10 s, so this
+                    // costs a storage query at most every few polls, and never on the UI thread
+                    int ssd = _settings.TempTraySsd ? Perf.Disks().Select(d => d.TempC).DefaultIfEmpty(-1).Max() : -1;
+                    ui?.Post(_ => UpdateTempTrays(hw, ssd), null);
+                }
             }
             catch { }
             finally { Interlocked.Exchange(ref _thermalBusy, 0); }
@@ -2337,12 +2346,16 @@ public sealed class TrayContext : ApplicationContext
     /// every 3 s would be ~1200 GDI icons an hour for nothing), and the previous icon is always
     /// disposed AFTER the new one is assigned - the same order UpdateUi uses for the main icon.
     /// </summary>
-    private void UpdateTempTrays(HwSnapshot hw)
+    private void UpdateTempTrays(HwSnapshot hw, int ssdTemp)
     {
         ApplyTempTray(ref _cpuTray, ref _cpuTrayIcon, ref _cpuTrayText,
             _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"));
         ApplyTempTray(ref _gpuTray, ref _gpuTrayIcon, ref _gpuTrayText,
             _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"));
+        // (discussion #150) the same thresholds and colours: 70 / 85 °C defaults sit where NVMe
+        // drives report their own warning and critical temperatures
+        ApplyTempTray(ref _ssdTray, ref _ssdTrayIcon, ref _ssdTrayText,
+            _settings.TempTraySsd, ssdTemp, Lang.T("st_ssd_temp"));
         _wheel?.SetIcons(WheelIcons());   // no-op unless an icon appeared or went away
     }
 
@@ -2396,6 +2409,8 @@ public sealed class TrayContext : ApplicationContext
         { _cpuTray.Visible = false; _cpuTray.Dispose(); _cpuTray = null; _cpuTrayIcon?.Dispose(); _cpuTrayIcon = null; _cpuTrayText = ""; }
         if (!_settings.TempTrayGpu && _gpuTray != null)
         { _gpuTray.Visible = false; _gpuTray.Dispose(); _gpuTray = null; _gpuTrayIcon?.Dispose(); _gpuTrayIcon = null; _gpuTrayText = ""; }
+        if (!_settings.TempTraySsd && _ssdTray != null)
+        { _ssdTray.Visible = false; _ssdTray.Dispose(); _ssdTray = null; _ssdTrayIcon?.Dispose(); _ssdTrayIcon = null; _ssdTrayText = ""; }
         _wheel?.SetIcons(WheelIcons());
     }
 
@@ -2701,7 +2716,8 @@ public sealed class TrayContext : ApplicationContext
         _osd.Dispose();
         if (_cpuTray != null) { _cpuTray.Visible = false; _cpuTray.Dispose(); }
         if (_gpuTray != null) { _gpuTray.Visible = false; _gpuTray.Dispose(); }
-        _cpuTrayIcon?.Dispose(); _gpuTrayIcon?.Dispose();
+        if (_ssdTray != null) { _ssdTray.Visible = false; _ssdTray.Dispose(); }
+        _cpuTrayIcon?.Dispose(); _gpuTrayIcon?.Dispose(); _ssdTrayIcon?.Dispose();
         _tray.Dispose();
         _currentIcon?.Dispose();
         ExitThread();

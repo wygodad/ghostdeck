@@ -1135,6 +1135,8 @@ public sealed class SettingsPage : ThemedPage
                 v => { D.Settings.TempTrayCpu = v; D.SaveSettings(); D.SettingsChanged(); }));
             tt.AddRow(Lang.T("st_gpu_temp"), Toggle(D.Settings.TempTrayGpu,
                 v => { D.Settings.TempTrayGpu = v; D.SaveSettings(); D.SettingsChanged(); }));
+            tt.AddRow(Lang.T("st_ssd_temp"), Toggle(D.Settings.TempTraySsd,
+                v => { D.Settings.TempTraySsd = v; D.SaveSettings(); D.SettingsChanged(); }));
             var warnVals = new[] { 50, 55, 60, 65, 70, 75, 80 };
             var warn = Combo(warnVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(warnVals, D.Settings.TempTrayWarn)));
             warn.SelectedIndexChanged += (_, _) =>

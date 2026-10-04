@@ -56,7 +56,9 @@ public sealed class OverlaySettingsPanel : Panel
         AddMetric("ov_m_fanpct", OverlayMetric.FanPct);
         AddMetric("ov_m_load", OverlayMetric.CpuLoad);
         AddMetric("ov_m_gpuusage", OverlayMetric.GpuUsage);
+        if (Perf.HasIgpu) AddMetric("ov_m_igpu", OverlayMetric.IgpuUsage);   // two-card laptops only
         AddMetric("ov_m_cpuclock", OverlayMetric.CpuClock);
+        AddMetric("ov_m_cpuname", OverlayMetric.CpuName);
         AddMetric("ov_m_ram", OverlayMetric.Ram);
         AddMetric("ov_m_vram", OverlayMetric.Vram);
         AddMetric("ov_m_cooler", OverlayMetric.CoolerBoost);

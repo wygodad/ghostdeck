@@ -454,6 +454,22 @@ public sealed class StatusPage : ThemedPage
             Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
         }
 
+        // Integrated card, two-card laptops only (roadmap #114): the free slot under the CPU-usage
+        // ring, next to the GPU load, or one row down beside the graphics clock when VRAM took that
+        // slot as a box. Its shared memory rides along only when it fits at a comfortable size.
+        // "iGPU" stays untranslated, like the "CPU:" / "GPU:" boxes above it.
+        int ig = Perf.IgpuUsage();
+        void IgpuBox(float y)
+        {
+            var box = new RectangleF(X(4) + 14, y, ring - 28, subH);
+            int sm = Perf.IgpuSharedMb();
+            string shortText = $"iGPU: {ig} %";
+            string full = sm > 0 ? $"{shortText} · {sm / 1024f:0.0} GB" : shortText;
+            using var fit = new Font("Segoe UI", 10f, FontStyle.Bold);
+            MetricBox(box, TextRenderer.MeasureText(g, full, fit).Width <= box.Width - 20 ? full : shortText);
+        }
+        if (ig >= 0 && vramBar) IgpuBox(subY2);
+
         // third sub-row: storage panel (#17) on the left - every physical disk with its name,
         // used/total space (usage bar, like the RAM/VRAM bars) and S.M.A.R.T. temperature -
         // plus a compact battery-time box (#15) under the rings
@@ -521,6 +537,8 @@ public sealed class StatusPage : ThemedPage
             _gpuHelpBtn = new RectangleF(box.Right - 32, box.Y + (subH - 22) / 2f, 22, 22);
             HelpDot.Render(g, _gpuHelpBtn);
         }
+
+        if (ig >= 0 && !vramBar) IgpuBox(subY3);
 
         int bm = Perf.BatteryMinutesLeft();
         MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),

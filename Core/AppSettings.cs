@@ -17,6 +17,7 @@ public enum OverlayMetric
     GpuUsage = 2048, Vram = 4096, CpuClock = 8192,
     Fps = 16384, FrameTime = 32768,
     SsdTemp = 65536, BatteryTime = 131072,
+    IgpuUsage = 262144, CpuName = 524288,
 }
 
 public sealed class HotkeyDef
@@ -279,11 +280,12 @@ public sealed class AppSettings
     // wherever it was left. Default false = the behaviour so far.
     public bool SettingsAlwaysStart { get; set; }
 
-    // (discussion #9) Separate CPU/GPU temperature icons in the tray - two of them, because a
-    // tray icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
-    // Warn, above = Hot. Off by default.
+    // (discussion #9) Separate temperature icons in the tray - one per reading, because a tray
+    // icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
+    // Warn, above = Hot. Off by default. SSD (discussion #150) = the hottest disk.
     public bool TempTrayCpu { get; set; }
     public bool TempTrayGpu { get; set; }
+    public bool TempTraySsd { get; set; }
     public int TempTrayWarn { get; set; } = 70;
     public int TempTrayHot { get; set; } = 85;
     // The digits carry a dark outline (TrayIconFactory.TextIcon), which is what lets this
@@ -561,7 +563,7 @@ public sealed class AppSettings
         foreach (var s in src.Scenes) Scenes.Add(s.Clone());   // (#21)
         ScenHidden = new List<string>(src.ScenHidden);
         SettingsAlwaysStart = src.SettingsAlwaysStart;
-        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu;
+        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu; TempTraySsd = src.TempTraySsd;
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
         TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
         TempTrayColorHot = src.TempTrayColorHot;
@@ -658,7 +660,7 @@ public sealed class AppSettings
         c.ProfileOrder = new List<string>(ProfileOrder);
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
-        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;
+        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu; c.TempTraySsd = TempTraySsd;
         c.TempTrayWarn = TempTrayWarn; c.TempTrayHot = TempTrayHot;
         c.TempTrayColorOk = TempTrayColorOk; c.TempTrayColorWarn = TempTrayColorWarn;
         c.TempTrayColorHot = TempTrayColorHot;
