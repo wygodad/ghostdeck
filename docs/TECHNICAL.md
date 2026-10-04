@@ -702,13 +702,24 @@ background and enables click-through.
 
 ### 20.5 Bold-text option for the metric labels
 
-Metric **values** are already `FontStyle.Bold`, but the small **labels** (`CPU`, `GPU`, `Load`, `RAM`
+Metric **values** are already `FontStyle.Bold`, but the small **labels** (`CPU`, `GPU`, `CPU%`, `RAM`
 …) render in a muted grey at 9 pt, which becomes hard to read once the overlay is scaled down — users
 compared it unfavourably with NVIDIA's HUD. `OverlayBoldText` (settings toggle **Bold text**, default
 **on**) switches only the label font family from `Segoe UI` to **`Segoe UI Semibold`**. Semibold is a
 distinct installed family, so this is a genuine weight step *lighter* than `FontStyle.Bold` — enough to
 lift legibility without making the labels shout over the values. Values/header stay `Bold` either way.
 The toggle lives in the overlay **Options** group and is reset by "Restore defaults".
+
+### 20.6 What the labels say
+
+The labels stay English in every UI language - short, and the convention of gaming overlays - but
+each one says what it shows (changed after discussion #150, where a user asked for clearer
+labels): `CPU%` next to `GPU%` and `iGPU%` (was `Load`), `Frametime` (was `Frame`), `CPU clock`
+(was `CPU clk`), `Battery` (was `Bat`), `Time left` (was `Left`), `Charge limit` (was `Limit`), and
+the processor model as `CPU model`, so it is not a second `CPU` row next to the temperature.
+User-defined labels were considered and not built (roadmap #115): an editor with a field per
+metric, a length limit, more translated texts, screenshots in reports that no longer match what
+support expects, and settings an older version would drop, for a cosmetic gain.
 
 ## 21. Sub-tabs and the report/verify flows
 
@@ -1974,9 +1985,21 @@ A third icon, **SSD temperature** (`TempTraySsd`, discussion #150), shows the ho
 the same reading the SSD alert watches (§63) - with the same thresholds and colours: the
 70 / 85 °C defaults sit where NVMe drives report their own warning and critical temperatures.
 The disk read happens in the background sampler next to the EC read (`Perf.Disks()` caches for
-10 s), never on the UI thread.
+10 s), never on the UI thread. The card says in amber (`temptray_ssd_note`) that this icon is the
+hottest drive, which matters on two-drive laptops.
 
-All three are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
+**Source mark.** Three icons with bare digits look alike, so each one carries a colour bar under
+its digits in its source's own colour (`TempTrayMark`, on by default; `TempTrayMarkCpu/Gpu/Ssd`,
+blue / violet / green by default, none of them one of the threshold colours, editable as a colour
+row in the same card and reset with the other colours). The bar costs the digits nothing: two
+digits are wider than tall, so they are fitted by width and leave a band above and below; the bar
+(`max(2, S/7)` px with a 1 px gap) sits in the lower band and the digits move up into the upper
+one (`TrayIconFactory.TextBitmap`). A dot in a corner and a corner triangle were rendered too
+(render harness `trayvariants`) and rejected: at 16 px both cover part of a digit. The icon is
+rebuilt when the text, the digit colour or the mark colour changes - the cache key carries all
+three, so a colour changed in Settings shows on the next update.
+
+All three icons are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
 in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card
 from "Tray menu" (`set_grp_tray`, the mouse actions).
 

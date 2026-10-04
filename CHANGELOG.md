@@ -22,6 +22,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   @r7v9r4hmm8-png) - a third temperature icon for the hottest drive, next to the CPU and GPU
   ones, with the same warning / hot thresholds and colours (Settings → System → Temperature in
   the tray).
+- **Tray temperature icons say what they measure** - each icon carries a colour bar under its
+  digits, blue for CPU, violet for GPU and green for SSD by default, so the icons can be told
+  apart without hovering over them. The colours are editable and the bar can be switched off
+  (Settings → System → Temperature in the tray).
 - **CPU model in the overlay** ([discussion #150](../../discussions/150), thanks
   @r7v9r4hmm8-png) - a new overlay item shows the processor as people name it ("i9-13980HX",
   "Ultra 9 185H", "Ryzen AI 9 HX 370").
@@ -39,6 +43,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Status.
 
 ### Changed
+- **Clearer overlay labels** ([discussion #150](../../discussions/150)) - the gaming overlay's
+  labels say what they show: "CPU%" next to "GPU%" (was "Load"), "Frametime" (was "Frame"),
+  "CPU clock" (was "CPU clk"), "Battery" (was "Bat"), "Time left" (was "Left") and "Charge
+  limit" (was "Limit"). They stay in English in every language, as before.
 - **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
   the state is information (turbo is off in the active Windows plan and GhostDeck has nothing
   of its own to bring back), so it now uses the same amber strip with the "!" chip as the
