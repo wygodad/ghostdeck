@@ -3002,8 +3002,8 @@ switched to the discrete card, or a driver that reports neither) nothing new app
 **Counting load** follows Task Manager: per adapter, the processes on one engine add up, and the
 adapter shows its busiest engine (instance key = adapter + `phys_N_eng_M`). Summing every engine
 would count a card with two 3D engines twice. A sleeping card has no instances and reads 0 %.
-When the roles are unknown, the readings fall back to the old sum, so nothing regresses where
-the classification fails.
+When the roles are unknown, the readings fall back to adding every adapter up, as before, so
+nothing regresses where the classification fails.
 
 **What is shown.** Status: an `iGPU: N % · X.X GB` box in the free slot under the CPU-usage ring,
 beside "GPU load" (one row down beside the graphics clock when the VRAM total is unknown and VRAM
