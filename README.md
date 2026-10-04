@@ -181,6 +181,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Restore Windows settings** - one card lists what comes back before anything is written | **Name prompt** - a preset name that is already taken is answered right under the field |
 | ![Wrapped OSD toast](docs/images/osd_wrapped_toast.png) | ![Firmware guard](docs/images/firmware_guard.png) |
 | **Notifications that explain themselves** - when something outside the app changes a setting (here: the battery charge limit), the toast says what happened, who does that, and what to do; long messages wrap instead of stretching across the screen | **Firmware guard** - after a BIOS update changes the EC firmware version the app pauses its automatic writes and says so in one card, with the way back |
+| ![Profile order](docs/images/profile_order.png) | ![Own profile order](docs/images/profile_order_custom.png) |
+| **Profile order** - two presets (Standard, By power) and an up and a down arrow per profile; the tiles, the tray menu, the profile lists and "next profile" follow | **Your own order** - while the rows match neither preset, a note under the presets says that an own order is in use |
 
 ## Download
 

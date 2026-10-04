@@ -256,7 +256,7 @@ public sealed class SettingsPage : ThemedPage
         Layout2();
     }
 
-    private static void Refill(ComboBox c, string[] items, int sel)
+    private static void Refill(ThemedComboBox c, string[] items, int sel)
     {
         c.BeginUpdate();
         c.Items.Clear();
@@ -801,7 +801,7 @@ public sealed class SettingsPage : ThemedPage
             .Concat(D.Settings.Scenes.Select(s => "▶ " + s.Name)).ToArray();
         var actionVals = ActionVals();
         var actionNames = ActionNames();
-        var actCombos = new List<(ComboBox Combo, bool Low)>();
+        var actCombos = new List<(ThemedComboBox Combo, bool Low)>();
         var pctVals = Enumerable.Range(1, 19).Select(i => i * 5).ToArray();   // 5..95
         Panel BattRow(bool low)
         {
@@ -986,7 +986,7 @@ public sealed class SettingsPage : ThemedPage
             _ => "",
         };
         var actNames = actOrder.Select(ActName).ToArray();
-        ComboBox ActCombo(int cur, Action<int> set)
+        ThemedComboBox ActCombo(int cur, Action<int> set)
         {
             var c = Combo(actNames, Math.Max(0, Array.IndexOf(actOrder, (TrayAction)cur)));
             c.SelectedIndexChanged += (_, _) => { set((int)actOrder[Math.Max(0, c.SelectedIndex)]); D.SaveSettings(); D.SettingsChanged(); };
@@ -1512,7 +1512,7 @@ public sealed class SettingsPage : ThemedPage
         return flow;
     }
 
-    private ComboBox Combo(string[] items, int sel)
+    private ThemedComboBox Combo(string[] items, int sel)
     {
         var c = new ThemedComboBox { Width = 220 };
         c.Items.AddRange(items);
@@ -1940,7 +1940,7 @@ public sealed class SettingsPage : ThemedPage
                 // value labels (battery health) = Text; "muted"-tagged notes (diagnostics blurb) = Muted
                 if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : vl.Tag as string == "warn" ? Theme.Amber : Theme.Text; vl.BackColor = Theme.Card; }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }
-                if (ctl is ComboBox cb) { cb.BackColor = Theme.Surface; cb.ForeColor = Theme.Text; }
+                if (ctl is ThemedComboBox cb) cb.Invalidate();   // reads the theme when it paints
                 // Composite hotkey row (Panel holding a ToggleSwitch + HotkeyBox): theme the nested box too.
                 if (ctl is Panel p && ctl is not FlowLayoutPanel)
                 {

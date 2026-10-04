@@ -16,7 +16,7 @@ public sealed class OverlaySettingsPanel : Panel
     private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _optBold, _bgToggle, _sessPopup;
     private readonly Slider _opacity, _scale, _bgOpacity;
     private readonly SegControl _layout, _opacityPre, _scalePre, _bgOpacityPre;
-    private readonly ComboBox _position, _sessSecs, _sessKeep;
+    private readonly ThemedComboBox _position, _sessSecs, _sessKeep;
     private readonly Button _bgColor, _restore;
     private static readonly int[] OpacityPresets = { 60, 75, 90, 100 };
     private static readonly int[] ScalePresets = { 90, 100, 120, 140 };
@@ -304,7 +304,7 @@ public sealed class OverlaySettingsPanel : Panel
         BackColor = Theme.Card;
         foreach (Control c in Controls)
         {
-            if (c is ComboBox) { c.BackColor = Theme.Surface; c.ForeColor = Theme.Text; }
+            if (c is ThemedComboBox) c.Invalidate();   // reads the theme when it paints
             c.Invalidate();
         }
         Invalidate();

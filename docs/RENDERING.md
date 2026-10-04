@@ -189,17 +189,32 @@ gauge rings, scenario icons), so the look stays consistent across tabs.
   those top-level tabs) use `TextRenderer` with `NoPadding` and per-glyph `GlyphDx/GlyphDy` nudges —
   `TextRenderer` centres the glyph *cell*, not its ink, and symbol glyphs have uneven side bearings, so
   each icon needs a small optical tweak to line up.
-- **Dropdowns** ([`ThemedComboBox`](../UI/Controls/ThemedComboBox.cs)) — the stock `ComboBox` keeps a white field, drop
-  button and list in dark mode, and its themed button *flashes light on hover/press* before any overpaint
-  can cover it. `ThemedComboBox` fixes this by **owning the paint**: `DrawMode = OwnerDrawFixed` draws the
-  list rows (`OnDrawItem`, accent for the selected row), and `WndProc` intercepts `WM_PAINT` to paint the
-  **closed field itself** via its own `BeginPaint`/`EndPaint` and **never calls `base`** for that message —
-  so there is no light frame at all (an overpaint *after* `base` still flashes; that was the failed first
-  attempt). It also calls `SetWindowTheme(handle, "", "")` so the drop-down list's scrollbar/border follow
-  the flat dark look. Colours are read from `Theme` at paint time, so a light/dark switch only needs
-  `Invalidate` (done in `CardSection.ApplyTheme` / `OverlaySettingsPanel.ApplyThemeColors`). **Use
-  `ThemedComboBox`, never a bare `ComboBox`, for any new select** (language, AC/battery profile, overlay
-  position all use it).
+- **Dropdowns** ([`ThemedComboBox`](../UI/Controls/ThemedComboBox.cs)) — drawn entirely by the app
+  (v1.37): the closed field is a plain `Control` painted in `OnPaint`, the open list is a small borderless
+  window of its own (`ListPopup`). It is **not** the system `COMBOBOX`, for two reasons. The stock control
+  keeps a white field, drop button and list in dark mode and flashes light on hover/press. And it is
+  expensive wherever other programs listen for window events: every list created and every item inserted
+  raises an event that Windows hands to each listener (window managers, launchers, accessibility tools) —
+  see §8.1 for the measured cost. The class mirrors the `ComboBox` members the app uses (`Items`,
+  `SelectedIndex`, `SelectedItem`, `SelectedIndexChanged`, `DroppedDown`, `BeginUpdate`/`EndUpdate`) and
+  keeps the system control's fixed height (`ItemHeight + 6`), so layouts did not change. Behaviour:
+  - the list never takes activation or focus (`WS_EX_NOACTIVATE`, `ShowWithoutActivation`,
+    `WM_MOUSEACTIVATE` → `MA_NOACTIVATE`); keys keep going to the field, which forwards them;
+  - because the list cannot see a Deactivate of its own, an `IMessageFilter` closes it on any mouse press
+    outside it (a press on the field itself only closes; anywhere else the press also reaches its
+    target), and the owner window closes it on move, resize, hide and deactivation;
+  - closed: arrows / Home / End / PgUp / PgDn change the value, a letter jumps to the next item starting
+    with it, F4 or Alt+Down opens; open: the same keys move the highlight only, Enter picks, Esc cancels
+    (both taken in `ProcessCmdKey`, ahead of the window's own shortcuts);
+  - the mouse wheel never changes the value — closed, the event is left unhandled and reaches the page,
+    which scrolls; open, it scrolls the list (discussion #9);
+  - up to `MaxDropDownItems` (8) rows, then a thin scroll thumb that can be dragged; the list opens
+    above the field when there is no room below;
+  - colours are read from `Theme` at paint time, so a light/dark switch only needs `Invalidate`
+    (`CardSection.ApplyTheme` / `OverlaySettingsPanel.ApplyThemeColors`);
+  - a screen reader gets role *combo box* with the selected text as its value.
+
+  **Use `ThemedComboBox`, never a bare `ComboBox`, for any new select.**
 
 ### 5.1 Scrolling: what carries the offset, and what silently does not (v1.28, corrected v1.34)
 
@@ -335,10 +350,11 @@ covers the content, an inline label answers the same question immediately.
   (chroma-key), which fringes anti-aliased edges and can't do partial background alpha.
 - **Layout from measured metrics, scaled by DPI** (or a user-scale factor), never from hard-coded
   pixel steps — so it stays correct at every scaling level.
-- **For themed native inputs, own `WM_PAINT` — don't overpaint after `base`.** A stock control paints
-  itself (light) first, so painting over it afterwards leaves a visible flash on hover/press. Intercept
-  `WM_PAINT`, `BeginPaint`/`EndPaint` yourself and skip `base` (see `ThemedComboBox`). New selects must use
-  `ThemedComboBox`, not a bare `ComboBox`.
+- **Draw inputs yourself instead of theming a system control.** A stock control paints itself (light)
+  first, so painting over it afterwards leaves a visible flash on hover/press, and every system window
+  has a creation cost that grows with what else runs on the desktop (§8.1). New selects must use
+  `ThemedComboBox`, not a bare `ComboBox`; prefer one painted surface with hit zones over a group of
+  child controls (`WinPowerBody`, the editor cards of §11).
 
 ## 7. Brand drawing (v1.18): ghost mark, gauges, log list
 
@@ -390,6 +406,40 @@ the window was reopened (closing the form disposed everything). Three measures r
   so it closes normally; `_main`'s `FormClosed` still nulls the tray's reference.
 - **Reuse on open.** `OpenMain` goes through `EnsureMain()` and only forces `Normal` when the
   window is `Minimized` (so it doesn't clobber a maximized layout).
+
+### 8.1 What a system window costs (v1.37, measured)
+
+WinForms gives every control its own system window. Creating one is not free, and the cost is not
+fixed: Windows reports each window (and, for list controls, each inserted item) to every program
+that registered for window events. On a desktop running several such programs the same bare Win32
+controls, created through `CreateWindowEx` with no GhostDeck code involved, took:
+
+| Control | Desktop with listeners | Fresh, empty desktop |
+|---|---|---|
+| one window event | 0.13 ms | 0.007 ms |
+| button | 1.2 - 3 ms | 0.3 - 2 ms |
+| list box, 15 items | 7 ms + 37 ms | 2 ms + 4 ms |
+| drop-down list, 15 items | 17 - 21 ms + 24 - 26 ms | 4 ms + 5 ms |
+
+(The second column is the same process on a desktop created for the test, where no other program
+has windows or listeners.) The Settings page holds 392 system windows, 22 of them drop-down lists
+until v1.37. Effect of drawing the lists in the app (`ThemedComboBox`, §5), same machine, minutes
+apart:
+
+| | system lists | app-drawn lists |
+|---|---|---|
+| build the Settings page | 2.8 s | 0.4 - 0.5 s |
+| create its windows | 1.0 - 1.5 s | 0.7 s |
+| build the Fan curve page | 1.6 - 1.9 s | 0.03 - 0.04 s |
+
+Consequences for new UI:
+
+- every child control is a system window; a card that paints its rows itself costs one;
+- no system list controls (`ComboBox`, `ListBox`) on pages — their cost is per item;
+- a change that affects a few controls updates those controls. A full `BuildForm()` recreates
+  every window of the page and is reserved for changes that touch all of it (language). The
+  profile order, for one, re-fills four colour rows and the profile lists in place
+  (`SettingsPage.SyncProfileOrder`).
 
 **Do NOT add `WS_EX_COMPOSITED`** to the pages. It was tried against scroll tearing and reverted
 (a comment in `ThemedPage.CreateParams`… note marks it): compositing the whole child tree made

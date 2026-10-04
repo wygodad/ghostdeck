@@ -2920,15 +2920,20 @@ battery, startup profile, battery rules, colour rows), the scene editor and the 
 matrix on Status. The power-mode mapping table keeps its own by-power order - it is a table
 of power levels, not a picker.
 
-`Shown` is replaced by a NEW array on every change and never edited in place. A list that was
-built from an earlier order (a combo box whose handler indexes the array) captured that
-earlier array and stays consistent with itself; `SettingsPage` notices the replaced reference
-on its next sync and rebuilds, the Scenarios page re-sorts its tiles (`SyncOrder`).
+`Shown` is replaced by a NEW array on every change and never edited in place, so a reader can
+tell a change by comparing references. `SettingsPage` notices the replaced reference on its
+next sync and runs `SyncProfileOrder`: the four colour rows of the Look card swap places
+(`CardSection.OrderRows`) and the profile lists (on AC, on battery, startup profile, battery
+rule actions) are re-filled with their selection kept, the array their handlers index being
+swapped in the same step (`_orderSync`, handlers muted by `_orderSyncing`). The page is not
+rebuilt - a rebuild recreates all of its ~390 windows (RENDERING.md §8.1). The Scenarios page
+re-sorts its tiles (`SyncOrder`).
 
 The editor is `ProfileOrderForm`, a GhostDeck editor card (RENDERING.md §11): two presets in
 one frame - Standard, and By power (Super Battery up to Extreme) - and one row per profile
-with an up and a down arrow. It opens from the pencil above the tiles and from the "Profile
-order" row of the Scenarios card in Settings → General.
+with an up and a down arrow. While the rows match neither preset, an amber note under the
+presets says that an own order is in use. It opens from the pencil above the tiles and from
+the "Profile order" row of the Scenarios card in Settings → General.
 
 **Microphone switch.** `Core/Microphone.cs` drives the mute flag of the default Windows
 recording device through the documented Core Audio API (`MMDeviceEnumerator` →

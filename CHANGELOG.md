@@ -37,7 +37,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Settings → General) opens a card with two presets - Standard, and By power from Super
   Battery up to Extreme - plus an up and a down arrow per profile. The same order is then
   used by the tiles, the tray menu, every profile list and "next profile" (the cycle hotkey,
-  the mouse wheel over the tray icon, `--cycle`). Hotkeys per profile keep their keys.
+  the mouse wheel over the tray icon, `--cycle`). Hotkeys per profile keep their keys. While
+  an own order is in use, a note under the presets says so.
 - **Microphone switch** ([discussion #231](../../discussions/231), thanks @arcfybrr) - mutes
   and unmutes the default Windows recording device for every application at once: a brick
   on Scenarios, a card in Settings → System, a hotkey shipped as `Ctrl+Alt+F11` (off by
@@ -146,6 +147,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **Drop-down lists are drawn by GhostDeck itself.** Until now they were the system list
+  control, which is slow to create on a desktop where other programs watch window events
+  (window managers, launchers, accessibility tools): on such a machine building the Settings
+  page took 2.8 s and the Fan curve page 1.6 - 1.9 s. With the app-drawn list the same pages
+  build in 0.4 - 0.5 s and under 0.05 s. The lists look the same; in an open list the arrows
+  now only move the highlight and Enter picks, so browsing the language list no longer switches
+  the language on every key.
 - **MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`): fan RPM enabled** ([#228](../../issues/228),
   thanks @Xakson) - both tachometers sit at the family-standard register pairs and are read
   as 16-bit values, the format that gives the right number at every fan speed. Signed
