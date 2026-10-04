@@ -4,6 +4,35 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Integrated GPU on Status and in the overlay** ([discussion #101](../../discussions/101),
+  thanks @M-Essa11) - on a laptop with two graphics cards, Status shows the integrated card's
+  load and the system memory it uses ("iGPU: 7 % · 1.9 GB") next to the GPU load, and the
+  gaming overlay can show "iGPU%" (off by default; offered only when the laptop has an
+  integrated card). Which card is which comes from the driver's own report to Windows, not
+  from memory sizes. Laptops with one card, or with the MUX switched to the discrete card,
+  look exactly as before. No temperature or power draw for the integrated chip: it sits in the
+  processor and shares its temperature.
+- **CPU turbo boost and the microphone in scenes** - a scene can switch CPU turbo boost in the
+  active Windows plan (both plugged in and on battery) and mute or unmute the microphone, so
+  "Work = Silent + turbo off" is one click. Turbo goes through the same path as the Windows
+  power card, so its saved values and "comes back: ..." keep working; a scene that turns turbo
+  on leaves an already working mode alone.
+- **SSD temperature in the tray** ([discussion #150](../../discussions/150), thanks
+  @r7v9r4hmm8-png) - a third temperature icon for the hottest drive, next to the CPU and GPU
+  ones, with the same warning / hot thresholds and colours (Settings → System → Temperature in
+  the tray).
+- **CPU model in the overlay** ([discussion #150](../../discussions/150), thanks
+  @r7v9r4hmm8-png) - a new overlay item shows the processor as people name it ("i9-13980HX",
+  "Ultra 9 185H", "Ryzen AI 9 HX 370").
+
+### Fixed
+- **"GPU load" and "VRAM" describe the discrete card only** - the Windows counters behind them
+  were added up across every graphics adapter, including the integrated chip and Windows'
+  software renderer, so on a two-card laptop the integrated chip's load showed as "GPU load"
+  while the discrete card slept. Status, the overlay and the power test now read the discrete
+  card alone (the same card the GPU-clock tile names), and the VRAM total is that card's own.
+
 ### Changed
 - **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
   the state is information (turbo is off in the active Windows plan and GhostDeck has nothing

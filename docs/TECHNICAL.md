@@ -641,8 +641,10 @@ we read extra metrics, and it matters doubly for a *gaming* overlay (anti-cheat)
 | CPU load | `GetSystemTimes` | driver-free |
 | RAM used | `GlobalMemoryStatusEx` | driver-free |
 | Battery % / charging | `SystemInformation.PowerStatus` | driver-free |
-| **GPU load %** | PDH counter `\GPU Engine(*engtype_3D)\Utilization Percentage` (summed) | same source as Task Manager; driver-free |
-| **VRAM used** | PDH counter `\GPU Adapter Memory(*)\Dedicated Usage` (summed) | driver-free |
+| **GPU load %** | PDH counter `\GPU Engine(*engtype_3D)\Utilization Percentage`, the main card only (§73) | same source as Task Manager; driver-free |
+| **VRAM used** | PDH counter `\GPU Adapter Memory(*)\Dedicated Usage`, the main card only (§73) | driver-free |
+| **iGPU load % / shared memory** | the same two counters plus `\GPU Adapter Memory(*)\Shared Usage`, the integrated card (§73) | two-card laptops only; driver-free |
+| **CPU model** | registry `ProcessorNameString`, shortened (`SysInfo.CpuShortName`) | read once |
 | **CPU clock (approx.)** | PDH `\Processor Information(_Total)\% Processor Performance` × base MHz (registry `~MHz`) | estimate, not an MSR read; driver-free |
 
 All PDH counters are added via **`PdhAddEnglishCounter`** (see `Perf.cs`), so the paths resolve on a
@@ -1595,14 +1597,14 @@ the machine to stock - and a full EC reset does the same at the hardware level.
 
 A scene (`Core/Scene.cs`, `AppSettings.Scenes`) is a named macro over existing controls:
 profile, fan-curve preset, refresh rate, overlay, charge limit, keyboard backlight, webcam,
-Fan Boost. Every field is nullable - null means "leave as is" - so the editor
+Fan Boost, and since the release after 1.37 CPU turbo boost and the microphone. Every field is nullable - null means "leave as is" - so the editor
 (`Forms/SceneEditForm`, a GhostDeck card since v1.37 - RENDERING.md §11) pairs each row with
 an on/off switch and only enabled rows are stored.
 
 `TrayContext.ApplyScene` runs the fields in a deliberate order: **profile first** (its recipe
 rewrites the fan byte), then the curve (via the same `ApplyPresetFromTray` path the tray
-uses, including the leave-Silent-first rule), then Fan Boost, charge limit, refresh rate,
-overlay, backlight, webcam. Sub-steps run with `osd: false` and write their usual per-feature
+uses, including the leave-Silent-first rule), then Fan Boost, CPU turbo boost, charge limit,
+refresh rate, overlay, backlight, webcam, microphone. Sub-steps run with `osd: false` and write their usual per-feature
 change-log entries; the scene adds one `ChangeSource.Scene` summary entry and shows a single
 OSD toast. Because the profile and curve go through the normal paths, `LastProfile` and the
 active-curve snapshot (#49) stay correct for the startup/resume restore for free.
@@ -1623,6 +1625,18 @@ them - or the whole Scenes section (`scenes`) - via Settings → General → "Sc
 The grid switches to three columns when the available width fits three 280 px segments.
 The hard camera block confirms inline (an amber warning label + a confirm button that
 appears when the toggle is armed) instead of a popup.
+
+**Turbo and microphone fields.** `SceneDef.Turbo` switches CPU turbo boost on both sources of
+the active Windows plan through the same calls as the Windows power card and `--turbo`
+(`PowerPlan.TurboOn/TurboOff`, §71), so the snapshot of the previous modes is kept and "comes
+back: ..." stays truthful. `SetTurboFromScene` skips "on" when both sources already boost:
+`TurboOn` would otherwise overwrite a working non-default mode with the snapshot or GhostDeck's
+fallback. The editor row appears whenever the plan's boost setting can be read and starts on
+"Off", because switching turbo off is the usual reason to put it in a scene ("Work = Silent +
+turbo off"). `SceneDef.Mic` sets the default recording device's mute flag through
+`SetMicState` (§72); its row appears when Windows has a recording device. Both labels reuse
+existing keys (`pw_turbo_label`, `mic_title`). Like every other field they run only on a
+machine where scenes run at all (`ApplyScene` declines when the EC is not writable).
 
 ## 45. EC live view (v1.25)
 
@@ -1956,7 +1970,13 @@ things decide how large they end up, and the naive version loses on all three:
 
 Measured ink height of "71": 10 px → 13 px at a 16 px icon, 14 px → 19 px at 24 px.
 
-Both are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
+A third icon, **SSD temperature** (`TempTraySsd`, discussion #150), shows the hottest disk -
+the same reading the SSD alert watches (§63) - with the same thresholds and colours: the
+70 / 85 °C defaults sit where NVMe drives report their own warning and critical temperatures.
+The disk read happens in the background sampler next to the EC read (`Perf.Disks()` caches for
+10 s), never on the UI thread.
+
+All three are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
 in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card
 from "Tray menu" (`set_grp_tray`, the mouse actions).
 
@@ -2457,8 +2477,8 @@ performance profile moves. It is the same story a wattage would tell, from a sou
 need anything installed.
 
 `Core/GpuTelemetry.cs` is the only place that reads it, over `D3DKMTQueryAdapterInfo` from
-gdi32.dll - the interface Task Manager itself uses. The adapter is picked by most dedicated memory
-(DXGI `EnumAdapters1`/`GetDesc1`, the same rule as the power test's load in §60.9), then two query
+gdi32.dll - the interface Task Manager itself uses. The adapter is the main card of §73, the same
+one the GPU load and VRAM readings describe, then two query
 codes from the Windows SDK's `d3dkmthk.h` supply the data: `KMTQAITYPE_NODEPERFDATA` (61) for the
 engine's clock and ceiling, `KMTQAITYPE_ADAPTERPERFDATA` (62) for temperature. Engine ordinals are
 the driver's own numbering, so the node that carries the core clock is found (first one reporting a
@@ -2944,4 +2964,57 @@ switched, and the state shown is the ordinary one. Surfaces, mirroring the touch
 a brick on Scenarios (hideable, key `mic`), a card in Settings → System, the hotkey `Mic`
 (`Ctrl+Alt+F11`, shipped disabled), `--mic on|off`, the `mic` field of `--status`, an OSD
 toast and a change-log line. A panic reset deliberately leaves the microphone alone: turning
-a muted microphone back on is not a "safe state". Scenes carry no microphone field yet.
+a muted microphone back on is not a "safe state". A scene can set the microphone too (§44).
+
+## 73. Per-card GPU readings and the integrated GPU (roadmap #114, discussions #101 and #150)
+
+Windows reports GPU load and memory per adapter: every instance of `\GPU Engine(*)` and
+`\GPU Adapter Memory(*)` carries the adapter in its name as `luid_0x<high>_0x<low>`, the same
+identifier DXGI returns (checked on a GE78HX against `GetDesc1`). Until this change `Perf.cs`
+added all instances up, so "GPU load" and "VRAM" were the sum of every adapter: the integrated
+chip, the discrete card and Windows' software renderer (the Basic Render Driver, which also
+shows up in the counters, with hundreds of per-process instances). On a two-card laptop whose
+discrete card sleeps, the integrated chip's load appeared as "GPU" - measured on the GE78HX:
+Intel UHD 7.9 %, RTX 4080 0 %, Status showed about 8 %.
+
+**Which card is which** (`GpuTelemetry.GetRoles`, cached, re-read when a counter instance names
+an adapter that was not listed - a driver update or a disabled and re-enabled card changes the
+identifiers). Every adapter from DXGI `EnumAdapters1` is kept as "known"; software adapters
+(`DXGI_ADAPTER_FLAG_SOFTWARE`, or `SoftwareDevice` in the kernel adapter type) are dropped. A
+hardware adapter is integrated when the driver says so through either source:
+
+- DXCore `IsIntegrated` (property 12, Windows 10 2004+), read with `GetAdapterByLuid`. `false`
+  is an answer - "not integrated" - not a missing one;
+- `D3DKMT_ADAPTERTYPE.HybridIntegrated` (`KMTQAITYPE_ADAPTERTYPE` = 15), which drivers set on
+  two-card laptops (its sibling `HybridDiscrete` marks the other card).
+
+On the GE78HX both sources agree: Intel UHD integrated, RTX 4080 discrete, Basic Render Driver
+software. The **main card** (what the app calls "GPU": load, VRAM, the clock tile of §61, the
+VRAM total) is the first non-integrated hardware adapter ordered by `HybridDiscrete`, then
+Windows' own high-performance order (`IDXGIFactory6::EnumAdapterByGpuPreference`, documented as
+external, then discrete, then integrated), then dedicated memory. Memory comes last on purpose:
+AMD's Variable Graphics Memory presents the integrated chip's carve-out as dedicated memory, and
+public `dxdiag` reports show a Radeon 890M with 8, 16 and 32 GB of it - more than the RTX next to
+it. On an integrated-only laptop the one card is the main card. The **integrated card** is the
+first integrated adapter that is not the main one; with no integrated adapter (one card, a MUX
+switched to the discrete card, or a driver that reports neither) nothing new appears.
+
+**Counting load** follows Task Manager: per adapter, the processes on one engine add up, and the
+adapter shows its busiest engine (instance key = adapter + `phys_N_eng_M`). Summing every engine
+would count a card with two 3D engines twice. A sleeping card has no instances and reads 0 %.
+When the roles are unknown, the readings fall back to the old sum, so nothing regresses where
+the classification fails.
+
+**What is shown.** Status: an `iGPU: N % · X.X GB` box in the free slot under the CPU-usage ring,
+beside "GPU load" (one row down beside the graphics clock when the VRAM total is unknown and VRAM
+takes that slot as a box). The shared memory (`Shared Usage`: the integrated chip has no memory
+of its own) is shown only when the whole text fits at 10 pt in the box; "iGPU" stays
+untranslated like the "CPU:" / "GPU:" boxes. Overlay: `OverlayMetric.IgpuUsage` ("iGPU%",
+default off; the check box appears only when an integrated card exists) and
+`OverlayMetric.CpuName` (discussion #150: the processor model, e.g. "i9-13980HX", from the
+registry `ProcessorNameString` with vendor marks, generation prefixes and the integrated
+graphics cut away; "Core" is removed only before i3/i5/i7/i9 and Ultra, because in "Core 7 240H"
+it is part of the model).
+
+Not offered: a temperature for the integrated chip (it sits in the processor and shares its
+temperature) and its power draw.
