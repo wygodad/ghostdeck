@@ -17,6 +17,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   full-sentence message in a wordier language spanned the display. The toast now caps its
   width and wraps the text into more lines instead, growing downwards; short messages look
   exactly as before.
+- **Power test: the "machine was not idle" check now scales with the processor**
+  ([#146](../../issues/146)) - the bar was a fixed 85 % share of the machine, which a clean
+  run can only reach on CPUs with enough logical processors (the load deliberately leaves two
+  of them free for the controller reads). On a 12-thread machine an idle run reads exactly
+  83 % and could never pass, so every report was flagged busy. The bar now sits five points
+  below the share a clean run gets on that processor, and the warning prints that expected
+  share next to the measured ones.
 
 ### Added
 - **Windows power card: a CPU turbo boost switch and the Windows power mode in Settings**
@@ -92,7 +99,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   from msi-ec, registered from an owner's per-scenario capture: Balanced, Extreme and the
   eco state confirmed 1:1 with the family standard. His idle capture also proves the
   16-bit fan-tachometer pairs directly (non-zero high bytes at ~1530 rpm), so live RPM
-  arrives with the next release. Recognition grows to 155 firmware ids.
+  is on from this release (the 16-bit reader below). Recognition grows to 155 firmware ids.
 - **The firmware guard now explains itself in a dialog** ([#212](../../issues/212), thanks
   @Acoustichayes) - when the EC firmware version changes (usually a BIOS update), the app
   pauses automatic writes until the owner confirms the machine still behaves. That state
@@ -178,8 +185,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   two-byte divisor pair at `0xC8:0xC9` / `0xCA:0xCB`; every earlier capture sat above
   ~1870 rpm, where the two formats read identically, and an idle Status screenshot settled
   it (a "7353 rpm" reading at 20% fan duty is the pair's low byte alone - the real value is
-  ~1489 rpm). Until the next release the app shows no RPM on this model rather than
-  misreading half of the pair; the 16-bit readout ships with the next release.
+  ~1489 rpm). The 16-bit reader in this release shows the real value; older app versions show
+  no RPM on this model rather than misreading half of the pair.
 - **MSI GE76 Raider 11U / 11UH / GP76 Leopard 11UG (`17K3EMS1`) promoted to tested**
   ([#200](../../issues/200), thanks @ezn24) - a clean power test: 1% drift, Silent at 91%
   of Balanced's work on far slower fans (~2800 rpm against 3571/3874), Extreme at +14%,
@@ -235,8 +242,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   safety fuse ended the run (a thermally tight chassis, noted in the entry - the protection
   worked as designed). His curve capture sits byte for byte at the shipped addresses on
   both fans, and it also pins the tachometer format: the board reports fan speed as
-  two-byte pairs, so the RPM readout arrives with the release that ships the 16-bit
-  reader. 40 models tested.
+  two-byte pairs, so the RPM readout comes from the 16-bit reader this release
+  ships. 40 models tested.
 - **MSI Stealth 16 AI+ (`2631EMS1`) promoted to tested, and a second retail name: B3WH**
   ([#185](../../issues/185)-[#189](../../issues/189), thanks @AiM-lab-owl, who joins
   @SteppinStone on the entry's credit) - a second owner's clean power test (0% drift) shows
@@ -245,6 +252,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   mode: accepted, correctly reverted, and performing like Extreme, so the app's Extreme
   recipe stays at the standard turbo value - the same verdict as on the Vector 16 HX AI.
   39 models tested.
+- **Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`): @girfli joins the entry's credit**
+  ([#207](../../issues/207)) - one more owner's report set for this board; the entry itself
+  is unchanged.
+- **Cyborg 15 (`15K1IMS1`): @qq588849 joins the entry's credit** ([#220](../../issues/220),
+  [#223](../../issues/223)) - the standard recipes re-confirmed one to one on firmware .109,
+  with two hardware checks.
 - **Katana 15 HX (`1587EMS1`): @sensini82 joins the entry's credit** ([#192](../../issues/192),
   [#193](../../issues/193)) - a fourth report set for this board: recipes re-confirmed per
   scenario, and a power test with Extreme at +45% and a genuine Silent cap.
@@ -265,8 +278,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Katana 15 B12V board (`1585EMS2`): fan RPM enabled as 16-bit pairs, and a fourth retail
   name, B12UDXK** ([#184](../../issues/184)) - an owner's full dump set re-confirms the
   standard recipes with a real Silent column; the tachometers follow the sibling
-  `1585EMS1`'s two-byte format, so the readout arrives with the release that ships the
-  16-bit reader. His machine is a Katana 15 B12UDXK on the same firmware, so the entry now
+  `1585EMS1`'s two-byte format, so the readout comes from the 16-bit reader this release
+  ships. His machine is a Katana 15 B12UDXK on the same firmware, so the entry now
   carries that name too.
 - **Creator M16 / Pulse 15 / Katana 15 B13 board (`1585EMS1`) gains a fourth retail name:
   Crosshair 16 A13V** ([#190](../../issues/190), thanks @GabrielGby, who joins the entry's
@@ -298,7 +311,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   exceptionally thorough report set: standard recipes confirmed per scenario (his own
   read-only captures, scenario changes verified), the `C5` Apex fourth mode recorded for the
   power test to probe, the test curve byte for byte at the shipped address, one physical fan,
-  and a 16-bit tachometer pair that turns on with the next release. 150 models recognised.
+  and a 16-bit tachometer pair, read from this release on. 150 models recognised.
 - **MSI Vector 17 HX AI A2XWHG (`17S3EMS1`) promoted to tested** ([#171](../../issues/171),
   thanks @A7GoD) - the owner's snapshot matches the standard recipes byte for byte with a real
   Silent column, and all three hardware checks are confirmed. 37 models tested.
@@ -419,14 +432,6 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   fans (3023 vs 3950 rpm), Extreme +8 % with the fans opened to ~6125 rpm, and every phase
   reading its bytes back intact at 4 % drift. The first two runs were disturbed mid-measurement
   (the repeat phase read back an eco shift) and were not scored. 29 models tested.
-### Fixed
-- **Power test: the "machine was not idle" check now scales with the processor**
-  ([#146](../../issues/146)) - the bar was a fixed 85 % share of the machine, which a clean
-  run can only reach on CPUs with enough logical processors (the load deliberately leaves two
-  of them free for the controller reads). On a 12-thread machine an idle run reads exactly
-  83 % and could never pass, so every report was flagged busy. The bar now sits five points
-  below the share a clean run gets on that processor, and the warning prints that expected
-  share next to the measured ones.
 
 ## [1.36.0] - 2026-08-24
 ### Added

@@ -2759,7 +2759,57 @@ measured whether every firmware honours them exactly - the honest position, not 
 threshold (from the scene being edited or from the current setting). Without that, saving a scene
 would silently round a custom limit down to a preset.
 
-## 71. The Windows power card: turbo boost and the Windows power mode (discussion #141)
+## 70. The Apex switch: the fourth mode becomes a feature (v1.37, issue #226)
+
+Section 60.2 introduced the fourth shift value as data plus a probe, and §60.3's probe existed to
+answer whether writing it from outside the vendor software changes anything measurable. On the
+first boards it reached, the answer was "only the fans". Issue #226 (Raider 16 Max HX B2WJ,
+`2651EMS1`, RTX 5090) delivered the first other answer: with the fourth value written, delivered
+work came in at **+34 % over Balanced at the same 98 °C ceiling**, against +16 % for plain
+Extreme, with a 0 % baseline drift - the fourth value outruns the turbo one on that board. That
+measurement is what unblocks writing it as a feature.
+
+### 70.1 Shape: a modifier on Extreme, not a fifth profile
+
+`Ec.GetCurrent` already maps the fourth value to `Extreme` (§60.2), the vendor software presents
+it as a switch inside its top scenario, and the value sits on top of the turbo state rather than
+beside it. The feature keeps that shape: a **toggle row on the Extreme tile** (Scenarios), not a
+fifth tile. While the toggle is on, the Extreme recipe is rewritten at apply time -
+`TrayContext.EffectiveRecipe` substitutes the model's `FourthMode.ShiftValue` for the shift-mode
+byte, and only that byte; every other recipe byte and every other profile is untouched. The OSD
+and the tile carry an "APEX" badge while it is on, so the state is never silent.
+
+This buys three things a fifth profile would lose: the hotkeys, scenes, CLI, auto-switch rules and
+battery rules all keep working unchanged (they say "Extreme" and get Extreme-with-Apex when the
+switch is on); the 3 s poll needs no new state (the fourth value already reads back as Extreme);
+and a **panic reset needs no new path** - it applies plain Balanced, which never carries the
+substitution.
+
+### 70.2 Consent and persistence
+
+The switch is per model, `AppSettings.ApexFw`, a list of firmware prefixes mirroring the
+`ExperimentalWriteFw` pattern - a settings file moved to another machine does not silently arm
+Apex there. The very first enable anywhere shows a one-time explainer card (`ApexConfirmed`) in
+the app's own card style (RENDERING.md §11, scan tag `//APEX`): louder and hotter for certain,
+faster only where measured, the Power test measures it as its own step, and the switch stays
+until turned off. Enabling or disabling writes a change-history entry, and when Extreme is the
+active profile the rewrite is applied immediately rather than on the next switch.
+
+The tile row also carries a help dot whose bubble gives the same explanation outside the consent
+moment, because the one-time card is by definition gone when the question comes back a month
+later.
+
+### 70.3 Availability
+
+The row appears on every board whose model entry carries a `fourthMode` (six at the time of
+writing, via the signed model database - no release needed to add one). It is deliberately **not**
+gated on a per-board measured verdict: the write is the same register the vendor software itself
+uses for its top scenario, the probe showed refusal is answered by a readback rather than by
+harm, and the Power test exists precisely so an owner can measure their own board instead of
+trusting a table.
+>>>>>>> origin/main
+
+## 71. The Windows power card: turbo boost and the Windows power mode (v1.37, discussion #141)
 
 Two controls that touch no EC register at all: both drive documented user-mode Windows power
 APIs (`powrprof.dll`, `Core/PowerPlan.cs`), so the card works even on firmware the EC side does
@@ -2849,53 +2899,3 @@ width) raises `ContentHeightChanged`, which runs one page layout.
 
 CLI: `--turbo <on|off|status>`, forwarded to the running instance or executed one-shot; output
 stays English like the rest of the CLI.
-
-## 70. The Apex switch: the fourth mode becomes a feature (v1.37, issue #226)
-
-Section 60.2 introduced the fourth shift value as data plus a probe, and §60.3's probe existed to
-answer whether writing it from outside the vendor software changes anything measurable. On the
-first boards it reached, the answer was "only the fans". Issue #226 (Raider 16 Max HX B2WJ,
-`2651EMS1`, RTX 5090) delivered the first other answer: with the fourth value written, delivered
-work came in at **+34 % over Balanced at the same 98 °C ceiling**, against +16 % for plain
-Extreme, with a 0 % baseline drift - the fourth value outruns the turbo one on that board. That
-measurement is what unblocks writing it as a feature.
-
-### 70.1 Shape: a modifier on Extreme, not a fifth profile
-
-`Ec.GetCurrent` already maps the fourth value to `Extreme` (§60.2), the vendor software presents
-it as a switch inside its top scenario, and the value sits on top of the turbo state rather than
-beside it. The feature keeps that shape: a **toggle row on the Extreme tile** (Scenarios), not a
-fifth tile. While the toggle is on, the Extreme recipe is rewritten at apply time -
-`TrayContext.EffectiveRecipe` substitutes the model's `FourthMode.ShiftValue` for the shift-mode
-byte, and only that byte; every other recipe byte and every other profile is untouched. The OSD
-and the tile carry an "APEX" badge while it is on, so the state is never silent.
-
-This buys three things a fifth profile would lose: the hotkeys, scenes, CLI, auto-switch rules and
-battery rules all keep working unchanged (they say "Extreme" and get Extreme-with-Apex when the
-switch is on); the 3 s poll needs no new state (the fourth value already reads back as Extreme);
-and a **panic reset needs no new path** - it applies plain Balanced, which never carries the
-substitution.
-
-### 70.2 Consent and persistence
-
-The switch is per model, `AppSettings.ApexFw`, a list of firmware prefixes mirroring the
-`ExperimentalWriteFw` pattern - a settings file moved to another machine does not silently arm
-Apex there. The very first enable anywhere shows a one-time explainer card (`ApexConfirmed`) in
-the app's own card style (RENDERING.md §11, scan tag `//APEX`): louder and hotter for certain,
-faster only where measured, the Power test measures it as its own step, and the switch stays
-until turned off. Enabling or disabling writes a change-history entry, and when Extreme is the
-active profile the rewrite is applied immediately rather than on the next switch.
-
-The tile row also carries a help dot whose bubble gives the same explanation outside the consent
-moment, because the one-time card is by definition gone when the question comes back a month
-later.
-
-### 70.3 Availability
-
-The row appears on every board whose model entry carries a `fourthMode` (six at the time of
-writing, via the signed model database - no release needed to add one). It is deliberately **not**
-gated on a per-board measured verdict: the write is the same register the vendor software itself
-uses for its top scenario, the probe showed refusal is answered by a readback rather than by
-harm, and the Power test exists precisely so an owner can measure their own board instead of
-trusting a table.
->>>>>>> origin/main
