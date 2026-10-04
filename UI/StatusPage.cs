@@ -1196,7 +1196,7 @@ public sealed class StatusPage : ThemedPage
             $"{Lang.T("st_b_fan")}\n(0x{fanA:X2})",
         };
         var lefts = new[] { 0f, .34f, .51f, .67f, .83f };
-        var order = Profiles.Order;
+        var order = Profiles.Shown;
 
         // a word in parentheses next to the fan hex value
         string FanCell(string hex) => hex switch

@@ -32,6 +32,19 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   new menu the moment it is built, and the old one is released only after that.
 
 ### Added
+- **Profile order** ([discussion #101](../../discussions/101), thanks @M-Essa11) - the four
+  profiles can be put in any order: a pencil above the profile tiles (and a row in
+  Settings → General) opens a card with two presets - Standard, and By power from Super
+  Battery up to Extreme - plus an up and a down arrow per profile. The same order is then
+  used by the tiles, the tray menu, every profile list and "next profile" (the cycle hotkey,
+  the mouse wheel over the tray icon, `--cycle`). Hotkeys per profile keep their keys.
+- **Microphone switch** ([discussion #231](../../discussions/231), thanks @arcfybrr) - mutes
+  and unmutes the default Windows recording device for every application at once: a brick
+  on Scenarios, a card in Settings → System, a hotkey shipped as `Ctrl+Alt+F11` (off by
+  default, like the other device switches) and `--mic on|off`. It is the Windows mute flag
+  itself, so the switch also shows a mute made elsewhere, and it works on any laptop - no
+  EC involved. When calls use a different default device than ordinary apps, both are
+  switched together.
 - **Windows power card: a CPU turbo boost switch and the Windows power mode in Settings**
   ([discussion #141](../../discussions/141), thanks @scorvus99) - a new card in
   Settings → Power drives two documented user-mode Windows power APIs, no EC involved,

@@ -19,8 +19,33 @@ public static class Profiles
         new(ProfileId.SuperBattery, "SuperBattery", "SUPER BATTERY", "sub_superbattery", ColorTranslator.FromHtml("#61E7A4")),
     };
 
+    /// <summary>The fixed, canonical order: model database, hotkey numbering, tests. Never changes.</summary>
     public static readonly ProfileId[] Order =
         { ProfileId.Silent, ProfileId.Balanced, ProfileId.Extreme, ProfileId.SuperBattery };
+
+    /// <summary>Super Battery up to Extreme - the "by power" preset of the order editor (discussion #101).</summary>
+    public static readonly ProfileId[] ByPower =
+        { ProfileId.SuperBattery, ProfileId.Silent, ProfileId.Balanced, ProfileId.Extreme };
+
+    /// <summary>
+    /// The order the user sees and cycles through: profile tiles, tray menu, profile lists,
+    /// "next profile". Always a NEW array on a change, never edited in place - a list that was
+    /// built from an earlier order keeps reading that earlier array and stays consistent with
+    /// itself until it is rebuilt.
+    /// </summary>
+    public static ProfileId[] Shown { get; private set; } = Order;
+
+    /// <summary>
+    /// Makes a saved order (profile keys) current. Anything that is not all four profiles
+    /// exactly once - an empty list, an old file, a typo - falls back to <see cref="Order"/>.
+    /// </summary>
+    public static void SetShown(IEnumerable<string>? keys)
+    {
+        var ids = new List<ProfileId>();
+        foreach (var k in keys ?? Enumerable.Empty<string>())
+            if (Enum.TryParse<ProfileId>(k, out var id) && Enum.IsDefined(id) && !ids.Contains(id)) ids.Add(id);
+        Shown = ids.Count == Order.Length ? ids.ToArray() : Order;
+    }
 
     public static ProfileDef Get(ProfileId id) => All.First(p => p.Id == id);
 

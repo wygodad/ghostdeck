@@ -19,6 +19,7 @@ public sealed class SettingsPage : ThemedPage
         ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
         ("PanicReset", "Panic reset"), ("KbdLight", "Keyboard backlight"), ("Webcam", "Webcam"),
         ("EcView", "EC live view"), ("WinLock", "Windows key lock"), ("Touchpad", "Touchpad"),
+        ("Mic", "Microphone"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -48,6 +49,7 @@ public sealed class SettingsPage : ThemedPage
     private List<int> _dispRates = new();      // snapshot the Display card was built from...
     private (bool Internal, string? Name) _dispTarget;   // ...compared in OnDisplayChanged
     private string _uiLang = Lang.CurrentCode; // language the form was built with
+    private ProfileId[] _builtOrder = Profiles.Shown;   // profile order the lists were built with (discussion #101)
     private bool _builtTravelOn;               // travel/charge snapshot the Power card was built from...
     private int _builtCharge;                  // ...compared in SyncTravelRow (rebuild only on a real change)
     private Action? _syncPowerCard;            // re-reads the live Windows-power card values (#141)
@@ -228,7 +230,7 @@ public sealed class SettingsPage : ThemedPage
     // theme drift = re-point the segment (Selected does not raise SelectedChanged, so no loop).
     private void SyncExternal()
     {
-        if (_uiLang != Lang.CurrentCode)
+        if (_uiLang != Lang.CurrentCode || !ReferenceEquals(_builtOrder, Profiles.Shown))
         {
             Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
             return;
@@ -342,6 +344,7 @@ public sealed class SettingsPage : ThemedPage
         }
         _boxes.Clear(); _swatches.Clear();
         _uiLang = Lang.CurrentCode;   // the form now reflects this language (see SyncExternal)
+        _builtOrder = Profiles.Shown; // ...and this profile order
 
         // ---- left column ----
         var look = new CardSection(Lang.T("set_grp_look"), "");
@@ -358,7 +361,7 @@ public sealed class SettingsPage : ThemedPage
             Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
         };
         look.AddRow(Lang.T("set_language"), lang);
-        foreach (var id in Profiles.Order) look.AddRow(Profiles.Get(id).Label, BuildSwatches(id));
+        foreach (var id in Profiles.Shown) look.AddRow(Profiles.Get(id).Label, BuildSwatches(id));
         var resetColors = new Button { Text = Lang.T("set_colors_reset"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
         Ui.StyleGhost(resetColors);
         resetColors.Click += (_, _) =>
@@ -466,11 +469,14 @@ public sealed class SettingsPage : ThemedPage
             power.AddRow(null, travelNote);
         }
         power.AddRow(Lang.T("set_autoswitch"), Toggle(D.Settings.AutoSwitchEnabled, v => D.SetAutoSwitch(v)));
-        var ac = Combo(Profiles.Order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(D.Settings.ProfileOnAC));
-        ac.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnAC = Profiles.Get(Profiles.Order[ac.SelectedIndex]).Key; D.SaveSettings(); };
+        // one array for the items and for the lookups - the lists stay consistent with themselves
+        // even if the profile order changes before this page is rebuilt (see Profiles.Shown)
+        var order = Profiles.Shown;
+        var ac = Combo(order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(order, D.Settings.ProfileOnAC));
+        ac.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnAC = Profiles.Get(order[ac.SelectedIndex]).Key; D.SaveSettings(); };
         power.AddRow(Lang.T("on_ac"), ac);
-        var bat = Combo(Profiles.Order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(D.Settings.ProfileOnBattery));
-        bat.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnBattery = Profiles.Get(Profiles.Order[bat.SelectedIndex]).Key; D.SaveSettings(); };
+        var bat = Combo(order.Select(id => Profiles.Get(id).Label).ToArray(), ProfileIndex(order, D.Settings.ProfileOnBattery));
+        bat.SelectedIndexChanged += (_, _) => { D.Settings.ProfileOnBattery = Profiles.Get(order[bat.SelectedIndex]).Key; D.SaveSettings(); };
         power.AddRow(Lang.T("on_battery"), bat);
 
         // Some ECs wake from sleep/hibernation in Super Battery on their own — opt-in restore of
@@ -479,16 +485,16 @@ public sealed class SettingsPage : ThemedPage
             v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
         // (#178) startup profile: "last used" (default) or a fixed pick that wins at app start;
         // the after-wake restore keeps bringing back the profile active before sleep
-        var stOpts = new string[Profiles.Order.Length + 1];
+        var stOpts = new string[order.Length + 1];
         stOpts[0] = Lang.T("set_startup_last");
-        for (int i = 0; i < Profiles.Order.Length; i++) stOpts[i + 1] = Profiles.Get(Profiles.Order[i]).Label;
+        for (int i = 0; i < order.Length; i++) stOpts[i + 1] = Profiles.Get(order[i]).Label;
         int stIdx = 0;
-        for (int i = 0; i < Profiles.Order.Length; i++)
-            if (Profiles.Get(Profiles.Order[i]).Key == D.Settings.StartupProfile) stIdx = i + 1;
+        for (int i = 0; i < order.Length; i++)
+            if (Profiles.Get(order[i]).Key == D.Settings.StartupProfile) stIdx = i + 1;
         var st = Combo(stOpts, stIdx);
         st.SelectedIndexChanged += (_, _) =>
         {
-            D.Settings.StartupProfile = st.SelectedIndex <= 0 ? "" : Profiles.Get(Profiles.Order[st.SelectedIndex - 1]).Key;
+            D.Settings.StartupProfile = st.SelectedIndex <= 0 ? "" : Profiles.Get(order[st.SelectedIndex - 1]).Key;
             D.SaveSettings();
         };
         power.AddRow(Lang.T("set_startup_profile"), st);
@@ -753,9 +759,9 @@ public sealed class SettingsPage : ThemedPage
         // master switch for the whole feature - some people simply don't want it running
         brc.AddRow(Lang.T("bat_enable"), Toggle(D.Settings.BattRulesEnabled,
             v => { D.Settings.BattRulesEnabled = v; D.SaveSettings(); }));
-        var actionVals = Profiles.Order.Select(id => "P:" + Profiles.Get(id).Key)
+        var actionVals = order.Select(id => "P:" + Profiles.Get(id).Key)
             .Concat(D.Settings.Scenes.Select(s => "S:" + s.Id)).ToArray();
-        var actionNames = Profiles.Order.Select(id => Profiles.Get(id).Label)
+        var actionNames = order.Select(id => Profiles.Get(id).Label)
             .Concat(D.Settings.Scenes.Select(s => "▶ " + s.Name)).ToArray();
         var pctVals = Enumerable.Range(1, 19).Select(i => i * 5).ToArray();   // 5..95
         Panel BattRow(bool low)
@@ -991,6 +997,17 @@ public sealed class SettingsPage : ThemedPage
                 D.SaveSettings(); D.SettingsChanged();
             }));
         }
+        // (discussion #101) the order of the four profiles: tiles, tray menu, lists, "next profile"
+        var orderBtn = new Button { Text = Lang.T("scene_edit"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+        Ui.StyleGhost(orderBtn);
+        orderBtn.Click += (_, _) =>
+        {
+            using var dlg = new ProfileOrderForm(D.Settings, D.ColorOf);
+            if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
+            D.SettingsChanged();   // the tray menu follows
+            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+        };
+        scenVis.AddRow(Lang.T("po_title"), orderBtn);
         VisRow("fanboost", Lang.T("cooler_boost"));
         VisRow("overlay", Lang.T("overlay_title"));
         VisRow("charge", Lang.T("st_charge"));
@@ -1000,6 +1017,7 @@ public sealed class SettingsPage : ThemedPage
         if (D.WebcamState() >= 0) VisRow("webcam", Lang.T("webcam_title"));
         VisRow("winlock", Lang.T("winlock_title"));
         if (D.TouchpadState() >= 0) VisRow("touchpad", Lang.T("tp_title"));
+        if (D.MicState() >= 0) VisRow("mic", Lang.T("mic_title"));
         VisRow("panic", Lang.T("hk_panic"));
         VisRow("scenes", Lang.T("scene_title"));
         _gLeft[SubGeneral].Add(scenVis);   // left column (user request; the right one is crowded)
@@ -1170,6 +1188,22 @@ public sealed class SettingsPage : ThemedPage
             _gLeft[SubSystem].Add(tpCard);
         }
 
+        // (discussion #231) microphone: the mute flag of the default Windows recording device,
+        // the same switch as the Scenarios brick and the hotkey. Right column - the left one
+        // already carries the other device switches.
+        if (D.MicState() >= 0)
+        {
+            var micCard = new CardSection(Lang.T("mic_title"), "\uE720");   // MDL2 Microphone
+            var micInfo = new Label
+            {
+                Text = Lang.T("mic_hint"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            micCard.AddRow(null, micInfo);
+            micCard.AddRow(Lang.T("mic_title"), Toggle(D.MicState() == 1, v => D.SetMic(v)));
+            _gRight[SubSystem].Add(micCard);
+        }
+
         // Fn/Win key swap - EC-persisted layout switch (msi-ec fn_win_swap), only on mapped boards.
         if (D.FnLeft() >= 0)
         {
@@ -1226,7 +1260,7 @@ public sealed class SettingsPage : ThemedPage
             // A shortcut Windows refused (another app owns the combination) is marked right on
             // its row - it used to look identical to one that works (issue #92).
             string mark = TrayContext.HotkeysRefused.Contains(key) ? "  ⚠" : "";
-            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : label), row);
+            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : key == "Mic" ? Lang.T("mic_title") : label), row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
@@ -1398,11 +1432,11 @@ public sealed class SettingsPage : ThemedPage
         foreach (var box in _boxes.Values) box.Enabled = on;
     }
 
-    private int ProfileIndex(string key)
+    private static int ProfileIndex(ProfileId[] order, string key)
     {
-        for (int i = 0; i < Profiles.Order.Length; i++)
-            if (Profiles.Get(Profiles.Order[i]).Key == key) return i;
-        return 1;
+        for (int i = 0; i < order.Length; i++)
+            if (Profiles.Get(order[i]).Key == key) return i;
+        return Math.Max(0, Array.IndexOf(order, ProfileId.Balanced));
     }
 
     private FlowLayoutPanel BuildSwatches(ProfileId id)

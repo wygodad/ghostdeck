@@ -2453,6 +2453,47 @@ public static class Lang
         m["pw_grp_mode"] = new[] { "Windows power mode", "Tryb zasilania Windows", "Windows-Energiemodus", "Mode d'alimentation Windows", "Modo de energía de Windows", "Windows 电源模式", "Modo de energia do Windows", "Режим питания Windows", "Windows 電源モード", "Windows 전원 모드", "Windows 電源模式", "Windows güç modu", "Chế độ nguồn Windows", "Mode daya Windows", "Modalità energetica di Windows" };
         m["pw_map_edit_tip"] = new[] { "Edit the mapping", "Edytuj mapowanie", "Zuordnung bearbeiten", "Modifier la correspondance", "Editar la asignación", "编辑对应关系", "Editar o mapeamento", "Изменить соответствие", "対応を編集", "매핑 편집", "編輯對應關係", "Eşlemeyi düzenle", "Sửa ánh xạ", "Edit pemetaan", "Modifica la mappatura" };
         m["pw_map_reset_tip"] = new[] { "Restore the default mapping", "Przywróć domyślne mapowanie", "Standardzuordnung wiederherstellen", "Rétablir la correspondance par défaut", "Restaurar la asignación predeterminada", "恢复默认对应关系", "Restaurar o mapeamento padrão", "Вернуть соответствие по умолчанию", "既定の対応に戻す", "기본 매핑 복원", "還原預設對應關係", "Varsayılan eşlemeyi geri yükle", "Khôi phục ánh xạ mặc định", "Pulihkan pemetaan bawaan", "Ripristina la mappatura predefinita" };
+        m["po_title"] = new[] { "Profile order", "Kolejność profili", "Profil-Reihenfolge", "Ordre des profils", "Orden de los perfiles", "情景模式顺序", "Ordem dos perfis", "Порядок профилей", "プロファイルの順序", "프로필 순서", "設定檔順序", "Profil sırası", "Thứ tự hồ sơ", "Urutan profil", "Ordine dei profili" };
+        m["po_body"] = new[]
+        {
+            "The same order is used by the profile tiles, the tray menu, the profile lists and \"next profile\" (hotkey and mouse wheel).",
+            "Ta sama kolejność obowiązuje na kafelkach profili, w menu zasobnika, na listach profili i przy „następnym profilu” (skrót i kółko myszy).",
+            "Dieselbe Reihenfolge gilt für die Profilkacheln, das Tray-Menü, die Profillisten und „nächstes Profil“ (Tastenkürzel und Mausrad).",
+            "Le même ordre s'applique aux tuiles de profil, au menu de la zone de notification, aux listes de profils et au « profil suivant » (raccourci et molette).",
+            "El mismo orden se usa en las tarjetas de perfil, el menú de la bandeja, las listas de perfiles y «perfil siguiente» (atajo y rueda del ratón).",
+            "同一顺序用于情景模式卡片、托盘菜单、情景模式列表以及“下一个情景模式”（快捷键和鼠标滚轮）。",
+            "A mesma ordem vale para os cartões de perfil, o menu da bandeja, as listas de perfis e o \"próximo perfil\" (atalho e roda do mouse).",
+            "Этот порядок действует на плитках профилей, в меню трея, в списках профилей и для «следующего профиля» (горячая клавиша и колесо мыши).",
+            "この順序は、プロファイルのタイル、トレイメニュー、プロファイルの一覧、「次のプロファイル」（ホットキーとマウスホイール）で共通です。",
+            "이 순서는 프로필 타일, 트레이 메뉴, 프로필 목록, \"다음 프로필\"(단축키와 마우스 휠)에 똑같이 적용됩니다.",
+            "同一順序用於設定檔卡片、系統匣選單、設定檔清單以及「下一個設定檔」（快速鍵和滑鼠滾輪）。",
+            "Aynı sıra profil kutucuklarında, tepsi menüsünde, profil listelerinde ve \"sonraki profil\" (kısayol ve fare tekerleği) için geçerlidir.",
+            "Cùng một thứ tự được dùng cho các ô hồ sơ, menu khay, danh sách hồ sơ và \"hồ sơ tiếp theo\" (phím tắt và con lăn chuột).",
+            "Urutan yang sama dipakai oleh ubin profil, menu tray, daftar profil, dan \"profil berikutnya\" (pintasan dan roda mouse).",
+            "Lo stesso ordine vale per i riquadri dei profili, il menu della tray, gli elenchi dei profili e \"profilo successivo\" (scorciatoia e rotellina).",
+        };
+        m["po_std"] = new[] { "Standard", "Standardowa", "Standard", "Standard", "Estándar", "默认", "Padrão", "Стандартный", "標準", "기본", "預設", "Standart", "Chuẩn", "Standar", "Standard" };
+        m["po_power"] = new[] { "By power", "Według mocy", "Nach Leistung", "Par puissance", "Por potencia", "按性能", "Por potência", "По мощности", "パワー順", "성능순", "依效能", "Güce göre", "Theo công suất", "Menurut daya", "Per potenza" };
+        m["po_edit_tip"] = new[] { "Change the order of the profiles", "Zmień kolejność profili", "Reihenfolge der Profile ändern", "Changer l'ordre des profils", "Cambiar el orden de los perfiles", "更改情景模式顺序", "Alterar a ordem dos perfis", "Изменить порядок профилей", "プロファイルの順序を変更", "프로필 순서 변경", "變更設定檔順序", "Profil sırasını değiştir", "Đổi thứ tự hồ sơ", "Ubah urutan profil", "Cambia l'ordine dei profili" };
+        m["mic_title"] = new[] { "Microphone", "Mikrofon", "Mikrofon", "Microphone", "Micrófono", "麦克风", "Microfone", "Микрофон", "マイク", "마이크", "麥克風", "Mikrofon", "Micrô", "Mikrofon", "Microfono" };
+        m["mic_hint"] = new[]
+        {
+            "Mutes and unmutes the default recording device in Windows, for every app at once. Works on any laptop; the switch also shows a mute made elsewhere.",
+            "Wycisza i włącza domyślne urządzenie nagrywające w Windows, dla wszystkich aplikacji naraz. Działa na każdym laptopie; przełącznik pokazuje też wyciszenie zrobione gdzie indziej.",
+            "Schaltet das Standard-Aufnahmegerät in Windows stumm und wieder ein, für alle Apps zugleich. Funktioniert auf jedem Laptop; der Schalter zeigt auch eine anderswo gesetzte Stummschaltung.",
+            "Coupe et rétablit le périphérique d'enregistrement par défaut de Windows, pour toutes les applications à la fois. Fonctionne sur tout ordinateur portable ; l'interrupteur reflète aussi une coupure faite ailleurs.",
+            "Silencia y reactiva el dispositivo de grabación predeterminado de Windows, para todas las aplicaciones a la vez. Funciona en cualquier portátil; el interruptor refleja también un silencio hecho en otro sitio.",
+            "静音或恢复 Windows 的默认录音设备，对所有应用同时生效。适用于任何笔记本；在别处设置的静音也会反映在此开关上。",
+            "Silencia e reativa o dispositivo de gravação padrão do Windows, para todos os aplicativos de uma vez. Funciona em qualquer notebook; o interruptor também reflete um silenciamento feito em outro lugar.",
+            "Отключает и включает устройство записи по умолчанию в Windows сразу для всех приложений. Работает на любом ноутбуке; переключатель отражает и отключение, сделанное в другом месте.",
+            "Windows の既定の録音デバイスを、すべてのアプリに対してまとめてミュート／解除します。どのノート PC でも使えます。ほかの場所で行ったミュートもこのスイッチに反映されます。",
+            "Windows의 기본 녹음 장치를 모든 앱에 대해 한 번에 음소거하거나 해제합니다. 어떤 노트북에서도 작동하며, 다른 곳에서 설정한 음소거도 이 스위치에 반영됩니다.",
+            "將 Windows 的預設錄音裝置靜音或恢復，對所有應用程式同時生效。適用於任何筆電；在別處設定的靜音也會反映在此開關上。",
+            "Windows'un varsayılan kayıt aygıtını tüm uygulamalar için aynı anda sessize alır ve açar. Her dizüstünde çalışır; başka yerde yapılan sessize alma da bu anahtara yansır.",
+            "Tắt và bật tiếng thiết bị ghi âm mặc định của Windows cho mọi ứng dụng cùng lúc. Hoạt động trên mọi laptop; công tắc cũng phản ánh việc tắt tiếng được thực hiện ở nơi khác.",
+            "Membisukan dan mengaktifkan kembali perangkat perekam bawaan Windows untuk semua aplikasi sekaligus. Berfungsi di laptop mana pun; sakelar juga mengikuti pembisuan yang dilakukan di tempat lain.",
+            "Disattiva e riattiva il dispositivo di registrazione predefinito di Windows, per tutte le app insieme. Funziona su qualsiasi portatile; l'interruttore riflette anche un silenziamento fatto altrove.",
+        };
         m["pw_map_body"] = new[]
         {
             "Choose the Windows power mode for each profile. The mapping applies while \"{0}\" is selected.",

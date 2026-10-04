@@ -12,7 +12,7 @@ namespace GhostDeck;
 public sealed class ScenariosPage : ThemedPage
 {
     private const int TileH = 280, Gap = 16, Pad = 28;
-    private readonly Tile[] _tiles;
+    private Tile[] _tiles;                                  // in the order the user set (Profiles.Shown)
     private readonly SegControl _charge;
     private readonly ToggleSwitch _auto;
     private readonly SegControl? _kbd;    // (#26) only on models with the backlight register
@@ -23,6 +23,7 @@ public sealed class ScenariosPage : ThemedPage
     private readonly List<SceneCard> _sceneCards = new();   // (#21)
     private readonly Button _addScene = new(), _addExamples = new();
     private readonly Button _gear = new();                  // -> Settings visibility card (flashed)
+    private readonly Button _orderBtn = new();              // -> profile order editor (discussion #101)
     private readonly ToolTip _gearTip = new();
     private int _headH, _subY, _bricksTop, _scenesHeadY;
     private Button? _panicBtn;
@@ -67,7 +68,7 @@ public sealed class ScenariosPage : ThemedPage
 
     public ScenariosPage(MainDeps d) : base(d)
     {
-        _tiles = Profiles.Order.Select(id => new Tile(d, id)).ToArray();
+        _tiles = Profiles.Shown.Select(id => new Tile(d, id)).ToArray();
         foreach (var t in _tiles) Controls.Add(t);
 
         // A custom limit (any value 20-100, set in Settings) gets its own segment here, otherwise
@@ -127,6 +128,9 @@ public sealed class ScenariosPage : ThemedPage
         if (D.TouchpadState() >= 0)   // devnode-level touchpad switch (precision touchpads)
             bricks.Add(("touchpad", new FeatureBrick("tp_title", "▭", "tp_hint",
                                         () => D.TouchpadState() == 1, v => D.SetTouchpad(v))));
+        if (D.MicState() >= 0)        // (discussion #231) mute flag of the default Windows recording device
+            bricks.Add(("mic", new FeatureBrick("mic_title", "\U0001F3A4", "mic_hint",
+                                        () => D.MicState() == 1, v => D.SetMic(v))));
         // panic reset: same safe-stock action as the hotkey; styled like the fan-curve
         // preset Delete button (filled red, white text, no border)
         var panicBtn = new Button { AutoSize = true, Padding = new Padding(12, 4, 12, 4) };
@@ -161,6 +165,26 @@ public sealed class ScenariosPage : ThemedPage
         _gearTip.SetToolTip(_gear, Lang.T("scen_gear_tip"));
         Controls.Add(_gear);
 
+        // Pencil above the profile tiles, right-aligned like the gear below them: opens the
+        // order editor (discussion #101). Same flat glyph styling as the gear.
+        _orderBtn.Text = "\uE70F";   // MDL2 Edit
+        _orderBtn.Font = new Font("Segoe MDL2 Assets", 11.5f);
+        _orderBtn.Size = new Size(42, 42);
+        _orderBtn.TextAlign = ContentAlignment.MiddleCenter;
+        _orderBtn.FlatStyle = FlatStyle.Flat;
+        _orderBtn.TabStop = false;
+        _orderBtn.Cursor = Cursors.Hand;
+        _orderBtn.FlatAppearance.BorderSize = 0;
+        _orderBtn.BackColor = Theme.Surface;
+        _orderBtn.ForeColor = Theme.Muted;
+        _orderBtn.FlatAppearance.MouseOverBackColor = Theme.Surface;
+        _orderBtn.FlatAppearance.MouseDownBackColor = Theme.Surface;
+        _orderBtn.MouseEnter += (_, _) => _orderBtn.ForeColor = Theme.Accent;
+        _orderBtn.MouseLeave += (_, _) => _orderBtn.ForeColor = Theme.Muted;
+        _orderBtn.Click += (_, _) => EditOrder();
+        _gearTip.SetToolTip(_orderBtn, Lang.T("po_edit_tip"));
+        Controls.Add(_orderBtn);
+
         // (#21) scenes: add / example buttons + one card per scene (built in RebuildScenes)
         _addScene.Text = "+  " + Lang.T("scene_add");
         _addScene.AutoSize = true;
@@ -177,6 +201,24 @@ public sealed class ScenariosPage : ThemedPage
         RebuildScenes();
 
         Resize += (_, _) => Relayout();
+    }
+
+    // ---------------- profile order (discussion #101) ----------------
+    private void EditOrder()
+    {
+        using var dlg = new ProfileOrderForm(D.Settings, D.ColorOf);
+        if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
+        D.SettingsChanged();   // the tray menu lists the profiles in the same order
+        SyncOrder();
+        Relayout();
+        Invalidate(true);
+    }
+
+    // The order can also change from Settings or an imported file while this page exists.
+    private void SyncOrder()
+    {
+        if (_tiles.Select(t => t.Id).SequenceEqual(Profiles.Shown)) return;
+        _tiles = Profiles.Shown.Select(id => _tiles.First(t => t.Id == id)).ToArray();
     }
 
     // ---------------- scenes (#21) ----------------
@@ -305,6 +347,8 @@ public sealed class ScenariosPage : ThemedPage
     {
         _addScene.Text = "+  " + Lang.T("scene_add");          // follow a language change
         _addExamples.Text = Lang.T("scene_add_examples");
+        SyncOrder();
+        _gearTip.SetToolTip(_orderBtn, Lang.T("po_edit_tip"));
         SyncChargeBrick();
         _auto.Checked = D.Settings.AutoSwitchEnabled;
         if (_kbd != null && D.KbdLevel() is >= 0 and var kl) _kbd.Selected = kl;   // follows the Fn key too
@@ -318,6 +362,7 @@ public sealed class ScenariosPage : ThemedPage
     // included because the Settings → Scenarios-tab visibility toggles land here too.
     public override void LiveRefresh()
     {
+        SyncOrder();
         SyncChargeBrick();
         _auto.Checked = D.Settings.AutoSwitchEnabled;
         if (_kbd != null && D.KbdLevel() is >= 0 and var kl) _kbd.Selected = kl;
@@ -341,6 +386,10 @@ public sealed class ScenariosPage : ThemedPage
         _gear.ForeColor = Theme.Muted;
         _gear.FlatAppearance.MouseOverBackColor = Theme.Surface;
         _gear.FlatAppearance.MouseDownBackColor = Theme.Surface;
+        _orderBtn.BackColor = Theme.Surface;
+        _orderBtn.ForeColor = Theme.Muted;
+        _orderBtn.FlatAppearance.MouseOverBackColor = Theme.Surface;
+        _orderBtn.FlatAppearance.MouseDownBackColor = Theme.Surface;
         Ui.StyleGhost(_addScene);       // ghost styling reads Theme at call time
         Ui.StyleGhost(_addExamples);
         if (_panicBtn != null) { _panicBtn.BackColor = Theme.Red; _panicBtn.ForeColor = Color.White; }
@@ -372,6 +421,8 @@ public sealed class ScenariosPage : ThemedPage
         int th = TileH + _tiles.Max(t => t.ApexRowH());
         for (int i = 0; i < _tiles.Length; i++)
             _tiles[i].SetBounds(Pad + i * (tw + Gap) + ox, _headH + oy, tw, th);
+        // the pencil sits right above the last tile, in the band under the subtitle
+        _orderBtn.Location = new Point(Pad + avail - _orderBtn.Width + ox, _headH - _orderBtn.Height - 2 + oy);
 
         // Uniform feature bricks under the tiles (mockup W5 layout): two per row, three when
         // the window is wide enough for the 280 px segments to still fit. Bricks the user hid
@@ -461,6 +512,7 @@ public sealed class ScenariosPage : ThemedPage
     {
         private readonly MainDeps _d;
         private readonly ProfileId _id;
+        internal ProfileId Id => _id;
         private bool _hover;
         private Rectangle _apexSw = Rectangle.Empty;    // Apex toggle hit area (Extreme tile only)
         private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it

@@ -2905,3 +2905,39 @@ width) raises `ContentHeightChanged`, which runs one page layout.
 
 CLI: `--turbo <on|off|status>`, forwarded to the running instance or executed one-shot; output
 stays English like the rest of the CLI.
+
+## 72. Profile order and the microphone switch (v1.37, discussions #101 and #231)
+
+**Profile order.** `Profiles.Order` stays what it always was: the fixed, canonical sequence
+(Silent, Balanced, Extreme, Super Battery) used by the model database, the per-profile hotkey
+defaults and the tests. What the user sees and cycles through is `Profiles.Shown`, set from
+`AppSettings.ProfileOrder` (profile keys; an empty list = the canonical order) by
+`Profiles.SetShown` when settings load, on import, and when the editor saves. Anything that
+is not all four profiles exactly once falls back to the canonical order, so a hand-edited or
+old settings file cannot produce a missing tile. Readers of `Shown`: the Scenarios tiles, the
+tray menu, the cycle hotkey, the tray wheel, `--cycle`, the profile lists in Settings (AC /
+battery, startup profile, battery rules, colour rows), the scene editor and the EC byte
+matrix on Status. The power-mode mapping table keeps its own by-power order - it is a table
+of power levels, not a picker.
+
+`Shown` is replaced by a NEW array on every change and never edited in place. A list that was
+built from an earlier order (a combo box whose handler indexes the array) captured that
+earlier array and stays consistent with itself; `SettingsPage` notices the replaced reference
+on its next sync and rebuilds, the Scenarios page re-sorts its tiles (`SyncOrder`).
+
+The editor is `ProfileOrderForm`, a GhostDeck editor card (RENDERING.md §11): two presets in
+one frame - Standard, and By power (Super Battery up to Extreme) - and one row per profile
+with an up and a down arrow. It opens from the pencil above the tiles and from the "Profile
+order" row of the Scenarios card in Settings → General.
+
+**Microphone switch.** `Core/Microphone.cs` drives the mute flag of the default Windows
+recording device through the documented Core Audio API (`MMDeviceEnumerator` →
+`IAudioEndpointVolume.SetMute` / `GetMute`). No EC and no driver, so it works on any machine;
+it is the same flag as the mute box in the Windows sound settings, so every application loses
+the microphone at once and the switch shows a mute made anywhere else. Windows keeps two
+default recording roles (ordinary apps and calls) that can be different devices; both are
+switched, and the state shown is the ordinary one. Surfaces, mirroring the touchpad switch:
+a brick on Scenarios (hideable, key `mic`), a card in Settings → System, the hotkey `Mic`
+(`Ctrl+Alt+F11`, shipped disabled), `--mic on|off`, the `mic` field of `--status`, an OSD
+toast and a change-log line. A panic reset deliberately leaves the microphone alone: turning
+a muted microphone back on is not a "safe state". Scenes carry no microphone field yet.

@@ -184,6 +184,9 @@ public sealed class AppSettings
     public int FanBoostSeconds { get; set; }
 
     // ---- karta "Zasilanie Windows" (#141; roadmapa #109 + #36) ----
+    // (discussion #101) kolejnosc profili widziana przez uzytkownika: klucze profili; pusta = standardowa.
+    // Stosowana przez Profiles.SetShown przy wczytaniu, imporcie i zapisie z edytora kolejnosci.
+    public List<string> ProfileOrder { get; set; } = new();
     public bool PowerModeSync { get; set; }                                  // tryb zasilania Windows podaza za profilem
     public Dictionary<string, int[]> TurboSnapshots { get; set; } = new();   // GUID planu -> [AC, DC] sprzed wylaczenia turbo (zapis planu jest trwaly)
     public long BoostAttrOriginal { get; set; } = -1;                        // pelny DWORD atrybutow PERFBOOSTMODE sprzed odkrycia w Panelu; -1 = nietkniete
@@ -332,7 +335,7 @@ public sealed class AppSettings
             if (File.Exists(FilePath))
             {
                 var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath));
-                if (s != null) { s.EnsureDefaults(); return s; }
+                if (s != null) { s.EnsureDefaults(); Profiles.SetShown(s.ProfileOrder); return s; }
             }
         }
         catch { }
@@ -381,6 +384,7 @@ public sealed class AppSettings
         DefOff("Webcam",   0x76, "Ctrl+Alt+F7");   // F7 — webcam switch
         DefOff("WinLock",  0x77, "Ctrl+Alt+F8");   // F8 — Windows-key lock (gaming)
         DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
+        DefOff("Mic",      0x7A, "Ctrl+Alt+F11");  // F11 — microphone mute (discussion #231); F10 is the panic reset
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -539,6 +543,8 @@ public sealed class AppSettings
         PowerModeSync = src.PowerModeSync;
         PowerModePrev = src.PowerModePrev;
         PowerModeMap = new Dictionary<string, int>(src.PowerModeMap);
+        ProfileOrder = new List<string>(src.ProfileOrder);
+        Profiles.SetShown(ProfileOrder);
         // Turbo snapshots and the attribute original are MACHINE state (this Windows, its power
         // plans), not preferences - an imported file must not overwrite what this machine saved.
         ScheduleEnabled = src.ScheduleEnabled;
@@ -649,6 +655,7 @@ public sealed class AppSettings
         foreach (var r in Schedules) c.Schedules.Add(r.Clone());
         foreach (var (k, v) in TurboSnapshots) c.TurboSnapshots[k] = (int[])v.Clone();
         foreach (var (k, v) in PowerModeMap) c.PowerModeMap[k] = v;
+        c.ProfileOrder = new List<string>(ProfileOrder);
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
         c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;

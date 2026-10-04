@@ -52,13 +52,14 @@ public sealed class SceneEditForm : GhostCardForm
         _scene = scene;
         _allowDelete = allowDelete;
 
-        int profSel = Math.Max(0, Array.FindIndex(Profiles.Order, id => Profiles.Get(id).Key == scene.Profile));
+        var order = Profiles.Shown;   // the list and its lookups read ONE array - see Profiles.Shown
+        int profSel = Math.Max(0, Array.FindIndex(order, id => Profiles.Get(id).Key == scene.Profile));
         _rows.Add(new RowDef
         {
-            Label = Lang.T("sc_profile"), Items = Profiles.Order.Select(id => Profiles.Get(id).Label).ToArray(),
+            Label = Lang.T("sc_profile"), Items = order.Select(id => Profiles.Get(id).Label).ToArray(),
             On = scene.Profile != null, Sel = profSel,
-            Commit = (on, i) => _scene.Profile = on ? Profiles.Get(Profiles.Order[i]).Key : null,
-            Icon = i => (g, r, onFill) => IconPainter.Scenario(g, Profiles.Order[i], r, onFill ? Color.White : d.ColorOf(Profiles.Order[i]), 1.6f * UiScale),
+            Commit = (on, i) => _scene.Profile = on ? Profiles.Get(order[i]).Key : null,
+            Icon = i => (g, r, onFill) => IconPainter.Scenario(g, order[i], r, onFill ? Color.White : d.ColorOf(order[i]), 1.6f * UiScale),
         });
 
         if (d.HasFanCurve())

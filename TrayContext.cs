@@ -295,6 +295,7 @@ public sealed class TrayContext : ApplicationContext
                         fnLeft = fnl >= 0 ? fnl == 1 : (bool?)null,
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
+                        mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -336,6 +337,14 @@ public sealed class TrayContext : ApplicationContext
                     ChangeLog.Add(ChangeSource.Cli, Lang.T("tp_title") + ": " + cmd.Arg);
                     if (_main is { IsDisposed: false }) _main.RefreshActive();
                     return "0|touchpad: " + cmd.Arg;
+                }
+                case CliKind.Mic:
+                {
+                    if (Microphone.State() < 0) return "1|no recording device found";
+                    Microphone.Set(cmd.Arg == "on");   // a throw lands in the outer catch
+                    ChangeLog.Add(ChangeSource.Cli, Lang.T("mic_title") + ": " + cmd.Arg);
+                    if (_main is { IsDisposed: false }) _main.RefreshActive();
+                    return "0|microphone: " + cmd.Arg;
                 }
                 case CliKind.Refresh:
                 {
@@ -660,7 +669,7 @@ public sealed class TrayContext : ApplicationContext
             menu.Items.Add(new ToolStripSeparator());
         }
 
-        foreach (var id in Profiles.Order)
+        foreach (var id in Profiles.Shown)   // the order the user set (discussion #101)
         {
             var swatch = MakeSwatch(_settings.ColorFor(id));
             _menuSwatches.Add(swatch);
@@ -918,9 +927,9 @@ public sealed class TrayContext : ApplicationContext
     private void WheelProfileStep(int steps)
     {
         if (!Writable) { ShowState(); return; }
-        int n = Profiles.Order.Length;
-        int i = Array.IndexOf(Profiles.Order, _wheelTarget ?? _current);
-        var next = Profiles.Order[((i + steps) % n + n) % n];
+        int n = Profiles.Shown.Length;
+        int i = Array.IndexOf(Profiles.Shown, _wheelTarget ?? _current);
+        var next = Profiles.Shown[((i + steps) % n + n) % n];
         _wheelTarget = next;
         ShowOsd(next);
         ArmWheelCommit(() =>
@@ -1095,8 +1104,8 @@ public sealed class TrayContext : ApplicationContext
 
     private void Cycle(ChangeSource source)
     {
-        int i = Array.IndexOf(Profiles.Order, _current);
-        SetProfile(Profiles.Order[(i + 1) % Profiles.Order.Length], osd: true, source);
+        int i = Array.IndexOf(Profiles.Shown, _current);
+        SetProfile(Profiles.Shown[(i + 1) % Profiles.Shown.Length], osd: true, source);
     }
 
     // ---------------- fan-curve presets ----------------
@@ -1247,6 +1256,31 @@ public sealed class TrayContext : ApplicationContext
             Touchpad.Set(on);
             ChangeLog.Add(source, Lang.T("tp_title") + ": " + Lang.T(on ? "st_on" : "st_off"));
             if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("tp_title"),
+                Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
+            if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }
+        catch (Exception ex)
+        {
+            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
+        }
+    }
+
+    // ---------------- microphone ----------------
+    // The mute flag of the default Windows recording device (Core Audio) - no EC, any laptop.
+    private void ToggleMic()
+    {
+        int st = Microphone.State();
+        if (st < 0) { ShowState(); return; }
+        SetMicState(st != 1, ChangeSource.Hotkey);
+    }
+
+    private void SetMicState(bool on, ChangeSource source, bool osd = true)
+    {
+        try
+        {
+            Microphone.Set(on);
+            ChangeLog.Add(source, Lang.T("mic_title") + ": " + Lang.T(on ? "st_on" : "st_off"));
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("mic_title"),
                 Lang.T(on ? "st_on" : "st_off"), on ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             if (_main is { IsDisposed: false }) _main.RefreshActive();
         }
@@ -1767,6 +1801,7 @@ public sealed class TrayContext : ApplicationContext
         Reg("EcView", ShowEcViewer);         // live EC dump viewer - read-only diagnostics
         Reg("WinLock", ToggleWinLock);       // software hook, no EC needed
         if (Touchpad.Present()) Reg("Touchpad", ToggleTouchpad);   // devnode switch, no EC needed
+        Reg("Mic", ToggleMic);                                     // Core Audio mute flag, no EC needed
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -1922,6 +1957,8 @@ public sealed class TrayContext : ApplicationContext
         WinLockOn = () => _winLock.Enabled,
         SetWinLock = on => SetWinLockState(on, ChangeSource.Panel),
         TouchpadState = Touchpad.State,
+        MicState = Microphone.State,
+        SetMic = on => SetMicState(on, ChangeSource.Panel),
         SetTouchpad = on => SetTouchpadState(on, ChangeSource.Panel),
         OpenScenSettings = () => { OpenMain(MainTab.Settings); _main!.FocusScenVisibility(); },
         RunScene = s => ApplyScene(s, ChangeSource.Panel),          // (#21)

@@ -36,7 +36,7 @@ directory and it works even when the app can't start.
 | Command | Effect | Success output (stdout) |
 |---|---|---|
 | `--profile <Silent\|Balanced\|Extreme\|SuperBattery>` | Apply the profile recipe (+ the assigned fan-curve preset, if any) | `profile set: Silent` |
-| `--cycle` | Switch to the next profile in order | `profile set: <name>` |
+| `--cycle` | Switch to the next profile, in the order set under *Profile order* (Standard unless changed) | `profile set: <name>` |
 | `--fanboost on\|off [seconds]` | Full fan speed on/off; `off` re-asserts the active profile's fan mode. The optional seconds (10-7200) arm a one-off auto-off timer for this activation (**timer requires the app running**) | `fan boost: on (auto-off in 120 s)` |
 | `--curve "<preset>"` | Apply a saved fan-curve preset by name (case-insensitive). In Silent this switches to Balanced first (the Silent cap shares the fan byte) | `fan curve applied: <name>` |
 | `--curve auto` | Back to stock fan behaviour for the active profile | `fan curve: stock` |
@@ -48,6 +48,7 @@ directory and it works even when the app can't start.
 | `--brightness <0-100>` | Internal-panel brightness (WMI, driver-free) - works on any laptop; external monitors are not covered | `brightness: 45` |
 | `--hdr <on\|off>` | HDR / advanced color on every HDR-capable display (DisplayConfig API, any machine) | `hdr: on` |
 | `--touchpad <on\|off>` | Enable/disable the precision touchpad at the device level (same operation as Device Manager; admin, any machine). The in-app hotkey and a panic reset always re-enable it | `touchpad: off` |
+| `--mic <on\|off>` | Unmute / mute the default Windows recording device (the mute flag in the Windows sound settings; when calls use a different default device, both are switched). Works on any laptop, no EC involved | `microphone: off` |
 | `--kbd <off\|low\|mid\|high\|0-3>` | Keyboard-backlight level (models with the EC brightness register) | `keyboard backlight: high` |
 | `--webcam on\|off` | EC-level webcam switch - same switch as the Fn camera key. Refused while the hard camera block (Settings → System → Privacy) is active | `webcam: off` |
 | `--fnswap <left\|right>` | Which side the Fn key is on - the EC-persisted Fn/Windows swap (boards in msi-ec's `fn_win_swap` map) | `fn key: left` |

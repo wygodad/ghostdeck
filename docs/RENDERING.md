@@ -518,7 +518,8 @@ Carriers: `PowerMapForm` (profile → Windows power mode, `//WIN-POWER`; four ro
 icon, profile name and a three-way segmented picker), `SceneEditForm` (`//SCENE`; name and
 icon fields, then one row per setting with a painted switch and a picker), `ScheduleRuleForm`
 (`//SCHEDULE`; scene select, seven weekday cells of which any number can be lit, two time
-selects; a rule with no day keeps the card open with the day row marked) and `InputDialog`
+selects; a rule with no day keeps the card open with the day row marked), `ProfileOrderForm`
+(`//PROFILES`; two presets in one frame and four rows with painted up / down arrows) and `InputDialog`
 (one text field; an optional validator answers under the field - a taken preset name, a
 Fan Boost time outside 1-120 minutes - instead of opening a second window). The picker rule
 in the scene editor: two to four choices whose captions fit side by side become segments, all

@@ -49,6 +49,8 @@ public sealed class MainDeps
     public required Action<bool> SetWinLock { get; init; }
     public required Func<int> TouchpadState { get; init; }         // 1 = on, 0 = disabled, -1 = none
     public required Action<bool> SetTouchpad { get; init; }
+    public required Func<int> MicState { get; init; }              // 1 = on, 0 = muted, -1 = no recording device
+    public required Action<bool> SetMic { get; init; }
     public required Action OpenScenSettings { get; init; }         // gear on Scenarios -> Settings visibility card (flashed)
     public required Action<SceneDef> RunScene { get; init; }       // (#21) apply a scene now
     public required Func<bool> HasFanCurve { get; init; }          // model exposes editable fan-curve tables

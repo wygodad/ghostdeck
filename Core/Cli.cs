@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Turbo, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -39,6 +39,7 @@ public static class Cli
           GhostDeck.exe --brightness <0-100>    internal-panel brightness (works on any machine)
           GhostDeck.exe --hdr <on|off>          HDR / advanced color (HDR-capable displays)
           GhostDeck.exe --touchpad <on|off>     enable/disable the precision touchpad (device level)
+          GhostDeck.exe --mic <on|off>          unmute/mute the default Windows recording device (works on any machine)
           GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
           GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
@@ -111,6 +112,8 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.HdrSwitch, Arg1().ToLowerInvariant()) : null;
             case "--touchpad":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Touchpad, Arg1().ToLowerInvariant()) : null;
+            case "--mic":
+                return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Mic, Arg1().ToLowerInvariant()) : null;
             case "--turbo":
                 return Arg1().ToLowerInvariant() is "on" or "off" or "status" ? new CliCommand(CliKind.Turbo, Arg1().ToLowerInvariant()) : null;
             case "--scene":
@@ -275,6 +278,7 @@ public static class Cli
                         fnLeft,
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
+                        mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -364,6 +368,18 @@ public static class Cli
                     Console.WriteLine($"touchpad: {cmd.Arg}");
                     return 0;
                 }
+                case CliKind.Mic:
+                {
+                    // Core Audio mute flag of the default recording device - no EC needed.
+                    if (Microphone.State() < 0) { Console.WriteLine("no recording device found"); return 1; }
+                    bool on = cmd.Arg == "on";
+                    try { Microphone.Set(on); }
+                    catch (Exception ex) { Console.WriteLine($"microphone change failed ({ex.Message})"); return 1; }
+                    ChangeLog.Load();
+                    ChangeLog.Add(ChangeSource.Cli, $"Microphone: {(on ? "on" : "off")}");
+                    Console.WriteLine($"microphone: {cmd.Arg}");
+                    return 0;
+                }
             }
 
             if (dev == null) { Console.WriteLine($"unsupported hardware (firmware: {(fw.Length > 0 ? fw : "unknown")})"); return 1; }
@@ -379,8 +395,8 @@ public static class Cli
                     if (cmd.Kind == CliKind.Profile) id = Enum.Parse<ProfileId>(cmd.Arg);
                     else
                     {
-                        int i = Array.IndexOf(Profiles.Order, Ec.GetCurrent(dev));
-                        id = Profiles.Order[(i + 1) % Profiles.Order.Length];
+                        int i = Array.IndexOf(Profiles.Shown, Ec.GetCurrent(dev));   // "next" follows the order the user set
+                        id = Profiles.Shown[(i + 1) % Profiles.Shown.Length];
                     }
                     Ec.Apply(dev.Recipes[id]);
                     ApplyAssignedCurveOneShot(settings, dev, id);
