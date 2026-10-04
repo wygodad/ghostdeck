@@ -2874,8 +2874,7 @@ it clears only the HIDE bit of the setting attributes after storing the full ori
 **Card layout (final, owner-approved 2026-10-04).** A flat card, nothing collapsible, two
 groups set apart by extra space, each under a caption with a coloured marker. Group one, CPU
 TURBO BOOST: the main switch with its help dot; one status sentence (plain when on, an amber
-strip when the app switched it off or the two sources differ, a red one when it is off
-without a snapshot); an open table "Technical details" - a header row naming the active plan
+strip when it is off, with or without a snapshot, or when the two sources differ); an open table "Technical details" - a header row naming the active plan
 and the two sources, then *Now*, *Saved* (amber when a snapshot exists, "none" otherwise) and
 *Control separately* with one switch per source. Group two, WINDOWS POWER MODE: the
 four-segment control; under it the Auto sentence and, only on a real override, the amber

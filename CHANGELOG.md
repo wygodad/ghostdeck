@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
+  the state is information (turbo is off in the active Windows plan and GhostDeck has nothing
+  of its own to bring back), so it now uses the same amber strip with the "!" chip as the
+  card's other notes. The text is unchanged.
+
 ## [1.37.0] - 2026-10-04
 ### Fixed
 - **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured
