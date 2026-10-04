@@ -541,8 +541,9 @@ public sealed class StatusPage : ThemedPage
         if (info.BackupPath)
         {
             var noteFont = new Font("Segoe UI", 9.5f);
-            string note = Lang.T("backup_note") + Environment.NewLine
-                        + string.Format(Lang.T("backup_profile"), Profiles.Get(info.Profile).Label);
+            // the tiles show the profile once switching is unlocked; until then this line does
+            string note = Lang.T("backup_note") + (info.Active ? "" : Environment.NewLine
+                        + string.Format(Lang.T("backup_profile"), Profiles.Get(info.Profile).Label));
             int noteH = TextRenderer.MeasureText(g, note, noteFont, new Size(avail, int.MaxValue),
                 TextFormatFlags.WordBreak).Height;
             TextRenderer.DrawText(g, note, noteFont, new Rectangle(Pad, cardTop, avail, noteH),

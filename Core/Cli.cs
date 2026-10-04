@@ -390,7 +390,7 @@ public static class Cli
             if (dev == null) { Console.WriteLine($"unsupported hardware (firmware: {(fw.Length > 0 ? fw : "unknown")})"); return 1; }
             if (!writable)
             {
-                Console.WriteLine(Ec.OnBackupPath ? "backup WMI path - read-only in this build"
+                Console.WriteLine(Ec.OnBackupPath ? "backup WMI path - start the app; profile switching there needs the path test to pass first"
                                                   : "model is experimental - enable Experimental writes in the app settings first");
                 return 1;
             }

@@ -167,6 +167,18 @@ public static class ModelDb
             if (bp.GpuDuty != null) w.WriteString("gpuDuty", bp.GpuDuty.ToString());
             if (bp.CpuRpm != null) w.WriteString("cpuRpm", bp.CpuRpm.ToString());
             if (bp.GpuRpm != null) w.WriteString("gpuRpm", bp.GpuRpm.ToString());
+            void Curve(string name, BlockCurveSpec? c)
+            {
+                if (c == null) return;
+                w.WriteStartObject(name);
+                w.WriteString("class", c.Class);
+                w.WriteNumber("tempFirst", c.TempFirst);
+                w.WriteNumber("speedFirst", c.SpeedFirst);
+                w.WriteNumber("count", c.Count);
+                w.WriteEndObject();
+            }
+            Curve("cpuCurve", bp.CpuCurve);
+            Curve("gpuCurve", bp.GpuCurve);
             w.WriteEndObject();
         }
         if (d.Credit.Length > 0) w.WriteString("credit", d.Credit);
@@ -259,11 +271,16 @@ public static class ModelDb
         if (m.TryGetProperty("blockPath", out var bp))
         {
             BlockRef? Slot(string name) => bp.TryGetProperty(name, out var v) ? ParseSlot(v.GetString()) : null;
+            BlockCurveSpec? Curve(string name) => bp.TryGetProperty(name, out var c)
+                ? new BlockCurveSpec(c.GetProperty("class").GetString() ?? "", c.GetProperty("tempFirst").GetInt32(),
+                                     c.GetProperty("speedFirst").GetInt32(), c.GetProperty("count").GetInt32())
+                : null;
             blocks = new BlockPathSpec(
                 ParseSlot(bp.GetProperty("shiftMode").GetString()),
                 ParseSlot(bp.GetProperty("fanMode").GetString()),
                 ParseSlot(bp.GetProperty("cpuTemp").GetString()),
-                Slot("gpuTemp"), Slot("cpuDuty"), Slot("gpuDuty"), Slot("cpuRpm"), Slot("gpuRpm"));
+                Slot("gpuTemp"), Slot("cpuDuty"), Slot("gpuDuty"), Slot("cpuRpm"), Slot("gpuRpm"),
+                Curve("cpuCurve"), Curve("gpuCurve"));
         }
         return new DeviceProfile
         {
@@ -334,6 +351,12 @@ public static class ModelDb
                 if (!d.Recipes.TryGetValue(id, out var r) || r.Length == 0) { error = d.Name + ": missing recipe " + id; return false; }
             if (d.FanCurve is { } fc && fc.Points is < 1 or > 16) { error = d.Name + ": bad curve points"; return false; }
             if (d.FanCurve is { } fc2 && fc2.MaxFanPct is < 100 or > 200) { error = d.Name + ": bad curve max %"; return false; }
+            // A curve table on the backup path: a known block, two runs of the same length that do
+            // not overlap, and a temperature run that starts above the critical-limit slot.
+            foreach (var c in new[] { d.BlockPath?.CpuCurve, d.BlockPath?.GpuCurve })
+                if (c != null && (!EcBlocks.IsKnownClass(c.Class) || c.Count is < 2 or > 8 || c.TempFirst < 4
+                                  || c.SpeedFirst < c.TempFirst + c.Count || c.SpeedFirst + c.Count > 64))
+                { error = d.Name + ": bad block curve layout"; return false; }
             if (d.FourthMode is { } fm)
             {
                 if (string.IsNullOrWhiteSpace(fm.Name)) { error = d.Name + ": fourth mode without a name"; return false; }

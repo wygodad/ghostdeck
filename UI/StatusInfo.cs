@@ -13,5 +13,5 @@ public sealed record StatusInfo(
     // would provide (fans, RPM, profiles) is not.
     bool Telemetry = false,
     // Backup WMI path (TECHNICAL §39): the firmware refuses the method interface and the app
-    // reads this model through its data blocks. Read-only in this build.
+    // works with this model through its data blocks.
     bool BackupPath = false);

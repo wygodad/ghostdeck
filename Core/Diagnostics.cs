@@ -51,7 +51,7 @@ public static class Diagnostics
         AddText(zip, "msi-wmi-blocks.txt", MsiTelemetry.Dump());   // (#48) telemetry-mode triage
         AddText(zip, "wmi-interface.txt", WmiInterfaceInfo());     // (#56) schema/plumbing triage
 
-        foreach (var name in new[] { "settings.json", "changelog.json", "errors.log" })
+        foreach (var name in new[] { "settings.json", "changelog.json", "errors.log", "backup-path-test.txt" })
         {
             var p = Path.Combine(AppSettings.Dir, name);
             if (File.Exists(p)) zip.CreateEntryFromFile(p, name);

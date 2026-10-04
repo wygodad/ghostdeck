@@ -955,7 +955,19 @@
         "cpuDuty": "MSI_CPU[2]",
         "gpuDuty": "MSI_VGA[2]",
         "cpuRpm": "MSI_AP[2]",
-        "gpuRpm": "MSI_AP[4]"
+        "gpuRpm": "MSI_AP[4]",
+        "cpuCurve": {
+          "class": "MSI_CPU",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        },
+        "gpuCurve": {
+          "class": "MSI_VGA",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        }
       },
       "credit": "scorvus99",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
@@ -5389,7 +5401,19 @@
         "cpuDuty": "MSI_CPU[2]",
         "gpuDuty": "MSI_VGA[2]",
         "cpuRpm": "MSI_AP[2]",
-        "gpuRpm": "MSI_AP[4]"
+        "gpuRpm": "MSI_AP[4]",
+        "cpuCurve": {
+          "class": "MSI_CPU",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        },
+        "gpuCurve": {
+          "class": "MSI_VGA",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        }
       },
       "recipes": {
         "Silent": [

@@ -423,6 +423,8 @@ public static class PowerTest
     {
         if (simulating) return Lang.T("pt_block_sim");
         if (dev == null) return Lang.T("pt_block_unknown");
+        // The report is built on full register snapshots, which the backup WMI path cannot take.
+        if (Ec.OnBackupPath) return Lang.T("ec_err_backup_path");
         if (!writable) return Lang.T("pt_block_locked");
         if (!OnAc()) return Lang.T("pt_block_battery");
         return null;
@@ -436,7 +438,7 @@ public static class PowerTest
     /// delivered performance rather than a sensor. Threads run below normal priority so the window
     /// keeps repainting, which costs the same in every phase and so cancels out of the comparison.
     /// </summary>
-    private sealed class CpuLoad : IDisposable
+    internal sealed class CpuLoad : IDisposable
     {
         private const int Block = 50_000;
         private readonly Thread[] _threads;

@@ -90,6 +90,14 @@ public sealed class AppSettings
     public bool ExperimentalWriteAllowedFor(string? prefix) =>
         prefix != null && ExperimentalWriteFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
 
+    // Backup WMI path: firmware labels (EC prefix + BIOS version) on which the path test has
+    // passed ON THIS MACHINE. Profile switching through that path is unlocked only for these.
+    // Machine-local like LastFirmware: never imported from another machine's settings file.
+    public List<string> BackupPathPassed { get; set; } = new();
+
+    public bool BackupPathPassedFor(string? firmware) =>
+        !string.IsNullOrEmpty(firmware) && BackupPathPassed.Contains(firmware, StringComparer.OrdinalIgnoreCase);
+
     // Apex: per-model opt-in for the fourth shift mode (the Extreme recipe then writes the
     // entry's FourthMode value instead of the turbo one). Keyed by firmware prefix, same
     // pattern as the experimental-writes consent. ApexConfirmed = the one-time explainer
@@ -591,6 +599,7 @@ public sealed class AppSettings
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
             ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),
+            BackupPathPassed = new List<string>(BackupPathPassed),
             ApexFw = new List<string>(ApexFw),
             ApexConfirmed = ApexConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,

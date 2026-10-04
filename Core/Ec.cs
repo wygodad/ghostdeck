@@ -100,7 +100,13 @@ public static class Ec
     /// <summary>Write one EC byte (own session handling).</summary>
     private static void WriteRaw(byte addr, byte val)
     {
-        if (_backup != null) throw new EcPathException("This build does not write on the backup WMI path.");
+        if (_backup is { } b)
+        {
+            if (!b.Slots.TryGetValue(addr, out var slot))
+                throw new EcPathException($"Register 0x{addr:X2} is not available on the backup WMI path.");
+            BackupWrite(slot, val);
+            return;
+        }
         WithSession((inst, pkg) => WriteWith(inst, pkg, addr, val));
     }
 
@@ -110,10 +116,50 @@ public static class Ec
     // that layout on record (DeviceProfile.BlockPath), reads are routed there: the rest of the
     // app keeps asking for "this model's shift register" by the address in its entry, and the
     // table below turns exactly those named registers into class[index] slots. Any other
-    // address has no slot and is refused. This build reads only.
+    // address has no slot and is refused.
+    //
+    // Writes pass three checks, all here and nowhere else (BackupWrite):
+    //  1. the gate is open - it opens for the duration of the path test and stays open on a
+    //     machine where that test has passed (the caller keeps that fact, see OpenBackupWrites);
+    //  2. the slot is on the allow-list - the shift-mode and fan-mode slots from the start, a
+    //     fan-curve speed slot only while the path test has registered it;
+    //  3. the value is on that slot's list - the values the model's own profile recipes carry,
+    //     plus what the path test registers: the original value it has to put back, and for a
+    //     curve slot one value the table already contains.
 
-    private sealed record BackupState(DeviceProfile Dev, BlockPathSpec Spec, Dictionary<byte, BlockRef> Slots);
+    private sealed record BackupState(DeviceProfile Dev, BlockPathSpec Spec, Dictionary<byte, BlockRef> Slots,
+                                      Dictionary<BlockRef, HashSet<byte>> Allowed);
     private static volatile BackupState? _backup;
+    private static volatile bool _backupWritesOpen;
+
+    /// <summary>Open or close the write gate of the backup path. Closed until someone opens it.</summary>
+    public static void OpenBackupWrites(bool open) => _backupWritesOpen = open;
+    public static bool BackupWritesOpen => _backupWritesOpen;
+
+    /// <summary>The layout in effect while the backup path is active, for the path test.</summary>
+    public static BlockPathSpec? BackupSpec => _backup?.Spec;
+
+    /// <summary>Put values on a slot's allow-list (path test only: originals to restore, one curve value).</summary>
+    internal static void BackupAllow(BlockRef slot, params byte[] values)
+    {
+        if (_backup is not { } b) return;
+        lock (b.Allowed)
+        {
+            if (!b.Allowed.TryGetValue(slot, out var set)) b.Allowed[slot] = set = new HashSet<byte>();
+            foreach (var v in values) set.Add(v);
+        }
+    }
+
+    /// <summary>The one place a byte is written on the backup path.</summary>
+    internal static void BackupWrite(BlockRef slot, byte value)
+    {
+        if (_backup is not { } b) throw new EcPathException("The backup WMI path is not active.");
+        if (!_backupWritesOpen) throw new EcPathException("Writes on the backup WMI path are locked until the path test has passed on this machine.");
+        bool ok;
+        lock (b.Allowed) ok = b.Allowed.TryGetValue(slot, out var set) && set.Contains(value);
+        if (!ok) throw new EcPathException($"{slot} = 0x{value:X2} is not on the list of values this path may write.");
+        lock (_wmiLock) EcBlocks.Write(slot, value);
+    }
 
     /// <summary>True while EC reads go through the data blocks instead of the MSI_ACPI methods.</summary>
     public static bool OnBackupPath => _backup != null;
@@ -128,7 +174,14 @@ public static class Ec
         if (spec.GpuTemp != null) slots[dev.GpuTemp] = spec.GpuTemp;
         if (spec.CpuDuty != null) slots[dev.CpuFan] = spec.CpuDuty;
         if (spec.GpuDuty != null) slots[dev.GpuFan] = spec.GpuDuty;
-        return new BackupState(dev, spec, slots);
+        // What the profile recipes of this model write to its shift-mode and fan-mode registers.
+        // A recipe byte for any other register has no slot and never gets this far.
+        var allowed = new Dictionary<BlockRef, HashSet<byte>>
+        {
+            [spec.ShiftMode] = new(dev.Recipes.Values.SelectMany(r => r).Where(p => p.addr == dev.ShiftMode).Select(p => p.val)),
+            [spec.FanMode] = new(dev.Recipes.Values.SelectMany(r => r).Where(p => p.addr == dev.FanMode).Select(p => p.val)),
+        };
+        return new BackupState(dev, spec, slots, allowed);
     }
 
     private static byte BackupRead(BackupState b, byte addr) =>
@@ -185,7 +238,7 @@ public static class Ec
             _backup = BuildBackup(dev, spec);
             _firmwareCache = fw;
         }
-        return Done(true, fw, dev, bios, $"{prefix}: active, read-only");
+        return Done(true, fw, dev, bios, $"{prefix}: active");
     }
 
     /// <summary>

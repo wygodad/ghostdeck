@@ -82,8 +82,11 @@ public sealed class TrayContext : ApplicationContext
     private bool _battLowFired, _battHighFired;
 
     private bool Known => _device != null;
-    // The backup WMI path is read-only in this build, whatever the tier or the consent says.
-    private bool Writable => Known && !Ec.OnBackupPath && (_device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
+    // On the backup WMI path the tier and the experimental consent do not apply: writing there is
+    // unlocked by the path test passing on this very machine (Core/BackupPathTest.cs).
+    private bool Writable => Known && (Ec.OnBackupPath
+        ? _settings.BackupPathPassedFor(_firmware)
+        : _device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
     // Automatic (non user-initiated) writes are additionally blocked after a firmware change until acknowledged.
     private bool AutoWritable => Writable && !_firmwareChanged;
 
@@ -114,6 +117,12 @@ public sealed class TrayContext : ApplicationContext
         if (!_simulate && probe.Status == FirmwareProbeStatus.NotSupported && Ec.TryBackupPath() is { Active: true } bp)
             _firmware = bp.Firmware;
         _device = Devices.Detect(_firmware);
+        if (Ec.OnBackupPath)
+        {
+            // a path test that never reached its own restore is undone before anything else
+            if (BackupPathTest.RecoverPending(_firmware) is { } recovered) ChangeLog.Add(ChangeSource.Test, recovered);
+            Ec.OpenBackupWrites(Writable);
+        }
         if (_settings.MigrateExperimentalFlag(_device?.MatchedPrefix(_firmware), _device is { Tier: Tier.Experimental }))
             _settings.Save();
         // A hard startup failure finally lands in errors.log (#56 was undiagnosable from logs);
@@ -175,6 +184,7 @@ public sealed class TrayContext : ApplicationContext
 
         ShowState();
         if (_firmwareChanged) ShowFirmwareDialog();
+        else if (Ec.OnBackupPath && !Writable) PromptBackupTest();
         if (travelEnded != null)
         {
             _balloonUrl = null;
@@ -377,7 +387,7 @@ public sealed class TrayContext : ApplicationContext
                 }
             }
 
-            if (!Writable) return "1|" + (Ec.OnBackupPath ? "backup WMI path - read-only in this build"
+            if (!Writable) return "1|" + (Ec.OnBackupPath ? "backup WMI path - run the path test in the app first (tray menu)"
                                         : Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
             switch (cmd.Kind)
             {
@@ -521,13 +531,119 @@ public sealed class TrayContext : ApplicationContext
 
     private string DeviceName() => Known ? _device!.Name : Lang.T("unsupported_title");
 
+    // ---------------- backup path test ----------------
+    private Form? _bptCard;                         // the test's card on screen (intro, running or result)
+    private CancellationTokenSource? _bptCts;
+    private Task<BackupPathTest.Result>? _bptTask;  // kept so app exit can wait for the restore
+
+    // Offered once per start while the test has not passed here. Via a one-shot timer so the
+    // card opens once the message loop is running.
+    private void PromptBackupTest()
+    {
+        var t = new System.Windows.Forms.Timer { Interval = 1800 };
+        t.Tick += (_, _) => { t.Stop(); t.Dispose(); ShowBackupTest(); };
+        t.Start();
+    }
+
+    private void ShowBackupTest()
+    {
+        if (!Ec.OnBackupPath || !Known) return;
+        if (_bptCard is { IsDisposed: false }) { _bptCard.Activate(); return; }
+        if (_bptTask is { IsCompleted: false }) return;
+        GhostCardForm card = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online
+            ? new BackupTestIntroForm(RunBackupTest)
+            : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), Lang.T("pt_block_battery"), Lang.T("set_close"), "", () => { });
+        _bptCard = card;
+        card.Show();
+        card.Activate();
+    }
+
+    private async void RunBackupTest(bool withCurve)
+    {
+        var dev = _device!;
+        _bptCts = new CancellationTokenSource();
+        var cts = _bptCts;
+        var run = new BackupTestRunForm(withCurve, () => { try { cts.Cancel(); } catch { } });
+        _bptCard = run;
+        run.Show();
+        run.Activate();
+
+        BackupPathTest.Result? result = null;
+        string error = "";
+        // The run owns the controller: the poll's profile re-detection and a model-database swap
+        // both wait until it is over.
+        using (EcBusy())
+        {
+            try
+            {
+                var sink = new Progress<BackupPathTest.Progress>(run.Advance);
+                _bptTask = BackupPathTest.RunAsync(dev, AppVersion(), _firmware, withCurve, sink, cts.Token);
+                result = await _bptTask;
+            }
+            catch (Exception ex) { error = ex.Message; }
+        }
+        run.Finish();
+        if (result == null)
+        {
+            ShowBackupTestResult(string.Format(Lang.T("bpt_res_error"), error), null);
+            return;
+        }
+
+        // A pass unlocks profile switching on this machine; a run that shows the path not
+        // working locks it again. A cancelled or refused run changes nothing.
+        bool had = _settings.BackupPathPassedFor(_firmware);
+        if (result.Passed && !had) _settings.BackupPathPassed.Add(_firmware);
+        else if (had && result.Verdict is BackupPathTest.Verdict.NoEffect or BackupPathTest.Verdict.WriteNotKept
+                                       or BackupPathTest.Verdict.RestoreUnconfirmed)
+            _settings.BackupPathPassed.RemoveAll(f => string.Equals(f, _firmware, StringComparison.OrdinalIgnoreCase));
+        _settings.Save();
+        Ec.OpenBackupWrites(Writable);
+
+        string? path = BackupPathTest.SaveReport(result);
+        ChangeLog.Add(ChangeSource.Test, Lang.T("bpt_title"), result.Verdict + (result.Detail.Length > 0 ? " - " + result.Detail : ""));
+        try { _current = Ec.GetCurrent(dev); } catch { }
+        BuildMenu();
+        UpdateUi(_current);
+
+        string text = result.Verdict switch
+        {
+            BackupPathTest.Verdict.Passed => Lang.T("bpt_res_pass"),
+            BackupPathTest.Verdict.NoEffect => Lang.T("bpt_res_noeffect"),
+            BackupPathTest.Verdict.WriteNotKept => Lang.T("bpt_res_nowrite"),
+            BackupPathTest.Verdict.RestoreUnconfirmed => Lang.T("bpt_res_restore"),
+            BackupPathTest.Verdict.Cancelled => Lang.T("bpt_res_cancel"),
+            _ => string.Format(Lang.T("bpt_res_error"), result.Detail),
+        };
+        string? curve = result.Curve.Verdict switch
+        {
+            BackupPathTest.CurveVerdict.EveryProfile => Lang.T("bpt_curve_all"),
+            BackupPathTest.CurveVerdict.ExtremeOnly => Lang.T("bpt_curve_extreme"),
+            BackupPathTest.CurveVerdict.NoReaction => Lang.T("bpt_curve_none"),
+            _ => null,
+        };
+        if (curve != null) text += Environment.NewLine + Environment.NewLine + curve;
+        ShowBackupTestResult(text, path);
+    }
+
+    private void ShowBackupTestResult(string text, string? reportPath)
+    {
+        if (reportPath != null) text += Environment.NewLine + Environment.NewLine + string.Format(Lang.T("bpt_saved"), reportPath);
+        var card = reportPath != null
+            ? new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), text, Lang.T("bpt_open"), Lang.T("set_close"),
+                () => { try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + reportPath + "\""); } catch { } })
+            : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), text, Lang.T("set_close"), "", () => { });
+        _bptCard = card;
+        card.Show();
+        card.Activate();
+    }
+
     private (string text, Color color) TierBadge()
     {
         // Theme-aware badge colours matching the ghostdeck.dev chips: positive = accent,
         // limited = amber, unsupported = pink/red.
         if (!Known) return _telemetryOnly ? (Lang.T("tier_telemetry"), Theme.Amber)
                                           : (Lang.T("tier_unsupported"), Theme.Red);
-        if (Ec.OnBackupPath) return (Lang.T("tier_backup_ro"), Theme.Amber);
+        if (Ec.OnBackupPath) return Writable ? (Lang.T("tier_backup"), Theme.Accent) : (Lang.T("tier_backup_pending"), Theme.Amber);
         return _device!.Tier == Tier.Tested
             ? (Lang.T("tier_tested"),       Theme.Accent)
             : (Lang.T("tier_experimental"), Theme.Amber);
@@ -537,7 +653,7 @@ public sealed class TrayContext : ApplicationContext
     {
         if (!Known) return (_telemetryOnly ? Lang.T("tier_telemetry") : Lang.T("unsupported_title"))
                          + (_simulate ? "  (test)" : "");
-        string tier = Ec.OnBackupPath ? Lang.T("tier_backup_ro")
+        string tier = Ec.OnBackupPath ? Lang.T(Writable ? "tier_backup" : "tier_backup_pending")
                     : _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
                     : Writable ? Lang.T("tier_experimental")
                     : Lang.T("experimental_locked");
@@ -547,7 +663,7 @@ public sealed class TrayContext : ApplicationContext
     private void ShowState()
     {
         if (Writable) ShowOsd(_current);
-        else if (Ec.OnBackupPath) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("backup_ro_sub"), Color.Gray);
+        else if (Ec.OnBackupPath) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("backup_locked_sub"), Color.Gray);
         else if (Known) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
         else _osd.ShowProfile(OsdPrefix + Lang.T("unsupported_title"), ProbeSubtitle(), Color.Gray);
     }
@@ -717,10 +833,17 @@ public sealed class TrayContext : ApplicationContext
 
         menu.Items.Add(new ToolStripSeparator());
 
-        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost")) { Enabled = Writable, CheckOnClick = false };
+        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost")) { Enabled = Writable && !Ec.OnBackupPath, CheckOnClick = false };
         SetDot(_coolerItem, _coolerBoost);
         _coolerItem.Click += (_, _) => ToggleCoolerBoost();
         menu.Items.Add(_coolerItem);
+
+        if (Ec.OnBackupPath)
+        {
+            var bpt = new ToolStripMenuItem(Lang.T("bpt_title") + "…");
+            bpt.Click += (_, _) => ShowBackupTest();
+            menu.Items.Add(bpt);
+        }
 
         _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { CheckOnClick = false };
         SetDot(_overlayItem, OverlayVisible);
@@ -1482,6 +1605,12 @@ public sealed class TrayContext : ApplicationContext
     private void SetCoolerBoostState(bool next, bool auto = false, bool osd = true)
     {
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
+        if (Ec.OnBackupPath)   // the Fan Boost register has no slot there
+        {
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("cooler_boost"), Lang.T("backup_na"), Color.Gray);
+            UpdateCoolerBoostMenu();
+            return;
+        }
         if (next == _coolerBoost) { UpdateCoolerBoostMenu(); return; }
         using var _ec = EcBusy();
         try
@@ -2234,7 +2363,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (AutoWritable && !_simulate && AppSettings.ChargeManaged(_settings.ChargeLimit))
+        if (AutoWritable && !_simulate && !Ec.OnBackupPath && AppSettings.ChargeManaged(_settings.ChargeLimit))
         {
             using var _ec = EcBusy();
             try
@@ -2327,7 +2456,8 @@ public sealed class TrayContext : ApplicationContext
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
                     (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
-                ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
+                if (!Ec.OnBackupPath)   // the charge register has no slot on the backup path
+                    ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
                 if (_settings.TempTrayCpu || _settings.TempTrayGpu) ui?.Post(_ => UpdateTempTrays(hw), null);
             }
             catch { }
@@ -2646,13 +2776,14 @@ public sealed class TrayContext : ApplicationContext
         CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
         if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
 
-        if (!Writable)
+        if (Ec.OnBackupPath)
         {
-            // Read-only backup path: the one thing to follow is the profile the hardware reports
-            // (the vendor's own software may switch it).
-            if (Ec.OnBackupPath) { try { SyncProfileFromEc(); } catch { } }
+            // No Fan Boost or webcam register on this path: the one thing to follow is the
+            // profile the hardware reports (the vendor's own software may switch it).
+            try { SyncProfileFromEc(); } catch { }
             return;
         }
+        if (!Writable) return;
 
         try
         {
@@ -2709,6 +2840,8 @@ public sealed class TrayContext : ApplicationContext
         // A power test restores the controller on a background thread; ExitThread would kill it
         // mid-sequence, so give that restore a bounded chance to finish before the window goes.
         if (_main is { IsDisposed: false }) _main.StopPowerTest(wait: true);
+        // Same for a path test: cancel it and let its restore run before the process goes.
+        if (_bptTask is { IsCompleted: false }) { try { _bptCts?.Cancel(); _bptTask.Wait(8000); } catch { } }
         _main?.Close();
         _overlay?.Close();
         _report?.Close();

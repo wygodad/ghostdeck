@@ -23,11 +23,15 @@ public sealed class EcPathException : InvalidOperationException
 /// value sits in a property named after the class. A slot is addressed as class[index] - the
 /// index the firmware itself uses.
 ///
-/// READ-ONLY: this class has no write routine at all.
+/// This class is the transport only. <see cref="Write"/> stores one slot and decides nothing:
+/// which slots may be written, with which values and when is decided in Ec (BackupWrite),
+/// the single caller.
 ///
 /// MSIPS_BLOCKS_FILE=&lt;msi-wmi-blocks.txt&gt; replays a saved block dump instead of querying
 /// WMI, and MSIPS_BLOCKS_BIOS supplies the BIOS version string to go with it (this-machine
-/// testing hook, same spirit as MSIPS_FORCE_FIRMWARE).
+/// testing hook, same spirit as MSIPS_FORCE_FIRMWARE). In a replay a write lands in the
+/// in-memory copy of the dump; MSIPS_BLOCKS_STUCK=1 makes the copy ignore writes, which is how
+/// a firmware that accepts a write and keeps the old value looks from here.
 /// </summary>
 public static class EcBlocks
 {
@@ -103,6 +107,50 @@ public static class EcBlocks
 
     /// <summary>Drop cached block values (after sleep/resume the first sample must be fresh).</summary>
     public static void DropCache() { lock (_lock) _cache.Clear(); }
+
+    /// <summary>One slot, read from the firmware now rather than from the one-second cache.</summary>
+    public static int ReadFresh(BlockRef r)
+    {
+        lock (_lock) _cache.Remove(r.Class);
+        return Read(r);
+    }
+
+    /// <summary>
+    /// Store one slot: the instance is found by its index, its value property is set and the
+    /// instance is put back - Windows then calls the firmware's write routine for that block
+    /// with the index and the value. The value keeps the property's own numeric type.
+    /// Internal: Ec.BackupWrite is the only caller and holds every rule about what may be written.
+    /// </summary>
+    internal static void Write(BlockRef r, byte value)
+    {
+        if (!IsKnownClass(r.Class)) throw new EcPathException("Unknown data block " + r.Class);
+        try
+        {
+            if (Replaying)
+            {
+                var block = ReplayClass(r.Class);
+                if (!block.ContainsKey(r.Index)) throw new EcPathException($"{r} is not served by this firmware");
+                if (Environment.GetEnvironmentVariable("MSIPS_BLOCKS_STUCK") != "1") block[r.Index] = value;
+                return;
+            }
+            string prop = Prop(r.Class);
+            using var searcher = new ManagementObjectSearcher(@"root\wmi", $"SELECT * FROM {r.Class}");
+            foreach (ManagementObject o in searcher.Get())
+                using (o)
+                {
+                    if (IndexOf(o["InstanceName"]?.ToString()) != r.Index) continue;
+                    object? cur = o[prop];
+                    o[prop] = cur != null ? Convert.ChangeType(value, cur.GetType()) : value;
+                    o.Put();
+                    return;
+                }
+            throw new EcPathException($"{r} is not served by this firmware");
+        }
+        finally
+        {
+            lock (_lock) _cache.Remove(r.Class);   // the next read of this block comes from the firmware
+        }
+    }
 
     // ---------------- BIOS version -> board code ----------------
 

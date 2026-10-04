@@ -55,7 +55,21 @@ public sealed record BlockPathSpec(
     BlockRef ShiftMode, BlockRef FanMode, BlockRef CpuTemp,
     BlockRef? GpuTemp = null,
     BlockRef? CpuDuty = null, BlockRef? GpuDuty = null,
-    BlockRef? CpuRpm = null, BlockRef? GpuRpm = null);
+    BlockRef? CpuRpm = null, BlockRef? GpuRpm = null,
+    BlockCurveSpec? CpuCurve = null, BlockCurveSpec? GpuCurve = null);
+
+/// <summary>
+/// Where one fan's curve table sits inside a data block: <see cref="Count"/> temperature
+/// slots from <see cref="TempFirst"/> (the first is the 0-degree anchor) and as many speed
+/// slots from <see cref="SpeedFirst"/>. Recorded so the path test can check whether the
+/// firmware follows the table; no editor uses it. The slot just below the temperature run
+/// holds the firmware's critical-temperature limit and is never part of a table.
+/// </summary>
+public sealed record BlockCurveSpec(string Class, int TempFirst, int SpeedFirst, int Count)
+{
+    public BlockRef Temp(int i) => new(Class, TempFirst + i);
+    public BlockRef Speed(int i) => new(Class, SpeedFirst + i);
+}
 
 /// <summary>
 /// Per-model EC definition: firmware match, EC addresses, per-profile recipes, and a tier.
@@ -220,13 +234,17 @@ public static class Devices
     // and a GF65 Thin 10UE (issue #117): the same instance count in every block and the same
     // slots. Shift mode and fan mode sit in MSI_System (196 / 13 / 141 = C4 / 0D / 8D in the
     // dumps), live temperature and fan duty in MSI_CPU / MSI_VGA, the fan tachometers in MSI_AP
-    // (0 while a fan stands still, 478000 / raw otherwise). A model gets this layout only once
-    // its own dump shows it - the layout is never assumed from the generation.
+    // (0 while a fan stands still, 478000 / raw otherwise). Each fan's curve table is seven
+    // temperature slots from index 4 (the 0-degree anchor, then six thresholds: 55 64 73 76 82 88
+    // on the GF65, 55 60 70 78 85 90 on the Delta) and seven speed slots from index 11; index 3
+    // is the critical-temperature limit and belongs to no table. A model gets this layout only
+    // once its own dump shows it - the layout is never assumed from the generation.
     private static readonly BlockPathSpec DragonEraBlocks = new(
         ShiftMode: new("MSI_System", 7), FanMode: new("MSI_System", 9),
         CpuTemp: new("MSI_CPU", 1), GpuTemp: new("MSI_VGA", 1),
         CpuDuty: new("MSI_CPU", 2), GpuDuty: new("MSI_VGA", 2),
-        CpuRpm: new("MSI_AP", 2), GpuRpm: new("MSI_AP", 4));
+        CpuRpm: new("MSI_AP", 2), GpuRpm: new("MSI_AP", 4),
+        CpuCurve: new("MSI_CPU", 4, 11, 7), GpuCurve: new("MSI_VGA", 4, 11, 7));
 
     // ---------------------------------------------------------------------
     // (#26) Keyboard-backlight level register, per firmware prefix. Generated from msi-ec's
