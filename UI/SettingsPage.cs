@@ -1249,7 +1249,7 @@ public sealed class SettingsPage : ThemedPage
             };
             micCard.AddRow(null, micInfo);
             micCard.AddRow(Lang.T("mic_title"), Toggle(D.MicState() == 1, v => D.SetMic(v)));
-            _gRight[SubSystem].Add(micCard);
+            _gLeft[SubSystem].Add(micCard);
         }
 
         // Fn/Win key swap - EC-persisted layout switch (msi-ec fn_win_swap), only on mapped boards.

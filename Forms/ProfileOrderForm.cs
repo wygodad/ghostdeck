@@ -6,7 +6,8 @@ namespace GhostDeck;
 /// per profile with an up and a down arrow for any other order. Save stores the order in
 /// <see cref="AppSettings.ProfileOrder"/> (empty = the standard one) and makes it current
 /// through <see cref="Profiles.SetShown"/>; the tiles, the tray menu, the profile lists and
-/// "next profile" all read it from there.
+/// "next profile" all read it from there. While the rows match neither preset, an amber
+/// note under the presets says that an own order is in use.
 /// Keyboard: ↑/↓ pick a row, Ctrl+↑ / Ctrl+↓ move it, Enter saves.
 /// </summary>
 public sealed class ProfileOrderForm : GhostCardForm
@@ -43,7 +44,35 @@ public sealed class ProfileOrderForm : GhostCardForm
     private static int RowH(float k) => Ce(46 * k);
     private static int PresetH(float k) => Ce(34 * k) + Ce(14 * k);
 
-    protected override int MeasureContent(Graphics g, float k, int width) => PresetH(k) + _order.Count * RowH(k) + Ce(4 * k);
+    private bool OwnOrder => !_order.SequenceEqual(Profiles.Order) && !_order.SequenceEqual(Profiles.ByPower);
+
+    // The amber note: tinted strip, 3 px rail, the "!" chip - the look of the notes in the
+    // Windows power card. Measured and painted by one routine so the two cannot drift apart.
+    private int Note(Graphics g, float k, Rectangle area, int y, bool paint)
+    {
+        int padY = Ce(11 * k), chip = Ce(18 * k), tx = Ce(16 * k) + chip + Ce(12 * k);
+        int textW = area.Width - tx - Ce(16 * k);
+        using var wrap = new StringFormat();
+        int th = Ce(g.MeasureString(Lang.T("po_custom"), LabelFont, textW, wrap).Height);
+        int h = Math.Max(th, chip) + padY * 2;
+        if (paint)
+        {
+            var box = new Rectangle(area.X, y, area.Width, h);
+            using (var bb = new SolidBrush(Color.FromArgb(26, Amber))) g.FillRectangle(bb, box);
+            using (var rb = new SolidBrush(Amber)) g.FillRectangle(rb, box.X, box.Y, Ce(3 * k), h);
+            var cr = new RectangleF(box.X + Ce(16 * k) + 0.5f, box.Y + (h - chip) / 2f + 0.5f, chip - 1, chip - 1);
+            using (var cp = RoundPath(cr, Ce(5 * k)))
+            using (var pen = new Pen(Amber, 1.4f * k)) g.DrawPath(pen, cp);
+            using var amberB = new SolidBrush(Amber);
+            using var bang = new Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+            g.DrawString("!", bang, amberB, cr, CenterText);
+            g.DrawString(Lang.T("po_custom"), LabelFont, amberB, new RectangleF(box.X + tx, box.Y + (h - th) / 2f, textW, th), wrap);
+        }
+        return h + Ce(12 * k);
+    }
+
+    protected override int MeasureContent(Graphics g, float k, int width) =>
+        PresetH(k) + (OwnOrder ? Note(g, k, new Rectangle(0, 0, width, 0), 0, false) : 0) + _order.Count * RowH(k) + Ce(4 * k);
 
     protected override void PaintContent(Graphics g, float k, Rectangle area, Point origin)
     {
@@ -69,6 +98,7 @@ public sealed class ProfileOrderForm : GhostCardForm
 
         // the rows: icon, name, and the two arrows on the right
         int rowH = RowH(k), y0 = area.Y + PresetH(k), icon = Ce(22 * k), btn = Ce(32 * k);
+        if (OwnOrder) y0 += Note(g, k, area, y0, true);
         for (int i = 0; i < _order.Count; i++)
         {
             var id = _order[i];
