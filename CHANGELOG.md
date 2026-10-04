@@ -22,10 +22,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   @r7v9r4hmm8-png) - a third temperature icon for the hottest drive, next to the CPU and GPU
   ones, with the same warning / hot thresholds and colours (Settings → System → Temperature in
   the tray).
-- **Tray temperature icons say what they measure** - each icon carries a colour bar under its
-  digits, blue for CPU, violet for GPU and green for SSD by default, so the icons can be told
-  apart without hovering over them. The colours are editable and the bar can be switched off
-  (Settings → System → Temperature in the tray).
+- **Tray temperature icons say what they measure** - each icon carries a small mark in a colour
+  of its own, so the icons can be told apart without hovering over them. The mark is a bar under
+  the digits by default; a dot, a corner or no mark can be picked instead, and the colours (by
+  default the Silent, Extreme and Super Battery profile colours: blue for CPU, pink for GPU,
+  green for SSD) are editable (Settings → System → Temperature in the tray).
 - **CPU model in the overlay** ([discussion #150](../../discussions/150), thanks
   @r7v9r4hmm8-png) - a new overlay item shows the processor as people name it ("i9-13980HX",
   "Ultra 9 185H", "Ryzen AI 9 HX 370").

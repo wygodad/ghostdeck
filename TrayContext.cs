@@ -2361,7 +2361,7 @@ public sealed class TrayContext : ApplicationContext
 
     private Color? Mark(string hex)
     {
-        if (!_settings.TempTrayMark) return null;
+        if (_settings.TempTrayMarkStyle == (int)TrayMarker.None) return null;
         try { return ColorTranslator.FromHtml(hex); } catch { return null; }
     }
 
@@ -2393,10 +2393,11 @@ public sealed class TrayContext : ApplicationContext
         icon.ContextMenuStrip = _tray.ContextMenuStrip;
         icon.Text = noReading ? $"{label} --" : $"{label} {temp} °C";
         var fg = noReading ? Theme.Faint : TempTrayColor(temp);
-        // the key carries both colours, so a colour changed in Settings shows on the next update
-        string key = $"{text}|{fg.ToArgb()}|{mark?.ToArgb()}";
+        // the key carries the colours and the mark style, so a change in Settings shows on the next update
+        var style = (TrayMarker)_settings.TempTrayMarkStyle;
+        string key = $"{text}|{fg.ToArgb()}|{mark?.ToArgb()}|{style}";
         if (key == shown) return;                        // nothing to redraw
-        var next = TrayIconFactory.TextIcon(text, fg, mark);
+        var next = TrayIconFactory.TextIcon(text, fg, mark, style);
         icon.Icon = next;
         current?.Dispose();
         current = next;

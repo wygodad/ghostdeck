@@ -1988,16 +1988,19 @@ The disk read happens in the background sampler next to the EC read (`Perf.Disks
 10 s), never on the UI thread. The card says in amber (`temptray_ssd_note`) that this icon is the
 hottest drive, which matters on two-drive laptops.
 
-**Source mark.** Three icons with bare digits look alike, so each one carries a colour bar under
-its digits in its source's own colour (`TempTrayMark`, on by default; `TempTrayMarkCpu/Gpu/Ssd`,
-blue / violet / green by default, none of them one of the threshold colours, editable as a colour
-row in the same card and reset with the other colours). The bar costs the digits nothing: two
-digits are wider than tall, so they are fitted by width and leave a band above and below; the bar
-(`max(2, S/7)` px with a 1 px gap) sits in the lower band and the digits move up into the upper
-one (`TrayIconFactory.TextBitmap`). A dot in a corner and a corner triangle were rendered too
-(render harness `trayvariants`) and rejected: at 16 px both cover part of a digit. The icon is
-rebuilt when the text, the digit colour or the mark colour changes - the cache key carries all
-three, so a colour changed in Settings shows on the next update.
+**Source mark.** Three icons with bare digits look alike, so each one carries a mark in its
+source's own colour. The style is a choice in the same card (`TempTrayMarkStyle` = `TrayMarker`):
+a **bar under the digits** (default), a **dot** in the top-right corner, a **corner** triangle in
+the top-left, or **none**. The colours (`TempTrayMarkCpu/Gpu/Ssd`) default to the profile colours
+of Silent (blue), Extreme (pink) and Super Battery (green) - none of them a threshold colour - and
+are editable as a colour row; "reset" restores style and colours with the rest of the card. The
+bar is the default because it costs the digits nothing: two digits are wider than tall, so they
+are fitted by width and leave a band above and below; the bar (`max(2, S/7)` px with a 1 px gap)
+sits in the lower band and the digits move up into the upper one (`TrayIconFactory.TextBitmap`).
+The dot and the corner cover a sliver of a digit at 16 px (render harness `trayvariants`), which
+is why they are offered, not chosen. The icon is rebuilt when the text, the digit colour, the mark
+colour or the style changes - the cache key carries all four, so a change in Settings shows on the
+next update.
 
 All three icons are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
 in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card

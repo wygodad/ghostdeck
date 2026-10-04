@@ -1143,8 +1143,16 @@ public sealed class SettingsPage : ThemedPage
                 Text = Lang.T("temptray_ssd_note"), AutoSize = true, MaximumSize = new Size(360, 0),
                 Font = new Font("Segoe UI", 9f), Tag = "warn",
             });
-            tt.AddRow(Lang.T("temptray_mark"), Toggle(D.Settings.TempTrayMark,
-                v => { D.Settings.TempTrayMark = v; D.SaveSettings(); D.SettingsChanged(); }));
+            // bar first (the default), then the two that cover a sliver of a digit at 16 px, then none
+            var markStyles = new[] { TrayMarker.Underline, TrayMarker.Dot, TrayMarker.Corner, TrayMarker.None };
+            var mark = Combo(new[] { Lang.T("tm_bar"), Lang.T("tm_dot"), Lang.T("tm_corner"), Lang.T("tm_none") },
+                Math.Max(0, Array.IndexOf(markStyles, (TrayMarker)D.Settings.TempTrayMarkStyle)));
+            mark.SelectedIndexChanged += (_, _) =>
+            {
+                D.Settings.TempTrayMarkStyle = (int)markStyles[Math.Max(0, mark.SelectedIndex)];
+                D.SaveSettings(); D.SettingsChanged();
+            };
+            tt.AddRow(Lang.T("temptray_mark"), mark);
             tt.AddRow(null, ColorRow(
                 ("CPU", () => D.Settings.TempTrayMarkCpu, v => D.Settings.TempTrayMarkCpu = v),
                 ("GPU", () => D.Settings.TempTrayMarkGpu, v => D.Settings.TempTrayMarkGpu = v),
@@ -1180,7 +1188,7 @@ public sealed class SettingsPage : ThemedPage
                 D.Settings.TempTrayColorHot = def.TempTrayColorHot;
                 D.Settings.TempTrayWarn = def.TempTrayWarn;
                 D.Settings.TempTrayHot = def.TempTrayHot;
-                D.Settings.TempTrayMark = def.TempTrayMark;
+                D.Settings.TempTrayMarkStyle = def.TempTrayMarkStyle;
                 D.Settings.TempTrayMarkCpu = def.TempTrayMarkCpu;
                 D.Settings.TempTrayMarkGpu = def.TempTrayMarkGpu;
                 D.Settings.TempTrayMarkSsd = def.TempTrayMarkSsd;
