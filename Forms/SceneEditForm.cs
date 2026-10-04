@@ -62,6 +62,10 @@ public sealed class SceneEditForm : GhostCardForm
             Icon = i => (g, r, onFill) => IconPainter.Scenario(g, order[i], r, onFill ? Color.White : d.ColorOf(order[i]), 1.6f * UiScale),
         });
 
+        // "on" / "off" are lower-case words in the status texts they come from; a picker cell is a caption
+        static string Cap(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
+        var onOff = new[] { Cap(Lang.T("st_on")), Cap(Lang.T("st_off")) };
+
         if (d.HasFanCurve())
         {
             var curveItems = new List<string> { Lang.T("fc_preset_auto") };
@@ -70,6 +74,12 @@ public sealed class SceneEditForm : GhostCardForm
             Row(Lang.T("fc_title"), curveItems.ToArray(), scene.CurvePreset != null, cSel,
                 (on, i) => _scene.CurvePreset = !on ? null : i == 0 ? "" : curveItems[i]);
         }
+
+        // the turbo row follows the Windows plan, not the EC: offered whenever the plan's boost
+        // setting can be read, and "Off" first-picked because switching turbo off is why a scene has it
+        if (PowerPlan.TryGetActiveScheme(out var plan) && PowerPlan.TryReadBoost(plan, out _, out _))
+            Row(Lang.T("pw_turbo_label"), onOff, scene.Turbo != null, scene.Turbo == true ? 0 : 1,
+                (on, i) => _scene.Turbo = on ? i == 0 : null);
 
         var rates = Display.SupportedRates();
         if (rates.Count > 0)
@@ -87,9 +97,6 @@ public sealed class SceneEditForm : GhostCardForm
                 (on, i) => _scene.BrightnessPct = on ? briVals[i] : null);
         }
 
-        // "on" / "off" are lower-case words in the status texts they come from; a picker cell is a caption
-        static string Cap(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
-        var onOff = new[] { Cap(Lang.T("st_on")), Cap(Lang.T("st_off")) };
         if (Hdr.Supported())
             Row("HDR", onOff, scene.Hdr != null, scene.Hdr == true ? 0 : 1, (on, i) => _scene.Hdr = on ? i == 0 : null);
 
@@ -116,6 +123,10 @@ public sealed class SceneEditForm : GhostCardForm
         if (d.WebcamState() >= 0)
             Row(Lang.T("webcam_title"), onOff, scene.Webcam != null, scene.Webcam == false ? 1 : 0,
                 (on, i) => _scene.Webcam = on ? i == 0 : null);
+
+        if (d.MicState() >= 0)
+            Row(Lang.T("mic_title"), onOff, scene.Mic != null, scene.Mic == true ? 0 : 1,
+                (on, i) => _scene.Mic = on ? i == 0 : null);
 
         Row(Lang.T("winlock_title"), onOff, scene.WinLock != null, scene.WinLock == true ? 0 : 1,
             (on, i) => _scene.WinLock = on ? i == 0 : null);

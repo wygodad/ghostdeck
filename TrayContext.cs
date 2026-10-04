@@ -1328,6 +1328,7 @@ public sealed class TrayContext : ApplicationContext
                 ApplyPresetFromTray(cp.Length == 0 ? null : cp, osd: false);
             if (s.FanBoost is { } fb && fb != _coolerBoost)
                 SetCoolerBoostState(fb, osd: false);
+            if (s.Turbo is { } tb) SetTurboFromScene(tb, source);
             // Schedule/battery-rule scenes must not defeat an active travel mode: the limit is
             // skipped and the pending revert survives. A scene run by hand is an explicit choice.
             if (s.ChargeLimit is { } cl &&
@@ -1357,6 +1358,8 @@ public sealed class TrayContext : ApplicationContext
             if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
             if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
             if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
+            if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
+                SetMicState(mc, source, osd: false);
             if (s.WinLock is { } wl) SetWinLockState(wl, source, osd: false);
             if (s.Touchpad is { } tp && Touchpad.State() is >= 0 and var tst && (tst == 1) != tp)
                 SetTouchpadState(tp, source, osd: false);
@@ -1370,6 +1373,17 @@ public sealed class TrayContext : ApplicationContext
         {
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
+    }
+
+    // A scene's turbo field goes through the same snapshot-keeping calls as the Windows power card
+    // and --turbo. "On" counts as done only when both sources already boost: TurboOn would otherwise
+    // rewrite a working non-default mode with the snapshot or GhostDeck's fallback.
+    private void SetTurboFromScene(bool on, ChangeSource source)
+    {
+        if (!PowerPlan.TryGetActiveScheme(out var scheme) || !PowerPlan.TryReadBoost(scheme, out uint ac, out uint dc)) return;
+        if (on ? ac != 0 && dc != 0 : ac == 0 && dc == 0) return;
+        string err = on ? PowerPlan.TurboOn(_settings) : PowerPlan.TurboOff(_settings);
+        ChangeLog.Add(source, "CPU turbo boost: " + (err.Length == 0 ? (on ? "on" : "off") : err));
     }
 
     // ---------------- webcam (#27) ----------------
