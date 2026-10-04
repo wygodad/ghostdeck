@@ -19,7 +19,7 @@ public sealed class EcPathException : InvalidOperationException
 /// <summary>
 /// The backup WMI path: MSI's data blocks in root\wmi (`MSI_System`, `MSI_CPU`, `MSI_VGA`,
 /// `MSI_AP`, ...). On firmware that refuses the `MSI_ACPI` method interface these blocks are
-/// still served by the firmware (TECHNICAL §39), each as instances `ACPI\PNP0C14\0_N` whose
+/// still served by the firmware (TECHNICAL §73), each as instances `ACPI\PNP0C14\0_N` whose
 /// value sits in a property named after the class. A slot is addressed as class[index] - the
 /// index the firmware itself uses.
 ///

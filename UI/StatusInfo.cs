@@ -12,6 +12,6 @@ public sealed record StatusInfo(
     // data blocks report live CPU/GPU temperature. Temperatures are real, everything the EC
     // would provide (fans, RPM, profiles) is not.
     bool Telemetry = false,
-    // Backup WMI path (TECHNICAL §39): the firmware refuses the method interface and the app
+    // Backup WMI path (TECHNICAL §73): the firmware refuses the method interface and the app
     // works with this model through its data blocks.
     bool BackupPath = false);

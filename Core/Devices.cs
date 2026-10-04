@@ -46,7 +46,7 @@ public sealed record BlockRef(string Class, int Index)
 /// <summary>
 /// Where a model keeps its registers on the backup WMI path - the device's data blocks
 /// (`MSI_System`, `MSI_CPU`, `MSI_VGA`, `MSI_AP`), used when the firmware refuses the
-/// `MSI_ACPI` method interface (TECHNICAL §39). Every slot is addressed as class[index],
+/// `MSI_ACPI` method interface (TECHNICAL §73). Every slot is addressed as class[index],
 /// which is what the firmware itself indexes by; EC addresses play no part on this path.
 /// Recorded per model, from that model's own block dump. Null on a DeviceProfile = the model
 /// has no backup path on record and stays temperatures-only when the interface is refused.
@@ -229,7 +229,7 @@ public static class Devices
     private static readonly FanCurveSpec ModernCurveVerified =
         new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true);
 
-    // Backup-path layout of the Dragon Center era boards (TECHNICAL §39). Read with GhostDeck's
+    // Backup-path layout of the Dragon Center era boards (TECHNICAL §73). Read with GhostDeck's
     // own diagnostic package on both machines that carry it below - a Delta 15 A5EFK (issue #48)
     // and a GF65 Thin 10UE (issue #117): the same instance count in every block and the same
     // slots. Shift mode and fan mode sit in MSI_System (196 / 13 / 141 = C4 / 0D / 8D in the

@@ -1463,7 +1463,7 @@ same `NotSupported` / `0x8004100C` that the Delta 15 returns for `MSI_ACPI`, ele
 gives different platform generations different WMI surfaces - one board serves the EC method
 interface, another serves the sensor data blocks - and neither machine can verify the other's
 path. That is why the diagnostic package (§37) also carries `msi-wmi-blocks.txt`
-(`MsiTelemetry.Dump()`): every vendor block with its instances and values, or the exact error
+(`EcBlocks.Dump()`): every vendor block with its instances and values, or the exact error
 returned. When telemetry mode does not light up on a machine that should have it, that file
 separates "the blocks are silent here" from "we are reading them wrong" in one step.
 
@@ -1496,24 +1496,10 @@ Two routes for GhostDeck follow from that stack, both rejected:
   survived.
 - *Load or reuse a direct-I/O driver.* Rejected above.
 
-So on firmware without the method interface GhostDeck stays read-only by design, and the
-practical answer for such owners today is an older MSI Center build in which control still
-works.
-
-**One route is NOT yet ruled out: writing the vendor data blocks.** Those blocks are read in
-telemetry mode, but their MOF marks the value property writable - on the tested GE78HX,
-`MSI_CPU.CPU`, `MSI_AP.AP` and `MSI_System.System` all carry the `write` qualifier next to
-`read` and `WmiDataId`. In ACPI-WMI a writable data block means the firmware may also expose a
-set-block object beside the query one, and the reporter's own dump makes the stakes concrete:
-in `MSI_CPU`, indices 5-10 read `55 60 70 78 85 90` and indices 12-16 read `45 60 81 96 113`,
-which look like the temperature points and speeds of a fan curve, sitting right next to the live
-temperature at index 1. If those blocks accept writes on such a board, fan control without any
-driver would be possible exactly where the method interface is missing.
-
-This is a hypothesis, not a finding. What settles it, in this order: (1) a read-only check of the
-already decompiled firmware tables for a set-block object belonging to those block IDs, (2) only
-then, on a volunteer's machine and at their choice, an actual write. Until (1) comes back, the
-control question stays open rather than closed, and nothing in GhostDeck writes these blocks.
+The route GhostDeck takes on such firmware is neither of these: the data blocks themselves
+accept writes, and on a model whose block layout is on record the app reads and switches
+profiles through them - see §73. A model without a layout on record stays in the
+telemetry-only mode described above.
 
 ## 40. Fan Boost auto-off timer (v1.24.x, discussion #51)
 
@@ -2946,3 +2932,48 @@ a brick on Scenarios (hideable, key `mic`), a card in Settings → System, the h
 (`Ctrl+Alt+F11`, shipped disabled), `--mic on|off`, the `mic` field of `--status`, an OSD
 toast and a change-log line. A panic reset deliberately leaves the microphone alone: turning
 a muted microphone back on is not a "safe state". Scenes carry no microphone field yet.
+
+## 73. The backup WMI path: data blocks when the method interface is refused (issues #48, #117, #230)
+
+**When it applies.** Some MSI firmware answers `0x8004100C` ("not supported") to every call on the `MSI_ACPI` method interface (§39). The same firmware still serves MSI's data blocks, and on a model whose block layout is on record GhostDeck works through them instead: it reads the active profile, temperatures, fan duty and fan speed, and - once the path test below has passed on that machine - switches profiles. Nothing else changes for the user: tiles, hotkeys, tray, scenes and the CLI drive the same recipes. Two machines carry a layout today, both from the Dragon Center era: the Delta 15 A5EFK (`15CKEMS1`) and the GF65 Thin 10UE (`16W2EMS1`). The path uses the Windows ACPI-WMI mapper only; no driver is involved (§12).
+
+**The blocks.** Each block is a class in `root\wmi` served as instances `ACPI\PNP0C14\0_N`; the value sits in a property named after the class. The layout below comes from GhostDeck's own diagnostic packages of both machines (attached to #48 and #117) and is identical on the two: the same instance count in every block (`MSI_CPU` 19, `MSI_VGA` 18, `MSI_System` 21, `MSI_AP` 8) and the same slots.
+
+| Slot | Meaning | Delta 15 | GF65 |
+|---|---|---|---|
+| `MSI_System[7]` | shift mode | `0xC4` | `0xC4` |
+| `MSI_System[9]` | fan mode | `0x8D` | `0x0D` |
+| `MSI_CPU[1]`, `MSI_VGA[1]` | temperature, °C | 58, 53 | 49, 0 (GPU asleep) |
+| `MSI_CPU[2]`, `MSI_VGA[2]` | fan duty | 60, 0 | 43, 0 |
+| `MSI_CPU[3]` | critical-temperature limit, never written | 120 | 100 |
+| `MSI_CPU[4]`, `[5..10]` | curve: 0-degree anchor, six thresholds | 0, 55 60 70 78 85 90 | 0, 55 64 73 76 82 88 |
+| `MSI_CPU[11..17]` | curve: seven speeds | 0 45 60 81 96 113 80 | 38 43 48 54 60 70 85 |
+| `MSI_AP[2]`, `MSI_AP[4]` | CPU / GPU tachometer, RPM = 478000 / raw, 0 = stopped | 132, 0 | 207, 0 |
+
+The curve table has the shape of the §17.3 tables: an anchor, six thresholds and seven speeds. `MSI_VGA` holds the GPU fan's table at the same indices.
+
+**Addressing.** A slot is addressed as class[index], per model (`DeviceProfile.BlockPath`, `BlockPathSpec`). That index is what the firmware's own read and write routines take, and it does not follow EC addresses in order: on the Delta 15, whose firmware table the owner decoded, `MSI_CPU[3]` is EC `0x70` while `MSI_CPU[5..10]` are `0x6A..0x6F`, and `MSI_AP[2]` is `0xCD`. EC addresses therefore play no part on this path. The rest of the app keeps naming "this model's shift register" by the address in its entry; `Ec` turns exactly those named registers (shift mode, fan mode, temperatures, duty) into slots, and any other address is refused with `EcPathException`. That is why the charge limit, Fan Boost, keyboard backlight, the webcam switch, the Fn/Win swap, the full EC dump of the report wizard and the power test are unavailable here.
+
+**Identification.** The EC version cannot be read on this path, so the model is named from the SMBIOS BIOS version. MSI BIOS versions read `E` + four-character board code + platform letter + `MS` (`E16W2IMS.105`, `E15CKAMS.10C`); the EC line of the same board starts with the same four characters (`16W2EMS1`, `15CKEMS1`). `Ec.TryBackupPath` requires three things: the board code maps to exactly one EC prefix in the database (a board with two EC lines, such as `16W1EMS1` / `16W1EMS2`, stays unidentified), that model has a layout on record, and the live values look like the layout says (shift byte in the `0xC0` range, fan-mode byte ending in `0xD`, a plausible CPU temperature). The firmware string becomes the EC prefix with the BIOS version it came from, e.g. `16W2EMS1 (BIOS E16W2IMS.105)`.
+
+**Writes.** One function writes on this path, `Ec.BackupWrite`, and it checks three things: the gate is open, the slot is on the allow-list, and the value is on that slot's list. The gate opens for the duration of the path test and stays open on a machine where the test has passed. The allow-list holds the shift-mode and fan-mode slots with the values the model's own profile recipes carry; the path test adds the original values it has to put back and, for its curve check, the speed slots of one fan with one value the table already contains. `EcBlocks.Write` is the transport behind it: the instance is found by index, its value property is set and the instance is put back, which makes Windows call the firmware's write routine for that block.
+
+**The path test** (`Core/BackupPathTest.cs`, cards in `Forms/BackupTestForm.cs`) establishes on the owner's machine that profile switching works, and unlocks it there. It is offered at start while it has not passed, and from the tray menu. The order is fixed and each stage must succeed before the next one writes:
+
+1. *Read.* Block survey, current shift and fan mode, layout check. A mismatch ends the run with nothing written.
+2. *One byte.* The fan-mode slot is set to the other stock value (auto / silent), read back, and put back. A value that does not stick ends the run.
+3. *Profiles.* Silent and Balanced are applied, read back, held for 6 s and read again. Extreme, Super Battery and Extreme again each run a 20 s all-core load.
+4. *Fan curve (optional, off unless the owner turns it on).* See below.
+5. *Restore.* The values found in stage 1 are written back and confirmed by read-back.
+
+The original values go to `backup-path-restore.json` before the first write, so a run that never reaches stage 5 is undone at the next start. The result is one text report on the desktop (also carried by the diagnostic package). A pass is stored per firmware label in `AppSettings.BackupPathPassed` and is not imported with a settings file from another machine; a later run that fails removes it. The whole run takes about a minute and a half, about three minutes with the curve check.
+
+**The pass criterion.** Stored bytes are not enough: the test passes when Super Battery delivers at most **90 %** of the work of the slower of the two Extreme runs (work = completed iterations per second of the same synthetic load the power test uses, §60). The line sits between two things. Two runs of the same mode differ by a few percent - up to 5 % was seen on a busy machine - so chance alone does not produce a pass, and running Extreme both before and after Super Battery keeps a machine that merely warmed up or cooled down from looking like a reaction. A power-saving shift mode, on the other hand, is expected to cost tens of percent; that expectation is an estimate, because no power measurement exists for this generation yet. Each load lasts 20 s and its first 5 s are not counted: a processor may run above its sustained limit for the first seconds of a load in every mode, and counting that stretch would blur the difference being looked for. One risk remains, mostly on AMD boards where power limits take hold slowly: the test can report no reaction on a machine where switching works. The outcome is then a locked feature and a report with the raw shares, from which the verdict can be judged by eye and the criterion adjusted. The opposite error, unlocking a machine that does not react, is far less likely.
+
+**The fan-curve check** raises every speed slot of the CPU fan's table to the highest value the table already holds, sets the fan mode to Advanced (`0x8D`), and watches the tachometer for 40 s in the comfort shift mode and 40 s in the turbo one; temperature slots are never written. A rise of 500 RPM or more over the baseline counts as the fan following the table. The two phases exist because of what the Delta 15 owner measured (#48): there the firmware follows the table only with the fan mode at Advanced and a shift mode other than the two power-saving ones. The verdict of this check never changes the verdict of the test; it is data for the decision whether to offer the curve editor on this path.
+
+**Model database.** The layout travels as an optional `blockPath` object per model (slots written as `"MSI_System[7]"`, curve tables as class / tempFirst / speedFirst / count). Older clients ignore the key; a database without it falls back to the compiled entry with the same prefix (`Devices.BlockPathOf`). A slot may only name one of the known block classes, and a curve table may not start below index 4.
+
+**Diagnostics and testing.** `msi-wmi-blocks.txt` in the diagnostic package lists eight blocks in full with the time each query took, the type and `write` qualifier of the value property, whether a single instance can be fetched by path, and the block routine names found in the firmware table (`WQxx` read, `WSxx` write). `MSI_Software` is not read: the firmware flags it as an expensive collection. `wmi-interface.txt` carries the verdict of the backup-path check and its readings. `MSIPS_BLOCKS_FILE=<msi-wmi-blocks.txt>` with `MSIPS_BLOCKS_BIOS=<version>` replays a saved dump instead of querying WMI (writes land in the in-memory copy; `MSIPS_BLOCKS_STUCK=1` makes the copy ignore them).
+
+**What is confirmed so far.** The read path: by the diagnostic packages of both machines. The write path and the test: against replayed dumps of both machines only, including the case of a firmware that ignores a write. The first runs on hardware are the owners' path tests.

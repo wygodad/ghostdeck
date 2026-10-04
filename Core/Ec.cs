@@ -111,7 +111,7 @@ public static class Ec
     }
 
     // ---------------- backup WMI path (data blocks) ----------------
-    // On firmware that refuses the MSI_ACPI methods (0x8004100C on every call - TECHNICAL §39)
+    // On firmware that refuses the MSI_ACPI methods (0x8004100C on every call - TECHNICAL §73)
     // the same registers are still served through the device's data blocks. When a model has
     // that layout on record (DeviceProfile.BlockPath), reads are routed there: the rest of the
     // app keeps asking for "this model's shift register" by the address in its entry, and the

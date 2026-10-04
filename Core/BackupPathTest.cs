@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace GhostDeck;
 
 /// <summary>
-/// The path test of the backup WMI path (TECHNICAL §39): one run that establishes, on the
+/// The path test of the backup WMI path (TECHNICAL §73): one run that establishes, on the
 /// owner's own machine, whether profile switching works through the device's data blocks,
 /// and returns everything it saw as one text report.
 ///
