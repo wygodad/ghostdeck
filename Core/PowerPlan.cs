@@ -339,6 +339,20 @@ public static class PowerPlan
         catch { return false; }
     }
 
+    /// <summary>
+    /// Remember the user's own power mode ONCE, before GhostDeck's first mode write (Auto or
+    /// a manual segment pick). "Restore Windows settings" puts it back - without this, Auto
+    /// could leave the slider on best efficiency after restoring (owner report, 2026-10-04).
+    /// Only a clean, both-sources-agree read is stored; an empty value means "never changed".
+    /// </summary>
+    public static void RememberModeIfFirst(AppSettings s)
+    {
+        if (s.PowerModePrev.Length > 0) return;
+        if (!TryGetUserPowerMode(out var ac, out var dc) || ac != dc) return;
+        s.PowerModePrev = ac.ToString("D");
+        s.Save();
+    }
+
     public static Guid ModeForProfile(ProfileId id) => id switch
     {
         ProfileId.Silent or ProfileId.SuperBattery => ModeBestEfficiency,

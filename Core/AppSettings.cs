@@ -187,6 +187,7 @@ public sealed class AppSettings
     public bool PowerModeSync { get; set; }                                  // tryb zasilania Windows podaza za profilem
     public Dictionary<string, int[]> TurboSnapshots { get; set; } = new();   // GUID planu -> [AC, DC] sprzed wylaczenia turbo (zapis planu jest trwaly)
     public long BoostAttrOriginal { get; set; } = -1;                        // pelny DWORD atrybutow PERFBOOSTMODE sprzed odkrycia w Panelu; -1 = nietkniete
+    public string PowerModePrev { get; set; } = "";                         // GUID trybu zasilania SPRZED pierwszej zmiany przez GhostDeck ("" = nie zmienialismy); Przywroc go cofa
 
     // opt-in (#49): przywroc ostatnia AKTYWNA krzywa wentylatora po starcie/wznowieniu -
     // EC przy zimnym starcie wraca do fabrycznego trybu i gubi kazda wlasna krzywa
@@ -535,6 +536,7 @@ public sealed class AppSettings
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
         FanBoostSeconds = src.FanBoostSeconds;
         PowerModeSync = src.PowerModeSync;
+        PowerModePrev = src.PowerModePrev;
         // Turbo snapshots and the attribute original are MACHINE state (this Windows, its power
         // plans), not preferences - an imported file must not overwrite what this machine saved.
         ScheduleEnabled = src.ScheduleEnabled;
@@ -628,6 +630,7 @@ public sealed class AppSettings
             RestoreCurveOnResume = RestoreCurveOnResume,
             FanBoostSeconds = FanBoostSeconds,
             PowerModeSync = PowerModeSync,
+            PowerModePrev = PowerModePrev,
             BoostAttrOriginal = BoostAttrOriginal,
             ScheduleEnabled = ScheduleEnabled,
             BattRulesEnabled = BattRulesEnabled,

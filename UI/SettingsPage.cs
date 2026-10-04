@@ -64,7 +64,7 @@ public sealed class SettingsPage : ThemedPage
         // and refresh the card. Wired once - BuildForm re-points _syncPowerCard itself.
         PowerPlan.EffectiveModeChanged += () =>
         {
-            try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => { _syncPowerCard?.Invoke(); Ui.BatchRedraw(this, Layout2); }); }
+            try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => { _syncPowerCard?.Invoke(); Layout2(); }); }
             catch { }
         };
     }
@@ -107,13 +107,7 @@ public sealed class SettingsPage : ThemedPage
         // the sub-tab you left. FocusScenVisibility runs AFTER OnEnter, so the gear deep link
         // from the Scenarios tab still wins - do not reorder those two.
         if (D.Settings.SettingsAlwaysStart && _cur != SubHome) SelectSub(SubHome, save: false);
-        // one suspended pass: syncing the power card flips conditional rows, and painting the
-        // in-between layout states showed as dark blotches when this tab came to front
-        Ui.BatchRedraw(this, () =>
-        {
-            SyncTravelRow(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2();
-        });
-        Invalidate();
+        SyncTravelRow(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
     }
 
     // Thin themed rule between unrelated option groups inside one card (the Notifications
@@ -500,8 +494,12 @@ public sealed class SettingsPage : ThemedPage
         var wpSmall = new Font("Segoe UI", 9.75f);
         var wpAmber = Color.FromArgb(0xE8, 0xB6, 0x4C);
         var wpRed = Color.FromArgb(0xE0, 0x6C, 0x6C);
+        Color wpInner;   // frame fill, a step darker than the card; also the ambient BackColor
+                         // of everything inside, because ToggleSwitch/SegControl clear to
+                         // Parent.BackColor - a Transparent parent cleared to BLACK (the boxes)
         Color WpMix(Color a, Color b, float t) => Color.FromArgb(
             (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
+        wpInner = WpMix(Theme.Card, Color.Black, 0.18f);
         Control WithWpHelp(Control main, string key)
         {
             var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
@@ -513,7 +511,7 @@ public sealed class SettingsPage : ThemedPage
         void WpRefresh()
         {
             _syncPowerCard?.Invoke();
-            if (wp.Parent != null) Ui.BatchRedraw(this, Layout2);
+            if (wp.Parent != null) Layout2();   // plain pass: WinForms repaints only what moved
         }
         void WpErr(string reason)
         {
@@ -610,7 +608,7 @@ public sealed class SettingsPage : ThemedPage
                 TextRenderer.DrawText(pe.Graphics, body.Visible ? "▾" : "▸", f, new Rectangle(Math.Max(0, head.Width - WS(26)), 0, WS(18), head.Height), Theme.Muted,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             };
-            var wrap = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 3, 0, 3), BackColor = Theme.Card, Name = "wp-wide" };
+            var wrap = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Margin = new Padding(0, 3, 0, 3), BackColor = wpInner, Name = "wp-wide" };
             wrap.Controls.Add(head);
             wrap.Controls.Add(body);
             wrap.Paint += (_, pe) =>
@@ -620,8 +618,11 @@ public sealed class SettingsPage : ThemedPage
                 var g = pe.Graphics;
                 g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, wrap.Width - 1, wrap.Height - 1), 7);
-                // a touch darker than the card (the mock-up ratio), never the page-dark Surface
-                using var bb = new SolidBrush(WpMix(Theme.Card, Color.Black, 0.18f));
+                // corners outside the rounded path stay card-coloured; the fill is a touch
+                // darker than the card (the mock-up ratio), never the page-dark Surface
+                using var cb = new SolidBrush(Theme.Card);
+                g.FillRectangle(cb, wrap.ClientRectangle);
+                using var bb = new SolidBrush(wpInner);
                 g.FillPath(bb, path);
                 using var pen = new Pen(Theme.Border);
                 g.DrawPath(pen, path);
@@ -633,12 +634,12 @@ public sealed class SettingsPage : ThemedPage
                 // tables inside stretch to the frame (full-width rows, mock-up)
                 body.MinimumSize = new Size(Math.Max(0, wrap.ClientSize.Width - body.Margin.Horizontal), 0);
             };
-            head.Click += (_, _) => Ui.BatchRedraw(this, () =>
+            head.Click += (_, _) =>
             {
                 body.Visible = !body.Visible;
                 head.Invalidate();
                 Layout2();
-            });
+            };
             return wrap;
         }
 
@@ -664,10 +665,11 @@ public sealed class SettingsPage : ThemedPage
         wp.AddRow(null, turboStrip);
         // the technical matrix (K2): plan | plugged in | battery, with the saved pair and
         // per-source switches for the deliberate "quiet on battery, full power plugged in"
-        Label MxCell(Color fore) => new() { AutoSize = true, Font = wpSmall, ForeColor = fore, BackColor = Color.Transparent, Margin = new Padding(0, 6, WS(18), 4) };
+        var wpBody = new Font("Segoe UI", 10f);
+        Label MxCell(Color fore) => new() { AutoSize = true, Font = wpBody, ForeColor = fore, BackColor = Color.Transparent, Margin = new Padding(0, 7, WS(18), 6) };
         // small-caps header row (the mock-up's table head), with a hairline painted under it
         var wpTiny = new Font("Segoe UI", 7.5f, FontStyle.Bold);
-        Label MxHead() => new() { AutoSize = true, Font = wpTiny, ForeColor = Theme.Faint, Tag = "muted", BackColor = Color.Transparent, Margin = new Padding(0, 8, WS(18), 6) };
+        Label MxHead() => new() { AutoSize = true, Font = wpTiny, ForeColor = Theme.Faint, Tag = "muted", BackColor = Color.Transparent, Margin = new Padding(0, 9, WS(18), 7) };
         var mxPlan = MxHead(); var mxAcH = MxHead(); var mxDcH = MxHead();
         var mxNowL = MxCell(Theme.Muted); var mxNowAc = MxCell(Theme.Text); var mxNowDc = MxCell(Theme.Text);
         var mxSavL = MxCell(Theme.Muted); var mxSavAc = MxCell(wpAmber); var mxSavDc = MxCell(wpAmber);
@@ -689,7 +691,7 @@ public sealed class SettingsPage : ThemedPage
             WpRefresh();
         });
         srcAc.Margin = srcDc.Margin = new Padding(0, 4, WS(18), 2);
-        var mx = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 3, RowCount = 4, Margin = new Padding(10, 0, 0, 3), BackColor = Color.Transparent };
+        var mx = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 3, RowCount = 4, Margin = new Padding(10, 0, 0, 3), BackColor = wpInner };
         mx.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         mx.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
         mx.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
@@ -720,24 +722,40 @@ public sealed class SettingsPage : ThemedPage
         wp.AddRow(null, autoLbl);
         var (ovStrip, ovLbl) = WpStrip(warnIcon: true);   // the yellow "Windows is temporarily applying X" note
         wp.AddRow(null, ovStrip);
-        var mapBody = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 2, RowCount = 4, Margin = new Padding(10, 0, 0, 3), BackColor = Color.Transparent };
-        mapBody.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        mapBody.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-        void MapRow(int r, string prof, string modeKey)
+        // the map, painted: each profile row carries its ghost in the PROFILE colour (the
+        // same colours the tray uses), name, then the full Windows mode name
+        var mapRows = new (ProfileId Id, string Name, string ModeKey)[]
         {
-            mapBody.Controls.Add(new Label { Text = prof, AutoSize = true, Font = wpSmall, ForeColor = Theme.Muted, BackColor = Color.Transparent, Margin = new Padding(0, 4, WS(20), 3) }, 0, r);
-            mapBody.Controls.Add(new Label { Text = "→  " + Lang.T(modeKey), AutoSize = true, Font = wpSmall, ForeColor = Theme.Text, BackColor = Color.Transparent, Margin = new Padding(0, 4, 0, 3) }, 1, r);
-        }
-        MapRow(0, "Super Battery", "pwm_req_eff");
-        MapRow(1, "Silent", "pwm_req_eff");
-        MapRow(2, "Balanced", "pwm_req_bal");
-        MapRow(3, "Extreme", "pwm_req_perf");
+            (ProfileId.SuperBattery, "Super Battery", "pwm_req_eff"),
+            (ProfileId.Silent, "Silent", "pwm_req_eff"),
+            (ProfileId.Balanced, "Balanced", "pwm_req_bal"),
+            (ProfileId.Extreme, "Extreme", "pwm_req_perf"),
+        };
+        var mapBody = new WpPanel { AutoSize = false, Height = WS(27) * mapRows.Length + WS(6), BackColor = wpInner, Margin = Padding.Empty };
+        mapBody.Paint += (_, pe) =>
+        {
+            var g = pe.Graphics;
+            using var nf = new Font("Segoe UI", 10f);
+            int rowH = WS(27), nameW = 0;
+            foreach (var r in mapRows) nameW = Math.Max(nameW, TextRenderer.MeasureText(r.Name, nf).Width);
+            int gx = WS(2), nx = gx + WS(24), ax = nx + nameW + WS(16);
+            for (int i = 0; i < mapRows.Length; i++)
+            {
+                int cy = WS(3) + i * rowH;
+                TrayIconFactory.DrawGhost(g, gx, cy + (rowH - WS(15)) / 2f, WS(15), D.Settings.ColorFor(mapRows[i].Id), wpInner);
+                TextRenderer.DrawText(g, mapRows[i].Name, nf, new Rectangle(nx, cy, nameW + 6, rowH), Theme.Text,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                TextRenderer.DrawText(g, "→   " + Lang.T(mapRows[i].ModeKey), nf, new Rectangle(ax, cy, Math.Max(10, mapBody.Width - ax - WS(6)), rowH), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            }
+        };
         wp.AddRow(null, WpExpander(Lang.T("pw_mapping"), mapBody, open: false));
         wpSeg.SelectedChanged += i =>
         {
             if (i == 3)
             {
                 // Auto: follow the GhostDeck profile from now on, and apply it right away
+                PowerPlan.RememberModeIfFirst(D.Settings);   // so Restore can bring the mode back
                 D.Settings.PowerModeSync = true; D.SaveSettings();
                 Enum.TryParse<ProfileId>(D.Settings.LastProfile, out var prof);
                 if (!PowerPlan.TrySetPowerMode(PowerPlan.ModeForProfile(prof))) WpErr("Windows refused the power-mode write");
@@ -747,6 +765,7 @@ public sealed class SettingsPage : ThemedPage
             {
                 // a manual pick always wins: it switches Auto off (nothing fights the user)
                 if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); }
+                PowerPlan.RememberModeIfFirst(D.Settings);   // so Restore can bring the mode back
                 var mode = i == 0 ? PowerPlan.ModeBestEfficiency : i == 2 ? PowerPlan.ModeBestPerformance : PowerPlan.ModeBalanced;
                 if (!PowerPlan.TrySetPowerMode(mode)) WpErr("Windows refused the power-mode write");
                 else ChangeLog.Add(ChangeSource.Panel, "Windows power mode: " + (i == 0 ? "best efficiency" : i == 2 ? "best performance" : "balanced"));
@@ -761,15 +780,17 @@ public sealed class SettingsPage : ThemedPage
             var items = new List<string>();
             foreach (var (key, sn) in D.Settings.TurboSnapshots)
                 if (sn is { Length: 2 } && Guid.TryParse(key, out var g2))
-                    items.Add($"{PowerPlan.SchemeName(g2)}: {PowerPlan.BoostName((uint)sn[0])} / {PowerPlan.BoostName((uint)sn[1])}");
-            if (D.Settings.PowerModeSync) items.Add(Lang.T("pw_auto_seg"));
-            return string.Join("  ·  ", items);
+                    items.Add(string.Format(Lang.T("pw_restore_turbo_fmt"), PowerPlan.SchemeName(g2), PowerPlan.BoostName((uint)sn[0]), PowerPlan.BoostName((uint)sn[1])));
+            if (D.Settings.PowerModePrev.Length > 0 && Guid.TryParse(D.Settings.PowerModePrev, out var pm))
+                items.Add(string.Format(Lang.T("pw_restore_mode_fmt"), Lang.T(PowerPlan.ModeKey(pm))));
+            if (D.Settings.PowerModeSync) items.Add(Lang.T("pw_restore_auto"));
+            return string.Join("\n", items);
         }
         // restore = ONE framed box (the mock-up): semibold title with the amber detail line
         // inside it, the whole panel clickable; it exists only while something is held
         var restoreTitle = new Label { Text = Lang.T("pw_restore_btn"), AutoSize = true, Font = new Font("Segoe UI", 10.25f, FontStyle.Bold), ForeColor = Theme.Text, BackColor = Color.Transparent, Margin = Padding.Empty, Cursor = Cursors.Hand };
         var restoreDesc = new Label { AutoSize = true, MaximumSize = new Size(330, 0), Font = wpSmall, ForeColor = wpAmber, Tag = "warn", BackColor = Color.Transparent, Margin = new Padding(0, 4, 0, 0), Cursor = Cursors.Hand };
-        var wpRestore = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Name = "wp-wide", Cursor = Cursors.Hand, Margin = new Padding(0, 6, 0, 2), Padding = new Padding(WS(14), WS(10), WS(14), WS(11)), BackColor = Theme.Card };
+        var wpRestore = new WpPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Name = "wp-wide", Cursor = Cursors.Hand, Margin = new Padding(0, 6, 0, 2), Padding = new Padding(WS(14), WS(10), WS(14), WS(11)), BackColor = wpInner };
         wpRestore.Controls.Add(restoreTitle);
         wpRestore.Controls.Add(restoreDesc);
         wpRestore.Paint += (_, pe) =>
@@ -777,7 +798,9 @@ public sealed class SettingsPage : ThemedPage
             var g = pe.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, wpRestore.Width - 1, wpRestore.Height - 1), 8);
-            using var bb = new SolidBrush(WpMix(Theme.Card, Color.Black, 0.18f));
+            using var cb = new SolidBrush(Theme.Card);
+            g.FillRectangle(cb, wpRestore.ClientRectangle);
+            using var bb = new SolidBrush(wpInner);
             g.FillPath(bb, path);
             // solid pen - an alpha pen over the two fills left fringed corners
             using var pen = new Pen(WpMix(Theme.Card, wpAmber, 0.6f));
@@ -787,10 +810,17 @@ public sealed class SettingsPage : ThemedPage
         {
             var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_restore_btn"),
                 Lang.T("pw_restore_confirm") + "\n\n" + RestoreDetails(),
-                Lang.T("pw_restore_btn"), Lang.T("fw_dlg_later"), () =>
+                Lang.T("pw_restore_ack"), Lang.T("fw_dlg_later"), () =>
                 {
                     var (ok, missing, failed) = PowerPlan.RestoreAll(D.Settings);
                     if (D.Settings.PowerModeSync) { D.Settings.PowerModeSync = false; D.SaveSettings(); }
+                    // the mode GhostDeck changed goes back too (owner report: Auto left
+                    // best-efficiency behind); the memory is consumed only on success
+                    if (D.Settings.PowerModePrev.Length > 0 && Guid.TryParse(D.Settings.PowerModePrev, out var pm2))
+                    {
+                        if (PowerPlan.TrySetPowerMode(pm2)) { D.Settings.PowerModePrev = ""; D.SaveSettings(); }
+                        else failed++;
+                    }
                     ChangeLog.Add(ChangeSource.Panel, $"Windows power restore: {ok} restored, {missing} plans gone, {failed} failed");
                     // a clean restore shows itself (the button disappears, the matrix empties);
                     // a card appears only when something needs the owner's attention
@@ -816,7 +846,7 @@ public sealed class SettingsPage : ThemedPage
             bool hidden = PowerPlan.HiddenInControlPanel();
             var dlg = new GhostCardForm("//WIN-POWER", Lang.T("pw_grp"),
                 Lang.T(hidden ? "pw_show_confirm" : "pw_hide_confirm"),
-                Lang.T(hidden ? "pw_show_btn" : "pw_hide_btn"), Lang.T("fw_dlg_later"), () =>
+                Lang.T(hidden ? "pw_show_ack" : "pw_hide_ack"), Lang.T("fw_dlg_later"), () =>
                 {
                     if (!PowerPlan.SetRevealed(D.Settings, hidden)) WpErr("Windows refused the attribute write");
                     else ChangeLog.Add(ChangeSource.Panel, "PERFBOOSTMODE " + (hidden ? "revealed in" : "re-hidden from") + " Windows power options");
@@ -879,8 +909,9 @@ public sealed class SettingsPage : ThemedPage
                 turboLbl.Text = Lang.T("pw_unavailable");
                 StyleStrip(turboStrip, turboLbl, null);
             }
-            mxSavAc.Text = sn != null ? PowerPlan.BoostName((uint)sn[0]) : "—";
-            mxSavDc.Text = sn != null ? PowerPlan.BoostName((uint)sn[1]) : "—";
+            mxSavAc.Text = sn != null ? PowerPlan.BoostName((uint)sn[0]) : Lang.T("pw_none");
+            mxSavDc.Text = sn != null ? PowerPlan.BoostName((uint)sn[1]) : Lang.T("pw_none");
+            mxSavAc.ForeColor = mxSavDc.ForeColor = sn != null ? wpAmber : Theme.Faint;
             // segment: Auto wins; otherwise the user-configured mode when both sources agree
             // (ModeGroup indexes align with the segment order: efficiency, balanced, performance)
             bool haveMode = PowerPlan.TryGetUserPowerMode(out var mAc, out var mDc);
@@ -907,7 +938,7 @@ public sealed class SettingsPage : ThemedPage
             }
             string details = RestoreDetails();
             wpRestore.Visible = details.Length > 0;
-            if (details.Length > 0) restoreDesc.Text = string.Format(Lang.T("pw_restore_desc_fmt"), details);
+            if (details.Length > 0) restoreDesc.Text = details;
             revealLink.Text = Lang.T(PowerPlan.HiddenInControlPanel() ? "pw_show_btn" : "pw_hide_btn");
             // sync only writes DATA + visibility; the caller runs ONE BatchRedraw(Layout2)
             // afterwards (WpRefresh) - BatchRedraw does not nest, so sync must never layout
