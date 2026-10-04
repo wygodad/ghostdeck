@@ -360,7 +360,11 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   power-test dumps all sat in the coinciding zone; the curve capture caught the GPU fan at
   ~1757 rpm with a non-zero high byte), `2631EMS1` (#205 - every capture sat in the coinciding
   zone; an idle Status screenshot settled it, showing "7353 rpm" at 20% fan duty, i.e. the low
-  byte `0x41` of the pair `01:41` = 321 = ~1489 rpm). Detection caveat: above ~1870 RPM the
+  byte `0x41` of the pair `01:41` = 321 = ~1489 rpm), `15PKIMS1` (#228 - every capture so far
+  sits in the coinciding zone at ~1904 rpm or reads 00 with the fans stopped; enabled as
+  pairs because the 16-bit read equals the single-byte read while the high byte is `00` and
+  is the right one once it is not - a HWiNFO64 side-by-side at idle is the open
+  confirmation). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed

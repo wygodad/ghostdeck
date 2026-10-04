@@ -24,6 +24,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   83 % and could never pass, so every report was flagged busy. The bar now sits five points
   below the share a clean run gets on that processor, and the warning prints that expected
   share next to the measured ones.
+- **Right-clicking a tray temperature icon no longer fails after the menu was rebuilt**
+  ([#205](../../issues/205), thanks @AiM-lab-owl) - the app replaces its tray menu whenever
+  the menu changes (a language change, a setting, a state change), and the temperature icons
+  kept the menu they were created with. A right-click on one of them then reached a menu
+  that no longer existed, and the app appeared to hang. Every tray icon now receives the
+  new menu the moment it is built, and the old one is released only after that.
 
 ### Added
 - **Windows power card: a CPU turbo boost switch and the Windows power mode in Settings**
@@ -127,6 +133,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
+- **MSI Pulse A16 AI+ C3HWFKG (`15PKIMS1`): fan RPM enabled** ([#228](../../issues/228),
+  thanks @Xakson) - both tachometers sit at the family-standard register pairs and are read
+  as 16-bit values, the format that gives the right number at every fan speed. Signed
+  model database `DataVersion 20261010`.
 - **Settings: the Notifications tab is now "Automation" and holds the scene schedule** -
   Settings → Power was getting long, so the schedule card moved next to the alerts, and the
   tab was renamed for what it now collects: things the app does on its own (a scene at a

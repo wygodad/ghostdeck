@@ -40,7 +40,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Prestige 16 Studio A13VE / Summit E16 Flip A13VFT | `1594EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Pulse 17 AI C1VGKG / C1VFKG | `17T3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Pulse A16 AI+ C3HWFKG | `15PKIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &mdash; |
+| MSI Pulse A16 AI+ C3HWFKG | `15PKIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Pulse/Katana 17 B13V/GK | `17L5EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider 16 Max HX B2WJ | `2651EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |

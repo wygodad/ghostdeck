@@ -621,8 +621,13 @@ public sealed class TrayContext : ApplicationContext
 
     private void BuildMenu()
     {
-        _tray.ContextMenuStrip?.Dispose();
-        foreach (var im in _menuSwatches) im.Dispose();
+        // The strip in use is replaced, never rebuilt in place, and it is released LAST: only
+        // after the new one hangs on every tray icon. A right-click that arrives while this
+        // method runs, or on a temperature icon before its next refresh, must never reach a
+        // disposed strip - that was the "Cannot access a disposed object: ContextMenuStrip"
+        // of issue #205.
+        var oldMenu = _tray.ContextMenuStrip;
+        var oldSwatches = _menuSwatches.ToArray();
         _menuSwatches.Clear();
 
         var menu = new ContextMenuStrip();
@@ -815,8 +820,19 @@ public sealed class TrayContext : ApplicationContext
         menu.Items.Add(exit);
 
         _tray.ContextMenuStrip = menu;
+        if (_cpuTray != null) _cpuTray.ContextMenuStrip = menu;
+        if (_gpuTray != null) _gpuTray.ContextMenuStrip = menu;
         _tray.MouseClick -= TrayClick;
         _tray.MouseClick += TrayClick;
+
+        void Retire()
+        {
+            oldMenu?.Dispose();
+            foreach (var im in oldSwatches) im.Dispose();
+        }
+        // a strip that is open right now keeps its images until it has closed
+        if (oldMenu is { IsDisposed: false, Visible: true }) oldMenu.Closed += (_, _) => SynchronizationContext.Current?.Post(_ => Retire(), null);
+        else Retire();
     }
 
     private void TrayClick(object? s, MouseEventArgs e)

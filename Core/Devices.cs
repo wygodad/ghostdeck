@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261009;
+    public const int DataVersion = 20261010;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1090,9 +1090,14 @@ public static class Devices
         // Charge limit alive at 0xD7 (0xBC = active at 60% on his unit). Curve tables hold
         // the family-standard layout (structural only - NOT curve-verified). 0xD6 sits 05
         // and flips to 03 under Extreme on its own - the 16th board of the #52 observation.
-        // RPM deliberately OFF: his tach reads (~1904 rpm, high bytes 00) sit in the zone
-        // where the 1-byte and 16-bit formats are indistinguishable (TECHNICAL §16); an idle
-        // reading below ~1870 rpm decides. One more observation, nothing written: 0xF5 /
+        // RPM on as 16-bit pairs at the family-standard 0xC8:0xC9 / 0xCA:0xCB (owner
+        // decision 2026-10-04): his tach reads (~1904 rpm on both fans, high bytes 00; all 00
+        // with the fans stopped in the curve capture) sit in the zone where the 1-byte and
+        // 16-bit formats give the same number (TECHNICAL §16). The 16-bit read is the one
+        // that cannot be wrong there: it equals the 1-byte read while the high byte is 00
+        // and is the correct one as soon as it is not, and app versions without the 16-bit
+        // reader ignore the field. A HWiNFO64 side-by-side at idle is the open
+        // confirmation. One more observation, nothing written: 0xF5 /
         // 0xF7 / 0xF9 move per scenario in his captures - not seen on other G2 boards,
         // meaning unknown.
         //   First power test (#228, same day): internally clean (0% drift, byte readbacks
@@ -1110,8 +1115,9 @@ public static class Devices
         //   byte-for-byte at the shipped 0x72 (25-75) and 0x8A (20-70) on both fans. His
         //   MSI Center (2.0.71) enables the curve as 0xD4=9D - bit7 on the current value
         //   instead of our fixed 8D, the known pattern from #138; both work. Tachometers
-        //   read 00 in that capture (fans stopped), so the RPM format stays unclassified.
+        //   read 00 in that capture (fans stopped).
         new() { Name = "MSI Pulse A16 AI+ C3HWFKG",         FirmwarePrefixes = new[] { "15PKIMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Xakson", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/228" },
         new() { Name = "MSI GV62 8RD",                      FirmwarePrefixes = new[] { "16JFEMS1" }, Tier = Tier.Experimental, ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
