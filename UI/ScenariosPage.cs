@@ -211,7 +211,7 @@ public sealed class ScenariosPage : ThemedPage
     {
         var copy = existing?.Clone() ?? new SceneDef();
         using var dlg = new SceneEditForm(D, copy, allowDelete: existing != null);
-        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
         if (dlg.DeleteRequested && existing != null) { DeleteScene(existing); return; }
         if (existing == null) D.Settings.Scenes.Add(copy);
         else

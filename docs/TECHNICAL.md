@@ -837,7 +837,7 @@ seen notice ids, and the window geometry. After a successful import the page app
 theme, autostart, hotkeys/tray menu (`SettingsChanged`), charge limit, and overlay settings, then
 rebuilds itself.
 
-**Thermal alert (Settings → Notifications; off by default).** Runs on the existing 3 s tray poll,
+**Thermal alert (Settings → Automation; off by default).** Runs on the existing 3 s tray poll,
 *before* the `Writable` gate, so it also works on known-but-locked (Experimental) models; it is a
 pure EC read. The read runs off the UI thread (`Task.Run` + `SynchronizationContext.Post`, guarded
 by an `Interlocked` busy flag — same reasoning as the Status page's `RefreshAsync`). Trigger:
@@ -848,7 +848,7 @@ up first) continuously for
 logged. A fixed 5-minute cool-down between alerts keeps a hot gaming session from spamming.
 `EnsureDefaults` clamps hand-edited values (60–105 °C, 3–120 s).
 
-**OSD display time.** `OsdSeconds` (Settings → Notifications, 1–15 s, default 3) controls how long
+**OSD display time.** `OsdSeconds` (Settings → Automation, 1–15 s, default 3) controls how long
 every OSD toast stays fully visible (`OsdForm.HoldSeconds`; the fade in/out is unchanged). The
 temperature alert passes `minSeconds: 5` to `ShowProfile`, so it stays up at least 5 s even when
 the user prefers short OSDs for profile switches.
@@ -2526,7 +2526,7 @@ than mutate the system.
 
 ## 63. SSD temperature alert and charge-limit travel mode
 
-**SSD alert** (Settings → Notifications; off by default). The 3-second tray poll asks
+**SSD alert** (Settings → Automation; off by default). The 3-second tray poll asks
 `Perf.Disks()` for the hottest drive (the same 10-second-cached path Status and the overlay
 already use: `MSFT_StorageReliabilityCounter`, then the temperature IOCTL, then the NVMe
 SMART log) and raises the same OSD + balloon + change-history alert the CPU/GPU alert uses.
@@ -2707,7 +2707,7 @@ wake, and on an explicit change.
 The fix costs one comparison. `Ec.TryReadHw` already reads `ChargeCtrl & 0x7F` in every sample, so
 `OnChargeSample` compares it with our setting and, when they differ, **adopts** the EC value: writes
 it to settings, refreshes the tray and Status, logs it as an external change, and - unless switched
-off in Settings → Notifications - shows an OSD toast and a tray notification naming both limits.
+off in Settings → Automation - shows an OSD toast and a tray notification naming both limits.
 
 Deliberate choices:
 

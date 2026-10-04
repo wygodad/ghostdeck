@@ -608,7 +608,7 @@ public sealed class SettingsPage : ThemedPage
             };
             sch.AddRow(null, add);
         }
-        _gRight[SubNotif].Add(sch);   // owner decision (2026-10-04): the schedule lives on the Notifications sub-tab
+        _gRight[SubNotif].Add(sch);   // owner decision (2026-10-04): the schedule lives on the Automation sub-tab (SubNotif, the former Notifications), next to the alerts
 
         // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
         // model. Pickers list only the modes the panel reports at its current resolution.
@@ -1230,10 +1230,10 @@ public sealed class SettingsPage : ThemedPage
             new[]
             {
                 Lang.T("set_sub_home"), Lang.T("set_sub_general"), Lang.T("set_grp_power"),
-                Lang.T("set_grp_alerts"), Lang.T("set_sub_gaming"), Lang.T("set_sub_hotkeys"),
+                Lang.T("set_sub_auto"), Lang.T("set_sub_gaming"), Lang.T("set_sub_hotkeys"),
                 Lang.T("set_sub_system"),
             },
-            new[] { "", "", "", "", "", "", "" });
+            new[] { "", "", "", "", "", "", "" });
         _subTabs.Changed += i => SelectSub(i, save: true);
         _subTabs.SetActive(_cur);
         Controls.Add(_subTabs);
@@ -1243,7 +1243,7 @@ public sealed class SettingsPage : ThemedPage
         {
             (SubGeneral, "", "set_sub_general", "set_tile_general"),
             (SubPower,   "", "set_grp_power",   "set_tile_power"),
-            (SubNotif,   "", "set_grp_alerts",  "set_tile_notif"),
+            (SubNotif,   "", "set_sub_auto",    "set_tile_notif"),
             (SubGaming,  "", "set_sub_gaming",  "set_tile_gaming"),
             (SubHotkeys, "", "set_sub_hotkeys", "set_tile_hotkeys"),
             (SubSystem,  "", "set_sub_system",  "set_tile_system"),

@@ -18,7 +18,10 @@ namespace GhostDeck;
 /// from this class: a layered window cannot host child controls, so the subclass paints its
 /// own content block between the body text and the buttons and hit-tests it
 /// (<see cref="MeasureContent"/>, <see cref="PaintContent"/>, <see cref="ContentHit"/>,
-/// <see cref="ContentClick"/>). A plain message card overrides nothing.
+/// <see cref="ContentClick"/>). What cannot be painted - a text field, a long list - rides
+/// in small owned windows placed over the card (<see cref="CardTextHost"/>,
+/// <see cref="CardPopupList"/>); <see cref="OnRendered"/> is where a subclass keeps them
+/// aligned. A plain message card overrides nothing.
 /// </summary>
 public class GhostCardForm : Form
 {
@@ -28,21 +31,27 @@ public class GhostCardForm : Form
     private readonly string _ackLabel;
     private readonly string _laterLabel;
     private readonly Action _onAck;
-    private int _hotBtn = -1;                       // 0 = restore, 1 = later, 2 = ✕
+    private int _hotBtn = -1;                       // 0 = accent action, 1 = later, 2 = ✕, 3 = aux (left)
     private int _hotZone = -1;                      // content zone under the cursor (subclass-defined), -1 = none
-    private readonly Rectangle[] _btn = new Rectangle[3];
+    private readonly Rectangle[] _btn = new Rectangle[4];
     private Rectangle _cardRect;
     private bool _drag;
     private bool _dragMoved;
     private Point _dragOff;
 
+    // The card palette. Cards are dark in both app themes, so these are fixed colours, not Theme.*
     private static readonly Color Bg = Color.FromArgb(247, 0x10, 0x15, 0x1F);
-    private static readonly Color White = Color.FromArgb(0xF3, 0xF7, 0xFF);
-    private static readonly Color Muted = Color.FromArgb(0x98, 0xA0, 0xAE);
-    private static readonly Color Ink = Color.FromArgb(0xC9, 0xD4, 0xE8);
-    private static readonly Color Cyan = Color.FromArgb(0x3D, 0xE3, 0xFF);
+    private protected static readonly Color White = Color.FromArgb(0xF3, 0xF7, 0xFF);
+    private protected static readonly Color Muted = Color.FromArgb(0x98, 0xA0, 0xAE);
+    private protected static readonly Color Ink = Color.FromArgb(0xC9, 0xD4, 0xE8);
+    private protected static readonly Color Cyan = Color.FromArgb(0x3D, 0xE3, 0xFF);
     private static readonly Color Violet = Color.FromArgb(0x8D, 0x63, 0xFF);
-    private static readonly Color Amber = Color.FromArgb(0xFF, 0xC1, 0x5D);
+    /// <summary>= Theme.AccentFill: the fill of a selected / switched-on control, with white text.</summary>
+    private protected static readonly Color Fill = Color.FromArgb(0x3C, 0x7D, 0xFF);
+    /// <summary>Opaque field background, so a hosted text box can match it exactly.</summary>
+    private protected static readonly Color FieldBg = Color.FromArgb(0x1A, 0x20, 0x2C);
+    private protected static readonly Color Amber = Color.FromArgb(0xFF, 0xC1, 0x5D);
+    private protected static readonly Color SoftRed = Color.FromArgb(0xF0, 0x6A, 0x7A);
 
     protected override CreateParams CreateParams
     {
@@ -88,8 +97,17 @@ public class GhostCardForm : Form
     {
         base.OnHandleCreated(e);
         Render();
+        // a card opened for a window (a modal editor) sits over that window; a plain message
+        // sits in the middle of the primary screen
         var wa = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1600, 900);
-        Location = new Point(wa.Left + (wa.Width - Width) / 2, wa.Top + (wa.Height - Height) / 2);
+        var host = wa;
+        if (HostWindow is { IsDisposed: false, Visible: true } o && o.WindowState != FormWindowState.Minimized)
+        {
+            host = o.Bounds;
+            wa = Screen.FromControl(o).WorkingArea;
+        }
+        int x = host.Left + (host.Width - Width) / 2, y = host.Top + (host.Height - Height) / 2;
+        Location = new Point(Math.Max(wa.Left, Math.Min(x, wa.Right - Width)), Math.Max(wa.Top, Math.Min(y, wa.Bottom - Height)));
     }
 
     protected override void OnPaintBackground(PaintEventArgs e) { }
@@ -104,9 +122,16 @@ public class GhostCardForm : Form
 
     private void Ack()
     {
-        try { Acknowledge(); } catch { }
-        Close();
+        bool close;
+        try { close = Acknowledge(); } catch { close = true; }
+        if (close) Close();
     }
+
+    /// <summary>
+    /// The window this card belongs to; the card centres over it. Set it before the card is
+    /// shown - ShowDialog(owner) does not make the owner known by the time the handle exists.
+    /// </summary>
+    protected Form? HostWindow { get; set; }
 
     // ---------------- content hooks (editor cards) ----------------
     /// <summary>Card width in logical pixels.</summary>
@@ -121,8 +146,16 @@ public class GhostCardForm : Form
     /// <summary>Clickable content zone at a window point, -1 = none.</summary>
     protected virtual int ContentHit(Point p) => -1;
     protected virtual void ContentClick(int zone) { }
-    /// <summary>The accent action; the card closes afterwards.</summary>
-    protected virtual void Acknowledge() => _onAck();
+    /// <summary>The accent action. Return false to keep the card open (e.g. a required field is empty).</summary>
+    protected virtual bool Acknowledge() { _onAck(); return true; }
+    /// <summary>Runs the accent action as if its button was pressed (for hosted text fields: Enter).</summary>
+    protected void TriggerAck() => Ack();
+    /// <summary>An optional third button on the LEFT of the button row (e.g. Delete); empty = none.</summary>
+    protected virtual string AuxLabel => "";
+    protected virtual Color AuxColor => SoftRed;
+    protected virtual void AuxClick() { }
+    /// <summary>Called after every repaint - the place to re-align owned overlay windows.</summary>
+    protected virtual void OnRendered() { }
     /// <summary>The content zone under the cursor, for hover painting.</summary>
     protected int HotZone => _hotZone;
     protected void Rerender() => Render();
@@ -179,6 +212,7 @@ public class GhostCardForm : Form
         {
             case 0: Ack(); return;
             case 1: case 2: Close(); return;
+            case 3: AuxClick(); return;
         }
     }
 
@@ -189,6 +223,7 @@ public class GhostCardForm : Form
         using var bmp = Compose();
         if (Width != bmp.Width || Height != bmp.Height) Size = new Size(bmp.Width, bmp.Height);
         Push(bmp);
+        OnRendered();
     }
 
     private Bitmap Compose()
@@ -293,7 +328,7 @@ public class GhostCardForm : Form
         int wAck = Ce(g.MeasureString(ackTxt, btnF).Width) + padX * 2;
         int wLater = laterTxt.Length == 0 ? 0 : Ce(g.MeasureString(laterTxt, btnF).Width) + padX * 2;
         int xLater = cx + cw - wLater, xAck = (wLater == 0 ? cx + cw : xLater - bgap) - wAck;
-        void Button(int i, int bx, int bw, string text, bool accent)
+        void Button(int i, int bx, int bw, string text, Color? tint)
         {
             var rc = new Rectangle(bx, yBtns, bw, hBtn);
             _btn[i] = new Rectangle(rc.X + pad, rc.Y + pad, rc.Width, rc.Height);   // window coords
@@ -301,16 +336,19 @@ public class GhostCardForm : Form
             using var fb = new SolidBrush(Color.FromArgb(hot ? 34 : 13, 255, 255, 255));
             using var rp = RoundPath(rc, Ce(8 * k));
             g.FillPath(fb, rp);
-            Color edge = accent ? Color.FromArgb(hot ? 255 : 130, Cyan) : Color.FromArgb(hot ? 90 : 36, 243, 247, 255);
+            Color edge = tint is { } t ? Color.FromArgb(hot ? 255 : 130, t) : Color.FromArgb(hot ? 90 : 36, 243, 247, 255);
             using var op = new Pen(edge, 1f);
             g.DrawPath(op, rp);
-            using var tb = new SolidBrush(accent ? Cyan : hot ? White : Ink);
+            using var tb = new SolidBrush(tint ?? (hot ? White : Ink));
             var sz = g.MeasureString(text, btnF);
             g.DrawString(text, btnF, tb, rc.X + (rc.Width - sz.Width) / 2f, rc.Y + (rc.Height - sz.Height) / 2f);
         }
-        Button(0, xAck, wAck, ackTxt, accent: true);
-        if (wLater > 0) Button(1, xLater, wLater, laterTxt, accent: false);
+        Button(0, xAck, wAck, ackTxt, Cyan);
+        if (wLater > 0) Button(1, xLater, wLater, laterTxt, null);
         else _btn[1] = Rectangle.Empty;
+        string auxTxt = AuxLabel;
+        if (auxTxt.Length > 0) Button(3, cx, Ce(g.MeasureString(auxTxt, btnF).Width) + padX * 2, auxTxt, AuxColor);
+        else _btn[3] = Rectangle.Empty;
 
         // small ✕ top-right (= Later)
         var xr = new Rectangle(W - xs - Ce(10 * k), yHdr + (hHdr - xs) / 2, xs, xs);
@@ -325,7 +363,7 @@ public class GhostCardForm : Form
         return bmp;
     }
 
-    private static GraphicsPath RoundPath(RectangleF r, int radius)
+    private protected static GraphicsPath RoundPath(RectangleF r, int radius)
     {
         var p = new GraphicsPath();
         int d = Math.Max(2, radius * 2);

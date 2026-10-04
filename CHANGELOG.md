@@ -120,8 +120,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   showing no RPM on these boards rather than misreading half of the pair.
 
 ### Changed
-- **The scene schedule moved to the Notifications tab** - Settings → Power was getting
-  long; the schedule card now sits on the Notifications sub-tab, next to the alerts.
+- **Settings: the Notifications tab is now "Automation" and holds the scene schedule** -
+  Settings → Power was getting long, so the schedule card moved next to the alerts, and the
+  tab was renamed for what it now collects: things the app does on its own (a scene at a
+  given hour, an alert at a given temperature). Battery rules stay on the Power tab, and the
+  Power card moved to the top of its right column.
+- **The scene editor and the profile-mapping editor are GhostDeck cards** - the same dark
+  card as the app's messages instead of a titled dialog with drop-down lists. Every row of a
+  scene keeps its "set this" switch; values with a few choices are picked from segments
+  that are all visible at once (on / off, the charge limit, the refresh rate), longer lists
+  (profile, fan curve, brightness) open in a list styled like the card. Touching a value of
+  a row that is off switches the row on.
 - **MSI Raider 16 Max HX B2WJ (`2651EMS1`): fan curve verified, Apex recorded**
   ([#221](../../issues/221), [#225](../../issues/225), thanks @Giperzvuk) - his test curves
   sit byte-for-byte at the shipped table addresses on both main fans, and his capture of

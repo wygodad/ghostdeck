@@ -485,9 +485,33 @@ action as constructor arguments) or `SessionReportForm` (rich content + icon act
 layered window cannot host child controls, so `GhostCardForm` exposes a content block between
 the body text and the buttons: a subclass overrides `MeasureContent` / `PaintContent` (same
 bitmap, same `k = dpi / 96` scale), reports its clickable zones through `ContentHit` and reacts
-in `ContentClick`; `HotZone` gives the hovered zone for the hover repaint, `Acknowledge` is the
-accent action and `CardWidth` widens the card. Carrier: `PowerMapForm` (profile → Windows power
-mode, `//WIN-POWER`) - four rows of scenario icon, profile name and a three-way segmented
-picker (selected cell = `AccentFill` with white text, the token for filled controls), with
-↑/↓ and ←/→ as the keyboard path. Prefer choices that are all visible at once (segments,
-toggles) over anything that would need a drop-down list.
+in `ContentClick`; `HotZone` gives the hovered zone for the hover repaint and `CardWidth` widens
+the card. `Acknowledge` is the accent action and returns whether the card may close (a
+required field left empty keeps it open); `AuxLabel` / `AuxClick` add a third button on the
+left of the button row (Delete). Cards are dark in both app themes, so everything on them uses
+the fixed card palette (`White`, `Ink`, `Muted`, `Cyan`, `Fill` = the `AccentFill` token,
+`FieldBg`), never `Theme.*`.
+
+What cannot be painted rides in small owned windows over the card (`Forms/CardOverlays.cs`):
+
+- `CardTextHost` - a real `TextBox` in a borderless owned window placed exactly over a field
+  the card paints. `FieldBg` is opaque so the two match without a seam. The real control is
+  what gives selection, clipboard, IME and the emoji panel; a painted text field would have
+  none of them. The card re-aligns its hosts in `OnRendered` and `OnMove`, and creates them
+  in `OnVisibleChanged` (the same call that shows the card), so a field is never seen empty.
+  Enter / Esc / Tab are handed back to the card through `CommandKey`.
+- `CardPopupList` - the drop-down of a painted select field: an owned borderless list in the
+  card palette (selected item = `Fill`, optional icon per item, wheel scrolling past nine
+  rows, ↑/↓ + Enter), closing on a pick, on Esc and on losing activation.
+
+A modal editor sets `HostWindow` before it is shown and the card centres over that window;
+`ShowDialog(owner)` alone does not do it, because `Owner` is still null when the handle is
+created. Message cards have no host window and stay in the middle of the primary screen.
+
+Carriers: `PowerMapForm` (profile → Windows power mode, `//WIN-POWER`; four rows of scenario
+icon, profile name and a three-way segmented picker) and `SceneEditForm` (`//SCENE`; name and
+icon fields, then one row per setting with a painted switch and a picker). The picker rule in
+the scene editor: two to four choices whose captions fit side by side become segments, all
+visible at once; anything longer (profile, fan curve, brightness) becomes a select field with
+a `CardPopupList`. Touching the picker of a row that is off switches the row on. Rows shrink
+from 40 to 32 logical px when the screen is low, so the whole card always fits.

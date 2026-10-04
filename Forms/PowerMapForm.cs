@@ -21,11 +21,6 @@ public sealed class PowerMapForm : GhostCardForm
     };
     private static readonly string[] ModeKeys = { "pw_seg_eff", "pw_seg_bal", "pw_seg_perf" };
 
-    private static readonly Color White = Color.FromArgb(0xF3, 0xF7, 0xFF);
-    private static readonly Color Ink = Color.FromArgb(0xC9, 0xD4, 0xE8);
-    private static readonly Color Cyan = Color.FromArgb(0x3D, 0xE3, 0xFF);
-    private static readonly Color Fill = Color.FromArgb(0x3C, 0x7D, 0xFF);   // = Theme.AccentFill: a filled control with white text
-
     private readonly AppSettings _settings;
     private readonly Func<ProfileId, Color> _colorOf;
     private readonly Action _onSaved;
@@ -45,7 +40,7 @@ public sealed class PowerMapForm : GhostCardForm
 
     protected override int CardWidth => 560;
 
-    protected override void Acknowledge()
+    protected override bool Acknowledge()
     {
         var map = _settings.PowerModeMap;
         map.Clear();
@@ -53,6 +48,7 @@ public sealed class PowerMapForm : GhostCardForm
             if (_sel[i] != PowerPlan.DefaultModeGroup(Rows[i].Id)) map[Rows[i].Id.ToString()] = _sel[i];
         _settings.Save();
         _onSaved();
+        return true;
     }
 
     private static int RowH(float k) => (int)Math.Ceiling(50 * k);
@@ -93,7 +89,7 @@ public sealed class PowerMapForm : GhostCardForm
             g.DrawString(name, nameF, whiteB, nameX, y + (rowH - nameF.GetHeight(g)) / 2f);
 
             var track = new Rectangle(trackX, y + (rowH - trackH) / 2, trackW, trackH);
-            using (var tp = Round(track, Ce(9 * k)))
+            using (var tp = RoundPath(track, Ce(9 * k)))
             {
                 using var tb = new SolidBrush(Color.FromArgb(12, 255, 255, 255));
                 g.FillPath(tb, tp);
@@ -108,7 +104,7 @@ public sealed class PowerMapForm : GhostCardForm
                 bool on = _sel[i] == j, hot = HotZone == i * 3 + j;
                 if (on || hot)
                 {
-                    using var cp = Round(rc, Ce(7 * k));
+                    using var cp = RoundPath(rc, Ce(7 * k));
                     using var cb = new SolidBrush(on ? Fill : Color.FromArgb(24, 255, 255, 255));
                     g.FillPath(cb, cp);
                 }
@@ -116,18 +112,6 @@ public sealed class PowerMapForm : GhostCardForm
                 x += cw[j];
             }
         }
-    }
-
-    private static GraphicsPath Round(Rectangle r, int radius)
-    {
-        var p = new GraphicsPath();
-        int d = Math.Max(2, radius * 2);
-        p.AddArc(r.X, r.Y, d, d, 180, 90);
-        p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-        p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-        p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-        p.CloseFigure();
-        return p;
     }
 
     protected override int ContentHit(Point p)
