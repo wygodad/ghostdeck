@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261010,
+  "dataVersion": 20261011,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -947,6 +947,16 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "blockPath": {
+        "shiftMode": "MSI_System[7]",
+        "fanMode": "MSI_System[9]",
+        "cpuTemp": "MSI_CPU[1]",
+        "gpuTemp": "MSI_VGA[1]",
+        "cpuDuty": "MSI_CPU[2]",
+        "gpuDuty": "MSI_VGA[2]",
+        "cpuRpm": "MSI_AP[2]",
+        "gpuRpm": "MSI_AP[4]"
+      },
       "credit": "scorvus99",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
       "recipes": {
@@ -5371,6 +5381,16 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "blockPath": {
+        "shiftMode": "MSI_System[7]",
+        "fanMode": "MSI_System[9]",
+        "cpuTemp": "MSI_CPU[1]",
+        "gpuTemp": "MSI_VGA[1]",
+        "cpuDuty": "MSI_CPU[2]",
+        "gpuDuty": "MSI_VGA[2]",
+        "cpuRpm": "MSI_AP[2]",
+        "gpuRpm": "MSI_AP[4]"
+      },
       "recipes": {
         "Silent": [
           "0xF2=0xC1",

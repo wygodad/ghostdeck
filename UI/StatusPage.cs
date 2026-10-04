@@ -536,6 +536,19 @@ public sealed class StatusPage : ThemedPage
                 Theme.Muted, TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
             cardTop += 52;
         }
+        // Backup WMI path: say which road the readings come from and what it does not carry,
+        // then the profile the hardware reports (the tiles cannot show it while writes are off).
+        if (info.BackupPath)
+        {
+            var noteFont = new Font("Segoe UI", 9.5f);
+            string note = Lang.T("backup_note") + Environment.NewLine
+                        + string.Format(Lang.T("backup_profile"), Profiles.Get(info.Profile).Label);
+            int noteH = TextRenderer.MeasureText(g, note, noteFont, new Size(avail, int.MaxValue),
+                TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, note, noteFont, new Rectangle(Pad, cardTop, avail, noteH),
+                Theme.Muted, TextFormatFlags.WordBreak);
+            cardTop += noteH + 10;
+        }
         int rowH = RowH;
         var card = new RectangleF(Pad, cardTop, avail, rowH * Rows.Length + 14);
         Ui.FillCard(g, card);

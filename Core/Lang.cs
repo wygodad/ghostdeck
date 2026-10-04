@@ -687,6 +687,60 @@ public static class Lang
             "Firmware laptop ini tidak menyediakan antarmuka kontrol EC MSI, sehingga profil, kurva kipas, dan batas pengisian tidak tersedia. Sebagai gantinya GhostDeck membaca suhu CPU/GPU dari blok sensor WMI MSI.",
             "Il firmware di questo laptop non offre l'interfaccia di controllo EC di MSI, quindi profili, curve ventole e limite di carica non sono disponibili. GhostDeck legge invece la temperatura CPU/GPU dai blocchi sensore WMI di MSI."
             };
+        // Backup WMI path (data blocks) - read-only build
+        m["tier_backup_ro"] = new[] { "backup path, read-only", "ścieżka zapasowa, tylko odczyt", "Ersatzpfad, nur Lesen", "voie de secours, lecture seule", "vía alternativa, solo lectura", "备用通道，只读", "via alternativa, somente leitura", "резервный путь, только чтение", "予備経路・読み取り専用", "예비 경로, 읽기 전용", "備用通道，唯讀", "yedek yol, salt okunur", "đường dự phòng, chỉ đọc", "jalur cadangan, hanya baca", "percorso di riserva, sola lettura" };
+        m["backup_ro_sub"] = new[] {
+            "Backup WMI path: this build only reads, it does not switch profiles yet",
+            "Ścieżka zapasowa WMI: ta wersja tylko czyta, jeszcze nie przełącza profili",
+            "WMI-Ersatzpfad: Diese Version liest nur und schaltet noch keine Profile um",
+            "Voie de secours WMI : cette version lit seulement, elle ne change pas encore de profil",
+            "Vía alternativa WMI: esta versión solo lee, aún no cambia de perfil",
+            "WMI 备用通道：此版本仅读取，尚不能切换配置文件",
+            "Via alternativa WMI: esta versão só lê, ainda não troca de perfil",
+            "Резервный путь WMI: эта версия только читает и пока не переключает профили",
+            "WMI 予備経路：このバージョンは読み取りのみで、プロファイルの切り替えはまだできません",
+            "WMI 예비 경로: 이 버전은 읽기만 하며 아직 프로필을 전환하지 않습니다",
+            "WMI 備用通道：此版本僅讀取，尚無法切換設定檔",
+            "WMI yedek yolu: bu sürüm yalnızca okur, henüz profil değiştirmez",
+            "Đường dự phòng WMI: bản này chỉ đọc, chưa chuyển hồ sơ",
+            "Jalur cadangan WMI: versi ini hanya membaca, belum mengganti profil",
+            "Percorso di riserva WMI: questa versione legge soltanto, non cambia ancora profilo"
+            };
+        m["backup_note"] = new[] {
+            "This laptop's firmware does not answer on MSI's EC control interface, so GhostDeck reads the hardware over the backup WMI path (the device's data blocks): temperatures, fan speeds and the active profile. This build only reads there - nothing is written to the hardware. Fan Boost, the charge limit, keyboard backlight and the webcam switch are not available on this path.",
+            "Firmware tego laptopa nie odpowiada na interfejsie sterowania EC firmy MSI, więc GhostDeck czyta sprzęt zapasową ścieżką WMI (bloki danych urządzenia): temperatury, obroty wentylatorów i aktywny profil. Ta wersja na tej ścieżce tylko czyta - niczego nie zapisuje do sprzętu. Fan Boost, limit ładowania, podświetlenie klawiatury i przełącznik kamery nie są na niej dostępne.",
+            "Die Firmware dieses Laptops antwortet nicht auf MSIs EC-Steuerschnittstelle, daher liest GhostDeck die Hardware über den WMI-Ersatzpfad (die Datenblöcke des Geräts): Temperaturen, Lüfterdrehzahlen und das aktive Profil. Diese Version liest dort nur - es wird nichts in die Hardware geschrieben. Fan Boost, Ladelimit, Tastaturbeleuchtung und Webcam-Schalter sind auf diesem Pfad nicht verfügbar.",
+            "Le firmware de cet ordinateur ne répond pas sur l'interface de contrôle EC de MSI ; GhostDeck lit donc le matériel par la voie de secours WMI (les blocs de données de l'appareil) : températures, vitesses des ventilateurs et profil actif. Cette version ne fait que lire sur cette voie - rien n'est écrit dans le matériel. Fan Boost, la limite de charge, le rétroéclairage du clavier et l'interrupteur de webcam n'y sont pas disponibles.",
+            "El firmware de este portátil no responde en la interfaz de control EC de MSI, así que GhostDeck lee el hardware por la vía alternativa WMI (los bloques de datos del dispositivo): temperaturas, velocidades de los ventiladores y perfil activo. Esta versión solo lee por esa vía: no se escribe nada en el hardware. Fan Boost, el límite de carga, la retroiluminación del teclado y el interruptor de la cámara no están disponibles en ella.",
+            "本机固件不响应 MSI 的 EC 控制接口，因此 GhostDeck 通过 WMI 备用通道（设备的数据块）读取硬件：温度、风扇转速和当前配置文件。此版本在该通道上仅读取，不会向硬件写入任何内容。Fan Boost、充电限制、键盘背光和摄像头开关在此通道上不可用。",
+            "O firmware deste notebook não responde na interface de controle do EC da MSI, então o GhostDeck lê o hardware pela via alternativa WMI (os blocos de dados do dispositivo): temperaturas, velocidades das ventoinhas e perfil ativo. Esta versão apenas lê por essa via - nada é gravado no hardware. Fan Boost, limite de carga, retroiluminação do teclado e o interruptor da webcam não estão disponíveis nela.",
+            "Прошивка этого ноутбука не отвечает на интерфейсе управления EC от MSI, поэтому GhostDeck читает оборудование по резервному пути WMI (блоки данных устройства): температуры, обороты вентиляторов и активный профиль. Эта версия на этом пути только читает - в оборудование ничего не записывается. Fan Boost, лимит заряда, подсветка клавиатуры и переключатель веб-камеры на нём недоступны.",
+            "このノートPCのファームウェアは MSI の EC 制御インターフェースに応答しないため、GhostDeck は WMI の予備経路（デバイスのデータブロック）でハードウェアを読み取ります：温度、ファン回転数、現在のプロファイル。このバージョンはこの経路では読み取りのみを行い、ハードウェアには何も書き込みません。Fan Boost、充電上限、キーボードバックライト、Web カメラスイッチはこの経路では利用できません。",
+            "이 노트북의 펌웨어는 MSI의 EC 제어 인터페이스에 응답하지 않으므로 GhostDeck는 WMI 예비 경로(장치의 데이터 블록)로 하드웨어를 읽습니다: 온도, 팬 속도, 활성 프로필. 이 버전은 이 경로에서 읽기만 하며 하드웨어에 아무것도 쓰지 않습니다. Fan Boost, 충전 제한, 키보드 백라이트, 웹캠 스위치는 이 경로에서 사용할 수 없습니다.",
+            "本機韌體不回應 MSI 的 EC 控制介面，因此 GhostDeck 透過 WMI 備用通道（裝置的資料區塊）讀取硬體：溫度、風扇轉速和目前的設定檔。此版本在該通道上僅讀取，不會向硬體寫入任何內容。Fan Boost、充電上限、鍵盤背光和網路攝影機開關在此通道上無法使用。",
+            "Bu dizüstünün ürün yazılımı MSI'ın EC kontrol arayüzünde yanıt vermiyor; bu yüzden GhostDeck donanımı WMI yedek yolu (aygıtın veri blokları) üzerinden okur: sıcaklıklar, fan hızları ve etkin profil. Bu sürüm o yolda yalnızca okur - donanıma hiçbir şey yazılmaz. Fan Boost, şarj sınırı, klavye aydınlatması ve web kamerası anahtarı bu yolda kullanılamaz.",
+            "Firmware của laptop này không phản hồi trên giao diện điều khiển EC của MSI, nên GhostDeck đọc phần cứng qua đường dự phòng WMI (các khối dữ liệu của thiết bị): nhiệt độ, tốc độ quạt và hồ sơ đang hoạt động. Bản này chỉ đọc trên đường đó - không ghi gì vào phần cứng. Fan Boost, giới hạn sạc, đèn nền bàn phím và công tắc webcam không khả dụng trên đường này.",
+            "Firmware laptop ini tidak merespons pada antarmuka kontrol EC MSI, sehingga GhostDeck membaca perangkat keras melalui jalur cadangan WMI (blok data perangkat): suhu, kecepatan kipas, dan profil aktif. Versi ini hanya membaca di jalur itu - tidak ada yang ditulis ke perangkat keras. Fan Boost, batas pengisian, lampu latar keyboard, dan sakelar webcam tidak tersedia di jalur ini.",
+            "Il firmware di questo laptop non risponde sull'interfaccia di controllo EC di MSI, quindi GhostDeck legge l'hardware attraverso il percorso di riserva WMI (i blocchi dati del dispositivo): temperature, velocità delle ventole e profilo attivo. Questa versione su quel percorso legge soltanto: nulla viene scritto nell'hardware. Fan Boost, limite di carica, retroilluminazione della tastiera e interruttore della webcam non sono disponibili su questo percorso."
+            };
+        m["backup_profile"] = new[] { "Profile reported by the hardware: {0}", "Profil zgłaszany przez sprzęt: {0}", "Von der Hardware gemeldetes Profil: {0}", "Profil indiqué par le matériel : {0}", "Perfil indicado por el hardware: {0}", "硬件报告的配置文件：{0}", "Perfil informado pelo hardware: {0}", "Профиль, который сообщает оборудование: {0}", "ハードウェアが報告しているプロファイル：{0}", "하드웨어가 보고한 프로필: {0}", "硬體回報的設定檔：{0}", "Donanımın bildirdiği profil: {0}", "Hồ sơ do phần cứng báo: {0}", "Profil yang dilaporkan perangkat keras: {0}", "Profilo segnalato dall'hardware: {0}" };
+        m["ec_err_backup_path"] = new[] {
+            "This is not available on the backup WMI path this laptop uses (its firmware does not answer on MSI's EC control interface).",
+            "To nie jest dostępne na zapasowej ścieżce WMI, której używa ten laptop (jego firmware nie odpowiada na interfejsie sterowania EC firmy MSI).",
+            "Das ist auf dem WMI-Ersatzpfad, den dieser Laptop nutzt, nicht verfügbar (seine Firmware antwortet nicht auf MSIs EC-Steuerschnittstelle).",
+            "Ceci n'est pas disponible sur la voie de secours WMI utilisée par cet ordinateur (son firmware ne répond pas sur l'interface de contrôle EC de MSI).",
+            "Esto no está disponible en la vía alternativa WMI que usa este portátil (su firmware no responde en la interfaz de control EC de MSI).",
+            "本机使用的 WMI 备用通道不提供此功能（其固件不响应 MSI 的 EC 控制接口）。",
+            "Isto não está disponível na via alternativa WMI usada por este notebook (o firmware dele não responde na interface de controle do EC da MSI).",
+            "Это недоступно на резервном пути WMI, который использует этот ноутбук (его прошивка не отвечает на интерфейсе управления EC от MSI).",
+            "このノートPCが使用している WMI 予備経路では利用できません（ファームウェアが MSI の EC 制御インターフェースに応答しないため）。",
+            "이 노트북이 사용하는 WMI 예비 경로에서는 사용할 수 없습니다(펌웨어가 MSI의 EC 제어 인터페이스에 응답하지 않음).",
+            "本機使用的 WMI 備用通道不提供此功能（其韌體不回應 MSI 的 EC 控制介面）。",
+            "Bu, bu dizüstünün kullandığı WMI yedek yolunda kullanılamıyor (ürün yazılımı MSI'ın EC kontrol arayüzünde yanıt vermiyor).",
+            "Tính năng này không khả dụng trên đường dự phòng WMI mà laptop này dùng (firmware của máy không phản hồi trên giao diện điều khiển EC của MSI).",
+            "Ini tidak tersedia di jalur cadangan WMI yang dipakai laptop ini (firmware-nya tidak merespons pada antarmuka kontrol EC MSI).",
+            "Non disponibile sul percorso di riserva WMI usato da questo laptop (il suo firmware non risponde sull'interfaccia di controllo EC di MSI)."
+            };
         m["diag_desc"] = new[] {
             "The zip contains: a read-only EC dump (or the exact error it produced), MSI's WMI sensor blocks, your settings, the change history, the error log and version info. No personal data.",
             "Zip zawiera: zrzut EC (tylko odczyt, lub dokładny błąd odczytu), bloki czujników WMI firmy MSI, ustawienia, historię zmian, dziennik błędów i informacje o wersji. Bez danych osobistych.",

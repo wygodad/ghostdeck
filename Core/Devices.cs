@@ -37,6 +37,26 @@ public sealed record FanCurveSpec(
 /// </summary>
 public sealed record FourthModeSpec(string Name, byte ShiftValue);
 
+/// <summary>One slot of an MSI WMI data block: the class in root\wmi and the instance index.</summary>
+public sealed record BlockRef(string Class, int Index)
+{
+    public override string ToString() => $"{Class}[{Index}]";
+}
+
+/// <summary>
+/// Where a model keeps its registers on the backup WMI path - the device's data blocks
+/// (`MSI_System`, `MSI_CPU`, `MSI_VGA`, `MSI_AP`), used when the firmware refuses the
+/// `MSI_ACPI` method interface (TECHNICAL §39). Every slot is addressed as class[index],
+/// which is what the firmware itself indexes by; EC addresses play no part on this path.
+/// Recorded per model, from that model's own block dump. Null on a DeviceProfile = the model
+/// has no backup path on record and stays temperatures-only when the interface is refused.
+/// </summary>
+public sealed record BlockPathSpec(
+    BlockRef ShiftMode, BlockRef FanMode, BlockRef CpuTemp,
+    BlockRef? GpuTemp = null,
+    BlockRef? CpuDuty = null, BlockRef? GpuDuty = null,
+    BlockRef? CpuRpm = null, BlockRef? GpuRpm = null);
+
 /// <summary>
 /// Per-model EC definition: firmware match, EC addresses, per-profile recipes, and a tier.
 /// Tested = verified on real hardware. Experimental = built from msi-ec's documented
@@ -85,6 +105,10 @@ public sealed class DeviceProfile
     // or null. Nothing writes it yet - it is what the Power test probes. See FourthModeSpec.
     public FourthModeSpec? FourthMode { get; init; }
 
+    // Backup WMI path (data blocks) for units of this model whose firmware refuses the method
+    // interface, or null. See BlockPathSpec.
+    public BlockPathSpec? BlockPath { get; init; }
+
     // Community attribution (Models tab "Thanks" column): GitHub login of the person whose
     // report/verification backs this entry, and the issue to link as a thank-you.
     public string Credit { get; init; } = "";
@@ -110,7 +134,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261010;
+    public const int DataVersion = 20261011;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -190,6 +214,19 @@ public static class Devices
     // are hardware-confirmed for that model (not just family-inferred).
     private static readonly FanCurveSpec ModernCurveVerified =
         new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true);
+
+    // Backup-path layout of the Dragon Center era boards (TECHNICAL §39). Read with GhostDeck's
+    // own diagnostic package on both machines that carry it below - a Delta 15 A5EFK (issue #48)
+    // and a GF65 Thin 10UE (issue #117): the same instance count in every block and the same
+    // slots. Shift mode and fan mode sit in MSI_System (196 / 13 / 141 = C4 / 0D / 8D in the
+    // dumps), live temperature and fan duty in MSI_CPU / MSI_VGA, the fan tachometers in MSI_AP
+    // (0 while a fan stands still, 478000 / raw otherwise). A model gets this layout only once
+    // its own dump shows it - the layout is never assumed from the generation.
+    private static readonly BlockPathSpec DragonEraBlocks = new(
+        ShiftMode: new("MSI_System", 7), FanMode: new("MSI_System", 9),
+        CpuTemp: new("MSI_CPU", 1), GpuTemp: new("MSI_VGA", 1),
+        CpuDuty: new("MSI_CPU", 2), GpuDuty: new("MSI_VGA", 2),
+        CpuRpm: new("MSI_AP", 2), GpuRpm: new("MSI_AP", 4));
 
     // ---------------------------------------------------------------------
     // (#26) Keyboard-backlight level register, per firmware prefix. Generated from msi-ec's
@@ -596,6 +633,7 @@ public static class Devices
         //   the stock app's own path has not been verified on this board by anyone yet.
         new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block dump in the diagnostic package of issue #117
                 Credit = "scorvus99", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/230" },
 
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====
@@ -1486,7 +1524,8 @@ public static class Devices
         new() { Name = "MSI Bravo 15 B5ED", FirmwarePrefixes = new[] { "158MEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Delta 15 A5EFK", FirmwarePrefixes = new[] { "15CKEMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks },   // block dump in the diagnostic package of issue #48
         new() { Name = "MSI Modern 15 B7M", FirmwarePrefixes = new[] { "15HKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GS65 Stealth Thin 8RE / 8RF", FirmwarePrefixes = new[] { "16Q2EMS1" }, Tier = Tier.Experimental,
@@ -1532,4 +1571,29 @@ public static class Devices
 
     public static DeviceProfile? Detect(string firmware) =>
         All.FirstOrDefault(d => d.Matches(firmware));
+
+    /// <summary>
+    /// The model's backup-path layout. A downloaded database written before the key existed
+    /// carries none, so the compiled entry with the same firmware prefix fills in.
+    /// </summary>
+    public static BlockPathSpec? BlockPathOf(DeviceProfile d) =>
+        d.BlockPath ?? BuiltIn.FirstOrDefault(b => b.BlockPath != null &&
+            b.FirmwarePrefixes.Any(p => d.FirmwarePrefixes.Contains(p, StringComparer.OrdinalIgnoreCase)))?.BlockPath;
+
+    /// <summary>
+    /// Every EC firmware prefix in the database that starts with the given board code (the
+    /// four characters MSI shares between the BIOS version and the EC version, e.g. "16W2").
+    /// Used to name the EC line when only the BIOS version can be read. The caller requires
+    /// exactly one hit: a board code can carry two EC lines (16W1EMS1 / 16W1EMS2), and the
+    /// BIOS string cannot tell those apart.
+    /// </summary>
+    public static List<(DeviceProfile Dev, string Prefix)> PrefixesForBoard(string board)
+    {
+        var hits = new List<(DeviceProfile, string)>();
+        if (board.Length != 4) return hits;
+        foreach (var d in All)
+            foreach (var p in d.FirmwarePrefixes)
+                if (p.StartsWith(board, StringComparison.OrdinalIgnoreCase)) hits.Add((d, p));
+        return hits;
+    }
 }

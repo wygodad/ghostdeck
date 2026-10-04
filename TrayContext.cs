@@ -82,7 +82,8 @@ public sealed class TrayContext : ApplicationContext
     private bool _battLowFired, _battHighFired;
 
     private bool Known => _device != null;
-    private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
+    // The backup WMI path is read-only in this build, whatever the tier or the consent says.
+    private bool Writable => Known && !Ec.OnBackupPath && (_device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
     // Automatic (non user-initiated) writes are additionally blocked after a firmware change until acknowledged.
     private bool AutoWritable => Writable && !_firmwareChanged;
 
@@ -108,6 +109,10 @@ public sealed class TrayContext : ApplicationContext
         var probe = _simulate ? new FirmwareProbe(FirmwareProbeStatus.Success, forced!, null) : Ec.ProbeFirmware();
         _probeStatus = probe.Status;
         _firmware = probe.Firmware;
+        // The method interface refused the call: a model with a backup-path layout on record
+        // is read through its data blocks instead (identified by the BIOS version).
+        if (!_simulate && probe.Status == FirmwareProbeStatus.NotSupported && Ec.TryBackupPath() is { Active: true } bp)
+            _firmware = bp.Firmware;
         _device = Devices.Detect(_firmware);
         if (_settings.MigrateExperimentalFlag(_device?.MatchedPrefix(_firmware), _device is { Tier: Tier.Experimental }))
             _settings.Save();
@@ -117,7 +122,7 @@ public sealed class TrayContext : ApplicationContext
         // ClassMissing/InstanceMissing are EXPECTED, fully classified states (fresh Windows,
         // non-MSI hardware) - the diag package's wmi-interface.txt names them; logging the raw
         // exception on every launch would only drip noise into errors.log.
-        if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.AccessDenied
+        if (!Ec.OnBackupPath && probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.AccessDenied
                           or FirmwareProbeStatus.Other)
             AppLifecycle.Report(probe.Error, "ec-startup:" + probe.Status);
         if (!_simulate && probe.Status is FirmwareProbeStatus.TransientFailure or FirmwareProbeStatus.EmptyPayload)
@@ -129,9 +134,7 @@ public sealed class TrayContext : ApplicationContext
                                     ? MsiTelemetry.Available()
                                     : !_simulate && MsiTelemetry.Available());
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
-        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
-        _webcamSupported = Known && Devices.WebcamSupported(_firmware);    // (#27)
-        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        ResolveExtras();
         if (_webcamSupported && !_simulate) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
 
         DetectFirmwareChange();
@@ -281,6 +284,7 @@ public sealed class TrayContext : ApplicationContext
                         tier = _device?.Tier.ToString() ?? "None",
                         writable = Writable,
                         telemetry = _telemetryOnly,
+                        backupPath = Ec.OnBackupPath,
                         profile = Known ? _current.ToString() : null,
                         fanBoost = _coolerBoost,
                         overlay = OverlayVisible,
@@ -373,7 +377,8 @@ public sealed class TrayContext : ApplicationContext
                 }
             }
 
-            if (!Writable) return "1|" + (Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
+            if (!Writable) return "1|" + (Ec.OnBackupPath ? "backup WMI path - read-only in this build"
+                                        : Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
             switch (cmd.Kind)
             {
                 case CliKind.Profile:
@@ -502,6 +507,18 @@ public sealed class TrayContext : ApplicationContext
             ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
     }
 
+    /// <summary>
+    /// Per-firmware extras (keyboard backlight, webcam switch, Fn/Win swap). Their registers
+    /// have no slot on the backup WMI path, so there they are simply absent.
+    /// </summary>
+    private void ResolveExtras()
+    {
+        bool extras = Known && !Ec.OnBackupPath;
+        _kbdAddr = extras ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
+        _webcamSupported = extras && Devices.WebcamSupported(_firmware);    // (#27)
+        _fnSwap = extras ? Devices.FnWinSwapFor(_firmware) : null;
+    }
+
     private string DeviceName() => Known ? _device!.Name : Lang.T("unsupported_title");
 
     private (string text, Color color) TierBadge()
@@ -510,6 +527,7 @@ public sealed class TrayContext : ApplicationContext
         // limited = amber, unsupported = pink/red.
         if (!Known) return _telemetryOnly ? (Lang.T("tier_telemetry"), Theme.Amber)
                                           : (Lang.T("tier_unsupported"), Theme.Red);
+        if (Ec.OnBackupPath) return (Lang.T("tier_backup_ro"), Theme.Amber);
         return _device!.Tier == Tier.Tested
             ? (Lang.T("tier_tested"),       Theme.Accent)
             : (Lang.T("tier_experimental"), Theme.Amber);
@@ -519,15 +537,17 @@ public sealed class TrayContext : ApplicationContext
     {
         if (!Known) return (_telemetryOnly ? Lang.T("tier_telemetry") : Lang.T("unsupported_title"))
                          + (_simulate ? "  (test)" : "");
-        string tier = _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
+        string tier = Ec.OnBackupPath ? Lang.T("tier_backup_ro")
+                    : _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
                     : Writable ? Lang.T("tier_experimental")
                     : Lang.T("experimental_locked");
-        return _device.Name + "  ·  " + tier + (_simulate ? "  (test)" : "");
+        return _device!.Name + "  ·  " + tier + (_simulate ? "  (test)" : "");
     }
 
     private void ShowState()
     {
         if (Writable) ShowOsd(_current);
+        else if (Ec.OnBackupPath) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("backup_ro_sub"), Color.Gray);
         else if (Known) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
         else _osd.ShowProfile(OsdPrefix + Lang.T("unsupported_title"), ProbeSubtitle(), Color.Gray);
     }
@@ -598,9 +618,7 @@ public sealed class TrayContext : ApplicationContext
     private void RedetectFromFirmware()
     {
         _device = Devices.Detect(_firmware);
-        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
-        _webcamSupported = Known && Devices.WebcamSupported(_firmware);
-        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        ResolveExtras();
         _telemetryOnly = !Known && MsiTelemetry.Available();
         if (Known)
         {
@@ -1896,7 +1914,7 @@ public sealed class TrayContext : ApplicationContext
             var (tier, color) = TierBadge();
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
                                   _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion(),
-                                  _telemetryOnly);
+                                  _telemetryOnly, Ec.OnBackupPath);
         },
         Hw = () => ReadHwOrTelemetry(),
         Current = () => _current,
@@ -2100,9 +2118,8 @@ public sealed class TrayContext : ApplicationContext
         if (!Devices.ApplyOverride(p)) return false;
 
         _device = Devices.Detect(_firmware);
-        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
-        _webcamSupported = Known && Devices.WebcamSupported(_firmware);
-        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        Ec.RebindBackupPath(_device);   // the backup path follows the entry now in effect
+        ResolveExtras();
         _telemetryOnly = !Known && !_simulate && MsiTelemetry.Available();
         // captured from the OLD fan-mode register, meaningless against the new tables
         _fanBeforeBoost = null;
@@ -2629,7 +2646,13 @@ public sealed class TrayContext : ApplicationContext
         CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
         if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
 
-        if (!Writable) return;
+        if (!Writable)
+        {
+            // Read-only backup path: the one thing to follow is the profile the hardware reports
+            // (the vendor's own software may switch it).
+            if (Ec.OnBackupPath) { try { SyncProfileFromEc(); } catch { } }
+            return;
+        }
 
         try
         {
@@ -2644,20 +2667,25 @@ public sealed class TrayContext : ApplicationContext
                 if (wc != _webcamOn) { _webcamOn = wc; if (_main is { IsDisposed: false }) _main.RefreshActive(); }
             }
 
-            // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
-            // Silent from Balanced, so don't re-detect — keep the profile the user chose.
-            if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
-            var actual = Ec.GetCurrent(_device!);
-            if (actual != _current)
-            {
-                ChangeLog.Add(ChangeSource.ExternalSync,
-                    string.Format(Lang.T("log_external"), Profiles.Get(_current).Label, Profiles.Get(actual).Label));
-                _current = actual;
-                _profileSince = DateTime.Now;
-                UpdateUi(actual);
-            }
+            SyncProfileFromEc();
         }
         catch { }
+    }
+
+    private void SyncProfileFromEc()
+    {
+        // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
+        // Silent from Balanced, so don't re-detect — keep the profile the user chose.
+        if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
+        var actual = Ec.GetCurrent(_device!);
+        if (actual != _current)
+        {
+            ChangeLog.Add(ChangeSource.ExternalSync,
+                string.Format(Lang.T("log_external"), Profiles.Get(_current).Label, Profiles.Get(actual).Label));
+            _current = actual;
+            _profileSince = DateTime.Now;
+            UpdateUi(actual);
+        }
     }
 
     private void ApplyForPower(PowerLineStatus power, bool osd)

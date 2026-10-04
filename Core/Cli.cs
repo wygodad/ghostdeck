@@ -207,11 +207,15 @@ public static class Cli
     private static int RunOneShot(CliCommand cmd)
     {
         var settings = AppSettings.Load();
-        string fw = Ec.ReadFirmware();
+        var probe = Ec.ProbeFirmware();
+        string fw = probe.Firmware;
+        // method interface refused: a model with a backup-path layout is read through its data blocks
+        if (probe.Status == FirmwareProbeStatus.NotSupported && Ec.TryBackupPath() is { Active: true } bp)
+            fw = bp.Firmware;
         var dev = Devices.Detect(fw);
         // Legacy ExperimentalEnabled is honoured read-only here: a one-shot CLI call must not
         // lose to a settings file the tray app has not migrated yet.
-        bool writable = dev != null && (dev.Tier == Tier.Tested
+        bool writable = dev != null && !Ec.OnBackupPath && (dev.Tier == Tier.Tested
             || settings.ExperimentalWriteAllowedFor(dev.MatchedPrefix(fw))
             || settings.ExperimentalEnabled);
 
@@ -267,6 +271,7 @@ public static class Cli
                         tier = dev?.Tier.ToString() ?? "None",
                         writable,
                         telemetry,
+                        backupPath = Ec.OnBackupPath,
                         profile = cur?.ToString(),
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
@@ -383,7 +388,12 @@ public static class Cli
             }
 
             if (dev == null) { Console.WriteLine($"unsupported hardware (firmware: {(fw.Length > 0 ? fw : "unknown")})"); return 1; }
-            if (!writable) { Console.WriteLine("model is experimental - enable Experimental writes in the app settings first"); return 1; }
+            if (!writable)
+            {
+                Console.WriteLine(Ec.OnBackupPath ? "backup WMI path - read-only in this build"
+                                                  : "model is experimental - enable Experimental writes in the app settings first");
+                return 1;
+            }
 
             ChangeLog.Load();   // CLI actions land in the same change history the app shows
             switch (cmd.Kind)

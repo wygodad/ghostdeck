@@ -22,6 +22,7 @@ public static class Diagnostics
         sb.AppendLine($"App version: {appVersion}");
         sb.AppendLine($"EC firmware: {(firmware.Length > 0 ? firmware : "-")}");
         sb.AppendLine($"Detected model: {model}   Tier: {tier}");
+        if (Ec.OnBackupPath) sb.AppendLine("EC path: backup WMI path (data blocks), read-only in this build");
         sb.AppendLine($"Windows: {Environment.OSVersion.VersionString}   64-bit: {Environment.Is64BitOperatingSystem}");
         sb.AppendLine();
         sb.AppendLine("Contents: ec-dump.txt (read-only EC snapshot, or the exact error it produced),");
@@ -76,6 +77,18 @@ public static class Diagnostics
         sb.AppendLine($"Firmware probe: {probe.Status}"
                       + (probe.Firmware.Length > 0 ? $"  ({probe.Firmware})" : "")
                       + (probe.Error != null ? $"  [{probe.Error.GetType().Name}: {probe.Error.Message}]" : ""));
+        // Checked only after the method interface answered "not supported" (see Ec.TryBackupPath)
+        var bp = Ec.LastBackupProbe;
+        sb.AppendLine("Backup path (data blocks): " + (bp == null
+            ? "not checked"
+            : $"{(bp.Active ? "ACTIVE" : "not active")} - {bp.Detail}  [BIOS {(bp.Bios.Length > 0 ? bp.Bios : "-")}]"));
+        if (bp is { Active: true, Device: { } bdev })
+            Line("Backup path readings: ", () =>
+            {
+                Ec.TryReadHw(bdev, out var hw);
+                return $"shift=0x{Ec.ReadByte(bdev.ShiftMode):X2}, fan=0x{Ec.ReadByte(bdev.FanMode):X2}, profile={Ec.GetCurrent(bdev)}, "
+                     + $"cpuTemp={hw.CpuTemp}, gpuTemp={hw.GpuTemp}, cpuDuty={hw.CpuFan}, gpuDuty={hw.GpuFan}, cpuRpm={hw.CpuRpm}, gpuRpm={hw.GpuRpm}";
+            });
         sb.AppendLine();
 
         Line("MSI_ACPI class: ", () =>

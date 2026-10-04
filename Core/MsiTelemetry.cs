@@ -14,10 +14,10 @@ namespace GhostDeck;
 /// live temperature in °C**, confirmed on that machine by CPU-load correlation (56 -> 90 °C
 /// under load; GPU steady ~52-54 °C).
 ///
-/// This is telemetry only: data blocks cannot switch profiles, drive fan curves or set the
-/// charge limit, so it never substitutes for the EC path - it only turns an otherwise dead
-/// app into a working thermometer on such machines. Requires elevation (the blocks deny
-/// access to non-admin callers), which the app always has.
+/// This class is the temperatures-only fallback: it runs on machines whose model has no
+/// backup-path layout on record (see <see cref="EcBlocks"/> and Ec.TryBackupPath), turning an
+/// otherwise dead app into a working thermometer. Requires elevation (the blocks deny access
+/// to non-admin callers), which the app always has.
 /// </summary>
 public static class MsiTelemetry
 {
@@ -43,48 +43,8 @@ public static class MsiTelemetry
     /// <summary>True when this machine answers on the data blocks (probe for the telemetry mode).</summary>
     public static bool Available() => Read().Any;
 
-    /// <summary>
-    /// Raw dump of the vendor blocks for the diagnostic package: every instance with its byte
-    /// index and value, or the exact error the class returned. Boards differ a lot here - a
-    /// GE78HX (working EC interface) answers `NotSupported` for these blocks, while a Delta 15
-    /// (no EC interface) serves them - so this is the first thing to look at when telemetry
-    /// mode does not light up on a machine that should have it.
-    /// </summary>
-    public static string Dump()
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("=== MSI WMI vendor blocks (root\\wmi) ===");
-        sb.AppendLine("Instance suffix = byte index inside the block; index 1 = live temperature (issue #48).");
-        sb.AppendLine();
-        foreach (var (cls, prop) in new[]
-                 {
-                     ("MSI_CPU", "CPU"), ("MSI_VGA", "VGA"), ("MSI_Master_Battery", "Master_Battery"),
-                     ("MSI_Power", "Power"), ("MSI_System", "System"), ("MSI_AP", "AP"),
-                 })
-        {
-            sb.Append(cls).AppendLine(":");
-            try
-            {
-                using var searcher = new ManagementObjectSearcher(@"root\wmi", $"SELECT * FROM {cls}");
-                int n = 0;
-                foreach (ManagementObject o in searcher.Get())
-                {
-                    string name = o["InstanceName"]?.ToString() ?? "?";
-                    object? v = null;
-                    try { v = o[prop]; } catch { }
-                    sb.AppendLine($"  {name} -> {prop} = {v ?? "(null)"}");
-                    if (++n >= 40) { sb.AppendLine("  … (truncated)"); break; }
-                }
-                if (n == 0) sb.AppendLine("  (no instances returned)");
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine($"  ERROR: {ex.GetType().Name}: {ex.Message.Trim()}");
-            }
-            sb.AppendLine();
-        }
-        return sb.ToString();
-    }
+    /// <summary>Raw survey of the vendor blocks for the diagnostic package (see EcBlocks.Dump).</summary>
+    public static string Dump() => EcBlocks.Dump();
 
     private static int ReadBlockByte(string cls, string prop)
     {
