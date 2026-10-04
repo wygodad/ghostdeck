@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.37.0] - 2026-10-04
 ### Fixed
 - **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured
   the message's line count at a width 2 px wider than the width it was drawn at, so a
