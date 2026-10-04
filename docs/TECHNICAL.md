@@ -1240,6 +1240,11 @@ from ten mockups - sub-tabs like the Status page, with icons and a tile start pa
 - Group assignment: General = Appearance, Interface, Application icon; Power = Power + Display;
   Notifications = alerts/OSD; Hotkeys = shortcuts; System = Startup & tray, Updates, Tray
   menu, Backup.
+- (v1.37) The Notifications group is now **Automation** (title key `set_sub_auto`, glyph E9F5
+  Processing; the constant is still `SubNotif`): it holds the alerts card and the scene
+  schedule, which moved here from Power. Power = Windows power alone in the left column (it
+  is as tall as the rest together); Power, Display, Battery health and Battery rules in the
+  right one. Battery rules stay on Power on purpose - they are about the power source.
 
 ### 34.1 Start page dashboard + strip active state (v1.24)
 
@@ -1252,8 +1257,14 @@ The Start page is a dashboard, not just navigation:
   overlay on/off + enabled-metric count; Hotkeys = enabled count or Off; System = autostart +
   update-check state. A small dot (Theme.Green / Theme.Faint) encodes the group's main on/off;
   General has none.
+- **(v1.37) What the tiles say now.** Power adds the Windows power state, read live through
+  `PowerPlan`: "Windows: Balanced" (the mode the card shows lit, or "Windows: Auto" while the
+  profile sync is on) and "Turbo off" only when turbo IS off - with the source in brackets
+  when just one of the two is off. Automation lists what runs on its own: "Schedule rules: N"
+  (enabled rules, only while the schedule is active), the temperature alert, the SSD alert,
+  then the OSD time; a part that is off is left out, and "Off" appears only when none is on.
 - **Quick switches.** `GroupTile.AttachToggle(get, set)` embeds a ToggleSwitch top-right;
-  used on Notifications (temp alert) and Gaming (overlay via `D.SetOverlay`). The toggle is a
+  used on Automation (temp alert) and Gaming (overlay via `D.SetOverlay`). The toggle is a
   child control, so clicking it never triggers the tile's navigate click; `SyncToggle` uses
   the silent `Checked` setter, so re-syncing cannot loop into the action.
 - **Status header.** `HomeHeader` draws model + tier pill (`Ui.Pill`) + firmware + version
@@ -1579,7 +1590,8 @@ the machine to stock - and a full EC reset does the same at the hardware level.
 A scene (`Core/Scene.cs`, `AppSettings.Scenes`) is a named macro over existing controls:
 profile, fan-curve preset, refresh rate, overlay, charge limit, keyboard backlight, webcam,
 Fan Boost. Every field is nullable - null means "leave as is" - so the editor
-(`Forms/SceneEditForm`) pairs each row with an on/off toggle and only enabled rows are stored.
+(`Forms/SceneEditForm`, a GhostDeck card since v1.37 - RENDERING.md §11) pairs each row with
+an on/off switch and only enabled rows are stored.
 
 `TrayContext.ApplyScene` runs the fields in a deliberate order: **profile first** (its recipe
 rewrites the fan byte), then the curve (via the same `ApplyPresetFromTray` path the tray
@@ -2802,6 +2814,25 @@ write for a retry, and reports the counts; the confirmation and any attention-wo
 are GhostCardForm cards, never MessageBox. The reveal action is a footer link, not a button:
 it clears only the HIDE bit of the setting attributes after storing the full original DWORD
 (`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back.
+
+**Card layout (final, owner-approved 2026-10-04).** A flat card, nothing collapsible, two
+groups set apart by extra space, each under a caption with a coloured marker. Group one, CPU
+TURBO BOOST: the main switch with its help dot; one status sentence (plain when on, an amber
+strip when the app switched it off or the two sources differ, a red one when it is off
+without a snapshot); an open table "Technical details" - a header row naming the active plan
+and the two sources, then *Now*, *Saved* (amber when a snapshot exists, "none" otherwise) and
+*Control separately* with one switch per source. Group two, WINDOWS POWER MODE: the
+four-segment control; under it the Auto sentence and, only on a real override, the amber
+note; then PROFILE MAPPING - caption with two glyph hotspots on the right (edit, restore
+defaults) and four rows of scenario icon in the profile colour, profile name and mode. Below
+both groups: the restore block (only while something is held) and the footer sentence with
+its *Show it there* / *Hide it again* link. Every decision the card asks for is a GhostDeck
+card (RENDERING.md §11): restore, reveal, hide, the default mapping, and the mapping editor.
+
+**Outside the card.** The Start tile of the Power group shows the lit mode and a
+switched-off turbo (§34.1). `--turbo on|off|status` goes through the same `PowerPlan`
+functions, so a CLI change and the card can never disagree (docs/CLI.md). Scenes do not
+carry a turbo field yet.
 
 **Rendering: one owner-drawn control.** The card body is `UI/Controls/WinPowerBody.cs`, a
 single double-buffered control. Its first builds were composed from ~35 nested AutoSize

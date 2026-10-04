@@ -508,10 +508,20 @@ A modal editor sets `HostWindow` before it is shown and the card centres over th
 `ShowDialog(owner)` alone does not do it, because `Owner` is still null when the handle is
 created. Message cards have no host window and stay in the middle of the primary screen.
 
+The base class owns what the editors share, so they cannot drift apart: the text hosts
+(`AddTextField` from `CreateTextFields` - placement, the focus ring, Enter / Esc / Tab, the
+caret in the first field when the card opens), the painters (`PaintSwitch`, `PaintTrack`,
+`PaintCell`, `PaintSelect`, `PaintField`, `PaintCaption`, with `LabelFont` / `CellFont` /
+`CaptionFont`) and `ShowOver(owner)` for a modal editor.
+
 Carriers: `PowerMapForm` (profile → Windows power mode, `//WIN-POWER`; four rows of scenario
-icon, profile name and a three-way segmented picker) and `SceneEditForm` (`//SCENE`; name and
-icon fields, then one row per setting with a painted switch and a picker). The picker rule in
-the scene editor: two to four choices whose captions fit side by side become segments, all
+icon, profile name and a three-way segmented picker), `SceneEditForm` (`//SCENE`; name and
+icon fields, then one row per setting with a painted switch and a picker), `ScheduleRuleForm`
+(`//SCHEDULE`; scene select, seven weekday cells of which any number can be lit, two time
+selects; a rule with no day keeps the card open with the day row marked) and `InputDialog`
+(one text field; an optional validator answers under the field - a taken preset name, a
+Fan Boost time outside 1-120 minutes - instead of opening a second window). The picker rule
+in the scene editor: two to four choices whose captions fit side by side become segments, all
 visible at once; anything longer (profile, fan curve, brightness) becomes a select field with
 a `CardPopupList`. Touching the picker of a row that is off switches the row on. Rows shrink
 from 40 to 32 logical px when the screen is low, so the whole card always fits.

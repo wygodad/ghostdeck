@@ -125,12 +125,19 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   tab was renamed for what it now collects: things the app does on its own (a scene at a
   given hour, an alert at a given temperature). Battery rules stay on the Power tab, and the
   Power card moved to the top of its right column.
-- **The scene editor and the profile-mapping editor are GhostDeck cards** - the same dark
-  card as the app's messages instead of a titled dialog with drop-down lists. Every row of a
-  scene keeps its "set this" switch; values with a few choices are picked from segments
-  that are all visible at once (on / off, the charge limit, the refresh rate), longer lists
-  (profile, fan curve, brightness) open in a list styled like the card. Touching a value of
-  a row that is off switches the row on.
+- **The small editors are GhostDeck cards** - the scene editor, the schedule-rule editor,
+  the profile-mapping editor and the name prompt (fan-curve presets, the custom Fan Boost
+  time) use the same dark card as the app's messages instead of a titled dialog with
+  drop-down lists. Every row of a scene keeps its "set this" switch; values with a few
+  choices are picked from segments that are all visible at once (on / off, the charge limit,
+  the refresh rate, the weekdays of a rule), longer lists (profile, fan curve, brightness,
+  times) open in a list styled like the card. Touching a value of a row that is off switches
+  the row on. A preset name that is already taken is answered under the field, and a rule
+  without a day or a scene without a name keeps the card open with the missing part marked.
+- **Settings Start page: the tiles follow what their tabs hold now** - the Power tile shows
+  the Windows power mode and a switched-off turbo next to the charge limit, the Automation
+  tile shows the number of active schedule rules and the SSD alert next to the temperature
+  alert.
 - **MSI Raider 16 Max HX B2WJ (`2651EMS1`): fan curve verified, Apex recorded**
   ([#221](../../issues/221), [#225](../../issues/225), thanks @Giperzvuk) - his test curves
   sit byte-for-byte at the shipped table addresses on both main fans, and his capture of

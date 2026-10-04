@@ -94,6 +94,12 @@ profile writes the Apex value instead of the normal turbo one, the tile and the 
 an APEX badge, and the choice is remembered for that machine. A panic reset always returns to plain
 Balanced, Apex or not.
 
+![The APEX row on the Extreme tile](images/apex_scenario.png)
+
+The first time the switch is turned on, one card says what it writes and asks before anything changes:
+
+![Apex, first enable](images/apex_modal.png)
+
 Whether Apex buys real performance differs by board, and the app measures rather than promises: the
 Power test runs Apex as its own step. On the first boards measured it only spun the fans faster
 (the Stealth 16 AI+ and Vector 16 HX AI did exactly Extreme's work), but on a Raider 16 Max HX an
@@ -105,6 +111,44 @@ the first enable shows a short explainer card.
 If you don't see the row: your board's entry has no recorded fourth value yet. It arrives like every
 other model-database update - from an owner's capture, without waiting for a release. If your MSI
 Center shows an Apex switch and GhostDeck doesn't, open a model report and we will register it.
+
+## Can GhostDeck turn CPU turbo boost off? What is the Windows power card?
+
+Settings → Power → **Windows power** holds two controls that have nothing to do with the EC. Both are
+ordinary Windows power settings, driven through documented Windows APIs, so they work on **any** laptop -
+including the ones where GhostDeck cannot reach the EC at all.
+
+**CPU turbo boost.** The switch edits *Processor performance boost mode*, a setting of the active Windows
+power plan that Windows ships hidden from its own power options. With it off the processor stays at its
+base clock: noticeably cooler and quieter under load, slower at peak. Two things to know:
+
+- **The change lives in the Windows power plan, not in GhostDeck.** Unlike the profiles (which the EC
+  forgets on a cold boot), it survives a reboot and stays in effect when the app is closed.
+- **Nothing is lost.** Before writing "off" the app saves the plan's previous plugged-in and battery
+  values, shows them in the card under *Saved*, and turning the switch back on writes exactly those
+  values. The two power sources can also be switched separately - turbo off on battery only, full speed
+  when plugged in. *Restore Windows settings* (it appears only while the app holds something to restore)
+  puts back every saved plan value and the power mode at once, and lists what comes back before it does.
+
+**Windows power mode.** The same choice as Windows 11's *Settings → System → Power → Power mode*: best
+power efficiency, balanced, best performance. Pick one directly, or pick **Auto: profile** and the mode
+follows the GhostDeck profile (Silent and Super Battery → efficiency, Balanced → balanced, Extreme →
+performance; the pencil next to *Profile mapping* changes that). Windows may override the mode for a
+while on its own (battery saver, for instance) - the card then says which mode Windows is applying.
+
+**I removed GhostDeck while turbo was off.** The setting stays off, because it belongs to the Windows
+plan. Either start GhostDeck once more and use *Restore Windows settings* (or `GhostDeck.exe --turbo on`),
+or put it back from an administrator terminal - `2` is "Aggressive", the usual Windows default:
+
+```
+powercfg -setacvalueindex scheme_current sub_processor perfboostmode 2
+powercfg -setdcvalueindex scheme_current sub_processor perfboostmode 2
+powercfg -setactive scheme_current
+```
+
+The footer link *Show it there* makes the hidden setting visible in the Windows power options as well
+(Control Panel → Power Options → Change advanced power settings → Processor power management). That is
+a permanent change to Windows itself, optional, and GhostDeck does not need it to work.
 
 ## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
 
