@@ -12,6 +12,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   which froze the window for about 0.4 s on a busy desktop. Each of them now refreshes only
   its own card (about 0.05 s), and the page keeps its scroll position. The page is still
   rebuilt when the language changes or settings are imported.
+### Fixed
+- **Changing the language no longer leaves the old Settings controls behind** - every
+  rebuild of the Settings page (language change, settings import) kept the replaced cards
+  alive in the background, about 23 window objects each time. They are now released.
 ## [1.37.0] - 2026-10-04
 ### Fixed
 - **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured

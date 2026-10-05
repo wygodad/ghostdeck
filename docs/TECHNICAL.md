@@ -2974,3 +2974,7 @@ is disposed through `BeginInvoke` - the rebuild usually runs inside a click hand
 control that sits on the old card. Entries of `_orderSync` (§72) carry the card they belong
 to and leave with it. `DeviceSig()` lists what `BuildForm` asks the detected device before it
 adds a card or a row; `OnDeviceDbChanged` rebuilds the page only when that changed.
+
+A full rebuild releases the cards it replaces (`Dispose` through `BeginInvoke`, for the same
+reason as above). Taking them off the page alone left their windows alive: eight rebuilds
+added about 185 window objects to the process, measured; now the count stays level.

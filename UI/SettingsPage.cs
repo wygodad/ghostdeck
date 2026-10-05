@@ -419,7 +419,15 @@ public sealed class SettingsPage : ThemedPage
     // ---------------- build ----------------
     private void BuildForm()
     {
-        foreach (var c in AllCards()) Controls.Remove(c);
+        // The replaced cards are released, not just taken off the page - and only after the
+        // handler that asked for the rebuild (often a control on one of them) has returned.
+        var oldCards = AllCards().ToList();
+        foreach (var c in oldCards) Controls.Remove(c);
+        if (oldCards.Count > 0)
+        {
+            if (IsHandleCreated) BeginInvoke(() => { foreach (var c in oldCards) c.Dispose(); });
+            else foreach (var c in oldCards) c.Dispose();
+        }
         if (_overlayPanel != null) { Controls.Remove(_overlayPanel); _overlayPanel.Dispose(); _overlayPanel = null; }
         if (_subTabs != null) { Controls.Remove(_subTabs); _subTabs.Dispose(); _subTabs = null; }
         foreach (var t in _tiles) { Controls.Remove(t); t.Dispose(); }
