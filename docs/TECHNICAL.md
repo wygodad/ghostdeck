@@ -3038,6 +3038,8 @@ would count a card with two 3D engines twice. A sleeping card has no instances a
 When the roles are unknown, the readings fall back to adding every adapter up, as before, so
 nothing regresses where the classification fails.
 
+![Status on a GE78HX: "GPU load" is the sleeping RTX, the iGPU box sits under the CPU-usage ring](images/status_igpu.png)
+
 **What is shown.** Status: an `iGPU: N % · X.X GB` box in the free slot under the CPU-usage ring,
 beside "GPU load" (one row down beside the graphics clock when the VRAM total is unknown and VRAM
 takes that slot as a box). The shared memory (`Shared Usage`: the integrated chip has no memory

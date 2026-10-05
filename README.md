@@ -185,6 +185,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Profile order** - two presets (Standard, By power) and an up and a down arrow per profile; the tiles, the tray menu, the profile lists and "next profile" follow | **Your own order** - while the rows match neither preset, a note under the presets says that an own order is in use |
 | ![Temperature in the tray settings](docs/images/temperature_tray_settings.png) | ![Tray icon marker styles](docs/images/tray_marker_styles.png) |
 | **Settings → System → Temperature in the tray** - CPU, GPU and SSD icons (the SSD one is the hottest drive), the icon marker with a colour per source, and the warm / hot thresholds with their colours | **Icon marker** - a bar under the digits (default), a dot, a corner or none, shown magnified and at real size on a dark and a light taskbar |
+| ![Status with the integrated GPU](docs/images/status_igpu.png) | ![Gaming overlay](docs/images/overlay_items.png) |
+| **Status on a two-card laptop** - "GPU load" is the discrete card alone, and the integrated card sits next to it with the shared memory it uses | **Gaming overlay** - every item switched on: the CPU model, CPU% next to GPU% and iGPU%, frametime, time left and the charge limit |
 
 ## Download
 
