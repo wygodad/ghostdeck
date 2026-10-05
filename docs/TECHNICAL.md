@@ -1998,7 +1998,12 @@ bar is the default because it costs the digits nothing: two digits are wider tha
 are fitted by width and leave a band above and below; the bar (`max(2, S/7)` px with a 1 px gap)
 sits in the lower band and the digits move up into the upper one (`TrayIconFactory.TextBitmap`).
 The dot and the corner cover a sliver of a digit at 16 px (render harness `trayvariants`), which
-is why they are offered, not chosen. The icon is rebuilt when the text, the digit colour, the mark
+is why they are offered, not chosen.
+
+![The four marker styles, magnified and at real size, on a dark and a light taskbar](images/tray_marker_styles.png)
+
+![Settings → System → Temperature in the tray](images/temperature_tray_settings.png)
+ The icon is rebuilt when the text, the digit colour, the mark
 colour or the style changes - the cache key carries all four, so a change in Settings shows on the
 next update.
 

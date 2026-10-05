@@ -170,7 +170,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | ![Change log](docs/images/change_log.png) | ![Fan Boost timer](docs/images/fanboost_timer_osd.png) |
 | **Change log** - full history of profile switches and EC writes | **Fan Boost auto-off** - the OSD note when the boost timer hands the fans back |
 | ![Temperature in the tray](docs/images/tray-temps.png) | ![Compact sub-tabs](docs/images/subtabs-compact.png) |
-| **Temperature in the tray** - CPU and GPU as their own icons next to the clock, colour by your own thresholds | **Narrow window** - the sub-tab strip drops to icons instead of pushing a scrollbar; the tab you are on keeps its label |
+| **Temperature in the tray** - CPU, GPU and SSD as their own icons next to the clock, the digits coloured by your own thresholds | **Narrow window** - the sub-tab strip drops to icons instead of pushing a scrollbar; the tab you are on keeps its label |
 | ![Settings Automation](docs/images/settings_automation.png) | ![Travel mode](docs/images/travel_mode.png) |
 | **Settings → Automation** - the scene schedule, CPU/GPU and SSD temperature alerts with their own thresholds, OSD display time and one-click restore defaults | **Travel mode** - charge to 100 % for a trip; the previous limit returns on its own after the chosen number of days |
 | ![Windows power](docs/images/windows_power.png) | ![Profile mapping](docs/images/windows_power_mapping.png) |
@@ -183,6 +183,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Notifications that explain themselves** - when something outside the app changes a setting (here: the battery charge limit), the toast says what happened, who does that, and what to do; long messages wrap instead of stretching across the screen | **Firmware guard** - after a BIOS update changes the EC firmware version the app pauses its automatic writes and says so in one card, with the way back |
 | ![Profile order](docs/images/profile_order.png) | ![Own profile order](docs/images/profile_order_custom.png) |
 | **Profile order** - two presets (Standard, By power) and an up and a down arrow per profile; the tiles, the tray menu, the profile lists and "next profile" follow | **Your own order** - while the rows match neither preset, a note under the presets says that an own order is in use |
+| ![Temperature in the tray settings](docs/images/temperature_tray_settings.png) | ![Tray icon marker styles](docs/images/tray_marker_styles.png) |
+| **Settings → System → Temperature in the tray** - CPU, GPU and SSD icons (the SSD one is the hottest drive), the icon marker with a colour per source, and the warm / hot thresholds with their colours | **Icon marker** - a bar under the digits (default), a dot, a corner or none, shown magnified and at real size on a dark and a light taskbar |
 
 ## Download
 

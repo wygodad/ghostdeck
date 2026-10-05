@@ -58,6 +58,10 @@ No, and it's not planned. "Freeing" RAM (trimming working sets or the standby li
 
 They are there, Windows just hid them. Windows 11 puts every newly registered notification icon into the hidden overflow area (the `^` arrow next to the clock) until you say otherwise. Click the arrow, then drag the temperature icons down onto the taskbar and they stay there. The same happens to the GhostDeck ghost icon on a fresh install. If the overflow area has no temperature icons at all, check Settings -> System, card "Temperature in the tray": the card is hidden entirely on machines whose temperatures the app cannot read.
 
+To tell the icons apart without hovering over them, each one carries a small mark in its own colour - by default a bar under the digits, blue for CPU, pink for GPU and green for SSD (the SSD icon shows the hottest drive). The same card lets you pick a dot, a corner or no mark instead, and change the colours.
+
+![Tray icon marker styles](images/tray_marker_styles.png)
+
 ## Does Silent lower power on every laptop?
 
 No, and it is worth knowing which kind of machine you have.
