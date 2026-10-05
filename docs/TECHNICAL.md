@@ -2978,17 +2978,3 @@ adds a card or a row; `OnDeviceDbChanged` rebuilds the page only when that chang
 A full rebuild releases the cards it replaces (`Dispose` through `BeginInvoke`, for the same
 reason as above). Taking them off the page alone left their windows alive: eight rebuilds
 added about 185 window objects to the process, measured; now the count stays level.
-
-**Captions are painted by the card.** A card's title and the caption of each row used to be
-child `Label` controls - about 120 of the page's 446 system windows on the owner's settings.
-`CardSection` now keeps the caption text and its rectangle per row and paints them in
-`OnPaint`. Measuring and drawing both go through one `Label` that is never shown (`Stamp`:
-`GetPreferredSize` for the size, `InvokePaint` under a translated `Graphics` for the pixels),
-so the control code that produced the old layout still produces it: recomputing the size with
-`TextRenderer.MeasureText` gave 482x28 where the control reports 493x32 at 140 % scaling, and
-every row moved. The stamp has `UseMnemonic` off, so an "&" in a caption is drawn as text
-("STARTUP & TRAY"; as a child Label the title lost it). A screen reader can no longer pair a
-painted caption with the control next to it, so `AddRow` gives the row's control the caption
-as its `AccessibleName` and the card carries its title. Keyboard order is unchanged - the
-captions never took focus. Effect on the live app: 446 -> 323 windows, creating them
-201 -> 153 ms, a full rebuild 357-417 -> 282-305 ms.

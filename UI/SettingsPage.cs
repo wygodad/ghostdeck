@@ -1937,41 +1937,9 @@ public sealed class SettingsPage : ThemedPage
     // ---------------- card ----------------
     private sealed class CardSection : Panel
     {
-        // The title and the row captions are painted by the card (OnPaint) - as child Labels
-        // they were some 150 system windows on this page (RENDERING.md §8.1). Sizes and text
-        // flags are the ones the Label control used, so the rows sit where they always did.
-        private static readonly Font HeadFont = new("Segoe UI", 9.5f, FontStyle.Bold);
-        private static readonly Font RowFont = new("Segoe UI", 10.5f);
-        private sealed class Row
-        {
-            public string? Label;      // null = a full-width row without a caption
-            public Control Ctl = null!;
-            public Rectangle LabelRect;
-        }
-        private readonly string _title;
-        private Rectangle _headRect;
+        private readonly Label _head;
         private readonly string _glyph;
-        private readonly List<Row> _rows = new();
-
-        // One Label that is never shown does the measuring and the drawing for every caption of
-        // every card: the same control code as before produces the same sizes and the same pixels.
-        // UseMnemonic off: an "&" in a caption is text ("Startup & tray"), not an access-key mark.
-        private static readonly Label Stamp = new() { AutoSize = false, UseMnemonic = false };
-
-        private static Size Measure(string text, Font font)
-        {
-            Stamp.Font = font; Stamp.Text = text;
-            return Stamp.GetPreferredSize(Size.Empty);
-        }
-
-        private void DrawCaption(Graphics g, string text, Font font, Rectangle r, Color color)
-        {
-            Stamp.Font = font; Stamp.Text = text; Stamp.ForeColor = color; Stamp.BackColor = Theme.Card; Stamp.Size = r.Size;
-            var state = g.Save();
-            g.TranslateTransform(r.X, r.Y);
-            using (var pe = new PaintEventArgs(g, new Rectangle(Point.Empty, r.Size))) InvokePaint(Stamp, pe);
-            g.Restore(state);
-        }
+        private readonly List<(Label? label, Control ctl)> _rows = new();
         private Color? _flash;                                  // temporary highlight frame (gear jump)
         private long _flashStart;
         private int _flashMs;
@@ -2009,17 +1977,16 @@ public sealed class SettingsPage : ThemedPage
             DoubleBuffered = true;
             BackColor = Theme.Card;
             _glyph = glyph;
-            _title = title.ToUpperInvariant();
-            AccessibleName = title;
+            _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+            Controls.Add(_head);
         }
 
         public void AddRow(string? label, Control ctl)
         {
-            // a painted caption is not a control a screen reader can pair with its neighbour,
-            // so the row's control carries the caption as its name
-            if (!string.IsNullOrWhiteSpace(label) && string.IsNullOrEmpty(ctl.AccessibleName)) ctl.AccessibleName = label.Trim();
+            Label? l = null;
+            if (label != null) { l = new Label { Text = label, AutoSize = true, Font = new Font("Segoe UI", 10.5f) }; Controls.Add(l); }
             Controls.Add(ctl);
-            _rows.Add(new Row { Label = label, Ctl = ctl });
+            _rows.Add((l, ctl));
         }
 
         /// <summary>
@@ -2028,9 +1995,9 @@ public sealed class SettingsPage : ThemedPage
         /// </summary>
         public void OrderRows(IReadOnlyList<Control> ctls)
         {
-            var slots = Enumerable.Range(0, _rows.Count).Where(i => ctls.Contains(_rows[i].Ctl)).ToList();
+            var slots = Enumerable.Range(0, _rows.Count).Where(i => ctls.Contains(_rows[i].ctl)).ToList();
             if (slots.Count != ctls.Count) return;
-            var moved = ctls.Select(c => _rows.First(r => r.Ctl == c)).ToList();
+            var moved = ctls.Select(c => _rows.First(r => r.ctl == c)).ToList();
             for (int i = 0; i < slots.Count; i++) _rows[slots[i]] = moved[i];
         }
 
@@ -2040,12 +2007,10 @@ public sealed class SettingsPage : ThemedPage
             const int pad = 18;
             int y = 16;
             int hx = pad + (string.IsNullOrEmpty(_glyph) ? 0 : Ceil(26 * DeviceDpi / 96f) + Ceil(10 * DeviceDpi / 96f));
-            _headRect = new Rectangle(new Point(hx, y + Ceil(4 * DeviceDpi / 96f)), Measure(_title, HeadFont));
-            y += Math.Max(_headRect.Height, Ceil(26 * DeviceDpi / 96f)) + 14;
-            foreach (var row in _rows)
+            _head.Location = new Point(hx, y + Ceil(4 * DeviceDpi / 96f));
+            y += Math.Max(_head.Height, Ceil(26 * DeviceDpi / 96f)) + 14;
+            foreach (var (l, ctl) in _rows)
             {
-                var ctl = row.Ctl;
-                Rectangle? l = row.Label == null ? null : new Rectangle(Point.Empty, Measure(row.Label, RowFont));
                 // a hidden full-width row (conditional strips, the restore button) takes no
                 // space - without this the card reserves blank gaps for invisible controls
                 if (l == null && !ctl.Visible) continue;
@@ -2059,21 +2024,21 @@ public sealed class SettingsPage : ThemedPage
                 // group separators stretch with the card
                 if (l == null && ctl is SepLine sep) sep.Width = width - pad * 2;
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
-                if (l is { } lr) row.LabelRect = new Rectangle(pad, y + (rowH - lr.Height) / 2, lr.Width, lr.Height);
+                if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
                 int cx = l != null ? Width - pad - ctl.Width : pad;
                 ctl.Location = new Point(Math.Max(pad, cx), y + (rowH - ctl.Height) / 2);
                 y += rowH + 16;
             }
             Height = y + 2;
-            Invalidate();   // the captions moved with the rows
         }
 
         public void ApplyTheme()
         {
             BackColor = Theme.Card;
-            foreach (var row in _rows)
+            _head.ForeColor = Theme.Accent; _head.BackColor = Theme.Card;
+            foreach (var (l, ctl) in _rows)
             {
-                var ctl = row.Ctl;
+                if (l != null) { l.ForeColor = Theme.Text; l.BackColor = Theme.Card; }
                 if (ctl is FlowLayoutPanel fp)
                 {
                     fp.BackColor = Theme.Card;
@@ -2148,10 +2113,6 @@ public sealed class SettingsPage : ThemedPage
                 using var gf = new Font("Segoe MDL2 Assets", 10.5f);
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, iconR);
             }
-
-            DrawCaption(g, _title, HeadFont, _headRect, Theme.Accent);
-            foreach (var row in _rows)
-                if (!string.IsNullOrEmpty(row.Label)) DrawCaption(g, row.Label, RowFont, row.LabelRect, Theme.Text);
         }
 
         private static int Ceil(float v) => (int)Math.Ceiling(v);

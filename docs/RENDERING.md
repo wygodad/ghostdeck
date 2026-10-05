@@ -453,10 +453,6 @@ repaint that follows):
 | changing the Settings sub-tab | 35 - 100 ms |
 | full rebuild of the Settings page | 340 - 450 ms |
 | rebuild of one card (v1.38) | 50 - 76 ms |
-| full rebuild once the cards paint their own captions (v1.38) | 320 - 385 ms |
-
-The card title and the row captions of the Settings page are painted by `CardSection` (v1.38,
-TECHNICAL.md §73): 446 -> 323 system windows with the same pixels.
 
 **Do NOT add `WS_EX_COMPOSITED`** to the pages. It was tried against scroll tearing and reverted
 (a comment in `ThemedPage.CreateParams`… note marks it): compositing the whole child tree made
