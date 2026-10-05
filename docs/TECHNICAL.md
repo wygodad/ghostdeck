@@ -354,7 +354,8 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   a single byte - `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, still with
   `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
   ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
-  issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145), `15T1EMS1`
+  issue #76; the 1.37.0 readout matches HWiNFO64 to the rpm on both fans under load,
+  5901 / 5690 RPM), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145), `15T1EMS1`
   (CPU pair only - single fan, #174), `1545IMS1` (#164), `1833EMS1` (#180), `1841EMS1`
   (#183), `1585EMS2` (#184, on the sibling 1585EMS1's evidence), `17T3EMS1` (#196 - the
   power-test dumps all sat in the coinciding zone; the curve capture caught the GPU fan at
