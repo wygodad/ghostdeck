@@ -1096,8 +1096,9 @@ public static class Devices
         // 16-bit formats give the same number (TECHNICAL §16). The 16-bit read is the one
         // that cannot be wrong there: it equals the 1-byte read while the high byte is 00
         // and is the correct one as soon as it is not, and app versions without the 16-bit
-        // reader ignore the field. A HWiNFO64 side-by-side at idle is the open
-        // confirmation. One more observation, nothing written: 0xF5 /
+        // reader ignore the field. CONFIRMED by the owner's HWiNFO64 side-by-side (#228,
+        // 2026-10-05): 716 / 728 rpm - below the coinciding zone - read identically in
+        // both programs, as did 1904 / 1904 and 6373 / 6459. One more observation, nothing written: 0xF5 /
         // 0xF7 / 0xF9 move per scenario in his captures - not seen on other G2 boards,
         // meaning unknown.
         //   First power test (#228, same day): internally clean (0% drift, byte readbacks
