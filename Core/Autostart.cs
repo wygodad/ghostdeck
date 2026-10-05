@@ -76,11 +76,23 @@ public static class Autostart
         catch { }
     }
 
+    private static bool? _known;   // the last answer of IsEnabled / Set
+
+    /// <summary>Asks the Task Scheduler: starts schtasks.exe and waits for it (20-30 ms).</summary>
     public static bool IsEnabled()
     {
-        try { return Run($"/Query /TN \"{TaskName}\"") == 0; }
-        catch { return false; }
+        bool on;
+        try { on = Run($"/Query /TN \"{TaskName}\"") == 0; }
+        catch { on = false; }
+        _known = on;
+        return on;
     }
+
+    /// <summary>
+    /// The remembered answer - for callers that ask often (status snapshots are built on every
+    /// repaint of the tab strip). The task only changes through Set while the app runs.
+    /// </summary>
+    public static bool Known => _known ?? IsEnabled();
 
     public static void Set(bool enabled)
     {
@@ -88,5 +100,6 @@ public static class Autostart
             Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{ExePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
         else
             Run($"/Delete /TN \"{TaskName}\" /F");
+        IsEnabled();   // remember what the scheduler really holds now
     }
 }

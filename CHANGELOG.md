@@ -12,6 +12,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   which froze the window for about 0.4 s on a busy desktop. Each of them now refreshes only
   its own card (about 0.05 s), and the page keeps its scroll position. The page is still
   rebuilt when the language changes or settings are imported.
+- **Switching tabs is faster, and the Status and Fan curve tabs open without a pause** - the
+  app asked Windows whether autostart is on by starting a system tool on every repaint of the
+  tab strip (20-30 ms each time, four times when opening Fan curve), and the Status tab waited
+  about 0.4 s for the disk list whenever it had not been opened for ten seconds. The autostart
+  answer is now remembered, and the disk list and the Windows counters are read in the
+  background. Opening Fan curve: about 145 -> 25 ms; Status: no more 0.4-0.9 s stalls.
 ### Fixed
 - **Changing the language no longer leaves the old Settings controls behind** - every
   rebuild of the Settings page (language change, settings import) kept the replaced cards

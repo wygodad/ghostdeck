@@ -158,6 +158,39 @@ internal static class Perf
     private static IReadOnlyList<DiskInfo> _disks = Array.Empty<DiskInfo>();
     private static DateTime _disksAt = DateTime.MinValue;
 
+    /// <summary>
+    /// Everything here that queries Windows and waits: call from a worker so that the cached
+    /// getters below have an answer when the window thread asks.
+    /// </summary>
+    public static void Warm()
+    {
+        try { Tick(); } catch { }
+        try { Disks(); } catch { }
+        try { BatteryMinutesLeft(); } catch { }
+        try { GpuTelemetry.Read(); } catch { }
+    }
+
+    private static int _disksBusy, _battBusy;
+
+    /// <summary>
+    /// The disk list for the window thread: the last known answer at once, never a WMI query
+    /// (0.35-0.4 s, measured). A stale answer starts a refresh on a worker.
+    /// </summary>
+    public static IReadOnlyList<DiskInfo> DisksCached()
+    {
+        if ((DateTime.UtcNow - _disksAt).TotalSeconds >= 10 && Interlocked.Exchange(ref _disksBusy, 1) == 0)
+            Task.Run(() => { try { Disks(); } catch { } finally { _disksBusy = 0; } });
+        return _disks;
+    }
+
+    /// <summary>Battery time left for the window thread - same rule as <see cref="DisksCached"/>.</summary>
+    public static int BatteryMinutesLeftCached()
+    {
+        if ((DateTime.UtcNow - _battMinAt).TotalSeconds >= 15 && Interlocked.Exchange(ref _battBusy, 1) == 0)
+            Task.Run(() => { try { BatteryMinutesLeft(); } catch { } finally { _battBusy = 0; } });
+        return _battMin;
+    }
+
     public static IReadOnlyList<DiskInfo> Disks()
     {
         if ((DateTime.UtcNow - _disksAt).TotalSeconds < 10) return _disks;

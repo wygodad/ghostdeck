@@ -92,6 +92,9 @@ public sealed class TrayContext : ApplicationContext
         Autostart.Migrate();                       // move a pre-rename "MSIProfileSwitcher" autostart task to "GhostDeck"
         Autostart.Heal();                          // re-point the task if the exe was moved since it was created
         _settings.Autostart = Autostart.IsEnabled();
+        // The first read of the Windows counters, the disk list and the graphics adapter takes
+        // 0.2-0.4 s each; done here on a worker, the Status tab finds them ready.
+        Task.Run(Perf.Warm);
         Lang.Set(_settings.Language);
         Theme.Set(_settings.DarkMode);
         TrayIconFactory.Style = _settings.IconStyle;
@@ -1895,7 +1898,7 @@ public sealed class TrayContext : ApplicationContext
         {
             var (tier, color) = TierBadge();
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
-                                  _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion(),
+                                  _switches, DateTime.Now - _profileSince, Autostart.Known, AppVersion(),
                                   _telemetryOnly);
         },
         Hw = () => ReadHwOrTelemetry(),

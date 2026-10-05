@@ -2978,3 +2978,29 @@ adds a card or a row; `OnDeviceDbChanged` rebuilds the page only when that chang
 A full rebuild releases the cards it replaces (`Dispose` through `BeginInvoke`, for the same
 reason as above). Taking them off the page alone left their windows alive: eight rebuilds
 added about 185 window objects to the process, measured; now the count stays level.
+
+## 74. Nothing that waits on Windows runs on the window thread (v1.38)
+
+Three waits sat on the window thread, found with step timers in `MainForm.ShowTab`,
+`StatusPage` and `FanCurvePage` on the live app:
+
+- **`MainDeps.Status()` started `schtasks.exe`.** The snapshot carries the autostart flag, and
+  `Autostart.IsEnabled()` asks the Task Scheduler by running `schtasks /Query` and waiting:
+  22-32 ms per call. The tab strip builds a snapshot on every repaint (tier badge), the
+  Settings Start header too, and the Fan curve page four times per entry. `Autostart.Known`
+  now returns the remembered answer; `IsEnabled()` (at startup) and `Set()` refresh it. A task
+  created or deleted outside the app while it runs is seen at the next start.
+- **`Perf.Disks()` queried WMI** (`MSFT_PhysicalDisk`, reliability counters): 350-400 ms, cached
+  for 10 s, so entering Status after a pause waited for it. The window thread reads
+  `Perf.DisksCached()` - the last known list at once, a stale one refreshed on a worker - and
+  `BatteryMinutesLeftCached()` likewise. `StatusPage.RefreshAsync` calls `Perf.Warm()` on its
+  worker and re-lays the Charts view out when the number of disks changed.
+- **The first `Perf.Tick()` opened the PDH query** (215-264 ms) inside the first paint of
+  Status. `TrayContext` runs `Perf.Warm()` on a worker at startup.
+
+`Perf.Disks()` and `BatteryMinutesLeft()` keep their blocking form for the callers that are
+already off the window thread (the SSD sampler, `--status`).
+
+Measured on the live app, medians of three runs, the switch itself without the repaint:
+entering Fan curve 144 -> 26 ms, entering Status 62 -> 23 ms (first entry 273 -> 43 ms),
+entering Settings 19 -> 8 ms, Scenarios 22 -> 11 ms.

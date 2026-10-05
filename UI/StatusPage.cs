@@ -155,6 +155,8 @@ public sealed class StatusPage : ThemedPage
         _sessExport.Enabled = list.Count > 0;
     }
 
+    private int _laidDisks;   // disk count the Charts view was laid out for
+
     public override void LiveRefresh() { _canvas.Rebuild(); RefreshAsync(); }
 
     // EC/WMI reads take tens of ms each and the full snapshot is dozens of them; doing that
@@ -171,6 +173,7 @@ public sealed class StatusPage : ThemedPage
             byte[]? live = null;
             (int[], int[], int[], int[])? curve = null;
             try { hw = D.Hw(); } catch { }
+            Perf.Warm();   // disks, counters, battery estimate: queried here, the window thread reads the cached answers
             if (dev != null)
             {
                 try { live = Ec.ReadMany(new[] { dev.ShiftMode, (byte)0x34, (byte)0xEB, dev.FanMode }); } catch { }
@@ -186,6 +189,7 @@ public sealed class StatusPage : ThemedPage
                     _refreshing = 0;
                     // Gaming: the last-session card / picker can change between ticks -> keep in sync
                     if (Visible && _statusSub == 2) { RefreshSessions(); Relayout(); }
+                    if (Visible && _statusSub == 0 && Perf.DisksCached().Count != _laidDisks) Relayout();   // the storage box grew or shrank
                     if (Visible) _canvas.Rebuild();
                 });
             }
@@ -231,7 +235,8 @@ public sealed class StatusPage : ThemedPage
             // the graphics-clock tile adds a fourth on the right when Windows reports a card
             int subY3 = SecTop + ring + 68 + 54 + 14 + 54 + 14;
             int rightH = GpuTelemetry.Read().Ok ? 54 * 2 + 14 : 54;
-            int storageH = Math.Max(54, Perf.Disks().Count * 58);
+            _laidDisks = Perf.DisksCached().Count;   // RefreshAsync re-lays the page out when the list arrives or changes
+            int storageH = Math.Max(54, _laidDisks * 58);
             int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
             return cardTop + RowH * Rows.Length + 14 + 40;
         }
@@ -458,7 +463,7 @@ public sealed class StatusPage : ThemedPage
         // used/total space (usage bar, like the RAM/VRAM bars) and S.M.A.R.T. temperature -
         // plus a compact battery-time box (#15) under the rings
         int subY3 = subY2 + subH + 14;
-        var disks = Perf.Disks();
+        var disks = Perf.DisksCached();
         const int diskBlockH = 58;   // same rhythm as the RAM/VRAM rows: 28px text line, bar at +36
         int storageH = Math.Max(subH, disks.Count * diskBlockH);
         var nameF = new Font("Segoe UI", 10.5f, FontStyle.Bold);
@@ -522,7 +527,7 @@ public sealed class StatusPage : ThemedPage
             HelpDot.Render(g, _gpuHelpBtn);
         }
 
-        int bm = Perf.BatteryMinutesLeft();
+        int bm = Perf.BatteryMinutesLeftCached();
         MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),
             $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "—"));
 
