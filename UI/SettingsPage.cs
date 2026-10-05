@@ -50,8 +50,18 @@ public sealed class SettingsPage : ThemedPage
     private (bool Internal, string? Name) _dispTarget;   // ...compared in OnDisplayChanged
     private string _uiLang = Lang.CurrentCode; // language the form was built with
     private ProfileId[] _builtOrder = Profiles.Shown;   // profile order the lists were built with (discussion #101)
-    private readonly List<Action> _orderSync = new();   // re-fill only what follows the profile order - no page rebuild
+    // re-fill only what follows the profile order - no page rebuild; Owner = the card an entry
+    // belongs to, so a card rebuilt on its own takes its entries with it (null = the page)
+    private readonly List<(CardSection? Owner, Action Sync)> _orderSync = new();
     private bool _orderSyncing;                         // list handlers stay quiet while their items are swapped
+    // Cards whose rows come and go while the page lives are rebuilt one at a time (RebuildCard).
+    // Their builders are local functions of BuildForm, kept here for the events that arrive
+    // from outside the card.
+    private CardSection? _powerCard, _dispCard;
+    private Func<CardSection>? _buildPower, _buildDisp, _buildScenVis;
+    private bool _builtRefreshRow;             // the Scenarios-visibility card carries the refresh-rate row
+    private string _builtDeviceSig = "";       // what this machine can do, as the form was built (OnDeviceDbChanged)
+    private Action? _syncDbVersion;            // re-reads the model-database version row
     private bool _builtTravelOn;               // travel/charge snapshot the Power card was built from...
     private int _builtCharge;                  // ...compared in SyncTravelRow (rebuild only on a real change)
     private Action? _syncPowerCard;            // re-reads the live Windows-power card values (#141)
@@ -135,24 +145,77 @@ public sealed class SettingsPage : ThemedPage
     }
 
     // Travel mode and the charge limit can change outside this page (CLI, a scene, the expiry
-    // itself) and the Power-card rows are a build-time snapshot - rebuild when it went stale.
+    // itself) and the Power-card rows are a build-time snapshot - rebuild that card when it went stale.
     private void SyncTravelRow()
     {
         if (_builtTravelOn == (D.Settings.TravelUntil != DateTime.MinValue) &&
             _builtCharge == D.Settings.ChargeLimit) return;
-        Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+        if (_powerCard != null && _buildPower != null) _powerCard = RebuildCard(_powerCard, _buildPower);
+    }
+
+    /// <summary>
+    /// Builds one card anew and puts it in the old one's place (same column slot, same tab
+    /// position). A full BuildForm recreates every window of the page; this recreates one card.
+    /// </summary>
+    private CardSection RebuildCard(CardSection old, Func<CardSection> build)
+    {
+        CardSection fresh = old;
+        Ui.BatchRedraw(this, () =>
+        {
+            _orderSync.RemoveAll(e => e.Owner == old);
+            fresh = build();
+            foreach (var col in _gLeft.Concat(_gRight))
+            {
+                int i = col.IndexOf(old);
+                if (i >= 0) col[i] = fresh;
+            }
+            int z = Controls.GetChildIndex(old, false);
+            fresh.TabIndex = old.TabIndex;
+            Controls.Add(fresh);
+            if (z >= 0) Controls.SetChildIndex(fresh, z);
+            Controls.Remove(old);
+            ApplyVisibility();
+            fresh.ApplyTheme();
+            Layout2();
+        });
+        // The rebuild usually runs inside a click handler of a control on the old card, so the
+        // old card goes away only after that handler has returned.
+        if (IsHandleCreated) BeginInvoke(old.Dispose); else old.Dispose();
+        RefreshTiles();
+        return fresh;
     }
 
     /// <summary>Clicking the Settings tab while already on it goes back to the Start dashboard.</summary>
     public override void OnReenter() => SelectSub(SubHome, save: true);
 
-    public override void OnDeviceDbChanged() =>
-        Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // the model-database row and the tier gates
+    // A new model database changes this page only when it changes what this machine can do,
+    // because that decides which cards and rows exist. Otherwise the version row is all there
+    // is to refresh.
+    public override void OnDeviceDbChanged()
+    {
+        if (DeviceSig() != _builtDeviceSig)
+        {
+            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+            return;
+        }
+        _syncDbVersion?.Invoke();
+        RefreshTiles();
+    }
+
+    // Everything BuildForm asks the detected device before it adds a card or a row.
+    private string DeviceSig()
+    {
+        string fw = D.Firmware();
+        var det = Devices.Detect(fw);
+        return string.Join("|", det is { Tier: Tier.Experimental } ? det.MatchedPrefix(fw) : "",
+            D.KbdLevel() >= 0, D.WebcamState() >= 0, D.TouchpadState() >= 0, D.MicState() >= 0, D.FnLeft() >= 0,
+            D.Status().Known || D.Hw().CpuTemp > 0);
+    }
 
     // The Display card is a snapshot of the target's mode list; a display-mode switch
-    // (dock/undock, "second screen only") invalidates it, so rebuild - but ONLY then: the
-    // app's own SetRefresh also raises the system event, and a full rebuild would yank the
-    // scroll position out from under the click that caused it.
+    // (dock/undock, "second screen only") invalidates it, so that card is rebuilt - but ONLY
+    // then: the app's own SetRefresh also raises the system event. The Scenarios-visibility
+    // card follows when its refresh-rate row has to appear or go.
     public override void OnDisplayChanged()
     {
         if (Display.SupportedRates().SequenceEqual(_dispRates) && Display.Target() == _dispTarget)
@@ -160,7 +223,9 @@ public sealed class SettingsPage : ThemedPage
             SyncExternal();
             return;
         }
-        Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+        if (_dispCard != null && _buildDisp != null) _dispCard = RebuildCard(_dispCard, _buildDisp);
+        if (_scenVisCard != null && _buildScenVis != null && _builtRefreshRow != (Display.SupportedRates().Count > 1))
+            _scenVisCard = RebuildCard(_scenVisCard, _buildScenVis);
     }
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
     // no re-layout here, which would reset the scroll position mid-edit.
@@ -251,7 +316,7 @@ public sealed class SettingsPage : ThemedPage
     {
         _builtOrder = Profiles.Shown;
         _orderSyncing = true;
-        try { foreach (var sync in _orderSync) sync(); }
+        try { foreach (var (_, sync) in _orderSync) sync(); }
         finally { _orderSyncing = false; }
         Layout2();
     }
@@ -369,6 +434,7 @@ public sealed class SettingsPage : ThemedPage
         _boxes.Clear(); _swatches.Clear(); _orderSync.Clear();
         _uiLang = Lang.CurrentCode;   // the form now reflects this language (see SyncExternal)
         _builtOrder = Profiles.Shown; // ...and this profile order
+        _builtDeviceSig = DeviceSig();
 
         // ---- left column ----
         var look = new CardSection(Lang.T("set_grp_look"), "");
@@ -387,7 +453,7 @@ public sealed class SettingsPage : ThemedPage
         look.AddRow(Lang.T("set_language"), lang);
         var swatchRows = new Dictionary<ProfileId, Control>();
         foreach (var id in Profiles.Shown) { swatchRows[id] = BuildSwatches(id); look.AddRow(Profiles.Get(id).Label, swatchRows[id]); }
-        _orderSync.Add(() => look.OrderRows(Profiles.Shown.Select(id => swatchRows[id]).ToList()));
+        _orderSync.Add((look, () => look.OrderRows(Profiles.Shown.Select(id => swatchRows[id]).ToList())));
         var resetColors = new Button { Text = Lang.T("set_colors_reset"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
         Ui.StyleGhost(resetColors);
         resetColors.Click += (_, _) =>
@@ -418,126 +484,170 @@ public sealed class SettingsPage : ThemedPage
         }
         _gLeft[SubSystem].Add(start);
 
-        // ---- Power group: battery card + display card ----
-        var power = new CardSection(Lang.T("set_grp_power"), "");
-        // The three presets are the values MSI Center exposes and the only ones verified on real
-        // hardware, so they stay one click away; "Custom" opens a slider for any threshold the
-        // register accepts (20-100). The custom value is remembered, so switching 80 % <-> 73 %
-        // is a click, not another aim with the mouse.
-        bool chargeCustom = AppSettings.ChargeManaged(D.Settings.ChargeLimit) && !AppSettings.ChargeVerified(D.Settings.ChargeLimit);
-        int chargeIdx = chargeCustom ? 4 : Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit));
-        var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%", Lang.T("charge_custom") }, chargeIdx) { Size = new Size(360, 34) };
-        charge.SelectedChanged += i =>
-        {
-            bool wasTravel = D.Settings.TravelUntil != DateTime.MinValue;
-            bool wasCustom = chargeCustom;
-            D.SetChargeLimit(i == 4 ? D.Settings.ChargeCustom : ChargeVals[i]);
-            // a manual limit cancels a pending travel revert - flip the travel row back too;
-            // entering or leaving Custom adds/removes the slider row, so rebuild for that too
-            if ((wasTravel && D.Settings.TravelUntil == DateTime.MinValue) || wasCustom != (i == 4))
-                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
-        };
-        power.AddRow(Lang.T("set_charge"), charge);
-        if (chargeCustom)
-        {
-            var slider = new Slider(AppSettings.ChargeMin, AppSettings.ChargeMax, D.Settings.ChargeLimit, 5, "%") { Width = 300 };
-            slider.ValueChanged += v => { D.Settings.ChargeCustom = v; D.SetChargeLimit(v); };
-            power.AddRow(Lang.T("charge_custom_row"), slider);
-            // Tag "warn" is the card convention: ApplyTheme paints it amber and Relayout rewraps it
-            // to the card width. A hand-set ForeColor is overwritten on the next theme pass, and a
-            // fixed MaximumSize keeps the text in a narrow column - both were wrong here.
-            var warn = new Label { AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("charge_custom_warn") };
-            power.AddRow(null, warn);
-        }
-
-        // Travel mode: one-shot "charge to 100% until a date", then the previous limit comes
-        // back on its own. State lives in TravelUntil, so the picker only chooses the length.
-        bool travelOn = D.Settings.TravelUntil != DateTime.MinValue;
-        _builtTravelOn = travelOn;                    // snapshot for SyncTravelRow
-        _builtCharge = D.Settings.ChargeLimit;
-        var travelBtn = new Button { Text = Lang.T(travelOn ? "travel_stop" : "travel_start"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
-        Ui.StyleGhost(travelBtn);
-        // the help dot rides in a flow panel with the button, so it shows in both states
-        Control WithTravelHelp(Control main)
-        {
-            var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
-            main.Margin = new Padding(0);
-            flow.Controls.Add(main);
-            flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T("travel_help"), Margin = new Padding(6, 4, 0, 0) });
-            return flow;
-        }
-        if (!travelOn)
-        {
-            int[] travelDays = { 3, 7, 14, 30 };
-            var travelSel = Combo(travelDays.Select(x => string.Format(Lang.T("travel_days_fmt"), x)).ToArray(), 1);
-            travelBtn.Click += (_, _) =>
-            {
-                D.SetTravelDays(travelDays[Math.Max(0, travelSel.SelectedIndex)]);
-                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
-            };
-            power.AddRow(Lang.T("set_travel"), travelSel);
-            power.AddRow("", WithTravelHelp(travelBtn));
-        }
-        else
-        {
-            var travelNote = new Label
-            {
-                Text = string.Format(Lang.T("travel_note"), D.Settings.TravelUntil.ToShortDateString()),
-                AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
-            };
-            travelBtn.Click += (_, _) =>
-            {
-                D.SetTravelDays(0);
-                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
-            };
-            power.AddRow(Lang.T("set_travel"), WithTravelHelp(travelBtn));
-            power.AddRow(null, travelNote);
-        }
-        power.AddRow(Lang.T("set_autoswitch"), Toggle(D.Settings.AutoSwitchEnabled, v => D.SetAutoSwitch(v)));
         // one array for the items and for the lookups - the lists stay consistent with themselves;
-        // a new profile order swaps the array and the items together (see SyncProfileOrder)
+        // a new profile order swaps the array first, then every list re-fills from it (see SyncProfileOrder)
         var order = Profiles.Shown;
         string[] ProfileNames() => order.Select(id => Profiles.Get(id).Label).ToArray();
-        var ac = Combo(ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnAC));
-        ac.SelectedIndexChanged += (_, _) => { if (_orderSyncing) return; D.Settings.ProfileOnAC = Profiles.Get(order[ac.SelectedIndex]).Key; D.SaveSettings(); };
-        power.AddRow(Lang.T("on_ac"), ac);
-        var bat = Combo(ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnBattery));
-        bat.SelectedIndexChanged += (_, _) => { if (_orderSyncing) return; D.Settings.ProfileOnBattery = Profiles.Get(order[bat.SelectedIndex]).Key; D.SaveSettings(); };
-        power.AddRow(Lang.T("on_battery"), bat);
+        _orderSync.Add((null, () => order = Profiles.Shown));
 
-        // Some ECs wake from sleep/hibernation in Super Battery on their own — opt-in restore of
-        // the chosen profile after resume and at startup (skipped while auto-switch manages profiles).
-        power.AddRow(Lang.T("set_restore_profile"), Toggle(D.Settings.RestoreProfileOnResume,
-            v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
-        // (#178) startup profile: "last used" (default) or a fixed pick that wins at app start;
-        // the after-wake restore keeps bringing back the profile active before sleep
-        string[] StartupNames() => new[] { Lang.T("set_startup_last") }.Concat(ProfileNames()).ToArray();
-        int StartupIndex()
+        // ---- Power group: battery card + display card ----
+        // The battery card is rebuilt on its own (RebuildCard) when the Custom slider or the
+        // travel rows come or go - nothing else on the page depends on them.
+        CardSection BuildPower()
         {
-            for (int i = 0; i < order.Length; i++)
-                if (Profiles.Get(order[i]).Key == D.Settings.StartupProfile) return i + 1;
-            return 0;
+            var power = new CardSection(Lang.T("set_grp_power"), "");
+            // The three presets are the values MSI Center exposes and the only ones verified on real
+            // hardware, so they stay one click away; "Custom" opens a slider for any threshold the
+            // register accepts (20-100). The custom value is remembered, so switching 80 % <-> 73 %
+            // is a click, not another aim with the mouse.
+            bool chargeCustom = AppSettings.ChargeManaged(D.Settings.ChargeLimit) && !AppSettings.ChargeVerified(D.Settings.ChargeLimit);
+            int chargeIdx = chargeCustom ? 4 : Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit));
+            var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%", Lang.T("charge_custom") }, chargeIdx) { Size = new Size(360, 34) };
+            charge.SelectedChanged += i =>
+            {
+                bool wasTravel = D.Settings.TravelUntil != DateTime.MinValue;
+                bool wasCustom = chargeCustom;
+                D.SetChargeLimit(i == 4 ? D.Settings.ChargeCustom : ChargeVals[i]);
+                // a manual limit cancels a pending travel revert - flip the travel row back too;
+                // entering or leaving Custom adds/removes the slider row, so rebuild the card for that too
+                if ((wasTravel && D.Settings.TravelUntil == DateTime.MinValue) || wasCustom != (i == 4))
+                    _powerCard = RebuildCard(power, BuildPower);
+            };
+            power.AddRow(Lang.T("set_charge"), charge);
+            if (chargeCustom)
+            {
+                var slider = new Slider(AppSettings.ChargeMin, AppSettings.ChargeMax, D.Settings.ChargeLimit, 5, "%") { Width = 300 };
+                slider.ValueChanged += v => { D.Settings.ChargeCustom = v; D.SetChargeLimit(v); };
+                power.AddRow(Lang.T("charge_custom_row"), slider);
+                // Tag "warn" is the card convention: ApplyTheme paints it amber and Relayout rewraps it
+                // to the card width. A hand-set ForeColor is overwritten on the next theme pass, and a
+                // fixed MaximumSize keeps the text in a narrow column - both were wrong here.
+                var warn = new Label { AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("charge_custom_warn") };
+                power.AddRow(null, warn);
+            }
+
+            // Travel mode: one-shot "charge to 100% until a date", then the previous limit comes
+            // back on its own. State lives in TravelUntil, so the picker only chooses the length.
+            bool travelOn = D.Settings.TravelUntil != DateTime.MinValue;
+            _builtTravelOn = travelOn;                    // snapshot for SyncTravelRow
+            _builtCharge = D.Settings.ChargeLimit;
+            var travelBtn = new Button { Text = Lang.T(travelOn ? "travel_stop" : "travel_start"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+            Ui.StyleGhost(travelBtn);
+            // the help dot rides in a flow panel with the button, so it shows in both states
+            Control WithTravelHelp(Control main)
+            {
+                var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
+                main.Margin = new Padding(0);
+                flow.Controls.Add(main);
+                flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T("travel_help"), Margin = new Padding(6, 4, 0, 0) });
+                return flow;
+            }
+            if (!travelOn)
+            {
+                int[] travelDays = { 3, 7, 14, 30 };
+                var travelSel = Combo(travelDays.Select(x => string.Format(Lang.T("travel_days_fmt"), x)).ToArray(), 1);
+                travelBtn.Click += (_, _) =>
+                {
+                    D.SetTravelDays(travelDays[Math.Max(0, travelSel.SelectedIndex)]);
+                    _powerCard = RebuildCard(power, BuildPower);
+                };
+                power.AddRow(Lang.T("set_travel"), travelSel);
+                power.AddRow("", WithTravelHelp(travelBtn));
+            }
+            else
+            {
+                var travelNote = new Label
+                {
+                    Text = string.Format(Lang.T("travel_note"), D.Settings.TravelUntil.ToShortDateString()),
+                    AutoSize = true, MaximumSize = new Size(360, 0),
+                    Font = new Font("Segoe UI", 9f), Tag = "muted",
+                };
+                travelBtn.Click += (_, _) =>
+                {
+                    D.SetTravelDays(0);
+                    _powerCard = RebuildCard(power, BuildPower);
+                };
+                power.AddRow(Lang.T("set_travel"), WithTravelHelp(travelBtn));
+                power.AddRow(null, travelNote);
+            }
+            power.AddRow(Lang.T("set_autoswitch"), Toggle(D.Settings.AutoSwitchEnabled, v => D.SetAutoSwitch(v)));
+            var ac = Combo(ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnAC));
+            ac.SelectedIndexChanged += (_, _) => { if (_orderSyncing) return; D.Settings.ProfileOnAC = Profiles.Get(order[ac.SelectedIndex]).Key; D.SaveSettings(); };
+            power.AddRow(Lang.T("on_ac"), ac);
+            var bat = Combo(ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnBattery));
+            bat.SelectedIndexChanged += (_, _) => { if (_orderSyncing) return; D.Settings.ProfileOnBattery = Profiles.Get(order[bat.SelectedIndex]).Key; D.SaveSettings(); };
+            power.AddRow(Lang.T("on_battery"), bat);
+
+            // Some ECs wake from sleep/hibernation in Super Battery on their own — opt-in restore of
+            // the chosen profile after resume and at startup (skipped while auto-switch manages profiles).
+            power.AddRow(Lang.T("set_restore_profile"), Toggle(D.Settings.RestoreProfileOnResume,
+                v => { D.Settings.RestoreProfileOnResume = v; D.SaveSettings(); }));
+            // (#178) startup profile: "last used" (default) or a fixed pick that wins at app start;
+            // the after-wake restore keeps bringing back the profile active before sleep
+            string[] StartupNames() => new[] { Lang.T("set_startup_last") }.Concat(ProfileNames()).ToArray();
+            int StartupIndex()
+            {
+                for (int i = 0; i < order.Length; i++)
+                    if (Profiles.Get(order[i]).Key == D.Settings.StartupProfile) return i + 1;
+                return 0;
+            }
+            var st = Combo(StartupNames(), StartupIndex());
+            st.SelectedIndexChanged += (_, _) =>
+            {
+                if (_orderSyncing) return;
+                D.Settings.StartupProfile = st.SelectedIndex <= 0 ? "" : Profiles.Get(order[st.SelectedIndex - 1]).Key;
+                D.SaveSettings();
+            };
+            power.AddRow(Lang.T("set_startup_profile"), st);
+            _orderSync.Add((power, () =>
+            {
+                Refill(ac, ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnAC));
+                Refill(bat, ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnBattery));
+                Refill(st, StartupNames(), StartupIndex());
+            }));
+            // (#49) restore the last active fan curve too - the EC loses it on every cold boot
+            power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
+                v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
+
+            // (#51) Fan Boost auto-off: the one control users forget to switch back. Presets cover the
+            // "quick blast" (30 s) and the "cool down after a session" (up to 15 min) cases; Custom…
+            // asks for any value up to 2 h. Stored in seconds (AppSettings.FanBoostSeconds, 0 = never).
+            int[] fbVals = { 0, 30, 60, 120, 180, 300, 600, 900 };
+            string FbLabel(int sec) => sec == 0 ? Lang.T("fb_never")
+                : sec < 60 ? string.Format(Lang.T("fb_secs"), sec)
+                : string.Format(Lang.T("fb_mins"), sec / 60);
+            var fbItems = fbVals.Select(FbLabel).Append(Lang.T("fb_custom")).ToArray();
+            // a custom value keeps its own label in the list so the current setting is always visible
+            (string[] Items, int Index) FbList()
+            {
+                int cur = D.Settings.FanBoostSeconds, idx = Array.IndexOf(fbVals, cur);
+                return idx >= 0 ? (fbItems, idx)
+                    : (fbVals.Select(FbLabel).Append(FbLabel(cur)).Append(Lang.T("fb_custom")).ToArray(), fbVals.Length);
+            }
+            var fb = Combo(FbList().Items, FbList().Index);
+            fb.SelectedIndexChanged += (_, _) =>
+            {
+                if (fb.SelectedIndex == fb.Items.Count - 1)   // Custom…
+                {
+                    // a value outside 1-120 minutes marks the field and keeps the card open
+                    string? txt = InputDialog.Ask(FindForm(), Lang.T("cooler_boost"), Lang.T("fb_custom_ask"),
+                        (Math.Max(60, D.Settings.FanBoostSeconds) / 60).ToString(),
+                        validate: t => int.TryParse(t, out int m) && m is >= 1 and <= 120 ? null : "", tag: "//FAN-BOOST");
+                    if (int.TryParse(txt, out int mins) && mins is >= 1 and <= 120)
+                    {
+                        D.Settings.FanBoostSeconds = mins * 60;
+                        D.SaveSettings();
+                    }
+                    Refill(fb, FbList().Items, FbList().Index);   // the new value's own label, or back to the current one
+                    return;
+                }
+                if (fb.SelectedIndex < fbVals.Length) { D.Settings.FanBoostSeconds = fbVals[fb.SelectedIndex]; D.SaveSettings(); }
+            };
+            power.AddRow(Lang.T("set_fb_timer"), fb);
+            return power;
         }
-        var st = Combo(StartupNames(), StartupIndex());
-        st.SelectedIndexChanged += (_, _) =>
-        {
-            if (_orderSyncing) return;
-            D.Settings.StartupProfile = st.SelectedIndex <= 0 ? "" : Profiles.Get(order[st.SelectedIndex - 1]).Key;
-            D.SaveSettings();
-        };
-        power.AddRow(Lang.T("set_startup_profile"), st);
-        _orderSync.Add(() =>
-        {
-            order = Profiles.Shown;
-            Refill(ac, ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnAC));
-            Refill(bat, ProfileNames(), ProfileIndex(order, D.Settings.ProfileOnBattery));
-            Refill(st, StartupNames(), StartupIndex());
-        });
-        // (#49) restore the last active fan curve too - the EC loses it on every cold boot
-        power.AddRow(Lang.T("set_restore_curve"), Toggle(D.Settings.RestoreCurveOnResume,
-            v => { D.Settings.RestoreCurveOnResume = v; D.SaveSettings(); }));
-        _gRight[SubPower].Add(power);   // top of the right column: the Windows power card is as tall as the other cards together and takes the left one
+        _buildPower = BuildPower;
+        _gRight[SubPower].Add(_powerCard = BuildPower());   // top of the right column: the Windows power card is as tall as the other cards together and takes the left one
 
         // (discussion #141; roadmap #109 + #36) Windows power: the CPU turbo-boost switch of
         // the active plan and the Windows power mode. The whole body is ONE owner-drawn,
@@ -555,223 +665,200 @@ public sealed class SettingsPage : ThemedPage
         _gLeft[SubPower].Add(wp);
 
         // Scene schedule: different settings for work hours, nights and weekends. Rules are
-        // edited in a small dialog; the whole page rebuilds after a change (import pattern).
-        var sch = new CardSection(Lang.T("sch_grp"), "");   // MDL2 Calendar
-        var schInfo = new Label
+        // edited in a small dialog; the card alone is rebuilt after a change.
+        CardSection schCard = null!;
+        CardSection BuildSchedule()
         {
-            Text = Lang.T("sch_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
-        };
-        sch.AddRow(null, schInfo);
-        sch.AddRow(Lang.T("sch_enable"), Toggle(D.Settings.ScheduleEnabled,
-            v => { D.Settings.ScheduleEnabled = v; D.SaveSettings(); }));
-        string[] dayAbbr;
-        try { dayAbbr = System.Globalization.CultureInfo.GetCultureInfo(Lang.CurrentCode).DateTimeFormat.AbbreviatedDayNames; }
-        catch { dayAbbr = System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.AbbreviatedDayNames; }
-        void RebuildAfterRules() { D.SaveSettings(); Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); }); }
-        for (int ri = 0; ri < D.Settings.Schedules.Count; ri++)
-        {
-            var r = D.Settings.Schedules[ri];
-            int idx = ri;
-            var scName = D.Settings.Scenes.FirstOrDefault(s => s.Id.Equals(r.SceneId, StringComparison.OrdinalIgnoreCase))?.Name ?? "?";
-            // common day sets get a name; anything else lists the abbreviations
-            string days = r.Days switch
+            var sch = new CardSection(Lang.T("sch_grp"), "");   // MDL2 Calendar
+            var schInfo = new Label
             {
-                0x7F => Lang.T("sch_daily"),
-                0x1F => Lang.T("sch_weekdays"),
-                0x60 => Lang.T("sch_weekend"),
-                _ => string.Join(" ", Enumerable.Range(0, 7).Where(i => (r.Days >> i & 1) != 0).Select(i => dayAbbr[(i + 1) % 7])),
-            };
-            var tg = new ToggleSwitch { Checked = r.Enabled };
-            tg.Toggled += v => { r.Enabled = v; D.SaveSettings(); };
-            // plain labels nested in a panel are NOT themed by CardSection - color explicitly;
-            // wide enough for the whole summary (user request: no truncation)
-            var lbl = new Label
-            {
-                Text = $"{scName} · {days} · {r.Start}-{r.End}", AutoEllipsis = true,
-                AutoSize = false, Size = new Size(330, 24), Font = new Font("Segoe UI", 9f),
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Theme.Text, BackColor = Theme.Card,
-            };
-            // flat glyph hotspots like the scene cards (no boxed buttons), just this size
-            Button Mk(string glyph, Color? fixedColor = null)
-            {
-                var b = new Button
-                {
-                    Text = glyph, Size = new Size(30, 28), Font = new Font("Segoe UI", 10f),
-                    FlatStyle = FlatStyle.Flat, BackColor = Theme.Card,
-                    ForeColor = fixedColor ?? Theme.Muted, TabStop = false, Cursor = Cursors.Hand,
-                };
-                b.FlatAppearance.BorderSize = 0;
-                b.FlatAppearance.MouseOverBackColor = Theme.Card;
-                b.FlatAppearance.MouseDownBackColor = Theme.Card;
-                b.MouseEnter += (_, _) => { if (b.Enabled) b.ForeColor = fixedColor ?? Theme.Accent; };
-                b.MouseLeave += (_, _) => b.ForeColor = fixedColor ?? Theme.Muted;
-                return b;
-            }
-            var up = Mk("↑"); var down = Mk("↓"); var edit = Mk("✎"); var del = Mk("✕", Theme.Red);
-            up.Enabled = idx > 0;
-            down.Enabled = idx < D.Settings.Schedules.Count - 1;
-            void Move(int dir)
-            {
-                int j = idx + dir;
-                if (j < 0 || j >= D.Settings.Schedules.Count) return;
-                D.Settings.Schedules.RemoveAt(idx);
-                D.Settings.Schedules.Insert(j, r);
-                RebuildAfterRules();
-            }
-            up.Click += (_, _) => Move(-1);     // list order = priority on overlapping windows
-            down.Click += (_, _) => Move(1);
-            edit.Click += (_, _) =>
-            {
-                var copy = r.Clone();
-                using var dlg = new ScheduleRuleForm(D, copy);
-                if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
-                r.SceneId = copy.SceneId; r.Days = copy.Days; r.Start = copy.Start; r.End = copy.End;
-                RebuildAfterRules();
-            };
-            del.Click += (_, _) => { D.Settings.Schedules.Remove(r); RebuildAfterRules(); };
-            var row = new Panel { Width = tg.Width + 8 + 330 + 8 + 4 * (30 + 4) - 4, Height = 32, BackColor = Theme.Card };
-            tg.Location = new Point(0, (row.Height - tg.Height) / 2);
-            lbl.Location = new Point(tg.Width + 8, (row.Height - lbl.Height) / 2);
-            int bx = tg.Width + 8 + 330 + 8;
-            foreach (var b in new[] { up, down, edit, del })
-            {
-                b.Location = new Point(bx, (row.Height - b.Height) / 2);
-                bx += b.Width + 4;
-                row.Controls.Add(b);
-            }
-            row.Controls.Add(tg); row.Controls.Add(lbl);
-            sch.AddRow(null, row);
-        }
-        if (D.Settings.Scenes.Count == 0)
-        {
-            var need = new Label
-            {
-                Text = Lang.T("sch_need_scene"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Text = Lang.T("sch_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
                 Font = new Font("Segoe UI", 9f), Tag = "muted",
             };
-            sch.AddRow(null, need);
-        }
-        else
-        {
-            var add = new Button { Text = "+  " + Lang.T("sch_add"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
-            Ui.StyleGhost(add);
-            add.Click += (_, _) =>
+            sch.AddRow(null, schInfo);
+            sch.AddRow(Lang.T("sch_enable"), Toggle(D.Settings.ScheduleEnabled,
+                v => { D.Settings.ScheduleEnabled = v; D.SaveSettings(); }));
+            string[] dayAbbr;
+            try { dayAbbr = System.Globalization.CultureInfo.GetCultureInfo(Lang.CurrentCode).DateTimeFormat.AbbreviatedDayNames; }
+            catch { dayAbbr = System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.AbbreviatedDayNames; }
+            void RebuildAfterRules() { D.SaveSettings(); schCard = RebuildCard(schCard, BuildSchedule); }
+            for (int ri = 0; ri < D.Settings.Schedules.Count; ri++)
             {
-                var nr = new ScheduleRule();
-                using var dlg = new ScheduleRuleForm(D, nr);
-                if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
-                D.Settings.Schedules.Add(nr);
-                RebuildAfterRules();
-            };
-            sch.AddRow(null, add);
-        }
-        _gRight[SubNotif].Add(sch);   // owner decision (2026-10-04): the schedule lives on the Automation sub-tab (SubNotif, the former Notifications), next to the alerts
-
-        // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
-        // model. Pickers list only the modes the panel reports at its current resolution.
-        var disp = new CardSection(Lang.T("set_grp_display"), "");
-        var rates = Display.SupportedRates();
-        // live current panel rate first, so the switch rows below have a reference point
-        _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
-        disp.AddRow(Lang.T("set_refresh_now"), _refreshNow);
-        // which display the controls act on: the built-in panel when one is active, the
-        // primary display otherwise (#69); EDID name appended when the panel reports one
-        var target = Display.Target();
-        _dispRates = rates; _dispTarget = target;   // snapshot compared in OnDisplayChanged
-        var targetInfo = new Label
-        {
-            Text = target.Internal
-                ? Lang.T("ref_panel_internal") + (target.Name is null ? "" : " · " + target.Name)
-                : Lang.T("ref_panel_primary"),
-            AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
-        };
-        disp.AddRow(null, targetInfo);
-        // manual rate switch, same control as the Scenarios brick: a segmented button group
-        // when the panel reports a handful of modes, a combo when there are many
-        var manRates = Display.SupportedRates();
-        if (manRates.Count > 1)
-        {
-            void ApplyMan(int hz)
-            {
-                int before = Display.Current();
-                if (before != hz && Display.SetRefresh(hz))
+                var r = D.Settings.Schedules[ri];
+                int idx = ri;
+                var scName = D.Settings.Scenes.FirstOrDefault(s => s.Id.Equals(r.SceneId, StringComparison.OrdinalIgnoreCase))?.Name ?? "?";
+                // common day sets get a name; anything else lists the abbreviations
+                string days = r.Days switch
                 {
-                    ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
-                    if (_refreshNow is { IsDisposed: false }) _refreshNow.Text = hz + " Hz";
+                    0x7F => Lang.T("sch_daily"),
+                    0x1F => Lang.T("sch_weekdays"),
+                    0x60 => Lang.T("sch_weekend"),
+                    _ => string.Join(" ", Enumerable.Range(0, 7).Where(i => (r.Days >> i & 1) != 0).Select(i => dayAbbr[(i + 1) % 7])),
+                };
+                var tg = new ToggleSwitch { Checked = r.Enabled };
+                tg.Toggled += v => { r.Enabled = v; D.SaveSettings(); };
+                // plain labels nested in a panel are NOT themed by CardSection - color explicitly;
+                // wide enough for the whole summary (user request: no truncation)
+                var lbl = new Label
+                {
+                    Text = $"{scName} · {days} · {r.Start}-{r.End}", AutoEllipsis = true,
+                    AutoSize = false, Size = new Size(330, 24), Font = new Font("Segoe UI", 9f),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    ForeColor = Theme.Text, BackColor = Theme.Card,
+                };
+                // flat glyph hotspots like the scene cards (no boxed buttons), just this size
+                Button Mk(string glyph, Color? fixedColor = null)
+                {
+                    var b = new Button
+                    {
+                        Text = glyph, Size = new Size(30, 28), Font = new Font("Segoe UI", 10f),
+                        FlatStyle = FlatStyle.Flat, BackColor = Theme.Card,
+                        ForeColor = fixedColor ?? Theme.Muted, TabStop = false, Cursor = Cursors.Hand,
+                    };
+                    b.FlatAppearance.BorderSize = 0;
+                    b.FlatAppearance.MouseOverBackColor = Theme.Card;
+                    b.FlatAppearance.MouseDownBackColor = Theme.Card;
+                    b.MouseEnter += (_, _) => { if (b.Enabled) b.ForeColor = fixedColor ?? Theme.Accent; };
+                    b.MouseLeave += (_, _) => b.ForeColor = fixedColor ?? Theme.Muted;
+                    return b;
                 }
+                var up = Mk("↑"); var down = Mk("↓"); var edit = Mk("✎"); var del = Mk("✕", Theme.Red);
+                up.Enabled = idx > 0;
+                down.Enabled = idx < D.Settings.Schedules.Count - 1;
+                void Move(int dir)
+                {
+                    int j = idx + dir;
+                    if (j < 0 || j >= D.Settings.Schedules.Count) return;
+                    D.Settings.Schedules.RemoveAt(idx);
+                    D.Settings.Schedules.Insert(j, r);
+                    RebuildAfterRules();
+                }
+                up.Click += (_, _) => Move(-1);     // list order = priority on overlapping windows
+                down.Click += (_, _) => Move(1);
+                edit.Click += (_, _) =>
+                {
+                    var copy = r.Clone();
+                    using var dlg = new ScheduleRuleForm(D, copy);
+                    if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
+                    r.SceneId = copy.SceneId; r.Days = copy.Days; r.Start = copy.Start; r.End = copy.End;
+                    RebuildAfterRules();
+                };
+                del.Click += (_, _) => { D.Settings.Schedules.Remove(r); RebuildAfterRules(); };
+                var row = new Panel { Width = tg.Width + 8 + 330 + 8 + 4 * (30 + 4) - 4, Height = 32, BackColor = Theme.Card };
+                tg.Location = new Point(0, (row.Height - tg.Height) / 2);
+                lbl.Location = new Point(tg.Width + 8, (row.Height - lbl.Height) / 2);
+                int bx = tg.Width + 8 + 330 + 8;
+                foreach (var b in new[] { up, down, edit, del })
+                {
+                    b.Location = new Point(bx, (row.Height - b.Height) / 2);
+                    bx += b.Width + 4;
+                    row.Controls.Add(b);
+                }
+                row.Controls.Add(tg); row.Controls.Add(lbl);
+                sch.AddRow(null, row);
             }
-            int manCur = Math.Max(0, manRates.IndexOf(Display.Current()));
-            if (manRates.Count <= 4)
+            if (D.Settings.Scenes.Count == 0)
             {
-                var seg = new SegControl(manRates.Select(r => r + " Hz").ToArray(), manCur) { Size = new Size(Math.Min(280, 74 * manRates.Count), 34) };
-                seg.SelectedChanged += i => ApplyMan(manRates[i]);
-                _syncRefreshMan = () => { int i = manRates.IndexOf(Display.Current()); if (i >= 0) seg.Selected = i; };
-                disp.AddRow(Lang.T("set_refresh_set"), seg);
+                var need = new Label
+                {
+                    Text = Lang.T("sch_need_scene"), AutoSize = true, MaximumSize = new Size(360, 0),
+                    Font = new Font("Segoe UI", 9f), Tag = "muted",
+                };
+                sch.AddRow(null, need);
             }
             else
             {
-                var man = Combo(manRates.Select(r => r + " Hz").ToArray(), manCur);
-                man.SelectedIndexChanged += (_, _) => ApplyMan(manRates[Math.Max(0, man.SelectedIndex)]);
-                _syncRefreshMan = () => { int i = manRates.IndexOf(Display.Current()); if (i >= 0 && man.SelectedIndex != i) man.SelectedIndex = i; };
-                disp.AddRow(Lang.T("set_refresh_set"), man);
-            }
-        }
-        disp.AddRow(Lang.T("set_refresh_toggle"), Toggle(D.Settings.RefreshSwitchEnabled, v => { D.Settings.RefreshSwitchEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
-        string[] rateItems = new[] { Lang.T("ref_keep") }.Concat(rates.Select(r => r + " Hz")).ToArray();
-        int RateIdx(int hz) { int i = rates.IndexOf(hz); return i < 0 ? 0 : i + 1; }
-        var rAc = Combo(rateItems, RateIdx(D.Settings.RefreshOnAC));
-        rAc.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnAC = rAc.SelectedIndex <= 0 ? 0 : rates[rAc.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
-        disp.AddRow(Lang.T("set_refresh_ac"), rAc);
-        var rBat = Combo(rateItems, RateIdx(D.Settings.RefreshOnBattery));
-        rBat.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnBattery = rBat.SelectedIndex <= 0 ? 0 : rates[rBat.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
-        disp.AddRow(Lang.T("set_refresh_batt"), rBat);
-        if (rates.Count == 0) rAc.Enabled = rBat.Enabled = false;   // enumeration failed - leave visible but inert
-        // HDR (advanced color) - same switch as Windows Settings → Display; only on capable
-        // panels (or with MSIPS_FORCE_HDR=1 for UI testing). Scenes/CLI share the state.
-        if (Hdr.Supported())
-            disp.AddRow("HDR", Toggle(Hdr.Enabled(), v =>
-            {
-                try { if (Hdr.Set(v)) ChangeLog.Add(ChangeSource.Panel, "HDR: " + Lang.T(v ? "st_on" : "st_off")); } catch { }
-            }));
-        _gRight[SubPower].Add(disp);
-
-        // (#51) Fan Boost auto-off: the one control users forget to switch back. Presets cover the
-        // "quick blast" (30 s) and the "cool down after a session" (up to 15 min) cases; Custom…
-        // asks for any value up to 2 h. Stored in seconds (AppSettings.FanBoostSeconds, 0 = never).
-        int[] fbVals = { 0, 30, 60, 120, 180, 300, 600, 900 };
-        string FbLabel(int sec) => sec == 0 ? Lang.T("fb_never")
-            : sec < 60 ? string.Format(Lang.T("fb_secs"), sec)
-            : string.Format(Lang.T("fb_mins"), sec / 60);
-        var fbItems = fbVals.Select(FbLabel).Append(Lang.T("fb_custom")).ToArray();
-        int fbCur = D.Settings.FanBoostSeconds;
-        int fbIdx = Array.IndexOf(fbVals, fbCur);
-        // a custom value keeps its own label in the list so the current setting is always visible
-        if (fbIdx < 0) { fbItems = fbVals.Select(FbLabel).Append(FbLabel(fbCur)).Append(Lang.T("fb_custom")).ToArray(); fbIdx = fbVals.Length; }
-        var fb = Combo(fbItems, Math.Max(0, fbIdx));
-        fb.SelectedIndexChanged += (_, _) =>
-        {
-            if (fb.SelectedIndex == fb.Items.Count - 1)   // Custom…
-            {
-                // a value outside 1-120 minutes marks the field and keeps the card open
-                string? txt = InputDialog.Ask(FindForm(), Lang.T("cooler_boost"), Lang.T("fb_custom_ask"),
-                    (Math.Max(60, D.Settings.FanBoostSeconds) / 60).ToString(),
-                    validate: t => int.TryParse(t, out int m) && m is >= 1 and <= 120 ? null : "", tag: "//FAN-BOOST");
-                if (int.TryParse(txt, out int mins) && mins is >= 1 and <= 120)
+                var add = new Button { Text = "+  " + Lang.T("sch_add"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+                Ui.StyleGhost(add);
+                add.Click += (_, _) =>
                 {
-                    D.Settings.FanBoostSeconds = mins * 60;
-                    D.SaveSettings();
-                    Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // relabel the list
-                    return;
-                }
-                fb.SelectedIndex = Math.Max(0, Array.IndexOf(fbVals, D.Settings.FanBoostSeconds));
-                return;
+                    var nr = new ScheduleRule();
+                    using var dlg = new ScheduleRuleForm(D, nr);
+                    if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
+                    D.Settings.Schedules.Add(nr);
+                    RebuildAfterRules();
+                };
+                sch.AddRow(null, add);
             }
-            if (fb.SelectedIndex < fbVals.Length) { D.Settings.FanBoostSeconds = fbVals[fb.SelectedIndex]; D.SaveSettings(); }
-        };
-        power.AddRow(Lang.T("set_fb_timer"), fb);
+            return sch;
+        }
+        _gRight[SubNotif].Add(schCard = BuildSchedule());   // owner decision (2026-10-04): the schedule lives on the Automation sub-tab (SubNotif, the former Notifications), next to the alerts
+
+        // Display refresh-rate auto-switch (discussion #18): pure Windows API, works on every
+        // model. Pickers list only the modes the panel reports at its current resolution.
+        // A display-mode switch rebuilds this card alone (OnDisplayChanged).
+        CardSection BuildDisp()
+        {
+            var disp = new CardSection(Lang.T("set_grp_display"), "");
+            var rates = Display.SupportedRates();
+            _syncRefreshMan = null;   // re-pointed below when the panel offers a choice
+            // live current panel rate first, so the switch rows below have a reference point
+            _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+            disp.AddRow(Lang.T("set_refresh_now"), _refreshNow);
+            // which display the controls act on: the built-in panel when one is active, the
+            // primary display otherwise (#69); EDID name appended when the panel reports one
+            var target = Display.Target();
+            _dispRates = rates; _dispTarget = target;   // snapshot compared in OnDisplayChanged
+            var targetInfo = new Label
+            {
+                Text = target.Internal
+                    ? Lang.T("ref_panel_internal") + (target.Name is null ? "" : " · " + target.Name)
+                    : Lang.T("ref_panel_primary"),
+                AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "muted",
+            };
+            disp.AddRow(null, targetInfo);
+            // manual rate switch, same control as the Scenarios brick: a segmented button group
+            // when the panel reports a handful of modes, a combo when there are many
+            var manRates = Display.SupportedRates();
+            if (manRates.Count > 1)
+            {
+                void ApplyMan(int hz)
+                {
+                    int before = Display.Current();
+                    if (before != hz && Display.SetRefresh(hz))
+                    {
+                        ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+                        if (_refreshNow is { IsDisposed: false }) _refreshNow.Text = hz + " Hz";
+                    }
+                }
+                int manCur = Math.Max(0, manRates.IndexOf(Display.Current()));
+                if (manRates.Count <= 4)
+                {
+                    var seg = new SegControl(manRates.Select(r => r + " Hz").ToArray(), manCur) { Size = new Size(Math.Min(280, 74 * manRates.Count), 34) };
+                    seg.SelectedChanged += i => ApplyMan(manRates[i]);
+                    _syncRefreshMan = () => { int i = manRates.IndexOf(Display.Current()); if (i >= 0) seg.Selected = i; };
+                    disp.AddRow(Lang.T("set_refresh_set"), seg);
+                }
+                else
+                {
+                    var man = Combo(manRates.Select(r => r + " Hz").ToArray(), manCur);
+                    man.SelectedIndexChanged += (_, _) => ApplyMan(manRates[Math.Max(0, man.SelectedIndex)]);
+                    _syncRefreshMan = () => { int i = manRates.IndexOf(Display.Current()); if (i >= 0 && man.SelectedIndex != i) man.SelectedIndex = i; };
+                    disp.AddRow(Lang.T("set_refresh_set"), man);
+                }
+            }
+            disp.AddRow(Lang.T("set_refresh_toggle"), Toggle(D.Settings.RefreshSwitchEnabled, v => { D.Settings.RefreshSwitchEnabled = v; D.SaveSettings(); D.SettingsChanged(); }));
+            string[] rateItems = new[] { Lang.T("ref_keep") }.Concat(rates.Select(r => r + " Hz")).ToArray();
+            int RateIdx(int hz) { int i = rates.IndexOf(hz); return i < 0 ? 0 : i + 1; }
+            var rAc = Combo(rateItems, RateIdx(D.Settings.RefreshOnAC));
+            rAc.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnAC = rAc.SelectedIndex <= 0 ? 0 : rates[rAc.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
+            disp.AddRow(Lang.T("set_refresh_ac"), rAc);
+            var rBat = Combo(rateItems, RateIdx(D.Settings.RefreshOnBattery));
+            rBat.SelectedIndexChanged += (_, _) => { D.Settings.RefreshOnBattery = rBat.SelectedIndex <= 0 ? 0 : rates[rBat.SelectedIndex - 1]; D.SaveSettings(); D.SettingsChanged(); };
+            disp.AddRow(Lang.T("set_refresh_batt"), rBat);
+            if (rates.Count == 0) rAc.Enabled = rBat.Enabled = false;   // enumeration failed - leave visible but inert
+            // HDR (advanced color) - same switch as Windows Settings → Display; only on capable
+            // panels (or with MSIPS_FORCE_HDR=1 for UI testing). Scenes/CLI share the state.
+            if (Hdr.Supported())
+                disp.AddRow("HDR", Toggle(Hdr.Enabled(), v =>
+                {
+                    try { if (Hdr.Set(v)) ChangeLog.Add(ChangeSource.Panel, "HDR: " + Lang.T(v ? "st_on" : "st_off")); } catch { }
+                }));
+            return disp;
+        }
+        _buildDisp = BuildDisp;
+        _gRight[SubPower].Add(_dispCard = BuildDisp());
 
         // (#14) Battery health - read-only wear data from the root\wmi battery classes.
         var bh = BatteryHealth.Read();
@@ -839,46 +926,50 @@ public sealed class SettingsPage : ThemedPage
         }
         brc.AddRow(Lang.T("bat_below"), BattRow(true));
         brc.AddRow(Lang.T("bat_above"), BattRow(false));
-        _orderSync.Add(() =>   // runs after the Power card's entry, which has already swapped `order`
+        _orderSync.Add((brc, () =>   // runs after the page's own entry, which has already swapped `order`
         {
             actionVals = ActionVals();
             actionNames = ActionNames();
             foreach (var (combo, low) in actCombos)
                 Refill(combo, actionNames, Math.Max(0, Array.IndexOf(actionVals, low ? D.Settings.BattLowAction : D.Settings.BattHighAction)));
-        });
+        }));
         _gRight[SubPower].Add(brc);
 
         // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
         // the chosen time. Off by default — the user opts in.
         var alerts = new CardSection(Lang.T("set_grp_alerts"), "");
-        alerts.AddRow(Lang.T("ta_enable"), Toggle(D.Settings.TempAlertEnabled, v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); }));
+        bool alertsQuiet = false;   // the reset button sets the lists itself; their handlers stay out of it
+        var taOn = Toggle(D.Settings.TempAlertEnabled, v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); });
+        alerts.AddRow(Lang.T("ta_enable"), taOn);
         // 70/75 exist mainly so the alert can be tried out without heating the laptop up first.
         int[] degVals = { 70, 75, 80, 85, 90, 95, 100 };
         var deg = Combo(degVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(degVals, D.Settings.TempAlertDegrees)));
-        deg.SelectedIndexChanged += (_, _) => { D.Settings.TempAlertDegrees = degVals[Math.Max(0, deg.SelectedIndex)]; D.SaveSettings(); };
+        deg.SelectedIndexChanged += (_, _) => { if (alertsQuiet) return; D.Settings.TempAlertDegrees = degVals[Math.Max(0, deg.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ta_threshold"), deg);
         int[] secVals = { 5, 10, 20, 30, 60 };
         var secsCombo = Combo(secVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(secVals, D.Settings.TempAlertSeconds)));
-        secsCombo.SelectedIndexChanged += (_, _) => { D.Settings.TempAlertSeconds = secVals[Math.Max(0, secsCombo.SelectedIndex)]; D.SaveSettings(); };
+        secsCombo.SelectedIndexChanged += (_, _) => { if (alertsQuiet) return; D.Settings.TempAlertSeconds = secVals[Math.Max(0, secsCombo.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ta_time"), secsCombo);
         // SSD alert: same opt-in pattern, but the data comes from Windows storage APIs
         // (Perf.Disks), not the EC. Dwell is fixed (30 s) - disk heat moves slowly.
         alerts.AddRow(null, new SepLine());
-        alerts.AddRow(Lang.T("ssd_enable"), Toggle(D.Settings.SsdAlertEnabled, v => { D.Settings.SsdAlertEnabled = v; D.SaveSettings(); }));
+        var ssdOn = Toggle(D.Settings.SsdAlertEnabled, v => { D.Settings.SsdAlertEnabled = v; D.SaveSettings(); });
+        alerts.AddRow(Lang.T("ssd_enable"), ssdOn);
         int[] ssdVals = { 55, 60, 65, 70, 75, 80 };
         var ssdDeg = Combo(ssdVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(ssdVals, D.Settings.SsdAlertDegrees)));
-        ssdDeg.SelectedIndexChanged += (_, _) => { D.Settings.SsdAlertDegrees = ssdVals[Math.Max(0, ssdDeg.SelectedIndex)]; D.SaveSettings(); };
+        ssdDeg.SelectedIndexChanged += (_, _) => { if (alertsQuiet) return; D.Settings.SsdAlertDegrees = ssdVals[Math.Max(0, ssdDeg.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ssd_threshold"), ssdDeg);
         // Someone else moving the charge threshold (MSI Center and its installer do) is not a hardware
         // alarm, it is "your setting no longer applies" - opt-OUT, because silence there means the
         // app shows a limit that is not in the EC any more.
         alerts.AddRow(null, new SepLine());
-        alerts.AddRow(Lang.T("charge_ext_enable"), Toggle(D.Settings.ChargeExternalNotify, v => { D.Settings.ChargeExternalNotify = v; D.SaveSettings(); }));
+        var chgOn = Toggle(D.Settings.ChargeExternalNotify, v => { D.Settings.ChargeExternalNotify = v; D.SaveSettings(); });
+        alerts.AddRow(Lang.T("charge_ext_enable"), chgOn);
         // How long OSD toasts stay fully visible; the temperature alert enforces a 5 s minimum.
         alerts.AddRow(null, new SepLine());
         int[] osdVals = Enumerable.Range(1, 15).ToArray();
         var osdCombo = Combo(osdVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(osdVals, D.Settings.OsdSeconds)));
-        osdCombo.SelectedIndexChanged += (_, _) => { D.Settings.OsdSeconds = osdVals[Math.Max(0, osdCombo.SelectedIndex)]; D.SaveSettings(); D.SettingsChanged(); };
+        osdCombo.SelectedIndexChanged += (_, _) => { if (alertsQuiet) return; D.Settings.OsdSeconds = osdVals[Math.Max(0, osdCombo.SelectedIndex)]; D.SaveSettings(); D.SettingsChanged(); };
         alerts.AddRow(Lang.T("set_osd_secs"), osdCombo);
         // One button back to stock: with three alert groups in one card (and more to come),
         // undoing an experiment by hand means remembering six values.
@@ -895,7 +986,20 @@ public sealed class SettingsPage : ThemedPage
             D.Settings.ChargeExternalNotify = d.ChargeExternalNotify;
             D.Settings.OsdSeconds = d.OsdSeconds;
             D.SaveSettings(); D.SettingsChanged();
-            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
+            // the seven controls of this card follow in place (Checked's setter raises no event)
+            alertsQuiet = true;
+            try
+            {
+                taOn.Checked = d.TempAlertEnabled;
+                ssdOn.Checked = d.SsdAlertEnabled;
+                chgOn.Checked = d.ChargeExternalNotify;
+                deg.SelectedIndex = Math.Max(0, Array.IndexOf(degVals, d.TempAlertDegrees));
+                secsCombo.SelectedIndex = Math.Max(0, Array.IndexOf(secVals, d.TempAlertSeconds));
+                ssdDeg.SelectedIndex = Math.Max(0, Array.IndexOf(ssdVals, d.SsdAlertDegrees));
+                osdCombo.SelectedIndex = Math.Max(0, Array.IndexOf(osdVals, d.OsdSeconds));
+            }
+            finally { alertsQuiet = false; }
+            RefreshTiles();
         };
         alerts.AddRow("", alertsReset);
         _gLeft[SubNotif].Add(alerts);
@@ -913,12 +1017,17 @@ public sealed class SettingsPage : ThemedPage
         // gives it a height, hence the toggle (Visible is useless here: a child of a form that is
         // not shown yet reports false, which would break the layout during construction).
         var dbNote = new Label { AutoSize = false, Size = new Size(1, 0), Font = new Font("Segoe UI", 9f), Tag = "muted" };
-        void SyncDbLabel(string? note = null)
+        void DbVersionText()
         {
             dbLabel.Text = Devices.EffectiveDataVersion
                          + (Devices.UsingOverride ? "  ·  " + Lang.T("modeldb_downloaded") : "");
             if (ModelDb.PendingVersion() is { } pend)
                 dbLabel.Text += "  ·  " + string.Format(Lang.T("modeldb_pending"), pend);
+        }
+        _syncDbVersion = () => { DbVersionText(); Layout2(); };   // a newer database went live (OnDeviceDbChanged)
+        void SyncDbLabel(string? note = null)
+        {
+            DbVersionText();
             dbNote.Text = note ?? "";
             if (note == null) { dbNote.AutoSize = false; dbNote.Size = new Size(1, 0); }
             else dbNote.AutoSize = true;
@@ -1035,40 +1144,47 @@ public sealed class SettingsPage : ThemedPage
 
         // Which quick-control bricks (and the Scenes section) the Scenarios tab shows - not
         // everyone wants the full wall of switches there.
-        var scenVis = new CardSection(Lang.T("set_grp_scen"), "");   // MDL2 Tiles glyph
-        void VisRow(string key, string label)
+        CardSection BuildScenVis()
         {
-            scenVis.AddRow(label, Toggle(!D.Settings.ScenHidden.Contains(key), v =>
+            var scenVis = new CardSection(Lang.T("set_grp_scen"), "");   // MDL2 Tiles glyph
+            void VisRow(string key, string label)
             {
-                if (v) D.Settings.ScenHidden.Remove(key);
-                else if (!D.Settings.ScenHidden.Contains(key)) D.Settings.ScenHidden.Add(key);
-                D.SaveSettings(); D.SettingsChanged();
-            }));
+                scenVis.AddRow(label, Toggle(!D.Settings.ScenHidden.Contains(key), v =>
+                {
+                    if (v) D.Settings.ScenHidden.Remove(key);
+                    else if (!D.Settings.ScenHidden.Contains(key)) D.Settings.ScenHidden.Add(key);
+                    D.SaveSettings(); D.SettingsChanged();
+                }));
+            }
+            // (discussion #101) the order of the four profiles: tiles, tray menu, lists, "next profile"
+            var orderBtn = new Button { Text = Lang.T("scene_edit"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+            Ui.StyleGhost(orderBtn);
+            orderBtn.Click += (_, _) =>
+            {
+                using var dlg = new ProfileOrderForm(D.Settings, D.ColorOf);
+                if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
+                D.SettingsChanged();   // the tray menu follows
+                SyncProfileOrder();
+            };
+            scenVis.AddRow(Lang.T("po_title"), orderBtn);
+            VisRow("fanboost", Lang.T("cooler_boost"));
+            VisRow("overlay", Lang.T("overlay_title"));
+            VisRow("charge", Lang.T("st_charge"));
+            VisRow("autoswitch", Lang.T("scen_autoswitch"));
+            _builtRefreshRow = Display.SupportedRates().Count > 1;   // snapshot for OnDisplayChanged
+            if (_builtRefreshRow) VisRow("refresh", Lang.T("ref_title"));
+            if (D.KbdLevel() >= 0) VisRow("kbd", Lang.T("kbd_title"));
+            if (D.WebcamState() >= 0) VisRow("webcam", Lang.T("webcam_title"));
+            VisRow("winlock", Lang.T("winlock_title"));
+            if (D.TouchpadState() >= 0) VisRow("touchpad", Lang.T("tp_title"));
+            if (D.MicState() >= 0) VisRow("mic", Lang.T("mic_title"));
+            VisRow("panic", Lang.T("hk_panic"));
+            VisRow("scenes", Lang.T("scene_title"));
+            return scenVis;
         }
-        // (discussion #101) the order of the four profiles: tiles, tray menu, lists, "next profile"
-        var orderBtn = new Button { Text = Lang.T("scene_edit"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
-        Ui.StyleGhost(orderBtn);
-        orderBtn.Click += (_, _) =>
-        {
-            using var dlg = new ProfileOrderForm(D.Settings, D.ColorOf);
-            if (dlg.ShowOver(FindForm()) != DialogResult.OK) return;
-            D.SettingsChanged();   // the tray menu follows
-            SyncProfileOrder();
-        };
-        scenVis.AddRow(Lang.T("po_title"), orderBtn);
-        VisRow("fanboost", Lang.T("cooler_boost"));
-        VisRow("overlay", Lang.T("overlay_title"));
-        VisRow("charge", Lang.T("st_charge"));
-        VisRow("autoswitch", Lang.T("scen_autoswitch"));
-        if (Display.SupportedRates().Count > 1) VisRow("refresh", Lang.T("ref_title"));
-        if (D.KbdLevel() >= 0) VisRow("kbd", Lang.T("kbd_title"));
-        if (D.WebcamState() >= 0) VisRow("webcam", Lang.T("webcam_title"));
-        VisRow("winlock", Lang.T("winlock_title"));
-        if (D.TouchpadState() >= 0) VisRow("touchpad", Lang.T("tp_title"));
-        if (D.MicState() >= 0) VisRow("mic", Lang.T("mic_title"));
-        VisRow("panic", Lang.T("hk_panic"));
-        VisRow("scenes", Lang.T("scene_title"));
-        _gLeft[SubGeneral].Add(scenVis);   // left column (user request; the right one is crowded)
+        _buildScenVis = BuildScenVis;
+        // left column (user request; the right one is crowded); the gear on the Scenarios tab jumps here and flashes it
+        _gLeft[SubGeneral].Add(_scenVisCard = BuildScenVis());
 
         // (discussion #9) Settings can land on the Start dashboard every time instead of
         // resuming the last sub-tab. Off by default = the behaviour people already know.
@@ -1082,7 +1198,6 @@ public sealed class SettingsPage : ThemedPage
         navCard.AddRow(Lang.T("set_always_start"), Toggle(D.Settings.SettingsAlwaysStart,
             v => { D.Settings.SettingsAlwaysStart = v; D.SaveSettings(); }));
         _gRight[SubGeneral].Add(navCard);
-        _scenVisCard = scenVis;            // gear on the Scenarios tab jumps here and flashes it
 
         // Settings backup: export = a copy of settings.json, import = adopt the preferences from
         // such a file. Machine-local state survives an import (see AppSettings.ImportFrom).
@@ -1116,7 +1231,8 @@ public sealed class SettingsPage : ThemedPage
         // (discussion #9) Temperature readouts in the notification area - two separate icons,
         // because a tray icon is 16x16 px at 100% scaling: room for two bold digits, not two
         // values. Hidden on machines we cannot read temperatures from.
-        if (D.Status().Known || D.Hw().CpuTemp > 0)
+        CardSection ttCard = null!;
+        CardSection BuildTempTray()
         {
             var tt = new CardSection(Lang.T("temptray_grp"), "");
             var ttInfo = new Label
@@ -1167,11 +1283,12 @@ public sealed class SettingsPage : ThemedPage
                 D.Settings.TempTrayWarn = def.TempTrayWarn;
                 D.Settings.TempTrayHot = def.TempTrayHot;
                 D.SaveSettings(); D.SettingsChanged();
-                Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });   // swatches + combos follow
+                ttCard = RebuildCard(ttCard, BuildTempTray);   // swatches + lists follow
             };
             tt.AddRow(null, ttReset);
-            _gRight[SubSystem].Add(tt);
+            return tt;
         }
+        if (D.Status().Known || D.Hw().CpuTemp > 0) _gRight[SubSystem].Add(ttCard = BuildTempTray());
 
         // (#27) Advanced privacy option: hard camera block (0x2F) - locks the camera off below
         // the Fn key and the Scenarios switch until lifted here (or by a panic reset).

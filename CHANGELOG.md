@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Settings no longer rebuilds the whole page after a single change** - adding, editing,
+  moving or removing a schedule rule, switching the charge limit to or from Custom, starting
+  or stopping travel mode, entering a custom Fan Boost time and the two "Defaults" buttons
+  (notifications, temperature icons) used to recreate every control of the Settings page,
+  which froze the window for about 0.4 s on a busy desktop. Each of them now refreshes only
+  its own card (about 0.05 s), and the page keeps its scroll position. The page is still
+  rebuilt when the language changes or settings are imported.
 ## [1.37.0] - 2026-10-04
 ### Fixed
 - **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured

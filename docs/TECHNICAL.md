@@ -2946,3 +2946,31 @@ a brick on Scenarios (hideable, key `mic`), a card in Settings → System, the h
 (`Ctrl+Alt+F11`, shipped disabled), `--mic on|off`, the `mic` field of `--status`, an OSD
 toast and a change-log line. A panic reset deliberately leaves the microphone alone: turning
 a muted microphone back on is not a "safe state". Scenes carry no microphone field yet.
+
+## 73. Settings: one card is rebuilt, not the page (v1.38)
+
+`SettingsPage.BuildForm()` recreates every control of the page. It used to run after many
+single changes; measured on the owner's machine it blocks the window for 0.33 - 0.42 s
+(RENDERING.md §8.1). It now runs only when everything on the page changes: a language change
+(from the list on the page or from the tray menu), a settings import, and a model-database
+update that changes what the detected machine can do.
+
+Everything else updates what it touches:
+
+| Change | What happens now |
+|---|---|
+| schedule rule added, edited, removed, moved | the schedule card is rebuilt |
+| charge limit enters or leaves Custom; travel mode started or stopped, on the page or from outside (CLI, scene, expiry) | the battery card is rebuilt |
+| display-mode switch (dock, second screen) | the display card is rebuilt; the Scenarios-visibility card too when its refresh-rate row has to appear or go |
+| temperature-icon defaults | the temperature-icons card is rebuilt |
+| custom Fan Boost time | the list is re-filled in place (`Refill`) |
+| notification defaults | the three switches and four lists of the card are set in place, their handlers muted by a flag |
+| model-database update, same machine capabilities | the version row is re-read (`_syncDbVersion`) |
+
+`RebuildCard(old, build)` is the one mechanism: the builders are local functions of
+`BuildForm` (so a card is built by the same code in both cases), the fresh card takes the old
+one's slot in its column list, its position in `Controls` and its `TabIndex`, and the old card
+is disposed through `BeginInvoke` - the rebuild usually runs inside a click handler of a
+control that sits on the old card. Entries of `_orderSync` (§72) carry the card they belong
+to and leave with it. `DeviceSig()` lists what `BuildForm` asks the detected device before it
+adds a card or a row; `OnDeviceDbChanged` rebuilds the page only when that changed.

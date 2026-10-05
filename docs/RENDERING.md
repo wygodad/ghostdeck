@@ -437,9 +437,22 @@ Consequences for new UI:
 - every child control is a system window; a card that paints its rows itself costs one;
 - no system list controls (`ComboBox`, `ListBox`) on pages — their cost is per item;
 - a change that affects a few controls updates those controls. A full `BuildForm()` recreates
-  every window of the page and is reserved for changes that touch all of it (language). The
-  profile order, for one, re-fills four colour rows and the profile lists in place
-  (`SettingsPage.SyncProfileOrder`).
+  every window of the page and is reserved for changes that touch all of it (language, a
+  settings import). The profile order re-fills four colour rows and the profile lists in place
+  (`SettingsPage.SyncProfileOrder`); a card whose rows come and go (schedule rules, the Custom
+  charge slider, travel mode, the display modes) is rebuilt alone (`SettingsPage.RebuildCard`,
+  TECHNICAL.md §73).
+
+Measured on the live app after v1.37 (same machine, medians of three runs, action plus the
+repaint that follows):
+
+| | time |
+|---|---|
+| a switch / a list value | 4 ms / 3 ms |
+| re-entering the Settings tab | 65 ms |
+| changing the Settings sub-tab | 35 - 100 ms |
+| full rebuild of the Settings page | 340 - 450 ms |
+| rebuild of one card (v1.38) | 50 - 76 ms |
 
 **Do NOT add `WS_EX_COMPOSITED`** to the pages. It was tried against scroll tearing and reverted
 (a comment in `ThemedPage.CreateParams`… note marks it): compositing the whole child tree made
