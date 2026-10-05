@@ -15,7 +15,8 @@ public readonly record struct OverlaySample(
     int GpuUsage, int VramMb, int CpuClock,
     int Fps = -1, double FrameMs = -1,    // foreground game via FpsMonitor; -1 = no game / monitor off
     int SsdTemp = -1, int BattMinutes = -1,    // NVMe S.M.A.R.T. temp (disk 0); Windows' battery-time estimate
-    int SsdTemp2 = -1);                        // second disk's temp (dual-SSD laptops), -1 = none
+    int SsdTemp2 = -1,                         // second disk's temp (dual-SSD laptops), -1 = none
+    int IgpuUsage = -1, string CpuName = "");  // integrated card's load (-1 = no such card); processor model
 
 /// <summary>
 /// Detachable, always-on-top mini status panel for gaming: temps / fan RPM / profile / load, in a
@@ -151,6 +152,8 @@ public sealed class OverlayForm : Form
     private string HeaderText => !_s.Known ? "MSI · n/a" : "MSI · " + _s.ProfileLabel;
 
     // Metric cells (icon, label, value) picked by the settings flags. Profile/Cooler live in the header.
+    // Labels stay English in every UI language (the overlay's compact, gaming-style convention), but
+    // say what they show: "CPU%" next to "GPU%", "Frametime", "Time left", "Charge limit" (discussion #150).
     private List<(IconKind icon, string label, string value)> Cells()
     {
         var st = _settings;
@@ -158,7 +161,9 @@ public sealed class OverlayForm : Form
         void Add(OverlayMetric m, IconKind ic, string label, string value) { if (st.HasMetric(m)) list.Add((ic, label, value)); }
         // FPS metrics lead the list — they're the reason the overlay is on screen during a game.
         Add(OverlayMetric.Fps, IconKind.Fps, "FPS", _s.Fps >= 0 ? _s.Fps.ToString() : "--");
-        Add(OverlayMetric.FrameTime, IconKind.Fps, "Frame", _s.FrameMs > 0 ? $"{_s.FrameMs:0.0} ms" : "--");
+        Add(OverlayMetric.FrameTime, IconKind.Fps, "Frametime", _s.FrameMs > 0 ? $"{_s.FrameMs:0.0} ms" : "--");
+        // the processor's model heads the CPU readings (discussion #150)
+        Add(OverlayMetric.CpuName, IconKind.Cpu, "CPU model", _s.CpuName.Length > 0 ? _s.CpuName : "--");
         // temps are also valid in telemetry-only mode (#48), where Known is false
         Add(OverlayMetric.CpuTemp, IconKind.Cpu, "CPU", _s.CpuTemp > 0 ? $"{_s.CpuTemp}°" : "--");
         Add(OverlayMetric.GpuTemp, IconKind.Gpu, "GPU", _s.GpuTemp > 0 ? $"{_s.GpuTemp}°" : "--");
@@ -169,14 +174,15 @@ public sealed class OverlayForm : Form
         Add(OverlayMetric.CpuRpm, IconKind.Fan, "CPU fan", _s.CpuRpm > 0 ? $"{_s.CpuRpm}" : "--");
         Add(OverlayMetric.GpuRpm, IconKind.Fan, "GPU fan", _s.GpuRpm > 0 ? $"{_s.GpuRpm}" : "--");
         Add(OverlayMetric.FanPct, IconKind.Fan, "Fans", $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
-        Add(OverlayMetric.CpuLoad, IconKind.Load, "Load", $"{_s.CpuLoad}%");
+        Add(OverlayMetric.CpuLoad, IconKind.Load, "CPU%", $"{_s.CpuLoad}%");
         Add(OverlayMetric.GpuUsage, IconKind.Gpu, "GPU%", _s.GpuUsage >= 0 ? $"{_s.GpuUsage}%" : "--");
-        Add(OverlayMetric.CpuClock, IconKind.Cpu, "CPU clk", _s.CpuClock > 0 ? $"{_s.CpuClock} MHz" : "--");
+        Add(OverlayMetric.IgpuUsage, IconKind.Gpu, "iGPU%", _s.IgpuUsage >= 0 ? $"{_s.IgpuUsage}%" : "--");
+        Add(OverlayMetric.CpuClock, IconKind.Cpu, "CPU clock", _s.CpuClock > 0 ? $"{_s.CpuClock} MHz" : "--");
         Add(OverlayMetric.Ram, IconKind.Ram, "RAM", $"{_s.RamUsedGb:0.0} GB");
         Add(OverlayMetric.Vram, IconKind.Ram, "VRAM", _s.VramMb >= 0 ? $"{_s.VramMb} MB" : "--");
-        Add(OverlayMetric.Battery, IconKind.Charge, _s.Charging ? "Bat ⚡" : "Bat", _s.BatteryPct >= 0 ? $"{_s.BatteryPct}%" : "--");
-        Add(OverlayMetric.BatteryTime, IconKind.Charge, "Left", _s.BattMinutes > 0 ? $"{_s.BattMinutes / 60}h {_s.BattMinutes % 60:00}m" : "--");
-        Add(OverlayMetric.ChargeLimit, IconKind.Charge, "Limit", _s.ChargeLimit > 0 ? $"{_s.ChargeLimit}%" : "—");
+        Add(OverlayMetric.Battery, IconKind.Charge, _s.Charging ? "Battery ⚡" : "Battery", _s.BatteryPct >= 0 ? $"{_s.BatteryPct}%" : "--");
+        Add(OverlayMetric.BatteryTime, IconKind.Charge, "Time left", _s.BattMinutes > 0 ? $"{_s.BattMinutes / 60}h {_s.BattMinutes % 60:00}m" : "--");
+        Add(OverlayMetric.ChargeLimit, IconKind.Charge, "Charge limit", _s.ChargeLimit > 0 ? $"{_s.ChargeLimit}%" : "—");
         return list;
     }
 

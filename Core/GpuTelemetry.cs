@@ -138,17 +138,74 @@ internal static class GpuTelemetry
         finally { Marshal.FreeHGlobal(buf); }
     }
 
-    /// <summary>The adapter with the most memory of its own, i.e. the discrete one on a laptop.</summary>
-    private static unsafe bool TryFindAdapter(out long luid, out string name)
+    /// <summary>The card the clock tile describes: the same one the load and VRAM readings use.</summary>
+    private static bool TryFindAdapter(out long luid, out string name)
     {
-        luid = 0; name = "";
+        var main = GetRoles().Main;
+        luid = main?.Luid ?? 0;
+        name = main?.Name ?? "";
+        return luid != 0;
+    }
+
+    // ---- which card is which (shared with Perf) ----
+
+    /// <summary>A hardware graphics adapter as Windows lists it.</summary>
+    public sealed record Adapter(long Luid, string Name, ulong DedicatedBytes, bool Integrated);
+
+    /// <summary>
+    /// <see cref="Main"/> is the card the app calls "GPU": the discrete one on a two-card laptop,
+    /// the only one otherwise. <see cref="Integrated"/> is set only on a two-card laptop.
+    /// <see cref="KnownLuids"/> holds every adapter Windows listed, software ones included, so a
+    /// counter instance with an identifier outside it means the set of adapters has changed
+    /// (driver update, an adapter disabled and enabled again) and the roles must be read again.
+    /// </summary>
+    public sealed record AdapterRoles(Adapter? Main, Adapter? Integrated, IReadOnlyCollection<long> KnownLuids);
+
+    private static readonly object _rolesLock = new();
+    private static AdapterRoles? _roles;
+
+    /// <summary>Adapter roles, read once and cached. Never throws; an empty result means "unknown".</summary>
+    public static AdapterRoles GetRoles()
+    {
+        lock (_rolesLock)
+        {
+            if (_roles != null) return _roles;
+            try { _roles = Classify(); }
+            catch { _roles = new AdapterRoles(null, null, Array.Empty<long>()); }
+            return _roles;
+        }
+    }
+
+    /// <summary>Drop the cached roles; the next <see cref="GetRoles"/> enumerates the adapters again.</summary>
+    public static void ForgetRoles() { lock (_rolesLock) _roles = null; }
+
+    /// <summary>
+    /// Integrated or discrete is the driver's own statement, not a guess from memory sizes. Two
+    /// sources say it: DXCore's IsIntegrated property (Windows 10 2004+) and the hybrid flags in
+    /// the kernel adapter type, which drivers set on two-card laptops. IsIntegrated = false is an
+    /// answer ("not integrated"), not a missing one; only an unsupported property or a failed
+    /// query leaves the question open. Measured on a GE78HX: both sources mark the Intel UHD
+    /// integrated and the RTX discrete, and the Basic Render Driver (Windows' software renderer,
+    /// also present in the counters) is a software adapter.
+    /// The main card is the first non-integrated one by: the driver's hybrid-discrete flag, then
+    /// Windows' own high-performance order (IDXGIFactory6, documented as external, then discrete,
+    /// then integrated), and memory size only last - an integrated chip can be given more
+    /// "dedicated" memory than the discrete card has (AMD's Variable Graphics Memory reaches 8, 16
+    /// and 32 GB on a Radeon 890M).
+    /// </summary>
+    private static unsafe AdapterRoles Classify()
+    {
+        var known = new List<long>();
+        var hw = new List<(Adapter A, bool HybridDiscrete)>();
         var iid = new Guid("770aae78-f26f-4dba-a829-253c83d1b387");   // IDXGIFactory1
-        if (CreateDXGIFactory1(ref iid, out IntPtr factory) < 0 || factory == 0) return false;
+        if (CreateDXGIFactory1(ref iid, out IntPtr factory) < 0 || factory == 0)
+            return new AdapterRoles(null, null, known);
+        IntPtr dxcore = DxCoreFactory();
+        var perfRank = HighPerformanceRank();
         try
         {
             IntPtr fvt = *(IntPtr*)factory;
             var next = Marshal.GetDelegateForFunctionPointer<EnumAdapters1Fn>(((IntPtr*)fvt)[12]);
-            ulong best = 0;
             for (uint i = 0; ; i++)
             {
                 if (next(factory, i, out IntPtr ad) < 0 || ad == 0) break;
@@ -157,26 +214,128 @@ internal static class GpuTelemetry
                     IntPtr avt = *(IntPtr*)ad;
                     var desc = Marshal.GetDelegateForFunctionPointer<GetDesc1Fn>(((IntPtr*)avt)[10]);
                     var d = new AdapterDesc1();
-                    if (desc(ad, ref d) >= 0 && (d.Flags & 2) == 0 && (ulong)d.DedicatedVideoMemory > best)
-                    {
-                        best = (ulong)d.DedicatedVideoMemory;
-                        luid = ((long)d.LuidHigh << 32) | d.LuidLow;
-                        name = (d.Description ?? "").TrimEnd('\0');
-                    }
+                    if (desc(ad, ref d) < 0) continue;
+                    long luid = ((long)d.LuidHigh << 32) | d.LuidLow;
+                    known.Add(luid);
+                    if ((d.Flags & 2) != 0) continue;   // DXGI_ADAPTER_FLAG_SOFTWARE
+                    uint type = KernelAdapterType(luid);
+                    if ((type & 4) != 0) continue;      // SoftwareDevice
+                    bool integrated = (type & 0x20) != 0 || DxCoreIsIntegrated(dxcore, luid);
+                    hw.Add((new Adapter(luid, (d.Description ?? "").TrimEnd('\0'), (ulong)d.DedicatedVideoMemory, integrated),
+                            (type & 0x10) != 0));
                 }
                 finally { Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)ad))[2])(ad); }
             }
-            Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)fvt)[2])(factory);
         }
-        catch { return false; }
-        return luid != 0;
+        finally
+        {
+            Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)factory))[2])(factory);
+            if (dxcore != 0) Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)dxcore))[2])(dxcore);
+        }
+
+        // an integrated-only laptop has no candidate: its one card is "the GPU"
+        var candidates = hw.Any(h => !h.A.Integrated) ? hw.Where(h => !h.A.Integrated) : hw;
+        Adapter? main = candidates
+            .OrderByDescending(h => h.HybridDiscrete)
+            .ThenBy(h => perfRank.TryGetValue(h.A.Luid, out int r) ? r : int.MaxValue)
+            .ThenByDescending(h => h.A.DedicatedBytes)
+            .Select(h => h.A).FirstOrDefault();
+        Adapter? igpu = hw.Select(h => h.A).FirstOrDefault(a => a.Integrated && a != main);
+        return new AdapterRoles(main, igpu, known);
+    }
+
+    /// <summary>
+    /// Position of each adapter in IDXGIFactory6::EnumAdapterByGpuPreference(HIGH_PERFORMANCE)
+    /// (vtable slot 29, counted off dxgi1_6.h); empty before Windows 10 1803 or on any failure.
+    /// </summary>
+    private static unsafe Dictionary<long, int> HighPerformanceRank()
+    {
+        var rank = new Dictionary<long, int>();
+        try
+        {
+            var iid6 = new Guid("c1b6694f-ff09-44a9-b03c-77900a0a1d17");   // IDXGIFactory6
+            if (CreateDXGIFactory1(ref iid6, out IntPtr f6) < 0 || f6 == 0) return rank;
+            try
+            {
+                var byPref = Marshal.GetDelegateForFunctionPointer<EnumByPreferenceFn>(((IntPtr*)(*(IntPtr*)f6))[29]);
+                var iidA = new Guid("29038f61-3839-4626-91fd-086879011a05");   // IDXGIAdapter1
+                for (uint i = 0; i < 16; i++)
+                {
+                    if (byPref(f6, i, 2, ref iidA, out IntPtr ad) < 0 || ad == 0) break;   // 2 = HIGH_PERFORMANCE
+                    try
+                    {
+                        var d = new AdapterDesc1();
+                        if (Marshal.GetDelegateForFunctionPointer<GetDesc1Fn>(((IntPtr*)(*(IntPtr*)ad))[10])(ad, ref d) >= 0)
+                            rank.TryAdd(((long)d.LuidHigh << 32) | d.LuidLow, (int)i);
+                    }
+                    finally { Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)ad))[2])(ad); }
+                }
+            }
+            finally { Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)f6))[2])(f6); }
+        }
+        catch { rank.Clear(); }
+        return rank;
+    }
+
+    /// <summary>D3DKMT_ADAPTERTYPE bits (KMTQAITYPE_ADAPTERTYPE = 15); 0 when unreadable.</summary>
+    private static uint KernelAdapterType(long luid)
+    {
+        var open = new OpenAdapterFromLuid { Luid = luid };
+        if (D3DKMTOpenAdapterFromLuid(ref open) != 0 || open.Adapter == 0) return 0;
+        IntPtr buf = Marshal.AllocHGlobal(4);
+        try
+        {
+            Marshal.WriteInt32(buf, 0);
+            var q = new QueryAdapterInfo { Adapter = open.Adapter, Type = 15, Data = buf, Size = 4 };
+            return D3DKMTQueryAdapterInfo(ref q) == 0 ? (uint)Marshal.ReadInt32(buf) : 0;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buf);
+            var c = new CloseAdapter { Adapter = open.Adapter };
+            try { D3DKMTCloseAdapter(ref c); } catch { }
+        }
+    }
+
+    // DXCore vtable slots, counted off dxcore_interface.h (IUnknown takes 0-2):
+    //   IDXCoreAdapterFactory  4 GetAdapterByLuid
+    //   IDXCoreAdapter         5 IsPropertySupported, 6 GetProperty   (IsIntegrated = property 12)
+    private static IntPtr DxCoreFactory()
+    {
+        try
+        {
+            var iid = new Guid("78ee5945-c36e-4b13-a669-005dd11c0f06");   // IDXCoreAdapterFactory
+            return DXCoreCreateAdapterFactory(ref iid, out IntPtr f) >= 0 ? f : 0;
+        }
+        catch { return 0; }   // dxcore.dll is absent before Windows 10 2004
+    }
+
+    private static unsafe bool DxCoreIsIntegrated(IntPtr factory, long luid)
+    {
+        if (factory == 0) return false;
+        var iid = new Guid("f0db4c7f-fe5a-42a2-bd62-f2a6cf6fc83e");   // IDXCoreAdapter
+        var byLuid = Marshal.GetDelegateForFunctionPointer<GetAdapterByLuidFn>(((IntPtr*)(*(IntPtr*)factory))[4]);
+        if (byLuid(factory, ref luid, ref iid, out IntPtr ad) < 0 || ad == 0) return false;
+        try
+        {
+            IntPtr avt = *(IntPtr*)ad;
+            const uint IsIntegrated = 12;
+            if (!Marshal.GetDelegateForFunctionPointer<IsPropertySupportedFn>(((IntPtr*)avt)[5])(ad, IsIntegrated)) return false;
+            return Marshal.GetDelegateForFunctionPointer<GetPropertyFn>(((IntPtr*)avt)[6])(ad, IsIntegrated, 1, out byte v) >= 0 && v != 0;
+        }
+        finally { Marshal.GetDelegateForFunctionPointer<ReleaseFn>(((IntPtr*)(*(IntPtr*)ad))[2])(ad); }
     }
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int EnumAdapters1Fn(IntPtr self, uint i, out IntPtr ad);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetDesc1Fn(IntPtr self, ref AdapterDesc1 d);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate uint ReleaseFn(IntPtr self);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetAdapterByLuidFn(IntPtr self, ref long luid, ref Guid iid, out IntPtr ad);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int EnumByPreferenceFn(IntPtr self, uint i, int preference, ref Guid iid, out IntPtr ad);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] [return: MarshalAs(UnmanagedType.U1)] private delegate bool IsPropertySupportedFn(IntPtr self, uint property);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int GetPropertyFn(IntPtr self, uint property, nuint size, out byte value);
 
     [DllImport("dxgi.dll")] private static extern int CreateDXGIFactory1(ref Guid iid, out IntPtr factory);
+    [DllImport("dxcore.dll")] private static extern int DXCoreCreateAdapterFactory(ref Guid iid, out IntPtr factory);
     [DllImport("gdi32.dll")] private static extern int D3DKMTOpenAdapterFromLuid(ref OpenAdapterFromLuid p);
     [DllImport("gdi32.dll")] private static extern int D3DKMTQueryAdapterInfo(ref QueryAdapterInfo p);
     [DllImport("gdi32.dll")] private static extern int D3DKMTCloseAdapter(ref CloseAdapter p);

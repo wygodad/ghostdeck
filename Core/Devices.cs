@@ -472,8 +472,8 @@ public static class Devices
         // StdRecipes 1:1. Fan curve VERIFIED (issue #39): the wizard found the test curve at
         // exactly 0x72 / 0x8A. RPM: wide-tach 16-bit pairs 0xC8:0xC9 / 0xCA:0xCB (issue #76
         // dumps compute to ~1750/1530 RPM; a single-byte 0xC9 read was implausible, which is
-        // how the format was found). First carrier of the wide-tach format; owner asked to
-        // cross-check against HWiNFO64 once the readout ships.
+        // how the format was found). First carrier of the wide-tach format; the 1.37.0 readout
+        // matches HWiNFO64 to the rpm on both fans under load (issue #76: 5901 / 5690 RPM).
         new() { Name = "MSI Pulse/Katana 17 B13V/GK", FirmwarePrefixes = new[] { "17L5EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),

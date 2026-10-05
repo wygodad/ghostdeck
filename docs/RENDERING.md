@@ -441,7 +441,7 @@ Consequences for new UI:
   settings import). The profile order re-fills four colour rows and the profile lists in place
   (`SettingsPage.SyncProfileOrder`); a card whose rows come and go (schedule rules, the Custom
   charge slider, travel mode, the display modes) is rebuilt alone (`SettingsPage.RebuildCard`,
-  TECHNICAL.md §73).
+  TECHNICAL.md §74).
 
 Measured on the live app after v1.37 (same machine, medians of three runs, action plus the
 repaint that follows):

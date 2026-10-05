@@ -4,8 +4,8 @@ using Microsoft.Win32;
 namespace GhostDeck;
 
 /// <summary>
-/// Extra hardware metrics that don't come from the MSI EC: GPU utilisation %, VRAM used, and an
-/// approximate CPU clock. All read via Windows PDH performance counters using the *English* counter
+/// Extra hardware metrics that don't come from the MSI EC: GPU utilisation %, VRAM used, the
+/// integrated GPU's load and shared memory on a two-card laptop, and an approximate CPU clock. All read via Windows PDH performance counters using the *English* counter
 /// API (PdhAddEnglishCounter), so the counter paths work regardless of the OS display language
 /// (Polish etc.). This is the deliberate "no kernel driver" path (see TECHNICAL §21): PDH is the same
 /// source Task Manager uses — no WinRing0/MSR, no anti-cheat risk. Everything is guarded: on any
@@ -34,12 +34,19 @@ internal static class Perf
 
     private static readonly object _lock = new();
     private static bool _init, _ok;
-    private static IntPtr _query, _cpuPerf, _gpu3d, _vram;
+    private static IntPtr _query, _cpuPerf, _gpu3d, _vram, _shared;
     private static int _baseMhz;
     private static DateTime _lastTick = DateTime.MinValue;
 
     // last sampled values (-1 = unavailable)
-    private static int _gpuUsage = -1, _vramMb = -1, _cpuClock = -1;
+    private static int _gpuUsage = -1, _vramMb = -1, _cpuClock = -1, _igpuUsage = -1, _igpuSharedMb = -1;
+
+    // Counter instance names carry the adapter as "luid_0x<high>_0x<low>" (the same identifier
+    // DXGI reports), so each card's readings are picked out by that prefix. Null keys = the
+    // roles are unknown, and the readings fall back to adding every adapter up.
+    private static string? _mainKey, _igpuKey;
+    private static HashSet<string> _knownKeys = new();
+    private static DateTime _rolesAt = DateTime.MinValue;
 
     private static void Init()
     {
@@ -53,6 +60,8 @@ internal static class Perf
                 PdhAddEnglishCounter(_query, @"\Processor(_Total)\% Processor Performance", IntPtr.Zero, out _cpuPerf);
             PdhAddEnglishCounter(_query, @"\GPU Engine(*engtype_3D)\Utilization Percentage", IntPtr.Zero, out _gpu3d);
             PdhAddEnglishCounter(_query, @"\GPU Adapter Memory(*)\Dedicated Usage", IntPtr.Zero, out _vram);
+            PdhAddEnglishCounter(_query, @"\GPU Adapter Memory(*)\Shared Usage", IntPtr.Zero, out _shared);
+            LoadRoles();
             PdhCollectQueryData(_query);   // prime (rate counters need two samples)
             _ok = true;
         }
@@ -75,49 +84,135 @@ internal static class Perf
                 if (_cpuPerf != IntPtr.Zero && PdhGetFormattedCounterValue(_cpuPerf, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, out _, out var cv) == 0 && cv.CStatus == 0)
                     _cpuClock = _baseMhz > 0 ? (int)Math.Round(_baseMhz * cv.doubleValue / 100.0) : -1;
 
-                double gpu = ArraySum(_gpu3d);
-                _gpuUsage = gpu >= 0 ? (int)Math.Clamp(Math.Round(gpu), 0, 100) : -1;
+                bool unknownAdapter = false;
+                var load = EngineLoadByAdapter(_gpu3d, ref unknownAdapter);
+                var dedicated = SumByAdapter(_vram, ref unknownAdapter);
+                var shared = SumByAdapter(_shared, ref unknownAdapter);
 
-                double vram = ArraySum(_vram);
-                _vramMb = vram >= 0 ? (int)Math.Round(vram / (1024.0 * 1024.0)) : -1;
+                _gpuUsage = load == null ? -1 : Pct(_mainKey == null ? load.Values.Sum() : load.GetValueOrDefault(_mainKey));
+                _igpuUsage = load == null || _igpuKey == null ? -1 : Pct(load.GetValueOrDefault(_igpuKey));
+                _vramMb = dedicated == null ? -1 : Mb(_mainKey == null ? dedicated.Values.Sum() : dedicated.GetValueOrDefault(_mainKey));
+                _igpuSharedMb = shared == null || _igpuKey == null ? -1 : Mb(shared.GetValueOrDefault(_igpuKey));
+
+                // An identifier we have not seen means the adapters changed under us (driver
+                // update, a card disabled and enabled); read the roles again, at most every 30 s.
+                if (unknownAdapter && (DateTime.UtcNow - _rolesAt).TotalSeconds > 30)
+                {
+                    GpuTelemetry.ForgetRoles();
+                    LoadRoles();
+                }
             }
             catch { }
         }
     }
 
-    // Sum a wildcard counter's instances (e.g. all GPU 3D engines / all adapters).
-    private static double ArraySum(IntPtr counter)
+    private static int Pct(double v) => (int)Math.Clamp(Math.Round(v), 0, 100);
+    private static int Mb(double bytes) => (int)Math.Round(bytes / (1024.0 * 1024.0));
+
+    private static string LuidKey(long luid) => $"luid_0x{(uint)(luid >> 32):X8}_0x{(uint)luid:X8}";
+
+    private static void LoadRoles()
     {
-        if (counter == IntPtr.Zero) return -1;
+        _rolesAt = DateTime.UtcNow;
+        var r = GpuTelemetry.GetRoles();
+        _mainKey = r.Main is { } m ? LuidKey(m.Luid) : null;
+        _igpuKey = r.Integrated is { } i ? LuidKey(i.Luid) : null;
+        _knownKeys = r.KnownLuids.Select(LuidKey).ToHashSet();
+    }
+
+    /// <summary>
+    /// Busy % per adapter, counted the way Task Manager counts it: the processes on one engine
+    /// add up, and the adapter shows its busiest engine. Adding all engines together would count
+    /// a card with two 3D engines twice. Null = the counter could not be read.
+    /// </summary>
+    private static Dictionary<string, double>? EngineLoadByAdapter(IntPtr counter, ref bool unknownAdapter)
+    {
+        var items = ReadArray(counter);
+        if (items == null) return null;
+        var perEngine = new Dictionary<string, double>();
+        foreach (var (name, v) in items)
+        {
+            // pid_1234_luid_0x00000000_0x00017FEE_phys_0_eng_0_engtype_3D
+            int a = name.IndexOf("luid_", StringComparison.Ordinal);
+            int e = name.IndexOf("_engtype", StringComparison.Ordinal);
+            if (a < 0 || e < a + 26) continue;
+            string key = name.Substring(a, e - a);   // adapter + physical index + engine
+            perEngine[key] = perEngine.GetValueOrDefault(key) + v;
+        }
+        var perAdapter = new Dictionary<string, double>();
+        foreach (var (key, v) in perEngine)
+        {
+            string adapter = key[..26];
+            if (_knownKeys.Count > 0 && !_knownKeys.Contains(adapter)) unknownAdapter = true;
+            perAdapter[adapter] = Math.Max(perAdapter.GetValueOrDefault(adapter), v);
+        }
+        return perAdapter;
+    }
+
+    /// <summary>A per-adapter memory counter (one instance per adapter) keyed by adapter. Null = unreadable.</summary>
+    private static Dictionary<string, double>? SumByAdapter(IntPtr counter, ref bool unknownAdapter)
+    {
+        var items = ReadArray(counter);
+        if (items == null) return null;
+        var perAdapter = new Dictionary<string, double>();
+        foreach (var (name, v) in items)
+        {
+            int a = name.IndexOf("luid_", StringComparison.Ordinal);
+            if (a < 0 || name.Length < a + 26) continue;
+            string adapter = name.Substring(a, 26);
+            if (_knownKeys.Count > 0 && !_knownKeys.Contains(adapter)) unknownAdapter = true;
+            perAdapter[adapter] = perAdapter.GetValueOrDefault(adapter) + v;
+        }
+        return perAdapter;
+    }
+
+    // A wildcard counter's instances as (instance name, value); null when the counter is unreadable.
+    private static List<(string Name, double Value)>? ReadArray(IntPtr counter)
+    {
+        if (counter == IntPtr.Zero) return null;
         uint size = 0, count = 0;
-        if (PdhGetFormattedCounterArray(counter, PDH_FMT_DOUBLE, ref size, out count, IntPtr.Zero) != PDH_MORE_DATA || size == 0) return -1;
+        uint first = PdhGetFormattedCounterArray(counter, PDH_FMT_DOUBLE, ref size, out count, IntPtr.Zero);
+        if (first == 0 && count == 0) return new();           // no instances right now: nothing is busy
+        if (first != PDH_MORE_DATA || size == 0) return null;
         IntPtr buf = Marshal.AllocHGlobal((int)size);
         try
         {
-            if (PdhGetFormattedCounterArray(counter, PDH_FMT_DOUBLE, ref size, out count, buf) != 0) return -1;
-            double sum = 0; int stride = Marshal.SizeOf<FmtItem>();
+            if (PdhGetFormattedCounterArray(counter, PDH_FMT_DOUBLE, ref size, out count, buf) != 0) return null;
+            var list = new List<(string, double)>((int)count);
+            int stride = Marshal.SizeOf<FmtItem>();
             for (int i = 0; i < count; i++)
             {
                 var it = Marshal.PtrToStructure<FmtItem>(buf + i * stride);
-                if (it.value.CStatus == 0) sum += it.value.doubleValue;
+                if (it.value.CStatus == 0) list.Add((Marshal.PtrToStringUni(it.szName) ?? "", it.value.doubleValue));
             }
-            return sum;
+            return list;
         }
         finally { Marshal.FreeHGlobal(buf); }
     }
 
+    /// <summary>Load % of the card the app calls "GPU" (the discrete one on a two-card laptop).</summary>
     public static int GpuUsage() { Tick(); return _gpuUsage; }
+    /// <summary>Memory in use on that card, in MB.</summary>
     public static int VramUsedMb() { Tick(); return _vramMb; }
     public static int CpuClockMhz() { Tick(); return _cpuClock; }
+    /// <summary>Load % of the integrated card; -1 when the laptop has none (or it cannot be read).</summary>
+    public static int IgpuUsage() { Tick(); return _igpuUsage; }
+    /// <summary>System memory the integrated card is using, in MB (it has no memory of its own); -1 = none.</summary>
+    public static int IgpuSharedMb() { Tick(); return _igpuSharedMb; }
+    /// <summary>True on a two-card laptop whose integrated card Windows currently lists.</summary>
+    public static bool HasIgpu => GpuTelemetry.GetRoles().Integrated != null;
 
-    // Total dedicated VRAM in MB (-1 = unknown). Read once from the display-adapter registry keys
-    // (HardwareInformation.qwMemorySize, in bytes) and cached — the total never changes at runtime. We
-    // take the largest adapter, i.e. the discrete GPU on a laptop with an iGPU + dGPU. This is the same
-    // "no kernel driver" spirit as the rest of Perf; on any failure we return -1 and the UI hides the bar.
+    // Total dedicated VRAM in MB (-1 = unknown), read once and cached - the total never changes at
+    // runtime. It is the memory of the same card the load and VRAM-used readings describe, as DXGI
+    // reports it; the display-adapter registry keys (HardwareInformation.qwMemorySize, largest
+    // adapter) are the fallback when the roles are unknown. Same "no kernel driver" spirit as the
+    // rest of Perf; on any failure we return -1 and the UI hides the bar.
     private static int _vramTotalMb = -2;   // -2 = not yet probed, -1 = unavailable
     public static int VramTotalMb()
     {
         if (_vramTotalMb != -2) return _vramTotalMb;
+        if (GpuTelemetry.GetRoles().Main is { DedicatedBytes: > 0 } main)
+            return _vramTotalMb = (int)(main.DedicatedBytes / (1024 * 1024));
         long maxBytes = 0;
         try
         {

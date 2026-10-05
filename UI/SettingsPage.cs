@@ -1259,6 +1259,28 @@ public sealed class SettingsPage : ThemedPage
                 v => { D.Settings.TempTrayCpu = v; D.SaveSettings(); D.SettingsChanged(); }));
             tt.AddRow(Lang.T("st_gpu_temp"), Toggle(D.Settings.TempTrayGpu,
                 v => { D.Settings.TempTrayGpu = v; D.SaveSettings(); D.SettingsChanged(); }));
+            tt.AddRow(Lang.T("st_ssd_temp"), Toggle(D.Settings.TempTraySsd,
+                v => { D.Settings.TempTraySsd = v; D.SaveSettings(); D.SettingsChanged(); }));
+            // amber, like the card's other notes: on a two-drive laptop the icon is the warmer one
+            tt.AddRow(null, new Label
+            {
+                Text = Lang.T("temptray_ssd_note"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = new Font("Segoe UI", 9f), Tag = "warn",
+            });
+            // bar first (the default), then the two that cover a sliver of a digit at 16 px, then none
+            var markStyles = new[] { TrayMarker.Underline, TrayMarker.Dot, TrayMarker.Corner, TrayMarker.None };
+            var mark = Combo(new[] { Lang.T("tm_bar"), Lang.T("tm_dot"), Lang.T("tm_corner"), Lang.T("tm_none") },
+                Math.Max(0, Array.IndexOf(markStyles, (TrayMarker)D.Settings.TempTrayMarkStyle)));
+            mark.SelectedIndexChanged += (_, _) =>
+            {
+                D.Settings.TempTrayMarkStyle = (int)markStyles[Math.Max(0, mark.SelectedIndex)];
+                D.SaveSettings(); D.SettingsChanged();
+            };
+            tt.AddRow(Lang.T("temptray_mark"), mark);
+            tt.AddRow(null, ColorRow(
+                ("CPU", () => D.Settings.TempTrayMarkCpu, v => D.Settings.TempTrayMarkCpu = v),
+                ("GPU", () => D.Settings.TempTrayMarkGpu, v => D.Settings.TempTrayMarkGpu = v),
+                ("SSD", () => D.Settings.TempTrayMarkSsd, v => D.Settings.TempTrayMarkSsd = v)));
             var warnVals = new[] { 50, 55, 60, 65, 70, 75, 80 };
             var warn = Combo(warnVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(warnVals, D.Settings.TempTrayWarn)));
             warn.SelectedIndexChanged += (_, _) =>
@@ -1290,6 +1312,10 @@ public sealed class SettingsPage : ThemedPage
                 D.Settings.TempTrayColorHot = def.TempTrayColorHot;
                 D.Settings.TempTrayWarn = def.TempTrayWarn;
                 D.Settings.TempTrayHot = def.TempTrayHot;
+                D.Settings.TempTrayMarkStyle = def.TempTrayMarkStyle;
+                D.Settings.TempTrayMarkCpu = def.TempTrayMarkCpu;
+                D.Settings.TempTrayMarkGpu = def.TempTrayMarkGpu;
+                D.Settings.TempTrayMarkSsd = def.TempTrayMarkSsd;
                 D.SaveSettings(); D.SettingsChanged();
                 ttCard = RebuildCard(ttCard, BuildTempTray);   // swatches + lists follow
             };

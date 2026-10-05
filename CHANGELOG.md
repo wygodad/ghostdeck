@@ -4,7 +4,57 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Integrated GPU on Status and in the overlay** ([discussion #101](../../discussions/101),
+  thanks @M-Essa11) - on a laptop with two graphics cards, Status shows the integrated card's
+  load and the system memory it uses ("iGPU: 7 % · 1.9 GB") next to the GPU load, and the
+  gaming overlay can show "iGPU%" (off by default; offered only when the laptop has an
+  integrated card). Which card is which comes from the driver's own report to Windows, not
+  from memory sizes. Laptops with one card, or with the MUX switched to the discrete card,
+  look exactly as before. No temperature or power draw for the integrated chip: it sits in the
+  processor and shares its temperature.
+- **CPU turbo boost and the microphone in scenes** - a scene can switch CPU turbo boost in the
+  active Windows plan (both plugged in and on battery) and mute or unmute the microphone, so
+  "Work = Silent + turbo off" is one click. Turbo goes through the same path as the Windows
+  power card, so its saved values and "comes back: ..." keep working; a scene that turns turbo
+  on leaves an already working mode alone.
+- **SSD temperature in the tray** ([discussion #150](../../discussions/150), thanks
+  @r7v9r4hmm8-png) - a third temperature icon for the hottest drive, next to the CPU and GPU
+  ones, with the same warning / hot thresholds and colours (Settings → System → Temperature in
+  the tray).
+- **Tray temperature icons say what they measure** - each icon carries a small mark in a colour
+  of its own, so the icons can be told apart without hovering over them. The mark is a bar under
+  the digits by default; a dot, a corner or no mark can be picked instead, and the colours (by
+  default the Silent, Extreme and Super Battery profile colours: blue for CPU, pink for GPU,
+  green for SSD) are editable (Settings → System → Temperature in the tray).
+- **CPU model in the overlay** ([discussion #150](../../discussions/150), thanks
+  @r7v9r4hmm8-png) - a new overlay item shows the processor as people name it ("i9-13980HX",
+  "Ultra 9 185H", "Ryzen AI 9 HX 370").
+
+### Fixed
+- **"GPU load" and "VRAM" describe the discrete card only** - the Windows counters behind them
+  were added up across every graphics adapter, including the integrated chip and Windows'
+  software renderer, so on a two-card laptop the integrated chip's load showed as "GPU load"
+  while the discrete card slept. Status, the overlay and the power test now read the discrete
+  card alone (the same card the GPU-clock tile names), and the VRAM total is that card's own.
+- **Power test: the graphics load always runs on the discrete card** - the test picked the card
+  with the most memory of its own, and an integrated chip can be given more of it than the
+  discrete card has (AMD's Variable Graphics Memory reaches 8, 16 or 32 GB), so on such a laptop
+  the load could land on the integrated chip. It now uses the same driver-reported choice as
+  Status.
+- **Changing the language no longer leaves the old Settings controls behind** - every
+  rebuild of the Settings page (language change, settings import) kept the replaced cards
+  alive in the background, about 23 window objects each time. They are now released.
+
 ### Changed
+- **Clearer overlay labels** ([discussion #150](../../discussions/150)) - the gaming overlay's
+  labels say what they show: "CPU%" next to "GPU%" (was "Load"), "Frametime" (was "Frame"),
+  "CPU clock" (was "CPU clk"), "Battery" (was "Bat"), "Time left" (was "Left") and "Charge
+  limit" (was "Limit"). They stay in English in every language, as before.
+- **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
+  the state is information (turbo is off in the active Windows plan and GhostDeck has nothing
+  of its own to bring back), so it now uses the same amber strip with the "!" chip as the
+  card's other notes. The text is unchanged.
 - **Settings no longer rebuilds the whole page after a single change** - adding, editing,
   moving or removing a schedule rule, switching the charge limit to or from Custom, starting
   or stopping travel mode, entering a custom Fan Boost time and the two "Defaults" buttons
@@ -18,10 +68,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   about 0.4 s for the disk list whenever it had not been opened for ten seconds. The autostart
   answer is now remembered, and the disk list and the Windows counters are read in the
   background. Opening Fan curve: about 145 -> 25 ms; Status: no more 0.4-0.9 s stalls.
-### Fixed
-- **Changing the language no longer leaves the old Settings controls behind** - every
-  rebuild of the Settings page (language change, settings import) kept the replaced cards
-  alive in the background, about 23 window objects each time. They are now released.
+
 ## [1.37.0] - 2026-10-04
 ### Fixed
 - **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured

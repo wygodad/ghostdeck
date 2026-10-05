@@ -36,7 +36,7 @@ public sealed class WinPowerBody : Control
     private uint _ac, _dc;
     private int[]? _snap;
     private string _statusText = "";
-    private int _statusKind;               // 0 plain, 1 amber (our doing / mixed), 2 red (changed outside)
+    private int _statusKind;               // 0 plain, 1 amber (off, or the two sources differ)
     private bool _auto;
     private string _autoLine = "", _overrideLine = "";
     private readonly List<string> _restoreLines = new();
@@ -62,7 +62,6 @@ public sealed class WinPowerBody : Control
     private static readonly Font FSub = new("Segoe UI", 8f, FontStyle.Bold);
     private static readonly Font FTitle = new("Segoe UI Semibold", 10.5f);
     private static readonly Font FGlyph = new("Segoe MDL2 Assets", 11f);
-    private static readonly Color SoftRed = Color.FromArgb(0xE0, 0x6C, 0x6C);
 
     private const TextFormatFlags FmtLeft = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
     private const TextFormatFlags FmtWrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
@@ -208,7 +207,7 @@ public sealed class WinPowerBody : Control
             {
                 // two honest OFF texts: "comes back" ONLY when a snapshot really exists
                 if (_snap != null) { _statusText = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)_snap[0]), PowerPlan.BoostName((uint)_snap[1])); _statusKind = 1; }
-                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—"); _statusKind = 2; }
+                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—"); _statusKind = 1; }
             }
             else if (_ac != 0 && _dc != 0) { _statusText = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn); _statusKind = 0; }
             else { _statusText = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn); _statusKind = 1; }   // a real MIXED state, named
@@ -295,7 +294,7 @@ public sealed class WinPowerBody : Control
             _turbo.Location = new Point(_help.Left - S(8) - _turbo.Width, y + (rowH - _turbo.Height) / 2);
         }
         y += rowH + S(6);
-        y = Strip(g, y, _statusText, _statusKind == 0 ? null : _statusKind == 1 ? Theme.Amber : SoftRed) + S(18);
+        y = Strip(g, y, _statusText, _statusKind == 0 ? null : Theme.Amber) + S(18);
 
         // technical details: an open table, rows separated by hairlines
         y = Sub(g, y, Lang.T("pw_details"));

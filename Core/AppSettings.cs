@@ -17,6 +17,7 @@ public enum OverlayMetric
     GpuUsage = 2048, Vram = 4096, CpuClock = 8192,
     Fps = 16384, FrameTime = 32768,
     SsdTemp = 65536, BatteryTime = 131072,
+    IgpuUsage = 262144, CpuName = 524288,
 }
 
 public sealed class HotkeyDef
@@ -279,11 +280,12 @@ public sealed class AppSettings
     // wherever it was left. Default false = the behaviour so far.
     public bool SettingsAlwaysStart { get; set; }
 
-    // (discussion #9) Separate CPU/GPU temperature icons in the tray - two of them, because a
-    // tray icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
-    // Warn, above = Hot. Off by default.
+    // (discussion #9) Separate temperature icons in the tray - one per reading, because a tray
+    // icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
+    // Warn, above = Hot. Off by default. SSD (discussion #150) = the hottest disk.
     public bool TempTrayCpu { get; set; }
     public bool TempTrayGpu { get; set; }
+    public bool TempTraySsd { get; set; }
     public int TempTrayWarn { get; set; } = 70;
     public int TempTrayHot { get; set; } = 85;
     // The digits carry a dark outline (TrayIconFactory.TextIcon), which is what lets this
@@ -291,6 +293,14 @@ public sealed class AppSettings
     public string TempTrayColorOk { get; set; } = "#3DE3FF";   // brand cyan
     public string TempTrayColorWarn { get; set; } = "#F5B301";   // amber
     public string TempTrayColorHot { get; set; } = "#FF4D4F";   // red
+    // A mark in the source's own colour says which reading an icon carries, so the icons can be
+    // told apart without hovering. Style = TrayMarker (0 none, 1 bar under the digits - default,
+    // 2 dot, 3 corner); the colours default to the profile colours of Silent, Extreme and Super
+    // Battery, none of which is a threshold colour.
+    public int TempTrayMarkStyle { get; set; } = 1;
+    public string TempTrayMarkCpu { get; set; } = "#3C7DFF";    // Silent blue
+    public string TempTrayMarkGpu { get; set; } = "#FF2F7D";    // Extreme pink
+    public string TempTrayMarkSsd { get; set; } = "#61E7A4";    // Super Battery green
 
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
@@ -457,6 +467,7 @@ public sealed class AppSettings
         // to its default profile; an action pointing at a deleted scene falls back too.
         TempTrayWarn = Math.Clamp(TempTrayWarn, 40, 110);
         TempTrayHot = Math.Clamp(TempTrayHot, TempTrayWarn + 1, 120);
+        if (TempTrayMarkStyle is < 0 or > 3) TempTrayMarkStyle = 1;
         BattLowPct = Math.Clamp(BattLowPct, 5, 95);
         BattHighPct = Math.Clamp(BattHighPct, 5, 95);
         bool ValidAction(string a) =>
@@ -561,10 +572,12 @@ public sealed class AppSettings
         foreach (var s in src.Scenes) Scenes.Add(s.Clone());   // (#21)
         ScenHidden = new List<string>(src.ScenHidden);
         SettingsAlwaysStart = src.SettingsAlwaysStart;
-        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu;
+        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu; TempTraySsd = src.TempTraySsd;
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
         TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
         TempTrayColorHot = src.TempTrayColorHot;
+        TempTrayMarkStyle = src.TempTrayMarkStyle; TempTrayMarkCpu = src.TempTrayMarkCpu;
+        TempTrayMarkGpu = src.TempTrayMarkGpu; TempTrayMarkSsd = src.TempTrayMarkSsd;
         EnsureDefaults();
     }
 
@@ -658,10 +671,12 @@ public sealed class AppSettings
         c.ProfileOrder = new List<string>(ProfileOrder);
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
-        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;
+        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu; c.TempTraySsd = TempTraySsd;
         c.TempTrayWarn = TempTrayWarn; c.TempTrayHot = TempTrayHot;
         c.TempTrayColorOk = TempTrayColorOk; c.TempTrayColorWarn = TempTrayColorWarn;
         c.TempTrayColorHot = TempTrayColorHot;
+        c.TempTrayMarkStyle = TempTrayMarkStyle; c.TempTrayMarkCpu = TempTrayMarkCpu;
+        c.TempTrayMarkGpu = TempTrayMarkGpu; c.TempTrayMarkSsd = TempTrayMarkSsd;
         return c;
     }
 }
