@@ -58,6 +58,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the command out a second time one-shot: two "CLI" entries per profile switch in the history,
   `--status` printed twice, `--scene` ending with "needs the app running" although the scene had
   been applied. Since the CLI's first version (1.21.0).
+- **Card titles keep their "&"** - the heading of the Settings card "Startup & tray" lost the
+  ampersand (the label read it as a keyboard-shortcut mark).
 - **"GPU load" and "VRAM" describe the discrete card only** - the Windows counters behind them
   were added up across every graphics adapter, including the integrated chip and Windows'
   software renderer, so on a two-card laptop the integrated chip's load showed as "GPU load"

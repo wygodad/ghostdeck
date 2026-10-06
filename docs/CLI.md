@@ -155,8 +155,8 @@ the app starts, no administrator needed, and re-pointed when the exe moves. Sett
 whether to open GhostDeck, as for any such link; the Run dialog (Win+R), a shortcut, AutoHotkey
 (`Run ghostdeck://scene/Gaming`) and a Stream Deck *Open* or *Website* action launch it
 directly. With the app running the link runs without any prompt and answers with the usual
-OSD; a refusal (an unknown scene, say) shows as a tray notification, because a link has no
-console to answer into. Without the app running the link behaves like the CLI: one UAC prompt,
+OSD; a refusal (an unknown scene, say) shows as a GhostDeck card with the message, because a
+link has no console to answer into. Without the app running the link behaves like the CLI: one UAC prompt,
 and a scene starts the app.
 
 ## Taskbar jump list

@@ -266,13 +266,17 @@ public sealed class TrayContext : ApplicationContext
     private string ExecuteCli(string raw)
     {
         string resp = ExecuteCliCore(raw);
-        // a ghostdeck:// link has no console to answer into: a refusal becomes a notification
-        if (!resp.StartsWith("0|") && Protocol.IsLink(raw.Split('\t')[0]))
+        // A ghostdeck:// link has no console to answer into: a refusal is shown as a GhostDeck
+        // card (#212 style, not a Windows notification, which Focus Assist can swallow). The
+        // card is a window, so only when this runs on the UI thread - which it does once the
+        // message loop is up (_ui set); the few commands that arrive before it get no card.
+        if (!resp.StartsWith("0|") && Protocol.IsLink(raw.Split('\t')[0]) && _ui != null)
         {
-            _balloonUrl = null;
-            _tray.BalloonTipTitle = Lang.T("link_title");
-            _tray.BalloonTipText = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
-            _tray.ShowBalloonTip(8000);
+            string text = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
+            var dlg = new GhostCardForm("//LINK", Lang.T("link_title"), raw.Split('\t')[0] + "\n\n" + text,
+                Lang.T("gen_ok"), "", () => { });
+            dlg.Show();
+            dlg.Activate();
         }
         return resp;
     }
@@ -1897,10 +1901,11 @@ public sealed class TrayContext : ApplicationContext
     {
         if (_refusedTold || HotkeysRefused.Count == 0 || !_tray.Visible) return;
         _refusedTold = true;
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("hk_refused_title");
-        _tray.BalloonTipText = string.Format(Lang.T("hk_refused_body"), HotkeysRefused.Count);
-        _tray.ShowBalloonTip(8000);
+        // a GhostDeck card (#212), not a Windows notification - those can be silenced by Focus Assist
+        var dlg = new GhostCardForm("//HOTKEYS", Lang.T("hk_refused_title"),
+            string.Format(Lang.T("hk_refused_body"), HotkeysRefused.Count), Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
     }
 
     // Live EC viewer (Ctrl+Shift+E; also a button in the Ctrl+Shift+T test dialog): read-only

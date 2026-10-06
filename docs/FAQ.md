@@ -204,6 +204,8 @@ The fix: unpin the app, right-click the GhostDeck exe → **Properties** → tic
 
 Right-click the GhostDeck taskbar button (or the pinned icon) and the jump list is there: the profiles in your order, every scene, Fan Boost on / off and the panic reset. The button exists while the main window is open; the pinned icon works at any time, also through Win+Alt+<its position on the taskbar>. The tray icon has no jump list - Windows offers that only on the taskbar.
 
+![The jump list on the pinned GhostDeck icon](images/jumplist.png)
+
 Since 1.38 a pinned GhostDeck shows the icon style you chose in Settings (*Application icon*). A pin made with an older version keeps the plain exe icon and may show up next to the running window as a second button until the next sign-in - GhostDeck brings such a pin under its new identity when it starts, and Windows reads pins again when you sign in. Unpinning and pinning again does it at once.
 
 ## Can a Stream Deck, AutoHotkey or a browser bookmark switch my profile?

@@ -3237,8 +3237,9 @@ part that is empty, longer than 100 characters or holds a control character refu
 `--status`, `--help`, `--diag` and the model dumps are not reachable, so a web page cannot make
 the exe write a file. `Cli.Parse` recognises a link as the first argument and swaps in the
 parsed command line, so both the pipe and the one-shot path see an ordinary command - the
-server only looks at the raw line again to turn a refusal (non-zero code) into a tray
-notification, since a link has no console to answer into.
+server only looks at the raw line again to turn a refusal (non-zero code) into a GhostDeck
+card (`GhostCardForm`, acknowledge-only, the #212 convention - not a Windows notification,
+which Focus Assist can swallow), since a link has no console to answer into.
 
 Registration is per user: `HKCU\Software\Classes\ghostdeck` with `URL Protocol`, `DefaultIcon`
 and `shell\open\command` = `"<exe>" "%1"`, written at startup when `AppSettings.ProtocolLinks`
@@ -3270,7 +3271,10 @@ drives the private method against an in-process server: `returned False` before 
 
 The harness mode `taskbar` (no administrator): the link grammar on eleven inputs, the five icon
 files (7 images each, loadable), one fresh `*.customDestinations-ms` in the shell's folder after
-`Rebuild`, the ACL'd event and pipe round trip. What only a live test shows: the UAC prompt
+`Rebuild`, the ACL'd event and pipe round trip. The harness mode `jumplist-shot` takes the
+documentation picture of the list itself: a window of the harness process under the app's ID,
+the list written for it, the taskbar button found through UI Automation, a right-click sent
+to it and the screen above it captured. What only a live test shows: the UAC prompt
 count per launch kind, the pinned icon's style and the jump list on the pinned button, a
 pre-1.38 pin after a sign-in, a link from a browser and from Win+R, the autostart task after a
 sign-in, and the one-shot from an unelevated terminal with its output relayed.
