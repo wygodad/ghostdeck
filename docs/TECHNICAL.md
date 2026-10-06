@@ -3141,6 +3141,8 @@ matches HWiNFO64 on every board checked. The rings were therefore relabelled "CP
 target" as the alternative name) and that the profile can cap the real speed below it. The ring
 scale is now MSI's own 0-150 (a full arc at 150, not at 100), a target of 0 - the first curve
 point on boards whose table starts at 0 - reads "0 %" instead of a dash, and only values above
-150 are treated as a misread. The fan-curve page and the value itself are unchanged.
+150 are treated as a misread. The history chart of the same value follows the same rules: a
+0-150 axis with grid lines at 0 / 50 / 100 / 150, 0 plotted as a value, values above 150
+dropped. The fan-curve page and the value itself are unchanged.
 Two readings outside the table are still unexplained (40 / 126 on a `17L5EMS1` under FurMark,
 #76; 1 on a `15PKIMS1`, #228) - they appeared on screenshots, never in a report.

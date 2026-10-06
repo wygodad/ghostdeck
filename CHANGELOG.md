@@ -68,7 +68,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Silent / Balanced / Extreme). The measured speed is the rpm readout under the rings. The
   value itself is unchanged; a new FAQ entry explains the two numbers. Each ring has a help
   dot with the same explanation, the ring scale runs to 150 % (MSI's own fan scale) instead of
-  filling up at 100 %, and a target of 0 reads "0 %" instead of a dash.
+  filling up at 100 %, and a target of 0 reads "0 %" instead of a dash - the history chart
+  uses the same 0-150 scale and plots 0 as a value.
 - **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
   the state is information (turbo is off in the active Windows plan and GhostDeck has nothing
   of its own to bring back), so it now uses the same amber strip with the "!" chip as the

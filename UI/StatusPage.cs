@@ -620,7 +620,7 @@ public sealed class StatusPage : ThemedPage
     // BLabel == "" means a single-series chart (FPS) — the cursor readout skips the B side.
     private sealed record HistPlot(RectangleF Plot, int MaxVal, string Unit,
         Func<HwSample, int> A, Func<HwSample, int> B, float LegendLeft, int CardTop,
-        string ALabel, string BLabel);
+        string ALabel, string BLabel, bool AllowZero = false);
     private readonly List<HistPlot> _histPlots = new();
     private List<HwSample>? _histData;
     private DateTime _histT0;
@@ -651,8 +651,9 @@ public sealed class StatusPage : ThemedPage
         int top = SecTop + 44;
         top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_temps"), "°C", data,
             s => s.CpuTemp, s => s.GpuTemp, "CPU", "GPU") + 24;
+        // the fan curve target on the same 0-150 scale as the Status rings, 0 included (TECHNICAL §76)
         top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_fans"), "%", data,
-            s => s.CpuFan, s => s.GpuFan, "CPU", "GPU") + 24;
+            s => s.CpuFan, s => s.GpuFan, "CPU", "GPU", maxVal: 150, gridSteps: 3, allowZero: true) + 24;
         if (HwHistory.HasRpm)
         {
             // dynamic RPM ceiling: at least 500 RPM of headroom above the observed peak
@@ -676,8 +677,11 @@ public sealed class StatusPage : ThemedPage
     // One line chart card (two series, 0..maxVal scale) over the last _histMin minutes.
     private int DrawHistoryChart(Graphics g, int top, int avail, string title, string unit,
         List<HwSample> data, Func<HwSample, int> serA, Func<HwSample, int> serB, string aLabel, string bLabel,
-        int maxVal = 100, string? hint = null)
+        int maxVal = 100, string? hint = null, int gridSteps = 4, bool allowZero = false)
     {
+        // A reading counts when it is above 0 (0 = no reading) and not far past the scale. The fan
+        // target chart follows the rings instead: 0 is a real target, above the scale is a misread.
+        bool Valid(int v) => allowZero ? v >= 0 && v <= maxVal : v > 0 && v <= maxVal * 1.3f;
         var card = new RectangleF(Pad, top, avail, HistChartH);
         Ui.FillCard(g, card);
         TextRenderer.DrawText(g, title, GTitle, new Rectangle(Pad + 16, top + 10, avail - 200, GTitle.Height + 4),
@@ -700,13 +704,13 @@ public sealed class StatusPage : ThemedPage
 
         // 50 px reserved under the plot so the time labels never clip against the card edge
         var plot = new RectangleF(Pad + 62, top + 46, avail - 62 - 20, HistChartH - 46 - 50);
-        _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top, aLabel, bLabel));
+        _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top, aLabel, bLabel, allowZero));
         using (var grid = new Pen(Theme.Border))
         using (var axisFont = new Font("Segoe UI", 8.5f))
         {
-            for (int i = 0; i <= 4; i++)
+            for (int i = 0; i <= gridSteps; i++)
             {
-                int v = maxVal * i / 4;
+                int v = maxVal * i / gridSteps;
                 float y = plot.Bottom - v / (float)maxVal * plot.Height;
                 g.DrawLine(grid, plot.Left, y, plot.Right, y);
                 TextRenderer.DrawText(g, v + unit, axisFont, new Rectangle(Pad + 6, (int)y - 9, 52, 18),
@@ -726,7 +730,7 @@ public sealed class StatusPage : ThemedPage
         // The FPS chart passes a hint ("fills in while a game runs") shown both on an empty
         // window and when the window has samples but none carried an FPS reading.
         bool noA = true;
-        foreach (var s in data) { int v = serA(s); if (v > 0 && v <= maxVal * 1.3f) { noA = false; break; } }
+        foreach (var s in data) { if (Valid(serA(s))) { noA = false; break; } }
         if (data.Count < 2 || (hint != null && noA))
         {
             TextRenderer.DrawText(g, hint ?? Lang.T("st_hist_empty"), new Font("Segoe UI", 10.5f),
@@ -744,7 +748,7 @@ public sealed class StatusPage : ThemedPage
             foreach (var s in data)
             {
                 int v = sel(s);
-                if (v <= 0 || v > maxVal * 1.3f) continue;   // unknown reads leave a gap rather than plotting 0
+                if (!Valid(v)) continue;   // unknown reads leave a gap rather than plotting 0
                 float x = plot.Left + (float)((s.Time - t0).TotalSeconds / span) * plot.Width;
                 float y = plot.Bottom - Math.Clamp(v, 0, maxVal) / (float)maxVal * plot.Height;
                 pts.Add(new PointF(x, y));
@@ -1069,7 +1073,8 @@ public sealed class StatusPage : ThemedPage
             int Val(Func<HwSample, int> f, HwSample s)
             {
                 int v = f(s);
-                return v > 0 && v <= hp.MaxVal * 1.3f ? v : -1;
+                bool ok = hp.AllowZero ? v >= 0 && v <= hp.MaxVal : v > 0 && v <= hp.MaxVal * 1.3f;
+                return ok ? v : -1;
             }
             int va = -1, vb = -1;
             if (hasCur)
@@ -1090,7 +1095,7 @@ public sealed class StatusPage : ThemedPage
                 Dot(vb, Theme.Violet);
             }
 
-            string Fmt(int v) => v > 0 ? v + hp.Unit : "--";
+            string Fmt(int v) => v >= 0 ? v + hp.Unit : "--";
             string ta = $"{hp.ALabel} {Fmt(va)} · {now} {Fmt(Val(hp.A, last))}";
             int xRight = (int)hp.LegendLeft - 16;
             if (hp.BLabel.Length > 0)
