@@ -997,17 +997,18 @@ public static class Lang
             "Aggiornamento disponibile"
             };
         m["update_available_text"] = new[] {
-            "Version {0} is available — click to download.", "Dostępna jest wersja {0} — kliknij, aby pobrać.",
-            "Version {0} ist verfügbar – zum Herunterladen klicken.", "La version {0} est disponible — cliquez pour télécharger.",
-            "La versión {0} está disponible — haz clic para descargar.", "新版本 {0} 可用 — 点击下载。",
-            "A versão {0} está disponível — clique para baixar.", "Доступна версия {0} — нажмите, чтобы скачать.",
-            "バージョン {0} が利用可能 — クリックしてダウンロード。",
-            "버전 {0} 사용 가능 — 클릭하여 다운로드.",
-            "新版本 {0} 可用 — 按一下即可下載。",
-            "Sürüm {0} mevcut — indirmek için tıklayın.",
-            "Đã có phiên bản {0} — nhấn để tải về.",
-            "Versi {0} tersedia — klik untuk mengunduh.",
-            "È disponibile la versione {0} — fai clic per scaricare."
+            // the update card (1.38): the Open button lands on the Updates tab, which installs with one click
+            "Version {0} is available. The Updates tab installs it with one click.", "Dostępna jest wersja {0}. Zakładka Aktualizacje instaluje ją jednym kliknięciem.",
+            "Version {0} ist verfügbar. Der Reiter Updates installiert sie mit einem Klick.", "La version {0} est disponible. L'onglet Mises à jour l'installe en un clic.",
+            "La versión {0} está disponible. La pestaña Actualizaciones la instala con un clic.", "新版本 {0} 可用。在“更新”标签页中一键安装。",
+            "A versão {0} está disponível. A aba Atualizações instala com um clique.", "Доступна версия {0}. Вкладка «Обновления» установит её одним щелчком.",
+            "バージョン {0} が利用可能です。「更新」タブからワンクリックでインストールできます。",
+            "버전 {0}을(를) 사용할 수 있습니다. 업데이트 탭에서 한 번의 클릭으로 설치합니다.",
+            "新版本 {0} 可用。在「更新」分頁中一鍵安裝。",
+            "Sürüm {0} mevcut. Güncellemeler sekmesi tek tıkla yükler.",
+            "Đã có phiên bản {0}. Thẻ Cập nhật cài đặt chỉ với một cú nhấp.",
+            "Versi {0} tersedia. Tab Pembaruan memasangnya dengan sekali klik.",
+            "La versione {0} è disponibile. La scheda Aggiornamenti la installa con un clic."
             };
         m["menu_update"] = new[] {
             "⬇ Download new version", "⬇ Pobierz nową wersję", "⬇ Neue Version herunterladen",
@@ -2726,5 +2727,7 @@ public static class Lang
         m["jl_profiles"]       = new[] { "Profiles", "Profile", "Profile", "Profils", "Perfiles", "配置", "Perfis", "Профили", "プロファイル", "프로필", "設定檔", "Profiller", "Hồ sơ", "Profil", "Profili" };
         m["jl_boost_on"]       = new[] { "Fan Boost on", "Fan Boost włącz", "Fan Boost an", "Fan Boost activé", "Fan Boost activado", "开启 Fan Boost", "Fan Boost ligado", "Fan Boost вкл", "Fan Boost オン", "Fan Boost 켜기", "開啟 Fan Boost", "Fan Boost açık", "Bật Fan Boost", "Fan Boost aktif", "Fan Boost attivo" };
         m["jl_boost_off"]      = new[] { "Fan Boost off", "Fan Boost wyłącz", "Fan Boost aus", "Fan Boost désactivé", "Fan Boost desactivado", "关闭 Fan Boost", "Fan Boost desligado", "Fan Boost выкл", "Fan Boost オフ", "Fan Boost 끄기", "關閉 Fan Boost", "Fan Boost kapalı", "Tắt Fan Boost", "Fan Boost nonaktif", "Fan Boost spento" };
+        // the "open" button of the update and notice cards (tray messages are GhostDeck cards since 1.38)
+        m["gen_open"]          = new[] { "Open", "Otwórz", "Öffnen", "Ouvrir", "Abrir", "打开", "Abrir", "Открыть", "開く", "열기", "開啟", "Aç", "Mở", "Buka", "Apri" };
     }
 }

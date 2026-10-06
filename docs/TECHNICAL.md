@@ -3278,3 +3278,20 @@ to it and the screen above it captured. What only a live test shows: the UAC pro
 count per launch kind, the pinned icon's style and the jump list on the pinned button, a
 pre-1.38 pin after a sign-in, a link from a browser and from Win+R, the autostart task after a
 sign-in, and the one-shot from an unelevated terminal with its output relayed.
+
+## 78. Messages from the tray are GhostDeck cards (v1.38)
+
+Eight messages left the tray as Windows notifications (`NotifyIcon.ShowBalloonTip`): an
+available update, an announcement from the repo, the end of travel mode (at start-up and from
+the poll), a charge limit changed outside the app, the temperature alert, the SSD alert, Windows
+refusing a hotkey and, new in 1.38, a refused ghostdeck:// link. A Windows notification can be
+silenced by Focus Assist and looks like someone else's; the #212 convention (RENDERING.md §11)
+says user-facing messages are GhostDeck cards. `TrayContext.ShowCard` now shows each as a
+`GhostCardForm`: acknowledge-only ("OK") unless the message has somewhere to go, then "Open" /
+"Later" - the update card opens the Updates tab with the one-click install (what the tray entry
+does; its text no longer says "click to download"), a notice opens its link. These cards are
+shown with `Quiet` set, which overrides `ShowWithoutActivation`, so a card that arrives on its
+own does not pull the focus out of a game; the OSD toast remains the in-game channel of the
+alerts, unchanged. The two messages that answer a user action - a refused link, refused hotkeys
+after a settings save - are shown active. `BalloonTipClicked` and the URL it opened went with
+the balloons. The harness mode `cards` renders every card with sample texts.

@@ -589,3 +589,8 @@ in the scene editor: two to four choices whose captions fit side by side become 
 visible at once; anything longer (profile, fan curve, brightness) becomes a select field with
 a `CardPopupList`. Touching the picker of a row that is off switches the row on. Rows shrink
 from 40 to 32 logical px when the screen is low, so the whole card always fits.
+
+Since 1.38 every message the tray sends is one of these cards as well (TECHNICAL.md §78): the
+update, announcements, the end of travel mode, a charge limit changed outside the app, the
+temperature and SSD alerts, refused hotkeys and refused ghostdeck:// links. The `Quiet` property
+shows a card without activating it, for the messages that arrive on their own.

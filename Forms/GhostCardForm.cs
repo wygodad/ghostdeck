@@ -33,6 +33,15 @@ public class GhostCardForm : Form
     private readonly string _ackLabel;
     private readonly string _laterLabel;
     private readonly Action _onAck;
+
+    /// <summary>
+    /// Shown without taking the focus: for cards that arrive on their own (a temperature alert,
+    /// an update, a notice), which may land in the middle of a game. The card still sits on
+    /// top; a click on it focuses it as usual.
+    /// </summary>
+    public bool Quiet { get; init; }
+    protected override bool ShowWithoutActivation => Quiet;
+
     private int _hotBtn = -1;                       // 0 = accent action, 1 = later, 2 = ✕, 3 = aux (left)
     private int _hotZone = -1;                      // content zone under the cursor (subclass-defined), -1 = none
     private readonly Rectangle[] _btn = new Rectangle[4];

@@ -75,6 +75,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   alive in the background, about 23 window objects each time. They are now released.
 
 ### Changed
+- **Messages from the tray are GhostDeck cards** - an available update, an announcement, the end
+  of travel mode, a charge limit changed outside the app, the temperature and SSD alerts and the
+  "Windows refused N shortcuts" notice used to be Windows notifications, which Focus Assist can
+  silence. They are GhostDeck cards now, shown without taking the focus, so one that arrives
+  during a game does not pull you out of it (the on-screen toast in a game is unchanged). The
+  update card's "Open" goes to the Updates tab, which installs with one click.
 - **Fewer administrator prompts** - the exe no longer demands administrator rights at launch;
   the app asks for them itself when it starts for real (one UAC prompt, as before; none from the
   Start-with-Windows task). A launch that only hands a command to the running app - the jump

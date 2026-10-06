@@ -45,7 +45,6 @@ public sealed class TrayContext : ApplicationContext
     private string? _updateUrl;
     private Updater.Result? _updateAvail;      // newer release found by the daily check (Settings Start header chip)
     private bool _telemetryOnly;               // (#48) no EC interface, but MSI WMI data blocks answer
-    private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
     private bool _fwDialogShown;               // the guard dialog opens at most once per run
@@ -146,8 +145,8 @@ public sealed class TrayContext : ApplicationContext
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
 
-        // A trip that ended while the app was off reverts before the first apply. The balloon
-        // waits until the tray icon is in the shell - ShowBalloonTip is a silent no-op before.
+        // A trip that ended while the app was off reverts before the first apply. The card
+        // comes up with the rest of the start-up state, below.
         string? travelEnded = null;
         if (_settings.TravelUntil != DateTime.MinValue && DateTime.Now >= _settings.TravelUntil)
             travelEnded = EndTravel(notify: false);
@@ -181,18 +180,11 @@ public sealed class TrayContext : ApplicationContext
 
         ShowState();
         if (_firmwareChanged) ShowFirmwareDialog();
-        if (travelEnded != null)
-        {
-            _balloonUrl = null;
-            _tray.BalloonTipTitle = Lang.T("set_travel");
-            _tray.BalloonTipText = travelEnded;
-            _tray.ShowBalloonTip(8000);
-        }
+        if (travelEnded != null) ShowCard("//TRAVEL", Lang.T("set_travel"), travelEnded);
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
-        _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
 
@@ -1897,6 +1889,21 @@ public sealed class TrayContext : ApplicationContext
     // keeps showing the warning for as long as the clash lasts.
     private bool _refusedTold;
 
+    /// <summary>
+    /// A message from the tray as a GhostDeck card (#212), not a Windows notification - those
+    /// can be silenced by Focus Assist and look like someone else's. Acknowledge-only unless an
+    /// <paramref name="open"/> action is given (then "Open" / "Later"). Shown without taking the
+    /// focus: these arrive on their own and may land in the middle of a game, where the OSD
+    /// toast remains the in-game channel.
+    /// </summary>
+    private static void ShowCard(string tag, string title, string body, Action? open = null)
+    {
+        var dlg = open == null
+            ? new GhostCardForm(tag, title, body, Lang.T("gen_ok"), "", () => { }) { Quiet = true }
+            : new GhostCardForm(tag, title, body, Lang.T("gen_open"), Lang.T("fw_dlg_later"), open) { Quiet = true };
+        dlg.Show();
+    }
+
     private void ReportRefusedHotkeys()
     {
         if (_refusedTold || HotkeysRefused.Count == 0 || !_tray.Visible) return;
@@ -2214,14 +2221,13 @@ public sealed class TrayContext : ApplicationContext
         if (res is not { } r) return;
         _updateAvail = r;
         _updateUrl = r.Url;
-        _balloonUrl = r.Url;
         BuildMenu();
-        _tray.BalloonTipTitle = Lang.T("update_available");
-        _tray.BalloonTipText = string.Format(Lang.T("update_available_text"), r.Tag);
-        _tray.ShowBalloonTip(8000);
+        // "Open" lands on the Updates tab with the one-click install, as the tray entry does
+        ShowCard("//UPDATE", Lang.T("update_available"), string.Format(Lang.T("update_available_text"), r.Tag),
+            () => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(r.Tag); });
     }
 
-    // Announcements (one-way notices): show the newest unseen as a tray balloon now, and as an in-window
+    // Announcements (one-way notices): show the newest unseen as a card now, and as an in-window
     // banner when the panel is (or gets) opened. Seen ids are persisted so each notice shows once.
     private void OnNoticesResult(List<Notices.Notice> notices)
     {
@@ -2230,16 +2236,10 @@ public sealed class TrayContext : ApplicationContext
         _pendingNotice = n;
 
         // One place at a time: banner if the window is open (marks it seen → never nags again),
-        // otherwise a tray balloon to nudge. The balloon doesn't mark it seen, so it keeps nudging
-        // on the daily check until the user actually opens the app once.
+        // otherwise a card to nudge. The card doesn't mark it seen, so it keeps nudging on the
+        // daily check until the user actually opens the app once.
         if (_main is { IsDisposed: false }) ShowNoticeBanner(n);
-        else
-        {
-            _balloonUrl = string.IsNullOrEmpty(n.Url) ? null : n.Url;
-            _tray.BalloonTipTitle = n.Title;
-            _tray.BalloonTipText = n.Body;
-            _tray.ShowBalloonTip(9000);
-        }
+        else ShowCard("//NOTICE", n.Title, n.Body, string.IsNullOrEmpty(n.Url) ? null : () => OpenUrl(n.Url));
     }
 
     // Manual "Check now": respect SeenNoticeIds so an already-read notice does NOT pop up again.
@@ -2337,13 +2337,7 @@ public sealed class TrayContext : ApplicationContext
         TryApplyChargeLimit();   // no-op when back == 0: stop managing, the EC keeps its threshold
         string text = string.Format(Lang.T("log_travel_off"), back > 0 ? back + " %" : Lang.T("st_off"));
         ChangeLog.Add(ChangeSource.ChargeLimit, text);
-        if (notify)
-        {
-            _balloonUrl = null;
-            _tray.BalloonTipTitle = Lang.T("set_travel");
-            _tray.BalloonTipText = text;
-            _tray.ShowBalloonTip(8000);
-        }
+        if (notify) ShowCard("//TRAVEL", Lang.T("set_travel"), text);
         if (_main is { IsDisposed: false }) _main.RefreshActive();
         return text;
     }
@@ -2494,10 +2488,7 @@ public sealed class TrayContext : ApplicationContext
         string text = string.Format(Lang.T("ta_alert_text"),
             hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
         _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("ta_alert_title");
-        _tray.BalloonTipText = text;
-        _tray.ShowBalloonTip(8000);
+        ShowCard("//THERMAL", Lang.T("ta_alert_title"), text);
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 
@@ -2561,10 +2552,7 @@ public sealed class TrayContext : ApplicationContext
         if (_main is { IsDisposed: false }) _main.RefreshActive();
         if (!_settings.ChargeExternalNotify) return;
         _osd.ShowProfile(OsdPrefix + Lang.T("charge_ext_title"), text, Theme.Amber);
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("charge_ext_title");
-        _tray.BalloonTipText = text;
-        _tray.ShowBalloonTip(8000);
+        ShowCard("//CHARGE", Lang.T("charge_ext_title"), text);
     }
 
     private void OnSsdSample(string name, int temp)
@@ -2582,10 +2570,7 @@ public sealed class TrayContext : ApplicationContext
         _lastSsdAlert = now;
         string text = string.Format(Lang.T("ssd_alert_text"), name, temp, _settings.SsdAlertDegrees);
         _osd.ShowProfile(OsdPrefix + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("ssd_alert_title");
-        _tray.BalloonTipText = text;
-        _tray.ShowBalloonTip(8000);
+        ShowCard("//SSD", Lang.T("ssd_alert_title"), text);
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 
