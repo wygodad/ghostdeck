@@ -394,8 +394,15 @@ public sealed class StatusPage : ThemedPage
         bool temps = info.Known || info.Telemetry;
         DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), temps);
         DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), temps);
-        DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 100, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known);
-        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known);
+        // The fan rings show the curve target (0x71 / 0x89), not the fan speed, on MSI's own
+        // 0-150 scale; 0 is a real target (the first curve point), so it reads "0", not a dash.
+        // TECHNICAL §76.
+        DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known, allowZero: true);
+        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known, allowZero: true);
+        _fanHelpBtns[0] = new RectangleF(X(2) + ring - 22, top, 22, 22);
+        _fanHelpBtns[1] = new RectangleF(X(3) + ring - 22, top, 22, 22);
+        HelpDot.Render(g, _fanHelpBtns[0]);
+        HelpDot.Render(g, _fanHelpBtns[1]);
         DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
 
         // --- sub-row under the rings (clear gap above and below) ---
@@ -582,10 +589,14 @@ public sealed class StatusPage : ThemedPage
     // circle, and the same bubble.
     private RectangleF _gpuHelpBtn;
     private string _gpuHelpText = "";
+    private readonly RectangleF[] _fanHelpBtns = new RectangleF[2];
 
     private void ChartsClick(Point p)
     {
-        if (_statusSub != 0 || _gpuHelpBtn.IsEmpty || !_gpuHelpBtn.Contains(p)) return;
+        if (_statusSub != 0) return;
+        foreach (var b in _fanHelpBtns)
+            if (!b.IsEmpty && b.Contains(p)) { HelpPopup.Toggle(_canvas, Rectangle.Round(b), Lang.T("st_fan_target_tip"), this); return; }
+        if (_gpuHelpBtn.IsEmpty || !_gpuHelpBtn.Contains(p)) return;
         HelpPopup.Toggle(_canvas, Rectangle.Round(_gpuHelpBtn), _gpuHelpText, this);
     }
 
@@ -1007,7 +1018,8 @@ public sealed class StatusPage : ThemedPage
 
     private void ChartsMouse(Control owner, Point? p)
     {
-        bool onDot = _statusSub == 0 && p is { } pt && _gpuHelpBtn.Contains(pt);
+        bool onDot = _statusSub == 0 && p is { } pt
+            && (_gpuHelpBtn.Contains(pt) || _fanHelpBtns[0].Contains(pt) || _fanHelpBtns[1].Contains(pt));
         var want = onDot ? Cursors.Hand : Cursors.Default;
         if (owner.Cursor != want) owner.Cursor = want;
     }
@@ -1290,7 +1302,8 @@ public sealed class StatusPage : ThemedPage
 
     private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false)
     {
-        bool ok = known && (allowZero ? value >= 0 : value > 0) && value < 130;
+        // above the ring's own scale is a misread; temperatures and loads keep the old 130 guard
+        bool ok = known && (allowZero ? value >= 0 : value > 0) && value <= Math.Max(max, 129);
         float frac = ok ? Math.Clamp(value / (float)max, 0, 1) : 0;
         IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "—", unit, label, sub);
     }

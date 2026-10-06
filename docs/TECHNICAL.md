@@ -3137,6 +3137,10 @@ YAMDCC's EC research describes `0x71` the same way ("realtime CPU fan speed targ
 as capping the fans at about 3500 rpm; MControlCenter does not show these bytes at all and
 reports only the tachometers. The measured speed is the rpm readout under the rings, which
 matches HWiNFO64 on every board checked. The rings were therefore relabelled "CPU curve target" /
-"GPU curve target"; the value, the scale (`MaxFanPct`) and the fan-curve page are unchanged.
+"GPU curve target", each with a help dot whose bubble says what the number is (with "EC fan
+target" as the alternative name) and that the profile can cap the real speed below it. The ring
+scale is now MSI's own 0-150 (a full arc at 150, not at 100), a target of 0 - the first curve
+point on boards whose table starts at 0 - reads "0 %" instead of a dash, and only values above
+150 are treated as a misread. The fan-curve page and the value itself are unchanged.
 Two readings outside the table are still unexplained (40 / 126 on a `17L5EMS1` under FurMark,
 #76; 1 on a `15PKIMS1`, #228) - they appeared on screenshots, never in a report.
