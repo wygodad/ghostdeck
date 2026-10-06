@@ -3294,3 +3294,13 @@ own does not pull the focus out of a game; the OSD toast remains the in-game cha
 alerts, unchanged. The two messages that answer a user action - a refused link, refused hotkeys
 after a settings save - are shown active. `BalloonTipClicked` and the URL it opened went with
 the balloons. The harness mode `cards` renders every card with sample texts.
+
+![The eight cards](images/cards.png)
+
+Two refinements from the owner's review. The temperature and the SSD alert each have two
+channels with their own switches (`TempAlertOsd` / `TempAlertCard`, `SsdAlertOsd` / `SsdAlertCard`,
+all true by default; Settings → Automation, under each alert's threshold): the OSD alone is the
+in-game choice, the card alone the desk one. And the update card's accent button is not "Open"
+but "Install vX": `MainForm.InstallUpdate` shows the Updates tab and `UpdatesPage.InstallRelease`
+takes the tray's find as the page's own and starts the same download the page's Install button
+does, progress bar and restart included - one click from the card to the end.

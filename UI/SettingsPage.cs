@@ -954,8 +954,8 @@ public sealed class SettingsPage : ThemedPage
         }));
         _gRight[SubPower].Add(brc);
 
-        // Thermal notifications: OSD + tray balloon when CPU/GPU stays above the threshold for
-        // the chosen time. Off by default — the user opts in.
+        // Thermal notifications: an OSD toast and/or a GhostDeck card (each its own switch, both on)
+        // when CPU/GPU stays above the threshold for the chosen time. Off by default — the user opts in.
         var alerts = new CardSection(Lang.T("set_grp_alerts"), "");
         bool alertsQuiet = false;   // the reset button sets the lists itself; their handlers stay out of it
         var taOn = Toggle(D.Settings.TempAlertEnabled, v => { D.Settings.TempAlertEnabled = v; D.SaveSettings(); });
@@ -969,6 +969,8 @@ public sealed class SettingsPage : ThemedPage
         var secsCombo = Combo(secVals.Select(x => x + " s").ToArray(), Math.Max(0, Array.IndexOf(secVals, D.Settings.TempAlertSeconds)));
         secsCombo.SelectedIndexChanged += (_, _) => { if (alertsQuiet) return; D.Settings.TempAlertSeconds = secVals[Math.Max(0, secsCombo.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ta_time"), secsCombo);
+        alerts.AddRow(Lang.T("alert_osd"), Toggle(D.Settings.TempAlertOsd, v => { D.Settings.TempAlertOsd = v; D.SaveSettings(); }));
+        alerts.AddRow(Lang.T("alert_card"), Toggle(D.Settings.TempAlertCard, v => { D.Settings.TempAlertCard = v; D.SaveSettings(); }));
         // SSD alert: same opt-in pattern, but the data comes from Windows storage APIs
         // (Perf.Disks), not the EC. Dwell is fixed (30 s) - disk heat moves slowly.
         alerts.AddRow(null, new SepLine());
@@ -978,6 +980,8 @@ public sealed class SettingsPage : ThemedPage
         var ssdDeg = Combo(ssdVals.Select(x => x + " °C").ToArray(), Math.Max(0, Array.IndexOf(ssdVals, D.Settings.SsdAlertDegrees)));
         ssdDeg.SelectedIndexChanged += (_, _) => { if (alertsQuiet) return; D.Settings.SsdAlertDegrees = ssdVals[Math.Max(0, ssdDeg.SelectedIndex)]; D.SaveSettings(); };
         alerts.AddRow(Lang.T("ssd_threshold"), ssdDeg);
+        alerts.AddRow(Lang.T("alert_osd"), Toggle(D.Settings.SsdAlertOsd, v => { D.Settings.SsdAlertOsd = v; D.SaveSettings(); }));
+        alerts.AddRow(Lang.T("alert_card"), Toggle(D.Settings.SsdAlertCard, v => { D.Settings.SsdAlertCard = v; D.SaveSettings(); }));
         // Someone else moving the charge threshold (MSI Center and its installer do) is not a hardware
         // alarm, it is "your setting no longer applies" - opt-OUT, because silence there means the
         // app shows a limit that is not in the EC any more.
@@ -1000,8 +1004,12 @@ public sealed class SettingsPage : ThemedPage
             D.Settings.TempAlertEnabled = d.TempAlertEnabled;
             D.Settings.TempAlertDegrees = d.TempAlertDegrees;
             D.Settings.TempAlertSeconds = d.TempAlertSeconds;
+            D.Settings.TempAlertOsd = d.TempAlertOsd;
+            D.Settings.TempAlertCard = d.TempAlertCard;
             D.Settings.SsdAlertEnabled = d.SsdAlertEnabled;
             D.Settings.SsdAlertDegrees = d.SsdAlertDegrees;
+            D.Settings.SsdAlertOsd = d.SsdAlertOsd;
+            D.Settings.SsdAlertCard = d.SsdAlertCard;
             D.Settings.ChargeExternalNotify = d.ChargeExternalNotify;
             D.Settings.OsdSeconds = d.OsdSeconds;
             D.SaveSettings(); D.SettingsChanged();

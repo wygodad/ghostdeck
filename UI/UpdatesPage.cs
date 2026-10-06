@@ -223,8 +223,24 @@ public sealed class UpdatesPage : ThemedPage
             LayoutBits();
         }
         _check.Enabled = true;
-        D.CheckNoticesNow();     // manual check also refreshes announcements (banner + tray balloon)
+        D.CheckNoticesNow();     // manual check also refreshes announcements (banner + card)
         await LoadHistory();
+    }
+
+    /// <summary>
+    /// The "Install" of the update card (1.38): the tray's daily check found <paramref name="r"/>,
+    /// the page takes it as its own find and starts the same download the Install button does,
+    /// with the progress bar - so the card is one click to the end, not a detour through "Check".
+    /// </summary>
+    public void InstallRelease(Updater.Result r)
+    {
+        _avail = r;
+        _status.ForeColor = Theme.Accent;
+        _status.Text = string.Format(Lang.T("upd_available"), r.Version);
+        _install.Text = string.Format(Lang.T("upd_install"), r.Tag);
+        _install.Visible = true;
+        LayoutBits();
+        _ = InstallNow();
     }
 
     private async Task InstallNow()

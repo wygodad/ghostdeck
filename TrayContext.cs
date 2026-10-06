@@ -1896,11 +1896,11 @@ public sealed class TrayContext : ApplicationContext
     /// focus: these arrive on their own and may land in the middle of a game, where the OSD
     /// toast remains the in-game channel.
     /// </summary>
-    private static void ShowCard(string tag, string title, string body, Action? open = null)
+    private static void ShowCard(string tag, string title, string body, Action? open = null, string? openLabel = null)
     {
         var dlg = open == null
             ? new GhostCardForm(tag, title, body, Lang.T("gen_ok"), "", () => { }) { Quiet = true }
-            : new GhostCardForm(tag, title, body, Lang.T("gen_open"), Lang.T("fw_dlg_later"), open) { Quiet = true };
+            : new GhostCardForm(tag, title, body, openLabel ?? Lang.T("gen_open"), Lang.T("fw_dlg_later"), open) { Quiet = true };
         dlg.Show();
     }
 
@@ -2222,9 +2222,11 @@ public sealed class TrayContext : ApplicationContext
         _updateAvail = r;
         _updateUrl = r.Url;
         BuildMenu();
-        // "Open" lands on the Updates tab with the one-click install, as the tray entry does
+        // "Install vX": the Updates tab opens with the download already running (progress bar
+        // and restart as from its own Install button)
         ShowCard("//UPDATE", Lang.T("update_available"), string.Format(Lang.T("update_available_text"), r.Tag),
-            () => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(r.Tag); });
+            () => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.InstallUpdate(r); },
+            string.Format(Lang.T("upd_install"), r.Tag));
     }
 
     // Announcements (one-way notices): show the newest unseen as a card now, and as an in-window
@@ -2487,8 +2489,9 @@ public sealed class TrayContext : ApplicationContext
         _lastTempAlert = now;
         string text = string.Format(Lang.T("ta_alert_text"),
             hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
-        _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
-        ShowCard("//THERMAL", Lang.T("ta_alert_title"), text);
+        // two channels, each the user's choice (Settings → Automation): the on-screen toast, the card
+        if (_settings.TempAlertOsd) _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
+        if (_settings.TempAlertCard) ShowCard("//THERMAL", Lang.T("ta_alert_title"), text);
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 
@@ -2569,8 +2572,8 @@ public sealed class TrayContext : ApplicationContext
         if (now - _lastSsdAlert < ThermalCooldown) return;
         _lastSsdAlert = now;
         string text = string.Format(Lang.T("ssd_alert_text"), name, temp, _settings.SsdAlertDegrees);
-        _osd.ShowProfile(OsdPrefix + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
-        ShowCard("//SSD", Lang.T("ssd_alert_title"), text);
+        if (_settings.SsdAlertOsd) _osd.ShowProfile(OsdPrefix + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
+        if (_settings.SsdAlertCard) ShowCard("//SSD", Lang.T("ssd_alert_title"), text);
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 

@@ -594,3 +594,5 @@ Since 1.38 every message the tray sends is one of these cards as well (TECHNICAL
 update, announcements, the end of travel mode, a charge limit changed outside the app, the
 temperature and SSD alerts, refused hotkeys and refused ghostdeck:// links. The `Quiet` property
 shows a card without activating it, for the messages that arrive on their own.
+
+![The eight tray messages as cards](images/cards.png)

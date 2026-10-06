@@ -127,15 +127,19 @@ public sealed class AppSettings
 
     public string LastFirmware { get; set; } = "";                     // ostatnio widziany firmware EC (ostrzezenie o zmianie)
 
-    // ---- Thermal alert: opt-in OSD + tray balloon when CPU/GPU stays hot (todo #8) ----
+    // ---- Thermal alert: opt-in OSD and/or GhostDeck card when CPU/GPU stays hot (todo #8) ----
     public bool TempAlertEnabled { get; set; } = false;                // user opts in explicitly
     public int TempAlertDegrees { get; set; } = 90;                    // alert threshold (max of CPU/GPU, °C)
     public int TempAlertSeconds { get; set; } = 10;                    // must stay above threshold this long
+    public bool TempAlertOsd { get; set; } = true;                     // the channels (1.38): on-screen toast ...
+    public bool TempAlertCard { get; set; } = true;                    // ... and/or a GhostDeck card; both on by default
 
     // ---- SSD temperature alert: same opt-in pattern. Data comes from Windows storage APIs
     // (Perf.Disks), not the EC, so it works on every machine incl. unrecognised firmware.
     public bool SsdAlertEnabled { get; set; } = false;
     public int SsdAlertDegrees { get; set; } = 70;                     // hottest disk, °C
+    public bool SsdAlertOsd { get; set; } = true;
+    public bool SsdAlertCard { get; set; } = true;
 
     public int OsdSeconds { get; set; } = 3;                           // how long OSD toasts stay visible (1-15 s)
 
@@ -529,8 +533,12 @@ public sealed class AppSettings
         TempAlertEnabled = src.TempAlertEnabled;
         TempAlertDegrees = src.TempAlertDegrees;
         TempAlertSeconds = src.TempAlertSeconds;
+        TempAlertOsd = src.TempAlertOsd;
+        TempAlertCard = src.TempAlertCard;
         SsdAlertEnabled = src.SsdAlertEnabled;
         SsdAlertDegrees = src.SsdAlertDegrees;
+        SsdAlertOsd = src.SsdAlertOsd;
+        SsdAlertCard = src.SsdAlertCard;
         OsdSeconds = src.OsdSeconds;
         RefreshSwitchEnabled = src.RefreshSwitchEnabled;
         RefreshOnAC = src.RefreshOnAC;
@@ -627,8 +635,12 @@ public sealed class AppSettings
             TempAlertEnabled = TempAlertEnabled,
             TempAlertDegrees = TempAlertDegrees,
             TempAlertSeconds = TempAlertSeconds,
+            TempAlertOsd = TempAlertOsd,
+            TempAlertCard = TempAlertCard,
             SsdAlertEnabled = SsdAlertEnabled,
             SsdAlertDegrees = SsdAlertDegrees,
+            SsdAlertOsd = SsdAlertOsd,
+            SsdAlertCard = SsdAlertCard,
             OsdSeconds = OsdSeconds,
             TravelUntil = TravelUntil,
             TravelPrevLimit = TravelPrevLimit,

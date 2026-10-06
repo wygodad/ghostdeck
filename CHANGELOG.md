@@ -16,6 +16,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   plugin, no administrator prompt while the app runs. Registered for the current user when
   the app starts; Settings → System → "ghostdeck:// links" switches it off. `--status`,
   `--diag` and the maintainer commands are deliberately not reachable from a link.
+- **The temperature and SSD alerts have two switchable channels** (Settings → Automation) - the
+  on-screen message (OSD) and the GhostDeck card, each with its own switch, both on by default;
+  the OSD alone is the choice for the game, the card alone for the desk.
 - **A scene, the overlay or the Windows-key lock from the command line starts the app** when it
   is not running and hands the command over, instead of answering "needs the app running".
 - **Integrated GPU on Status and in the overlay** ([discussion #101](../../discussions/101),
@@ -80,7 +83,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   "Windows refused N shortcuts" notice used to be Windows notifications, which Focus Assist can
   silence. They are GhostDeck cards now, shown without taking the focus, so one that arrives
   during a game does not pull you out of it (the on-screen toast in a game is unchanged). The
-  update card's "Open" goes to the Updates tab, which installs with one click.
+  update card's "Install" opens the Updates tab with the download already running, progress
+  bar and restart included.
 - **Fewer administrator prompts** - the exe no longer demands administrator rights at launch;
   the app asks for them itself when it starts for real (one UAC prompt, as before; none from the
   Start-with-Windows task). A launch that only hands a command to the running app - the jump

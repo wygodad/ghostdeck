@@ -324,6 +324,13 @@ public sealed class MainForm : Form
         if (_pages.TryGetValue(MainTab.Updates, out var p) && p is UpdatesPage up) up.FocusRelease(focusTag);
     }
 
+    /// <summary>The update card's "Install": the Updates tab, with the download already running.</summary>
+    public void InstallUpdate(Updater.Result r)
+    {
+        ShowTab(MainTab.Updates);
+        if (_pages.TryGetValue(MainTab.Updates, out var p) && p is UpdatesPage up) up.InstallRelease(r);
+    }
+
     private bool _warmed;
 
     /// <summary>

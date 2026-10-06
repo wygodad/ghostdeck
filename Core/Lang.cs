@@ -997,18 +997,18 @@ public static class Lang
             "Aggiornamento disponibile"
             };
         m["update_available_text"] = new[] {
-            // the update card (1.38): the Open button lands on the Updates tab, which installs with one click
-            "Version {0} is available. The Updates tab installs it with one click.", "Dostępna jest wersja {0}. Zakładka Aktualizacje instaluje ją jednym kliknięciem.",
-            "Version {0} ist verfügbar. Der Reiter Updates installiert sie mit einem Klick.", "La version {0} est disponible. L'onglet Mises à jour l'installe en un clic.",
-            "La versión {0} está disponible. La pestaña Actualizaciones la instala con un clic.", "新版本 {0} 可用。在“更新”标签页中一键安装。",
-            "A versão {0} está disponível. A aba Atualizações instala com um clique.", "Доступна версия {0}. Вкладка «Обновления» установит её одним щелчком.",
-            "バージョン {0} が利用可能です。「更新」タブからワンクリックでインストールできます。",
-            "버전 {0}을(를) 사용할 수 있습니다. 업데이트 탭에서 한 번의 클릭으로 설치합니다.",
-            "新版本 {0} 可用。在「更新」分頁中一鍵安裝。",
-            "Sürüm {0} mevcut. Güncellemeler sekmesi tek tıkla yükler.",
-            "Đã có phiên bản {0}. Thẻ Cập nhật cài đặt chỉ với một cú nhấp.",
-            "Versi {0} tersedia. Tab Pembaruan memasangnya dengan sekali klik.",
-            "La versione {0} è disponibile. La scheda Aggiornamenti la installa con un clic."
+            // the update card (1.38): its Install button downloads on the Updates tab and restarts the app
+            "Version {0} is available. Install downloads it and restarts GhostDeck when it is ready.", "Dostępna jest wersja {0}. Zainstaluj pobiera ją i uruchamia GhostDecka ponownie, gdy będzie gotowa.",
+            "Version {0} ist verfügbar. Installieren lädt sie herunter und startet GhostDeck neu, sobald sie bereit ist.", "La version {0} est disponible. Installer la télécharge et redémarre GhostDeck quand elle est prête.",
+            "La versión {0} está disponible. Instalar la descarga y reinicia GhostDeck cuando esté lista.", "新版本 {0} 可用。点击安装后将下载并在准备好时重新启动 GhostDeck。",
+            "A versão {0} está disponível. Instalar faz o download e reinicia o GhostDeck quando estiver pronta.", "Доступна версия {0}. «Установить» скачает её и перезапустит GhostDeck, когда она будет готова.",
+            "バージョン {0} が利用可能です。インストールするとダウンロードし、準備ができたら GhostDeck を再起動します。",
+            "버전 {0}을(를) 사용할 수 있습니다. 설치를 누르면 다운로드한 뒤 준비되면 GhostDeck를 다시 시작합니다.",
+            "新版本 {0} 可用。按下安裝後會下載並在準備好時重新啟動 GhostDeck。",
+            "Sürüm {0} mevcut. Yükle indirir ve hazır olduğunda GhostDeck'i yeniden başlatır.",
+            "Đã có phiên bản {0}. Cài đặt sẽ tải về và khởi động lại GhostDeck khi sẵn sàng.",
+            "Versi {0} tersedia. Pasang mengunduhnya dan memulai ulang GhostDeck saat siap.",
+            "La versione {0} è disponibile. Installa la scarica e riavvia GhostDeck quando è pronta."
             };
         m["menu_update"] = new[] {
             "⬇ Download new version", "⬇ Pobierz nową wersję", "⬇ Neue Version herunterladen",
@@ -2729,5 +2729,8 @@ public static class Lang
         m["jl_boost_off"]      = new[] { "Fan Boost off", "Fan Boost wyłącz", "Fan Boost aus", "Fan Boost désactivé", "Fan Boost desactivado", "关闭 Fan Boost", "Fan Boost desligado", "Fan Boost выкл", "Fan Boost オフ", "Fan Boost 끄기", "關閉 Fan Boost", "Fan Boost kapalı", "Tắt Fan Boost", "Fan Boost nonaktif", "Fan Boost spento" };
         // the "open" button of the update and notice cards (tray messages are GhostDeck cards since 1.38)
         m["gen_open"]          = new[] { "Open", "Otwórz", "Öffnen", "Ouvrir", "Abrir", "打开", "Abrir", "Открыть", "開く", "열기", "開啟", "Aç", "Mở", "Buka", "Apri" };
+        // the two channels of the temperature and SSD alerts (Settings → Automation), each switchable
+        m["alert_osd"]         = new[] { "On-screen message (OSD)", "Komunikat na ekranie (OSD)", "Bildschirmmeldung (OSD)", "Message à l'écran (OSD)", "Mensaje en pantalla (OSD)", "屏幕提示 (OSD)", "Mensagem na tela (OSD)", "Сообщение на экране (OSD)", "画面上のメッセージ (OSD)", "화면 메시지 (OSD)", "螢幕提示 (OSD)", "Ekran mesajı (OSD)", "Thông báo trên màn hình (OSD)", "Pesan di layar (OSD)", "Messaggio a schermo (OSD)" };
+        m["alert_card"]        = new[] { "GhostDeck card", "Karta GhostDecka", "GhostDeck-Karte", "Carte GhostDeck", "Tarjeta GhostDeck", "GhostDeck 卡片", "Cartão GhostDeck", "Карточка GhostDeck", "GhostDeck カード", "GhostDeck 카드", "GhostDeck 卡片", "GhostDeck kartı", "Thẻ GhostDeck", "Kartu GhostDeck", "Scheda GhostDeck" };
     }
 }
