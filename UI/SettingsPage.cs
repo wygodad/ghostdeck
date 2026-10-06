@@ -2014,7 +2014,7 @@ public sealed class SettingsPage : ThemedPage
             DoubleBuffered = true;
             BackColor = Theme.Card;
             _glyph = glyph;
-            _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+            _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, UseMnemonic = false, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };   // "Startup & tray" keeps its &
             Controls.Add(_head);
         }
 
