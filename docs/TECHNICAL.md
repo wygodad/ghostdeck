@@ -862,7 +862,7 @@ by an `Interlocked` busy flag — same reasoning as the Status page's `RefreshAs
 `max(CpuTemp, GpuTemp)` must stay at/above `TempAlertDegrees` (default 90 °C; UI offers
 70–100 °C — the 70/75 steps exist mainly so the alert can be tried without heating the laptop
 up first) continuously for
-`TempAlertSeconds` (default 10 s); then an OSD toast + tray balloon fire and a `Thermal` entry is
+`TempAlertSeconds` (default 10 s); then an OSD toast + a GhostDeck card (§78; a tray balloon before 1.38) fire and a `Thermal` entry is
 logged. A fixed 5-minute cool-down between alerts keeps a hot gaming session from spamming.
 `EnsureDefaults` clamps hand-edited values (60–105 °C, 3–120 s).
 
@@ -2603,7 +2603,7 @@ than mutate the system.
 **SSD alert** (Settings → Automation; off by default). The 3-second tray poll asks
 `Perf.Disks()` for the hottest drive (the same 10-second-cached path Status and the overlay
 already use: `MSFT_StorageReliabilityCounter`, then the temperature IOCTL, then the NVMe
-SMART log) and raises the same OSD + balloon + change-history alert the CPU/GPU alert uses.
+SMART log) and raises the same OSD + card (§78) + change-history alert the CPU/GPU alert uses.
 Differences from the CPU/GPU alert, and why:
 
 - **Fixed 30 s dwell instead of a second setting.** Disk heat moves slowly - a single hot
@@ -2628,9 +2628,8 @@ minutes later. Design decisions:
   poll acts once when the date passes - and once at startup, before the regular
   charge-limit apply, so a trip that ended while the app was off reverts cleanly - then
   re-applies the previous limit through the same `TryApplyChargeLimit()` gate as every
-  other automatic write. The startup revert's balloon is deferred until the tray icon is
-  in the shell (`ShowBalloonTip` before that is a silent no-op - same ordering rule as the
-  firmware warning).
+  other automatic write. The startup revert's message is a GhostDeck card since 1.38 (§78),
+  shown with the rest of the start-up state.
 - **A one-shot CLI invocation catches the expiry up too**: without the tray app running
   there is no poll, so `RunOneShot` checks `TravelUntil` before executing any command
   (except `--diag`, which keeps its read-only promise). A scheduled-task user who only
@@ -2781,7 +2780,7 @@ wake, and on an explicit change.
 The fix costs one comparison. `Ec.TryReadHw` already reads `ChargeCtrl & 0x7F` in every sample, so
 `OnChargeSample` compares it with our setting and, when they differ, **adopts** the EC value: writes
 it to settings, refreshes the tray and Status, logs it as an external change, and - unless switched
-off in Settings → Automation - shows an OSD toast and a tray notification naming both limits.
+off in Settings → Automation - shows an OSD toast and a GhostDeck card (§78) naming both limits.
 
 Deliberate choices:
 
