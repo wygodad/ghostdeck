@@ -15,7 +15,15 @@ internal static class Program
         // one-shot against the EC. The tray app itself never starts with arguments.
         if (args.Length > 0) return Cli.Run(args);
 
-        using var showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, "GhostDeck_ShowMainWindow");
+        // Tray start. A running instance only has to show its window - any process may ask it,
+        // elevated or not. Otherwise the tray needs the EC, so an unelevated launch (double-click,
+        // a pinned icon) goes through the one UAC prompt and ends here; the autostart task starts
+        // elevated already (RL HIGHEST) and never sees that prompt.
+        if (Elevation.SignalRunningInstance()) return 0;
+        if (!Elevation.IsElevated) return Elevation.Relaunch(args, wait: false);
+
+        Taskbar.SetProcessId();   // the jump list and the pinned icon hang on this identity
+        using var showSignal = Elevation.CreateShowEvent();
         using var mtx = new Mutex(true, "GhostDeck_SingleInstance", out bool createdNew);
         if (!createdNew) { showSignal.Set(); return 0; }   // already running - ask it to show its window
 

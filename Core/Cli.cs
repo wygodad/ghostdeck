@@ -46,12 +46,22 @@ public static class Cli
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
           GhostDeck.exe --status                print the current state as JSON
           GhostDeck.exe --diag [path.zip]       save the diagnostic zip (read-only, runs locally)
-        Requires administrator rights (EC access), like the app itself.
+          GhostDeck.exe ghostdeck://<command>/<arg>[/<arg2>]   the same commands as a link,
+                                                e.g. ghostdeck://scene/Gaming or ghostdeck://profile/silent
+        With the app running the command is handed to it, no administrator prompt. Without it, the
+        command talks to the EC itself and asks for administrator rights once (UAC).
         """;
 
     public static CliCommand? Parse(string[] a)
     {
         if (a.Length == 0) return null;
+        if (Protocol.IsLink(a[0]))
+        {
+            // a ghostdeck:// link is the same command line, spelled for a browser or a shortcut
+            var fromLink = Protocol.ToArgs(a[0]);
+            if (fromLink == null) return null;
+            a = fromLink;
+        }
         string Arg1() => a.Length > 1 ? a[1] : "";
         switch (a[0].ToLowerInvariant())
         {
@@ -141,7 +151,7 @@ public static class Cli
 
         // The diagnostic zip always runs locally: it writes a file in the CALLER's directory
         // and only does read-only collection, so there is nothing the live instance adds.
-        if (cmd.Kind == CliKind.Diag) return RunOneShot(cmd);
+        if (cmd.Kind == CliKind.Diag) return Elevated(args) ?? RunOneShot(cmd, args);
 
         // The model-table dump must come from THIS exe's compiled tables, never the pipe.
         if (cmd.Kind == CliKind.DumpModels)
@@ -180,7 +190,36 @@ public static class Cli
             if (resp.Length > 0) Console.WriteLine(resp);
             return code;
         }
-        return RunOneShot(cmd);
+        return Elevated(args) ?? RunOneShot(cmd, args);
+    }
+
+    /// <summary>
+    /// A one-shot talks to the EC, which needs administrator rights. From an unelevated launch
+    /// (a terminal, a link, the pinned jump list) the same command line is started again through
+    /// the UAC prompt - the one prompt the manifest used to show on every launch - and its exit
+    /// code comes back; the child writes into this process's console. Null = already elevated.
+    /// </summary>
+    private static int? Elevated(string[] args) => Elevation.IsElevated ? null : Elevation.Relaunch(args, wait: true);
+
+    /// <summary>
+    /// Commands that live inside the running app (scenes, the overlay, the Windows-key lock, the
+    /// Fan Boost timer) with no instance running: start the tray app and hand the command over
+    /// once its pipe answers. The app stays in the tray afterwards.
+    /// </summary>
+    private static int StartAppAndForward(string[] args)
+    {
+        if (!Elevation.StartTray()) { Console.WriteLine("could not start the GhostDeck app"); return 1; }
+        for (int i = 0; i < 60; i++)   // the pipe is up within a second or two of the start
+        {
+            Thread.Sleep(250);
+            if (TrySendToRunning(args, out string resp, out int code))
+            {
+                if (resp.Length > 0) Console.WriteLine("GhostDeck started; " + resp);
+                return code;
+            }
+        }
+        Console.WriteLine("the GhostDeck app did not answer after starting");
+        return 1;
     }
 
     private static bool TrySendToRunning(string[] args, out string resp, out int code)
@@ -190,8 +229,12 @@ public static class Cli
         {
             using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
             pipe.Connect(700);
-            using var w = new StreamWriter(pipe) { AutoFlush = true };
+            // The reader closes the pipe when it is disposed, so it is declared first and disposed
+            // last: the other way round the writer's final flush hit a closed pipe, the exception
+            // landed in the catch below and the command - already carried out by the running app -
+            // was reported as "nobody listening" and run a second time one-shot.
             using var r = new StreamReader(pipe);
+            using var w = new StreamWriter(pipe) { AutoFlush = true };
             w.WriteLine(string.Join('\t', args));
             string? line = r.ReadLine();
             if (line == null) return false;
@@ -204,7 +247,7 @@ public static class Cli
     }
 
     // ---------------- one-shot (app not running): talk to the EC directly ----------------
-    private static int RunOneShot(CliCommand cmd)
+    private static int RunOneShot(CliCommand cmd, string[] args)
     {
         var settings = AppSettings.Load();
         string fw = Ec.ReadFirmware();
@@ -288,15 +331,11 @@ public static class Cli
                     return 0;
                 }
                 case CliKind.Overlay:
-                    Console.WriteLine("overlay control needs the GhostDeck app running");
-                    return 1;
                 case CliKind.Scene:
-                    Console.WriteLine("scene control needs the GhostDeck app running");
-                    return 1;
                 case CliKind.WinLock:
-                    // the hook lives inside the running process - a one-shot would exit and unhook
-                    Console.WriteLine("the Windows-key lock needs the GhostDeck app running");
-                    return 1;
+                    // these live inside the running process (the overlay window, the scene engine,
+                    // the keyboard hook) - start the app and let it take the command
+                    return StartAppAndForward(args);
                 case CliKind.Refresh:
                 {
                     // Windows display API, no EC needed - works on unsupported hardware too.
@@ -407,11 +446,7 @@ public static class Cli
                 case CliKind.FanBoost:
                 {
                     if (cmd.Arg2.Length > 0)
-                    {
-                        // one-shot exits immediately, so nothing would fire the auto-off
-                        Console.WriteLine("the fan-boost timer needs the GhostDeck app running");
-                        return 1;
-                    }
+                        return StartAppAndForward(args);   // a one-shot exits at once, so nothing would fire the auto-off
                     bool on = cmd.Arg == "on";
                     Ec.SetCoolerBoost(dev, on);
                     if (!on)

@@ -454,6 +454,12 @@ public sealed class MainForm : Form
         _                 => new ReportPage(_d),
     };
 
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        Taskbar.TagWindow(Handle);   // the identity and the icon a taskbar pin made from this window gets
+    }
+
     private void OnThemeChanged()
     {
         _themeBtn.Glyph = Theme.Dark ? "☀" : "☾";

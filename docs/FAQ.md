@@ -200,9 +200,19 @@ Nothing is broken - you have run into **Smart App Control**, a Windows 11 securi
 
 The fix: unpin the app, right-click the GhostDeck exe → **Properties** → tick **Unblock** at the bottom of the General tab → OK, then pin it again. If the button still fails, also delete the leftover shortcut: Win+R → `%AppData%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` → delete `GhostDeck.lnk` → pin again. (First reported in discussion #106.)
 
+## I pinned GhostDeck to the taskbar. Where is the jump list, and why does the pin show a plain icon?
+
+Right-click the GhostDeck taskbar button (or the pinned icon) and the jump list is there: the profiles in your order, every scene, Fan Boost on / off and the panic reset. The button exists while the main window is open; the pinned icon works at any time, also through Win+Alt+<its position on the taskbar>. The tray icon has no jump list - Windows offers that only on the taskbar.
+
+Since 1.38 a pinned GhostDeck shows the icon style you chose in Settings (*Application icon*). A pin made with an older version keeps the plain exe icon and may show up next to the running window as a second button until the next sign-in - GhostDeck brings such a pin under its new identity when it starts, and Windows reads pins again when you sign in. Unpinning and pinning again does it at once.
+
+## Can a Stream Deck, AutoHotkey or a browser bookmark switch my profile?
+
+Yes - as a link: `ghostdeck://profile/silent`, `ghostdeck://scene/Gaming` (spaces as `%20`), `ghostdeck://fanboost/on/300`, `ghostdeck://refresh/max`, `ghostdeck://panic` and every other state-changing command of the [CLI](CLI.md). A Stream Deck *Open* or *Website* action, AutoHotkey's `Run`, the Run dialog (Win+R) or a shortcut launch it directly; a browser asks once whether to open GhostDeck, as it does for any such link. With the app running there is no administrator prompt. The registration lives in your own user profile (Settings → System → *ghostdeck:// links* removes it); `--status`, `--diag` and the maintainer commands are deliberately not reachable from a link, so a web page can never make GhostDeck write a file.
+
 ## Why does it ask for administrator (UAC)?
 
-EC access via WMI requires elevation. Launching manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**.
+EC access via WMI requires elevation. Launching the app manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**. Since 1.38 the exe no longer demands administrator rights by itself: the app asks for them when it starts for real, and a launch that only hands a command to the already running app (a jump-list entry, a `ghostdeck://` link, `GhostDeck.exe --profile Silent` from a script, a second double-click on the exe) runs without any prompt. A command run with no app running still prompts once, because it has to talk to the EC itself.
 
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
 

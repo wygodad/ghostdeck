@@ -942,7 +942,8 @@ print into the parent terminal.
   ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
-  ChangeLog file, exit. `--overlay` is the one command that requires the running app.
+  ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--scene`,
+  `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
 
 **Per-model experimental consent (1.36).** The old global `ExperimentalEnabled` switch is
 replaced by `ExperimentalWriteFw`, a list of firmware prefixes the owner explicitly allowed
@@ -955,7 +956,8 @@ experimental) and the flag is cleared; the CLI still honours a not-yet-migrated 
 read-only, so a one-shot call cannot disagree with a settings file the tray has not touched yet.
 
 CLI profile changes count as user-initiated (the user ran the command), mirroring hotkeys; log
-entries use the `Cli` source. Elevation is required for EC access exactly like the app itself.
+entries use the `Cli` source. Administrator rights: §77.1 - since 1.38 the exe itself does not
+demand them at launch; only the one-shot path, which touches the EC, asks for them.
 
 ## 28. Display refresh-rate auto-switch (v1.22, discussion #18)
 
@@ -3146,3 +3148,129 @@ point on boards whose table starts at 0 - reads "0 %" instead of a dash, and onl
 dropped. The fan-curve page and the value itself are unchanged.
 Two readings outside the table are still unexplained (40 / 126 on a `17L5EMS1` under FurMark,
 #76; 1 on a `15PKIMS1`, #228) - they appeared on screenshots, never in a report.
+
+## 77. Taskbar jump list, ghostdeck:// links and the elevation model (v1.38, roadmap #88 and #89)
+
+Two new doors to the CLI of §27, and the change in how the exe gets its administrator rights
+that both of them needed.
+
+### 77.1 Why the manifest changed
+
+Up to 1.37 `app.manifest` said `requireAdministrator`. Windows honours that before any code
+runs, so every launch of `GhostDeck.exe` went through a UAC prompt - including the short-lived
+launch that only hands `--profile Silent` to the running instance over the pipe. A jump-list
+entry is launched by Explorer and a `ghostdeck://` link by a browser, both unelevated, so each
+click would have meant a prompt. The manifest now says `asInvoker` and `Core/Elevation.cs`
+decides per launch:
+
+| Launch | Running instance | What happens |
+|---|---|---|
+| no arguments (icon, pinned button, double-click) | yes | the show-window event is set and the process ends; no prompt (1.37 prompted here too) |
+| no arguments | no | unelevated: the exe relaunches itself with the `runas` verb (one prompt, as before) and ends; elevated (the autostart task, `RL HIGHEST`; the restart after an update, which inherits the token): the tray starts |
+| arguments (CLI, jump list, link) | yes | the command goes over the pipe, unelevated; no prompt |
+| arguments, a one-shot against the EC | no | unelevated: the same command line is relaunched elevated and waited for, its exit code relayed (the child attaches to the caller's console, as the manifest-elevated process did); elevated: runs straight |
+| `--help`, `--dump-models`, `--verify-models`, `--dump-supported-md` | - | never elevate (no EC involved); CI is unchanged |
+
+The running app has exactly the rights it had: nothing about the EC path changed. What changed
+is who asks.
+
+Two kernel objects had to open up for this. An object created by an elevated process gets the
+elevated token's default permissions, which let the same user's *unelevated* processes read it
+but not write to it (the filtered token carries the Administrators group as deny-only). The
+pipe `GhostDeck_Cli` is therefore created through `NamedPipeServerStreamAcl` with full control
+for the user's own SID, and the event `GhostDeck_ShowMainWindow` through `EventWaitHandleAcl`
+the same way; the launcher opens the event with `EventWaitHandleAcl.TryOpenExisting(Modify)`.
+Objects created by a process above Medium integrity get no explicit integrity label by default,
+so the mandatory-integrity check should not stand in the way; the live test on the owner's
+machine is what confirms the whole chain. Consequence worth stating: any program running as the
+user, elevated or not, can now hand the pipe a command. The commands are the ones in the tray
+menu, none writes a file, and the same user could already run the exe elevated - the pipe adds
+no capability, it removes a prompt.
+
+An older build that is still running (the update step) owns an event without that permission:
+`TryOpenExisting` then throws `UnauthorizedAccessException`, which the launcher treats as
+"running, nothing more to do". The updater restarts the app elevated anyway, so this is a corner.
+
+### 77.2 The jump list
+
+`UI/Taskbar.cs` holds the shell interop (`ICustomDestinationList`, `IObjectCollection`,
+`IShellLinkW`, `IPropertyStore`; no library). The list is written for an explicit Application
+User Model ID, `Wygodad.GhostDeck`, set on the process (`SetCurrentProcessExplicitAppUserModelID`
+before the first window) and on the main window's property store. Three groups: a category with
+the profiles in `Profiles.Shown` order (only when writes are allowed), a category with the
+scenes, and the task group with Fan Boost on, Fan Boost off and the panic reset. Every entry is a
+shell link to this exe with the CLI command line as its arguments and `PKEY_Title` as its label,
+so clicking one is `GhostDeck.exe --scene "Gaming"` - which, with the app running, is the
+unelevated pipe launch above. The list is rebuilt at the end of `BuildMenu`, so it follows every
+menu rebuild (startup, language, scenes, profile order, settings import), and after an icon
+rewrite. All groups empty (unsupported hardware, no scenes) deletes the list.
+
+The shell refuses `AppendCategory` for an item the user removed from the list earlier
+("Remove from this list"); `Rebuild` then calls `DeleteList` once and writes again, because our
+entries are commands, not documents, and have to stay. Everything is best-effort inside `try`:
+a shell that refuses leaves the app as it was.
+
+**The pinned icon.** Windows takes a pin's icon from the exe unless the window names another
+through `System.AppUserModel.RelaunchIconResource` - and honours that property only on a window
+with an explicit ID, which is the second reason for the ID. `Taskbar.WriteIcons` renders the
+chosen style (`TrayIconFactory.AppIconBytes`, seven sizes 16-256, PNG entries) to
+`%APPDATA%\GhostDeck\taskbar.ico` and one profile-coloured icon per profile
+(`taskbar-<profile>.ico`) for the list entries; the window points `RelaunchIconResource` at the
+first, with `RelaunchCommand` = the exe and `RelaunchDisplayNameResource` = GhostDeck. The files
+are rewritten only when the style or a colour changed (a signature of both), with
+`SHChangeNotify(SHCNE_UPDATEITEM)` on each so the shell drops its cached image.
+
+**Pins from before 1.38.** A pin made from the 1.37 window has no ID, so next to a 1.38 window
+with an explicit ID it would be a second button. `Taskbar.HealPins` walks
+`%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*.lnk`, and every
+shortcut whose target is this exe and whose ID is not ours gets the ID and the icon file. The
+taskbar reads pins at its own start, so the change shows after the next sign-in; a pin made
+after the update is right at once.
+
+### 77.3 ghostdeck:// links
+
+`Core/Protocol.cs`. Grammar: `ghostdeck://<command>/<argument>[/<second>]`, mapped onto the CLI
+one to one (`ghostdeck://fanboost/on/300` = `--fanboost on 300`); `ghostdeck:` without the
+slashes, a trailing slash and a query or fragment are tolerated, parts are URL-decoded, and a
+part that is empty, longer than 100 characters or holds a control character refuses the link
+(the pipe carries the arguments tab-separated). The allow-list is the state-changing commands;
+`--status`, `--help`, `--diag` and the model dumps are not reachable, so a web page cannot make
+the exe write a file. `Cli.Parse` recognises a link as the first argument and swaps in the
+parsed command line, so both the pipe and the one-shot path see an ordinary command - the
+server only looks at the raw line again to turn a refusal (non-zero code) into a tray
+notification, since a link has no console to answer into.
+
+Registration is per user: `HKCU\Software\Classes\ghostdeck` with `URL Protocol`, `DefaultIcon`
+and `shell\open\command` = `"<exe>" "%1"`, written at startup when `AppSettings.ProtocolLinks`
+holds (default on) and re-pointed when the exe moved (compare-then-write, like
+`Autostart.Heal`). The Settings → System toggle removes the key when switched off.
+
+### 77.4 Commands that live in the app, with no app running
+
+Before 1.38 `--scene`, `--overlay`, `--winlock` and the `--fanboost` timer answered "needs the
+GhostDeck app running" from the one-shot. A jump list on a pinned icon exists while the app is
+not running, so those entries would have been dead there. The one-shot now starts the tray
+(`Elevation.StartTray`, elevated already at that point) and polls the pipe for up to 15 s, then
+hands the command over; the app stays. The answer is prefixed "GhostDeck started; ".
+
+### 77.5 The pipe client closed its pipe in the wrong order
+
+`Cli.TrySendToRunning` declared the `StreamWriter` before the `StreamReader`, so at scope exit
+the reader (disposed first) closed the pipe and the writer's final flush threw inside the
+`try`; the catch answered "nobody listening" and the caller fell through to the one-shot. With
+the app running, every CLI command was therefore carried out twice - by the app over the pipe
+and then by the calling process against the EC (two "CLI" history entries per profile switch,
+`--status` printed twice, `--scene` ending in exit code 1 and "needs the app running" although
+the scene had been applied). Present since the CLI's first version (1.21). The reader is now
+declared first and disposed last. Verified with the render harness (`taskbar` mode), which
+drives the private method against an in-process server: `returned False` before the fix,
+`returned True` after.
+
+### 77.6 Verification
+
+The harness mode `taskbar` (no administrator): the link grammar on eleven inputs, the five icon
+files (7 images each, loadable), one fresh `*.customDestinations-ms` in the shell's folder after
+`Rebuild`, the ACL'd event and pipe round trip. What only a live test shows: the UAC prompt
+count per launch kind, the pinned icon's style and the jump list on the pinned button, a
+pre-1.38 pin after a sign-in, a link from a browser and from Win+R, the autostart task after a
+sign-in, and the one-shot from an unelevated terminal with its output relayed.

@@ -98,6 +98,12 @@ public sealed class TrayContext : ApplicationContext
         Lang.Set(_settings.Language);
         Theme.Set(_settings.DarkMode);
         TrayIconFactory.Style = _settings.IconStyle;
+        // The taskbar (roadmap #88, #89): icon files for the pin and the jump list, pins made
+        // before 1.38 brought under the app's identity, the ghostdeck:// registration (which
+        // also follows the exe when it moved, like the autostart task).
+        Taskbar.WriteIcons(_settings);
+        Taskbar.HealPins();
+        if (_settings.ProtocolLinks) Protocol.Register();
 
         ChangeLog.Load();
         GameSessions.Load();
@@ -233,7 +239,7 @@ public sealed class TrayContext : ApplicationContext
             {
                 try
                 {
-                    using var srv = new NamedPipeServerStream(Cli.PipeName, PipeDirection.InOut, 1);
+                    using var srv = Elevation.CreatePipeServer();   // reachable by the user's unelevated processes (jump list, links)
                     srv.WaitForConnection();
                     using var r = new StreamReader(srv);
                     using var w = new StreamWriter(srv) { AutoFlush = true };
@@ -258,6 +264,20 @@ public sealed class TrayContext : ApplicationContext
     }
 
     private string ExecuteCli(string raw)
+    {
+        string resp = ExecuteCliCore(raw);
+        // a ghostdeck:// link has no console to answer into: a refusal becomes a notification
+        if (!resp.StartsWith("0|") && Protocol.IsLink(raw.Split('\t')[0]))
+        {
+            _balloonUrl = null;
+            _tray.BalloonTipTitle = Lang.T("link_title");
+            _tray.BalloonTipText = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
+            _tray.ShowBalloonTip(8000);
+        }
+        return resp;
+    }
+
+    private string ExecuteCliCore(string raw)
     {
         try
         {
@@ -846,6 +866,34 @@ public sealed class TrayContext : ApplicationContext
         // a strip that is open right now keeps its images until it has closed
         if (oldMenu is { IsDisposed: false, Visible: true }) oldMenu.Closed += (_, _) => SynchronizationContext.Current?.Post(_ => Retire(), null);
         else Retire();
+
+        RebuildJumpList();   // the taskbar list mirrors the menu, so it follows every rebuild
+    }
+
+    /// <summary>
+    /// The taskbar jump list (roadmap #88): profiles in the user's order, the scenes, then
+    /// Fan Boost on/off and the safe state as tasks - each entry runs this exe with the CLI
+    /// command line, which the running instance takes over the pipe. Rebuilt with the menu, so
+    /// a new scene, a new order or a new language reaches the taskbar at once.
+    /// </summary>
+    private void RebuildJumpList()
+    {
+        var profiles = new List<Taskbar.Entry>();
+        var tasks = new List<Taskbar.Entry>();
+        if (Writable)
+        {
+            foreach (var id in Profiles.Shown)
+                profiles.Add(new(Profiles.Get(id).Label, "--profile " + id, Taskbar.ProfileIconFile(id)));
+            tasks.Add(new(Lang.T("jl_boost_on"), "--fanboost on", Taskbar.AppIconFile));
+            tasks.Add(new(Lang.T("jl_boost_off"), "--fanboost off", Taskbar.AppIconFile));
+            tasks.Add(new(Lang.T("hk_panic"), "--panic", Taskbar.AppIconFile));
+        }
+        // the scene name travels quoted on the command line, so a quote inside it is dropped
+        var scenes = _settings.Scenes
+            .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+            .Select(s => new Taskbar.Entry(s.Name, "--scene \"" + s.Name.Replace("\"", "") + "\"", Taskbar.AppIconFile))
+            .ToList();
+        Taskbar.Rebuild(Lang.T("jl_profiles"), profiles, Lang.T("scene_title"), scenes, tasks);
     }
 
     private void TrayClick(object? s, MouseEventArgs e)
@@ -1788,6 +1836,7 @@ public sealed class TrayContext : ApplicationContext
     private void UpdateUi(ProfileId id)
     {
         TrayIconFactory.Style = _settings.IconStyle;   // follow the Settings icon-style choice
+        if (Taskbar.WriteIcons(_settings)) RebuildJumpList();   // a new style or profile colour reaches the pin and the list
         _osd.HoldSeconds = _settings.OsdSeconds;       // follow the OSD display-time choice
         var color = Writable ? _settings.ColorFor(id) : Color.Gray;
         var newIcon = TrayIconFactory.Create(color);

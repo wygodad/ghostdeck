@@ -62,6 +62,8 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🗂️ **Fan-curve presets** - save curves under a name, switch them from the editor or the tray menu, **assign a preset per profile** (auto-applied on every switch; Silent stays stock), and **export / import / share** presets as JSON - a Share button opens a prefilled GitHub Discussion with your model and curve
 - 📈 **History charts** - local trend of CPU/GPU temperature, fan curve target, fan RPM and **game FPS** over the last 5-60 minutes (Status → History) with a crosshair value readout; memory-only, nothing is stored or sent anywhere - unless you hit **Export…** to save the window as **CSV/JSON** for your own analysis
 - ⌨️ **Command line** - `GhostDeck.exe --profile Silent`, `--fanboost on [seconds]`, `--curve "<preset>"`, `--scene "<name>"`, `--refresh 240`, `--charge 80`, `--travel 7`, `--brightness 45`, `--hdr on`, `--touchpad off`, `--kbd high`, `--webcam off`, `--fnswap left`, `--winlock on`, `--panic`, `--diag` and `--status` (rich JSON: temps, fans/RPM, battery, disks, states) for Task Scheduler, Stream Deck and scripts - same safety gates as the UI
+- 📌 **Taskbar jump list** - right-click the GhostDeck button on the taskbar (or the icon once you pin GhostDeck there) for the profiles in your own order, every scene, Fan Boost on / off and the panic reset; a pinned GhostDeck also takes the icon style chosen in Settings
+- 🔗 **`ghostdeck://` links** - `ghostdeck://scene/Gaming`, `ghostdeck://profile/silent` or `ghostdeck://fanboost/on/300` from a browser, a Stream Deck "open" action, AutoHotkey or a plain shortcut: the same commands as the CLI, no plugin and no administrator prompt while the app runs (Settings → System)
 - 🌪️ **Fan Boost** - force both fans to full speed with one click, a tray entry or a global hotkey (default `Ctrl+Alt+F5`), independent of the active profile; shown as a compact toggle "brick" on the Scenarios tab *(equivalent of MSI's Cooler Boost)*, with an optional **auto-off timer** (30 s to 15 min, or your own value) so a quick cooling blast never turns into a forgotten hurricane
 - 📜 **Change-history log** - a running log of recent profile switches and EC writes (time, source: hotkey / tray / auto-AC / fan curve / external sync, the bytes written, and a readback), with a full-log window - handy for model-support reports
 - 🛡️ **Firmware-change guard** - after a BIOS/EC update the app detects the changed firmware, blocks automatic writes and asks you to re-verify the model before it touches the EC again
@@ -123,6 +125,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | Fan-curve presets + per-profile auto-apply | ❌ | ✅ *(share/import as JSON)* |
 | Local history charts (last 60 min) | ❌ | ✅ *(temps + fans, memory-only)* |
 | Command-line interface (automation) | ❌ | ✅ |
+| Taskbar jump list (profiles, scenes, Fan Boost on right-click) | ❌ | ✅ |
+| `ghostdeck://` links for Stream Deck, AutoHotkey, browsers | ❌ | ✅ *(no plugin)* |
 | Hardware monitoring | ✅ | Limited³ *(temps, fans, disks, battery health)* |
 | One-click diagnostic package for bug reports | ❌ | ✅ |
 | Measured comparison of the power profiles under load | ❌ | ✅ *(Power test: same CPU + GPU load in each profile, sampled every second, baseline measured twice)* |
@@ -249,7 +253,7 @@ Prefer to do it by hand? Open a **[Model support request](../../issues/new?templ
 
 ## CLI / automation
 
-Every core action is scriptable - handy for Task Scheduler, Stream Deck, AutoHotkey or plain shortcuts. Run from an **elevated** prompt (EC access needs admin, same as the app).
+Every core action is scriptable - handy for Task Scheduler, Stream Deck, AutoHotkey or plain shortcuts. With the app running, any prompt will do: the command is handed to the running app, which already has administrator rights, so there is no UAC prompt. Without the app running, the command talks to the EC itself and asks for administrator rights once (UAC).
 
 > The examples below call the executable `GhostDeck.exe`. The release file is named `GhostDeck-win-x64.exe`, so either rename your copy or use that name in the commands.
 
@@ -277,7 +281,9 @@ GhostDeck.exe --diag                  # diagnostic zip, works even when the UI w
 GhostDeck.exe --status                # rich JSON: profile, temps, fans/RPM, battery, disks, states
 ```
 
-If the tray app is running, the command is executed by it (with the exact same safety gates as the UI - tier, experimental opt-in); otherwise a one-shot mode talks to the EC directly and exits. Exit codes: `0` OK, `1` failed, `2` bad usage.
+If the tray app is running, the command is executed by it (with the exact same safety gates as the UI - tier, experimental opt-in); otherwise a one-shot mode talks to the EC directly and exits. A command that lives in the app (`--scene`, `--overlay`, `--winlock`, the `--fanboost` timer) starts the app when it is not running and hands the command over. Exit codes: `0` OK, `1` failed, `2` bad usage.
+
+**Links and the taskbar.** The same commands work as `ghostdeck://` links - `ghostdeck://scene/Gaming`, `ghostdeck://profile/silent`, `ghostdeck://fanboost/on/300`, `ghostdeck://refresh/max`, `ghostdeck://panic` - from a browser, the Run dialog, a Stream Deck "open" action, AutoHotkey or a shortcut (Settings → System → *ghostdeck:// links*, on by default). Only state-changing commands are reachable this way; `--status`, `--diag` and the maintainer commands are not. And a right-click on the GhostDeck taskbar button (or on the pinned icon) opens a jump list with the profiles in your order, every scene, Fan Boost on / off and the panic reset.
 
 Full reference - every command, the `--status` JSON schema and ready-made recipes (Task Scheduler, Stream Deck, AutoHotkey, game-launcher wrappers): **[docs/CLI.md](docs/CLI.md)**.
 

@@ -58,6 +58,8 @@ public sealed class AppSettings
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
+    /// <summary>ghostdeck:// links registered for this user (roadmap #89); off removes the registration.</summary>
+    public bool ProtocolLinks { get; set; } = true;
 
     public bool AutoSwitchEnabled { get; set; } = false;              // domyslnie OFF (nie gryzc sie z MSI)
     public string ProfileOnAC { get; set; } = "Balanced";
@@ -508,6 +510,7 @@ public sealed class AppSettings
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
         Autostart = src.Autostart;
+        ProtocolLinks = src.ProtocolLinks;
         AutoSwitchEnabled = src.AutoSwitchEnabled;
         ProfileOnAC = src.ProfileOnAC;
         ProfileOnBattery = src.ProfileOnBattery;
@@ -597,6 +600,7 @@ public sealed class AppSettings
         {
             Language = Language,
             Autostart = Autostart,
+            ProtocolLinks = ProtocolLinks,
             AutoSwitchEnabled = AutoSwitchEnabled,
             ProfileOnAC = ProfileOnAC,
             ProfileOnBattery = ProfileOnBattery,

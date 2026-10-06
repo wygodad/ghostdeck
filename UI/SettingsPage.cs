@@ -475,6 +475,17 @@ public sealed class SettingsPage : ThemedPage
 
         var start = new CardSection(Lang.T("set_grp_start"), "");
         start.AddRow(Lang.T("set_autostart"), Toggle(D.Settings.Autostart, v => { D.Settings.Autostart = v; try { Autostart.Set(v); } catch { } D.SaveSettings(); }));
+        // ghostdeck:// links (roadmap #89): the registration lives in the user's registry hive
+        start.AddRow(Lang.T("set_protocol"), Toggle(D.Settings.ProtocolLinks, v =>
+        {
+            D.Settings.ProtocolLinks = v; D.SaveSettings();
+            if (v) Protocol.Register(); else Protocol.Unregister();
+        }));
+        start.AddRow(null, new Label
+        {
+            Text = Lang.T("set_protocol_note"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = new Font("Segoe UI", 9f), Tag = "muted",
+        });
         // Per-model consent: the row exists only when the detected machine is experimental,
         // and the consent is keyed to the matched firmware prefix (see DeviceProfile.MatchedPrefix).
         {

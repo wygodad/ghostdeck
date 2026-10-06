@@ -5,6 +5,19 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Profiles and scenes from the taskbar** (roadmap #88) - a right-click on the GhostDeck
+  taskbar button, or on the icon once GhostDeck is pinned, opens a jump list with the profiles
+  in your order, every scene, Fan Boost on / off and the panic reset. A pinned GhostDeck now
+  carries the icon style chosen in Settings instead of the plain exe icon (a pin made with an
+  older version takes the new identity after the next sign-in; pinning again does it at once).
+- **`ghostdeck://` links** (roadmap #89) - `ghostdeck://scene/Gaming`, `ghostdeck://profile/silent`,
+  `ghostdeck://fanboost/on/300` and every other state-changing CLI command as a link, for a
+  browser, the Run dialog, a Stream Deck "open" action, AutoHotkey or a plain shortcut; no
+  plugin, no administrator prompt while the app runs. Registered for the current user when
+  the app starts; Settings → System → "ghostdeck:// links" switches it off. `--status`,
+  `--diag` and the maintainer commands are deliberately not reachable from a link.
+- **A scene, the overlay or the Windows-key lock from the command line starts the app** when it
+  is not running and hands the command over, instead of answering "needs the app running".
 - **Integrated GPU on Status and in the overlay** ([discussion #101](../../discussions/101),
   thanks @M-Essa11) - on a laptop with two graphics cards, Status shows the integrated card's
   load and the system memory it uses ("iGPU: 7 % · 1.9 GB") next to the GPU load, and the
@@ -40,6 +53,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   `DataVersion 20261011`.
 
 ### Fixed
+- **A CLI command no longer runs twice while the app is running** - the calling process closed
+  its end of the pipe in the wrong order, took its own error for "nobody listening" and carried
+  the command out a second time one-shot: two "CLI" entries per profile switch in the history,
+  `--status` printed twice, `--scene` ending with "needs the app running" although the scene had
+  been applied. Since the CLI's first version (1.21.0).
 - **"GPU load" and "VRAM" describe the discrete card only** - the Windows counters behind them
   were added up across every graphics adapter, including the integrated chip and Windows'
   software renderer, so on a two-card laptop the integrated chip's load showed as "GPU load"
@@ -55,6 +73,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   alive in the background, about 23 window objects each time. They are now released.
 
 ### Changed
+- **Fewer administrator prompts** - the exe no longer demands administrator rights at launch;
+  the app asks for them itself when it starts for real (one UAC prompt, as before; none from the
+  Start-with-Windows task). A launch that only hands a command to the running app - the jump
+  list, a link, a script, a double-click on the exe to bring the window up - runs without any
+  prompt. The running app has exactly the rights it had.
 - **Clearer overlay labels** ([discussion #150](../../discussions/150)) - the gaming overlay's
   labels say what they show: "CPU%" next to "GPU%" (was "Load"), "Frametime" (was "Frame"),
   "CPU clock" (was "CPU clk"), "Battery" (was "Bat"), "Time left" (was "Left") and "Charge

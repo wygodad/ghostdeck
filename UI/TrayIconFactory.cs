@@ -47,6 +47,43 @@ public static class TrayIconFactory
         return _appIcons[s] = icon;
     }
 
+    /// <summary>The profile-coloured icon of the active style, on the 32-unit grid scaled to <paramref name="size"/>.</summary>
+    private static void DrawProfile(Graphics g, float size, Color color)
+    {
+        switch (Style)
+        {
+            case 0: DrawSquircleGhost(g, size, color); break;                                  // white ghost, profile squircle
+            case 2:
+            case 4: DrawTile(g, size, LightTile, ControlPaint.Dark(color, 0.02f)); break;      // profile ghost, light tile
+            case 3: DrawGauge(g, size, color); break;                                          // classic gauge, profile squircle
+            default: DrawTile(g, size, DarkTile, Theme.Profile(color)); break;                 // profile ghost, dark tile
+        }
+    }
+
+    /// <summary>The window icon of the active style as an .ico file's bytes (the taskbar pin, see Taskbar).</summary>
+    public static byte[] AppIconBytes()
+    {
+        if (Style == 0)
+        {
+            try
+            {
+                using var s = typeof(TrayIconFactory).Assembly.GetManifestResourceStream("GhostDeck.app.ico");
+                if (s != null) { using var ms = new MemoryStream(); s.CopyTo(ms); return ms.ToArray(); }
+            }
+            catch { }
+        }
+        return IcoBytes(Style switch
+        {
+            2 => (g, sz) => DrawTile(g, sz, LightTile, BrandBlue),
+            3 => (g, sz) => DrawGauge(g, sz, BrandBlue),
+            4 => (g, sz) => DrawTile(g, sz, LightTile, BrandCyan),
+            _ => (g, sz) => DrawTile(g, sz, DarkTile, BrandCyan),
+        });
+    }
+
+    /// <summary>A profile's icon (active style, the profile's colour) as an .ico file's bytes.</summary>
+    public static byte[] ProfileIconBytes(Color color) => IcoBytes((g, sz) => DrawProfile(g, sz, color));
+
     /// <summary>Tray icon in the active profile colour, per the active style.</summary>
     public static Icon Create(Color color)
     {
@@ -56,14 +93,7 @@ public static class TrayIconFactory
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Color.Transparent);
-            switch (Style)
-            {
-                case 0: DrawSquircleGhost(g, S, color); break;                                  // white ghost, profile squircle
-                case 2:
-                case 4: DrawTile(g, S, LightTile, ControlPaint.Dark(color, 0.02f)); break;      // profile ghost, light tile
-                case 3: DrawGauge(g, S, color); break;                                          // classic gauge, profile squircle
-                default: DrawTile(g, S, DarkTile, Theme.Profile(color)); break;                 // profile ghost, dark tile
-            }
+            DrawProfile(g, S, color);
         }
 
         IntPtr h = bmp.GetHicon();
@@ -314,7 +344,10 @@ public static class TrayIconFactory
     }
 
     /// <summary>Builds a multi-size icon (PNG-compressed ICO in memory) from a vector painter.</summary>
-    private static Icon BuildIcon(Action<Graphics, int> draw)
+    private static Icon BuildIcon(Action<Graphics, int> draw) => new(new MemoryStream(IcoBytes(draw)));
+
+    /// <summary>The bytes of a multi-size .ico (PNG-compressed entries) painted by <paramref name="draw"/>.</summary>
+    private static byte[] IcoBytes(Action<Graphics, int> draw)
     {
         int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };
         var pngs = new List<byte[]>(sizes.Length);
@@ -350,7 +383,6 @@ public static class TrayIconFactory
             }
             foreach (var p in pngs) w.Write(p);
         }
-        ico.Position = 0;
-        return new Icon(ico);
+        return ico.ToArray();
     }
 }
