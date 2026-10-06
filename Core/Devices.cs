@@ -656,7 +656,10 @@ public static class Devices
         //   0xC6 Super Battery, and the curve wizard found the test curve at 0x72 / 0x8A
         //   again (MATCH). His power test is flat on the CPU side - the clock sat at 2258 MHz
         //   in every phase, so no CPU limit came into play - while the GPU side responded
-        //   (GPU fan 2852 / 4179 / 6153 rpm across Silent / Balanced / Extreme).
+        //   (GPU fan 2852 / 4179 / 6153 rpm across Silent / Balanced / Extreme). His repeat
+        //   (#236; the owner reports turbo was likely off in the first run) does respond:
+        //   Extreme +25% (4153 vs 3315 MHz at 98 C), clear of the run's 7% drift; Silent 94%
+        //   sits inside the drift, on a slower CPU fan (2960 vs 3568 rpm).
         new() { Name = "MSI Raider GE68 HX 14VIG / Vector 16 HX A13V", FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, ShiftEcoValue = 0xC6,
                 Recipes = new()
@@ -1037,8 +1040,8 @@ public static class Devices
         //   RPM: wide-tach 16-bit pair 0xC8:0xC9, CPU only (single fan; 0xCA:0xCB read 00 in
         //   every dump). The #145 re-capture shows 0xC8:0xC9 = 01:19 = ~1700 rpm as a pair,
         //   while a single-byte read of 0xC9 would give 19120 rpm garbage - the same wide
-        //   format as 17L5EMS1/1585EMS1 (third carrier); owner asked to cross-check against
-        //   HWiNFO64 once the readout ships.
+        //   format as 17L5EMS1/1585EMS1 (third carrier). CONFIRMED by the owner's HWiNFO64
+        //   side-by-side on 1.37.0 (#145, 2026-10-06): 2489 rpm in both programs.
         //   Curve VERIFIED, single fan (#145 re-capture): the owner's second pass set all six
         //   sliders and the test curve sits byte-for-byte at the shipped 0x72 from the first
         //   slot. The GPU table stayed factory through both passes, the owner states his
