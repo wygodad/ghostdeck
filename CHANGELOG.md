@@ -59,6 +59,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   labels say what they show: "CPU%" next to "GPU%" (was "Load"), "Frametime" (was "Frame"),
   "CPU clock" (was "CPU clk"), "Battery" (was "Bat"), "Time left" (was "Left") and "Charge
   limit" (was "Limit"). They stay in English in every language, as before.
+- **The fan percentage is labelled "curve target"** - the two rings on Status ("CPU curve
+  target", "GPU curve target", were "CPU fan" / "GPU fan"), the history chart ("Fan curve
+  target (%)", was "Fans (duty %)"), the overlay item ("Curve target", was "Fans") and the EC
+  view rows, in all 15 languages. The number is the fan curve's target for the current
+  temperature, not the fan's speed: the chosen profile caps the real speed on top of it (on a
+  GE76 the ring reads 85 % in every profile while the fan runs 2800 / 3580 / 5065 rpm in
+  Silent / Balanced / Extreme). The measured speed is the rpm readout under the rings. The
+  value itself is unchanged; a new FAQ entry explains the two numbers.
 - **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
   the state is information (turbo is off in the active Windows plan and GhostDeck has nothing
   of its own to bring back), so it now uses the same amber strip with the "!" chip as the

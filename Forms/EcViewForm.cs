@@ -71,8 +71,8 @@ public sealed class EcViewForm : Form
                     if (a != 0) { _sensors.Add(a); _sensors.Add((byte)(a + 1)); }
                 L(dev.CpuTemp, "CPU temperature");
                 L(dev.GpuTemp, "GPU temperature");
-                L(dev.CpuFan, "CPU fan duty");
-                L(dev.GpuFan, "GPU fan duty");
+                L(dev.CpuFan, "CPU fan curve target");
+                L(dev.GpuFan, "GPU fan curve target");
                 L(dev.CpuRpmAddr, "fan 1 tachometer");
                 L(dev.GpuRpmAddr, "fan 2 tachometer");
                 L(dev.CpuRpmAddr16, "fan 1 tachometer (16-bit high)");

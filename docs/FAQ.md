@@ -164,6 +164,14 @@ Usually not, and MSI Center does the same thing on the same machine. Two separat
 
 If a fan is audibly roaring and still shows "--", that is worth reporting: open an issue with your model, firmware and what MSI Center or HWiNFO64 shows at that moment.
 
+## The "curve target" ring says 85 %, but the fan speed changes with the profile. Which one is right?
+
+Both are right - they answer different questions. The rpm number under the rings ("CPU: 3581 RPM") is the **measured** fan speed, read from the fan's tachometer; it matches HWiNFO64. The ring ("CPU curve target", "GPU curve target") is the **target from the fan curve**: the curve is a small table "at this temperature, run the fan at this percentage", and the controller shows which entry of that table it picked for the current temperature.
+
+The profile you choose (Silent, Balanced, Extreme) then limits how fast the fan may actually go. Example from a GE76 Raider under the same heavy load: the ring stays at 85 % in all three profiles, while the fan runs at about 2800 rpm in Silent, 3580 rpm in Balanced and 5065 rpm in Extreme. On many boards Balanced stops the CPU fan at about 3560 rpm whatever the curve asks for. When the curve asks for less than that limit, the fan follows the ring.
+
+So: for "how fast is my fan spinning", read the rpm. For "how hard does the curve want it to spin at this temperature", read the ring. Up to v1.37 the rings were labelled "CPU fan" / "GPU fan", which suggested a speed; the value itself has not changed. Details and the data behind this: [TECHNICAL.md §76](TECHNICAL.md#76-the-fan-rings-show-the-curve-target-not-the-fan-speed-v138).
+
 ## Why does my laptop boot with a different profile than the one I picked? Do settings survive a reboot?
 
 They are not supposed to survive, and that is by design, not a fault. Profiles, fan curves and Fan Boost live in the Embedded Controller's working memory, which is **volatile**: every shutdown or reboot clears it, and the firmware starts the machine with its own defaults, exactly as if no tool had ever run. GhostDeck deliberately flashes nothing permanent - that is what keeps every change fully reversible.

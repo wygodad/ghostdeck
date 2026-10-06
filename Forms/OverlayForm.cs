@@ -173,7 +173,7 @@ public sealed class OverlayForm : Form
             : _s.SsdTemp > 0 ? $"{_s.SsdTemp}°" : _s.SsdTemp2 > 0 ? $"{_s.SsdTemp2}°" : "--");
         Add(OverlayMetric.CpuRpm, IconKind.Fan, "CPU fan", _s.CpuRpm > 0 ? $"{_s.CpuRpm}" : "--");
         Add(OverlayMetric.GpuRpm, IconKind.Fan, "GPU fan", _s.GpuRpm > 0 ? $"{_s.GpuRpm}" : "--");
-        Add(OverlayMetric.FanPct, IconKind.Fan, "Fans", $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
+        Add(OverlayMetric.FanPct, IconKind.Fan, "Curve target", $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
         Add(OverlayMetric.CpuLoad, IconKind.Load, "CPU%", $"{_s.CpuLoad}%");
         Add(OverlayMetric.GpuUsage, IconKind.Gpu, "GPU%", _s.GpuUsage >= 0 ? $"{_s.GpuUsage}%" : "--");
         Add(OverlayMetric.IgpuUsage, IconKind.Gpu, "iGPU%", _s.IgpuUsage >= 0 ? $"{_s.IgpuUsage}%" : "--");

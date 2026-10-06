@@ -3111,3 +3111,32 @@ already off the window thread (the SSD sampler, `--status`).
 Measured on the live app, medians of three runs, the switch itself without the repaint:
 entering Fan curve 144 -> 26 ms, entering Status 62 -> 23 ms (first entry 273 -> 43 ms),
 entering Settings 19 -> 8 ms, Scenarios 22 -> 11 ms.
+
+## 76. The fan rings show the curve target, not the fan speed (v1.38)
+
+The two percentage rings on Status (and the history chart "Fan curve target (%)", the overlay item
+of the same name and the EC view rows) show the raw EC bytes `0x71` (CPU) and `0x89` (GPU) - the
+same bytes msi-ec exposes as `realtime_fan_speed`. Until v1.38 they were labelled "CPU fan" /
+"GPU fan", which reads as a speed. They are not one:
+
+- **The byte is a value from the fan-curve speed table.** Across about 400 EC dumps from 70
+  power-test reports on 37 boards, `0x71` equals one of the speeds at `0x72`-`0x78` of the same
+  dump and `0x89` one of `0x8A`-`0x90` (a single exception, one `1833EMS1` dump).
+- **The chosen value follows the current temperature.** Counting the temperature thresholds the
+  current reading has passed (`0x68` against `0x6A`-`0x6F`, `0x80` against `0x82`-`0x87`) picks
+  the same table slot in 304 of 360 GPU dumps (44 more one slot away) and in 179 of 386 CPU
+  dumps (119 more one slot away).
+- **The profile caps the real speed on top of it.** In Balanced (`0xD2=C1`, `0xD4=0D`) the CPU
+  fan settles at 3553-3581 rpm on nine different boards while the curve target there ranges from
+  45 to 85; on the GE76 / GP76 (`17K3EMS1`, #200) the target sits at 84-85 in every profile while
+  the fan runs 2802 (Silent), 3581 (Balanced) and 5065 rpm (Extreme). When the target is below
+  the cap the fan follows it (`15M1IMS2`: target 48 -> 2840 rpm, target 60 -> 3567 rpm). The caps
+  differ between boards (Balanced reaches 4361-4482 rpm on `15M3EMS1`).
+
+YAMDCC's EC research describes `0x71` the same way ("realtime CPU fan speed target") and `0xC1`
+as capping the fans at about 3500 rpm; MControlCenter does not show these bytes at all and
+reports only the tachometers. The measured speed is the rpm readout under the rings, which
+matches HWiNFO64 on every board checked. The rings were therefore relabelled "CPU curve target" /
+"GPU curve target"; the value, the scale (`MaxFanPct`) and the fan-curve page are unchanged.
+Two readings outside the table are still unexplained (40 / 126 on a `17L5EMS1` under FurMark,
+#76; 1 on a `15PKIMS1`, #228) - they appeared on screenshots, never in a report.
