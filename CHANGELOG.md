@@ -30,6 +30,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **CPU model in the overlay** ([discussion #150](../../discussions/150), thanks
   @r7v9r4hmm8-png) - a new overlay item shows the processor as people name it ("i9-13980HX",
   "Ultra 9 185H", "Ryzen AI 9 HX 370").
+- **Katana 15 B13VGK - sixth retail line on the `1585EMS1` board**
+  ([#235](../../issues/235), thanks @sefouhi3400-hash) - the Tested entry gains the name
+  (i7-13620H + RTX 4070; retail listings carry the same board code). The owner's clean Power
+  test (0 % drift) records Silent at 83 % of Balanced's work at 79 °C against 94 °C, and
+  Extreme at 73 % under the combined CPU and graphics load. Second owner confirmation of the
+  Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`) ([#234](../../issues/234), thanks
+  @alinayzIr): every recipe byte and the fan-curve tables match again. Signed model database
+  `DataVersion 20261011`.
 
 ### Fixed
 - **"GPU load" and "VRAM" describe the discrete card only** - the Windows counters behind them

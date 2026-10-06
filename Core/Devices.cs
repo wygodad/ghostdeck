@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261010;
+    public const int DataVersion = 20261011;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -544,11 +544,16 @@ public static class Devices
         //   spread, both runs look valid). Extreme level with Balanced (99) under the combined
         //   CPU+GPU load - the family's shared-budget pattern, recorded, not held against the
         //   entry.
-        new() { Name = "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / B13VFK / Crosshair 16 A13V",
+        //   Sixth retail line: Katana 15 B13VGK (issue #235, i7-13620H + RTX 4070; retail
+        //   listings carry the board code 9S7-158571). That owner's clean power test (0% drift,
+        //   byte readbacks intact) shows Silent at 83% of Balanced's work at 79 vs 94 C on
+        //   slower fans (2694 vs 3581 rpm), and Extreme at 73% - CPU 3714 vs 5051 MHz and
+        //   cooler (79 C) while the GPU ran hotter (84 vs 78 C) under the combined load.
+        new() { Name = "MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / B13VFK / B13VGK / Crosshair 16 A13V",
                 FirmwarePrefixes = new[] { "1585EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Punssama & Gangan-Lin, GabrielGby, houstonmcknight790-byte", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/90" },
+                Credit = "Punssama & Gangan-Lin, GabrielGby, houstonmcknight790-byte, sefouhi3400-hash", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/90" },
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
@@ -646,6 +651,12 @@ public static class Devices
         //   2.0.48 and the wizard found it byte-for-byte at the shipped 0x72 / 0x8A. His capture
         //   also shows MSI Center engaging the curve as 0xD4 = 0x9D (bit 7 on the value already
         //   there) where we write the constant 0x8D - both reach advanced mode.
+        //   Second owner (issue #234, Vector 16 HX A13VHG, firmware .112, MSI Center with the
+        //   real Silent): the per-scenario report matches every recipe byte including the
+        //   0xC6 Super Battery, and the curve wizard found the test curve at 0x72 / 0x8A
+        //   again (MATCH). His power test is flat on the CPU side - the clock sat at 2258 MHz
+        //   in every phase, so no CPU limit came into play - while the GPU side responded
+        //   (GPU fan 2852 / 4179 / 6153 rpm across Silent / Balanced / Extreme).
         new() { Name = "MSI Raider GE68 HX 14VIG / Vector 16 HX A13V", FirmwarePrefixes = new[] { "15M1IMS2" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, ShiftEcoValue = 0xC6,
                 Recipes = new()
@@ -655,7 +666,7 @@ public static class Devices
                     [ProfileId.Extreme]      = new (byte, byte)[] { (0xD2, 0xC4), (0xD4, 0x0D) },
                     [ProfileId.SuperBattery] = new (byte, byte)[] { (0xD2, 0xC6), (0xD4, 0x0D) },
                 },
-                Credit = "dodi6161", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/104" },
+                Credit = "dodi6161, alinayzIr", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/104" },
         new() { Name = "MSI Raider GE68 HX 14VGG",          FirmwarePrefixes = new[] { "15M2IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Vector 16 HX AI (15M3EMS1) - the first model promoted on a MEASUREMENT rather than on its
         // owner's judgement. The Power test (issue #74) answers all three hardware checks with
