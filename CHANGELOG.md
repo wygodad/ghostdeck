@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.38.0] - 2026-10-07
 ### Added
 - **Profiles and scenes from the taskbar** (roadmap #88) - a right-click on the GhostDeck
   taskbar button, or on the icon once GhostDeck is pinned, opens a jump list with the profiles
