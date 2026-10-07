@@ -47,8 +47,10 @@ body:
     attributes:
       label: MSI Center version
       description: |
-        MSI Center → Settings (gear) → About, e.g. "2.0.52". Newer versions rename or hide some
-        scenarios, which changes what a capture shows — the version tells us how to read your dumps.
+        MSI Center → Settings (gear) → About, e.g. "2.0.52". Business laptops (Modern, Prestige,
+        Summit, some Creator models) come with **MSI Center Pro** instead: give its version and add "Pro".
+        Apps and versions name some scenarios differently, so the version tells us how to read your dumps
+        ([which name is which](https://github.com/wygodad/ghostdeck/blob/main/docs/FAQ.md#my-msi-app-names-the-scenarios-differently-which-one-is-which)).
         Write "not installed" if you don't have it.
       placeholder: "2.0.xx / not installed"
     validations:
@@ -65,7 +67,9 @@ body:
         4. At each prompt, set the MSI Center scenario (Silent / Balanced / Extreme / Super Battery) and press Enter.
         5. Paste the result here (it is also saved as `msi_ec_snapshot_results.txt`).
 
-        If your MSI Center has only 3 scenarios (no classic Silent), capture what it offers and mention it.
+        Names differ between apps and versions: Extreme is "High Performance" in MSI Center Pro, and
+        Super Battery is "ECO-Silent" in newer MSI Center. If your app has only 3 scenarios (no classic
+        Silent), capture what it offers and mention it.
       render: text
     validations:
       required: true

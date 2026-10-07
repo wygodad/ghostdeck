@@ -22,6 +22,28 @@ Not the way this app works - and that's actually the core reason it exists. The 
 
 You can run both. MSI Center caches its own UI state and doesn't live-read the EC, so it **won't reflect** changes made by anything else - but that's purely a display thing: the change still applies (GhostDeck writes the *exact same* EC bytes MSI Center writes; verify it in HWiNFO). Each app only touches the EC when you actually do something, so they don't fight over it. GhostDeck also **reads live state**, so if you switch a profile in MSI Center, GhostDeck syncs on its own. The only niche caveat: if you enable automatic AC/battery profile switching in **both** apps at once, their automations could ping-pong - but that's off by default here.
 
+## Does GhostDeck work on business laptops with MSI Center Pro?
+
+Yes, the same way as on gaming laptops. MSI gives its business line (Modern, Prestige, Summit and some Creator models) a separate app, **MSI Center Pro**, which does not install on gaming laptops; gaming laptops get **MSI Center**. GhostDeck uses neither of them: it talks to the laptop's embedded controller through MSI's interface in the firmware, and that works the same on both lines. The MSI app only serves as the reference for which values each profile writes on your model.
+
+Business laptops are in the [model list](SUPPORTED_MODELS.md) like any other, five of them are confirmed on hardware by their owners, and GhostDeck has run on MSI Center Pro machines with profiles switching normally ([#77](../../../issues/77), [#170](../../../issues/170)). Where a board's MSI app writes a different value than the usual set, the model's entry writes that value too: on the Modern 14 B11MOU, MSI Center Pro's top scenario uses a different performance value, and GhostDeck uses the same one.
+
+## My MSI app names the scenarios differently. Which one is which?
+
+The names depend on the app, its version and sometimes the model. This is how they match GhostDeck's profiles:
+
+| GhostDeck | MSI Center up to 2.0.48 | MSI Center 2.0.49 and newer | MSI Center Pro |
+|---|---|---|---|
+| **Silent** | Silent | missing on most models | Silent |
+| **Balanced** | Balanced | Balanced | Balanced |
+| **Extreme** | Extreme Performance | Extreme Performance | High Performance |
+| **Super Battery** | Super Battery | ECO-Silent | Super Battery |
+
+- **ECO-Silent is the old Super Battery**, the lowest-power mode, despite "Silent" in its name. It is not the classic Silent that GhostDeck brings back.
+- **MSI AI Engine** is not one of the four, so do not use it for a capture.
+- Some models show an **Apex** switch inside the top scenario - see [What is the APEX switch](#what-is-the-apex-switch-on-my-extreme-tile-why-dont-i-see-it).
+- If your app has only three of the four, capture the ones it has and say in your report which one is missing.
+
 ## GhostDeck worked before, but after a clean Windows install it says "unsupported". Is my laptop no longer supported?
 
 Your laptop is fine - a freshly installed Windows is just missing one piece. Windows needs a small description file (the **MSI WMI schema**, `msiapcfg.dll`) before it will expose MSI's hardware interface as the WMI class GhostDeck talks to, and MSI ships that file **only with its own software** - it is not in the firmware and there is no standalone download.
