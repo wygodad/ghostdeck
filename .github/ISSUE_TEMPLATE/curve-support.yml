@@ -44,7 +44,7 @@ body:
     id: msicenter
     attributes:
       label: MSI Center version
-      description: MSI Center → Settings (gear) → About, e.g. "2.0.52". Business laptops (Modern, Prestige, Summit, some Creator models) come with MSI Center Pro instead - give its version and add "Pro"; there the curve is under High Performance → Advanced. Write "not installed" if you don't have it.
+      description: MSI Center → Settings (gear) → About, e.g. "2.0.52". Some business laptops (Modern, Prestige, Summit, Creator) come with MSI Center Pro instead - give its version and add "Pro"; there the curve is under High Performance → Advanced. Write "not installed" if you don't have it.
       placeholder: "2.0.xx / not installed"
     validations:
       required: true

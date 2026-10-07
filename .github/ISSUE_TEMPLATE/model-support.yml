@@ -47,8 +47,8 @@ body:
     attributes:
       label: MSI Center version
       description: |
-        MSI Center → Settings (gear) → About, e.g. "2.0.52". Business laptops (Modern, Prestige,
-        Summit, some Creator models) come with **MSI Center Pro** instead: give its version and add "Pro".
+        MSI Center → Settings (gear) → About, e.g. "2.0.52". Some business laptops (Modern, Prestige,
+        Summit, Creator) come with **MSI Center Pro** instead: give its version and add "Pro".
         Apps and versions name some scenarios differently, so the version tells us how to read your dumps
         ([which name is which](https://github.com/wygodad/ghostdeck/blob/main/docs/FAQ.md#my-msi-app-names-the-scenarios-differently-which-one-is-which)).
         Write "not installed" if you don't have it.

@@ -535,8 +535,8 @@ Issue #100: the submenu listed presets but never showed which one was live. Thre
 
 ### 17.9 MSI Center Pro, the vendor app of the business line
 
-MSI ships two different vendor apps. Gaming laptops get **MSI Center** (versions `2.0.x`). The
-business and productivity line gets **MSI Center Pro**, a separate application with its own `2.1.x`
+MSI ships two different vendor apps. Gaming laptops get **MSI Center** (versions `2.0.x`). Part of
+the business and productivity line gets **MSI Center Pro**, a separate application with its own `2.1.x`
 numbering. Its user guide describes it as the app created only for the Summit, Prestige and Modern
 series with 11th-gen Intel Core or 4th-gen Ryzen processors, and it does not install on gaming
 machines. Two reports so far came from it, both version `2.1.42.0`: a Creator Z17 A12UGST (#77,
