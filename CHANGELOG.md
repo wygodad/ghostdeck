@@ -20,6 +20,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 - The "Report my model" texts use plain hyphens instead of long dashes in all 15 languages.
 
+### Fixed
+- **Changing the language left the "Report my model" window half translated** - the three
+  info cards, the "Start over" buttons and the consent line of the power test kept the old
+  language until the app was restarted; they now follow the switch.
+
 ## [1.38.0] - 2026-10-07
 ### Added
 - **Profiles and scenes from the taskbar** (roadmap #88) - a right-click on the GhostDeck

@@ -125,24 +125,10 @@ public sealed class ReportPage : ThemedPage
         _curveBtn.Click += OnCurveCapture;
         Controls.Add(_curveBtn);
 
-        _curveCard = new InfoCardT("", new (string, string?)[]
-        {
-            (Lang.T("rep_curve_warn"), null),
-            (Lang.T("rep_curve_why"), null),
-        }, _leftW);
+        _curveCard = new InfoCardT("", CurveCardItems(), _leftW);
         Controls.Add(_curveCard);
 
-        _card = new InfoCardT("", new (string, string?)[]
-        {
-            (Lang.T("rep_need_msi"), null),
-            (Lang.T("rep_msi_pro"), null),
-            (Lang.T("rep_msi_tip"), null),
-            (Lang.T("rep_msi_download"), null),
-            (Lang.T("rep_dl_version"), "https://msi-center.en.uptodown.com/windows/download/1045738268"),
-            (Lang.T("rep_dl_repo"), "https://msi-center.en.uptodown.com/windows/versions"),
-            (Lang.T("rep_msi_clean"), null),
-            (Lang.T("rep_uninstaller_link"), "https://download.msi.com/uti_exe/nb/CleanCenterMaster.zip"),
-        }, _leftW);
+        _card = new InfoCardT("", CardItems(), _leftW);
         Controls.Add(_card);
 
         _rows = Steps.Select((s, i) => new StepRowT(i + 1, s.msiName, Theme.Profile(D.ColorOf(s.id)))).ToArray();
@@ -180,13 +166,7 @@ public sealed class ReportPage : ThemedPage
         Controls.Add(_curveRestart);
 
         // ---- power test ----
-        _ptCard = new InfoCardT("", new (string, string?)[]
-        {
-            (Lang.T("pt_warn_write"), null),
-            (Lang.T("pt_warn_fourth"), null),
-            (Lang.T("pt_warn_heat"), null),
-            (Lang.T("pt_warn_restore"), null),
-        }, _leftW);
+        _ptCard = new InfoCardT("", PtCardItems(), _leftW);
         Controls.Add(_ptCard);
 
         // Silent / Balanced / Extreme, then the board's fourth mode (hidden when it has none),
@@ -261,12 +241,46 @@ public sealed class ReportPage : ThemedPage
     // this can never land mid-test.
     public override void OnDeviceDbChanged() { RefreshPowerRows(); SyncSub(); Relayout(); Invalidate(); }
 
+    // The three info cards capture their texts when built, so a language change has to hand
+    // them the new ones; the lists live here so the constructor and OnLanguageChanged agree.
+    private static (string, string?)[] CardItems() => new (string, string?)[]
+    {
+        (Lang.T("rep_need_msi"), null),
+        (Lang.T("rep_msi_pro"), null),
+        (Lang.T("rep_msi_tip"), null),
+        (Lang.T("rep_msi_download"), null),
+        (Lang.T("rep_dl_version"), "https://msi-center.en.uptodown.com/windows/download/1045738268"),
+        (Lang.T("rep_dl_repo"), "https://msi-center.en.uptodown.com/windows/versions"),
+        (Lang.T("rep_msi_clean"), null),
+        (Lang.T("rep_uninstaller_link"), "https://download.msi.com/uti_exe/nb/CleanCenterMaster.zip"),
+    };
+    private static (string, string?)[] CurveCardItems() => new (string, string?)[]
+    {
+        (Lang.T("rep_curve_warn"), null),
+        (Lang.T("rep_curve_why"), null),
+    };
+    private static (string, string?)[] PtCardItems() => new (string, string?)[]
+    {
+        (Lang.T("pt_warn_write"), null),
+        (Lang.T("pt_warn_fourth"), null),
+        (Lang.T("pt_warn_heat"), null),
+        (Lang.T("pt_warn_restore"), null),
+    };
+
     public override void OnLanguageChanged()
     {
         _subTabs.SetLabels(new[]
         {
             Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"),
         });
+        // Everything that captured a text at build time: the three cards, the "start over"
+        // captions, the consent line and the rows' second names (#170: switching the language
+        // left the cards and these captions in the old one).
+        _card.SetItems(CardItems()); _curveCard.SetItems(CurveCardItems()); _ptCard.SetItems(PtCardItems());
+        _restart.Text = _curveRestart.Text = Lang.T("rep_restart");
+        _ptConsent.Text = Lang.T("pt_consent");
+        for (int i = 0; i < _rows.Length; i++)
+            if (Steps[i].altKey is { } ak) { _rows[i].Alt = Lang.T(ak); _tip.SetToolTip(_rows[i], Lang.T(ak)); }
         // Button captions and checklist rows are re-derived by the same refreshes OnEnter uses.
         RefreshSteps(); RefreshCurve(); RefreshPowerRows(); SyncSub(); Relayout(); Invalidate();
     }
@@ -479,7 +493,8 @@ public sealed class ReportPage : ThemedPage
         _card.SetWidth(_leftW);
 
         int ry = _rowsTop;
-        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 52); ry += 60; }
+        // Two lines of text per row since the rows name the tile in the other MSI apps as well.
+        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 58); ry += 66; }
         _barY = ry + 26;
         _instrTop = _barY + 58;
         var instrFont = new Font("Segoe UI", 11.5f, FontStyle.Bold);
@@ -1395,11 +1410,11 @@ public sealed class ReportPage : ThemedPage
                 // Two lines share the row: the tile name as the capture knows it, and the name the
                 // owner may be looking at in another vendor app. Heights come from the fonts, so
                 // the pair stays centred at any DPI.
-                var altFont = new Font("Segoe UI", 8.5f);
+                var altFont = new Font("Segoe UI", 9.75f);
                 int h1 = nameFont.Height, h2 = altFont.Height, top = (Height - h1 - h2 + 2) / 2;
                 Ui.DrawText(g, _name, nameFont, new Rectangle(nx, top, textW, h1), nameColor,
                     TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
-                Ui.DrawText(g, _alt, altFont, new Rectangle(nx, top + h1 - 2, textW, h2), Theme.Muted,
+                Ui.DrawText(g, _alt, altFont, new Rectangle(nx, top + h1 - 2, textW, h2), _current ? Theme.Text : Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
             }
             Ui.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), new Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
@@ -1413,7 +1428,7 @@ public sealed class ReportPage : ThemedPage
         private const int LeftPad = 46, RightPad = 18, TopPad = 15;
         private static readonly Font IconFont = new("Segoe MDL2 Assets", 13f);
         private readonly string _icon;
-        private readonly (string text, string? url)[] _items;
+        private (string text, string? url)[] _items;
         private readonly List<(Rectangle rect, string text)> _paras = new();
         private readonly List<LinkLabel> _links = new();
         private readonly Font _font = new("Segoe UI", 10.5f);
@@ -1455,6 +1470,9 @@ public sealed class ReportPage : ThemedPage
         }
 
         public void SetWidth(int w) { if (Width == w) return; Width = w; Build(); }
+
+        /// <summary>The same card in another language: the texts are captured at build time.</summary>
+        public void SetItems((string text, string? url)[] items) { _items = items; Build(); }
 
         public void ApplyTheme()
         {
