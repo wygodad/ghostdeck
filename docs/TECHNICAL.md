@@ -533,6 +533,41 @@ Issue #100: the submenu listed presets but never showed which one was live. Thre
 - **The active preset is recognised by its POINTS** (`SequenceEqual` on all four tables against the recorded active curve), not by name - the Fan curve tab records applied curves without a name, so a name match alone would never tick anything applied from the tab. A hand-edited curve matches no preset and ticks nothing, which is correct.
 - **Applying a preset from the tray mirrors into the Fan curve tab** (`MainForm.SyncFanCurvePreset` -> `FanCurvePage.SyncExternalPreset`): the picker and the chart follow without re-applying to the EC, so both surfaces tell the same story.
 
+### 17.9 MSI Center Pro, the vendor app of the business line
+
+MSI ships two different vendor apps. Gaming laptops get **MSI Center** (versions `2.0.x`). The
+business and productivity line gets **MSI Center Pro**, a separate application with its own `2.1.x`
+numbering. Its user guide describes it as the app created only for the Summit, Prestige and Modern
+series with 11th-gen Intel Core or 4th-gen Ryzen processors, and it does not install on gaming
+machines. Two reports so far came from it, both version `2.1.42.0`: a Creator Z17 A12UGST (#77,
+where the owner named the app and said regular MSI Center does not support the machine) and a
+Modern 14 B11MOU (#170). The other business-line owners who reported (Modern 14 C12M, Prestige 14 AI
+Studio, Prestige 16 Studio, Summit E14 Flip / Prestige 14 H, Creator M14) ran regular MSI Center
+`2.0.x`.
+
+What it changes for GhostDeck:
+
+- **Nothing in the transport.** GhostDeck calls neither app: it writes the EC through `MSI_ACPI`,
+  and the vendor app matters only as the source of the WMI schema ([MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md))
+  and as the reference for what a board's profiles write. Both Pro machines ran GhostDeck: the Z17
+  ran a power test and its fan-curve tables were verified against Pro's own curve editor, and the
+  B11MOU switched profiles with a clean readback through two power tests.
+- **The reference values can differ from the gaming standard, and Pro is where that happened.** On
+  the Modern 14 B11MOU, Pro's top tile writes shift `0xD2 = C0` instead of `C4`, and the board keeps
+  a vendor flag in bit 7 of `0xEB` (preserved by the masked write, see the `0xEB` row in §17.1). Both
+  were taken from two agreeing captures, the same rule as every other exception in §17.1.
+- **The tiles have different names.** Pro's four user scenarios are **High Performance**, Balanced,
+  Silent and Super Battery. High Performance is the counterpart of "Extreme Performance", and Pro
+  offers its fan speed choice (Auto / Advanced / Cooler Boost) only under it. A capture from Pro is
+  read by those names; the version field (`2.1.x`) is what identifies the app.
+- **Business-line entries stay Experimental until an owner's measurement promotes them**, so a write
+  on them needs the owner's per-model consent (`ExperimentalWriteFw`), the same as on any other
+  unconfirmed board.
+
+Source: MSI Center Pro user guide (MSI, 2021),
+`download-2.msi.com/archive/mnu_exe/nb/Notebook_MSI_Center_Pro_eng.pdf`, sections "Introduction"
+and "How to Use User Scenario".
+
 ## 18. Supported model families (bulk import)
 
 Beyond the tested GE78HX, the app recognises **145 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:
