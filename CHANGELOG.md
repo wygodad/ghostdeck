@@ -3,6 +3,23 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **The "Report my model" steps name the tile in the other MSI apps** ([#170](../../issues/170)) -
+  each step shows the scenario as MSI Center 2.0.48 names it and, underneath, the name the owner
+  may be looking at instead: "High Performance" in MSI Center Pro for Extreme, "ECO-Silent" in
+  MSI Center 2.0.49 and newer for Super Battery, and a note that those newer versions have no
+  Silent tile at all. The instruction line carries the short alternatives too, and the card at the
+  left says that a business laptop with MSI Center Pro can use it as it is.
+- **The power test report names a phase that did not run evenly** - a new "Inside the phases"
+  section lists a phase whose processor clock stepped to a different level partway through, or
+  spiked inside the measured window, with the second it happened and both levels. The baseline
+  check then says that its drift figure measures that step, instead of describing a machine
+  that heated up over the run.
+
+### Changed
+- The "Report my model" texts use plain hyphens instead of long dashes in all 15 languages.
+
 ## [1.38.0] - 2026-10-07
 ### Added
 - **Profiles and scenes from the taskbar** (roadmap #88) - a right-click on the GhostDeck

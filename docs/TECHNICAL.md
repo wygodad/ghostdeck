@@ -559,7 +559,11 @@ What it changes for GhostDeck:
 - **The tiles have different names.** Pro's four user scenarios are **High Performance**, Balanced,
   Silent and Super Battery. High Performance is the counterpart of "Extreme Performance", and Pro
   offers its fan speed choice (Auto / Advanced / Cooler Boost) only under it. A capture from Pro is
-  read by those names; the version field (`2.1.x`) is what identifies the app.
+  read by those names; the version field (`2.1.x`) is what identifies the app. The "Report my
+  model" steps (`ReportPage.Steps`) carry the alternative name of each tile as a second line and a
+  tooltip, and the instruction line repeats the short ones ("EXTREME PERFORMANCE (High Performance
+  in MSI Center Pro)"), so an owner with a different app in front of him is not left guessing;
+  the same applies to "ECO-Silent", the renamed Super Battery of MSI Center 2.0.49+.
 - **Business-line entries stay Experimental until an owner's measurement promotes them**, so a write
   on them needs the owner's per-model consent (`ExperimentalWriteFw`), the same as on any other
   unconfirmed board.
@@ -2477,6 +2481,28 @@ Balanced rather than shown raw - so the row prints the drift of the whole run, a
 a big gap means heat soak or the running order carried the table, and the run says so itself. The
 case that motivated it: a Creator Z17 run (#77) sat at 94-95 °C in all three phases and read
 Silent *above* Balanced - order, not profiles. Cost: one more settle + load, about 75 s.
+
+### 60.11 A phase that was not one steady state
+
+The drift figure of §60.10 compares two 25-second windows, and it assumes each window describes a
+steady machine. Two runs on a Modern 14 B11MOU (#170, nine days apart) broke that assumption the
+same way: about 35 s into the first Balanced phase the processor clock fell from 2.49 to about
+2.05 GHz and stayed there, with the CPU temperature falling alongside (70 → 62 °C), so the window
+measured the slow stretch; the repeat Balanced at the end ran at full speed throughout, and the
+second run added a five-second burst to 4.2 GHz inside its window. The report read 20 % and then
+31 % "faster than it started" and pointed the reader at heat soak, which the samples rule out.
+
+The report now looks at the clock across each phase's whole minute (`Shape`): the average of the
+seconds between the ramp and the window against the window's own average, and the window's
+extremes against its median. A gap of 12 % or more between the two averages is a **step**, and
+the second the clock first left the early average's band is reported with it; a second 25 % or
+more away from the window's median is a **burst**. Phases with either go into a new "Inside the
+phases" section with the two levels (the window level is its median, since the average is what the
+burst already moved), and when either Balanced phase is among them the baseline check says that
+the drift figure measures that, not the whole run. The report states no cause: a step with the
+temperature falling is not throttling, and the test cannot see what else moved. Both #170
+reports, replayed through `BuildReport` from their own samples, print the step at second 35 and
+the burst at second 41.
 
 ### 60.5 Where it lives
 

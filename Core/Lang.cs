@@ -1033,21 +1033,21 @@ public static class Lang
         m["notice_more"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробнее", "詳細", "자세히", "詳細資訊", "Ayrıntılar", "Chi tiết", "Detail", "Dettagli" };
         m["rep_title"]      = new[] { "Report my model", "Zgłoś mój model", "Mein Modell melden", "Signaler mon modèle", "Reportar mi modelo", "上报我的型号", "Relatar meu modelo", "Сообщить о модели", "モデルを報告", "내 모델 보고", "回報我的機型", "Modelimi bildir", "Báo cáo model của tôi", "Laporkan model saya", "Segnala il mio modello" };
         m["rep_intro"]      = new[] {
-            "Help add support for your laptop. This reads your EC in each MSI Center scenario (READ-ONLY — nothing is written) and prepares a GitHub report for you.",
-            "Pomóż dodać wsparcie dla Twojego laptopa. Odczytamy EC w każdym scenariuszu MSI Center (TYLKO ODCZYT — nic nie jest zapisywane) i przygotujemy zgłoszenie na GitHub.",
-            "Hilf, Unterstützung für dein Gerät hinzuzufügen. Liest den EC in jedem MSI-Center-Szenario (NUR LESEN — nichts wird geschrieben) und erstellt einen GitHub-Bericht.",
-            "Aidez à prendre en charge votre PC. Lit l'EC dans chaque scénario MSI Center (LECTURE SEULE — rien n'est écrit) et prépare un rapport GitHub.",
-            "Ayuda a añadir soporte para tu portátil. Lee el EC en cada escenario de MSI Center (SOLO LECTURA — no se escribe nada) y prepara un informe de GitHub.",
-            "帮助为你的笔记本添加支持。将在每个 MSI Center 场景下读取 EC（只读——不写入任何内容）并为你准备 GitHub 报告。",
-            "Ajude a adicionar suporte ao seu notebook. Lê o EC em cada cenário do MSI Center (SOMENTE LEITURA — nada é gravado) e prepara um relatório no GitHub.",
-            "Помогите добавить поддержку вашего ноутбука. Считывает EC в каждом сценарии MSI Center (ТОЛЬКО ЧТЕНИЕ — ничего не записывается) и готовит отчёт на GitHub.",
-            "お使いのノートPCの対応追加にご協力ください。各 MSI Center シナリオで EC を読み取り（読み取り専用 — 書き込みなし）、GitHub 用のレポートを作成します。",
-            "노트북 지원 추가를 도와주세요. 각 MSI Center 시나리오에서 EC를 읽고(읽기 전용 — 아무것도 쓰지 않음) GitHub 보고서를 준비합니다.",
-            "協助新增對你筆電的支援。將在每個 MSI Center 情境下讀取 EC（唯讀——不寫入任何內容）並為你準備 GitHub 回報。",
-            "Dizüstünüz için destek eklenmesine yardımcı olun. Her MSI Center senaryosunda EC okunur (SALT OKUNUR — hiçbir şey yazılmaz) ve sizin için bir GitHub raporu hazırlanır.",
-            "Giúp thêm hỗ trợ cho laptop của bạn. Thao tác này đọc EC trong từng kịch bản MSI Center (CHỈ ĐỌC — không ghi gì) và chuẩn bị sẵn báo cáo GitHub cho bạn.",
-            "Bantu menambahkan dukungan untuk laptop Anda. Ini membaca EC Anda di setiap skenario MSI Center (HANYA BACA — tidak ada yang ditulis) dan menyiapkan laporan GitHub untuk Anda.",
-            "Aiuta ad aggiungere il supporto per il tuo laptop. Legge l'EC in ogni scenario di MSI Center (SOLA LETTURA — non scrive nulla) e prepara un report GitHub per te."
+            "Help add support for your laptop. This reads your EC in each MSI Center scenario (READ-ONLY - nothing is written) and prepares a GitHub report for you.",
+            "Pomóż dodać wsparcie dla Twojego laptopa. Odczytamy EC w każdym scenariuszu MSI Center (TYLKO ODCZYT - nic nie jest zapisywane) i przygotujemy zgłoszenie na GitHub.",
+            "Hilf, Unterstützung für dein Gerät hinzuzufügen. Liest den EC in jedem MSI-Center-Szenario (NUR LESEN - nichts wird geschrieben) und erstellt einen GitHub-Bericht.",
+            "Aidez à prendre en charge votre PC. Lit l'EC dans chaque scénario MSI Center (LECTURE SEULE - rien n'est écrit) et prépare un rapport GitHub.",
+            "Ayuda a añadir soporte para tu portátil. Lee el EC en cada escenario de MSI Center (SOLO LECTURA - no se escribe nada) y prepara un informe de GitHub.",
+            "帮助为你的笔记本添加支持。将在每个 MSI Center 场景下读取 EC（只读，不写入任何内容）并为你准备 GitHub 报告。",
+            "Ajude a adicionar suporte ao seu notebook. Lê o EC em cada cenário do MSI Center (SOMENTE LEITURA - nada é gravado) e prepara um relatório no GitHub.",
+            "Помогите добавить поддержку вашего ноутбука. Считывает EC в каждом сценарии MSI Center (ТОЛЬКО ЧТЕНИЕ - ничего не записывается) и готовит отчёт на GitHub.",
+            "お使いのノートPCの対応追加にご協力ください。各 MSI Center シナリオで EC を読み取り（読み取り専用、書き込みなし）、GitHub 用のレポートを作成します。",
+            "노트북 지원 추가를 도와주세요. 각 MSI Center 시나리오에서 EC를 읽고(읽기 전용, 아무것도 쓰지 않음) GitHub 보고서를 준비합니다.",
+            "協助新增對你筆電的支援。將在每個 MSI Center 情境下讀取 EC（唯讀，不寫入任何內容）並為你準備 GitHub 回報。",
+            "Dizüstünüz için destek eklenmesine yardımcı olun. Her MSI Center senaryosunda EC okunur (SALT OKUNUR - hiçbir şey yazılmaz) ve sizin için bir GitHub raporu hazırlanır.",
+            "Giúp thêm hỗ trợ cho laptop của bạn. Thao tác này đọc EC trong từng kịch bản MSI Center (CHỈ ĐỌC - không ghi gì) và chuẩn bị sẵn báo cáo GitHub cho bạn.",
+            "Bantu menambahkan dukungan untuk laptop Anda. Ini membaca EC Anda di setiap skenario MSI Center (HANYA BACA - tidak ada yang ditulis) dan menyiapkan laporan GitHub untuk Anda.",
+            "Aiuta ad aggiungere il supporto per il tuo laptop. Legge l'EC in ogni scenario di MSI Center (SOLA LETTURA - non scrive nulla) e prepara un report GitHub per te."
             };
         m["rep_need_msi"]   = new[] {
             "Requires MSI Center installed (to set each scenario as a reference).",
@@ -1067,21 +1067,89 @@ public static class Lang
             "Richiede MSI Center installato (per impostare ogni scenario come riferimento)."
             };
         m["rep_msi_tip"]    = new[] {
-            "Best with MSI Center 2.0.48 — the last version with a working SILENT scenario. Newer versions auto-update and silently drop SILENT after a reboot (exactly why this app exists).",
-            "Najlepiej mieć MSI Center 2.0.48 — ostatnią wersję z działającym scenariuszem SILENT. Nowsze wersje same się aktualizują i po restarcie tracą tryb SILENT (właśnie dlatego powstała ta aplikacja).",
-            "Am besten mit MSI Center 2.0.48 — der letzten Version mit funktionierendem SILENT-Szenario. Neuere Versionen aktualisieren sich selbst und verlieren SILENT nach einem Neustart (genau deshalb gibt es diese App).",
-            "De préférence MSI Center 2.0.48 — la dernière version avec un scénario SILENT fonctionnel. Les versions plus récentes se mettent à jour seules et perdent SILENT après un redémarrage (la raison d'être de cette app).",
-            "Mejor con MSI Center 2.0.48 — la última versión con el escenario SILENT funcional. Las versiones nuevas se autoactualizan y pierden SILENT tras reiniciar (justo por eso existe esta app).",
-            "最好使用 MSI Center 2.0.48——最后一个 SILENT 场景可用的版本。较新版本会自动更新，重启后悄悄失去 SILENT（这正是本应用存在的原因）。",
-            "Melhor com o MSI Center 2.0.48 — a última versão com o cenário SILENT funcionando. Versões mais novas se atualizam sozinhas e perdem o SILENT após reiniciar (exatamente por isso este app existe).",
-            "Лучше всего MSI Center 2.0.48 — последняя версия с рабочим сценарием SILENT. Новые версии сами обновляются и теряют SILENT после перезагрузки (именно поэтому появилось это приложение).",
-            "MSI Center 2.0.48 を推奨 — SILENT シナリオが動作する最後のバージョンです。新しいバージョンは自動更新され、再起動後に SILENT が静かに消えます（本アプリが存在する理由です）。",
-            "MSI Center 2.0.48 권장 — SILENT 시나리오가 작동하는 마지막 버전입니다. 최신 버전은 자동 업데이트되며 재부팅 후 SILENT를 조용히 제거합니다(이 앱이 존재하는 이유).",
-            "最好使用 MSI Center 2.0.48——最後一個 SILENT 情境可用的版本。較新版本會自動更新，重新開機後悄悄失去 SILENT（這正是本程式存在的原因）。",
-            "En iyisi MSI Center 2.0.48 — çalışan SILENT senaryosuna sahip son sürüm. Daha yeni sürümler otomatik güncellenir ve yeniden başlatmadan sonra SILENT'ı sessizce kaldırır (bu uygulamanın var olma nedeni tam da bu).",
-            "Tốt nhất với MSI Center 2.0.48 — phiên bản cuối còn kịch bản SILENT hoạt động. Các bản mới hơn tự cập nhật và âm thầm bỏ SILENT sau khi khởi động lại (chính là lý do ứng dụng này tồn tại).",
-            "Terbaik dengan MSI Center 2.0.48 — versi terakhir dengan skenario SILENT yang berfungsi. Versi lebih baru memperbarui otomatis dan diam-diam menghapus SILENT setelah reboot (itulah alasan aplikasi ini ada).",
-            "Meglio con MSI Center 2.0.48 — l'ultima versione con lo scenario SILENT funzionante. Le versioni più recenti si aggiornano da sole ed eliminano SILENT senza avvisare dopo un riavvio (proprio il motivo per cui esiste questa app)."
+            "Best with MSI Center 2.0.48 - the last version with a working SILENT scenario. Newer versions auto-update and silently drop SILENT after a reboot (exactly why this app exists).",
+            "Najlepiej mieć MSI Center 2.0.48 - ostatnią wersję z działającym scenariuszem SILENT. Nowsze wersje same się aktualizują i po restarcie tracą tryb SILENT (właśnie dlatego powstała ta aplikacja).",
+            "Am besten mit MSI Center 2.0.48 - der letzten Version mit funktionierendem SILENT-Szenario. Neuere Versionen aktualisieren sich selbst und verlieren SILENT nach einem Neustart (genau deshalb gibt es diese App).",
+            "De préférence MSI Center 2.0.48 - la dernière version avec un scénario SILENT fonctionnel. Les versions plus récentes se mettent à jour seules et perdent SILENT après un redémarrage (la raison d'être de cette app).",
+            "Mejor con MSI Center 2.0.48 - la última versión con el escenario SILENT funcional. Las versiones nuevas se autoactualizan y pierden SILENT tras reiniciar (justo por eso existe esta app).",
+            "最好使用 MSI Center 2.0.48，最后一个 SILENT 场景可用的版本。较新版本会自动更新，重启后悄悄失去 SILENT（这正是本应用存在的原因）。",
+            "Melhor com o MSI Center 2.0.48 - a última versão com o cenário SILENT funcionando. Versões mais novas se atualizam sozinhas e perdem o SILENT após reiniciar (exatamente por isso este app existe).",
+            "Лучше всего MSI Center 2.0.48 - последняя версия с рабочим сценарием SILENT. Новые версии сами обновляются и теряют SILENT после перезагрузки (именно поэтому появилось это приложение).",
+            "MSI Center 2.0.48 を推奨、SILENT シナリオが動作する最後のバージョンです。新しいバージョンは自動更新され、再起動後に SILENT が静かに消えます（本アプリが存在する理由です）。",
+            "MSI Center 2.0.48 권장, SILENT 시나리오가 작동하는 마지막 버전입니다. 최신 버전은 자동 업데이트되며 재부팅 후 SILENT를 조용히 제거합니다(이 앱이 존재하는 이유).",
+            "最好使用 MSI Center 2.0.48，最後一個 SILENT 情境可用的版本。較新版本會自動更新，重新開機後悄悄失去 SILENT（這正是本程式存在的原因）。",
+            "En iyisi MSI Center 2.0.48 - çalışan SILENT senaryosuna sahip son sürüm. Daha yeni sürümler otomatik güncellenir ve yeniden başlatmadan sonra SILENT'ı sessizce kaldırır (bu uygulamanın var olma nedeni tam da bu).",
+            "Tốt nhất với MSI Center 2.0.48 - phiên bản cuối còn kịch bản SILENT hoạt động. Các bản mới hơn tự cập nhật và âm thầm bỏ SILENT sau khi khởi động lại (chính là lý do ứng dụng này tồn tại).",
+            "Terbaik dengan MSI Center 2.0.48 - versi terakhir dengan skenario SILENT yang berfungsi. Versi lebih baru memperbarui otomatis dan diam-diam menghapus SILENT setelah reboot (itulah alasan aplikasi ini ada).",
+            "Meglio con MSI Center 2.0.48 - l'ultima versione con lo scenario SILENT funzionante. Le versioni più recenti si aggiornano da sole ed eliminano SILENT senza avvisare dopo un riavvio (proprio il motivo per cui esiste questa app)."
+            };
+        m["rep_msi_pro"] = new[] {
+            "Business laptops (Modern, Prestige, Summit, Creator) may have MSI Center Pro instead. Use it as it is: its scenarios work the same here, and its top tile is called High Performance.",
+            "Laptopy biznesowe (Modern, Prestige, Summit, Creator) mogą mieć zamiast tego MSI Center Pro. Używaj go bez zmian: jego scenariusze działają tu tak samo, a najwyższy kafelek nazywa się High Performance.",
+            "Business-Laptops (Modern, Prestige, Summit, Creator) haben stattdessen oft MSI Center Pro. Einfach so verwenden: seine Szenarien funktionieren hier genauso, die oberste Kachel heißt dort High Performance.",
+            "Les PC professionnels (Modern, Prestige, Summit, Creator) peuvent avoir MSI Center Pro à la place. Utilisez-le tel quel : ses scénarios fonctionnent ici de la même façon, et sa tuile la plus haute s'appelle High Performance.",
+            "Los portátiles profesionales (Modern, Prestige, Summit, Creator) pueden tener MSI Center Pro en su lugar. Úsalo tal cual: sus escenarios funcionan aquí igual, y su mosaico superior se llama High Performance.",
+            "商务本（Modern、Prestige、Summit、Creator）可能安装的是 MSI Center Pro。直接使用即可：它的场景在这里同样适用，最高档位名为 High Performance。",
+            "Notebooks corporativos (Modern, Prestige, Summit, Creator) podem ter o MSI Center Pro no lugar. Use-o como está: seus cenários funcionam aqui do mesmo jeito, e o bloco mais alto se chama High Performance.",
+            "На бизнес-ноутбуках (Modern, Prestige, Summit, Creator) вместо него может стоять MSI Center Pro. Используйте его как есть: его сценарии здесь работают так же, а верхняя плитка называется High Performance.",
+            "ビジネス向けノート（Modern、Prestige、Summit、Creator）には代わりに MSI Center Pro が入っていることがあります。そのまま使ってください。シナリオはここでも同じように使え、最上位のタイルは High Performance という名前です。",
+            "비즈니스 노트북(Modern, Prestige, Summit, Creator)에는 대신 MSI Center Pro가 있을 수 있습니다. 그대로 사용하세요. 시나리오는 여기서도 똑같이 동작하며, 최상위 타일 이름은 High Performance입니다.",
+            "商務筆電（Modern、Prestige、Summit、Creator）可能安裝的是 MSI Center Pro。直接使用即可：它的情境在這裡同樣適用，最高檔位名為 High Performance。",
+            "İş dizüstüleri (Modern, Prestige, Summit, Creator) bunun yerine MSI Center Pro ile gelebilir. Olduğu gibi kullanın: senaryoları burada aynı şekilde çalışır, en üst kutucuğun adı High Performance'tır.",
+            "Laptop doanh nhân (Modern, Prestige, Summit, Creator) có thể cài MSI Center Pro thay thế. Cứ dùng như vậy: các kịch bản của nó hoạt động ở đây như nhau, và ô cao nhất tên là High Performance.",
+            "Laptop bisnis (Modern, Prestige, Summit, Creator) mungkin memakai MSI Center Pro. Gunakan apa adanya: skenarionya bekerja sama di sini, dan ubin teratasnya bernama High Performance.",
+            "I portatili business (Modern, Prestige, Summit, Creator) possono avere MSI Center Pro al suo posto. Usalo così com'è: i suoi scenari funzionano qui allo stesso modo, e il riquadro più alto si chiama High Performance."
+            };
+        m["rep_alt_silent"] = new[] {
+            "MSI Center 2.0.49 and newer have no Silent tile; their ECO-Silent is Super Battery, not this one.",
+            "MSI Center 2.0.49 i nowsze nie mają kafelka Silent; ich ECO-Silent to Super Battery, nie ten scenariusz.",
+            "MSI Center 2.0.49 und neuer haben keine Silent-Kachel; ihr ECO-Silent ist Super Battery, nicht dieses Szenario.",
+            "MSI Center 2.0.49 et plus récents n'ont pas de tuile Silent ; leur ECO-Silent est Super Battery, pas ce scénario.",
+            "MSI Center 2.0.49 y posteriores no tienen mosaico Silent; su ECO-Silent es Super Battery, no este escenario.",
+            "MSI Center 2.0.49 及更新版本没有 Silent 档位；其中的 ECO-Silent 是 Super Battery，不是这个场景。",
+            "O MSI Center 2.0.49 e mais novos não têm o bloco Silent; o ECO-Silent deles é o Super Battery, não este cenário.",
+            "В MSI Center 2.0.49 и новее нет плитки Silent; их ECO-Silent это Super Battery, а не этот сценарий.",
+            "MSI Center 2.0.49 以降には Silent タイルがありません。そこにある ECO-Silent は Super Battery であり、このシナリオではありません。",
+            "MSI Center 2.0.49 이상에는 Silent 타일이 없습니다. 거기의 ECO-Silent는 Super Battery이며 이 시나리오가 아닙니다.",
+            "MSI Center 2.0.49 及更新版本沒有 Silent 檔位；其中的 ECO-Silent 是 Super Battery，不是這個情境。",
+            "MSI Center 2.0.49 ve sonrasında Silent kutucuğu yok; oradaki ECO-Silent, bu senaryo değil Super Battery'dir.",
+            "MSI Center 2.0.49 trở lên không có ô Silent; ECO-Silent ở đó là Super Battery, không phải kịch bản này.",
+            "MSI Center 2.0.49 dan yang lebih baru tidak punya ubin Silent; ECO-Silent di sana adalah Super Battery, bukan skenario ini.",
+            "MSI Center 2.0.49 e successivi non hanno il riquadro Silent; il loro ECO-Silent è Super Battery, non questo scenario."
+            };
+        m["rep_alt_extreme"] = new[] {
+            "High Performance in MSI Center Pro",
+            "High Performance w MSI Center Pro",
+            "High Performance in MSI Center Pro",
+            "High Performance dans MSI Center Pro",
+            "High Performance en MSI Center Pro",
+            "MSI Center Pro 中为 High Performance",
+            "High Performance no MSI Center Pro",
+            "High Performance в MSI Center Pro",
+            "MSI Center Pro では High Performance",
+            "MSI Center Pro에서는 High Performance",
+            "MSI Center Pro 中為 High Performance",
+            "MSI Center Pro'da High Performance",
+            "High Performance trong MSI Center Pro",
+            "High Performance di MSI Center Pro",
+            "High Performance in MSI Center Pro"
+            };
+        m["rep_alt_sb"] = new[] {
+            "ECO-Silent in MSI Center 2.0.49 and newer",
+            "ECO-Silent w MSI Center 2.0.49 i nowszych",
+            "ECO-Silent in MSI Center 2.0.49 und neuer",
+            "ECO-Silent dans MSI Center 2.0.49 et plus récents",
+            "ECO-Silent en MSI Center 2.0.49 y posteriores",
+            "MSI Center 2.0.49 及更新版本中为 ECO-Silent",
+            "ECO-Silent no MSI Center 2.0.49 e mais novos",
+            "ECO-Silent в MSI Center 2.0.49 и новее",
+            "MSI Center 2.0.49 以降では ECO-Silent",
+            "MSI Center 2.0.49 이상에서는 ECO-Silent",
+            "MSI Center 2.0.49 及更新版本中為 ECO-Silent",
+            "MSI Center 2.0.49 ve sonrasında ECO-Silent",
+            "ECO-Silent trong MSI Center 2.0.49 trở lên",
+            "ECO-Silent di MSI Center 2.0.49 dan yang lebih baru",
+            "ECO-Silent in MSI Center 2.0.49 e successivi"
             };
         m["rep_msi_clean"]  = new[] {
             "Before installing 2.0.48, fully remove the current MSI Center with MSI's official cleaner:",

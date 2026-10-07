@@ -133,6 +133,51 @@ public static class PowerTest
     /// <summary>Drift at or beyond this, in percent, gets an explicit warning rather than a note.</summary>
     private const int DriftWarnPct = 5;
 
+    /// <summary>
+    /// How a phase's processor clock behaved across its whole minute, not only inside the steady
+    /// window. The window is carved out of the end of the phase, so a step that lands before it
+    /// leaves the window measuring a different machine from the one the phase started on, and a
+    /// burst inside it moves the average by however long it lasted. The case that motivated it
+    /// (#170): the first Balanced phase fell from 2.49 to 2.05 GHz 35 s in, in two runs nine days
+    /// apart, with the temperature falling alongside - and the drift figure, comparing that
+    /// window with a full-speed repeat, reported a machine that "got faster", which sent the
+    /// reader to the heat-soak explanation the samples rule out.
+    /// </summary>
+    public sealed record ClockShape(
+        string Name, int EarlyMhz, int SteadyMhz, int MedianMhz, int StepSec,
+        int PeakMhz, int PeakSec, int LowMhz, int LowSec, bool Step, bool Burst);
+
+    /// <summary>Early and steady averages this far apart (percent) = the phase changed speed.</summary>
+    private const int ShapeStepPct = 12;
+    /// <summary>One second this far (percent) from the window's median = a burst, not noise.</summary>
+    private const int ShapeBurstPct = 25;
+    /// <summary>The ramp: seconds at the start of a phase left out of the early average.</summary>
+    private const int ShapeRampSeconds = 5;
+
+    private static ClockShape? Shape(string name, Sample[] s)
+    {
+        if (s.Length == 0) return null;
+        int windowStart = s[^1].Sec - SteadySeconds;
+        var early = s.Where(x => x.Sec >= ShapeRampSeconds && x.Sec <= windowStart && x.ClockMhz > 0).ToArray();
+        var win = Steady(s).Where(x => x.ClockMhz > 0).ToArray();
+        if (early.Length < 5 || win.Length < 5) return null;
+        int e = (int)Avg(early.Select(x => x.ClockMhz)), w = (int)Avg(win.Select(x => x.ClockMhz));
+        bool step = Math.Abs(e - w) * 100 > ShapeStepPct * Math.Max(e, w);
+        int stepSec = 0;
+        if (step)
+            foreach (var x in s.Where(x => x.Sec >= ShapeRampSeconds && x.ClockMhz > 0))
+                if (Math.Abs(x.ClockMhz - e) * 100 > ShapeStepPct * e) { stepSec = x.Sec; break; }
+        var sorted = win.Select(x => x.ClockMhz).OrderBy(v => v).ToArray();
+        int median = sorted[sorted.Length / 2];
+        var peak = win.MaxBy(x => x.ClockMhz);
+        var low = win.MinBy(x => x.ClockMhz);
+        bool burst = (peak.ClockMhz - median) * 100 > ShapeBurstPct * median
+                  || (median - low.ClockMhz) * 100 > ShapeBurstPct * median;
+        return new ClockShape(name, e, w, median, stepSec, peak.ClockMhz, peak.Sec, low.ClockMhz, low.Sec, step, burst);
+    }
+
+    private static bool Uneven(Sample[] s) => Shape("", s) is { } sh && (sh.Step || sh.Burst);
+
     /// <summary>Steps in the page's checklist: one per profile, the probe, the repeated baseline, the restore.</summary>
     public static int StepCount(DeviceProfile dev) => Order.Length + (dev.FourthMode != null ? 1 : 0) + 2;
 
@@ -625,15 +670,61 @@ public static class PowerTest
                 if (size >= DriftWarnPct)
                 {
                     sb.AppendLine($"That is {DriftWarnPct} % or more, so differences between profiles smaller than {size} % are NOT");
-                    sb.AppendLine("safe to read as profile differences. A machine already at its temperature limit gets");
-                    sb.AppendLine("slower as the run goes on, and every phase pays for the ones before it. Ordering here");
-                    sb.AppendLine("(Silent, Balanced, Extreme) can then look like a ranking when it is only a running order.");
+                    var firstBase = r.Phases.FirstOrDefault(p => p.Name == ProfileId.Balanced.ToString());
+                    bool uneven = (firstBase != null && Uneven(firstBase.Samples)) || Uneven(repeat.Samples);
+                    if (uneven)
+                    {
+                        // The figure compares two windows; when one of them holds a step or a burst,
+                        // it measures that event, and the heat-soak story below would send the
+                        // reader after a cause the samples rule out (#170).
+                        sb.AppendLine("safe to read as profile differences. Here the two Balanced phases did not run evenly");
+                        sb.AppendLine("(see \"Inside the phases\" below), so the figure measures that, not a machine that got");
+                        sb.AppendLine("slower or faster over the whole run.");
+                    }
+                    else
+                    {
+                        sb.AppendLine("safe to read as profile differences. A machine already at its temperature limit gets");
+                        sb.AppendLine("slower as the run goes on, and every phase pays for the ones before it. Ordering here");
+                        sb.AppendLine("(Silent, Balanced, Extreme) can then look like a ranking when it is only a running order.");
+                    }
                 }
                 else
                 {
                     sb.AppendLine("That is small, so the comparison above is not being carried by the running order.");
                 }
             }
+        }
+
+        // A phase that changed speed halfway, or spiked inside its window, has an average that
+        // depends on where the window fell. Name those phases and what the clock did, so the
+        // reader can see it without digging through the samples.
+        var shapes = r.Phases.Select(p => Shape(p.Name, p.Samples))
+                             .Where(sh => sh != null && (sh.Step || sh.Burst)).Select(sh => sh!).ToArray();
+        if (shapes.Length > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("--- Inside the phases ---");
+            sb.AppendLine($"Each phase runs for {LoadSeconds} s and the table above averages its last {SteadySeconds} s. These");
+            sb.AppendLine("phases did not run evenly, so their averages depend on where that window fell:");
+            foreach (var sh in shapes)
+            {
+                // The median, not the average, describes the window a burst sits in: the
+                // average is what the burst already moved.
+                string line = sh.Step
+                    ? $"{sh.Name,-14} about {sh.EarlyMhz} MHz until second {sh.StepSec}, then about {sh.MedianMhz} MHz to the end (the window)."
+                    : $"{sh.Name,-14} about {sh.MedianMhz} MHz through the window";
+                if (sh.Burst)
+                {
+                    bool up = (sh.PeakMhz - sh.MedianMhz) >= (sh.MedianMhz - sh.LowMhz);
+                    string spike = up ? $"a burst peaking at {sh.PeakMhz} MHz (second {sh.PeakSec})"
+                                      : $"a dip to {sh.LowMhz} MHz (second {sh.LowSec})";
+                    line += sh.Step ? $" Inside the window: {spike}." : $", with {spike} inside it.";
+                }
+                else if (!sh.Step) line += ".";
+                sb.AppendLine(line);
+            }
+            sb.AppendLine("A step with the temperature falling alongside is not the machine overheating; the");
+            sb.AppendLine("report does not know what caused it, only that the phase was not one steady state.");
         }
 
         // A run on a busy machine produces confident numbers that are simply wrong, which is the
