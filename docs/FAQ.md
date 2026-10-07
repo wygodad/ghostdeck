@@ -26,7 +26,7 @@ You can run both. MSI Center caches its own UI state and doesn't live-read the E
 
 Yes, the same way as on gaming laptops. Some business laptops (Modern, Prestige, Summit, Creator) come with a separate MSI app, **MSI Center Pro**, which does not install on gaming laptops; others, and all gaming laptops, use **MSI Center**. GhostDeck uses neither of them: it talks to the laptop's embedded controller through MSI's interface in the firmware, and that works the same on both lines. The MSI app only serves as the reference for which values each profile writes on your model.
 
-Business laptops are in the [model list](SUPPORTED_MODELS.md) like any other, five of them are confirmed on hardware by their owners, and GhostDeck has run on MSI Center Pro machines with profiles switching normally ([#77](../../../issues/77), [#170](../../../issues/170)). Where a board's MSI app writes a different value than the usual set, the model's entry writes that value too: on the Modern 14 B11MOU, MSI Center Pro's top scenario uses a different performance value, and GhostDeck uses the same one.
+Business laptops are in the [model list](SUPPORTED_MODELS.md) like any other; as of 7 October 2026, five of them were confirmed on hardware by their owners, and GhostDeck has run on MSI Center Pro machines with profiles switching normally ([#77](../../../issues/77), [#170](../../../issues/170)). Where a board's MSI app writes a different value than the usual set, the model's entry writes that value too: on the Modern 14 B11MOU, MSI Center Pro's top scenario uses a different performance value, and GhostDeck uses the same one.
 
 ## My MSI app names the scenarios differently. Which one is which?
 
