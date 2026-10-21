@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261027;
+    public const int DataVersion = 20261028;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1466,7 +1466,16 @@ public static class Devices
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Dkrimz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
                 CreditIssues = Issues("Dkrimz:124,125,126") },
-        new() { Name = "MSI Katana 17 HX B14WGK",           FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Katana 17 HX B14WGK (17L7EMS1) - fan curve VERIFIED (issue #266, kaszaslevi04, firmware
+        // .106, MSI Center 2.0.48): the test curve sits byte for byte at the shipped 0x72/0x8A. His
+        // scenario capture (issue #265) matches StdRecipes 1:1 with a real Silent (0xD4=1D), zero
+        // hardware checks, so the tier stays Experimental until a power test. RPM stays off: 0xC8 and
+        // 0xCA read 00 next to live 0xC9/0xCB (A6/AE), and the sibling 17L5EMS1 reports fan speed as
+        // 16-bit pairs - one idle dump cannot tell the two schemes apart (as in issue #232).
+        new() { Name = "MSI Katana 17 HX B14WGK",           FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "kaszaslevi04", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/266",
+                CreditIssues = Issues("kaszaslevi04:265,266") },
         new() { Name = "MSI Stealth GS76 11UG",             FirmwarePrefixes = new[] { "17M1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator 17 B11UE",              FirmwarePrefixes = new[] { "17M1EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Creator Z17 (17N1EMS1) — fan curve VERIFIED (issue #77): tracer speeds set in MSI Center
