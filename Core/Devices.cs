@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261026;
+    public const int DataVersion = 20261027;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -735,12 +735,17 @@ public static class Devices
         // curve sits byte-for-byte at the shipped 0x72/0x8A. RPM enabled at 0xC9/0xCB: live in
         // his dump (B1/A5) and the same divisor scheme the sister-board 15M1IMS2 owner confirmed
         // against HWiNFO64; his 0xCA read 01 once - the transient mid-update glitch known from
-        // 15P3EMS1, which the plausibility gate absorbs. Tier stays Experimental (no hardware
-        // checks yet).
-        new() { Name = "MSI Vector GP68 HX 13V",            FirmwarePrefixes = new[] { "15M1IMS1" }, Tier = Tier.Experimental,
+        // 15P3EMS1, which the plausibility gate absorbs.
+        // TESTED (issues #262-#264, mara-zhu, firmware .114, MSI Center 2.0.48): the scenario
+        // capture matches StdRecipes 1:1 with a real Silent column (0xD4=1D); the curve check puts
+        // the test curve byte for byte at 0x72/0x8A again; the power test on 1.41.0 is clean (drift
+        // +1 %, bytes read back as written in every phase): Silent does 81 % of Balanced's work at
+        // 3.48 vs 4.28 GHz, 76 vs 83 C, 2962 vs 4467 rpm - a real Silent cap; Extreme +7 % at
+        // ~6200 rpm. 0xD6 reads 04 in every phase, also under our Extreme.
+        new() { Name = "MSI Vector GP68 HX 13V",            FirmwarePrefixes = new[] { "15M1IMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Fanilo-Nantenaina", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/131",
-                CreditIssues = Issues("Fanilo-Nantenaina:131") },
+                Credit = "Fanilo-Nantenaina, mara-zhu", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/131",
+                CreditIssues = Issues("Fanilo-Nantenaina:131; mara-zhu:262,263,264") },
 
         // Vector A16 HX A8WIG (15MMIMS1) - first owner report of the MS-15MM AMD board (issue
         // #130, MSI Center 2.0.48, wizard run on a machine the app did not recognise). Snapshot =
