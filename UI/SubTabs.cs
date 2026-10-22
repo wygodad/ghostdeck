@@ -35,7 +35,8 @@ public sealed class SubTabs : Control
         DoubleBuffered = true;
         ResizeRedraw = true;
         Cursor = Cursors.Hand;
-        Height = 40;
+        // #172: 40 px fits the label up to about 150 % scaling; above that the strip grows with the text
+        Height = Math.Max(40, TextRenderer.MeasureText("Ag", SegFont).Height + 12);
         Width = Measure();
     }
 

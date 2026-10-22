@@ -62,6 +62,7 @@ public sealed class ThemedComboBox : Control
     private readonly ItemList _items;
     private int _sel = -1;
     private int _itemHeight = 30;   // roomy rows in the drop-down list
+    private bool _itemHeightSet;    // a caller chose the row height; otherwise it follows the font
     private int _updating;
     private ListPopup? _popup;
 
@@ -131,8 +132,40 @@ public sealed class ThemedComboBox : Control
     public int ItemHeight
     {
         get => _itemHeight;
-        set { _itemHeight = Math.Max(12, value); Height = _itemHeight + 6; }
+        set { _itemHeightSet = true; _itemHeight = Math.Max(12, value); Height = _itemHeight + 6; }
     }
+
+    // #172: the row (and with it the field) is at least as tall as the text needs. 30 px rows
+    // fit the font up to about 150 % scaling; at 200 % the value was cut off at the bottom.
+    protected override void OnFontChanged(EventArgs e)
+    {
+        base.OnFontChanged(e);
+        if (_itemHeightSet) return;
+        _prefW = -1;
+        int h = Math.Max(30, Font.Height + 4);
+        if (h != _itemHeight) { _itemHeight = h; SetBounds(Left, Top, Width, 0); }
+    }
+
+    /// <summary>
+    /// The width at which every item fits the field on one line (icon, text, the arrow), so a
+    /// layout can make room for the longest value instead of cutting it with "...".
+    /// </summary>
+    public int PreferredFieldWidth
+    {
+        get
+        {
+            // measured once per item set / font: layouts ask on every pass
+            if (_prefW < 0)
+            {
+                int text = 0;
+                foreach (var it in _items) text = Math.Max(text, TextRenderer.MeasureText(it?.ToString() ?? "", Font, Size.Empty, TextFormatFlags.NoPrefix).Width);
+                _prefW = text;
+            }
+            int icon = ItemIcon != null ? IconSide(_itemHeight) + 8 : 0;
+            return 8 + icon + _prefW + 30;
+        }
+    }
+    private int _prefW = -1;
 
     public int SelectedIndex
     {
@@ -173,6 +206,7 @@ public sealed class ThemedComboBox : Control
 
     private void ItemsChanged()
     {
+        _prefW = -1;
         if (_popup != null) CloseList(false);   // the open list shows a snapshot of the items
         if (_updating == 0) Invalidate();
     }
@@ -203,7 +237,7 @@ public sealed class ThemedComboBox : Control
         }
         else
             TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? Theme.Text : Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);   // dpi-ok: last resort only; layouts size the field with PreferredFieldWidth or turn on WrapSelected
         int cx = Width - 13, cy = Height / 2;
         using (var pen = new Pen(Theme.Muted, 1.6f))
             g.DrawLines(pen, new[] { new Point(cx - 4, cy - 2), new Point(cx, cy + 2), new Point(cx + 4, cy - 2) });
@@ -395,9 +429,12 @@ public sealed class ThemedComboBox : Control
         public void ShowFor(Form owner)
         {
             _rows = Math.Clamp(Count, 1, Math.Max(1, _field.MaxDropDownItems));
-            int w = Math.Max(_field.Width, _field.DropDownWidth), h = _rows * RowH + 2;
-            var below = _field.PointToScreen(new Point(0, _field.Height));
             var area = Screen.FromControl(_field).WorkingArea;
+            // #172: the list is never narrower than its longest item needs (within the screen)
+            int w = Math.Min(area.Width, Math.Max(Math.Max(_field.Width, _field.DropDownWidth),
+                                                  _field.PreferredFieldWidth + (Scrolls ? BarW : 0)));
+            int h = _rows * RowH + 2;
+            var below = _field.PointToScreen(new Point(0, _field.Height));
             int y = below.Y + h <= area.Bottom ? below.Y : below.Y - _field.Height - h;
             Bounds = new Rectangle(Math.Max(area.Left, Math.Min(below.X, area.Right - w)), y, w, h);
             Reveal(Hot);
@@ -574,7 +611,7 @@ public sealed class ThemedComboBox : Control
                 }
                 TextRenderer.DrawText(g, _field._items[i]?.ToString() ?? "", Font,
                     new Rectangle(tx, row.Y, Math.Max(10, tw), row.Height), hot ? Color.White : Theme.Text,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);   // dpi-ok: last resort only; the list is as wide as its longest item (ShowFor)
             }
             if (Scrolls)
             {

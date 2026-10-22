@@ -740,7 +740,11 @@ internal sealed class ModelsFeaturesView : ModelsView
         int dotW = Math.Max(S(70), heads.SelectMany(h => h.Split(' ')).Max(word => ModelsText.NaturalW(word, ModelsPage.FHead)) + S(16));
         int nameW = w - S(36) - dotW * heads.Length;
         if (nameW < S(220)) { dotW = Math.Max(S(44), (w - S(36) - S(220)) / heads.Length); nameW = w - S(36) - dotW * heads.Length; }
-        int headH = ModelsText.LineH(ModelsPage.FHead) * 2 + S(14);
+        // two header lines, or more when a header needs them in its column (#172: "Apex (fourth
+        // mode)" took three at 200 % and the last one was cut)
+        int headH = Math.Max(ModelsText.LineH(ModelsPage.FHead) * 2,
+            heads.Max(h => TextRenderer.MeasureText(h, ModelsPage.FHead, new Size(dotW, int.MaxValue),
+                TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height)) + S(14);
         int tableTop = y;
         int lineH = ModelsText.LineH(ModelsPage.FCell), rowPad = S(7);
         // measure rows

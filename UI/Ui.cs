@@ -9,6 +9,12 @@ namespace GhostDeck;
 /// <summary>Shared themed widgets / drawing helpers for the tab pages.</summary>
 internal static class Ui
 {
+    /// <summary>
+    /// #172: 40 px holds the label up to about 150 % scaling; above that the button grows with
+    /// its text so the bottom of the letters is never cut off.
+    /// </summary>
+    public static int ButtonHeight(Font f) => Math.Max(40, TextRenderer.MeasureText("Ag", f).Height + 12);
+
     public static void StylePrimary(Button b)
     {
         b.FlatStyle = FlatStyle.Flat;
@@ -17,7 +23,7 @@ internal static class Ui
         b.ForeColor = Color.White;
         b.Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
         b.Cursor = Cursors.Hand;
-        b.Height = 40;
+        b.Height = ButtonHeight(b.Font);
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -94,7 +100,7 @@ internal static class Ui
         b.ForeColor = Theme.Text;
         b.Font = Dpi.Font("Segoe UI", 10.5f);
         b.Cursor = Cursors.Hand;
-        b.Height = 40;
+        b.Height = ButtonHeight(b.Font);
     }
 
     // Pixel-centre a single glyph inside a rect by its measured ink box. Layout-rect centring

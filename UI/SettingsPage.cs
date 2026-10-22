@@ -37,6 +37,9 @@ public sealed partial class SettingsPage : ThemedPage
     private Label? _whatsNew;          // Start: "What's new in vX" -> Updates with the notes expanded
     private int _cur;
     private readonly Dictionary<string, HotkeyBox> _boxes = new();
+    // the font MainForm gives every page; composite rows size their controls with it up front,
+    // before the controls are parented and pick it up themselves
+    private static readonly Font PageFont = Dpi.Font("Segoe UI", 10f);
     private readonly Dictionary<string, ToggleSwitch> _hkToggles = new();
     private ToggleSwitch? _hkMaster;
     private readonly Dictionary<string, List<Panel>> _swatches = new();
@@ -754,19 +757,25 @@ public sealed partial class SettingsPage : ThemedPage
                 tg.Toggled += v => { r.Enabled = v; D.SaveSettings(); };
                 // plain labels nested in a panel are NOT themed by CardSection - color explicitly;
                 // wide enough for the whole summary (user request: no truncation)
+                var lblFont = Dpi.Font("Segoe UI", 9f);
+                string summary = $"{scName} · {days} · {r.Start}-{r.End}";
+                // #172: 330 x 24 px up to about 150 % scaling, then as large as the text
+                var lblSize = TextRenderer.MeasureText(summary, lblFont);
                 var lbl = new Label
                 {
-                    Text = $"{scName} · {days} · {r.Start}-{r.End}", AutoEllipsis = true,
-                    AutoSize = false, Size = new Size(330, 24), Font = Dpi.Font("Segoe UI", 9f),
+                    Text = summary, AutoEllipsis = true,
+                    AutoSize = false, Size = new Size(Math.Max(330, lblSize.Width + 6), Math.Max(24, lblSize.Height)), Font = lblFont,
                     TextAlign = ContentAlignment.MiddleLeft,
                     ForeColor = Theme.Text, BackColor = Theme.Card,
                 };
                 // flat glyph hotspots like the scene cards (no boxed buttons), just this size
                 Button Mk(string glyph, Color? fixedColor = null)
                 {
+                    var gf = Dpi.Font("Segoe UI", 10f);
+                    var gs = TextRenderer.MeasureText(glyph, gf);
                     var b = new Button
                     {
-                        Text = glyph, Size = new Size(30, 28), Font = Dpi.Font("Segoe UI", 10f),
+                        Text = glyph, Size = new Size(Math.Max(30, gs.Width + 10), Math.Max(28, gs.Height)), Font = gf,
                         FlatStyle = FlatStyle.Flat, BackColor = Theme.Card,
                         ForeColor = fixedColor ?? Theme.Muted, TabStop = false, Cursor = Cursors.Hand,
                     };
@@ -799,10 +808,14 @@ public sealed partial class SettingsPage : ThemedPage
                     RebuildAfterRules();
                 };
                 del.Click += (_, _) => { D.Settings.Schedules.Remove(r); RebuildAfterRules(); };
-                var row = new Panel { Width = tg.Width + 8 + 330 + 8 + 4 * (30 + 4) - 4, Height = 32, BackColor = Theme.Card };
+                var row = new Panel
+                {
+                    Width = tg.Width + 8 + lbl.Width + 8 + new[] { up, down, edit, del }.Sum(b => b.Width + 4) - 4,
+                    Height = Math.Max(32, Math.Max(lbl.Height, up.Height) + 4), BackColor = Theme.Card,
+                };
                 tg.Location = new Point(0, (row.Height - tg.Height) / 2);
                 lbl.Location = new Point(tg.Width + 8, (row.Height - lbl.Height) / 2);
-                int bx = tg.Width + 8 + 330 + 8;
+                int bx = tg.Width + 8 + lbl.Width + 8;
                 foreach (var b in new[] { up, down, edit, del })
                 {
                     b.Location = new Point(bx, (row.Height - b.Height) / 2);
@@ -952,8 +965,9 @@ public sealed partial class SettingsPage : ThemedPage
                 if (low) D.Settings.BattLowEnabled = v; else D.Settings.BattHighEnabled = v;
                 D.SaveSettings();
             });
-            var pct = new ThemedComboBox { Width = 84 };
+            var pct = new ThemedComboBox { Width = 84, Font = PageFont };
             pct.Items.AddRange(pctVals.Select(v => (object)(v + " %")).ToArray());
+            pct.Width = Math.Max(84, pct.PreferredFieldWidth);   // #172: "35 %" was cut to "3..." at 200 %
             pct.SelectedIndex = Math.Max(0, Array.IndexOf(pctVals, low ? D.Settings.BattLowPct : D.Settings.BattHighPct));
             pct.SelectedIndexChanged += (_, _) =>
             {
@@ -961,8 +975,9 @@ public sealed partial class SettingsPage : ThemedPage
                 if (low) D.Settings.BattLowPct = v; else D.Settings.BattHighPct = v;
                 D.SaveSettings();
             };
-            var act = new ThemedComboBox { Width = 168 };
+            var act = new ThemedComboBox { Width = 168, Font = PageFont };
             act.Items.AddRange(actionNames.Cast<object>().ToArray());
+            act.Width = Math.Max(168, act.PreferredFieldWidth);
             act.SelectedIndex = Math.Max(0, Array.IndexOf(actionVals, low ? D.Settings.BattLowAction : D.Settings.BattHighAction));
             act.SelectedIndexChanged += (_, _) =>
             {
@@ -972,10 +987,10 @@ public sealed partial class SettingsPage : ThemedPage
                 D.SaveSettings();
             };
             actCombos.Add((act, low));
-            var row = new Panel { Width = tg.Width + 8 + 84 + 8 + 168, Height = 30 };
+            var row = new Panel { Width = tg.Width + 8 + pct.Width + 8 + act.Width, Height = Math.Max(30, Math.Max(tg.Height, act.Height)) };
             tg.Location = new Point(0, (row.Height - tg.Height) / 2);
             pct.Location = new Point(tg.Width + 8, (row.Height - pct.Height) / 2);
-            act.Location = new Point(tg.Width + 8 + 84 + 8, (row.Height - act.Height) / 2);
+            act.Location = new Point(tg.Width + 8 + pct.Width + 8, (row.Height - act.Height) / 2);
             row.Controls.Add(tg); row.Controls.Add(pct); row.Controls.Add(act);
             return row;
         }
@@ -1484,7 +1499,14 @@ public sealed partial class SettingsPage : ThemedPage
         foreach (var s in D.Settings.Scenes) hkRows.Add((s.HotkeyKey, s.Name, true));
         foreach (var (key, label, isScene) in hkRows)
         {
-            var box = new HotkeyBox { Width = 200, AutoSize = false, Height = 28 };   // fixed height so the row panel doesn't clip it
+            // fixed size so the row panel doesn't clip it: 200 x 28 px up to about 150 % scaling,
+            // then as large as the longest shortcut text (#172: the text was cut at 200 %)
+            var box = new HotkeyBox
+            {
+                Font = PageFont, AutoSize = false,
+                Width = Math.Max(200, TextRenderer.MeasureText("Ctrl+Shift+Alt+F12", PageFont).Width + 16),
+                Height = Math.Max(28, PageFont.Height + 3),
+            };
             box.SetValue(D.Settings.Hotkeys.TryGetValue(key, out var hd) ? hd : new HotkeyDef());
             string k = key;
             var tg = new ToggleSwitch { Checked = D.Settings.Hotkeys.TryGetValue(k, out var hd2) ? hd2.Enabled : true };
@@ -2119,6 +2141,7 @@ public sealed partial class SettingsPage : ThemedPage
         private readonly Label _head;
         private readonly string _glyph;
         private readonly List<(Label? label, Control ctl)> _rows = new();
+        private readonly Dictionary<ThemedComboBox, int> _comboBase = new();   // the width each list was built with
         private Color? _flash;                                  // temporary highlight frame (gear jump)
         private long _flashStart;
         private int _flashMs;
@@ -2188,6 +2211,15 @@ public sealed partial class SettingsPage : ThemedPage
             int hx = pad + (string.IsNullOrEmpty(_glyph) ? 0 : Ceil(26 * Dpi.Of(this) / 96f) + Ceil(10 * Dpi.Of(this) / 96f));
             _head.Location = new Point(hx, y + Ceil(4 * Dpi.Of(this) / 96f));
             y += Math.Max(_head.Height, Ceil(26 * Dpi.Of(this) / 96f)) + 14;
+            // lists built with the same width keep one width within a card, so a column of them
+            // still lines up when one grows to fit its longest value (#172)
+            var groupWant = new Dictionary<int, int>();
+            foreach (var (l, ctl) in _rows)
+                if (l != null && ctl is ThemedComboBox gc)
+                {
+                    if (!_comboBase.TryGetValue(gc, out int gb)) _comboBase[gc] = gb = gc.Width;
+                    groupWant[gb] = Math.Max(groupWant.TryGetValue(gb, out int gw) ? gw : gb, gc.PreferredFieldWidth);
+                }
             foreach (var (l, ctl) in _rows)
             {
                 // a hidden full-width row (conditional strips, the restore button) takes no
@@ -2204,6 +2236,19 @@ public sealed partial class SettingsPage : ThemedPage
                 if (l == null && ctl is SepLine sep) sep.Width = width - pad * 2;
                 // a wrapping button row (the crosshair card) folds at the card's content width
                 if (l == null && ctl is FlowLayoutPanel { WrapContents: true } fw) fw.MaximumSize = new Size(width - pad * 2, 0);
+                // #172: a list beside its label is as wide as its longest value (never narrower than
+                // the width it was built with); when the card has no room for that, the value wraps
+                // and the field grows downwards instead of ending in "..."
+                if (l != null && ctl is ThemedComboBox cb)
+                {
+                    int baseW = _comboBase[cb];
+                    int room = width - pad * 2 - l.Width - Ceil(16 * Dpi.Of(this) / 96f);
+                    int want = groupWant[baseW];
+                    bool wrap = want > room;
+                    if (cb.WrapSelected != wrap) cb.WrapSelected = wrap;
+                    int w = wrap ? Math.Max(Ceil(80 * Dpi.Of(this) / 96f), room) : want;
+                    if (cb.Width != w) cb.Width = w;
+                }
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
                 if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
                 int cx = l != null ? Width - pad - ctl.Width : pad;

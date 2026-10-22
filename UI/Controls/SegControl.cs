@@ -10,6 +10,7 @@ public sealed class SegControl : Control
 {
     private string[] _items;
     private int _sel;
+    private readonly Font _font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
     public event Action<int>? SelectedChanged;
     public int Selected { get => _sel; set { _sel = value; Invalidate(); } }
 
@@ -20,10 +21,22 @@ public sealed class SegControl : Control
         // widest label and make that the floor. MinimumSize also corrects any Size assigned
         // later, and every host (FeatureBrick, CardSection, forms) positions by the real
         // Width, so a control that grows past its requested size stays right-aligned.
+        FitMinimum();
+    }
+
+    // #172: the floor also covers the height - hosts ask for 34 px, which held the label up to
+    // about 150 % scaling; above that the descenders were cut by the selected pill.
+    private void FitMinimum()
+    {
         int maxW = 0;
-        using var f = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
-        foreach (var it in items) maxW = Math.Max(maxW, TextRenderer.MeasureText(it, f).Width);
-        MinimumSize = new Size((maxW + 16) * items.Length, 0);
+        foreach (var it in _items) maxW = Math.Max(maxW, TextRenderer.MeasureText(it, _font).Width);
+        MinimumSize = new Size((maxW + 16) * _items.Length, TextRenderer.MeasureText("Ag", _font).Height + 6);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _font.Dispose();
+        base.Dispose(disposing);
     }
 
     /// <summary>
@@ -36,6 +49,7 @@ public sealed class SegControl : Control
         if (items.Length == 0) return;
         _items = items;
         _sel = Math.Clamp(sel, 0, items.Length - 1);
+        FitMinimum();
         Invalidate();
     }
 
@@ -65,9 +79,9 @@ public sealed class SegControl : Control
                 using var path = Theme.RoundRect(new RectangleF(r.X + 2, 2, r.Width - 4, Height - 4), 7);
                 using var b = new SolidBrush(Theme.AccentFill); g.FillPath(b, path);
             }
-            TextRenderer.DrawText(g, _items[i], Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
+            TextRenderer.DrawText(g, _items[i], _font,
                 Rectangle.Round(r), i == _sel ? Color.White : Theme.Muted,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
 }

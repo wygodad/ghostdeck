@@ -626,26 +626,67 @@ public sealed class FanCurvePage : ThemedPage
     // hold real controls that grow with the font); the bottom rows are the pre-existing layout.
     // 68 = the hint line's own top; the strip clears BOTH of its lines (10.5pt wraps to two on a
     // narrow window), so the second line is never cut in half by the strip.
-    private int ViewsY => 68 + S(48);
+    // #172: the hint wraps to as many lines as it needs; the strip moves down under it instead
+    // of the hint being cut off with an ellipsis (S(48) = two lines, the usual case).
+    private int ViewsY => HintY + Math.Max(S(48), HintH() + S(6));
+    // 68 px up to about 150 % scaling; above that the title is taller and the hint moves under it
+    private static readonly Font PageTitleF = Dpi.Font("Segoe UI", 18f, FontStyle.Bold);
+    private static int HintY => Math.Max(68, 22 + PageTitleF.Height);
     private int PresetY => ViewsY + S(52);
+
+    // Measured on demand but cached by text and width: ViewsY sits on the paint path.
+    private (string text, int w, int h) _hint;
+    private static readonly Font HintF = Dpi.Font("Segoe UI", 10.5f);
+    private int HintW => Width - Pad * 2 - S(120);
+    private int HintH()
+    {
+        string t = HintText();
+        if (_hint.text != t || _hint.w != HintW)
+            _hint = (t, HintW, TextRenderer.MeasureText(t, HintF, new Size(Math.Max(1, HintW), int.MaxValue), TextFormatFlags.WordBreak).Height);
+        return _hint.h;
+    }
+    private string HintText()
+    {
+        // one hint line per view: the drag instruction only makes sense on the chart
+        string hint = _view switch
+        {
+            ViewEq => Lang.T("fc_hint_eq"),
+            ViewDeck => Lang.T("fc_hint_deck"),
+            ViewPlay => Lang.T("fc_hint_play"),
+            _ => !D.Writable() ? Lang.T("fc_locked")
+               : _fc is { Verified: false } ? Lang.T("fc_preview")   // editable, but addresses unconfirmed
+               : Lang.T("fc_hint"),
+        };
+        if (Single && _view == ViewChart) hint = Lang.T("fc_single_note") + "  ·  " + hint;
+        return hint;
+    }
+
+    // #172: heights of the preset bar and the bottom rows, set by LayoutButtons from the fonts.
+    // The defaults are the 100-150 % values; above that the rows grow with their text.
+    private int _barH = 36;            // preset picker and its buttons
+    private bool _optRow2;             // chart options did not fit beside the presets: own row
+    private int _bottomReserve = 124;  // assignment row + on/off bar under the content
+    private int BarRowsH => Math.Max(S(44), _barH + S(8)) + (_optRow2 ? _barH + S(8) : 0);
     // Content starts under the preset bar, or right under the sub-tabs on the view that
     // hides that bar (nothing should sit in an empty strip).
     // The comparison-chip row sits between the preset bar and the tiles; when it is on, the
     // whole content stack below it moves down by one row.
     private bool CompareRowOn => _view == ViewChart && D.Settings.FanCurveCompareBar && _fc != null;
-    private int ContentTop => _view == ViewPlay ? ViewsY + S(46) : PresetY + S(44) + (CompareRowOn ? S(34) : 0);
+    private int ContentTop => _view == ViewPlay ? ViewsY + S(46) : PresetY + BarRowsH + (CompareRowOn ? S(34) : 0);
 
     private void LayoutButtons()
     {
+        if (!(_view == ViewChart && _fc != null)) _optRow2 = false;   // only the chart view has the options row
         _views.Visible = _fc != null;
         _views.SetBounds(Pad, ViewsY, _views.FitTo(Width - Pad * 2), _views.Height);
         LayoutDeck();
         LayoutPlayground();
 
-        int by = Height - 62, bh = 42;
+        int bh = Math.Max(42, Ui.ButtonHeight(_report.Font)), by = Height - bh - 20;
         _enable.Location = new Point(Pad, by + (bh - _enable.Height) / 2);
         _enableLabel.Location = new Point(Pad + _enable.Width + 12, by + (bh - _enableLabel.Height) / 2);
-        _default.SetBounds(Width - Pad - 170, by, 170, bh);
+        int dw = Math.Max(170, TextRenderer.MeasureText(_default.Text, _default.Font).Width + 28);
+        _default.SetBounds(Width - Pad - dw, by, dw, bh);
         int rw = TextRenderer.MeasureText(_report.Text, _report.Font).Width + 40;
         _report.SetBounds(_default.Left - 14 - rw, by, rw, bh);
 
@@ -658,10 +699,12 @@ public sealed class FanCurvePage : ThemedPage
             _presetLabel.Location = new Point(x, py + 7);
             x += _presetLabel.PreferredWidth + 10;
         }
-        int barH = _presetCombo.Height;   // one shared height for the picker and every button
+        // one shared height for the picker and every button, tall enough for the button text
+        int barH = _barH = Math.Max(_presetCombo.Height, TextRenderer.MeasureText("Ag", _psSave.Font).Height + 8);
         if (_presetCombo.Visible)
         {
-            _presetCombo.Location = new Point(x, py);
+            _presetCombo.Width = Math.Max(180, _presetCombo.PreferredFieldWidth);
+            _presetCombo.Location = new Point(x, py + (barH - _presetCombo.Height) / 2);
             x += _presetCombo.Width + 10;
         }
         foreach (var b in new[] { _psSave, _psSaveAs, _psRename, _psDelete })
@@ -679,9 +722,19 @@ public sealed class FanCurvePage : ThemedPage
         }
 
         // chart-view options, right-aligned on the same row: [Table] [?] [Trail] [Tiles] [Zones]
-        // (comparison chips are painted to their left, see DrawLayerChips)
+        // (comparison chips are painted to their left, see DrawLayerChips). When they do not
+        // fit beside the preset buttons (long labels, high scaling) they take a row of their own.
         bool chart = _view == ViewChart && _fc != null;
         _optTable.Visible = _optZones.Visible = _optIntents.Visible = _optTrail.Visible = _optCompare.Visible = _optHelp.Visible = chart;
+        bool row2 = false;
+        if (chart)
+        {
+            int optW = _optTable.Width + S(14) + S(22) + S(10);
+            foreach (var c in new[] { _optTrail, _optIntents, _optZones, _optCompare }) optW += c.PreferredWidth + S(12);
+            row2 = x - 6 + S(14) + optW > Width - Pad;
+            if (row2) py += barH + S(8);
+        }
+        if (row2 != _optRow2) _optRow2 = row2;
         if (chart)
         {
             int rx = Width - Pad;
@@ -699,14 +752,18 @@ public sealed class FanCurvePage : ThemedPage
             }
         }
 
-        // per-profile assignment row (between the graphs and the bottom bar)
-        int ay = Height - 112;
-        _assignLabel.Location = new Point(Pad, ay + 7);
+        // per-profile assignment row (between the graphs and the bottom bar); the pickers are as
+        // wide as the longest preset name, so none is cut
+        int comboH = _assignCombos[0].Height;
+        int ay = by - Math.Max(50, comboH + 14);
+        _bottomReserve = Height - ay + 12;
+        _assignLabel.Location = new Point(Pad, ay + Math.Max(7, (comboH - _assignLabel.Height) / 2));
         x = Pad + _assignLabel.PreferredWidth + 14;
         for (int i = 0; i < AssignableProfiles.Length; i++)
         {
-            _assignNames[i].Location = new Point(x, ay + 8);
+            _assignNames[i].Location = new Point(x, ay + Math.Max(8, (comboH - _assignNames[i].Height) / 2));
             x += _assignNames[i].PreferredWidth + 6;
+            _assignCombos[i].Width = Math.Max(150, _assignCombos[i].PreferredFieldWidth);
             _assignCombos[i].Location = new Point(x, ay + 1);
             x += _assignCombos[i].Width + 18;
         }
@@ -819,7 +876,7 @@ public sealed class FanCurvePage : ThemedPage
     private int MinPlotH => S(150);
     private bool ShowTable => _view == ViewChart && D.Settings.FanCurveTable && _fc != null;
     private bool ShowIntents => _view == ViewChart && D.Settings.FanCurveIntents && _fc != null
-                                && Height - 124 - (ShowTable ? TableH + S(12) : 0) - (ContentTop + IntentH + S(12)) >= MinPlotH;
+                                && Height - _bottomReserve - (ShowTable ? TableH + S(12) : 0) - (ContentTop + IntentH + S(12)) >= MinPlotH;
 
     // Which tile matches the current shape (both fans), -1 = none. Drives the "active" look.
     // What to call the shape that is loaded right now, most specific first:
@@ -1853,10 +1910,10 @@ public sealed class FanCurvePage : ThemedPage
     // reaches the page bottom.
     private int ContentBottomNow => _view == ViewPlay
         ? ContentTopNow + Math.Max(Height - S(20) - ContentTopNow, PlayNeededH)
-        : Height - 124 - (ShowTable ? TableH + S(12) : 0);
+        : Height - _bottomReserve - (ShowTable ? TableH + S(12) : 0);
     private Rectangle ContentRect => new(Pad, ContentTopNow, Width - Pad * 2, ContentBottomNow - ContentTopNow);
     private Rectangle IntentBar => new(Pad, ContentTop, Width - Pad * 2, IntentH);
-    private Rectangle TableRect => new(Pad, Height - 124 - TableH, Width - Pad * 2, TableH);
+    private Rectangle TableRect => new(Pad, Height - _bottomReserve - TableH, Width - Pad * 2, TableH);
 
     // ---- scrolling (In-action view only, see the note next to _scrollY) ----
     // The window the content is seen through: everything below the sub-tab strip. Painting is
@@ -1909,10 +1966,20 @@ public sealed class FanCurvePage : ThemedPage
         return new Rectangle(x, top, gw, bottom - top);
     }
 
+    // #172: the plot's margins follow the fonts. 48 / 54 / 46 px fit up to about 150 % scaling
+    // and stay the floor; above that the value labels ("150%") and the card title keep their room.
+    private static readonly Font AxisF = Dpi.Font("Segoe UI", 8.5f);
+    private static readonly Font CardTitleF = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
+    private static readonly Font TempF = Dpi.Font("Segoe UI", 8.5f);
+    private static int AxisLabelH => Math.Max(18, AxisF.Height);
+    private static readonly int AxisLabelW = Math.Max(44, TextRenderer.MeasureText("150%", AxisF, Size.Empty, TextFormatFlags.NoPadding).Width + 4);
+    private static int PlotTitleH => Math.Max(48, CardTitleF.Height + AxisLabelH / 2 + 4);
+    private static int PlotAxisH => Math.Max(46, 8 + TempF.Height + 2 + 8);
+
     private Rectangle PlotRect(int fan)
     {
         var r = GraphRect(fan);
-        const int titleH = 48, axisH = 46, leftAxis = 54, rightPad = 16;
+        int titleH = PlotTitleH, axisH = PlotAxisH, leftAxis = AxisLabelW + 10, rightPad = 16;
         return new Rectangle(r.X + leftAxis, r.Y + titleH, r.Width - leftAxis - rightPad, r.Height - titleH - axisH);
     }
 
@@ -2203,7 +2270,7 @@ public sealed class FanCurvePage : ThemedPage
                 g.Clip = saved;
             }
         }
-        TextRenderer.DrawText(g, Lang.T("fc_title"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 22), Theme.Text);
+        TextRenderer.DrawText(g, Lang.T("fc_title"), PageTitleF, new Point(Pad, 22), Theme.Text);
         if (_fc == null) return;
 
         // live fan-mode indicator (feedback for Apply / Restore automatic). Values come from
@@ -2214,27 +2281,17 @@ public sealed class FanCurvePage : ThemedPage
                         : _fanMode == 0x0D ? "Auto"
                         : $"0x{_fanMode:X2}";
         using var modeFont = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
-        TextRenderer.DrawText(g, Lang.T("fc_mode") + " " + modeName, modeFont,
-            new Rectangle(Width - Pad - 360, 24, 360, 28), Theme.Accent,
+        string mode = Lang.T("fc_mode") + " " + modeName;
+        int modeW = Math.Max(360, TextRenderer.MeasureText(g, mode, modeFont).Width + 8);
+        TextRenderer.DrawText(g, mode, modeFont,
+            new Rectangle(Width - Pad - modeW, 24, modeW, Math.Max(28, modeFont.Height)), Theme.Accent,
             TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
 
-        // one hint line per view: the drag instruction only makes sense on the chart
-        string hint = _view switch
-        {
-            ViewEq => Lang.T("fc_hint_eq"),
-            ViewDeck => Lang.T("fc_hint_deck"),
-            ViewPlay => Lang.T("fc_hint_play"),
-            _ => !D.Writable() ? Lang.T("fc_locked")
-               : _fc is { Verified: false } ? Lang.T("fc_preview")   // editable, but addresses unconfirmed
-               : Lang.T("fc_hint"),
-        };
-        if (Single && _view == ViewChart) hint = Lang.T("fc_single_note") + "  ·  " + hint;
-        using var hintFont = Dpi.Font("Segoe UI", 10.5f);
         // Wrap: on a narrow window the one-liner used to run off the right edge instead of
-        // breaking. Two lines fit under the title before the sub-tab strip starts.
-        TextRenderer.DrawText(g, hint, hintFont,
-            new Rectangle(Pad, 68, Width - Pad * 2 - S(120), hintFont.Height * 2 + S(2)), Theme.Muted,
-            TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+        // breaking; the sub-tab strip starts under however many lines it takes (ViewsY).
+        TextRenderer.DrawText(g, HintText(), HintF,
+            new Rectangle(Pad, HintY, HintW, HintH()), Theme.Muted,
+            TextFormatFlags.Left | TextFormatFlags.WordBreak);
     }
 
     // Slim scrollbar in the right margin, drawn only while the view actually scrolls. Painted
@@ -2257,9 +2314,8 @@ public sealed class FanCurvePage : ThemedPage
     {
         var card = GraphRect(fan);
         Ui.FillCard(g, card);
-        var titleFont = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
-        TextRenderer.DrawText(g, title, titleFont,
-            new Rectangle(card.X + 16, card.Y + 10, card.Width - 32, titleFont.Height + 4), Theme.Text,
+        TextRenderer.DrawText(g, title, CardTitleF,
+            new Rectangle(card.X + 16, card.Y + 10, card.Width - 32, CardTitleF.Height + 4), Theme.Text,
             TextFormatFlags.Left | TextFormatFlags.Top);
 
         var p = PlotRect(fan);
@@ -2288,13 +2344,12 @@ public sealed class FanCurvePage : ThemedPage
         }
 
         using (var grid = new Pen(Theme.Border))
-        using (var axisFont = Dpi.Font("Segoe UI", 8.5f))
         {
             for (int v = 0; v <= MaxPct; v += 25)
             {
                 float y = p.Bottom - v / (float)MaxPct * p.Height;
                 g.DrawLine(grid, p.Left, y, p.Right, y);
-                TextRenderer.DrawText(g, v + "%", axisFont, new Rectangle(card.X + 8, (int)y - 9, 44, 18), Theme.Faint,
+                TextRenderer.DrawText(g, v + "%", AxisF, new Rectangle(card.X + 8, (int)y - AxisLabelH / 2, AxisLabelW, AxisLabelH), Theme.Faint,
                     TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
             }
         }
@@ -2338,18 +2393,20 @@ public sealed class FanCurvePage : ThemedPage
         using (var line = new Pen(Theme.Accent, 2.5f) { LineJoin = LineJoin.Round })
             if (n >= 2) g.DrawLines(line, pts);
 
-        using var tempFont = Dpi.Font("Segoe UI", 8.5f);
         using var valFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+        // label widths from the widest text they can hold ("100°", "150%"), centred on the node
+        int tw = Math.Max(48, TextRenderer.MeasureText(g, "100°", TempF).Width + 8);
+        int vw = Math.Max(56, TextRenderer.MeasureText(g, "150%", valFont).Width + 8);
         for (int i = 0; i < n; i++)
         {
             // temperature label on the X axis
-            TextRenderer.DrawText(g, temps[i] + "°", tempFont,
-                new Rectangle((int)pts[i].X - 24, p.Bottom + 8, 48, tempFont.Height + 2), Theme.Muted,
+            TextRenderer.DrawText(g, temps[i] + "°", TempF,
+                new Rectangle((int)pts[i].X - tw / 2, p.Bottom + 8, tw, TempF.Height + 2), Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
             // speed % above the point
             int vh = valFont.Height + 2;
             TextRenderer.DrawText(g, speeds[i] + "%", valFont,
-                new Rectangle((int)pts[i].X - 28, (int)pts[i].Y - vh - 10, 56, vh), Theme.Text,
+                new Rectangle((int)pts[i].X - vw / 2, (int)pts[i].Y - vh - 10, vw, vh), Theme.Text,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
             // node (bigger while dragged; amber halo when its table row is hovered)
             bool active = fan == _dragFan && i == _dragIdx;
@@ -2468,7 +2525,7 @@ public sealed class FanCurvePage : ThemedPage
         var kept = new List<string>();
         using var cf = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
         int h = cf.Height + S(8);
-        int y = PresetY + S(42);
+        int y = PresetY + Math.Max(S(42), _barH + S(6)) + (_optRow2 ? _barH + S(8) : 0);
         string cap = Lang.T("fc_compare");
         using var capF = Dpi.Font("Segoe UI", 9.5f);
         int capW = TextRenderer.MeasureText(g, cap, capF).Width;

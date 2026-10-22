@@ -207,6 +207,42 @@ public sealed class StatusPage : ThemedPage
 
     private const int RingCount = 5;
     private const int RingTop = 92, RowH = 56;
+
+    // #172: row heights of the charts sub-tab follow the font. The literals are what fits up to
+    // about 150 % scaling and stay the floor, so the page looks the same there; above that the
+    // text lines, the bars under them and the boxes grow with the text instead of cutting it.
+    private static readonly Font RowNameF = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+    private static readonly Font RowValF = Dpi.Font("Segoe UI", 10.5f);
+    private static readonly Font MetricF = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
+    private static readonly Font RingLabelF = Dpi.Font("Segoe UI", 10f);
+    private static int LineH => Math.Max(28, RowNameF.Height + 2);          // RAM / VRAM / disk text line
+    private static int BarOff => LineH + 8;                                 // its bar, under the line
+    private static int DiskBlockH => BarOff + 14 + 8;                       // one disk: line + bar + air
+    private static int SubH => Math.Max(54, Math.Max(MetricF.Height + 16, BarOff + 14 + 4));
+    private static int RingBelow => Math.Max(68, 12 + RingLabelF.Height + 4 + 16);   // ring label + air
+
+    private int RamW(int width)
+    {
+        int ring = RingSize(width), avail = width - Pad * 2;
+        return ring * 2 + Math.Max(24, (avail - RingCount * ring) / (RingCount - 1));
+    }
+
+    // Disk row: the name on the left, "used / total GB · temp" on the right. When both do not fit
+    // on one line the values move to a line of their own instead of cutting the name.
+    private static string DiskValues(Perf.DiskInfo d)
+    {
+        string cap = d.VolGb > 0 ? $"{d.UsedGb:0} / {d.SizeGb:0} GB" :
+                     d.SizeGb >= 1000 ? $"{d.SizeGb / 1000:0.0} TB" : $"{d.SizeGb:0} GB";
+        return cap + " · " + (d.TempC > 0 ? $"{d.TempC} °C" : "-");
+    }
+    private static bool DiskTwoLines(Perf.DiskInfo d, int ramW) =>
+        TextRenderer.MeasureText(d.Name, RowNameF).Width + 10 + TextRenderer.MeasureText(DiskValues(d), RowValF).Width + 6 > ramW;
+    private static int StorageH(IReadOnlyList<Perf.DiskInfo> disks, int ramW)
+    {
+        int h = 0;
+        foreach (var d in disks) h += DiskBlockH + (DiskTwoLines(d, ramW) ? LineH : 0);
+        return Math.Max(SubH, h);
+    }
     private static readonly Color CpuUseColor = Color.FromArgb(0x3C, 0x7D, 0xFF);   // blue: CPU side of the palette (fans = cyan/violet)
     private int RingGap() => 24;
     private int RingSize(int width)
@@ -239,10 +275,11 @@ public sealed class StatusPage : ThemedPage
             int ring = RingSize(width);
             // rings, then three stacked 54px rows (RPM/clock, battery/GPU load/VRAM, storage), and
             // the graphics-clock tile adds a fourth on the right when Windows reports a card
-            int subY3 = SecTop + ring + 68 + 54 + 14 + 54 + 14;
-            int rightH = GpuTelemetry.Read().Ok ? 54 * 2 + 14 : 54;
-            _laidDisks = Perf.DisksCached().Count;   // RefreshAsync re-lays the page out when the list arrives or changes
-            int storageH = Math.Max(54, _laidDisks * 58);
+            int subY3 = SecTop + ring + RingBelow + SubH + 14 + SubH + 14;
+            int rightH = GpuTelemetry.Read().Ok ? SubH * 2 + 14 : SubH;
+            var disks = Perf.DisksCached();
+            _laidDisks = disks.Count;   // RefreshAsync re-lays the page out when the list arrives or changes
+            int storageH = StorageH(disks, RamW(width));
             int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
             return cardTop + RowH * Rows.Length + 14 + 40;
         }
@@ -258,11 +295,11 @@ public sealed class StatusPage : ThemedPage
             int sess = SelectedSession() != null
                 ? GTitle.Height + 12 + GmSessRows * GmRowH + 14
                 : GTitle.Height + 12 + 56;
-            return SecTop + 34 + GmBoxH + 24 + GmChartH + 24 + sess + 40;
+            return SecTop + GmHeadH + 10 + GmBoxH + 24 + GmChartH + 24 + sess + 40;
         }
         if (sub == 3)
         {
-            int h = SecTop + GridH(true, 5, 2) + NoteH + 8 + GridH(false, 4);
+            int h = SecTop + GridH(true, 5, 2) + NoteH(width - Pad * 2) + 8 + GridH(false, 4);
             if (_dev?.FanCurve is { } fc) h += 16 + GridH(true, fc.Points);
             return h + 40;
         }
@@ -414,15 +451,15 @@ public sealed class StatusPage : ThemedPage
         DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
 
         // --- sub-row under the rings (clear gap above and below) ---
-        int subY = top + ring + 68, subH = 54;
+        int subY = top + ring + RingBelow, subH = SubH, lineH = LineH;
 
         // RAM as a horizontal bar spanning the two temperature rings, with values; bar inset ~20px each side
         int ramX = X(0), ramW = ring * 2 + ringGap;
-        TextRenderer.DrawText(g, Lang.T("st_ram"), Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold),
-            new Rectangle(ramX, subY, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-        TextRenderer.DrawText(g, ramTot > 0 ? $"{ramUsed:0.0} / {ramTot:0.0} GB · {ramPct}%" : "—", Dpi.Font("Segoe UI", 10.5f),
-            new Rectangle(ramX, subY, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
-        DrawBar(g, new RectangleF(ramX + 20, subY + 36, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
+        TextRenderer.DrawText(g, Lang.T("st_ram"), RowNameF,
+            new Rectangle(ramX, subY, ramW, lineH), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+        TextRenderer.DrawText(g, ramTot > 0 ? $"{ramUsed:0.0} / {ramTot:0.0} GB · {ramPct}%" : "-", RowValF,
+            new Rectangle(ramX, subY, ramW, lineH), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+        DrawBar(g, new RectangleF(ramX + 20, subY + BarOff, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
 
         // Framed metric counter (shared by the RPM / clock / GPU / VRAM / battery boxes). Box width
         // comes from the ring grid, so a label that carries two values has to step down a size or
@@ -463,11 +500,11 @@ public sealed class StatusPage : ThemedPage
         if (vramBar)
         {
             int vpct = (int)Math.Round(Math.Clamp(vm / (float)vt, 0f, 1f) * 100);
-            TextRenderer.DrawText(g, Lang.T("ov_m_vram"), Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold),
-                new Rectangle(ramX, subY2, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            TextRenderer.DrawText(g, $"{vm / 1024f:0.0} / {vt / 1024f:0.0} GB · {vpct}%", Dpi.Font("Segoe UI", 10.5f),
-                new Rectangle(ramX, subY2, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
-            DrawBar(g, new RectangleF(ramX + 20, subY2 + 36, ramW - 40, 14), vm / (float)vt, vpct >= 90 ? Theme.Amber : Theme.AccentFill);
+            TextRenderer.DrawText(g, Lang.T("ov_m_vram"), RowNameF,
+                new Rectangle(ramX, subY2, ramW, lineH), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(g, $"{vm / 1024f:0.0} / {vt / 1024f:0.0} GB · {vpct}%", RowValF,
+                new Rectangle(ramX, subY2, ramW, lineH), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            DrawBar(g, new RectangleF(ramX + 20, subY2 + BarOff, ramW - 40, 14), vm / (float)vt, vpct >= 90 ? Theme.Amber : Theme.AccentFill);
         }
         else
         {
@@ -495,39 +532,36 @@ public sealed class StatusPage : ThemedPage
         // plus a compact battery-time box (#15) under the rings
         int subY3 = subY2 + subH + 14;
         var disks = Perf.DisksCached();
-        const int diskBlockH = 58;   // same rhythm as the RAM/VRAM rows: 28px text line, bar at +36
-        int storageH = Math.Max(subH, disks.Count * diskBlockH);
-        var nameF = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
-        var valF = Dpi.Font("Segoe UI", 10.5f);
+        int storageH = StorageH(disks, ramW);
         if (disks.Count == 0)
         {
-            TextRenderer.DrawText(g, $"{Lang.T("ov_m_ssd")}: —", nameF,
+            TextRenderer.DrawText(g, $"{Lang.T("ov_m_ssd")}: -", RowNameF,
                 new Rectangle(ramX, subY3, ramW, subH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         }
         else
         {
-            for (int di = 0; di < disks.Count; di++)
+            int ly = subY3;
+            foreach (var d in disks)
             {
-                var d = disks[di];
-                int ly = subY3 + di * diskBlockH;
                 // right side: "1658 / 1908 GB · 37 °C" (used/total like MSI Center; temp amber when hot)
-                string cap = d.VolGb > 0 ? $"{d.UsedGb:0} / {d.SizeGb:0} GB" :
-                             d.SizeGb >= 1000 ? $"{d.SizeGb / 1000:0.0} TB" : $"{d.SizeGb:0} GB";
-                string right = cap + " · " + (d.TempC > 0 ? $"{d.TempC} °C" : "—");
-                int rightW = TextRenderer.MeasureText(right, valF).Width + 6;
-                TextRenderer.DrawText(g, d.Name, nameF,
-                    new Rectangle(ramX, ly, ramW - rightW - 10, 28), Theme.Text,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-                TextRenderer.DrawText(g, right, valF,
-                    new Rectangle(ramX + ramW - rightW, ly, rightW, 28),
+                string right = DiskValues(d);
+                int rightW = TextRenderer.MeasureText(right, RowValF).Width + 6;
+                bool two = DiskTwoLines(d, ramW);
+                TextRenderer.DrawText(g, d.Name, RowNameF,
+                    new Rectangle(ramX, ly, two ? ramW : ramW - rightW - 10, lineH), Theme.Text,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+                int vy = two ? ly + lineH : ly;
+                TextRenderer.DrawText(g, right, RowValF,
+                    new Rectangle(ramX + ramW - rightW, vy, rightW, lineH),
                     d.TempC >= 70 ? Theme.Amber : Theme.Muted,
                     TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
                 if (d.VolGb > 0)
                 {
                     float frac = (float)Math.Clamp(d.UsedGb / d.VolGb, 0, 1);
-                    DrawBar(g, new RectangleF(ramX + 20, ly + 36, ramW - 40, 14), frac,
+                    DrawBar(g, new RectangleF(ramX + 20, vy + BarOff, ramW - 40, 14), frac,
                         frac >= 0.9f ? Theme.Amber : Theme.AccentFill);
                 }
+                ly = vy + DiskBlockH;
             }
         }
         // Right of the storage panel, two wide boxes stacked: the graphics clock and the battery
@@ -649,9 +683,10 @@ public sealed class StatusPage : ThemedPage
             return;
         }
         sec = DrawMatrix(g, sec, avail, info);
-        TextRenderer.DrawText(g, Lang.T("st_matrix_note"), Dpi.Font("Segoe UI", 9f), new Rectangle(Pad, sec + 4, avail, NoteH - 4),
-            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordEllipsis);
-        sec += NoteH;
+        int noteH = NoteH(avail);
+        TextRenderer.DrawText(g, Lang.T("st_matrix_note"), NoteF, new Rectangle(Pad, sec + 4, avail, noteH - 4),
+            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak);
+        sec += noteH;
         sec = DrawLegend(g, sec, avail);
         if (_dev?.FanCurve != null && _curve is { } cv) DrawCurveLive(g, sec, avail, cv);
     }
@@ -718,6 +753,54 @@ public sealed class StatusPage : ThemedPage
         }
     }
 
+    // #172: chart geometry from the fonts. The header (46 px), the value-label column (62 px) and
+    // the time-label band (50 px) are what fits up to about 150 % scaling and stay the floor;
+    // above that each grows with its text, so labels are not cut and do not run into the title.
+    private static readonly Font AxisF = Dpi.Font("Segoe UI", 8.5f);
+    private static readonly Font LegF = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+    private static int AxisH => Math.Max(18, AxisF.Height);
+
+    private static RectangleF ChartPlot(int top, int avail, int chartH, string widestValue)
+    {
+        int head = Math.Max(46, GTitle.Height + AxisH / 2 + 4);
+        int left = Math.Max(62, TextRenderer.MeasureText(widestValue, AxisF).Width + 14);
+        int foot = Math.Max(50, 10 + AxisH + 12);
+        return new RectangleF(Pad + left, top + head, avail - left - 20, chartH - head - foot);
+    }
+
+    // value label left of a grid line, centred on it
+    private static void YLabel(Graphics g, string text, RectangleF plot, float y) =>
+        TextRenderer.DrawText(g, text, AxisF, new Rectangle(Pad + 6, (int)y - AxisH / 2, (int)plot.Left - Pad - 10, AxisH),
+            Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+
+    // time label under the plot, centred on its tick; the last one ("now") stays inside the card
+    private static void XLabel(Graphics g, string text, RectangleF plot, float x, int cardRight)
+    {
+        int tw = TextRenderer.MeasureText(text, AxisF).Width;
+        int cx = Math.Min((int)x, cardRight - 4 - tw / 2);
+        int w = Math.Max(68, tw + 8);
+        TextRenderer.DrawText(g, text, AxisF, new Rectangle(cx - w / 2, (int)plot.Bottom + 10, w, AxisH),
+            Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+    }
+
+    // legend entry right-to-left from *lx: label, then its marker (dot or short line) centred on the text
+    private static void Legend(Graphics g, ref int lx, int top, string label, Color color, bool dot = true)
+    {
+        int w = TextRenderer.MeasureText(label, LegF).Width;
+        lx -= w;
+        TextRenderer.DrawText(g, label, LegF, new Point(lx, top + 12), color);
+        lx -= 18;
+        float cy = top + 12 + LegF.Height / 2f;
+        using var b = new SolidBrush(color);
+        if (dot)
+        {
+            float d = Math.Max(9, LegF.Height / 3f);
+            g.FillEllipse(b, lx + 4, cy - d / 2, d, d);
+        }
+        else { using var pn = new Pen(color, 3f); g.DrawLine(pn, lx, cy, lx + 13, cy); }
+        lx -= 14;
+    }
+
     // One line chart card (two series, 0..maxVal scale) over the last _histMin minutes.
     private int DrawHistoryChart(Graphics g, int top, int avail, string title, string unit,
         List<HwSample> data, Func<HwSample, int> serA, Func<HwSample, int> serB, string aLabel, string bLabel,
@@ -732,33 +815,21 @@ public sealed class StatusPage : ThemedPage
             Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
 
         // legend (series colours follow the gauges: CPU = accent, GPU = violet)
-        var legFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         int lx = Pad + avail - 16;
         foreach (var (label, color) in new[] { (bLabel, Theme.Violet), (aLabel, Theme.Accent) })
-        {
-            if (label.Length == 0) continue;   // single-series chart (FPS)
-            int w = TextRenderer.MeasureText(label, legFont).Width;
-            lx -= w;
-            TextRenderer.DrawText(g, label, legFont, new Point(lx, top + 12), color);
-            lx -= 18;
-            using var b = new SolidBrush(color);
-            g.FillEllipse(b, lx + 4, top + 16, 9, 9);
-            lx -= 14;
-        }
+            if (label.Length > 0) Legend(g, ref lx, top, label, color);   // single-series chart (FPS) has no B
 
-        // 50 px reserved under the plot so the time labels never clip against the card edge
-        var plot = new RectangleF(Pad + 62, top + 46, avail - 62 - 20, HistChartH - 46 - 50);
+        // room under the plot so the time labels never clip against the card edge
+        var plot = ChartPlot(top, avail, HistChartH, maxVal + unit);
         _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top, aLabel, bLabel, allowZero));
         using (var grid = new Pen(Theme.Border))
-        using (var axisFont = Dpi.Font("Segoe UI", 8.5f))
         {
             for (int i = 0; i <= gridSteps; i++)
             {
                 int v = maxVal * i / gridSteps;
                 float y = plot.Bottom - v / (float)maxVal * plot.Height;
                 g.DrawLine(grid, plot.Left, y, plot.Right, y);
-                TextRenderer.DrawText(g, v + unit, axisFont, new Rectangle(Pad + 6, (int)y - 9, 52, 18),
-                    Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+                YLabel(g, v + unit, plot, y);
             }
             // time ticks: -N min ... now
             int ticks = 4;
@@ -766,8 +837,7 @@ public sealed class StatusPage : ThemedPage
             {
                 float x = plot.Left + t / (float)ticks * plot.Width;
                 string lab = t == ticks ? Lang.T("st_hist_now") : $"-{_histMin - t * _histMin / ticks} min";
-                TextRenderer.DrawText(g, lab, axisFont, new Rectangle((int)x - 34, (int)plot.Bottom + 10, 68, 18),
-                    Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+                XLabel(g, lab, plot, x, Pad + avail);
             }
         }
 
@@ -855,8 +925,14 @@ public sealed class StatusPage : ThemedPage
 
     // ---- sub-tab 2: gaming (live FPS/frametime from the ETW monitor + last session summary) ----
     private const int GmChartH = 310;
-    private const int GmBoxH = 64;
-    private const int GmRowH = 40;
+    // #172: the stat boxes grow with their two lines of text above about 150 % scaling
+    private static readonly Font GmLabF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+    private static readonly Font GmValF = Dpi.Font("Segoe UI", 14f, FontStyle.Bold);
+    private static readonly Font GmHeadF = Dpi.Font("Segoe UI", 10.5f);
+    private static readonly Font GmDiagF = Dpi.Font("Consolas", 9f);
+    private static int GmBoxH => Math.Max(64, GmLabF.Height + GmValF.Height + 4);
+    private static int GmHeadH => Math.Max(24, Math.Max(GmHeadF.Height, GmDiagF.Height) - 2);
+    private static int GmRowH => Math.Max(40, GCell.Height + 6);   // #172: session rows grow with the text
     private const int GmSessRows = 9;
 
     private void RenderGaming(Graphics g, int avail)
@@ -868,26 +944,28 @@ public sealed class StatusPage : ThemedPage
         // right (untranslated by design, like CLI output) so a dead session is visible, not silent
         string tgt = FpsMonitor.TargetName;
         string diag = $"ETW: {FpsMonitor.DiagStatus} · ev {FpsMonitor.EventsSeen}" + (tgt.Length > 0 ? $" · {tgt}" : "");
-        var diagFont = Dpi.Font("Consolas", 9f);
-        int diagW = TextRenderer.MeasureText(g, diag, diagFont).Width + 8;
-        TextRenderer.DrawText(g, diag, diagFont, new Rectangle(Pad + avail - diagW, top, diagW, 24),
+        int headH = GmHeadH;
+        int diagW = TextRenderer.MeasureText(g, diag, GmDiagF).Width + 8;
+        TextRenderer.DrawText(g, diag, GmDiagF, new Rectangle(Pad + avail - diagW, top, diagW, headH),
             Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
         string head = snap is { } s0 ? string.Format(Lang.T("gm_game"), s0.Process) : Lang.T("gm_none");
-        TextRenderer.DrawText(g, head, Dpi.Font("Segoe UI", 10.5f), new Rectangle(Pad, top, avail - diagW - 10, 24),
+        TextRenderer.DrawText(g, head, GmHeadF, new Rectangle(Pad, top, avail - diagW - 10, headH),
             snap != null ? Theme.Text : Theme.Muted,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-        top += 34;
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: a game's process name can be any length
+        top += headH + 10;
 
         // live stat boxes: FPS · frametime · 1% low · stutters (rolling 30 s)
-        int gap = 14, bw = (avail - gap * 3) / 4;
+        int gap = 14, bw = (avail - gap * 3) / 4, boxH = GmBoxH;
+        int valY = Math.Max(26, GmLabF.Height + 2);   // value line under the label
         void Box(int i, string label, string value, Color? c = null)
         {
-            var r = new RectangleF(Pad + i * (bw + gap), top, bw, GmBoxH);
+            var r = new RectangleF(Pad + i * (bw + gap), top, bw, boxH);
             Ui.FillCard(g, r);
-            TextRenderer.DrawText(g, label, Dpi.Font("Segoe UI", 9f, FontStyle.Bold),
-                new Rectangle((int)r.X + 14, (int)r.Y + 8, bw - 28, 18), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
-            TextRenderer.DrawText(g, value, Dpi.Font("Segoe UI", 14f, FontStyle.Bold),
-                new Rectangle((int)r.X + 14, (int)r.Y + 26, bw - 28, GmBoxH - 32), c ?? Theme.Text,
+            TextRenderer.DrawText(g, label, GmLabF,
+                new Rectangle((int)r.X + 14, (int)r.Y + 8, bw - 28, Math.Max(18, GmLabF.Height)), Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.WordBreak);
+            TextRenderer.DrawText(g, value, GmValF,
+                new Rectangle((int)r.X + 14, (int)r.Y + valY, bw - 28, boxH - valY - 6), c ?? Theme.Text,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         }
         Box(0, "FPS", snap is { } a ? a.Fps.ToString() : "--", Theme.Accent);
@@ -895,7 +973,7 @@ public sealed class StatusPage : ThemedPage
         Box(2, "1% low", snap is { Fps: > 0, P1LowFps: > 0 } c ? c.P1LowFps.ToString() : "--");
         Box(3, Lang.T("gm_stut"), snap is { } d ? d.Stutters30s.ToString() : "--",
             snap is { Stutters30s: > 0 } ? Theme.Amber : null);
-        top += GmBoxH + 24;
+        top += boxH + 24;
 
         top = DrawFrametimeChart(g, top, avail) + 24;
         DrawLastSession(g, top, avail);
@@ -909,25 +987,10 @@ public sealed class StatusPage : ThemedPage
             Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
 
         // legend: what the cyan line and the red dots mean
-        using (var legFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold))
-        {
-            int lx = Pad + avail - 16;
-            void Leg(string label, Color c, bool dot)
-            {
-                int w = TextRenderer.MeasureText(label, legFont).Width;
-                lx -= w;
-                TextRenderer.DrawText(g, label, legFont, new Point(lx, top + 12), c);
-                lx -= 18;
-                using var b = new SolidBrush(c);
-                if (dot) g.FillEllipse(b, lx + 4, top + 16, 9, 9);
-                else { using var p = new Pen(c, 3f); g.DrawLine(p, lx, top + 20, lx + 13, top + 20); }
-                lx -= 14;
-            }
-            Leg(Lang.T("gm_stut"), Theme.Red, dot: true);
-            Leg(Lang.T("ov_m_frametime"), Theme.Accent, dot: false);
-        }
+        int lx = Pad + avail - 16;
+        Legend(g, ref lx, top, Lang.T("gm_stut"), Theme.Red, dot: true);
+        Legend(g, ref lx, top, Lang.T("ov_m_frametime"), Theme.Accent, dot: false);
 
-        var plot = new RectangleF(Pad + 62, top + 46, avail - 62 - 20, GmChartH - 46 - 50);
         var frames = FpsMonitor.RecentFrames(60);
 
         // dynamic ceiling: fit the p99 with headroom, rounded to 5 ms (floor 20 ms)
@@ -938,24 +1001,22 @@ public sealed class StatusPage : ThemedPage
             float p99 = sorted[Math.Min(sorted.Length - 1, (int)(sorted.Length * 0.99))];
             maxMs = Math.Max(20f, (float)Math.Ceiling(p99 * 1.6f / 5f) * 5f);
         }
+        var plot = ChartPlot(top, avail, GmChartH, $"{maxMs:0} ms");
 
         using (var grid = new Pen(Theme.Border))
-        using (var axisFont = Dpi.Font("Segoe UI", 8.5f))
         {
             for (int i = 0; i <= 4; i++)
             {
                 float v = maxMs * i / 4f;
                 float gy = plot.Bottom - v / maxMs * plot.Height;
                 g.DrawLine(grid, plot.Left, gy, plot.Right, gy);
-                TextRenderer.DrawText(g, $"{v:0} ms", axisFont, new Rectangle(Pad + 6, (int)gy - 9, 52, 18),
-                    Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+                YLabel(g, $"{v:0} ms", plot, gy);
             }
             for (int t = 0; t <= 4; t++)
             {
                 float gx = plot.Left + t / 4f * plot.Width;
                 string lab = t == 4 ? Lang.T("st_hist_now") : $"-{60 - t * 15} s";
-                TextRenderer.DrawText(g, lab, axisFont, new Rectangle((int)gx - 30, (int)plot.Bottom + 10, 60, 18),
-                    Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+                XLabel(g, lab, plot, gx, Pad + avail);
             }
         }
 
@@ -1188,27 +1249,52 @@ public sealed class StatusPage : ThemedPage
     private int DrawRecentLog(Graphics g, int top, int avail)
     {
         var headers = new[] { Lang.T("log_col_time"), Lang.T("log_col_source"), Lang.T("log_col_detail"), Lang.T("log_col_result") };
-        var lefts = new[] { 0f, .17f, .35f, .74f };
         var rows = new List<string[]>();
         foreach (var e in ChangeLog.Recent(RecentLogRows))
             rows.Add(new[] { e.Time.ToString("MM-dd HH:mm:ss"), ChangeLog.SourceLabel(e.Source), e.Detail, e.Result });
-        if (rows.Count == 0) rows.Add(new[] { "—", "", Lang.T("log_empty"), "" });
+        if (rows.Count == 0) rows.Add(new[] { "-", "", Lang.T("log_empty"), "" });
         bool[] mono = { true, false, false, true };
+        var lefts = LogColumns(headers, rows, mono, avail);
         int titleY = top + 16;
         // column colour language shared with the full-log window: muted time, accent source,
         // plain detail, muted mono readback
         Color? LogCell(int r, int c) => c switch { 0 => Theme.Muted, 1 => Theme.Accent, 3 => Theme.Muted, _ => Theme.Text };
         int bottom = DrawGrid(g, titleY, avail, Lang.T("log_recent"), headers, lefts, rows, mono, cellColor: LogCell);
 
-        // Right-align the "Full log…" button on the section title row.
-        int btnW = 150, btnH = GTitle.Height + 6;
+        // Right-align the "Full log…" button on the section title row, as wide as its label needs.
+        int btnW = Math.Max(150, TextRenderer.MeasureText(_logBtn.Text, _logBtn.Font).Width + 28), btnH = GTitle.Height + 6;
         var b = new Rectangle(Pad + avail - btnW, titleY - 3, btnW, btnH);
         if (_logBtn.Bounds != b) _logBtn.Bounds = b;
         _logBtn.BringToFront();
         return bottom;
     }
 
-    private static int NoteH => GCell.Height + 12;
+    // #172: the change-log columns follow their content. Fixed shares (17 / 18 / 39 / 26 %) left a
+    // wide empty gap after the detail column at high scaling while the readback was cut. Time,
+    // source and readback get what their longest cell needs, the detail column takes the rest.
+    private static float[] LogColumns(string[] headers, List<string[]> rows, bool[] mono, int avail)
+    {
+        int inner = avail - 36;
+        int[] need = new int[headers.Length];
+        for (int c = 0; c < headers.Length; c++)
+        {
+            need[c] = TextRenderer.MeasureText(headers[c], GHead).Width;
+            foreach (var r in rows)
+                need[c] = Math.Max(need[c], TextRenderer.MeasureText(r[c], mono[c] ? GMono : GCell).Width);
+            need[c] += 24;   // the 10 px cell gap plus air
+        }
+        // the readback never takes more than 40 % (a very long one still leaves the detail room)
+        need[3] = Math.Min(need[3], inner * 2 / 5);
+        int detail = Math.Max(inner / 5, inner - need[0] - need[1] - need[3]);
+        float x0 = 0, x1 = x0 + need[0], x2 = x1 + need[1], x3 = x2 + detail;
+        if (x3 + need[3] > inner) x3 = inner - need[3];   // keep the readback whole, the detail gives way
+        return new[] { 0f, x1 / inner, x2 / inner, x3 / inner };
+    }
+
+    // the EC-bytes note under the matrix wraps to as many lines as the width needs (#172)
+    private static readonly Font NoteF = Dpi.Font("Segoe UI", 9f);
+    private static int NoteH(int avail) =>
+        TextRenderer.MeasureText(Lang.T("st_matrix_note"), NoteF, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height + 12;
 
     private static readonly Font GTitle = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
     private static readonly Font GHead = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
@@ -1240,7 +1326,7 @@ public sealed class StatusPage : ThemedPage
 
         var hFlags = headerLines > 1
             ? TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
-            : TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
+            : TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;   // dpi-ok: one-line headers of data tables; the columns are sized to fit them
         for (int c = 0; c < headers.Length; c++)
             TextRenderer.DrawText(g, headers[c], GHead, new Rectangle(cx[c], y + 6, ColW(c), headH - 8), Theme.Muted, hFlags);
 
@@ -1255,7 +1341,7 @@ public sealed class StatusPage : ThemedPage
             if (bar is Color bc) { using var b = new SolidBrush(bc); g.FillRectangle(b, x + 8, ry, 4, rowH); }
             for (int c = 0; c < rows[r].Length; c++)
                 TextRenderer.DrawText(g, rows[r][c], mono[c] ? GMono : GCell, new Rectangle(cx[c], ry, ColW(c), rowH),
-                    cellColor?.Invoke(r, c) ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                    cellColor?.Invoke(r, c) ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: table cells are data (log lines, byte values); the full-log window shows a long line whole
             ry += rowH;
         }
         return y + totalH;

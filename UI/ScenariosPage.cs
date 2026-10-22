@@ -420,7 +420,8 @@ public sealed class ScenariosPage : ThemedPage
         // Fourth-mode boards: every tile grows by the Apex row's height (variant A), so the
         // grid stays aligned and the Extreme tile has full room for the row; other boards
         // keep the plain height. ApexRowH is 0 on every tile except an Extreme with a row.
-        int th = TileH + _tiles.Max(t => t.ApexRowH());
+        // #172: above about 200 % scaling the stacked text needs more than TileH
+        int th = Math.Max(TileH, Tile.BlockH() + 32) + _tiles.Max(t => t.ApexRowH());
         for (int i = 0; i < _tiles.Length; i++)
             _tiles[i].SetBounds(Pad + i * (tw + Gap) + ox, _headH + oy, tw, th);
         // the pencil sits right above the last tile, in the band under the subtitle
@@ -434,7 +435,6 @@ public sealed class ScenariosPage : ThemedPage
         _gear.Location = new Point(Pad + avail - _gear.Width + ox, _headH + th + 6 + oy);
         _bricksTop = _headH + th + 6 + _gear.Height + 10;
         int cols = avail >= 1080 ? 3 : 2;
-        const int brickH = 82;
         int bw = (avail - Gap * (cols - 1)) / cols;
         var visBricks = new List<FeatureBrick>();
         foreach (var (key, b) in _bricks)
@@ -443,14 +443,21 @@ public sealed class ScenariosPage : ThemedPage
             if (b.Visible != vis) b.Visible = vis;
             if (vis) visBricks.Add(b);
         }
-        int rows = 0;
-        for (int i = 0; i < visBricks.Count; i++)
+        // #172: 82 px per row, unless a brick in that row needs more (a label that wraps, or one
+        // stacked over its control); the whole row grows with it, so a row stays even
+        int by = _bricksTop;
+        for (int r0 = 0; r0 < visBricks.Count; r0 += cols)
         {
-            int r = i / cols, c = i % cols;
-            visBricks[i].SetBounds(Pad + c * (bw + Gap) + ox, _bricksTop + r * (brickH + Gap) + oy, bw, brickH);
-            rows = r + 1;
+            int rowH = 82;
+            for (int i = r0; i < Math.Min(r0 + cols, visBricks.Count); i++) rowH = Math.Max(rowH, visBricks[i].PreferredHeight(bw));
+            for (int i = r0; i < Math.Min(r0 + cols, visBricks.Count); i++)
+            {
+                visBricks[i].SetBounds(Pad + (i - r0) * (bw + Gap) + ox, by + oy, bw, rowH);
+                visBricks[i].LayoutInner();   // the label may have changed (language) at the same size
+            }
+            by += rowH + Gap;
         }
-        int bricksBottom = _bricksTop + rows * (brickH + Gap);
+        int bricksBottom = by;
 
         // (#21) scenes: section header, cards, then the add / examples buttons; the whole
         // section can be hidden ("scenes" key)
@@ -520,6 +527,12 @@ public sealed class ScenariosPage : ThemedPage
         private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it
         private bool ApexRow => _id == ProfileId.Extreme && _d.ApexAvailable();
         private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+        private static readonly Font NameFont = Dpi.Font("Segoe UI", 15f, FontStyle.Bold);
+        private static readonly Font SubFont = Dpi.Font("Segoe UI", 10.5f);
+        private static readonly Font FootFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+        private const int IconBox = 76, G1 = 16, G2 = 6, G3 = 18;
+        /// <summary>Icon + name + subtitle + footer, stacked from the font heights.</summary>
+        internal static int BlockH() => IconBox + G1 + NameFont.Height + G2 + SubFont.Height + G3 + FootFont.Height + 12;
         // Row height from the two text lines. Variant A: the page grows EVERY tile by this
         // much on fourth-mode boards (grid stays aligned), and the icon/name/badge block is
         // centred in the space above the row, so nothing collides at any scaling.
@@ -580,12 +593,12 @@ public sealed class ScenariosPage : ThemedPage
                 }
             }
             // icon centred on top, text stacked below, SELECT/ACTIVE footer (font-height stacked = DPI-safe)
-            int iconBox = 76;
-            var nameFont = Dpi.Font("Segoe UI", 15f, FontStyle.Bold);
-            var subFont = Dpi.Font("Segoe UI", 10.5f);
-            var footFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
-            int nameH = nameFont.Height, subH = subFont.Height, g1 = 16, g2 = 6, g3 = 18, footH = footFont.Height + 12;
-            int blockH = iconBox + g1 + nameH + g2 + subH + g3 + footH;
+            int iconBox = IconBox;
+            var nameFont = NameFont;
+            var subFont = SubFont;
+            var footFont = FootFont;
+            int nameH = nameFont.Height, subH = subFont.Height, g1 = G1, g2 = G2, g3 = G3;
+            int blockH = BlockH();
             int top = Math.Max(16, (Height - ApexRowH() - blockH) / 2);
             IconPainter.Scenario(g, _id, new RectangleF((Width - iconBox) / 2f, top, iconBox, iconBox), col, 4f);
             int textW = Width - 24;
@@ -920,11 +933,37 @@ public sealed class ScenariosPage : ThemedPage
         }
 
         public void SyncState() { if (_toggle != null && _get != null) _toggle.Checked = _get(); }
+
+        private static readonly Font LabelFont = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
+        private const int IconBox = 32, IconX = 18;
+        private static int LabelX => IconX + IconBox + 14;
+        // label stops before the help dot + toggle
+        private int RightPad => _right.Width + 14 + (_help != null ? _help.Width + 14 : 0) + 12;
+        private int LabelW(int width) => Math.Max(20, width - LabelX - RightPad);
+
+        // A wide control (segments, a picker, a button) and a long label do not always fit side by
+        // side; then the label takes the top row and the control sits under it, instead of the
+        // label being cut ("P...") or squeezed into a column a word wide. Toggles never stack.
+        private bool Stacked(int width) =>
+            _toggle == null && LabelX + TextRenderer.MeasureText(Lang.T(_labelKey), LabelFont).Width + RightPad > width;
+        private int StackedLabelW(int width) => Math.Max(20, width - LabelX - 18);
+        private int TopRowH(int width) => Math.Max(IconBox, TextRenderer.MeasureText(Lang.T(_labelKey), LabelFont,
+            new Size(StackedLabelW(width), int.MaxValue), TextFormatFlags.WordBreak).Height);
+
+        /// <summary>Height this brick needs at the given width: the label wraps or stacks instead of being cut.</summary>
+        public int PreferredHeight(int width)
+        {
+            if (Stacked(width)) return 14 + TopRowH(width) + 10 + _right.Height + 14;
+            int textH = TextRenderer.MeasureText(Lang.T(_labelKey), LabelFont, new Size(LabelW(width), int.MaxValue),
+                TextFormatFlags.WordBreak).Height;
+            return Math.Max(textH, _right.Height) + 24;
+        }
         public void ApplyTheme() { BackColor = Theme.Card; _right.Invalidate(); _help?.Invalidate(); Invalidate(); }
 
-        private void LayoutInner()
+        internal void LayoutInner()
         {
-            _right.Location = new Point(Width - _right.Width - 18, (Height - _right.Height) / 2);
+            int y = Stacked(Width) ? 14 + TopRowH(Width) + 10 : (Height - _right.Height) / 2;
+            _right.Location = new Point(Width - _right.Width - 18, y);
             _help?.SetBounds(_right.Left - _help.Width - 14, (Height - _help.Height) / 2, _help.Width, _help.Height);
         }
 
@@ -944,18 +983,19 @@ public sealed class ScenariosPage : ThemedPage
                 using var pen = new Pen(_hover ? Theme.BorderStrong : Theme.Border, 1f);
                 g.DrawPath(pen, path);
             }
-            // icon box (outlined square + glyph, like the MSI Center feature cards)
-            int box = 32, bx = 18, by = (Height - box) / 2;
+            // icon box (outlined square + glyph, like the MSI Center feature cards); a stacked
+            // brick keeps icon and label together on the top row
+            bool stacked = Stacked(Width);
+            int topH = stacked ? TopRowH(Width) : Height;
+            int box = IconBox, bx = IconX, by = stacked ? 14 + (topH - box) / 2 : (Height - box) / 2;
             using (var pen = new Pen(Theme.Accent, 1.6f))
             using (var ip = Theme.RoundRect(new RectangleF(bx + 0.5f, by + 0.5f, box - 1, box - 1), 6))
                 g.DrawPath(pen, ip);
             using (var gf = Dpi.Font("Segoe UI Symbol", 12f))
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, new RectangleF(bx, by, box, box));
-            // label (stops before the help dot + toggle)
-            int lx = bx + box + 14, rightPad = _right.Width + 14 + (_help != null ? _help.Width + 14 : 0) + 12;
-            Ui.DrawText(g, Lang.T(_labelKey), Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold),
-                new Rectangle(lx, 0, Math.Max(20, Width - lx - rightPad), Height), Theme.Text,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            Ui.DrawText(g, Lang.T(_labelKey), LabelFont,
+                stacked ? new Rectangle(LabelX, 14, StackedLabelW(Width), topH) : new Rectangle(LabelX, 0, LabelW(Width), Height), Theme.Text,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak);
         }
 
     }
