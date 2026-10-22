@@ -178,10 +178,12 @@ current position so focusing a child does **not** yank the page to the top.
 - **Chrome** ([`MainForm`](../UI/MainForm.cs)) — the tab strip, theme button and the announcement
   **banner** are custom-drawn controls; the banner is a top-docked `Panel` shown on demand.
 - **Overlay OSD** ([`OsdForm.cs`](../Forms/OsdForm.cs)) — the small "MSI · PROFILE" toast on profile change.
-  Width is capped at 720 px (less on narrow screens); longer titles and messages wrap inside that
-  width via GDI+ `DrawString` into a `RectangleF` and the toast grows downwards, so a full-sentence
-  notification in a wordy language never spans the display. Single-line toasts keep the fixed
-  440x104 geometry.
+  Every pixel value is scaled with the monitor (`S()` from `DeviceDpi`), like the fonts, which are
+  in points. Width is capped at 960 px at 100 % (and at most 60 % of the screen); longer titles and
+  messages wrap inside that width and the toast grows downwards, so a full-sentence notification
+  in a wordy language never spans the display. The lines are broken by the form itself, at spaces
+  only (`WrapAtSpaces`), and drawn one by one: GDI+ wrapping breaks after a degree sign ("75°" /
+  "C)"), and a no-break character (U+2060) does not stop it - measured.
   is a separate rounded, fading, non-activating window (simpler than the gaming overlay).
 
 Shared primitives live in the `Ui`, `Theme` and `IconPainter` helpers (rounded rects, pills, cards,

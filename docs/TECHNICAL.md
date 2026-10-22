@@ -912,11 +912,17 @@ every OSD toast stays fully visible (`OsdForm.HoldSeconds`; the fade in/out is u
 temperature alert passes `minSeconds: 5` to `ShowProfile`, so it stays up at least 5 s even when
 the user prefers short OSDs for profile switches.
 
-**OSD sizing.** The toast fits its width to the longer of the two text lines, capped at 720 px
-(less on narrow screens: working-area width minus a margin). Longer titles and messages wrap
-inside that width - `MeasureString`/`DrawString` with a `RectangleF`, so GDI+ does the wrapping -
-and the toast grows downwards to fit the lines; the left accent bar scales with the height.
-A single-line toast keeps the classic 440x104 geometry, so profile switches look unchanged.
+**OSD sizing.** The toast fits its width to the longer of the two text lines, capped at 960 px at
+100 % scaling and at 60 % of the working area. Every pixel value (margins, the cap, the minimum
+440x104, the accent bar, the dot, the corner radius) is multiplied by the monitor's scale, because
+the fonts are in points and grow with it: with fixed pixels a 125-150 % screen broke even a short
+title such as "GhostDeck · SSD running hot" onto two lines. Longer titles and messages wrap inside
+that width and the toast grows downwards. The form breaks the lines itself, at spaces only, and
+draws them one by one, so the measured height is the drawn height and a value with its unit stays
+together; GDI+'s own wrapping split "75°C)" after the degree sign, and putting U+2060 (word joiner)
+between "°" and "C" does not change where it breaks (measured on Windows 11, 2026-10-22). A single
+word wider than the line (a long drive name) is the only thing split by characters. Title and
+message start in the same column; the dot sits on the middle of the first title line.
 
 ![Wrapped OSD toast](images/osd_wrapped_toast.png)
 

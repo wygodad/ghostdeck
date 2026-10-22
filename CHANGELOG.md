@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Fixed
+- **On-screen notifications at 125-150 % display scaling** - a short title such as "SSD running
+  hot" no longer breaks onto two lines, "75°C" is never split after the degree sign, and the title
+  and the message start in the same column. The toast's margins and width now grow with the display
+  scale like its text; long messages still wrap, at spaces only.
+
 ### Changed
 - Model database 20261028: MSI Katana 17 HX B14WGK (`17L7EMS1`) - fan curve verified ([#266](../../issues/266), thanks @kaszaslevi04).
 - Model database 20261027: MSI Vector GP68 HX 13V (`15M1IMS1`) promoted to Tested - scenario capture 1:1 with a real Silent, the fan curve confirmed again and a clean power test (Silent 81 % of Balanced's work, Extreme +7 %) ([#262](../../issues/262), [#263](../../issues/263), [#264](../../issues/264), thanks @mara-zhu).

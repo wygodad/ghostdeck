@@ -10,11 +10,20 @@ public sealed class OsdForm : Form
     private string _sub = "";
     private Color _accent = Color.Gray;
     private int _subY = 58;
+    private List<string> _titleLines = new();
+    private List<string> _subLines = new();
+    private float _titleLineH, _subLineH;
 
-    // Text block geometry: title starts at x=64, subtitle at x=66, right margin 34.
-    private const int TitleX = 64, SubX = 66, RightMargin = 34;
-    // Long messages wrap instead of stretching the toast across the screen.
-    private const int MaxToastWidth = 720;
+    // Geometry at 100 % scaling, multiplied by the monitor's scale in S(): title and subtitle
+    // start in the same column, right margin 34. Fonts are in points and grow with the scale on
+    // their own, so every pixel value next to them has to grow too - a fixed 720 px cap with
+    // a font at 125-150 % broke even a short title onto two lines.
+    private const int TextX = 64, RightMargin = 34, MinWidth = 440, MinHeight = 104, MaxWidth = 960;
+    // Long messages wrap instead of stretching the toast across the screen: at most MaxWidth
+    // (scaled) and never more than this share of the screen's width.
+    private const float MaxScreenShare = 0.6f;
+
+    private int S(int v) => (int)Math.Round(v * DeviceDpi / 96f);
 
     private readonly System.Windows.Forms.Timer _anim = new() { Interval = 15 };
     private enum Phase { Idle, In, Hold, Out }
@@ -72,33 +81,36 @@ public sealed class OsdForm : Form
 
         var wa = Screen.PrimaryScreen!.WorkingArea;
 
-        // Dopasuj szerokosc do dluzszej z linii (tytul np. "SUPER BATTERY" albo dluzszy
-        // podtytul), ale nie szerzej niz MaxToastWidth / ekran: dluzszy tekst zawija sie
-        // w kolejne linie, a okno rosnie w dol zamiast w bok.
+        // The width follows the longer of the two texts, up to MaxScreenShare of the screen;
+        // past that the text wraps and the toast grows downwards instead of sideways. The
+        // lines are broken here, once, at spaces only (WrapAtSpaces), and OnPaint draws exactly
+        // these lines - so "75°C)" never splits after the degree sign the way GDI+ wrapping does,
+        // and the measured height is the drawn height.
         using (var g = CreateGraphics())
         using (var tF = new Font("Segoe UI", 19f, FontStyle.Bold))
         using (var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold))
         {
-            int maxW = Math.Min(MaxToastWidth, wa.Width - 120);
-            int maxTextW = maxW - TitleX - RightMargin;
-            int titleW = (int)Math.Ceiling(g.MeasureString(title, tF).Width);
-            int subW = (int)Math.Ceiling(g.MeasureString(sub, sF).Width);
-            int textW = Math.Min(Math.Max(titleW, subW), maxTextW);
-            int w = Math.Max(440, textW + TitleX + RightMargin);
+            int maxW = Math.Max(S(MinWidth), Math.Min(S(MaxWidth), Math.Min((int)(wa.Width * MaxScreenShare), wa.Width - S(120))));
+            float maxTextW = maxW - S(TextX) - S(RightMargin);
+            _titleLines = WrapAtSpaces(g, title, tF, maxTextW);
+            _subLines = WrapAtSpaces(g, sub, sF, maxTextW);
+            _titleLineH = tF.GetHeight(g);
+            _subLineH = sF.GetHeight(g);
 
-            // Wysokosci zmierzone przy DOKLADNIE tych szerokosciach, przy ktorych OnPaint
-            // rysuje (tytul od TitleX, podtytul od SubX) - kazda rozbieznosc potrafi dac
-            // przy rysowaniu jedna linie wiecej, niz zmierzono, i ta linia wypada uciata
-            // przy dolnej krawedzi.
-            int titleH = (int)Math.Ceiling(g.MeasureString(title, tF, w - TitleX - RightMargin).Height);
-            int subH = (int)Math.Ceiling(g.MeasureString(sub, sF, w - SubX - RightMargin).Height);
-            _subY = 14 + Math.Max(44, titleH + 2);          // jedna linia tytulu = dzisiejsze y=58
-            int h = Math.Max(104, _subY + subH + 21);        // jedna linia podtytulu = dzisiejsze 104
+            float textW = 0;
+            foreach (var l in _titleLines) textW = Math.Max(textW, g.MeasureString(l, tF).Width);
+            foreach (var l in _subLines) textW = Math.Max(textW, g.MeasureString(l, sF).Width);
+            int w = Math.Max(S(MinWidth), (int)Math.Ceiling(textW) + S(TextX) + S(RightMargin));
+
+            int titleH = (int)Math.Ceiling(_titleLines.Count * _titleLineH);
+            int subH = (int)Math.Ceiling(_subLines.Count * _subLineH);
+            _subY = S(14) + Math.Max(S(44), titleH + S(2));     // one title line: y = 58 at 100 %
+            int h = Math.Max(S(MinHeight), _subY + subH + S(21)); // one subtitle line: 104 at 100 %
 
             if (w != Width || h != Height)
             {
                 Size = new Size(w, h);
-                Region = RoundedRegion(Width, Height, 18);
+                Region = RoundedRegion(Width, Height, S(18));
             }
         }
 
@@ -141,8 +153,8 @@ public sealed class OsdForm : Form
         using (var ab = new SolidBrush(_accent))
         using (var ap = new GraphicsPath())
         {
-            var ar = new Rectangle(16, 22, 6, Height - 44);
-            const int d = 6;
+            var ar = new Rectangle(S(16), S(22), S(6), Height - S(44));
+            int d = S(6);
             ap.AddArc(ar.X, ar.Y, d, d, 180, 90);
             ap.AddArc(ar.Right - d, ar.Y, d, d, 270, 90);
             ap.AddArc(ar.Right - d, ar.Bottom - d, d, d, 0, 90);
@@ -151,17 +163,53 @@ public sealed class OsdForm : Form
             g.FillPath(ab, ap);
         }
 
-        // kropka profilu
+        // kropka profilu: na srodku pierwszej linii tytulu
+        int dotD = S(12);
+        float dotY = S(14) + _titleLineH / 2f - dotD / 2f;
         using (var dot = new SolidBrush(_accent))
-            g.FillEllipse(dot, 40, 39, 12, 12);
+            g.FillEllipse(dot, S(40), dotY, dotD, dotD);
 
         using var tF = new Font("Segoe UI", 19f, FontStyle.Bold);
         using var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold);
         using var tB = new SolidBrush(Color.White);
         using var sB = new SolidBrush(ColorTranslator.FromHtml("#C2C7D0"));
-        // Prostokaty zamiast punktow: tekst zawija sie w szerokosci okna (patrz ShowProfile).
-        g.DrawString(_title, tF, tB, new RectangleF(TitleX, 14, Width - TitleX - RightMargin, _subY - 14));
-        g.DrawString(_sub, sF, sB, new RectangleF(SubX, _subY, Width - SubX - RightMargin, Height - _subY));
+        // Exactly the lines ShowProfile broke and measured, one by one, from the same column.
+        float y = S(14);
+        foreach (var l in _titleLines) { g.DrawString(l, tF, tB, S(TextX), y); y += _titleLineH; }
+        y = _subY;
+        foreach (var l in _subLines) { g.DrawString(l, sF, sB, S(TextX), y); y += _subLineH; }
+    }
+
+    /// <summary>
+    /// Greedy word wrap that breaks only at spaces, so a value with its unit ("75°C)", "95 %")
+    /// stays on one line; GDI+'s own wrapping breaks after the degree sign. A single word wider
+    /// than the line (a long drive name) is the one case that is split, by characters.
+    /// </summary>
+    private static List<string> WrapAtSpaces(Graphics g, string text, Font f, float maxW)
+    {
+        var lines = new List<string>();
+        foreach (var para in (text ?? "").Replace("\r", "").Split('\n'))
+        {
+            string line = "";
+            // Empty entries are kept, so the double spaces around the "·" of the prefix survive.
+            foreach (var word in para.Split(' '))
+            {
+                if (line.Length == 0 && word.Length == 0) continue;
+                string cand = line.Length == 0 ? word : line + " " + word;
+                if (g.MeasureString(cand, f).Width <= maxW) { line = cand; continue; }
+                if (line.Length > 0) lines.Add(line);
+                line = word;
+                while (line.Length > 1 && g.MeasureString(line, f).Width > maxW)
+                {
+                    int n = line.Length - 1;
+                    while (n > 1 && g.MeasureString(line[..n], f).Width > maxW) n--;
+                    lines.Add(line[..n]);
+                    line = line[n..];
+                }
+            }
+            lines.Add(line);
+        }
+        return lines;
     }
 
     protected override void Dispose(bool disposing)
