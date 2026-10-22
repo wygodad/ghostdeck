@@ -61,13 +61,13 @@ public sealed class WinPowerBody : Control
     };
     private static readonly string[] ModeKeys = { "pwm_req_eff", "pwm_req_bal", "pwm_req_perf" };
 
-    private static readonly Font FCap = new("Segoe UI", 8.25f, FontStyle.Bold);
-    private static readonly Font FRow = new("Segoe UI Semibold", 11f);
-    private static readonly Font FBody = new("Segoe UI", 10f);
-    private static readonly Font FBodyB = new("Segoe UI Semibold", 10f);
-    private static readonly Font FSub = new("Segoe UI", 8f, FontStyle.Bold);
-    private static readonly Font FTitle = new("Segoe UI Semibold", 10.5f);
-    private static readonly Font FGlyph = new("Segoe MDL2 Assets", 11f);
+    private static readonly Font FCap = Dpi.Font("Segoe UI", 8.25f, FontStyle.Bold);
+    private static readonly Font FRow = Dpi.Font("Segoe UI Semibold", 11f);
+    private static readonly Font FBody = Dpi.Font("Segoe UI", 10f);
+    private static readonly Font FBodyB = Dpi.Font("Segoe UI Semibold", 10f);
+    private static readonly Font FSub = Dpi.Font("Segoe UI", 8f, FontStyle.Bold);
+    private static readonly Font FTitle = Dpi.Font("Segoe UI Semibold", 10.5f);
+    private static readonly Font FGlyph = Dpi.Font("Segoe MDL2 Assets", 11f);
 
     private const TextFormatFlags FmtWrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
 

@@ -48,7 +48,7 @@ public sealed class ReportPage : ThemedPage
     // failed copy has to be said out loud rather than leaving them to paste whatever was there.
     private bool _copied, _curveCopied, _ptCopied;
     private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH, _capY;
-    private static readonly Font IntroFont = new("Segoe UI", 10.5f);
+    private static readonly Font IntroFont = Dpi.Font("Segoe UI", 10.5f);
 
     // ---- sub-tabs: segment 0 is the start screen, segments 1..3 map to _sub 0..2 ----
     // (_sub keeps its 0 = profiles / 1 = curve / 2 = power meaning everywhere else on the page)
@@ -81,7 +81,7 @@ public sealed class ReportPage : ThemedPage
     private int _ptStep, _ptSteps = 1;
     private float _ptBar;
     private int _ptTop, _ptRowsTop, _ptBtnY, _ptBarY, _ptWritesY, _ptWritesH, _ptConsentY;
-    private static readonly Font WritesFont = new("Consolas", 11f, FontStyle.Bold);
+    private static readonly Font WritesFont = Dpi.Font("Consolas", 11f, FontStyle.Bold);
 
     /// <summary>The model definition in effect right now (follows a live model-database swap).</summary>
     private DeviceProfile? Dev => Devices.Detect(D.Firmware());
@@ -332,11 +332,11 @@ public sealed class ReportPage : ThemedPage
     // =================================================================
     //  start screen
     // =================================================================
-    private static readonly Font LandTitleF = new("Segoe UI", 14f, FontStyle.Bold);
-    private static readonly Font LandQF = new("Segoe UI", 11.5f, FontStyle.Bold);
-    private static readonly Font LandDF = new("Segoe UI", 10f);
-    private static readonly Font LandFootF = new("Segoe UI", 9f, FontStyle.Bold);
-    private static readonly Font LandGlyphF = new("Segoe MDL2 Assets", 16f);
+    private static readonly Font LandTitleF = Dpi.Font("Segoe UI", 14f, FontStyle.Bold);
+    private static readonly Font LandQF = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
+    private static readonly Font LandDF = Dpi.Font("Segoe UI", 10f);
+    private static readonly Font LandFootF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+    private static readonly Font LandGlyphF = Dpi.Font("Segoe MDL2 Assets", 16f);
     private static readonly string[] LandGlyphs = { "\uE8AB", "\uE9D2", "\uE945" };
     private const int LandPad = 20, LandGap = 14, LandIconBox = 42;
 
@@ -1523,12 +1523,12 @@ public sealed class ReportPage : ThemedPage
     private sealed class InfoCardT : Control
     {
         private const int LeftPad = 46, RightPad = 18, TopPad = 15;
-        private static readonly Font IconFont = new("Segoe MDL2 Assets", 13f);
+        private static readonly Font IconFont = Dpi.Font("Segoe MDL2 Assets", 13f);
         private readonly string _icon;
         private (string text, string? url)[] _items;
         private readonly List<(Rectangle rect, string text)> _paras = new();
         private readonly List<LinkLabel> _links = new();
-        private readonly Font _font = new("Segoe UI", 10.5f);
+        private readonly Font _font = Dpi.Font("Segoe UI", 10.5f);
 
         public InfoCardT(string icon, (string text, string? url)[] items, int width)
         {

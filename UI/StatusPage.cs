@@ -432,7 +432,7 @@ public sealed class StatusPage : ThemedPage
             Ui.FillCard(g, box);
             var r = Rectangle.Round(box);
             r.Inflate(-10, 0);
-            Font f = new("Segoe UI", 11.5f, FontStyle.Bold);
+            Font f = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
             for (float pt = 11.5f; pt > 8.5f && TextRenderer.MeasureText(g, text, f).Width > r.Width; )
             {
                 f.Dispose();
@@ -1210,10 +1210,10 @@ public sealed class StatusPage : ThemedPage
 
     private static int NoteH => GCell.Height + 12;
 
-    private static readonly Font GTitle = new("Segoe UI", 12f, FontStyle.Bold);
-    private static readonly Font GHead = new("Segoe UI", 9.5f, FontStyle.Bold);
-    private static readonly Font GCell = new("Segoe UI", 10.5f);
-    private static readonly Font GMono = new("Consolas", 11f, FontStyle.Bold);
+    private static readonly Font GTitle = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
+    private static readonly Font GHead = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+    private static readonly Font GCell = Dpi.Font("Segoe UI", 10.5f);
+    private static readonly Font GMono = Dpi.Font("Consolas", 11f, FontStyle.Bold);
 
     // Generic table drawer; all row heights derive from font.Height (DPI-safe). Returns bottom Y.
     private int DrawGrid(Graphics g, int top, int avail, string title, string[] headers, float[] lefts,

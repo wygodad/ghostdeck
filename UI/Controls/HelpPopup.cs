@@ -21,7 +21,7 @@ internal sealed class HelpPopup : ToolStripDropDown
     // 640, not 430: the fan-curve bubbles explain a whole view (what it shows, how to
     // read it, what to watch for) and a narrow column turned them into a ribbon.
     private const int MaxWidth = 640, PadX = 18, PadY = 15;
-    private static readonly Font TextFont = new("Segoe UI", 10f);
+    private static readonly Font TextFont = Dpi.Font("Segoe UI", 10f);
 
     private static HelpPopup? _open;
     private static object? _lastOwner;

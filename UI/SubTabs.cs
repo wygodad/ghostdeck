@@ -10,9 +10,9 @@ namespace GhostDeck;
 public sealed class SubTabs : Control
 {
     private const int SegPadX = 18, Inset = 3, GlyphGap = 7;
-    private static readonly Font SegFont = new("Segoe UI", 10.5f, FontStyle.Bold);
+    private static readonly Font SegFont = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
     // Same icon language as the main tab strip: PUA glyphs come from Segoe MDL2 Assets.
-    private static readonly Font GlyphFont = new("Segoe MDL2 Assets", 11f);
+    private static readonly Font GlyphFont = Dpi.Font("Segoe MDL2 Assets", 11f);
 
     private readonly string[] _labels;
     private readonly string[]? _glyphs;   // optional, one per label ("" = none for that segment)

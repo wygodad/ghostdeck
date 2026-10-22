@@ -41,9 +41,9 @@ public sealed class EcViewForm : Form
     private readonly HashSet<int> _sensors = new();   // known sensor registers of this model, muted up front
     private readonly Dictionary<int, string> _labels = new();   // address -> what it is (for the log)
     private int _busy, _tick;
-    private readonly Font _mono = new("Consolas", 9.5f);
-    private readonly Font _monoBold = new("Consolas", 9.5f, FontStyle.Bold);
-    private readonly Font _hintFont = new("Segoe UI", 9f);
+    private readonly Font _mono = Dpi.Font("Consolas", 9.5f);
+    private readonly Font _monoBold = Dpi.Font("Consolas", 9.5f, FontStyle.Bold);
+    private readonly Font _hintFont = Dpi.Font("Segoe UI", 9f);
     private readonly int _gridTop, _cellW, _rowH, _hdrW;
 
     private EcViewForm()

@@ -331,12 +331,12 @@ public sealed class UpdatesPage : ThemedPage
     private sealed class ReleaseRow : Control
     {
         private const TextFormatFlags F = TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix;
-        private static readonly Font TitleF = new("Segoe UI", 11.5f, FontStyle.Bold);
-        private static readonly Font MetaF  = new("Segoe UI", 9.5f);
-        private static readonly Font BodyF  = new("Segoe UI", 9.5f);
-        private static readonly Font BodyB  = new("Segoe UI", 9.5f, FontStyle.Bold);
-        private static readonly Font HeadF  = new("Segoe UI", 10f, FontStyle.Bold);
-        private static readonly Font ChevF  = new("Segoe UI", 9f);
+        private static readonly Font TitleF = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
+        private static readonly Font MetaF  = Dpi.Font("Segoe UI", 9.5f);
+        private static readonly Font BodyF  = Dpi.Font("Segoe UI", 9.5f);
+        private static readonly Font BodyB  = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+        private static readonly Font HeadF  = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
+        private static readonly Font ChevF  = Dpi.Font("Segoe UI", 9f);
 
         private enum NoteKind { Header, Bullet, Para, Gap }
         private readonly record struct Note(NoteKind Kind, List<(string text, bool bold)> Runs);

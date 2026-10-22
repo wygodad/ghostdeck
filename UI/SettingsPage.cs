@@ -1844,10 +1844,10 @@ public sealed partial class SettingsPage : ThemedPage
     /// </summary>
     private sealed class GroupTile : Control
     {
-        private static readonly Font TitleF = new("Segoe UI", 11f, FontStyle.Bold);
-        private static readonly Font DescF = new("Segoe UI", 9f);
-        private static readonly Font StateF = new("Segoe UI", 8.75f);
-        private static readonly Font GlyphF = new("Segoe MDL2 Assets", 15f);
+        private static readonly Font TitleF = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
+        private static readonly Font DescF = Dpi.Font("Segoe UI", 9f);
+        private static readonly Font StateF = Dpi.Font("Segoe UI", 8.75f);
+        private static readonly Font GlyphF = Dpi.Font("Segoe MDL2 Assets", 15f);
         private readonly string _glyph, _desc;
         private bool _hover;
         private string? _state;            // live third line ("Limit 60% · …")
@@ -1928,9 +1928,9 @@ public sealed partial class SettingsPage : ThemedPage
     /// </summary>
     private sealed class HomeHeader : Control
     {
-        private static readonly Font NameF = new("Segoe UI", 10.5f, FontStyle.Bold);
-        private static readonly Font MetaF = new("Segoe UI", 9.5f);
-        private static readonly Font ChipF = new("Segoe UI", 9f, FontStyle.Bold);
+        private static readonly Font NameF = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+        private static readonly Font MetaF = Dpi.Font("Segoe UI", 9.5f);
+        private static readonly Font ChipF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
         private readonly MainDeps D;
         private Rectangle _chip;     // update-chip hit area (Empty = no update pending)
         private bool _chipHover;
@@ -2022,8 +2022,8 @@ public sealed partial class SettingsPage : ThemedPage
     private sealed class ModelDbBlock : Panel
     {
         private readonly Button _btn;
-        private readonly Font _titleFont = new("Segoe UI", 10.5f);
-        private readonly Font _subFont = new("Segoe UI", 9.5f);
+        private readonly Font _titleFont = Dpi.Font("Segoe UI", 10.5f);
+        private readonly Font _subFont = Dpi.Font("Segoe UI", 9.5f);
         private const TextFormatFlags Flags = TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix;
         private string _title = "", _sub = "";
         private Rectangle _titleR, _subR;

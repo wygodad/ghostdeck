@@ -755,7 +755,7 @@ public sealed class ScenariosPage : ThemedPage
         // 20 px box left the outlined pills looking like the text touched their edges (the
         // filled profile pill hid it better), and it clipped outright once the font grew with
         // the display scaling.
-        private static readonly Font ChipFont = new("Segoe UI", 8.5f);
+        private static readonly Font ChipFont = Dpi.Font("Segoe UI", 8.5f);
         private static int ChipH => ChipFont.Height + 8;
 
         private int TextAreaWidth(int width) => width - 58 - HotCount * (HotW + HotGap) - 16;

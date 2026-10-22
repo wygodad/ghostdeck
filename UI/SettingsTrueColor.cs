@@ -174,7 +174,7 @@ public sealed partial class SettingsPage
     /// </summary>
     private sealed class TrueColorTiles : Control
     {
-        private static readonly Font TileF = new("Segoe UI", 9.5f);
+        private static readonly Font TileF = Dpi.Font("Segoe UI", 9.5f);
         private readonly Rectangle[] _rects = new Rectangle[TrueColor.Profiles.Length];
         private int _hover = -1;
 

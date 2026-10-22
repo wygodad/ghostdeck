@@ -287,19 +287,19 @@ public sealed class ModelsPage : ThemedPage
     }
 
     // ---- fonts / metrics ----
-    private static readonly Font FTitle = new("Segoe UI", 18f, FontStyle.Bold);
-    private static readonly Font FSub = new("Segoe UI", 11f, FontStyle.Bold);
-    private static readonly Font FIntro = new("Segoe UI", 10f);
-    internal static readonly Font FHead = new("Segoe UI", 9.5f, FontStyle.Bold);
-    internal static readonly Font FCell = new("Segoe UI", 10.5f);
-    internal static readonly Font FMono = new("Consolas", 10.5f);
-    internal static readonly Font FLegend = new("Segoe UI", 9f);
-    internal static readonly Font FSmall = new("Segoe UI", 9f);
-    internal static readonly Font FCardTitle = new("Segoe UI", 9.5f, FontStyle.Bold);
-    internal static readonly Font FName = new("Segoe UI", 12f, FontStyle.Bold);
-    internal static readonly Font FBig = new("Segoe UI", 18f, FontStyle.Bold);
-    internal static readonly Font FBold = new("Segoe UI", 10.5f, FontStyle.Bold);
-    internal static readonly Font FGlyph = new("Segoe MDL2 Assets", 10.5f);
+    private static readonly Font FTitle = Dpi.Font("Segoe UI", 18f, FontStyle.Bold);
+    private static readonly Font FSub = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
+    private static readonly Font FIntro = Dpi.Font("Segoe UI", 10f);
+    internal static readonly Font FHead = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+    internal static readonly Font FCell = Dpi.Font("Segoe UI", 10.5f);
+    internal static readonly Font FMono = Dpi.Font("Consolas", 10.5f);
+    internal static readonly Font FLegend = Dpi.Font("Segoe UI", 9f);
+    internal static readonly Font FSmall = Dpi.Font("Segoe UI", 9f);
+    internal static readonly Font FCardTitle = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+    internal static readonly Font FName = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
+    internal static readonly Font FBig = Dpi.Font("Segoe UI", 18f, FontStyle.Bold);
+    internal static readonly Font FBold = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+    internal static readonly Font FGlyph = Dpi.Font("Segoe MDL2 Assets", 10.5f);
 
     private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
     private int SubTop() => 24 + FTitle.Height + 12 + FSub.Height + 6 + FIntro.Height + 14;
@@ -401,8 +401,8 @@ public sealed class ModelsPage : ThemedPage
     private sealed class SearchBox : Control
     {
         public readonly TextBox Box = new() { BorderStyle = BorderStyle.None, Font = Dpi.Font("Segoe UI", 10.5f) };
-        private static readonly Font Glyph = new("Segoe MDL2 Assets", 10.5f);
-        private static readonly Font ClearGlyph = new("Segoe MDL2 Assets", 8.5f);
+        private static readonly Font Glyph = Dpi.Font("Segoe MDL2 Assets", 10.5f);
+        private static readonly Font ClearGlyph = Dpi.Font("Segoe MDL2 Assets", 8.5f);
 
         public SearchBox()
         {

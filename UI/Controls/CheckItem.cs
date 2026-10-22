@@ -20,7 +20,7 @@ public sealed class CheckItem : Control
     public bool Checked { get => _on; set { _on = value; Invalidate(); } }
     /// <summary>Let a long label wrap instead of being cut with an ellipsis (caller sizes the height).</summary>
     public bool Wrap { get; set; }
-    private static readonly Font F = new("Segoe UI", 10.5f);
+    private static readonly Font F = Dpi.Font("Segoe UI", 10.5f);
     private int Box => (int)Math.Ceiling(18 * Dpi.Of(this) / 96f);   // DPI-aware box size
     public int PreferredWidth => Box + 10 + TextRenderer.MeasureText(Text, F).Width + 6;
     protected override void OnClick(EventArgs e) { base.OnClick(e); _on = !_on; Invalidate(); Toggled?.Invoke(_on); }

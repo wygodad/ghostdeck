@@ -497,7 +497,7 @@ public sealed class ReportForm : Form
         private static readonly Color Fg = Color.FromArgb(0xB0, 0x6A, 0x10);
         private const int LeftPad = 46, RightPad = 18, TopPad = 15;
         private readonly string _icon;
-        private readonly Font _bodyFont = new("Segoe UI", 9.5f);
+        private readonly Font _bodyFont = Dpi.Font("Segoe UI", 9.5f);
         private readonly List<(Rectangle rect, string text)> _paras = new();
 
         public InfoCard(string icon, (string text, string? url)[] items, int width)
