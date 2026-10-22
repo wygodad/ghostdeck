@@ -931,7 +931,9 @@ public sealed class StatusPage : ThemedPage
     private static readonly Font GmHeadF = Dpi.Font("Segoe UI", 10.5f);
     private static readonly Font GmDiagF = Dpi.Font("Consolas", 9f);
     private static int GmBoxH => Math.Max(64, GmLabF.Height + GmValF.Height + 4);
-    private static int GmHeadH => Math.Max(24, Math.Max(GmHeadF.Height, GmDiagF.Height) - 2);
+    // The whole line height plus air: a box 2 px shorter than the font cut the descenders of the
+    // "No game detected" hint (y, j, ę) against the stat boxes below it.
+    private static int GmHeadH => Math.Max(24, Math.Max(GmHeadF.Height, GmDiagF.Height) + 4);
     private static int GmRowH => Math.Max(40, GCell.Height + 6);   // #172: session rows grow with the text
     private const int GmSessRows = 9;
 
