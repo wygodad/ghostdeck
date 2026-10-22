@@ -113,6 +113,15 @@ public sealed class ReportPage : ThemedPage
     private bool _curveMatch;
     private string? _curveSavedPath;
     private int _curveTop, _curveBtnY, _curveBarY;
+    // #172: rows and buttons that held text in fixed pixels (34 px step rows, 44 px buttons and
+    // firmware pill) keep those values as the floor and grow with the text above about 150 %
+    private int[] _stepH = new int[5];
+    private static readonly Font StepF = Dpi.Font("Segoe UI", 10.5f);
+    private static readonly Font PillMonoF = Dpi.Font("Consolas", 11f, FontStyle.Bold);
+    private static int PillH => Math.Max(44, PillMonoF.Height + 14);
+    private int BtnH => Math.Max(44, Ui.ButtonHeight(_capture.Font));
+    private static string[] CurveSteps() =>
+        new[] { Lang.T("rep_curve_s1"), Lang.T("rep_curve_s2"), Lang.T("rep_curve_s3"), Lang.T("rep_curve_s4"), Lang.T("rep_curve_s5") };
 
     public ReportPage(MainDeps d) : base(d)
     {
@@ -435,7 +444,7 @@ public sealed class ReportPage : ThemedPage
 
             Ui.DrawText(g, LandTitle(i), Dpi.Font("Segoe UI", 12f, FontStyle.Bold),
                 new Rectangle(iconR.Right + 14, iconR.Y, r.Width - LandIconBox - LandPad * 2 - 14, LandIconBox),
-                Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: short step names in a column sized with the page; last resort for a very long translation
 
             int innerW = r.Width - LandPad * 2;
             int y = iconR.Bottom + 14;
@@ -506,12 +515,12 @@ public sealed class ReportPage : ThemedPage
         _instrH = TextRenderer.MeasureText(Lang.T("rep_all_done"), instrFont, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
         int capW = Math.Min(320, rightW - 180);
         int capY = _capY = _instrTop + _instrH + 18;      // content coord; children get + oy
-        _capture.SetBounds(_rightX + ox, capY + oy, capW, 44);
-        _restart.SetBounds(_rightX + capW + 10 + ox, capY + oy, 170, 44);
+        _capture.SetBounds(_rightX + ox, capY + oy, capW, BtnH);
+        _restart.SetBounds(_rightX + capW + 10 + ox, capY + oy, 170, BtnH);
 
         // bottoms in CONTENT coords (child .Bottom is client-side once the page is scrolled)
-        int leftBottom = _contentTop + _card.Height + 70;   // + firmware pill
-        int rightBottom = capY + 44 + 80 + (_copied ? 0 : ClipWarnHeight(rightW));
+        int leftBottom = _contentTop + _card.Height + 26 + PillH;   // + firmware pill
+        int rightBottom = capY + BtnH + 80 + (_copied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
 
@@ -532,13 +541,16 @@ public sealed class ReportPage : ThemedPage
 
         // right column: section label + 5 steps + button
         _curveStepsTop = _contentTop + secH + 14;
-        _curveBtnY = _curveStepsTop + 34 * 5 + 18;
-        _curveBarY = _curveBtnY + 62;
+        var steps = CurveSteps();
+        for (int i = 0; i < steps.Length; i++)
+            _stepH[i] = Math.Max(34, TextRenderer.MeasureText(steps[i], StepF, new Size(rightW - 40, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height + 6);
+        _curveBtnY = _curveStepsTop + _stepH.Sum() + 18;
+        _curveBarY = _curveBtnY + BtnH + 18;
         int cbW = Math.Min(320, rightW - 180);
-        _curveBtn.SetBounds(_rightX + ox, _curveBtnY + oy, cbW, 44);
-        _curveRestart.SetBounds(_rightX + cbW + 10 + ox, _curveBtnY + oy, 170, 44);
+        _curveBtn.SetBounds(_rightX + ox, _curveBtnY + oy, cbW, BtnH);
+        _curveRestart.SetBounds(_rightX + cbW + 10 + ox, _curveBtnY + oy, 170, BtnH);
 
-        int leftBottom = _contentTop + _curveCard.Height + 70;   // content coords (+ firmware pill)
+        int leftBottom = _contentTop + _curveCard.Height + 26 + PillH;   // content coords (+ firmware pill)
         int rightBottom = _curveBarY + 80 + (_curveCopied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
@@ -585,7 +597,7 @@ public sealed class ReportPage : ThemedPage
                             : string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " - " + string.Format(Lang.T("rep_set_scenario"), tile);
         Ui.DrawText(g, instr, Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold),
             new Rectangle(_rightX, _instrTop, rightW, _instrH + 6), done ? Theme.Green : Theme.Text, TextFormatFlags.WordBreak);
-        if (done) PaintSaved(g, _rightX, _capY + 44 + 10, rightW, _savedPath, _copied);
+        if (done) PaintSaved(g, _rightX, _capY + BtnH + 10, rightW, _savedPath, _copied);
     }
 
     // =================================================================
@@ -608,16 +620,17 @@ public sealed class ReportPage : ThemedPage
 
         // ---- right column: section label + numbered steps ----
         Ui.DrawText(g, Lang.T("rep_curve_steps"), Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
-        string[] steps = { Lang.T("rep_curve_s1"), Lang.T("rep_curve_s2"), Lang.T("rep_curve_s3"), Lang.T("rep_curve_s4"), Lang.T("rep_curve_s5") };
+        string[] steps = CurveSteps();
         var numFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
-        var stFont = Dpi.Font("Segoe UI", 10.5f);
+        int circD = Math.Max(24, numFont.Height);
+        int ry = _curveStepsTop;
         for (int i = 0; i < steps.Length; i++)
         {
-            int ry = _curveStepsTop + i * 34;
-            var circ = new RectangleF(_rightX, ry, 24, 24);
+            var circ = new RectangleF(_rightX, ry, circD, circD);
             using (var b = new SolidBrush(Theme.AccentSoft)) g.FillEllipse(b, circ);
             Ui.DrawText(g, (i + 1).ToString(), numFont, Rectangle.Round(circ), Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            Ui.DrawText(g, steps[i], stFont, new Rectangle(_rightX + 36, ry - 4, rightW - 40, 34), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            Ui.DrawText(g, steps[i], StepF, new Rectangle(_rightX + circD + 12, ry - 4, rightW - circD - 16, _stepH[i]), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            ry += _stepH[i];
         }
 
         // ---- right column: progress / result (under the capture button) ----
@@ -1303,16 +1316,16 @@ public sealed class ReportPage : ThemedPage
         _ptBtnY = _ptConsentY + consentH + 16;
         int bw = Math.Min(320, rightW - 180);
         // While running, Cancel takes the primary slot because Start is hidden.
-        if (_ptRunning) _ptSecondary.SetBounds(_rightX + ox, _ptBtnY + oy, bw, 44);
+        if (_ptRunning) _ptSecondary.SetBounds(_rightX + ox, _ptBtnY + oy, bw, BtnH);
         else
         {
-            _ptStart.SetBounds(_rightX + ox, _ptBtnY + oy, bw, 44);
-            _ptSecondary.SetBounds(_rightX + bw + 10 + ox, _ptBtnY + oy, 170, 44);
+            _ptStart.SetBounds(_rightX + ox, _ptBtnY + oy, bw, BtnH);
+            _ptSecondary.SetBounds(_rightX + bw + 10 + ox, _ptBtnY + oy, 170, BtnH);
         }
-        _ptBarY = _ptBtnY + 60;
+        _ptBarY = _ptBtnY + BtnH + 16;
 
         // bottoms in CONTENT coords (a child's .Bottom is client-side once the page is scrolled)
-        int leftBottom = _ptWritesY + 20 + _ptWritesH + 14 + 44;   // address block + firmware pill
+        int leftBottom = _ptWritesY + 20 + _ptWritesH + 14 + PillH;   // address block + firmware pill
         int rightBottom = _ptBarY + 180 + (_ptCopied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
@@ -1376,7 +1389,8 @@ public sealed class ReportPage : ThemedPage
         }
 
         if (_ptMsg != null)
-            Ui.DrawText(g, _ptMsg, Dpi.Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
+            Ui.DrawText(g, _ptMsg, StepF, new Rectangle(_rightX, y, rightW,
+                    TextRenderer.MeasureText(_ptMsg, StepF, new Size(rightW, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height + 4),
                 Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
     }
 
@@ -1413,15 +1427,16 @@ public sealed class ReportPage : ThemedPage
     // The firmware pill closes the left column on every sub-tab.
     private void PaintFirmwarePill(Graphics g, int y)
     {
-        var pill = new RectangleF(Pad, y, _leftW, 44);
+        int ph = PillH;
+        var pill = new RectangleF(Pad, y, _leftW, ph);
         using (var path = Theme.RoundRect(pill, 11))
         { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
         var lf = Dpi.Font("Segoe UI", 10f);
-        Ui.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
-            TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "-" : D.Firmware(), Dpi.Font("Consolas", 11f, FontStyle.Bold),
-            new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent,
+        Ui.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, Math.Max(180, lw + 4), ph), Theme.Muted,
+            TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "-" : D.Firmware(), PillMonoF,
+            new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, ph), Theme.Accent,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
     }
 
@@ -1501,7 +1516,7 @@ public sealed class ReportPage : ThemedPage
             var nameColor = _done || _current ? Theme.Text : Theme.Muted;
             if (string.IsNullOrEmpty(_alt))
                 Ui.DrawText(g, _name, nameFont, new Rectangle(nx, 6, textW, Height - 12), nameColor,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);   // dpi-ok: short step names in a column sized with the page; last resort for a very long translation
             else
             {
                 // Two lines share the row: the tile name as the capture knows it, and the name the
@@ -1510,9 +1525,9 @@ public sealed class ReportPage : ThemedPage
                 var altFont = Dpi.Font("Segoe UI", 9.75f);
                 int h1 = nameFont.Height, h2 = altFont.Height, top = (Height - h1 - h2 + 2) / 2;
                 Ui.DrawText(g, _name, nameFont, new Rectangle(nx, top, textW, h1), nameColor,
-                    TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                    TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);   // dpi-ok: short step names in a column sized with the page; last resort for a very long translation
                 Ui.DrawText(g, _alt, altFont, new Rectangle(nx, top + h1 - 2, textW, h2), _current ? Theme.Text : Theme.Muted,
-                    TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                    TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);   // dpi-ok: short step names in a column sized with the page; last resort for a very long translation
             }
             Ui.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), Dpi.Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
                 new Rectangle(Width - StatusW, 6, StatusW - 10, Height - 12), _done ? Theme.Green : Theme.Muted,

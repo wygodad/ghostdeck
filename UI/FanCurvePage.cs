@@ -1320,7 +1320,7 @@ public sealed class FanCurvePage : ThemedPage
         var fr = FaderRect;
         Ui.FillCard(g, fr);
         TextRenderer.DrawText(g, Lang.T("fc_fader"), capF, new Rectangle(fr.X + S(16), fr.Y + S(10), fr.Width - S(32), capF.Height + S(2)),
-            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
         TextRenderer.DrawText(g, "A", capF, new Rectangle(_poleA.Left, _poleA.Top - capF.Height - S(2), _poleA.Width, capF.Height),
             Theme.Accent, TextFormatFlags.Left | TextFormatFlags.NoPadding);
         TextRenderer.DrawText(g, "B", capF, new Rectangle(_poleB.Left, _poleB.Top - capF.Height - S(2), _poleB.Width, capF.Height),
@@ -1578,7 +1578,7 @@ public sealed class FanCurvePage : ThemedPage
         var ch = PlayChartRect;
         Ui.FillCard(g, ch);
         TextRenderer.DrawText(g, Lang.T("fc_play_title"), titleF, new Rectangle(ch.X + S(16), ch.Y + S(10), ch.Width / 2, titleF.Height + S(4)), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding);
-        TextRenderer.DrawText(g, Lang.T("fc_play_sub"), subF, new Rectangle(ch.X + S(16), ch.Y + S(12) + titleF.Height + S(4), ch.Width - S(200), subF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(g, Lang.T("fc_play_sub"), subF, new Rectangle(ch.X + S(16), ch.Y + S(12) + titleF.Height + S(4), ch.Width - S(200), subF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
 
         int axisW = TextRenderer.MeasureText(g, MaxPct + "%", axisF).Width + S(10);
         int plotTop = ch.Y + S(20) + titleF.Height + subF.Height + S(14);
@@ -1674,8 +1674,8 @@ public sealed class FanCurvePage : ThemedPage
             lx += S(18) + TextRenderer.MeasureText(g, name, axisF).Width + S(18);
         }
         string curveName = string.Format(Lang.T("fc_play_curve_name"), CurveInUseName());
-        TextRenderer.DrawText(g, curveName, axisF, new Rectangle(lx + S(6), ly, S(260), axisF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
-        TextRenderer.DrawText(g, Lang.T("fc_play_legend_dots"), axisF, new Rectangle(lx + S(6), ly + axisF.Height + S(2), S(400), axisF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(g, curveName, axisF, new Rectangle(lx + S(6), ly, S(260), axisF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
+        TextRenderer.DrawText(g, Lang.T("fc_play_legend_dots"), axisF, new Rectangle(lx + S(6), ly + axisF.Height + S(2), S(400), axisF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
 
         // live operating points (both fans), on the curve like the Chart view
         if (haveLive)
@@ -1724,7 +1724,7 @@ public sealed class FanCurvePage : ThemedPage
             }
         }
         string airLbl = haveLive ? string.Format(Lang.T("fc_play_air"), liveDuty) : Lang.T("fc_live_none");
-        TextRenderer.DrawText(g, airLbl, axisF, new Rectangle(air.X - S(20), air.Bottom + S(4), air.Width + S(40), axisF.Height), Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(g, airLbl, axisF, new Rectangle(air.X - S(20), air.Bottom + S(4), air.Width + S(40), axisF.Height), Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
 
         // ---- info row: now + last hour ----
         var ir = PlayInfoRect;
@@ -1732,7 +1732,7 @@ public sealed class FanCurvePage : ThemedPage
         string nowS = haveLive
             ? string.Format(Lang.T("fc_play_now"), live.CpuTemp, live.CpuFan, live.CpuRpm > 0 ? live.CpuRpm + " rpm" : "--", live.GpuTemp > 0 ? live.GpuTemp.ToString() : "--", live.GpuTemp > 0 ? live.GpuFan.ToString() : "--", live.GpuRpm > 0 ? live.GpuRpm + " rpm" : "--")
             : Lang.T("fc_live_none");
-        TextRenderer.DrawText(g, nowS, bF, new Rectangle(ir.X + S(16), ir.Y + S(8), ir.Width - S(32), bF.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(g, nowS, bF, new Rectangle(ir.X + S(16), ir.Y + S(8), ir.Width - S(32), bF.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
         string hourS;
         if (cnt >= 5)
         {
@@ -1741,7 +1741,7 @@ public sealed class FanCurvePage : ThemedPage
             hourS = string.Format(Lang.T("fc_play_hour"), cnt, ct.Count > 0 ? ct.Min() : 0, ct.Count > 0 ? ct.Max() : 0, cf.Min(), cf.Max());
         }
         else hourS = Lang.T("fc_play_hour_none");
-        TextRenderer.DrawText(g, hourS, subF, new Rectangle(ir.X + S(16), ir.Y + S(10) + bF.Height, ir.Width - S(32), subF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+        TextRenderer.DrawText(g, hourS, subF, new Rectangle(ir.X + S(16), ir.Y + S(10) + bF.Height, ir.Width - S(32), subF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
         DrawSweepPanel(g, titleF, subF, bF, axisF);
     }
 
@@ -1798,7 +1798,7 @@ public sealed class FanCurvePage : ThemedPage
             _reactHelp.Visible = false;
             TextRenderer.DrawText(g, Lang.T("fc_sweep_short"), subF,
                 new Rectangle(pnl.X + S(16), pnl.Y + S(16) + titleF.Height + S(6), Math.Max(S(200), _sweepHelp.Left - pnl.X - S(28)), subF.Height * 2),
-                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
             return;
         }
         int ty = pnl.Y + S(14) + titleF.Height + S(4);
@@ -1891,7 +1891,7 @@ public sealed class FanCurvePage : ThemedPage
             }
             int stX = _sweepCopy.Right + S(16);
             int stW = Math.Max(S(40), (_sweepHistory.Visible ? _sweepHistory.Left - S(12) : pnl.Right - S(16)) - stX);
-            TextRenderer.DrawText(g, _sweepStatus, subF, new Rectangle(stX, pnl.Bottom - S(50), stW, S(34)), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(g, _sweepStatus, subF, new Rectangle(stX, pnl.Bottom - S(50), stW, S(34)), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
         }
         else
         {
@@ -2218,8 +2218,11 @@ public sealed class FanCurvePage : ThemedPage
         if (_fc == null)
         {
             DrawPageHeader(g);
-            TextRenderer.DrawText(g, Lang.T("test_curve_none"), Dpi.Font("Segoe UI", 11f),
-                new Rectangle(Pad, 72, Width - Pad * 2, 40), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordEllipsis);
+            var nf = Dpi.Font("Segoe UI", 11f);
+            string none = Lang.T("test_curve_none");
+            TextRenderer.DrawText(g, none, nf,
+                new Rectangle(Pad, HintY + 4, Width - Pad * 2, TextRenderer.MeasureText(g, none, nf, new Size(Width - Pad * 2, 0), TextFormatFlags.WordBreak).Height),
+                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
             return;
         }
 
@@ -2589,9 +2592,9 @@ public sealed class FanCurvePage : ThemedPage
             int ty = r.Y + Math.Max(S(6), (r.Height - textBlock) / 2);
             var tr = new Rectangle(mini.Right + S(12), ty, r.Right - mini.Right - S(24), titleH);
             TextRenderer.DrawText(g, Lang.T(IntentKey(Intents[i])), tf, tr, on ? Theme.Accent : Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
             TextRenderer.DrawText(g, Lang.T(IntentKey(Intents[i]) + "_sub"), sf, new Rectangle(tr.X, tr.Y + titleH + S(2), tr.Width, subH),
-                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
         }
         _intentRects = rects;
     }
@@ -2625,7 +2628,7 @@ public sealed class FanCurvePage : ThemedPage
         // header hint at the far right
         TextRenderer.DrawText(g, Lang.T(Editable ? "fc_table_hint" : "fc_locked"), tipF,
             new Rectangle(t.X + t.Width / 2, headY, t.Width / 2 - pad, headH), Theme.Faint,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
 
         for (int fan = 0; fan < fans; fan++)
         {
@@ -2645,7 +2648,7 @@ public sealed class FanCurvePage : ThemedPage
             TextRenderer.DrawText(g, Lang.T("fc_col_temp"), hf, new Rectangle(xTemp, headY, tempW, headH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             TextRenderer.DrawText(g, "%", hf, new Rectangle(xPct, headY, cellW, headH), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             TextRenderer.DrawText(g, Lang.T("fc_col_band"), hf, new Rectangle(xBand, headY, bandW, headH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, Lang.T("fc_col_vsdefault"), hf, new Rectangle(xDef, headY, Math.Max(40, x1 - xDef), headH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(g, Lang.T("fc_col_vsdefault"), hf, new Rectangle(xDef, headY, Math.Max(40, x1 - xDef), headH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
             using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, x0, rowsTop - S(3), x1, rowsTop - S(3));
 
             for (int r = 0; r < n; r++)
@@ -2672,7 +2675,7 @@ public sealed class FanCurvePage : ThemedPage
                 TextRenderer.DrawText(g, Lang.T(bk), rf, new Rectangle(xBand, row.Y, bandW, rowH), bc, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
                 int d = sp[r] - def[r];
                 string vs = def[r] + "%" + (d == 0 ? "" : $"  ({(d > 0 ? "+" : "")}{d})");
-                TextRenderer.DrawText(g, vs, rf, new Rectangle(xDef, row.Y, Math.Max(40, x1 - xDef), rowH), d == 0 ? Theme.Muted : Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+                TextRenderer.DrawText(g, vs, rf, new Rectangle(xDef, row.Y, Math.Max(40, x1 - xDef), rowH), d == 0 ? Theme.Muted : Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
             }
         }
         _tableRows = rows;

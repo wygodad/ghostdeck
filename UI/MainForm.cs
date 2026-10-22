@@ -660,9 +660,9 @@ public sealed class MainForm : Form
             int bH = TextRenderer.MeasureText(_body, bf).Height;
             int ty = Math.Max(S(6), (Height - tH - bH) / 2);
             TextRenderer.DrawText(g, _title, tf, new Rectangle(x, ty, textW, tH), Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: one-line notice strip; the whole text opens with its "More" link
             TextRenderer.DrawText(g, _body, bf, new Rectangle(x, ty + tH, textW, bH), Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: one-line notice strip; the whole text opens with its "More" link
         }
     }
 }

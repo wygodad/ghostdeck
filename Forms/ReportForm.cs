@@ -554,8 +554,9 @@ public sealed class ReportForm : Form
             using var path = RoundRect(r, 12);
             using (var b = new SolidBrush(Bg)) g.FillPath(b, path);
             using (var p = new Pen(Bd)) g.DrawPath(p, path);
-            TextRenderer.DrawText(g, _icon, Dpi.Font("Segoe UI", 13f, FontStyle.Bold),
-                new Rectangle(14, TopPad - 1, 26, 22), Fg, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+            var iconF = Dpi.Font("Segoe UI", 13f, FontStyle.Bold);
+            TextRenderer.DrawText(g, _icon, iconF,
+                new Rectangle(14, TopPad - 1, 26, Math.Max(22, iconF.Height)), Fg, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
             foreach (var (rect, text) in _paras)
                 TextRenderer.DrawText(g, text, _bodyFont, rect, Fg,
                     TextFormatFlags.WordBreak | TextFormatFlags.Top | TextFormatFlags.Left);
@@ -678,7 +679,7 @@ public sealed class ReportForm : Form
             var nameColor = _done || _current ? Ink : Muted;
             TextRenderer.DrawText(g, _name, Dpi.Font("Segoe UI", 11f, FontStyle.Bold),
                 new Rectangle(nameX, 6, Width - nameX - StatusW - 6, Height - 12), nameColor,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);   // dpi-ok: short step names in the report wizard list; last resort
 
             string state = Lang.T(_done ? "rep_captured" : "rep_pending");
             var stateColor = _done ? Green : Muted;

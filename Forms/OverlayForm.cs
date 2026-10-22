@@ -3,6 +3,10 @@ using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
 
+// dpi-ok-file: the overlay draws on its own bitmap whose resolution is set to the monitor's DPI
+// (SetResolution), so point-sized fonts scale through the bitmap and are created directly here.
+// docs/RENDERING.md, "Gaming overlay".
+
 namespace GhostDeck;
 
 /// <summary>Snapshot fed to the gaming overlay (built by the tray from EC + OS metrics).</summary>

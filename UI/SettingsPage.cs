@@ -1802,7 +1802,7 @@ public sealed partial class SettingsPage : ThemedPage
                 TextRenderer.DrawText(g, Lang.T(LabelKeys[i]), lf,
                     new Rectangle(c.X + 4, c.Y + iy + _icon + 6, c.Width - 8, c.Height - iy - _icon - 10),
                     sel ? Theme.Text : Theme.Muted,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);   // dpi-ok: dashboard / icon tile summaries wrap or sit on one line; the full settings are one click away
             }
         }
     }
@@ -1927,7 +1927,7 @@ public sealed partial class SettingsPage : ThemedPage
             TextRenderer.DrawText(g, Text, TitleF, new Point(pad, titleY), Theme.Text, F);
             int descY = titleY + TitleF.Height + (int)(3 * k);
             TextRenderer.DrawText(g, _desc, DescF, new Rectangle(pad, descY, Width - pad * 2, DescF.Height + 2),
-                Theme.Muted, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+                Theme.Muted, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);   // dpi-ok: dashboard / icon tile summaries wrap or sit on one line; the full settings are one click away
             if (_state is { } st)
             {
                 int sy = Height - (int)(13 * k) - StateF.Height;
@@ -1939,7 +1939,7 @@ public sealed partial class SettingsPage : ThemedPage
                     sx += 13;
                 }
                 TextRenderer.DrawText(g, st, StateF, new Rectangle(sx, sy, Width - sx - pad, StateF.Height + 2),
-                    Theme.Text, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+                    Theme.Text, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);   // dpi-ok: dashboard / icon tile summaries wrap or sit on one line; the full settings are one click away
             }
         }
     }

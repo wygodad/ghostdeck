@@ -11,11 +11,11 @@ internal static class ModelsText
     // Wrapping cells: word break, "&" printed as-is (a credit reads "A & B"), and an ellipsis only
     // on the last allowed line when even MaxLines are not enough.
     public const TextFormatFlags Wrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
-        | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
+        | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;   // dpi-ok: model data wraps up to MaxLines first; the ellipsis only ends a cell longer than that
     public const TextFormatFlags Measure = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
         | TextFormatFlags.NoPrefix;
     public const TextFormatFlags Line = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix
-        | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
+        | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;   // dpi-ok: model data wraps up to MaxLines first; the ellipsis only ends a cell longer than that
     private const TextFormatFlags Tight = TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
     public const int MaxLines = 6;   // safety cap only: the longest name and the six-person credit fit in fewer
 

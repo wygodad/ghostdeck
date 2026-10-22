@@ -40,6 +40,6 @@ public sealed class CheckItem : Control
         else using (var pen = new Pen(Theme.BorderStrong, 1.4f)) g.DrawPath(pen, path);
         TextRenderer.DrawText(g, Text, F, new Rectangle(b + 10, 0, Width - b - 10, Height), Theme.Text,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left |
-            (Wrap ? TextFormatFlags.WordBreak : TextFormatFlags.EndEllipsis));
+            (Wrap ? TextFormatFlags.WordBreak : TextFormatFlags.EndEllipsis));   // dpi-ok: callers that can get a long label set Wrap; the ellipsis is the last resort for the rest
     }
 }

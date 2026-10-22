@@ -604,7 +604,7 @@ public sealed class ScenariosPage : ThemedPage
             int textW = Width - 24;
             Ui.DrawText(g, def.Label, nameFont,
                 new Rectangle(12, top + iconBox + g1, textW, nameH), Theme.Text,
-                TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             if (ApexRow && _d.ApexOn())
             {
                 // small amber badge right of the centred name: the tile says what Extreme writes
@@ -622,7 +622,7 @@ public sealed class ScenariosPage : ThemedPage
             }
             Ui.DrawText(g, Lang.T(def.SubKey), subFont,
                 new Rectangle(12, top + iconBox + g1 + nameH + g2, textW, subH), Theme.Muted,
-                TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             int footY = top + iconBox + g1 + nameH + g2 + subH + g3;
             if (active)
             {
@@ -673,10 +673,10 @@ public sealed class ScenariosPage : ThemedPage
             int tx = _apexSw.Right + S(10);
             int txW = _apexDot.X - tx - S(4);
             Ui.DrawText(g, "APEX", lblFont, new Rectangle(tx, ty, txW, lblFont.Height),
-                on ? Theme.Text : Theme.Muted, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+                on ? Theme.Text : Theme.Muted, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             Ui.DrawText(g, Lang.T("apex_sub"), subFont,
                 new Rectangle(tx, ty + lblFont.Height, txW, subFont.Height),
-                Theme.Amber, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+                Theme.Amber, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             HelpDot.Render(g, _apexDot);
         }
     }
@@ -828,7 +828,7 @@ public sealed class ScenariosPage : ThemedPage
                 TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
             Ui.DrawText(g, _scene.Name, nameFont,
                 new Rectangle(58, top, Math.Max(20, TextAreaWidth(Width)), nameH),
-                Theme.Text, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+                Theme.Text, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
 
             // chips center vertically in the space UNDER the name line
             int tw = Math.Max(40, ChipAreaWidth(Width));
@@ -842,13 +842,13 @@ public sealed class ScenariosPage : ThemedPage
                 // armed delete replaces the chips with the confirm hint (amber), like the camera block
                 Ui.DrawText(g, Lang.T("scene_del_arm"), chipFont,
                     new Rectangle(12, cy, tw, ChipH), Theme.Amber,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             }
             else if (parts.Count == 0)
             {
                 Ui.DrawText(g, Lang.T("scene_empty_def"), chipFont,
                     new Rectangle(12, cy, tw, ChipH), Theme.Muted,
-                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             }
             else
             {

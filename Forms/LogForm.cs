@@ -66,7 +66,7 @@ public sealed class LogForm : Form
             using var hf = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? "", hf,
                 new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
-                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: log columns the user can resize; cells are data
         };
         _list.DrawSubItem += (_, e) =>
         {
@@ -77,7 +77,7 @@ public sealed class LogForm : Form
             var fg = e.ColumnIndex switch { 0 => Theme.Muted, 1 => Theme.Accent, 3 => Theme.Muted, _ => Theme.Text };
             TextRenderer.DrawText(e.Graphics, e.SubItem?.Text ?? "", _list.Font,
                 new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
-                fg, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                fg, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: log columns the user can resize; cells are data
         };
         _list.KeyDown += (_, e) =>
         {

@@ -368,7 +368,7 @@ public sealed class ModelsPage : ThemedPage
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         int avail = ClientSize.Width - Pad * 2;
-        const TextFormatFlags One = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
+        const TextFormatFlags One = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;   // dpi-ok: one-line model data (names, firmware ids) in a sized column; the List tab shows them whole
 
         TextRenderer.DrawText(g, Lang.T("tab_models"), FTitle, new Point(Pad, 24), Theme.Text);
 

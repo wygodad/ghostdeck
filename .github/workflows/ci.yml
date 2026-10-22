@@ -25,6 +25,12 @@ jobs:
       - name: Translations complete
         run: python tools/lang-check.py
 
+      # Display scaling (#172): DPI read only through Dpi.Of, fonts only through Dpi.Font, no
+      # fixed-pixel text rectangles, every "..." truncation explained, and no long dash in any
+      # interface string or in the newest announcement.
+      - name: Scaling and dashes
+        run: python tools/dpi-check.py
+
       # data/models.json must be exactly what the compiled tables dump (and must round-trip
       # through the parser byte-for-byte) - the wire format can never drift from the code.
       # Every prefix in Devices.cs needs its "added" date and every Tested model its "tested" date

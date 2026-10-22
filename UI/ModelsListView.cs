@@ -246,7 +246,7 @@ internal sealed class ModelsListView : ModelsView
             Ui.FillCard(g, new RectangleF(Pad, tableTop, avail, tableH));
             for (int c = 0; c < headers.Length; c++)
                 T(g, headers[c], FHead, new Rectangle(cx[c], tableTop + S(8), ColW(cx, c), headH - S(8)), Theme.Muted,
-                  TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                  TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);   // dpi-ok: model table headers in columns sized to their content; last resort
             using var pen = new Pen(Theme.Border);
             g.DrawLine(pen, cx[0], tableTop + headH, Pad + avail - 14, tableTop + headH);
         }

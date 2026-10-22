@@ -228,7 +228,7 @@ public sealed partial class SettingsPage
                 }
                 Color text = !Enabled ? Theme.Faint : Theme.Text;
                 TextRenderer.DrawText(g, TrueColor.Profiles[i].Name, TileF, r, text,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);   // dpi-ok: True Color mode names (data from MSI) in equal tiles; last resort
             }
         }
 

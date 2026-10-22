@@ -230,7 +230,7 @@ public sealed class EcViewForm : Form
         g.Clear(Theme.Surface);
         TextRenderer.DrawText(g, Lang.T("ec_view_hint"), _hintFont,
             new Rectangle(16, 10, ClientSize.Width - 32, _hintFont.Height * 2 + 4), Theme.Muted,
-            TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);   // dpi-ok: developer view: a two-line hint above the live byte grid
 
         int x0 = 16 + _hdrW, y0 = _gridTop;
         // column header

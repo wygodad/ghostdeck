@@ -190,13 +190,13 @@ internal static class IconPainter
         int labelY = (int)(box.Bottom + 12);
         TextRenderer.DrawText(g, label, labelFont,
             new Rectangle((int)box.X - 16, labelY, (int)box.Width + 32, labelFont.Height + 4),
-            Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+            Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: ring label under a gauge sized with the page; last resort for a very long translation
         if (!string.IsNullOrEmpty(sub))
         {
             var subFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             TextRenderer.DrawText(g, sub, subFont,
                 new Rectangle((int)box.X - 16, labelY + labelFont.Height + 4, (int)box.Width + 32, subFont.Height + 4),
-                color, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+                color, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: ring label under a gauge sized with the page; last resort for a very long translation
         }
     }
 }

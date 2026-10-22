@@ -595,7 +595,7 @@ public sealed partial class SettingsPage
                 TextRenderer.DrawText(g, Lang.T(KindKeys[i]), lf,
                     new Rectangle(c.X + 3, box.Bottom + (int)(5 * k), c.Width - 6, c.Bottom - box.Bottom - (int)(7 * k)),
                     sel ? Theme.Text : Theme.Muted,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);   // dpi-ok: icon tile caption wraps first; the ellipsis only ends a third line
             }
         }
     }

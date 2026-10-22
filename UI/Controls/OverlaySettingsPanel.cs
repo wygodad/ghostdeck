@@ -339,7 +339,7 @@ public sealed class OverlaySettingsPanel : Panel
                 1 => (Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
                 3 => (Dpi.Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
                 4 => (Dpi.Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Right),
-                5 => (Dpi.Font("Segoe UI", 10.5f), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis),
+                5 => (Dpi.Font("Segoe UI", 10.5f), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis),   // dpi-ok: metric names in the overlay list rows; last resort for a very long translation
                 6 => (Dpi.Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak),
                 _ => (Dpi.Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
             };
