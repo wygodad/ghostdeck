@@ -60,7 +60,9 @@ Before opening a Pull Request:
 1. Create or reference an existing Issue or Discussion.
 2. Keep the change focused on one problem.
 3. Follow the existing code style.
-4. Build and test the application locally.
+4. Build and test the application locally. CI also runs `python tools/lang-check.py` (every text
+   in all 15 languages) and `python tools/dpi-check.py` (display scaling rules and no long dashes
+   in interface text, see `docs/RENDERING.md` section 12); both should pass before you open the PR.
 5. Describe what was changed and how it was tested.
 6. Do not include generated binaries, build output, credentials, or unrelated formatting changes.
 

@@ -358,6 +358,9 @@ covers the content, an inline label answers the same question immediately.
   (chroma-key), which fringes anti-aliased edges and can't do partial background alpha.
 - **Layout from measured metrics, scaled by DPI** (or a user-scale factor), never from hard-coded
   pixel steps — so it stays correct at every scaling level.
+- **Read the scale only through `Dpi.Of(control)` and create fonts only through `Dpi.Font(...)`**,
+  and give every box that holds text "the old size, or what the text needs, whichever is larger".
+  `tools/dpi-check.py` enforces the mechanical part in CI (§12).
 - **Draw inputs yourself instead of theming a system control.** A stock control paints itself (light)
   first, so painting over it afterwards leaves a visible flash on hover/press, and every system window
   has a creation cost that grows with what else runs on the desktop (§8.1). New selects must use
@@ -608,3 +611,51 @@ temperature and SSD alerts, refused hotkeys and refused ghostdeck:// links. The 
 shows a card without activating it, for the messages that arrive on their own.
 
 ![The eight tray messages as cards](images/cards.png)
+
+## 12. Display scaling: one source of scale, the preview at any DPI, and the CI check (#172)
+
+A report from Turkish Windows at about 200 % scaling showed text cut everywhere a size was a fixed
+number of pixels: the text grows with the scale, a box of 28 px does not. The owner's display runs
+at 140 %, where the same numbers still fit, so nobody saw it. Three pieces now keep this from
+coming back.
+
+**One source of scale.** `UI/Dpi.cs` is the only place that reads the display scale:
+`Dpi.Of(control)` returns the control's `DeviceDpi`, and `Dpi.Font(family, size, ...)` creates a
+font. Both answer the real values in the app. The preview tool sets `Dpi.Override` (an int, null
+in the app) and then every layout runs as on a monitor at that DPI, while `Dpi.Font` multiplies
+point sizes by `Override / real DPI`, so the text matches. Fonts given in `GraphicsUnit.Pixel` are
+not scaled again (their callers already multiply by the scale). The gaming overlay keeps its own
+fonts: it draws on a bitmap whose resolution is set to the monitor's DPI (§3), which scales point
+sizes by itself. With no override the app draws exactly as before; that was checked pixel by pixel.
+
+**Boxes follow the text.** Every text container that had a fixed pixel size now takes the larger
+of that size and what its text needs (`font.Height`, `TextRenderer.MeasureText`). The fixed values
+were chosen at 100-150 %, so the page looks the same there and only grows above that. Where text
+still does not fit it wraps instead of ending in "...": a feature brick on the Scenarios tab puts
+its label above a wide control, a disk name keeps its values on a line of their own, the Fan curve
+hint pushes the sub-tabs down. A `ThemedComboBox` reports `PreferredFieldWidth` (its longest item);
+Settings cards widen a list to it and keep lists built with one width at one width, so a column of
+them still lines up, and the drop-down list is never narrower than its longest item.
+
+**Preview at any DPI.** The preview tool (`DOC/tools/render-harness`) takes `FAKEDPI=144|192|240`
+and renders every page, sub-tab and card as at 150 / 200 / 250 % without touching the Windows
+display settings: `FAKEDPI=192 harness.exe <out> tr page Settings 5 dark`. It cannot show what
+Windows draws itself (native borders and padding of a `TextBox`, scrollbar widths, system metrics);
+those follow the real display only.
+
+**CI check.** `tools/dpi-check.py` runs next to `tools/lang-check.py` (`.github/workflows/ci.yml`)
+and fails the build on:
+
+- `DeviceDpi`, `DpiX` or `DpiY` read outside `UI/Dpi.cs`;
+- `new Font(...)` (or `Font x = new(...)`) instead of `Dpi.Font(...)`;
+- a `TextRenderer.DrawText` / `Ui.DrawText` rectangle whose height is a bare pixel number;
+- `TextFormatFlags.EndEllipsis` without a reason;
+- an em dash in any C# string (`Core/Lang.cs` included) or in the newest `announcements.json`
+  entry, and an en dash anywhere but between two digits ("30-40 W" as a range). Write " - " or a
+  comma instead.
+
+An exception is written where it applies, with its reason: `// dpi-ok: <reason>` at the end of the
+line or on the line above it, or `// dpi-ok-file: <reason>` at the top of a file (the overlay).
+Comments are never checked, and the long-dash rule has no exceptions. The check is a guard, not a
+proof: a fixed size passed through a variable is not caught, so the preview at 192 stays part of
+the review.

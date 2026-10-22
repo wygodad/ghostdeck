@@ -3882,3 +3882,20 @@ Nothing else changes: no write is retried or blocked by this, and profile switch
 own error handling. Machines without the EC interface (telemetry-only, #48) never reach
 `TryReadHw` for their temperatures and are unaffected. The render harness draws the Status
 state with `HWLOST=1`.
+
+## 84. Display scaling at 200 % (issue #172, 2026-10)
+
+At about 200 % scaling fixed pixel sizes cut text across the app (hotkey fields, Fan curve buttons
+and axis labels, the RAM / VRAM / disk rows, the Gaming tiles, lists ending in "...", the change
+log). The fix has three parts, described in `docs/RENDERING.md` §12:
+
+- `UI/Dpi.cs` is the only reader of the display scale (`Dpi.Of`) and the only font factory
+  (`Dpi.Font`). The preview tool overrides it (`FAKEDPI`) to draw any page at 150-250 % on a
+  140 % machine; the app itself always uses the real values.
+- Text boxes take the larger of their old fixed size and what the text needs; the old sizes fit
+  up to about 150 %, so the look there is unchanged. Text that still does not fit wraps.
+- `tools/dpi-check.py` in CI keeps the DPI and font rules, rejects fixed-height text rectangles
+  and unexplained ellipses, and rejects long dashes in interface text.
+
+Interface text no longer uses the em dash: between words it became " - ", in Chinese a
+full-width comma, and as a "no value" marker a plain "-". The en dash stays only in number ranges.

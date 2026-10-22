@@ -5,6 +5,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Fixed
+- **Text cut off at high display scaling** ([#172](../../issues/172), thanks @UzaydaGezen) - at
+  about 200 % the shortcut fields, the Fan curve buttons, mode label and chart axes, the RAM, VRAM
+  and disk rows, the Gaming tiles and charts, the Fn left/right switch, the Settings tab strip and
+  several drop-down lists were too small for their text. Boxes, rows and buttons now grow with the
+  text, lists are as wide as their longest value, long labels wrap instead of ending in "...", and
+  the change log sizes its columns to what they hold. Nothing changes at 100-150 %.
+- **No long dashes in the interface** - every em dash in the app's texts, in all 15 languages,
+  became a short dash or a comma.
 - **On-screen notifications at 125-150 % display scaling** - a short title such as "SSD running
   hot" no longer breaks onto two lines, "75°C" is never split after the degree sign, and the title
   and the message start in the same column. The toast's margins and width now grow with the display
