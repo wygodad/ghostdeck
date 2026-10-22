@@ -29,7 +29,7 @@ public sealed class TestDialog : Form
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = MinimizeBox = false;
         ClientSize = new Size(580, 700);
-        Font = new Font("Segoe UI", 9.5f);
+        Font = Dpi.Font("Segoe UI", 9.5f);
         Icon = TrayIconFactory.AppIcon();
 
         var note = new Label { Text = Lang.T("test_note"), AutoSize = false };
@@ -47,7 +47,7 @@ public sealed class TestDialog : Form
         hint.SetBounds(20, 122, 540, 52);
 
         _rpm.SetBounds(20, 178, 540, 210);
-        _rpm.Font = new Font("Consolas", 11f);
+        _rpm.Font = Dpi.Font("Consolas", 11f);
         _rpm.SelectionMode = SelectionMode.MultiExtended;
         _rpm.KeyDown += (_, e) =>
         {
@@ -60,7 +60,7 @@ public sealed class TestDialog : Form
         _rpm.DoubleClick += (_, _) => { if (_rpm.SelectedItem != null) Clipboard.SetText(_rpm.SelectedItem.ToString()!); };
 
         _live.SetBounds(20, 392, 540, 56);
-        _live.Font = new Font("Consolas", 11.5f, FontStyle.Bold);
+        _live.Font = Dpi.Font("Consolas", 11.5f, FontStyle.Bold);
         _live.Text = "Fan 1 / CPU (0xC9): —\r\nFan 2 / GPU (0xCB): —";
 
         var dumpBtn = new Button { Text = Lang.T("test_dump_btn"), Width = 250, Height = 34 };

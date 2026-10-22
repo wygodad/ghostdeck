@@ -64,7 +64,7 @@ public sealed class ProfileOrderForm : GhostCardForm
             using (var cp = RoundPath(cr, Ce(5 * k)))
             using (var pen = new Pen(Amber, 1.4f * k)) g.DrawPath(pen, cp);
             using var amberB = new SolidBrush(Amber);
-            using var bang = new Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+            using var bang = Dpi.Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
             g.DrawString("!", bang, amberB, cr, CenterText);
             g.DrawString(Lang.T("po_custom"), LabelFont, amberB, new RectangleF(box.X + tx, box.Y + (h - th) / 2f, textW, th), wrap);
         }
@@ -80,8 +80,8 @@ public sealed class ProfileOrderForm : GhostCardForm
         Rectangle Win(Rectangle r) => new(r.X + origin.X, r.Y + origin.Y, r.Width, r.Height);
         using var whiteB = new SolidBrush(White);
         using var hair = new Pen(Color.FromArgb(22, 243, 247, 255), 1f);
-        using var glyphF = new Font("Segoe MDL2 Assets", 13f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-        using var nameF = new Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var glyphF = Dpi.Font("Segoe MDL2 Assets", 13f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var nameF = Dpi.Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
 
         // two presets in one frame; a cell is lit while the rows below match it
         var presets = new[] { (Lang.T("po_std"), Profiles.Order), (Lang.T("po_power"), Profiles.ByPower) };

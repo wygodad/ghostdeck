@@ -23,7 +23,7 @@ public sealed class OsdForm : Form
     // (scaled) and never more than this share of the screen's width.
     private const float MaxScreenShare = 0.6f;
 
-    private int S(int v) => (int)Math.Round(v * DeviceDpi / 96f);
+    private int S(int v) => (int)Math.Round(v * Dpi.Of(this) / 96f);
 
     private readonly System.Windows.Forms.Timer _anim = new() { Interval = 15 };
     private enum Phase { Idle, In, Hold, Out }
@@ -87,8 +87,8 @@ public sealed class OsdForm : Form
         // these lines - so "75°C)" never splits after the degree sign the way GDI+ wrapping does,
         // and the measured height is the drawn height.
         using (var g = CreateGraphics())
-        using (var tF = new Font("Segoe UI", 19f, FontStyle.Bold))
-        using (var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold))
+        using (var tF = Dpi.Font("Segoe UI", 19f, FontStyle.Bold))
+        using (var sF = Dpi.Font("Segoe UI", 12.5f, FontStyle.Bold))
         {
             int maxW = Math.Max(S(MinWidth), Math.Min(S(MaxWidth), Math.Min((int)(wa.Width * MaxScreenShare), wa.Width - S(120))));
             float maxTextW = maxW - S(TextX) - S(RightMargin);
@@ -169,8 +169,8 @@ public sealed class OsdForm : Form
         using (var dot = new SolidBrush(_accent))
             g.FillEllipse(dot, S(40), dotY, dotD, dotD);
 
-        using var tF = new Font("Segoe UI", 19f, FontStyle.Bold);
-        using var sF = new Font("Segoe UI", 12.5f, FontStyle.Bold);
+        using var tF = Dpi.Font("Segoe UI", 19f, FontStyle.Bold);
+        using var sF = Dpi.Font("Segoe UI", 12.5f, FontStyle.Bold);
         using var tB = new SolidBrush(Color.White);
         using var sB = new SolidBrush(ColorTranslator.FromHtml("#C2C7D0"));
         // Exactly the lines ShowProfile broke and measured, one by one, from the same column.

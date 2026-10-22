@@ -126,7 +126,7 @@ public sealed class CrosshairForm : Form
         var sc = TargetScreen(_settings);
         var c = Centre(sc);
         if (!sc.Bounds.Contains(Location)) Location = new Point(c.X - Width / 2, c.Y - Height / 2);
-        return Math.Max(0.5f, DeviceDpi / 96f);
+        return Math.Max(0.5f, Dpi.Of(this) / 96f);
     }
 
     private Point Centre(Screen sc)

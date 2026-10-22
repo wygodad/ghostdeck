@@ -28,7 +28,7 @@ public sealed class Slider : Control
         SetStyle(ControlStyles.Selectable, true);   // arrow keys, after a click
         TabStop = true;
         // room for the longest value this slider can show ("100%", "-500"), never less than before
-        using var f = new Font("Segoe UI", 10f, FontStyle.Bold);
+        using var f = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
         _valueW = Math.Max(46, Math.Max(TextRenderer.MeasureText(_max + _suffix, f).Width, TextRenderer.MeasureText(_min + _suffix, f).Width) + 6);
     }
 
@@ -96,7 +96,7 @@ public sealed class Slider : Control
         using (var b = new SolidBrush(Theme.Surface)) g.FillEllipse(b, tx - 8, cy - 8, 16, 16);
         using (var p = new Pen(Theme.BorderStrong)) g.DrawEllipse(p, tx - 8, cy - 8, 16, 16);
         if (ShowValue)
-            TextRenderer.DrawText(g, _val + _suffix, new Font("Segoe UI", 10f, FontStyle.Bold),
+            TextRenderer.DrawText(g, _val + _suffix, Dpi.Font("Segoe UI", 10f, FontStyle.Bold),
                 new Rectangle(X1 + 6, 0, ValueW, Height), Theme.Text, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
     }
 }

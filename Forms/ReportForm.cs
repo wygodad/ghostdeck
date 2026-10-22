@@ -72,7 +72,7 @@ public sealed class ReportForm : Form
         MaximizeBox = false; MinimizeBox = false;
         AutoScaleMode = AutoScaleMode.Dpi;
         ClientSize = new Size(1100, 990);
-        Font = new Font("Segoe UI", 10.5f);
+        Font = Dpi.Font("Segoe UI", 10.5f);
         BackColor = Color.White;
         Text = Lang.T("rep_title");
         Icon = TrayIconFactory.AppIcon();
@@ -107,8 +107,8 @@ public sealed class ReportForm : Form
             using var br = new LinearGradientBrush(header.ClientRectangle, Accent, AccentDark, 25f);
             g.FillRectangle(br, header.ClientRectangle);
 
-            var titleFont = new Font("Segoe UI", 17f, FontStyle.Bold);
-            var subFont = new Font("Segoe UI", 11f);
+            var titleFont = Dpi.Font("Segoe UI", 17f, FontStyle.Bold);
+            var subFont = Dpi.Font("Segoe UI", 11f);
             string title = Lang.T("rep_title");
             int tw = TextRenderer.MeasureText(g, title, titleFont).Width;
             const int flags = (int)(TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
@@ -187,7 +187,7 @@ public sealed class ReportForm : Form
             AutoSize = true,
             Location = new Point(RightX, 26),
             ForeColor = Muted,
-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+            Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
         };
         _content.Controls.Add(section);
 
@@ -203,7 +203,7 @@ public sealed class ReportForm : Form
         ry += 14;
         _progressLabel.AutoSize = true;
         _progressLabel.ForeColor = Accent;
-        _progressLabel.Font = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+        _progressLabel.Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
         _progressLabel.Location = new Point(RightX, ry);
         _progressLabel.Visible = false;
         _content.Controls.Add(_progressLabel);
@@ -215,7 +215,7 @@ public sealed class ReportForm : Form
 
         _instruction.AutoSize = true;
         _instruction.MaximumSize = new Size(RightW, 0);
-        _instruction.Font = new Font("Segoe UI", 11.5f, FontStyle.Bold);
+        _instruction.Font = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
         _instruction.ForeColor = Ink;
         _instruction.Location = new Point(RightX, ry + 50);
         _content.Controls.Add(_instruction);
@@ -230,7 +230,7 @@ public sealed class ReportForm : Form
         AutoSize = true,
         MaximumSize = new Size(width, 0),
         ForeColor = color,
-        Font = new Font("Segoe UI", size),
+        Font = Dpi.Font("Segoe UI", size),
     };
 
     private void StylePrimary(Button b)
@@ -241,7 +241,7 @@ public sealed class ReportForm : Form
         b.FlatAppearance.MouseDownBackColor = AccentDark;
         b.BackColor = Accent;
         b.ForeColor = Color.White;
-        b.Font = new Font("Segoe UI", 11.5f, FontStyle.Bold);
+        b.Font = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
         b.Cursor = Cursors.Hand;
     }
 
@@ -253,7 +253,7 @@ public sealed class ReportForm : Form
         b.FlatAppearance.MouseOverBackColor = Color.FromArgb(0xF3, 0xF4, 0xF6);
         b.BackColor = Color.White;
         b.ForeColor = Ink;
-        b.Font = new Font("Segoe UI", 10.5f);
+        b.Font = Dpi.Font("Segoe UI", 10.5f);
         b.Cursor = Cursors.Hand;
     }
 
@@ -505,7 +505,7 @@ public sealed class ReportForm : Form
             _icon = icon;
             DoubleBuffered = true;
             int innerW = width - LeftPad - RightPad;
-            var linkFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            var linkFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             int y = TopPad;
             int gap = 0;
 
@@ -554,7 +554,7 @@ public sealed class ReportForm : Form
             using var path = RoundRect(r, 12);
             using (var b = new SolidBrush(Bg)) g.FillPath(b, path);
             using (var p = new Pen(Bd)) g.DrawPath(p, path);
-            TextRenderer.DrawText(g, _icon, new Font("Segoe UI", 13f, FontStyle.Bold),
+            TextRenderer.DrawText(g, _icon, Dpi.Font("Segoe UI", 13f, FontStyle.Bold),
                 new Rectangle(14, TopPad - 1, 26, 22), Fg, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
             foreach (var (rect, text) in _paras)
                 TextRenderer.DrawText(g, text, _bodyFont, rect, Fg,
@@ -581,11 +581,11 @@ public sealed class ReportForm : Form
             using var path = RoundRect(r, 11);
             using (var b = new SolidBrush(Color.FromArgb(0xF2, 0xF6, 0xFE))) g.FillPath(b, path);
             using (var p = new Pen(Color.FromArgb(0xDE, 0xE9, 0xFC))) g.DrawPath(p, path);
-            var lblFont = new Font("Segoe UI", 10f);
+            var lblFont = Dpi.Font("Segoe UI", 10f);
             TextRenderer.DrawText(g, _label, lblFont, new Rectangle(18, 0, 220, Height), Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
             int lw = TextRenderer.MeasureText(_label, lblFont).Width;
-            TextRenderer.DrawText(g, _value, new Font("Consolas", 11.5f, FontStyle.Bold),
+            TextRenderer.DrawText(g, _value, Dpi.Font("Consolas", 11.5f, FontStyle.Bold),
                 new Rectangle(18 + lw + 12, 0, Width - (18 + lw + 12) - 12, Height), Accent,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         }
@@ -670,19 +670,19 @@ public sealed class ReportForm : Form
             {
                 using var pen = new Pen(Color.FromArgb(0xCF, 0xD3, 0xDA), 2f);
                 g.DrawEllipse(pen, circle);
-                TextRenderer.DrawText(g, _num.ToString(), new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                TextRenderer.DrawText(g, _num.ToString(), Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
                     Rectangle.Round(circle), Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
 
             int nameX = CircleCx + Circle / 2 + 16;
             var nameColor = _done || _current ? Ink : Muted;
-            TextRenderer.DrawText(g, _name, new Font("Segoe UI", 11f, FontStyle.Bold),
+            TextRenderer.DrawText(g, _name, Dpi.Font("Segoe UI", 11f, FontStyle.Bold),
                 new Rectangle(nameX, 6, Width - nameX - StatusW - 6, Height - 12), nameColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
 
             string state = Lang.T(_done ? "rep_captured" : "rep_pending");
             var stateColor = _done ? Green : Muted;
-            TextRenderer.DrawText(g, state, new Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
+            TextRenderer.DrawText(g, state, Dpi.Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
                 new Rectangle(Width - StatusW, 6, StatusW - 10, Height - 12), stateColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
         }

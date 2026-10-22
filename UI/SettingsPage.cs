@@ -66,7 +66,7 @@ public sealed partial class SettingsPage : ThemedPage
     private bool _builtTravelOn;               // travel/charge snapshot the Power card was built from...
     private int _builtCharge;                  // ...compared in SyncTravelRow (rebuild only on a real change)
     private Action? _syncPowerCard;            // re-reads the live Windows-power card values (#141)
-    private readonly Label _title = new() { AutoSize = true, Font = new Font("Segoe UI", 18f, FontStyle.Bold) };
+    private readonly Label _title = new() { AutoSize = true, Font = Dpi.Font("Segoe UI", 18f, FontStyle.Bold) };
 
     public SettingsPage(MainDeps d) : base(d)
     {
@@ -393,7 +393,7 @@ public sealed partial class SettingsPage : ThemedPage
         {
             // Start: status header, then one tile per group (3 per row, 2 on a narrow window),
             // then the "What's new" link
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             int gap = (int)(14 * k), th = (int)(110 * k);
             if (_homeHeader != null)
             {
@@ -420,7 +420,7 @@ public sealed partial class SettingsPage : ThemedPage
             top += _gamingSeg.Height + 18;
             if (GamingSub == GamingStart)
             {
-                float k = DeviceDpi / 96f;
+                float k = Dpi.Of(this) / 96f;
                 int gap = (int)(14 * k), th = (int)(110 * k);
                 int tw = (fullW - gap) / 2;
                 for (int i = 0; i < _gamingTiles.Count; i++)
@@ -520,7 +520,7 @@ public sealed partial class SettingsPage : ThemedPage
         start.AddRow(null, new Label
         {
             Text = Lang.T("set_protocol_note"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
         });
         // Per-model consent: the row exists only when the detected machine is experimental,
         // and the consent is keyed to the matched firmware prefix (see DeviceProfile.MatchedPrefix).
@@ -577,7 +577,7 @@ public sealed partial class SettingsPage : ThemedPage
                 // Tag "warn" is the card convention: ApplyTheme paints it amber and Relayout rewraps it
                 // to the card width. A hand-set ForeColor is overwritten on the next theme pass, and a
                 // fixed MaximumSize keeps the text in a narrow column - both were wrong here.
-                var warn = new Label { AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("charge_custom_warn") };
+                var warn = new Label { AutoSize = true, Font = Dpi.Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("charge_custom_warn") };
                 power.AddRow(null, warn);
             }
 
@@ -615,7 +615,7 @@ public sealed partial class SettingsPage : ThemedPage
                 {
                     Text = string.Format(Lang.T("travel_note"), D.Settings.TravelUntil.ToShortDateString()),
                     AutoSize = true, MaximumSize = new Size(360, 0),
-                    Font = new Font("Segoe UI", 9f), Tag = "muted",
+                    Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
                 };
                 travelBtn.Click += (_, _) =>
                 {
@@ -728,7 +728,7 @@ public sealed partial class SettingsPage : ThemedPage
             var schInfo = new Label
             {
                 Text = Lang.T("sch_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             sch.AddRow(null, schInfo);
             sch.AddRow(Lang.T("sch_enable"), Toggle(D.Settings.ScheduleEnabled,
@@ -757,7 +757,7 @@ public sealed partial class SettingsPage : ThemedPage
                 var lbl = new Label
                 {
                     Text = $"{scName} · {days} · {r.Start}-{r.End}", AutoEllipsis = true,
-                    AutoSize = false, Size = new Size(330, 24), Font = new Font("Segoe UI", 9f),
+                    AutoSize = false, Size = new Size(330, 24), Font = Dpi.Font("Segoe UI", 9f),
                     TextAlign = ContentAlignment.MiddleLeft,
                     ForeColor = Theme.Text, BackColor = Theme.Card,
                 };
@@ -766,7 +766,7 @@ public sealed partial class SettingsPage : ThemedPage
                 {
                     var b = new Button
                     {
-                        Text = glyph, Size = new Size(30, 28), Font = new Font("Segoe UI", 10f),
+                        Text = glyph, Size = new Size(30, 28), Font = Dpi.Font("Segoe UI", 10f),
                         FlatStyle = FlatStyle.Flat, BackColor = Theme.Card,
                         ForeColor = fixedColor ?? Theme.Muted, TabStop = false, Cursor = Cursors.Hand,
                     };
@@ -817,7 +817,7 @@ public sealed partial class SettingsPage : ThemedPage
                 var need = new Label
                 {
                     Text = Lang.T("sch_need_scene"), AutoSize = true, MaximumSize = new Size(360, 0),
-                    Font = new Font("Segoe UI", 9f), Tag = "muted",
+                    Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
                 };
                 sch.AddRow(null, need);
             }
@@ -848,7 +848,7 @@ public sealed partial class SettingsPage : ThemedPage
             var rates = Display.SupportedRates();
             _syncRefreshMan = null;   // re-pointed below when the panel offers a choice
             // live current panel rate first, so the switch rows below have a reference point
-            _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+            _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold) };
             disp.AddRow(Lang.T("set_refresh_now"), _refreshNow);
             // which display the controls act on: the built-in panel when one is active, the
             // primary display otherwise (#69); EDID name appended when the panel reports one
@@ -860,7 +860,7 @@ public sealed partial class SettingsPage : ThemedPage
                     ? Lang.T("ref_panel_internal") + (target.Name is null ? "" : " · " + target.Name)
                     : Lang.T("ref_panel_primary"),
                 AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             disp.AddRow(null, targetInfo);
             // manual rate switch, same control as the Scenarios brick: a segmented button group
@@ -918,7 +918,7 @@ public sealed partial class SettingsPage : ThemedPage
         // (#14) Battery health - read-only wear data from the root\wmi battery classes.
         var bh = BatteryHealth.Read();
         var batt = new CardSection(Lang.T("set_grp_batt"), "");
-        Label BhVal(string txt) => new() { Text = txt, AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
+        Label BhVal(string txt) => new() { Text = txt, AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold) };
         batt.AddRow(Lang.T("bh_design"), BhVal(bh.DesignMWh > 0 ? $"{bh.DesignMWh / 1000f:0.0} Wh" : "—"));
         batt.AddRow(Lang.T("bh_full"), BhVal(bh.FullMWh > 0 ? $"{bh.FullMWh / 1000f:0.0} Wh" : "—"));
         batt.AddRow(Lang.T("bh_wear"), BhVal(bh.WearPct >= 0 ? $"{bh.WearPct} %" : "—"));
@@ -931,7 +931,7 @@ public sealed partial class SettingsPage : ThemedPage
         var brInfo = new Label
         {
             Text = Lang.T("bat_rules_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
         };
         brc.AddRow(null, brInfo);
         // master switch for the whole feature - some people simply don't want it running
@@ -1244,7 +1244,7 @@ public sealed partial class SettingsPage : ThemedPage
         var navInfo = new Label
         {
             Text = Lang.T("set_always_start_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
         };
         navCard.AddRow(null, navInfo);
         navCard.AddRow(Lang.T("set_always_start"), Toggle(D.Settings.SettingsAlwaysStart,
@@ -1274,7 +1274,7 @@ public sealed partial class SettingsPage : ThemedPage
         var diagInfo = new Label
         {
             Text = Lang.T("diag_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
         };
         diag.AddRow(null, diagInfo);
         diag.AddRow(null, diagBtn);
@@ -1290,13 +1290,13 @@ public sealed partial class SettingsPage : ThemedPage
             var ttInfo = new Label
             {
                 Text = Lang.T("temptray_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             tt.AddRow(null, ttInfo);
             var ttMirror = new Label
             {
                 Text = Lang.T("temptray_mirror"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             tt.AddRow(null, ttMirror);
             tt.AddRow(Lang.T("st_cpu_temp"), Toggle(D.Settings.TempTrayCpu,
@@ -1309,7 +1309,7 @@ public sealed partial class SettingsPage : ThemedPage
             tt.AddRow(null, new Label
             {
                 Text = Lang.T("temptray_ssd_note"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "warn",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "warn",
             });
             // bar first (the default), then the two that cover a sliver of a digit at 16 px, then none
             var markStyles = new[] { TrayMarker.Underline, TrayMarker.Dot, TrayMarker.Corner, TrayMarker.None };
@@ -1376,7 +1376,7 @@ public sealed partial class SettingsPage : ThemedPage
             var privInfo = new Label
             {
                 Text = "⚠  " + Lang.T("webcam_block_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "warn",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "warn",
             };
             priv.AddRow(null, privInfo);
             // Two-step, no popup: flipping the toggle ON only ARMS the block - an inline confirm
@@ -1412,7 +1412,7 @@ public sealed partial class SettingsPage : ThemedPage
         var wlInfo = new Label
         {
             Text = Lang.T("winlock_hint"), AutoSize = true, MaximumSize = new Size(360, 0),
-            Font = new Font("Segoe UI", 9f), Tag = "muted",
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
         };
         wlCard.AddRow(null, wlInfo);
         wlCard.AddRow(Lang.T("winlock_title"), Toggle(D.WinLockOn(), v => D.SetWinLock(v)));
@@ -1424,7 +1424,7 @@ public sealed partial class SettingsPage : ThemedPage
             var tpInfo = new Label
             {
                 Text = Lang.T("tp_hint"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             tpCard.AddRow(null, tpInfo);
             tpCard.AddRow(Lang.T("tp_title"), Toggle(D.TouchpadState() == 1, v => D.SetTouchpad(v)));
@@ -1440,7 +1440,7 @@ public sealed partial class SettingsPage : ThemedPage
             var micInfo = new Label
             {
                 Text = Lang.T("mic_hint"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             micCard.AddRow(null, micInfo);
             micCard.AddRow(Lang.T("mic_title"), Toggle(D.MicState() == 1, v => D.SetMic(v)));
@@ -1454,7 +1454,7 @@ public sealed partial class SettingsPage : ThemedPage
             var fnInfo = new Label
             {
                 Text = Lang.T("fnswap_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = new Font("Segoe UI", 9f), Tag = "muted",
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             var fnSeg = new SegControl(new[] { Lang.T("fnswap_left"), Lang.T("fnswap_right") },
                 D.FnLeft() == 1 ? 0 : 1) { Size = new Size(280, 34) };
@@ -1476,7 +1476,7 @@ public sealed partial class SettingsPage : ThemedPage
         hk.AddRow(Lang.T("hk_all"), _hkMaster);   // master on/off (#9), default on
         if (TrayContext.HotkeysRefused.Count > 0)
         {
-            var warn = new Label { AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("hk_refused_row") };
+            var warn = new Label { AutoSize = true, Font = Dpi.Font("Segoe UI", 9f), Tag = "warn", Text = "\u26A0  " + Lang.T("hk_refused_row") };
             hk.AddRow(null, warn);
         }
         // static actions + one row per scene (#21); scene rows label with the scene's name
@@ -1563,7 +1563,7 @@ public sealed partial class SettingsPage : ThemedPage
         _homeHeader = new HomeHeader(D);
         Controls.Add(_homeHeader);
 
-        _whatsNew = new Label { AutoSize = true, Font = new Font("Segoe UI", 9.5f), Cursor = Cursors.Hand };
+        _whatsNew = new Label { AutoSize = true, Font = Dpi.Font("Segoe UI", 9.5f), Cursor = Cursors.Hand };
         _whatsNew.Text = "✦  " + string.Format(Lang.T("st2_whatsnew"), D.AppVersion());
         _whatsNew.Click += (_, _) => D.OpenUpdates("v" + D.AppVersion());
         Controls.Add(_whatsNew);
@@ -1737,7 +1737,7 @@ public sealed partial class SettingsPage : ThemedPage
         {
             D = d;
             DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             _cellW = (int)(88 * k); _gap = (int)(8 * k); _icon = (int)(44 * k);
             Width = LabelKeys.Length * _cellW + (LabelKeys.Length - 1) * _gap;
             Height = (int)(104 * k);
@@ -1764,7 +1764,7 @@ public sealed partial class SettingsPage : ThemedPage
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Parent?.BackColor ?? Theme.Card);
-            using var lf = new Font("Segoe UI", 8.5f);
+            using var lf = Dpi.Font("Segoe UI", 8.5f);
             for (int i = 0; i < LabelKeys.Length; i++)
             {
                 var c = Cell(i);
@@ -1775,7 +1775,7 @@ public sealed partial class SettingsPage : ThemedPage
                     using var pen = new Pen(sel ? Theme.Accent : _hover == i ? Theme.BorderStrong : Theme.Border, sel ? 2f : 1f);
                     g.DrawPath(pen, path);
                 }
-                int iy = (int)(12 * DeviceDpi / 96f);
+                int iy = (int)(12 * Dpi.Of(this) / 96f);
                 TrayIconFactory.DrawStylePreview(g, i, c.X + (c.Width - _icon) / 2f, c.Y + iy, _icon);
                 TextRenderer.DrawText(g, Lang.T(LabelKeys[i]), lf,
                     new Rectangle(c.X + 4, c.Y + iy + _icon + 6, c.Width - 8, c.Height - iy - _icon - 10),
@@ -1897,7 +1897,7 @@ public sealed partial class SettingsPage : ThemedPage
                 using var pen = new Pen(_hover ? Theme.Accent : Theme.Border, _hover ? 1.4f : 1f);
                 g.DrawPath(pen, path);
             }
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             int pad = (int)(16 * k);
             const TextFormatFlags F = TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix;
             TextRenderer.DrawText(g, _glyph, GlyphF, new Point(pad, (int)(12 * k)), Theme.Accent, F);
@@ -1976,7 +1976,7 @@ public sealed partial class SettingsPage : ThemedPage
             x += TextRenderer.MeasureText(g, info.Device, NameF, Size.Empty, F).Width + 22;
 
             // tier badge: a deliberately SMALL chip (the strip's Ui.Pill was too loud here)
-            using (var bf = new Font("Segoe UI", 8f, FontStyle.Bold))
+            using (var bf = Dpi.Font("Segoe UI", 8f, FontStyle.Bold))
             {
                 int tw = TextRenderer.MeasureText(g, info.TierText, bf, Size.Empty, F).Width;
                 int cw = tw + 18, chh = bf.Height + 8;
@@ -2072,7 +2072,7 @@ public sealed partial class SettingsPage : ThemedPage
         /// <summary>A theme switch: the button's colours (the block paints the rest each time).</summary>
         public void ApplyTheme() { Ui.StyleGhost(_btn); Invalidate(); }
 
-        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
 
         protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Fit(); }
 
@@ -2080,9 +2080,9 @@ public sealed partial class SettingsPage : ThemedPage
         {
             // one width for every state: the widest text plus the button's own padding and frame,
             // measured once per DPI (a resize of the window must not re-measure six strings)
-            if (_widthDpi != DeviceDpi)
+            if (_widthDpi != Dpi.Of(this))
             {
-                _widthDpi = DeviceDpi;
+                _widthDpi = Dpi.Of(this);
                 int widest = _states.Append(_idle).Max(t => TextRenderer.MeasureText(t, _btn.Font).Width);
                 _btn.MinimumSize = new Size(widest + _btn.Padding.Horizontal + S(12), 0);
             }
@@ -2156,14 +2156,14 @@ public sealed partial class SettingsPage : ThemedPage
             DoubleBuffered = true;
             BackColor = Theme.Card;
             _glyph = glyph;
-            _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, UseMnemonic = false, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };   // "Startup & tray" keeps its &
+            _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, UseMnemonic = false, Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold) };   // "Startup & tray" keeps its &
             Controls.Add(_head);
         }
 
         public void AddRow(string? label, Control ctl)
         {
             Label? l = null;
-            if (label != null) { l = new Label { Text = label, AutoSize = true, Font = new Font("Segoe UI", 10.5f) }; Controls.Add(l); }
+            if (label != null) { l = new Label { Text = label, AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f) }; Controls.Add(l); }
             Controls.Add(ctl);
             _rows.Add((l, ctl));
         }
@@ -2185,9 +2185,9 @@ public sealed partial class SettingsPage : ThemedPage
             Width = width;
             const int pad = 18;
             int y = 16;
-            int hx = pad + (string.IsNullOrEmpty(_glyph) ? 0 : Ceil(26 * DeviceDpi / 96f) + Ceil(10 * DeviceDpi / 96f));
-            _head.Location = new Point(hx, y + Ceil(4 * DeviceDpi / 96f));
-            y += Math.Max(_head.Height, Ceil(26 * DeviceDpi / 96f)) + 14;
+            int hx = pad + (string.IsNullOrEmpty(_glyph) ? 0 : Ceil(26 * Dpi.Of(this) / 96f) + Ceil(10 * Dpi.Of(this) / 96f));
+            _head.Location = new Point(hx, y + Ceil(4 * Dpi.Of(this) / 96f));
+            y += Math.Max(_head.Height, Ceil(26 * Dpi.Of(this) / 96f)) + 14;
             foreach (var (l, ctl) in _rows)
             {
                 // a hidden full-width row (conditional strips, the restore button) takes no
@@ -2286,13 +2286,13 @@ public sealed partial class SettingsPage : ThemedPage
 
             if (!string.IsNullOrEmpty(_glyph))
             {
-                float k = DeviceDpi / 96f;
+                float k = Dpi.Of(this) / 96f;
                 int isz = Ceil(26 * k);
                 var iconR = new Rectangle(18, 14, isz, isz);
                 using (var ap = new Pen(Theme.Accent, 1.7f))
                 using (var ip = Theme.RoundRect(new RectangleF(iconR.X + 0.5f, iconR.Y + 0.5f, iconR.Width - 1, iconR.Height - 1), 6))
                     g.DrawPath(ap, ip);
-                using var gf = new Font("Segoe MDL2 Assets", 10.5f);
+                using var gf = Dpi.Font("Segoe MDL2 Assets", 10.5f);
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, iconR);
             }
         }

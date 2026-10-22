@@ -163,7 +163,7 @@ internal sealed class HelpDot : Control
     {
         using var pen = new Pen(Theme.Muted, 1.4f);
         g.DrawEllipse(pen, r.X + 1f, r.Y + 1f, r.Width - 2f, r.Height - 2f);
-        using var f = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+        using var f = Dpi.Font("Segoe UI", 8.5f, FontStyle.Bold);
         Ui.CenterGlyph(g, "?", f, Theme.Muted, r);
     }
 }

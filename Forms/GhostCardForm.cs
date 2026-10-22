@@ -185,7 +185,7 @@ public class GhostCardForm : Form
         if (_fieldFont == null || Math.Abs(_fieldFont.Size - px) > 0.01f)
         {
             _fieldFont?.Dispose();
-            _fieldFont = new Font("Segoe UI", px, FontStyle.Regular, GraphicsUnit.Pixel);
+            _fieldFont = Dpi.Font("Segoe UI", px, FontStyle.Regular, GraphicsUnit.Pixel);
         }
         foreach (var (host, area) in _fields)
         {
@@ -242,9 +242,9 @@ public class GhostCardForm : Form
     {
         if (_labelF != null && Math.Abs(_fontK - _k) < 0.001f) return;
         _labelF?.Dispose(); _cellF?.Dispose(); _capF?.Dispose();
-        _labelF = new Font("Segoe UI Semibold", 13.5f * _k, FontStyle.Regular, GraphicsUnit.Pixel);
-        _cellF = new Font("Segoe UI", 12.5f * _k, FontStyle.Bold, GraphicsUnit.Pixel);
-        _capF = new Font("Segoe UI", 10.5f * _k, FontStyle.Bold, GraphicsUnit.Pixel);
+        _labelF = Dpi.Font("Segoe UI Semibold", 13.5f * _k, FontStyle.Regular, GraphicsUnit.Pixel);
+        _cellF = Dpi.Font("Segoe UI", 12.5f * _k, FontStyle.Bold, GraphicsUnit.Pixel);
+        _capF = Dpi.Font("Segoe UI", 10.5f * _k, FontStyle.Bold, GraphicsUnit.Pixel);
         _fontK = _k;
     }
 
@@ -457,7 +457,7 @@ public class GhostCardForm : Form
 
     private Bitmap Compose()
     {
-        float dpi; using (var mg = CreateGraphics()) dpi = mg.DpiY;
+        float dpi; dpi = Dpi.Of(this);
         float k = dpi / 96f;
         _k = k;
         int Ce(float v) => (int)Math.Ceiling(v);
@@ -469,11 +469,11 @@ public class GhostCardForm : Form
         int cx = railW + Ce(15 * k);
         int cw = W - cx - Ce(18 * k);
 
-        using var wordF = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var scanF = new Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var titleF = new Font("Segoe UI", 17f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var bodyF = new Font("Segoe UI", 13.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-        using var btnF = new Font("Segoe UI", ButtonFontPx * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var wordF = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var scanF = Dpi.Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var titleF = Dpi.Font("Segoe UI", 17f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var bodyF = Dpi.Font("Segoe UI", 13.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var btnF = Dpi.Font("Segoe UI", ButtonFontPx * k, FontStyle.Bold, GraphicsUnit.Pixel);
 
         // measure the body first - the card grows with the text (and with the language)
         int yHdr = Ce(14 * k), hHdr = Ce(24 * k);

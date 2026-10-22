@@ -28,7 +28,7 @@ public sealed class MainForm : Form
         FormBorderStyle = FormBorderStyle.Sizable;
         AutoScaleMode = AutoScaleMode.Dpi;
         MinimumSize = new Size(900, 620);
-        Font = new Font("Segoe UI", 10f);
+        Font = Dpi.Font("Segoe UI", 10f);
         DoubleBuffered = true;
 
         RestoreBounds2();
@@ -130,7 +130,7 @@ public sealed class MainForm : Form
         BuildTabs();
 
         _version.AutoSize = true;
-        _version.Font = new Font("Segoe UI", 9.5f);
+        _version.Font = Dpi.Font("Segoe UI", 9.5f);
         _strip.Controls.Add(_version);
 
         // Report + Updates live as icons on the right (next to the theme toggle) instead of top-level
@@ -161,10 +161,10 @@ public sealed class MainForm : Form
     // the tab row starts after it (LayoutStrip uses WordmarkWidth for the offset).
     private void DrawWordmark(Graphics g)
     {
-        using var wf = new Font("Segoe UI", 12.5f, FontStyle.Bold);
+        using var wf = Dpi.Font("Segoe UI", 12.5f, FontStyle.Bold);
         const string s1 = "Ghost", s2 = "Deck";
         int w1 = TextRenderer.MeasureText(g, s1, wf, Size.Empty, TextFormatFlags.NoPadding).Width;
-        int mark = (int)(26 * _strip.DeviceDpi / 96f);
+        int mark = (int)(26 * Dpi.Of(_strip) / 96f);
         const int bx = 20;
         TrayIconFactory.DrawGhost(g, bx, (StripH - mark) / 2f - 1, mark, Theme.Accent, Theme.Surface);
         int ty = (StripH - wf.Height) / 2 - 1;
@@ -174,16 +174,16 @@ public sealed class MainForm : Form
 
     private int WordmarkWidth()
     {
-        using var wf = new Font("Segoe UI", 12.5f, FontStyle.Bold);
+        using var wf = Dpi.Font("Segoe UI", 12.5f, FontStyle.Bold);
         int tw = TextRenderer.MeasureText("GhostDeck", wf, Size.Empty, TextFormatFlags.NoPadding).Width;
-        return (int)(26 * _strip.DeviceDpi / 96f) + 9 + tw;
+        return (int)(26 * Dpi.Of(_strip) / 96f) + 9 + tw;
     }
 
     // Tier badge (tested / experimental / unsupported) drawn left of the version label.
     private void DrawTierBadge(Graphics g)
     {
         var info = _d.Status();
-        using var bf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        using var bf = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         int w = TextRenderer.MeasureText(info.TierText, bf).Width + 32;
         int h = bf.Height + 14;
         Ui.Pill(g, info.TierText, new Point(_version.Left - w - 16, (StripH - h) / 2), info.TierColor);
@@ -258,7 +258,7 @@ public sealed class MainForm : Form
         // tabs start after the left wordmark; buttons reach almost down to the separator line,
         // so the whole tab height is clickable (not just the text)
         int x = 20 + WordmarkWidth() + 30, y = 6, h = StripH - 7;
-        var f = new Font("Segoe UI", 11.5f, FontStyle.Bold);
+        var f = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
         foreach (var b in _tabs)
         {
             int w = TextRenderer.MeasureText(b.Text, f).Width + 30 + 30; // text + icon + padding
@@ -513,8 +513,8 @@ public sealed class MainForm : Form
                 g.FillPath(b, path);
             }
             var col = Active ? Theme.Accent : (_hover ? Theme.Text : Theme.Muted);
-            var iconFont = new Font("Segoe MDL2 Assets", 15f);
-            var textFont = new Font("Segoe UI", 11.5f, Active ? FontStyle.Bold : FontStyle.Regular);
+            var iconFont = Dpi.Font("Segoe MDL2 Assets", 15f);
+            var textFont = Dpi.Font("Segoe UI", 11.5f, Active ? FontStyle.Bold : FontStyle.Regular);
             int tw = TextRenderer.MeasureText(Text, textFont).Width;
             const int iconW = 28, gap = 10;
             int total = iconW + gap + tw;
@@ -557,7 +557,7 @@ public sealed class MainForm : Form
             var gr = ClientRectangle; gr.Offset(GlyphDx, GlyphDy);
             // PUA glyphs (the tab icons) live in Segoe MDL2 Assets; Segoe UI Symbol shows them as boxes
             bool mdl2 = Glyph.Length > 0 && Glyph[0] >= '' && Glyph[0] <= '';
-            using var gf = new Font(mdl2 ? "Segoe MDL2 Assets" : "Segoe UI Symbol", 14f);
+            using var gf = Dpi.Font(mdl2 ? "Segoe MDL2 Assets" : "Segoe UI Symbol", 14f);
             TextRenderer.DrawText(g, Glyph, gf, gr, Active ? Theme.Accent : Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
@@ -587,7 +587,7 @@ public sealed class MainForm : Form
             Height = S(56);
         }
 
-        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
 
         public void ShowNotice(string title, string body, string? url, Action onSeen)
         {
@@ -635,14 +635,14 @@ public sealed class MainForm : Form
             int pad = S(16);
             int cs = S(28);
             _closeRect = new Rectangle(Width - pad - cs, (Height - cs) / 2, cs, cs);
-            using (var cf = new Font("Segoe UI", 10f))
+            using (var cf = Dpi.Font("Segoe UI", 10f))
                 TextRenderer.DrawText(g, "✕", cf, _closeRect, _hoverClose ? Theme.Text : Theme.Muted,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
             int rightLimit = _closeRect.Left - S(8);
             if (_url != null)
             {
-                using var lf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                using var lf = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
                 string more = Lang.T("notice_more");
                 int mw = TextRenderer.MeasureText(more, lf).Width + S(12);
                 _moreRect = new Rectangle(rightLimit - mw, (Height - S(26)) / 2, mw, S(26));
@@ -654,8 +654,8 @@ public sealed class MainForm : Form
 
             int x = S(18);
             int textW = Math.Max(S(60), rightLimit - x);
-            using var tf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
-            using var bf = new Font("Segoe UI", 9.5f);
+            using var tf = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+            using var bf = Dpi.Font("Segoe UI", 9.5f);
             int tH = TextRenderer.MeasureText(_title, tf).Height;
             int bH = TextRenderer.MeasureText(_body, bf).Height;
             int ty = Math.Max(S(6), (Height - tH - bH) / 2);

@@ -21,7 +21,7 @@ public sealed class SegControl : Control
         // later, and every host (FeatureBrick, CardSection, forms) positions by the real
         // Width, so a control that grows past its requested size stays right-aligned.
         int maxW = 0;
-        using var f = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        using var f = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         foreach (var it in items) maxW = Math.Max(maxW, TextRenderer.MeasureText(it, f).Width);
         MinimumSize = new Size((maxW + 16) * items.Length, 0);
     }
@@ -65,7 +65,7 @@ public sealed class SegControl : Control
                 using var path = Theme.RoundRect(new RectangleF(r.X + 2, 2, r.Width - 4, Height - 4), 7);
                 using var b = new SolidBrush(Theme.AccentFill); g.FillPath(b, path);
             }
-            TextRenderer.DrawText(g, _items[i], new Font("Segoe UI", 9.5f, FontStyle.Bold),
+            TextRenderer.DrawText(g, _items[i], Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Rectangle.Round(r), i == _sel ? Color.White : Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }

@@ -378,7 +378,7 @@ public sealed class StatusPage : ThemedPage
         var info = D.Status();
         var hw = _hw;   // cached; refreshed off the UI thread by RefreshAsync
 
-        TextRenderer.DrawText(g, Lang.T("menu_status"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
+        TextRenderer.DrawText(g, Lang.T("menu_status"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
         // (the tier badge lives in the header strip now, next to the version)
 
         int avail = width - Pad * 2;
@@ -418,9 +418,9 @@ public sealed class StatusPage : ThemedPage
 
         // RAM as a horizontal bar spanning the two temperature rings, with values; bar inset ~20px each side
         int ramX = X(0), ramW = ring * 2 + ringGap;
-        TextRenderer.DrawText(g, Lang.T("st_ram"), new Font("Segoe UI", 10.5f, FontStyle.Bold),
+        TextRenderer.DrawText(g, Lang.T("st_ram"), Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold),
             new Rectangle(ramX, subY, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-        TextRenderer.DrawText(g, ramTot > 0 ? $"{ramUsed:0.0} / {ramTot:0.0} GB · {ramPct}%" : "—", new Font("Segoe UI", 10.5f),
+        TextRenderer.DrawText(g, ramTot > 0 ? $"{ramUsed:0.0} / {ramTot:0.0} GB · {ramPct}%" : "—", Dpi.Font("Segoe UI", 10.5f),
             new Rectangle(ramX, subY, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
         DrawBar(g, new RectangleF(ramX + 20, subY + 36, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
 
@@ -437,7 +437,7 @@ public sealed class StatusPage : ThemedPage
             {
                 f.Dispose();
                 pt -= 0.5f;
-                f = new Font("Segoe UI", pt, FontStyle.Bold);
+                f = Dpi.Font("Segoe UI", pt, FontStyle.Bold);
             }
             TextRenderer.DrawText(g, text, f, r, Theme.Text,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -463,9 +463,9 @@ public sealed class StatusPage : ThemedPage
         if (vramBar)
         {
             int vpct = (int)Math.Round(Math.Clamp(vm / (float)vt, 0f, 1f) * 100);
-            TextRenderer.DrawText(g, Lang.T("ov_m_vram"), new Font("Segoe UI", 10.5f, FontStyle.Bold),
+            TextRenderer.DrawText(g, Lang.T("ov_m_vram"), Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold),
                 new Rectangle(ramX, subY2, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            TextRenderer.DrawText(g, $"{vm / 1024f:0.0} / {vt / 1024f:0.0} GB · {vpct}%", new Font("Segoe UI", 10.5f),
+            TextRenderer.DrawText(g, $"{vm / 1024f:0.0} / {vt / 1024f:0.0} GB · {vpct}%", Dpi.Font("Segoe UI", 10.5f),
                 new Rectangle(ramX, subY2, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
             DrawBar(g, new RectangleF(ramX + 20, subY2 + 36, ramW - 40, 14), vm / (float)vt, vpct >= 90 ? Theme.Amber : Theme.AccentFill);
         }
@@ -485,7 +485,7 @@ public sealed class StatusPage : ThemedPage
             int sm = Perf.IgpuSharedMb();
             string shortText = $"iGPU: {ig} %";
             string full = sm > 0 ? $"{shortText} · {sm / 1024f:0.0} GB" : shortText;
-            using var fit = new Font("Segoe UI", 10f, FontStyle.Bold);
+            using var fit = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
             MetricBox(box, TextRenderer.MeasureText(g, full, fit).Width <= box.Width - 20 ? full : shortText);
         }
         if (ig >= 0 && vramBar) IgpuBox(subY2);
@@ -497,8 +497,8 @@ public sealed class StatusPage : ThemedPage
         var disks = Perf.DisksCached();
         const int diskBlockH = 58;   // same rhythm as the RAM/VRAM rows: 28px text line, bar at +36
         int storageH = Math.Max(subH, disks.Count * diskBlockH);
-        var nameF = new Font("Segoe UI", 10.5f, FontStyle.Bold);
-        var valF = new Font("Segoe UI", 10.5f);
+        var nameF = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+        var valF = Dpi.Font("Segoe UI", 10.5f);
         if (disks.Count == 0)
         {
             TextRenderer.DrawText(g, $"{Lang.T("ov_m_ssd")}: —", nameF,
@@ -569,7 +569,7 @@ public sealed class StatusPage : ThemedPage
         // hardware readings unavailable for a while (Ec.ReadsLost): the rings show "--"; say why
         if (info.Known && Ec.ReadsLost)
         {
-            using var noteFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            using var noteFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             string note = Lang.T("hw_lost_note");
             int noteH = TextRenderer.MeasureText(g, note, noteFont, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height;
             TextRenderer.DrawText(g, note, noteFont, new Rectangle(Pad, cardTop, avail, noteH), Theme.Amber, TextFormatFlags.WordBreak);
@@ -580,7 +580,7 @@ public sealed class StatusPage : ThemedPage
         {
             // why the controls are off, and - when the blocks show the layout other boards of this
             // generation have - that one report is what turns this machine into a supported one
-            var noteFont = new Font("Segoe UI", 9.5f);
+            var noteFont = Dpi.Font("Segoe UI", 9.5f);
             string note = Lang.T(info.SchemaMissing ? "telemetry_note_schema" : "telemetry_note");
             if (EcBlocks.LayoutKnown()) note += Environment.NewLine + Lang.T("blocks_report_hint");
             int noteH = TextRenderer.MeasureText(g, note, noteFont, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height;
@@ -591,7 +591,7 @@ public sealed class StatusPage : ThemedPage
         // then the profile the hardware reports (the tiles cannot show it while writes are off).
         if (info.BackupPath)
         {
-            var noteFont = new Font("Segoe UI", 9.5f);
+            var noteFont = Dpi.Font("Segoe UI", 9.5f);
             // the tiles show the profile once switching is unlocked; until then this line does
             string note = Lang.T("backup_note") + (info.Active ? "" : Environment.NewLine
                         + string.Format(Lang.T("backup_profile"), Profiles.Get(info.Profile).Label));
@@ -610,9 +610,9 @@ public sealed class StatusPage : ThemedPage
             var (key, val, mono) = Rows[i];
             // zebra stripe on odd rows (matches the tables on the EC-bytes / change-log sub-tabs)
             if (i % 2 == 1) { using var b = new SolidBrush(Theme.RowAlt); g.FillRectangle(b, Pad + 8, y, avail - 16, rowH); }
-            TextRenderer.DrawText(g, Lang.T(key), new Font("Segoe UI", 10.5f),
+            TextRenderer.DrawText(g, Lang.T(key), Dpi.Font("Segoe UI", 10.5f),
                 new Rectangle(Pad + 22, y, avail - 44, rowH), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-            var font = mono ? new Font("Consolas", 11f, FontStyle.Bold) : new Font("Segoe UI", 11f, FontStyle.Bold);
+            var font = mono ? Dpi.Font("Consolas", 11f, FontStyle.Bold) : Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
             TextRenderer.DrawText(g, val(info, hw), font,
                 new Rectangle(Pad, y, avail - 22, rowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
             y += rowH;
@@ -643,13 +643,13 @@ public sealed class StatusPage : ThemedPage
         {
             // no register matrix without a model entry; the monitoring-only note says why
             string note = info.Telemetry ? Lang.T(info.SchemaMissing ? "telemetry_note_schema" : "telemetry_note") : Lang.T("unsupported_title");
-            var f = new Font("Segoe UI", 9.5f);
+            var f = Dpi.Font("Segoe UI", 9.5f);
             int h = TextRenderer.MeasureText(g, note, f, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height;
             TextRenderer.DrawText(g, note, f, new Rectangle(Pad, sec, avail, h), Theme.Muted, TextFormatFlags.WordBreak);
             return;
         }
         sec = DrawMatrix(g, sec, avail, info);
-        TextRenderer.DrawText(g, Lang.T("st_matrix_note"), new Font("Segoe UI", 9f), new Rectangle(Pad, sec + 4, avail, NoteH - 4),
+        TextRenderer.DrawText(g, Lang.T("st_matrix_note"), Dpi.Font("Segoe UI", 9f), new Rectangle(Pad, sec + 4, avail, NoteH - 4),
             Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordEllipsis);
         sec += NoteH;
         sec = DrawLegend(g, sec, avail);
@@ -732,7 +732,7 @@ public sealed class StatusPage : ThemedPage
             Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
 
         // legend (series colours follow the gauges: CPU = accent, GPU = violet)
-        var legFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        var legFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         int lx = Pad + avail - 16;
         foreach (var (label, color) in new[] { (bLabel, Theme.Violet), (aLabel, Theme.Accent) })
         {
@@ -750,7 +750,7 @@ public sealed class StatusPage : ThemedPage
         var plot = new RectangleF(Pad + 62, top + 46, avail - 62 - 20, HistChartH - 46 - 50);
         _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top, aLabel, bLabel, allowZero));
         using (var grid = new Pen(Theme.Border))
-        using (var axisFont = new Font("Segoe UI", 8.5f))
+        using (var axisFont = Dpi.Font("Segoe UI", 8.5f))
         {
             for (int i = 0; i <= gridSteps; i++)
             {
@@ -777,7 +777,7 @@ public sealed class StatusPage : ThemedPage
         foreach (var s in data) { if (Valid(serA(s))) { noA = false; break; } }
         if (data.Count < 2 || (hint != null && noA))
         {
-            TextRenderer.DrawText(g, hint ?? Lang.T("st_hist_empty"), new Font("Segoe UI", 10.5f),
+            TextRenderer.DrawText(g, hint ?? Lang.T("st_hist_empty"), Dpi.Font("Segoe UI", 10.5f),
                 Rectangle.Round(plot), Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
             if (data.Count < 2) return top + HistChartH;
@@ -868,12 +868,12 @@ public sealed class StatusPage : ThemedPage
         // right (untranslated by design, like CLI output) so a dead session is visible, not silent
         string tgt = FpsMonitor.TargetName;
         string diag = $"ETW: {FpsMonitor.DiagStatus} · ev {FpsMonitor.EventsSeen}" + (tgt.Length > 0 ? $" · {tgt}" : "");
-        var diagFont = new Font("Consolas", 9f);
+        var diagFont = Dpi.Font("Consolas", 9f);
         int diagW = TextRenderer.MeasureText(g, diag, diagFont).Width + 8;
         TextRenderer.DrawText(g, diag, diagFont, new Rectangle(Pad + avail - diagW, top, diagW, 24),
             Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
         string head = snap is { } s0 ? string.Format(Lang.T("gm_game"), s0.Process) : Lang.T("gm_none");
-        TextRenderer.DrawText(g, head, new Font("Segoe UI", 10.5f), new Rectangle(Pad, top, avail - diagW - 10, 24),
+        TextRenderer.DrawText(g, head, Dpi.Font("Segoe UI", 10.5f), new Rectangle(Pad, top, avail - diagW - 10, 24),
             snap != null ? Theme.Text : Theme.Muted,
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         top += 34;
@@ -884,9 +884,9 @@ public sealed class StatusPage : ThemedPage
         {
             var r = new RectangleF(Pad + i * (bw + gap), top, bw, GmBoxH);
             Ui.FillCard(g, r);
-            TextRenderer.DrawText(g, label, new Font("Segoe UI", 9f, FontStyle.Bold),
+            TextRenderer.DrawText(g, label, Dpi.Font("Segoe UI", 9f, FontStyle.Bold),
                 new Rectangle((int)r.X + 14, (int)r.Y + 8, bw - 28, 18), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
-            TextRenderer.DrawText(g, value, new Font("Segoe UI", 14f, FontStyle.Bold),
+            TextRenderer.DrawText(g, value, Dpi.Font("Segoe UI", 14f, FontStyle.Bold),
                 new Rectangle((int)r.X + 14, (int)r.Y + 26, bw - 28, GmBoxH - 32), c ?? Theme.Text,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         }
@@ -909,7 +909,7 @@ public sealed class StatusPage : ThemedPage
             Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
 
         // legend: what the cyan line and the red dots mean
-        using (var legFont = new Font("Segoe UI", 9.5f, FontStyle.Bold))
+        using (var legFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold))
         {
             int lx = Pad + avail - 16;
             void Leg(string label, Color c, bool dot)
@@ -940,7 +940,7 @@ public sealed class StatusPage : ThemedPage
         }
 
         using (var grid = new Pen(Theme.Border))
-        using (var axisFont = new Font("Segoe UI", 8.5f))
+        using (var axisFont = Dpi.Font("Segoe UI", 8.5f))
         {
             for (int i = 0; i <= 4; i++)
             {
@@ -961,7 +961,7 @@ public sealed class StatusPage : ThemedPage
 
         if (frames.Count < 10)
         {
-            TextRenderer.DrawText(g, Lang.T("gm_chart_empty"), new Font("Segoe UI", 10.5f),
+            TextRenderer.DrawText(g, Lang.T("gm_chart_empty"), Dpi.Font("Segoe UI", 10.5f),
                 Rectangle.Round(plot), Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
             return top + GmChartH;
@@ -1055,9 +1055,9 @@ public sealed class StatusPage : ThemedPage
         for (int i = 0; i < rows.Length; i++)
         {
             if (i % 2 == 1) { using var b = new SolidBrush(Theme.RowAlt); g.FillRectangle(b, Pad + 8, ry, avail - 16, GmRowH); }
-            TextRenderer.DrawText(g, rows[i].label, new Font("Segoe UI", 10.5f),
+            TextRenderer.DrawText(g, rows[i].label, Dpi.Font("Segoe UI", 10.5f),
                 new Rectangle(Pad + 22, ry, avail - 44, GmRowH), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-            var f = rows[i].mono ? new Font("Consolas", 11f, FontStyle.Bold) : new Font("Segoe UI", 11f, FontStyle.Bold);
+            var f = rows[i].mono ? Dpi.Font("Consolas", 11f, FontStyle.Bold) : Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
             TextRenderer.DrawText(g, rows[i].val, f,
                 new Rectangle(Pad, ry, avail - 22, GmRowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
             ry += GmRowH;
@@ -1110,7 +1110,7 @@ public sealed class StatusPage : ThemedPage
 
         var last = data[^1];
         using var line = new Pen(Color.FromArgb(120, Theme.Muted)) { DashStyle = DashStyle.Dash };
-        using var valFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        using var valFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         string now = Lang.T("st_hist_now");
         foreach (var hp in _histPlots)
         {

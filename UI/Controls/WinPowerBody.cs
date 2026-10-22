@@ -101,7 +101,7 @@ public sealed class WinPowerBody : Control
         _seg.SelectedChanged += OnSegment;
     }
 
-    private int S(float v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+    private int S(float v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
 
     private void GroupIcon(Graphics g, uint value, RectangleF r, bool hot = false)
     {
@@ -385,7 +385,7 @@ public sealed class WinPowerBody : Control
             _cbAc.SetBounds(x1, y + (cbH - _cbAc.FieldHeightFor(Math.Max(S(60), colA))) / 2, Math.Max(S(60), colA), 0);
             _cbDc.SetBounds(x2, y + (cbH - _cbDc.FieldHeightFor(Math.Max(S(60), colB))) / 2, Math.Max(S(60), colB), 0);
             // the open list fits the longest name plus its icon and the longest group note
-            int ddwKey = DeviceDpi * 2 + (_autonomous ? 1 : 0);
+            int ddwKey = Dpi.Of(this) * 2 + (_autonomous ? 1 : 0);
             if (_ddwFor != ddwKey)
             {
                 int nameMax = 0, noteMax = 0;
@@ -515,7 +515,7 @@ public sealed class WinPowerBody : Control
             for (int j = 0; j < 3; j++) rh = Math.Max(rh, TextH(cells[j].Text, FBody, CellW(j)) + S(16));
             if (g != null)
             {
-                IconPainter.Scenario(g, id, new RectangleF(0, y + (rh - ib) / 2f, ib, ib), _d.ColorOf(id), 1.7f * DeviceDpi / 96f);
+                IconPainter.Scenario(g, id, new RectangleF(0, y + (rh - ib) / 2f, ib, ib), _d.ColorOf(id), 1.7f * Dpi.Of(this) / 96f);
                 Cell(g, name, FBodyB, nx, y, nameW + S(8), rh, Theme.Text);
                 for (int j = 0; j < 3; j++)
                 {

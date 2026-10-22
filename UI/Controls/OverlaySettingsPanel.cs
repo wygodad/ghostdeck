@@ -176,7 +176,7 @@ public sealed class OverlaySettingsPanel : Panel
     {
         _w = width; Width = width;
         _texts.Clear(); _dividers.Clear();
-        float k = DeviceDpi / 96f;
+        float k = Dpi.Of(this) / 96f;
         int pad = Ceil(22 * k), colGap = Ceil(40 * k), capH = Ceil(20 * k), gap = Ceil(24 * k), blockGap = Ceil(24 * k);
         var s = _d.Settings;
 
@@ -262,7 +262,7 @@ public sealed class OverlaySettingsPanel : Panel
         _texts.Add((Lang.T("gm_sess_title"), new Rectangle(pad, sy, width - pad * 2, capH), 1));
         sy += capH + capGap;
         // what the feature does - without this nobody discovers the popup / session history
-        var descFont = new Font("Segoe UI", 9f);
+        var descFont = Dpi.Font("Segoe UI", 9f);
         int descW = width - pad * 2;
         int descH = TextRenderer.MeasureText(Lang.T("set_sess_desc"), descFont, new Size(descW, 0),
             TextFormatFlags.WordBreak).Height + Ceil(4 * k);
@@ -317,7 +317,7 @@ public sealed class OverlaySettingsPanel : Panel
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Theme.Card);
-        float k = DeviceDpi / 96f;
+        float k = Dpi.Of(this) / 96f;
         int pad = Ceil(22 * k);
         using (var pen = new Pen(Theme.Border))
         using (var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 12))
@@ -329,19 +329,19 @@ public sealed class OverlaySettingsPanel : Panel
         using (var pen = new Pen(acc, 1.7f))
         using (var ip = Theme.RoundRect(new RectangleF(iconR.X + 0.5f, iconR.Y + 0.5f, iconR.Width - 1, iconR.Height - 1), 6))
             g.DrawPath(pen, ip);
-        using (var gf = new Font("Segoe UI Symbol", 11f)) Ui.CenterGlyph(g, "▦", gf, acc, iconR);
+        using (var gf = Dpi.Font("Segoe UI Symbol", 11f)) Ui.CenterGlyph(g, "▦", gf, acc, iconR);
 
         foreach (var (text, rect, kind) in _texts)
         {
             var (font, color, flags) = kind switch
             {
-                0 => (new Font("Segoe UI", 13.5f, FontStyle.Bold), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
-                1 => (new Font("Segoe UI", 9.5f, FontStyle.Bold), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
-                3 => (new Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
-                4 => (new Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Right),
-                5 => (new Font("Segoe UI", 10.5f), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis),
-                6 => (new Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak),
-                _ => (new Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                0 => (Dpi.Font("Segoe UI", 13.5f, FontStyle.Bold), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                1 => (Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                3 => (Dpi.Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
+                4 => (Dpi.Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Right),
+                5 => (Dpi.Font("Segoe UI", 10.5f), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis),
+                6 => (Dpi.Font("Segoe UI", 9f), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak),
+                _ => (Dpi.Font("Segoe UI", 10f), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left),
             };
             TextRenderer.DrawText(g, text, font, rect, color, flags);
             font.Dispose();

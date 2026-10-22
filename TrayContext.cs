@@ -868,8 +868,8 @@ public sealed class TrayContext : ApplicationContext
         _menuSwatches.Clear();
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add(new ToolStripLabel("GhostDeck") { Font = new Font("Segoe UI", 9, FontStyle.Bold) });
-        menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
+        menu.Items.Add(new ToolStripLabel("GhostDeck") { Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold) });
+        menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = Dpi.Font("Segoe UI", 8) });
         menu.Items.Add(new ToolStripSeparator());
 
         if (_firmwareChanged)
@@ -877,7 +877,7 @@ public sealed class TrayContext : ApplicationContext
             var fw = new ToolStripMenuItem(Lang.T("menu_fw_ack"))
             {
                 ForeColor = Color.FromArgb(0xB0, 0x4A, 0x3A),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold),
                 ToolTipText = Lang.T("fw_changed_text"),
             };
             fw.Click += (_, _) => AcknowledgeFirmware();
@@ -890,7 +890,7 @@ public sealed class TrayContext : ApplicationContext
             var upd = new ToolStripMenuItem(Lang.T("menu_update"))
             {
                 ForeColor = Color.FromArgb(0x2E, 0xA0, 0x43),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold),
             };
             upd.Click += (_, _) => OpenUrl(url);
             menu.Items.Add(upd);

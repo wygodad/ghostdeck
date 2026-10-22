@@ -47,11 +47,11 @@ public sealed class WinPowerHelpForm : GhostCardForm
         public Fonts(float k)
         {
             // the size of the text on the Settings cards (10 pt body = 13.3 px) and a step above
-            Tab = new Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-            Head = new Font("Segoe UI Semibold", 16.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-            Para = new Font("Segoe UI", 14.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-            Cap = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-            Cell = new Font("Segoe UI", 14f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+            Tab = Dpi.Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+            Head = Dpi.Font("Segoe UI Semibold", 16.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+            Para = Dpi.Font("Segoe UI", 14.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+            Cap = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+            Cell = Dpi.Font("Segoe UI", 14f * k, FontStyle.Regular, GraphicsUnit.Pixel);
         }
         public void Dispose() { Tab.Dispose(); Head.Dispose(); Para.Dispose(); Cap.Dispose(); Cell.Dispose(); }
     }

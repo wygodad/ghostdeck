@@ -73,8 +73,8 @@ public sealed class UpdatesPage : ThemedPage
         Controls.Add(_bar);
 
         _status.AutoSize = true;
-        _status.Font = new Font("Segoe UI", 10.5f);
-        _lastChecked.Font = new Font("Segoe UI", 9.5f);
+        _status.Font = Dpi.Font("Segoe UI", 10.5f);
+        _lastChecked.Font = Dpi.Font("Segoe UI", 9.5f);
         _lastChecked.AutoSize = true;
 
         _history.FlowDirection = FlowDirection.TopDown;
@@ -155,10 +155,10 @@ public sealed class UpdatesPage : ThemedPage
     }
 
     // y positions derived from real font metrics (DPI-safe)
-    private int InstalledY => 24 + new Font("Segoe UI", 18f, FontStyle.Bold).Height + 16;
-    private int VersionY => InstalledY + new Font("Segoe UI", 10f).Height + 4;
-    private int HistoryLabelY => VersionY + new Font("Segoe UI", 16f, FontStyle.Bold).Height + 26;
-    private int HistoryTop => HistoryLabelY + new Font("Segoe UI", 10f, FontStyle.Bold).Height + 12;
+    private int InstalledY => 24 + Dpi.Font("Segoe UI", 18f, FontStyle.Bold).Height + 16;
+    private int VersionY => InstalledY + Dpi.Font("Segoe UI", 10f).Height + 4;
+    private int HistoryLabelY => VersionY + Dpi.Font("Segoe UI", 16f, FontStyle.Bold).Height + 26;
+    private int HistoryTop => HistoryLabelY + Dpi.Font("Segoe UI", 10f, FontStyle.Bold).Height + 12;
 
     private void LayoutBits()
     {
@@ -187,10 +187,10 @@ public sealed class UpdatesPage : ThemedPage
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        TextRenderer.DrawText(g, Lang.T("tab_updates"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(28, 24), Theme.Text);
-        TextRenderer.DrawText(g, Lang.T("upd_installed"), new Font("Segoe UI", 10f), new Point(28, InstalledY), Theme.Muted);
-        TextRenderer.DrawText(g, "v" + D.AppVersion(), new Font("Segoe UI", 16f, FontStyle.Bold), new Point(28, VersionY), Theme.Text);
-        TextRenderer.DrawText(g, Lang.T("upd_history"), new Font("Segoe UI", 10f, FontStyle.Bold), new Point(28, HistoryLabelY), Theme.Muted);
+        TextRenderer.DrawText(g, Lang.T("tab_updates"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(28, 24), Theme.Text);
+        TextRenderer.DrawText(g, Lang.T("upd_installed"), Dpi.Font("Segoe UI", 10f), new Point(28, InstalledY), Theme.Muted);
+        TextRenderer.DrawText(g, "v" + D.AppVersion(), Dpi.Font("Segoe UI", 16f, FontStyle.Bold), new Point(28, VersionY), Theme.Text);
+        TextRenderer.DrawText(g, Lang.T("upd_history"), Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(28, HistoryLabelY), Theme.Muted);
     }
 
     private async Task CheckNow()

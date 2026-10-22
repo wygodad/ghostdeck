@@ -218,7 +218,7 @@ public sealed class OverlayForm : Form
         if (w <= 0 || h <= 0) return;
 
         float dpi;
-        using (var mg = CreateGraphics()) dpi = mg.DpiY;
+        dpi = Dpi.Of(this);
         int radius = Ceil(dpi / 96f * 10f * U);
 
         // 1) content layer (header + cells + icons), fully opaque colours on transparent bg

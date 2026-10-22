@@ -154,7 +154,7 @@ public sealed partial class SettingsPage
 
     private static Label Note(string text, string tag) => new()
     {
-        Text = text, AutoSize = true, MaximumSize = new Size(360, 0), Font = new Font("Segoe UI", 9f), Tag = tag,
+        Text = text, AutoSize = true, MaximumSize = new Size(360, 0), Font = Dpi.Font("Segoe UI", 9f), Tag = tag,
     };
 
     private static FlowLayoutPanel Flow(params Control[] items)
@@ -201,7 +201,7 @@ public sealed partial class SettingsPage
         string hkText = Lang.T("ch_hotkey_off");
         if (D.Settings.Hotkeys.TryGetValue("Crosshair", out var hd) && hd.IsSet)
             hkText = hd.Display + (hd.Enabled && D.Settings.HotkeysEnabled ? "" : "  " + Lang.T("ch_hotkey_off"));
-        var hkLabel = new Label { Text = hkText, AutoSize = true, Font = new Font("Segoe UI", 10.5f), Margin = new Padding(0, 9, 14, 0) };
+        var hkLabel = new Label { Text = hkText, AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f), Margin = new Padding(0, 9, 14, 0) };
         var hkBtn = Ghost(Lang.T("ch_hotkey_edit"));
         hkBtn.Click += (_, _) => FocusHotkeys();
         card.AddRow(Lang.T("ch_hotkey"), Flow(hkLabel, hkBtn));
@@ -273,7 +273,7 @@ public sealed partial class SettingsPage
         items.AddRange(presets.Select(p => p.Name));
         int ActiveIndex() => Active() is { } ap ? presets.IndexOf(ap) + 1 : 0;
         var combo = Combo(items.ToArray(), ActiveIndex());
-        var modified = new Label { Text = Lang.T("ch_preset_modified"), AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "muted" };
+        var modified = new Label { Text = Lang.T("ch_preset_modified"), AutoSize = true, Font = Dpi.Font("Segoe UI", 9f), Tag = "muted" };
         var save = Ghost(Lang.T("set_save"));
         var saveAs = Ghost(Lang.T("ch_preset_saveas"));
         var del = Ghost(Lang.T("ch_preset_delete"));
@@ -511,7 +511,7 @@ public sealed partial class SettingsPage
         {
             _page = page;
             DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             _cellW = (int)(84 * k); _cellH = (int)(100 * k); _gap = (int)(8 * k); _icon = (int)(40 * k);
             Width = 4 * _cellW + 3 * _gap;
             Fit();
@@ -552,8 +552,8 @@ public sealed partial class SettingsPage
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Parent?.BackColor ?? Theme.Card);
             var live = _page.D.Settings.Crosshair;
-            float k = DeviceDpi / 96f;
-            using var lf = new Font("Segoe UI", 8.5f);
+            float k = Dpi.Of(this) / 96f;
+            using var lf = Dpi.Font("Segoe UI", 8.5f);
             // a tile shows the kind in the live colour at a tile-sized look: thin, no blur, upright
             var tile = live.Clone();
             tile.Size = 28; tile.Thickness = Math.Clamp(live.Thickness, 1, 3); tile.Outline = Math.Min(live.Outline, 1);
@@ -580,7 +580,7 @@ public sealed partial class SettingsPage
                     // no picture yet: a dashed frame and a plus, the click opens the file picker
                     using var dp = new Pen(Theme.Muted, 1f) { DashStyle = DashStyle.Dash };
                     g.DrawRectangle(dp, box.X + 6, box.Y + 6, box.Width - 12, box.Height - 12);
-                    using var gf = new Font("Segoe MDL2 Assets", 10f);
+                    using var gf = Dpi.Font("Segoe MDL2 Assets", 10f);
                     Ui.CenterGlyph(g, "", gf, Theme.Muted, box);
                 }
                 else
@@ -612,7 +612,7 @@ public sealed partial class SettingsPage
         {
             _page = page;
             DoubleBuffered = true; ResizeRedraw = true;
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             Width = (int)(400 * k);
             Height = (int)(176 * k);
         }
@@ -623,7 +623,7 @@ public sealed partial class SettingsPage
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.Clear(Parent?.BackColor ?? Theme.Card);
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             int half = Width / 2;
             var dark = new Rectangle(0, 0, half, Height);
             var light = new Rectangle(half, 0, Width - half, Height);
@@ -649,7 +649,7 @@ public sealed partial class SettingsPage
             g.DrawImage(bmp, new RectangleF(light.X + (light.Width - w) / 2f, (Height - h) / 2f, w, h));
             if (fit < 1f)
             {
-                using var f = new Font("Segoe UI", 8f);
+                using var f = Dpi.Font("Segoe UI", 8f);
                 TextRenderer.DrawText(g, string.Format(Lang.T("ch_preview_scaled"), (int)Math.Round(fit * 100)), f,
                     new Point((int)(8 * k), Height - f.Height - (int)(6 * k)), Color.FromArgb(0x98, 0xA0, 0xAE), TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
             }

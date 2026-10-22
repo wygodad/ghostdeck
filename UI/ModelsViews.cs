@@ -39,7 +39,7 @@ internal abstract class ModelsView : Control
         BackColor = Theme.Surface;
     }
 
-    protected int S(float v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+    protected int S(float v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
     protected const int Pad = ModelsPage.Pad;
 
     public int ContentHeight(int width) => Render(null, width, Rectangle.Empty);

@@ -41,7 +41,7 @@ public sealed class LogForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(1120, 640);
         MinimumSize = new Size(820, 460);
-        Font = new Font("Segoe UI", 9.5f);
+        Font = Dpi.Font("Segoe UI", 9.5f);
 
         _list.Dock = DockStyle.Fill;
         _list.View = View.Details;
@@ -63,7 +63,7 @@ public sealed class LogForm : Form
         {
             using (var b = new SolidBrush(Theme.Surface)) e.Graphics.FillRectangle(b, e.Bounds);
             using (var p = new Pen(Theme.Border)) e.Graphics.DrawLine(p, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
-            using var hf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            using var hf = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? "", hf,
                 new Rectangle(e.Bounds.X + 8, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height),
                 Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);

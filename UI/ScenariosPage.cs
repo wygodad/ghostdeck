@@ -150,7 +150,7 @@ public sealed class ScenariosPage : ThemedPage
         // Gear between the profile tiles and the bricks: jumps to Settings → General and
         // flashes the "Scenarios tab" visibility card, so the switches are easy to find.
         _gear.Text = "⚙";
-        _gear.Font = new Font("Segoe UI Symbol", 13f);
+        _gear.Font = Dpi.Font("Segoe UI Symbol", 13f);
         _gear.Size = new Size(42, 42);   // an easy click target (user feedback)
         _gear.TextAlign = ContentAlignment.MiddleCenter;
         _gear.FlatStyle = FlatStyle.Flat;
@@ -170,7 +170,7 @@ public sealed class ScenariosPage : ThemedPage
         // Pencil above the profile tiles, right-aligned like the gear below them: opens the
         // order editor (discussion #101). Same flat glyph styling as the gear.
         _orderBtn.Text = "\uE70F";   // MDL2 Edit
-        _orderBtn.Font = new Font("Segoe MDL2 Assets", 11.5f);
+        _orderBtn.Font = Dpi.Font("Segoe MDL2 Assets", 11.5f);
         _orderBtn.Size = new Size(42, 42);
         _orderBtn.TextAlign = ContentAlignment.MiddleCenter;
         _orderBtn.FlatStyle = FlatStyle.Flat;
@@ -410,8 +410,8 @@ public sealed class ScenariosPage : ThemedPage
         int ox = AutoScrollPosition.X, oy = AutoScrollPosition.Y;
 
         // header height from real font metrics (DPI-safe)
-        int titleH = new Font("Segoe UI", 18f, FontStyle.Bold).Height;
-        int subH = new Font("Segoe UI", 10.5f).Height;
+        int titleH = Dpi.Font("Segoe UI", 18f, FontStyle.Bold).Height;
+        int subH = Dpi.Font("Segoe UI", 10.5f).Height;
         _subY = 24 + titleH + 20;                       // title -> subtitle gap
         _headH = _subY + subH + 28;                     // subtitle -> tiles gap
 
@@ -467,7 +467,7 @@ public sealed class ScenariosPage : ThemedPage
             return;
         }
         _scenesHeadY = bricksBottom + 10;
-        int headFontH = new Font("Segoe UI", 13f, FontStyle.Bold).Height;
+        int headFontH = Dpi.Font("Segoe UI", 13f, FontStyle.Bold).Height;
         int y = _scenesHeadY + headFontH + 12;
         int sCols = cols;
         int cw = (avail - Gap * (sCols - 1)) / sCols;
@@ -481,7 +481,7 @@ public sealed class ScenariosPage : ThemedPage
             _sceneCards[i].SetBounds(Pad + c * (cw + Gap) + ox, y + r * (cardH + Gap) + oy, cw, cardH);
         }
         if (_sceneCards.Count > 0) y += ((_sceneCards.Count + sCols - 1) / sCols) * (cardH + Gap);
-        else y += new Font("Segoe UI", 9.5f).Height + 14;   // room for the empty-state hint text
+        else y += Dpi.Font("Segoe UI", 9.5f).Height + 14;   // room for the empty-state hint text
         _addScene.Location = new Point(Pad + ox, y + oy);
         _addExamples.Location = new Point(Pad + _addScene.PreferredSize.Width + 10 + ox, y + oy);
         int bottom = y + _addScene.PreferredSize.Height + 8;
@@ -494,19 +494,19 @@ public sealed class ScenariosPage : ThemedPage
         ApplyScroll(g);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var info = D.Status();
-        Ui.DrawText(g, Lang.T("scen_title"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
+        Ui.DrawText(g, Lang.T("scen_title"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
         string sub = info.Device + (string.IsNullOrEmpty(D.Firmware()) ? "" : "  ·  " + D.Firmware());
-        Ui.DrawText(g, sub, new Font("Segoe UI", 10.5f), new Point(Pad, _subY), Theme.Muted);
+        Ui.DrawText(g, sub, Dpi.Font("Segoe UI", 10.5f), new Point(Pad, _subY), Theme.Muted);
         // (the tier badge lives in the header strip now, next to the version)
 
         // (#21) scenes section header + empty-state hint (unless the section is hidden)
         if (ScenesVisible)
         {
-            Ui.DrawText(g, Lang.T("scene_title"), new Font("Segoe UI", 13f, FontStyle.Bold),
+            Ui.DrawText(g, Lang.T("scene_title"), Dpi.Font("Segoe UI", 13f, FontStyle.Bold),
                 new Point(Pad, _scenesHeadY), Theme.Text);
             if (_sceneCards.Count == 0)
-                Ui.DrawText(g, Lang.T("scene_empty"), new Font("Segoe UI", 9.5f),
-                    new Point(Pad, _scenesHeadY + new Font("Segoe UI", 13f, FontStyle.Bold).Height + 10), Theme.Muted);
+                Ui.DrawText(g, Lang.T("scene_empty"), Dpi.Font("Segoe UI", 9.5f),
+                    new Point(Pad, _scenesHeadY + Dpi.Font("Segoe UI", 13f, FontStyle.Bold).Height + 10), Theme.Muted);
         }
     }
 
@@ -519,15 +519,15 @@ public sealed class ScenariosPage : ThemedPage
         private Rectangle _apexSw = Rectangle.Empty;    // Apex toggle hit area (Extreme tile only)
         private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it
         private bool ApexRow => _id == ProfileId.Extreme && _d.ApexAvailable();
-        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
         // Row height from the two text lines. Variant A: the page grows EVERY tile by this
         // much on fourth-mode boards (grid stays aligned), and the icon/name/badge block is
         // centred in the space above the row, so nothing collides at any scaling.
         internal int ApexRowH()
         {
             if (!ApexRow) return 0;
-            using var lbl = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            using var sub = new Font("Segoe UI", 8.5f);
+            using var lbl = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+            using var sub = Dpi.Font("Segoe UI", 8.5f);
             return S(10) + lbl.Height + sub.Height + S(14);
         }
         public Tile(MainDeps d, ProfileId id)
@@ -581,9 +581,9 @@ public sealed class ScenariosPage : ThemedPage
             }
             // icon centred on top, text stacked below, SELECT/ACTIVE footer (font-height stacked = DPI-safe)
             int iconBox = 76;
-            var nameFont = new Font("Segoe UI", 15f, FontStyle.Bold);
-            var subFont = new Font("Segoe UI", 10.5f);
-            var footFont = new Font("Segoe UI", 9f, FontStyle.Bold);
+            var nameFont = Dpi.Font("Segoe UI", 15f, FontStyle.Bold);
+            var subFont = Dpi.Font("Segoe UI", 10.5f);
+            var footFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
             int nameH = nameFont.Height, subH = subFont.Height, g1 = 16, g2 = 6, g3 = 18, footH = footFont.Height + 12;
             int blockH = iconBox + g1 + nameH + g2 + subH + g3 + footH;
             int top = Math.Max(16, (Height - ApexRowH() - blockH) / 2);
@@ -595,7 +595,7 @@ public sealed class ScenariosPage : ThemedPage
             if (ApexRow && _d.ApexOn())
             {
                 // small amber badge right of the centred name: the tile says what Extreme writes
-                var bf = new Font("Segoe UI", 7.5f, FontStyle.Bold);
+                var bf = Dpi.Font("Segoe UI", 7.5f, FontStyle.Bold);
                 var bs = TextRenderer.MeasureText("APEX", bf);
                 int nw = TextRenderer.MeasureText(def.Label, nameFont).Width;
                 var br = new RectangleF(Math.Min((Width + nw) / 2f + 6, Width - bs.Width - 14),
@@ -614,7 +614,7 @@ public sealed class ScenariosPage : ThemedPage
             if (active)
             {
                 string t = Lang.T("scen_active");
-                int tw = TextRenderer.MeasureText(t, new Font("Segoe UI", 9.5f, FontStyle.Bold)).Width;   // same font Ui.Pill sizes with
+                int tw = TextRenderer.MeasureText(t, Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold)).Width;   // same font Ui.Pill sizes with
                 Ui.Pill(g, t, new Point((Width - (tw + 32)) / 2, footY), Theme.Accent);
             }
             else
@@ -636,8 +636,8 @@ public sealed class ScenariosPage : ThemedPage
             _apexSw = _apexDot = Rectangle.Empty;
             if (!ApexRow) return;
             bool on = _d.ApexOn();
-            var subFont = new Font("Segoe UI", 8.5f);
-            var lblFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            var subFont = Dpi.Font("Segoe UI", 8.5f);
+            var lblFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             int y0 = Height - ApexRowH();
             using (var dash = new Pen(Theme.Border) { DashStyle = DashStyle.Dash })
                 g.DrawLine(dash, S(14), y0, Width - S(14), y0);
@@ -766,7 +766,7 @@ public sealed class ScenariosPage : ThemedPage
 
         private int ChipLines(int tw)
         {
-            using var f = new Font("Segoe UI", 8.5f);
+            using var f = Dpi.Font("Segoe UI", 8.5f);
             int x = 0, lines = 1;
             foreach (var p in _scene.SummaryParts())
             {
@@ -782,7 +782,7 @@ public sealed class ScenariosPage : ThemedPage
         {
             int tw = Math.Max(40, ChipAreaWidth(width));
             int lines = ChipLines(tw);
-            int nameH = new Font("Segoe UI", 10.5f, FontStyle.Bold).Height;
+            int nameH = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold).Height;
             return Math.Max(74, 10 + nameH + NameGap + lines * (ChipH + ChipGapY) - ChipGapY + 10);
         }
 
@@ -807,10 +807,10 @@ public sealed class ScenariosPage : ThemedPage
             }
             // icon + name pinned to the TOP line; chips below reclaim the icon column's width
             string glyph = _scene.Glyph.Length > 0 ? _scene.Glyph : "▶";
-            var nameFont = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            var nameFont = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
             int nameH = nameFont.Height;
             const int top = 10;
-            Ui.DrawText(g, glyph, new Font("Segoe UI Emoji", 15f),
+            Ui.DrawText(g, glyph, Dpi.Font("Segoe UI Emoji", 15f),
                 new Rectangle(12, top - 6, 40, nameH + 12), Theme.Accent,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
             Ui.DrawText(g, _scene.Name, nameFont,
@@ -872,7 +872,7 @@ public sealed class ScenariosPage : ThemedPage
                 Color c = i == 4 && _armDelete ? Theme.Red
                         : i == _hotHover ? (i == 4 ? Theme.Red : Theme.Accent)
                         : _hover ? Theme.Muted : Theme.Faint;
-                var f = new Font("Segoe UI", i == 4 && _armDelete ? 12f : 10.5f, i == 4 && _armDelete ? FontStyle.Bold : FontStyle.Regular);
+                var f = Dpi.Font("Segoe UI", i == 4 && _armDelete ? 12f : 10.5f, i == 4 && _armDelete ? FontStyle.Bold : FontStyle.Regular);
                 Ui.DrawText(g, HotGlyphs[i], f, HotRect(i), c,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
             }
@@ -949,11 +949,11 @@ public sealed class ScenariosPage : ThemedPage
             using (var pen = new Pen(Theme.Accent, 1.6f))
             using (var ip = Theme.RoundRect(new RectangleF(bx + 0.5f, by + 0.5f, box - 1, box - 1), 6))
                 g.DrawPath(pen, ip);
-            using (var gf = new Font("Segoe UI Symbol", 12f))
+            using (var gf = Dpi.Font("Segoe UI Symbol", 12f))
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, new RectangleF(bx, by, box, box));
             // label (stops before the help dot + toggle)
             int lx = bx + box + 14, rightPad = _right.Width + 14 + (_help != null ? _help.Width + 14 : 0) + 12;
-            Ui.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
+            Ui.DrawText(g, Lang.T(_labelKey), Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold),
                 new Rectangle(lx, 0, Math.Max(20, Width - lx - rightPad), Height), Theme.Text,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         }

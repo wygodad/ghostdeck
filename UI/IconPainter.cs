@@ -22,7 +22,7 @@ internal static class IconPainter
         int key = (int)Math.Round(px * 4);
         lock (_glyphFonts)
         {
-            if (!_glyphFonts.TryGetValue(key, out var f)) _glyphFonts[key] = f = new Font("Segoe MDL2 Assets", key / 4f, GraphicsUnit.Pixel);
+            if (!_glyphFonts.TryGetValue(key, out var f)) _glyphFonts[key] = f = Dpi.Font("Segoe MDL2 Assets", key / 4f, GraphicsUnit.Pixel);
             return f;
         }
     }
@@ -176,8 +176,8 @@ internal static class IconPainter
         // Fonts sized in PIXELS (GraphicsUnit.Pixel) so DPI is not applied twice
         // (box.Width is already in device pixels). Value sits above centre, unit below,
         // both measured from their own height so they never clip or overlap.
-        using var valFont = new Font("Segoe UI", box.Width * 0.16f, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var unitFont = new Font("Segoe UI", box.Width * 0.085f, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var valFont = Dpi.Font("Segoe UI", box.Width * 0.16f, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var unitFont = Dpi.Font("Segoe UI", box.Width * 0.085f, FontStyle.Regular, GraphicsUnit.Pixel);
         int valH = valFont.Height, unitH = unitFont.Height, gap = (int)(box.Width * 0.02f);
         int blockTop = (int)(box.Y + (box.Height - (valH + gap + unitH)) / 2f);
         TextRenderer.DrawText(g, value, valFont,
@@ -186,14 +186,14 @@ internal static class IconPainter
         TextRenderer.DrawText(g, unit, unitFont,
             new Rectangle((int)box.X, blockTop + valH + gap, (int)box.Width, unitH),
             Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
-        var labelFont = new Font("Segoe UI", 10f);
+        var labelFont = Dpi.Font("Segoe UI", 10f);
         int labelY = (int)(box.Bottom + 12);
         TextRenderer.DrawText(g, label, labelFont,
             new Rectangle((int)box.X - 16, labelY, (int)box.Width + 32, labelFont.Height + 4),
             Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
         if (!string.IsNullOrEmpty(sub))
         {
-            var subFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            var subFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             TextRenderer.DrawText(g, sub, subFont,
                 new Rectangle((int)box.X - 16, labelY + labelFont.Height + 4, (int)box.Width + 32, subFont.Height + 4),
                 color, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);

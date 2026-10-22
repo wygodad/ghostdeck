@@ -234,8 +234,8 @@ internal sealed class CardPopupList : Form
         g.Clear(Back);
         using (var ep = new Pen(Edge)) g.DrawRectangle(ep, 0, 0, Width - 1, Height - 1);
 
-        using var font = new Font("Segoe UI", 13.5f * _k, FontStyle.Regular, GraphicsUnit.Pixel);
-        using var bold = new Font("Segoe UI", 13.5f * _k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var font = Dpi.Font("Segoe UI", 13.5f * _k, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var bold = Dpi.Font("Segoe UI", 13.5f * _k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var fmt = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
         using var whiteB = new SolidBrush(White);
         using var inkB = new SolidBrush(Ink);

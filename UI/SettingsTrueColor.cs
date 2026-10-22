@@ -17,7 +17,7 @@ public sealed partial class SettingsPage
         var card = new CardSection(Lang.T("tc_title") + " " + Lang.T("tc_exp"), "");   // MDL2 Color
         static Label Note(string text) => new()
         {
-            Text = text, AutoSize = true, MaximumSize = new Size(360, 0), Font = new Font("Segoe UI", 9f), Tag = "muted",
+            Text = text, AutoSize = true, MaximumSize = new Size(360, 0), Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
         };
         var info = TrueColor.Detect(D.Settings.TrueColorUserVerified);
         if (!info.Installed)
@@ -190,7 +190,7 @@ public sealed partial class SettingsPage
 
         private void Place()
         {
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             int gap = (int)(8 * k), h = (int)(34 * k), cols = 4;
             int w = Math.Max(10, (Width - gap * (cols - 1)) / cols);
             int rows = (_rects.Length + cols - 1) / cols;
@@ -210,7 +210,7 @@ public sealed partial class SettingsPage
             Place();
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            float k = DeviceDpi / 96f;
+            float k = Dpi.Of(this) / 96f;
             for (int i = 0; i < _rects.Length; i++)
             {
                 var r = _rects[i];

@@ -24,7 +24,7 @@ public sealed class FanCurvePage : ThemedPage
     // which follows the font), so ONLY the new fixed-size widgets go through S(): chips, tiles,
     // the table, faders, dials, rings, labels. At 140 % text grows with the font and the boxes
     // did not - which is what clipped every label in the first test build.
-    private float K => DeviceDpi / 96f;
+    private float K => Dpi.Of(this) / 96f;
     private int S(int px) => (int)Math.Round(px * K);
     private float Sf(float px) => px * K;
 
@@ -555,7 +555,7 @@ public sealed class FanCurvePage : ThemedPage
         Ui.StyleGhost(_default);
         _default.Text = Lang.T("fc_default");
         Ui.StyleGhost(_optTable);
-        _optTable.Font = new Font("Segoe UI", 10.5f);
+        _optTable.Font = Dpi.Font("Segoe UI", 10.5f);
         _optTable.Text = (D.Settings.FanCurveTable ? "▴  " : "▾  ") + Lang.T("fc_opt_table");
         _optTable.Width = TextRenderer.MeasureText(_optTable.Text, _optTable.Font).Width + 26;
         _optZones.Text = Lang.T("fc_opt_zones");
@@ -576,11 +576,11 @@ public sealed class FanCurvePage : ThemedPage
         Ui.StylePrimary(_report);
         _report.Text = Lang.T("fc_report_curve");
         _enableLabel.Text = Lang.T("fc_enable");
-        _enableLabel.Font = new Font("Segoe UI", 11.5f);
+        _enableLabel.Font = Dpi.Font("Segoe UI", 11.5f);
         _enableLabel.ForeColor = Theme.Text;
         _enableLabel.BackColor = Theme.Surface;
 
-        var barFont = new Font("Segoe UI", 10.5f);
+        var barFont = Dpi.Font("Segoe UI", 10.5f);
         foreach (var (btn, key) in new (Button, string)[]
         {
             (_psSave, "fc_ps_save"), (_psSaveAs, "fc_ps_saveas"), (_psRename, "fc_ps_rename"), (_psDelete, "fc_ps_delete"),
@@ -615,7 +615,7 @@ public sealed class FanCurvePage : ThemedPage
         _assignLabel.ForeColor = Theme.Text; _assignLabel.BackColor = Theme.Surface;
         for (int i = 0; i < _assignNames.Length; i++)
         {
-            _assignNames[i].Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            _assignNames[i].Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             _assignNames[i].ForeColor = D.ColorOf(AssignableProfiles[i]);
             _assignNames[i].BackColor = Theme.Surface;
         }
@@ -866,7 +866,7 @@ public sealed class FanCurvePage : ThemedPage
         var cell = _tablePctCells[row, fan];
         _cellEdit.SetBounds(cell.X + 2, cell.Y + 2, cell.Width - 4, cell.Height - 4);
         _cellEdit.Text = (fan == 0 ? _cpuS : _gpuS)[row].ToString();
-        _cellEdit.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+        _cellEdit.Font = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
         _cellEdit.BackColor = Theme.Surface; _cellEdit.ForeColor = Theme.Accent;
         _cellEdit.BorderStyle = BorderStyle.FixedSingle;
         _cellEdit.Visible = true;
@@ -941,10 +941,10 @@ public sealed class FanCurvePage : ThemedPage
         int fans = Single ? 1 : 2;
         int n = _cpuS.Length;
         _eqTracks = new Rectangle[fans, n];
-        using var titleFont = new Font("Segoe UI", 12f, FontStyle.Bold);
-        using var valFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-        using var tempFont = new Font("Segoe UI", 8.5f);
-        using var scaleFont = new Font("Segoe UI", 8f);
+        using var titleFont = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
+        using var valFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+        using var tempFont = Dpi.Font("Segoe UI", 8.5f);
+        using var scaleFont = Dpi.Font("Segoe UI", 8f);
         int scaleW = TextRenderer.MeasureText(g, MaxPct + "%", scaleFont).Width + S(6);
         for (int fan = 0; fan < fans; fan++)
         {
@@ -1166,10 +1166,10 @@ public sealed class FanCurvePage : ThemedPage
         _dials = new Rectangle[fans, n];
         var d = DeckRect;
         Ui.FillCard(g, d);
-        using var titleF = new Font("Segoe UI", 11f, FontStyle.Bold);
-        using var valF = new Font("Segoe UI", 10f, FontStyle.Bold);
-        using var smallF = new Font("Segoe UI", 8.5f);
-        using var capF = new Font("Segoe UI", 9f, FontStyle.Bold);
+        using var titleF = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
+        using var valF = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
+        using var smallF = Dpi.Font("Segoe UI", 8.5f);
+        using var capF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
         var live = _live.Sample;
         var cols = new[] { Theme.Accent, Theme.Violet };
 
@@ -1508,10 +1508,10 @@ public sealed class FanCurvePage : ThemedPage
 
     private void DrawPlayground(Graphics g)
     {
-        using var titleF = new Font("Segoe UI", 12f, FontStyle.Bold);
-        using var subF = new Font("Segoe UI", 9f);
-        using var bF = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-        using var axisF = new Font("Segoe UI", 8.5f);
+        using var titleF = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
+        using var subF = Dpi.Font("Segoe UI", 9f);
+        using var bF = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+        using var axisF = Dpi.Font("Segoe UI", 8.5f);
         int fans = Single ? 1 : 2;
         var cols = new[] { Theme.Accent, Theme.Violet };
         var live = _live.Sample;
@@ -1555,7 +1555,7 @@ public sealed class FanCurvePage : ThemedPage
         try { hist = HwHistory.Window(TimeSpan.FromMinutes(60)); } catch { hist = new List<HwSample>(); }
         int cnt = hist.Count;
         float dr = Sf(2.2f);
-        using var dotF = new Font("Segoe UI", 7.5f);
+        using var dotF = Dpi.Font("Segoe UI", 7.5f);
         // The dots carry their values only where the reader asks for it: hovering one shows its
         // label, clicking pins it (click again to unpin), and the "Values" switch turns every
         // label on at once. Labelling all of them by default was a wall of text.
@@ -1763,7 +1763,7 @@ public sealed class FanCurvePage : ThemedPage
         }
         else if (_sweepResult is { Steps.Count: > 0 } r)
         {
-            using var mono = new Font("Consolas", 9.5f);
+            using var mono = Dpi.Font("Consolas", 9.5f);
             int y = top, tx = pnl.X + S(20);
             var tbl = BuildSweepTable(r, mono);
             DrawSweepRow(g, tbl.heads, mono, tx, y, tbl.colW, Theme.Muted);
@@ -2151,7 +2151,7 @@ public sealed class FanCurvePage : ThemedPage
         if (_fc == null)
         {
             DrawPageHeader(g);
-            TextRenderer.DrawText(g, Lang.T("test_curve_none"), new Font("Segoe UI", 11f),
+            TextRenderer.DrawText(g, Lang.T("test_curve_none"), Dpi.Font("Segoe UI", 11f),
                 new Rectangle(Pad, 72, Width - Pad * 2, 40), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordEllipsis);
             return;
         }
@@ -2203,7 +2203,7 @@ public sealed class FanCurvePage : ThemedPage
                 g.Clip = saved;
             }
         }
-        TextRenderer.DrawText(g, Lang.T("fc_title"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 22), Theme.Text);
+        TextRenderer.DrawText(g, Lang.T("fc_title"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 22), Theme.Text);
         if (_fc == null) return;
 
         // live fan-mode indicator (feedback for Apply / Restore automatic). Values come from
@@ -2213,7 +2213,7 @@ public sealed class FanCurvePage : ThemedPage
                         : _dev != null && _fanMode == _dev.FanSilentValue ? "Silent"
                         : _fanMode == 0x0D ? "Auto"
                         : $"0x{_fanMode:X2}";
-        using var modeFont = new Font("Segoe UI", 11f, FontStyle.Bold);
+        using var modeFont = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
         TextRenderer.DrawText(g, Lang.T("fc_mode") + " " + modeName, modeFont,
             new Rectangle(Width - Pad - 360, 24, 360, 28), Theme.Accent,
             TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
@@ -2229,7 +2229,7 @@ public sealed class FanCurvePage : ThemedPage
                : Lang.T("fc_hint"),
         };
         if (Single && _view == ViewChart) hint = Lang.T("fc_single_note") + "  ·  " + hint;
-        using var hintFont = new Font("Segoe UI", 10.5f);
+        using var hintFont = Dpi.Font("Segoe UI", 10.5f);
         // Wrap: on a narrow window the one-liner used to run off the right edge instead of
         // breaking. Two lines fit under the title before the sub-tab strip starts.
         TextRenderer.DrawText(g, hint, hintFont,
@@ -2257,7 +2257,7 @@ public sealed class FanCurvePage : ThemedPage
     {
         var card = GraphRect(fan);
         Ui.FillCard(g, card);
-        var titleFont = new Font("Segoe UI", 12f, FontStyle.Bold);
+        var titleFont = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
         TextRenderer.DrawText(g, title, titleFont,
             new Rectangle(card.X + 16, card.Y + 10, card.Width - 32, titleFont.Height + 4), Theme.Text,
             TextFormatFlags.Left | TextFormatFlags.Top);
@@ -2268,7 +2268,7 @@ public sealed class FanCurvePage : ThemedPage
         // faint tints with a small label at the right edge. Indicative - see the help text.
         if (D.Settings.FanCurveZones)
         {
-            using var zf = new Font("Segoe UI", 8f);
+            using var zf = Dpi.Font("Segoe UI", 8f);
             (int lo, int hi, Color c, string key)[] bands =
             {
                 (0, CurveModel.QuietMax, Theme.Green, "fc_zone_quiet"),
@@ -2288,7 +2288,7 @@ public sealed class FanCurvePage : ThemedPage
         }
 
         using (var grid = new Pen(Theme.Border))
-        using (var axisFont = new Font("Segoe UI", 8.5f))
+        using (var axisFont = Dpi.Font("Segoe UI", 8.5f))
         {
             for (int v = 0; v <= MaxPct; v += 25)
             {
@@ -2338,8 +2338,8 @@ public sealed class FanCurvePage : ThemedPage
         using (var line = new Pen(Theme.Accent, 2.5f) { LineJoin = LineJoin.Round })
             if (n >= 2) g.DrawLines(line, pts);
 
-        using var tempFont = new Font("Segoe UI", 8.5f);
-        using var valFont = new Font("Segoe UI", 9f, FontStyle.Bold);
+        using var tempFont = Dpi.Font("Segoe UI", 8.5f);
+        using var valFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
         for (int i = 0; i < n; i++)
         {
             // temperature label on the X axis
@@ -2414,8 +2414,8 @@ public sealed class FanCurvePage : ThemedPage
             }
         }
 
-        using var lf = new Font("Segoe UI", 9f, FontStyle.Bold);
-        using var df = new Font("Segoe UI", 8.5f);
+        using var lf = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+        using var df = Dpi.Font("Segoe UI", 8.5f);
         if (temp <= 0)
         {
             // sleeping dGPU (or no reading): say so instead of drawing a dot at 0 °C
@@ -2466,11 +2466,11 @@ public sealed class FanCurvePage : ThemedPage
     {
         var chips = new List<Rectangle>();
         var kept = new List<string>();
-        using var cf = new Font("Segoe UI", 9f, FontStyle.Bold);
+        using var cf = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
         int h = cf.Height + S(8);
         int y = PresetY + S(42);
         string cap = Lang.T("fc_compare");
-        using var capF = new Font("Segoe UI", 9.5f);
+        using var capF = Dpi.Font("Segoe UI", 9.5f);
         int capW = TextRenderer.MeasureText(g, cap, capF).Width;
         TextRenderer.DrawText(g, cap, capF, new Rectangle(Pad, y, capW, h), Theme.Muted,
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
@@ -2509,8 +2509,8 @@ public sealed class FanCurvePage : ThemedPage
         int gap = S(12), w = (bar.Width - gap * (Intents.Length - 1)) / Intents.Length;
         var rects = new Rectangle[Intents.Length];
         int active = ActiveIntent();
-        using var tf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
-        using var sf = new Font("Segoe UI", 8.5f);
+        using var tf = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+        using var sf = Dpi.Font("Segoe UI", 8.5f);
         int titleH = tf.Height, subH = sf.Height;
         int textBlock = titleH + S(2) + subH;
         for (int i = 0; i < Intents.Length; i++)
@@ -2547,10 +2547,10 @@ public sealed class FanCurvePage : ThemedPage
     {
         var t = TableRect;
         Ui.FillCard(g, t);
-        using var hf = new Font("Segoe UI", 9f, FontStyle.Bold);
-        using var rf = new Font("Segoe UI", 10f);
-        using var bf = new Font("Segoe UI", 10f, FontStyle.Bold);
-        using var tipF = new Font("Segoe UI", 8.5f);
+        using var hf = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+        using var rf = Dpi.Font("Segoe UI", 10f);
+        using var bf = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
+        using var tipF = Dpi.Font("Segoe UI", 8.5f);
         int fans = Single ? 1 : 2;
         int n = _cpuS.Length;
         int pad = S(16);

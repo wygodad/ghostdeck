@@ -79,10 +79,10 @@ public sealed class PowerMapForm : GhostCardForm
     private List<Item> Arrange(Graphics g, float k, int width, out int height)
     {
         int Ce(float v) => (int)Math.Ceiling(v);
-        using var tabF = new Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var chipF = new Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var labF = new Font("Segoe UI", 11f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var descF = new Font("Segoe UI", 12.5f * k, GraphicsUnit.Pixel);
+        using var tabF = Dpi.Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var chipF = Dpi.Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var labF = Dpi.Font("Segoe UI", 11f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var descF = Dpi.Font("Segoe UI", 12.5f * k, GraphicsUnit.Pixel);
         var items = new List<Item>();
         int y = 0;
 
@@ -155,10 +155,10 @@ public sealed class PowerMapForm : GhostCardForm
     {
         int Ce(float v) => (int)Math.Ceiling(v);
         var items = Arrange(g, k, area.Width, out _);
-        using var tabF = new Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var chipF = new Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var labF = new Font("Segoe UI", 11f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var descF = new Font("Segoe UI", 12.5f * k, GraphicsUnit.Pixel);
+        using var tabF = Dpi.Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var chipF = Dpi.Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var labF = Dpi.Font("Segoe UI", 11f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var descF = Dpi.Font("Segoe UI", 12.5f * k, GraphicsUnit.Pixel);
         // wrapping formats without trimming: a text that does not fit on one line takes the next
         using var center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.None };
         using var left = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.None };

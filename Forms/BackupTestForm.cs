@@ -127,7 +127,7 @@ public sealed class BackupTestRunForm : GhostCardForm
 
     protected override void PaintContent(Graphics g, float k, Rectangle area, Point origin)
     {
-        using var liveF = new Font("Segoe UI", 12f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var liveF = Dpi.Font("Segoe UI", 12f * k, FontStyle.Regular, GraphicsUnit.Pixel);
         using var mid = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
         int cur = Array.FindIndex(_steps, s => s.Step == _at.Step);
         if (cur < 0) cur = _steps.Count(s => s.Step < _at.Step);   // a step that is not on this card's list

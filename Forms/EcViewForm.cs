@@ -117,7 +117,7 @@ public sealed class EcViewForm : Form
         _log.BorderStyle = BorderStyle.FixedSingle;
         _log.BackColor = Theme.Card;
         _log.ForeColor = Theme.Text;
-        _log.Font = new Font("Consolas", 9f);
+        _log.Font = Dpi.Font("Consolas", 9f);
         Controls.Add(_log);
 
         _marker.Text = Lang.T("ec_view_marker");
@@ -128,7 +128,7 @@ public sealed class EcViewForm : Form
         Controls.Add(_marker);
 
         _noiseLbl.AutoSize = true;
-        _noiseLbl.Font = new Font("Segoe UI", 8.5f);
+        _noiseLbl.Font = Dpi.Font("Segoe UI", 8.5f);
         _noiseLbl.ForeColor = Theme.Muted;
         _noiseLbl.BackColor = Theme.Surface;
         Controls.Add(_noiseLbl);

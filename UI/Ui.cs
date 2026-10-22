@@ -15,7 +15,7 @@ internal static class Ui
         b.FlatAppearance.BorderSize = 0;
         b.BackColor = Theme.AccentFill;
         b.ForeColor = Color.White;
-        b.Font = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+        b.Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
         b.Cursor = Cursors.Hand;
         b.Height = 40;
     }
@@ -92,7 +92,7 @@ internal static class Ui
         b.FlatAppearance.MouseDownBackColor = Theme.RowAlt;
         b.BackColor = Theme.Surface;
         b.ForeColor = Theme.Text;
-        b.Font = new Font("Segoe UI", 10.5f);
+        b.Font = Dpi.Font("Segoe UI", 10.5f);
         b.Cursor = Cursors.Hand;
         b.Height = 40;
     }
@@ -149,7 +149,7 @@ internal static class Ui
 
     public static void Pill(Graphics g, string text, Point at, Color fg)
     {
-        var font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        var font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         var sz = TextRenderer.MeasureText(text, font);
         int w = sz.Width + 32, h = sz.Height + 14;       // bigger padding
         var r = new RectangleF(at.X, at.Y, w, h);

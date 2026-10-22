@@ -212,7 +212,7 @@ public sealed class SessionReportForm : Form
     /// the saved PNG is just the clean card.</summary>
     private Bitmap Compose(bool screenshot)
     {
-        float dpi; using (var mg = CreateGraphics()) dpi = mg.DpiY;
+        float dpi; dpi = Dpi.Of(this);
         float k = dpi / 96f;
         int Ce(float v) => (int)Math.Ceiling(v);
 
@@ -281,7 +281,7 @@ public sealed class SessionReportForm : Form
         // ---- header: ghost + wordmark, scan tag on the right ----
         int gs = Ce(21 * k);
         TrayIconFactory.DrawGhost(g, cx, yHdr + (hHdr - gs) / 2f, gs, Cyan, Color.FromArgb(0x0A, 0x0D, 0x14));
-        using var wordF = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var wordF = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var whiteB = new SolidBrush(White);
         using var cyanB = new SolidBrush(Cyan);
         using var mutedB = new SolidBrush(Muted);
@@ -289,7 +289,7 @@ public sealed class SessionReportForm : Form
         g.DrawString("Ghost", wordF, whiteB, wx, wy);
         float ghostW = g.MeasureString("Ghost", wordF, PointF.Empty, StringFormat.GenericTypographic).Width;
         g.DrawString("Deck", wordF, cyanB, wx + ghostW + 1 * k, wy);
-        using (var scanF = new Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel))
+        using (var scanF = Dpi.Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel))
         using (var scanB = new SolidBrush(Color.FromArgb(170, Cyan)))
         {
             var sz = g.MeasureString("//SESSION-END", scanF);
@@ -297,17 +297,17 @@ public sealed class SessionReportForm : Form
         }
 
         // ---- game name + duration (the time sits right under //SESSION-END, close to it) ----
-        using var gameF = new Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var monoF = new Font("Consolas", 12f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var gameF = Dpi.Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var monoF = Dpi.Font("Consolas", 12f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         g.DrawString(_s.Process, gameF, whiteB, cx - 2 * k, yGame);
         string when = $"{FmtDur(_s.End - _s.Start)} · {_s.End:HH:mm}";
         var whenSz = g.MeasureString(when, monoF);
         g.DrawString(when, monoF, mutedB, cx + cw - whenSz.Width, yHdr + hHdr + 1 * k);
 
         // ---- stat boxes ----
-        using var lblF = new Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var valF = new Font("Segoe UI", 14f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var unitF = new Font("Segoe UI", 9.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var lblF = Dpi.Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var valF = Dpi.Font("Segoe UI", 14f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var unitF = Dpi.Font("Segoe UI", 9.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         int gap = Ce(8 * k), bw = (cw - gap * 3) / 4;
         void Box(int i, string label, string value, Color valCol, string unit = "")
         {
@@ -345,7 +345,7 @@ public sealed class SessionReportForm : Form
         // ---- footer: profile + counters, action buttons on the right ----
         float fy = yFoot + (hFoot - 12 * k) / 2f;
         using (var db = new SolidBrush(Blue)) g.FillEllipse(db, cx, fy + 1 * k, 9 * k, 9 * k);
-        using var footF = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var footF = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         string foot = (_s.Profile.Length > 0 ? _s.Profile + "  ·  " : "") +
                       $"{Lang.T("gm_stut")}: {_s.Stutters:N0}  ·  {Lang.T("gm_frames")}: {_s.Frames:N0}";
         g.DrawString(foot, footF, mutedB, cx + 14 * k, yFoot + (hFoot - footF.GetHeight(g)) / 2f);

@@ -317,7 +317,7 @@ public sealed class ReportPage : ThemedPage
         // WinForms treats those as client coords and shifts children by the scroll delta, while
         // OnPaint draws through ApplyScroll. Same rule as SettingsPage/ScenariosPage.
         int ox = AutoScrollPosition.X, oy = AutoScrollPosition.Y;
-        int titleH = new Font("Segoe UI", 18f, FontStyle.Bold).Height;
+        int titleH = Dpi.Font("Segoe UI", 18f, FontStyle.Bold).Height;
         _subTop = 24 + titleH + 18;
         _subTabs.SetBounds(Pad + ox, _subTop + oy, _subTabs.FitTo(ClientSize.Width - Pad * 2), _subTabs.Height);
 
@@ -433,7 +433,7 @@ public sealed class ReportPage : ThemedPage
                 g.DrawPath(ap, ip);
             Ui.CenterGlyph(g, LandGlyphs[i], LandGlyphF, Theme.Accent, iconR);
 
-            Ui.DrawText(g, LandTitle(i), new Font("Segoe UI", 12f, FontStyle.Bold),
+            Ui.DrawText(g, LandTitle(i), Dpi.Font("Segoe UI", 12f, FontStyle.Bold),
                 new Rectangle(iconR.Right + 14, iconR.Y, r.Width - LandIconBox - LandPad * 2 - 14, LandIconBox),
                 Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
 
@@ -488,7 +488,7 @@ public sealed class ReportPage : ThemedPage
         _rightX = Pad + _leftW + Gutter;
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
 
-        int secH = new Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
+        int secH = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
         _introY = top;
         _introH = TextRenderer.MeasureText(Lang.T("rep_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
         _contentTop = _introY + _introH + 18;
@@ -502,7 +502,7 @@ public sealed class ReportPage : ThemedPage
         foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 58); ry += 66; }
         _barY = ry + 26;
         _instrTop = _barY + 58;
-        var instrFont = new Font("Segoe UI", 11.5f, FontStyle.Bold);
+        var instrFont = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
         _instrH = TextRenderer.MeasureText(Lang.T("rep_all_done"), instrFont, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
         int capW = Math.Min(320, rightW - 180);
         int capY = _capY = _instrTop + _instrH + 18;      // content coord; children get + oy
@@ -522,7 +522,7 @@ public sealed class ReportPage : ThemedPage
         _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
         _rightX = Pad + _leftW + Gutter;
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
-        int secH = new Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
+        int secH = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
 
         _curveTop = top;   // intro (left)
         _introH = TextRenderer.MeasureText(Lang.T("rep_curve_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
@@ -549,7 +549,7 @@ public sealed class ReportPage : ThemedPage
         ApplyScroll(g);
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
-        Ui.DrawText(g, Lang.T("menu_report"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
+        Ui.DrawText(g, Lang.T("menu_report"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
         if (_landing) { PaintLanding(g); return; }
         if (_sub == 1) { PaintCurve(g); return; }
@@ -564,12 +564,12 @@ public sealed class ReportPage : ThemedPage
         PaintFirmwarePill(g, _contentTop + _card.Height + 14);
 
         // right: section label
-        Ui.DrawText(g, Lang.T("rep_section"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
+        Ui.DrawText(g, Lang.T("rep_section"), Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
 
         // right: progress (only while capturing)
         if (_capturing)
         {
-            Ui.DrawText(g, Lang.T("rep_capturing") + $"  {_lastPct}%", new Font("Segoe UI", 10f, FontStyle.Bold),
+            Ui.DrawText(g, Lang.T("rep_capturing") + $"  {_lastPct}%", Dpi.Font("Segoe UI", 10f, FontStyle.Bold),
                 new Point(_rightX, _barY - 30), Theme.Accent);
             var track = new RectangleF(_rightX, _barY, rightW, 12);
             using (var path = Theme.RoundRect(track, 6)) { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
@@ -583,7 +583,7 @@ public sealed class ReportPage : ThemedPage
         string tile = done ? "" : cur.inline && cur.altKey is { } ak ? $"{cur.msiName} ({Lang.T(ak)})" : cur.msiName;
         string instr = done ? "✓  " + Lang.T("rep_all_done")
                             : string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " - " + string.Format(Lang.T("rep_set_scenario"), tile);
-        Ui.DrawText(g, instr, new Font("Segoe UI", 11.5f, FontStyle.Bold),
+        Ui.DrawText(g, instr, Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold),
             new Rectangle(_rightX, _instrTop, rightW, _instrH + 6), done ? Theme.Green : Theme.Text, TextFormatFlags.WordBreak);
         if (done) PaintSaved(g, _rightX, _capY + 44 + 10, rightW, _savedPath, _copied);
     }
@@ -607,10 +607,10 @@ public sealed class ReportPage : ThemedPage
         PaintFirmwarePill(g, _contentTop + _curveCard.Height + 14);
 
         // ---- right column: section label + numbered steps ----
-        Ui.DrawText(g, Lang.T("rep_curve_steps"), new Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
+        Ui.DrawText(g, Lang.T("rep_curve_steps"), Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold), new Point(_rightX, _contentTop), Theme.Muted);
         string[] steps = { Lang.T("rep_curve_s1"), Lang.T("rep_curve_s2"), Lang.T("rep_curve_s3"), Lang.T("rep_curve_s4"), Lang.T("rep_curve_s5") };
-        var numFont = new Font("Segoe UI", 9f, FontStyle.Bold);
-        var stFont = new Font("Segoe UI", 10.5f);
+        var numFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
+        var stFont = Dpi.Font("Segoe UI", 10.5f);
         for (int i = 0; i < steps.Length; i++)
         {
             int ry = _curveStepsTop + i * 34;
@@ -623,7 +623,7 @@ public sealed class ReportPage : ThemedPage
         // ---- right column: progress / result (under the capture button) ----
         if (_curveCapturing)
         {
-            Ui.DrawText(g, Lang.T("rep_capturing") + $"  {_curvePct}%", new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, _curveBarY - 4), Theme.Accent);
+            Ui.DrawText(g, Lang.T("rep_capturing") + $"  {_curvePct}%", Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, _curveBarY - 4), Theme.Accent);
             var track = new RectangleF(_rightX, _curveBarY + 20, rightW, 12);
             using (var path = Theme.RoundRect(track, 6)) { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
             float fw = Math.Max(12, rightW * _curveBar);
@@ -632,7 +632,7 @@ public sealed class ReportPage : ThemedPage
         else if (_curveMsg != null)
         {
             var col = _curveCpuAt >= 0 || _curveGpuAt >= 0 ? (_curveMatch ? Theme.Green : Theme.Amber) : Theme.Red;
-            var mf = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            var mf = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
             int mh = TextRenderer.MeasureText(_curveMsg, mf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
             Ui.DrawText(g, _curveMsg, mf, new Rectangle(_rightX, _curveBarY, rightW, mh + 6), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             PaintSaved(g, _rightX, _curveBarY + mh + 10, rightW, _curveSavedPath, _curveCopied);
@@ -1271,7 +1271,7 @@ public sealed class ReportPage : ThemedPage
         _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
         _rightX = Pad + _leftW + Gutter;
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
-        int secH = new Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
+        int secH = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
 
         _ptTop = top;
         _introH = TextRenderer.MeasureText(Lang.T("pt_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
@@ -1293,9 +1293,9 @@ public sealed class ReportPage : ThemedPage
         // The consent sentence is long in every language and must never be cut, so it wraps across
         // the whole column and everything below it follows its measured height.
         _ptConsentY = ry + 8;
-        int boxW = (int)Math.Ceiling(18 * DeviceDpi / 96f) + 10;
-        int consentH = Math.Max((int)Math.Ceiling(26 * DeviceDpi / 96f),
-            TextRenderer.MeasureText(_ptConsent.Text, new Font("Segoe UI", 10.5f),
+        int boxW = (int)Math.Ceiling(18 * Dpi.Of(this) / 96f) + 10;
+        int consentH = Math.Max((int)Math.Ceiling(26 * Dpi.Of(this) / 96f),
+            TextRenderer.MeasureText(_ptConsent.Text, Dpi.Font("Segoe UI", 10.5f),
                 new Size(Math.Max(40, rightW - boxW - 6), 0), TextFormatFlags.WordBreak).Height + 8);
         _ptConsent.Wrap = true;
         _ptConsent.SetBounds(_rightX + ox, _ptConsentY + oy, rightW, consentH);
@@ -1321,7 +1321,7 @@ public sealed class ReportPage : ThemedPage
     {
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
         var dev = Dev;
-        var secFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        var secFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
 
         // ---- left column: intro + warning card (child) + the exact addresses + firmware pill ----
         Ui.DrawText(g, Lang.T("pt_intro"), IntroFont,
@@ -1348,7 +1348,7 @@ public sealed class ReportPage : ThemedPage
                 _ => Lang.T("pt_stage_read"),
             };
             Ui.DrawText(g, stage + (_ptLive.Length > 0 ? "   " + _ptLive : ""),
-                new Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, y - 4), Theme.Accent);
+                Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, y - 4), Theme.Accent);
             var track = new RectangleF(_rightX, y + 20, rightW, 12);
             using (var path = Theme.RoundRect(track, 6))
             { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
@@ -1367,7 +1367,7 @@ public sealed class ReportPage : ThemedPage
                     : r.Fourth is null or { Accepted: true, Cleared: true } ? Theme.Green
                     : Theme.Amber;
             string verdict = PowerTest.Summary(r);
-            var vf = new Font("Segoe UI", 11.5f, FontStyle.Bold);
+            var vf = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
             int vh = TextRenderer.MeasureText(verdict, vf, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
             Ui.DrawText(g, verdict, vf, new Rectangle(_rightX, y, rightW, vh + 6), col,
                 TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
@@ -1376,7 +1376,7 @@ public sealed class ReportPage : ThemedPage
         }
 
         if (_ptMsg != null)
-            Ui.DrawText(g, _ptMsg, new Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
+            Ui.DrawText(g, _ptMsg, Dpi.Font("Segoe UI", 10.5f), new Rectangle(_rightX, y, rightW, 70),
                 Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
     }
 
@@ -1388,7 +1388,7 @@ public sealed class ReportPage : ThemedPage
         if (path != null)
         {
             string saved = string.Format(Lang.T("rep_saved_to"), path);
-            var sf = new Font("Segoe UI", 9f);
+            var sf = Dpi.Font("Segoe UI", 9f);
             sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
             Ui.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
             sh += 6;
@@ -1396,7 +1396,7 @@ public sealed class ReportPage : ThemedPage
         // Deliberately NOT tied to the path: a run that lost the clipboard AND the file is the one
         // case where saying nothing would leave the user pasting whatever was there before.
         if (copied) return sh;
-        var wf = new Font("Segoe UI", 10f, FontStyle.Bold);
+        var wf = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
         string warn = Lang.T("rep_clip_fail");
         int wh = ClipWarnHeight(w);
         Ui.DrawText(g, warn, wf, new Rectangle(x, y + sh + 2, w, wh), Theme.Amber,
@@ -1407,7 +1407,7 @@ public sealed class ReportPage : ThemedPage
     // Layout has to reserve this too, or the warning lands below the scrollable area and the one
     // person who needs to read it is the one who cannot reach it.
     private static int ClipWarnHeight(int w) =>
-        TextRenderer.MeasureText(Lang.T("rep_clip_fail"), new Font("Segoe UI", 10f, FontStyle.Bold),
+        TextRenderer.MeasureText(Lang.T("rep_clip_fail"), Dpi.Font("Segoe UI", 10f, FontStyle.Bold),
             new Size(Math.Max(40, w), 0), TextFormatFlags.WordBreak).Height + 10;
 
     // The firmware pill closes the left column on every sub-tab.
@@ -1416,11 +1416,11 @@ public sealed class ReportPage : ThemedPage
         var pill = new RectangleF(Pad, y, _leftW, 44);
         using (var path = Theme.RoundRect(pill, 11))
         { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
-        var lf = new Font("Segoe UI", 10f);
+        var lf = Dpi.Font("Segoe UI", 10f);
         Ui.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "—" : D.Firmware(), new Font("Consolas", 11f, FontStyle.Bold),
+        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "—" : D.Firmware(), Dpi.Font("Consolas", 11f, FontStyle.Bold),
             new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
     }
@@ -1492,12 +1492,12 @@ public sealed class ReportPage : ThemedPage
             else
             {
                 using var pen = new Pen(Theme.BorderStrong, 2f); g.DrawEllipse(pen, circle);
-                Ui.DrawText(g, _num.ToString(), new Font("Segoe UI", 9f, FontStyle.Bold), Rectangle.Round(circle), Theme.Muted,
+                Ui.DrawText(g, _num.ToString(), Dpi.Font("Segoe UI", 9f, FontStyle.Bold), Rectangle.Round(circle), Theme.Muted,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
             int nx = Cx + Circle / 2 + 16;
             int textW = Width - nx - StatusW - 6;
-            var nameFont = new Font("Segoe UI", 11f, FontStyle.Bold);
+            var nameFont = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
             var nameColor = _done || _current ? Theme.Text : Theme.Muted;
             if (string.IsNullOrEmpty(_alt))
                 Ui.DrawText(g, _name, nameFont, new Rectangle(nx, 6, textW, Height - 12), nameColor,
@@ -1507,14 +1507,14 @@ public sealed class ReportPage : ThemedPage
                 // Two lines share the row: the tile name as the capture knows it, and the name the
                 // owner may be looking at in another vendor app. Heights come from the fonts, so
                 // the pair stays centred at any DPI.
-                var altFont = new Font("Segoe UI", 9.75f);
+                var altFont = Dpi.Font("Segoe UI", 9.75f);
                 int h1 = nameFont.Height, h2 = altFont.Height, top = (Height - h1 - h2 + 2) / 2;
                 Ui.DrawText(g, _name, nameFont, new Rectangle(nx, top, textW, h1), nameColor,
                     TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
                 Ui.DrawText(g, _alt, altFont, new Rectangle(nx, top + h1 - 2, textW, h2), _current ? Theme.Text : Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
             }
-            Ui.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), new Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
+            Ui.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), Dpi.Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
                 new Rectangle(Width - StatusW, 6, StatusW - 10, Height - 12), _done ? Theme.Green : Theme.Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
         }
@@ -1541,7 +1541,7 @@ public sealed class ReportPage : ThemedPage
             foreach (var l in _links) Controls.Remove(l);
             _links.Clear(); _paras.Clear();
             int innerW = Width - LeftPad - RightPad;
-            var linkFont = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            var linkFont = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
             int y = TopPad, gap = 0;
             foreach (var (text, url) in _items)
             {

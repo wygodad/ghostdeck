@@ -301,7 +301,7 @@ public sealed class ModelsPage : ThemedPage
     internal static readonly Font FBold = new("Segoe UI", 10.5f, FontStyle.Bold);
     internal static readonly Font FGlyph = new("Segoe MDL2 Assets", 10.5f);
 
-    private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+    private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
     private int SubTop() => 24 + FTitle.Height + 12 + FSub.Height + 6 + FIntro.Height + 14;
     private int HeaderBandH() => SubTop() + _subTabs.Height + S(14);
 
@@ -400,7 +400,7 @@ public sealed class ModelsPage : ThemedPage
     /// </summary>
     private sealed class SearchBox : Control
     {
-        public readonly TextBox Box = new() { BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 10.5f) };
+        public readonly TextBox Box = new() { BorderStyle = BorderStyle.None, Font = Dpi.Font("Segoe UI", 10.5f) };
         private static readonly Font Glyph = new("Segoe MDL2 Assets", 10.5f);
         private static readonly Font ClearGlyph = new("Segoe MDL2 Assets", 8.5f);
 
@@ -416,7 +416,7 @@ public sealed class ModelsPage : ThemedPage
             ApplyTheme();
         }
 
-        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
         public int PreferredHeight => Box.PreferredHeight + S(16);
 
         public void ApplyTheme() { Box.BackColor = Theme.Card; Box.ForeColor = Theme.Text; BackColor = Theme.Surface; Invalidate(); }
