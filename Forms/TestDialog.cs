@@ -19,7 +19,7 @@ public sealed class TestDialog : Form
     private byte[]? _dumpA;
     private byte[]? _cbA;
 
-    private static string Rpm(byte raw) => raw == 0 ? "—" : $"{478000 / raw} RPM";
+    private static string Rpm(byte raw) => raw == 0 ? "-" : $"{478000 / raw} RPM";
 
     public TestDialog(MainDeps d)
     {
@@ -37,7 +37,7 @@ public sealed class TestDialog : Form
 
         var btnA = new Button { Text = Lang.T("test_rpm_a"), Width = 250, Height = 34 };
         btnA.SetBounds(20, 80, 250, 34);
-        btnA.Click += (_, _) => { _dumpA = SafeDump(); _rpm.Items.Clear(); _rpm.Items.Add(_dumpA == null ? "ERROR" : "OK — " + Lang.T("test_rpm_b")); };
+        btnA.Click += (_, _) => { _dumpA = SafeDump(); _rpm.Items.Clear(); _rpm.Items.Add(_dumpA == null ? "ERROR" : "OK - " + Lang.T("test_rpm_b")); };
 
         var btnB = new Button { Text = Lang.T("test_rpm_b"), Width = 250, Height = 34 };
         btnB.SetBounds(282, 80, 250, 34);
@@ -61,7 +61,7 @@ public sealed class TestDialog : Form
 
         _live.SetBounds(20, 392, 540, 56);
         _live.Font = Dpi.Font("Consolas", 11.5f, FontStyle.Bold);
-        _live.Text = "Fan 1 / CPU (0xC9): —\r\nFan 2 / GPU (0xCB): —";
+        _live.Text = "Fan 1 / CPU (0xC9): -\r\nFan 2 / GPU (0xCB): -";
 
         var dumpBtn = new Button { Text = Lang.T("test_dump_btn"), Width = 250, Height = 34 };
         dumpBtn.SetBounds(20, 456, 250, 34);
@@ -83,7 +83,7 @@ public sealed class TestDialog : Form
         // hotkey (Fn+Up), then compare — the byte(s) that flip are the real Cooler Boost register.
         var cbA = new Button { Text = "Cooler Boost: snapshot A", Width = 250, Height = 34 };
         cbA.SetBounds(20, 596, 250, 34);
-        cbA.Click += (_, _) => { _cbA = SafeDump(); _rpm.Items.Clear(); _rpm.Items.Add(_cbA == null ? "ERROR" : "OK — now toggle Cooler Boost (Fn+Up), then click Compare B"); };
+        cbA.Click += (_, _) => { _cbA = SafeDump(); _rpm.Items.Clear(); _rpm.Items.Add(_cbA == null ? "ERROR" : "OK - now toggle Cooler Boost (Fn+Up), then click Compare B"); };
 
         var cbB = new Button { Text = "Cooler Boost: compare B", Width = 250, Height = 34 };
         cbB.SetBounds(290, 596, 250, 34);
@@ -131,7 +131,7 @@ public sealed class TestDialog : Form
                 shown++;
             }
         }
-        if (shown == 0) _rpm.Items.Add("(no changed candidates — change fan speed more, then retry)");
+        if (shown == 0) _rpm.Items.Add("(no changed candidates - change fan speed more, then retry)");
     }
 
     // List every non-sensor EC byte that changed between snapshot A and now. Sensor / dynamic
@@ -153,7 +153,7 @@ public sealed class TestDialog : Form
             _rpm.Items.Add($"0x{a:X2}: {_cbA[a]:X2} -> {b[a]:X2}{tag}");
             shown++;
         }
-        if (shown == 0) _rpm.Items.Add("(no non-sensor byte changed — did Cooler Boost actually toggle?)");
+        if (shown == 0) _rpm.Items.Add("(no non-sensor byte changed - did Cooler Boost actually toggle?)");
     }
 
     private void SaveDump()

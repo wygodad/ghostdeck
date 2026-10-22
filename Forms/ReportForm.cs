@@ -176,7 +176,7 @@ public sealed class ReportForm : Form
         _content.Controls.Add(card);
         y += card.Height + 18;
 
-        var pill = new Pill(Lang.T("st_firmware"), string.IsNullOrEmpty(_firmware) ? "—" : _firmware, ColW)
+        var pill = new Pill(Lang.T("st_firmware"), string.IsNullOrEmpty(_firmware) ? "-" : _firmware, ColW)
         { Location = new Point(LeftX, y) };
         _content.Controls.Add(pill);
 
@@ -266,7 +266,7 @@ public sealed class ReportForm : Form
         if (_step < Steps.Length)
         {
             _instruction.ForeColor = Ink;
-            _instruction.Text = string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " — " +
+            _instruction.Text = string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " - " +
                                 string.Format(Lang.T("rep_set_scenario"), Steps[_step].msiName);
             _capture.Text = Lang.T("rep_capture");
         }
@@ -383,7 +383,7 @@ public sealed class ReportForm : Form
     private string BuildReport()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== GhostDeck — model support report ===");
+        sb.AppendLine("=== GhostDeck - model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {_appVersion}");
         sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(_firmware) ? "(unknown)" : _firmware)}");
@@ -391,7 +391,7 @@ public sealed class ReportForm : Form
         sb.AppendLine();
 
         sb.AppendLine("--- Diff: addresses that change between scenarios ---");
-        sb.AppendLine("(temps/fans naturally fluctuate — ignore sensor-looking single-value drift)");
+        sb.AppendLine("(temps/fans naturally fluctuate - ignore sensor-looking single-value drift)");
         sb.Append("Addr   ");
         foreach (var (_, name) in Steps) sb.Append(name.PadRight(20));
         sb.AppendLine();
@@ -456,7 +456,7 @@ public sealed class ReportForm : Form
         string snapshot = BuildSnapshot();
         string fulldump = _savedPath != null
             ? $"Full report copied to clipboard and saved to:\n{_savedPath}\n\nPlease paste it here with Ctrl+V."
-            : "Full report copied to clipboard — please paste it here with Ctrl+V.";
+            : "Full report copied to clipboard - please paste it here with Ctrl+V.";
 
         string Base() => RepoUrl + "/issues/new" +
                          "?template=model-support.yml" +

@@ -300,7 +300,7 @@ public static class BackupPathTest
     }
 
     private static string Live(string name, Sample s) =>
-        $"{name}  ·  {s.CpuTemp} °C  ·  {(s.CpuRpm > 0 ? s.CpuRpm + " RPM" : "— RPM")}  ·  {s.Mhz} MHz";
+        $"{name}  ·  {s.CpuTemp} °C  ·  {(s.CpuRpm > 0 ? s.CpuRpm + " RPM" : "- RPM")}  ·  {s.Mhz} MHz";
 
     private static void Hold(DeviceProfile dev, string name, int seconds, IProgress<Progress> pr, Step step,
                              double f0, double f1, CancellationToken ct)

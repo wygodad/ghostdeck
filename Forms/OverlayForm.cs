@@ -183,7 +183,7 @@ public sealed class OverlayForm : Form
         Add(OverlayMetric.Vram, IconKind.Ram, "VRAM", _s.VramMb >= 0 ? $"{_s.VramMb} MB" : "--");
         Add(OverlayMetric.Battery, IconKind.Charge, _s.Charging ? "Battery ⚡" : "Battery", _s.BatteryPct >= 0 ? $"{_s.BatteryPct}%" : "--");
         Add(OverlayMetric.BatteryTime, IconKind.Charge, "Time left", _s.BattMinutes > 0 ? $"{_s.BattMinutes / 60}h {_s.BattMinutes % 60:00}m" : "--");
-        Add(OverlayMetric.ChargeLimit, IconKind.Charge, "Charge limit", _s.ChargeLimit > 0 ? $"{_s.ChargeLimit}%" : "—");
+        Add(OverlayMetric.ChargeLimit, IconKind.Charge, "Charge limit", _s.ChargeLimit > 0 ? $"{_s.ChargeLimit}%" : "-");
         return list;
     }
 

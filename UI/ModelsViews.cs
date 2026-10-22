@@ -432,7 +432,7 @@ internal sealed class ModelsStartView : ModelsView
         int fx = ix;
         foreach (var (name, on, col) in feats)
         {
-            string label = (on ? "✓ " : "– ") + name;
+            string label = (on ? "✓ " : "- ") + name;
             int cw = ModelsText.NaturalW(label, ModelsPage.FSmall) + S(16);
             if (fx + cw > ix + iw) { fx = ix; cy += ChipH() + S(6); }
             fx += Chip(gg, fx, cy, label, col, on) + S(6);
@@ -646,7 +646,7 @@ internal sealed class ModelsStartView : ModelsView
         var list = P.Stats.Candidates;
         int cy = Card(gg, r, "\uE734", Lang.T("mdl_card_close"), Lang.T("mdl_card_close_sub"));
         int ix = r.X + S(18), iw = r.Width - S(36);
-        if (list.Count == 0) { cy += Para(gg, "—", ModelsPage.FCell, ix, cy, iw, Theme.Muted) + S(16); return cy - r.Y; }
+        if (list.Count == 0) { cy += Para(gg, "-", ModelsPage.FCell, ix, cy, iw, Theme.Muted) + S(16); return cy - r.Y; }
         foreach (var (m, why) in list)
         {
             int top = cy;
@@ -804,7 +804,7 @@ internal sealed class ModelsFeaturesView : ModelsView
             Zone(g, new Rectangle(x + 8, ry, w - 16, h), () => P.ShowListFor(mm.FirmwarePrefixes[0], mm));
             ry += h;
         }
-        if (rows.Count == 0) T(g, "—", ModelsPage.FCell, new Rectangle(x + S(18), ry, w, lineH + rowPad * 2), Theme.Muted, ModelsText.Line);
+        if (rows.Count == 0) T(g, "-", ModelsPage.FCell, new Rectangle(x + S(18), ry, w, lineH + rowPad * 2), Theme.Muted, ModelsText.Line);
         return tableTop + tableH + S(14);
     }
 }

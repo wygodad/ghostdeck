@@ -718,7 +718,7 @@ public sealed class ReportPage : ThemedPage
     private string BuildCurveReport()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== GhostDeck — fan-curve verification report ===");
+        sb.AppendLine("=== GhostDeck - fan-curve verification report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {D.AppVersion()}");
         sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}");
@@ -736,7 +736,7 @@ public sealed class ReportPage : ThemedPage
             sb.AppendLine($"Located in EC dump:  {cpuPart}   {gpuPart}");
             var fc = Devices.Detect(D.Firmware())?.FanCurve;
             if (fc != null) sb.AppendLine($"Shipped map for this model:  CPU 0x{fc.CpuSpeedBase:X2}  GPU 0x{fc.GpuSpeedBase:X2}  → {(_curveMatch ? "MATCH" : "DIFFERENT")}");
-            else sb.AppendLine("Shipped map for this model:  (none — model not recognised)");
+            else sb.AppendLine("Shipped map for this model:  (none - model not recognised)");
         }
         else sb.AppendLine("Test curve NOT located in the dump (was the curve Saved in MSI Center?).");
         sb.AppendLine();
@@ -896,14 +896,14 @@ public sealed class ReportPage : ThemedPage
     {
         if (_blockDumps.Any(d => d != null)) return BuildBlockReport();
         var sb = new StringBuilder();
-        sb.AppendLine("=== GhostDeck — model support report ===");
+        sb.AppendLine("=== GhostDeck - model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
         sb.AppendLine($"App version: {D.AppVersion()}");
         sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}");
         sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
         sb.AppendLine();
         sb.AppendLine("--- Diff: addresses that change between scenarios ---");
-        sb.AppendLine("(temps/fans naturally fluctuate — ignore sensor-looking single-value drift)");
+        sb.AppendLine("(temps/fans naturally fluctuate - ignore sensor-looking single-value drift)");
         sb.Append("Addr   ");
         foreach (var st in Steps) sb.Append(st.msiName.PadRight(20));
         sb.AppendLine();
@@ -1135,7 +1135,7 @@ public sealed class ReportPage : ThemedPage
     // and that re-applies whatever fan curve is assigned to the profile it returns to.
     private string PtWriteList(DeviceProfile? dev)
     {
-        if (dev == null) return "—";
+        if (dev == null) return "-";
         var addrs = new SortedSet<byte> { dev.ShiftMode, dev.FanMode };
         foreach (var id in new[] { ProfileId.Silent, ProfileId.Balanced, ProfileId.Extreme })
             foreach (var (a, _) in dev.Recipes[id]) addrs.Add(a);
@@ -1420,7 +1420,7 @@ public sealed class ReportPage : ThemedPage
         Ui.DrawText(g, Lang.T("st_firmware"), lf, new Rectangle(Pad + 16, (int)pill.Y, 180, 44), Theme.Muted,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         int lw = TextRenderer.MeasureText(Lang.T("st_firmware"), lf).Width;
-        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "—" : D.Firmware(), Dpi.Font("Consolas", 11f, FontStyle.Bold),
+        Ui.DrawText(g, string.IsNullOrEmpty(D.Firmware()) ? "-" : D.Firmware(), Dpi.Font("Consolas", 11f, FontStyle.Bold),
             new Rectangle(Pad + 16 + lw + 12, (int)pill.Y, _leftW - lw - 40, 44), Theme.Accent,
             TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
     }

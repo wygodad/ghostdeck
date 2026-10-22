@@ -16,8 +16,8 @@ public sealed class StatusPage : ThemedPage
     private static readonly (string key, Func<StatusInfo, HwSnapshot, string> val, bool mono)[] Rows =
     {
         ("st_model",     (s, h) => s.Device, false),
-        ("st_firmware",  (s, h) => string.IsNullOrEmpty(h.Firmware) ? "—" : h.Firmware, true),
-        ("st_charge",    (s, h) => h.ChargeLimit is >= 10 and <= 100 ? $"{h.ChargeLimit} %" : "—", false),
+        ("st_firmware",  (s, h) => string.IsNullOrEmpty(h.Firmware) ? "-" : h.Firmware, true),
+        ("st_charge",    (s, h) => h.ChargeLimit is >= 10 and <= 100 ? $"{h.ChargeLimit} %" : "-", false),
         ("st_switches",  (s, h) => s.Switches.ToString(), false),
         ("st_in_profile",(s, h) => FmtTs(s.InProfile), false),
         ("st_autostart", (s, h) => s.Autostart ? Lang.T("yes") : Lang.T("no"), false),
@@ -29,7 +29,7 @@ public sealed class StatusPage : ThemedPage
         var ps = SystemInformation.PowerStatus;
         if (ps.BatteryLifePercent is >= 0f and <= 1f)
             return $"{(int)Math.Round(ps.BatteryLifePercent * 100)} %" + (ps.PowerLineStatus == PowerLineStatus.Online ? " ⚡" : "");
-        return "—";
+        return "-";
     }
 
     private readonly Button _test = new();
@@ -482,12 +482,12 @@ public sealed class StatusPage : ThemedPage
         }
         void RpmUnder(int i, int rpm, string label)
             => MetricBox(new RectangleF(X(i) + 14, subY, ring - 28, subH),
-                !(info.Known || info.Telemetry) ? $"{label}: —" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: — RPM");
+                !(info.Known || info.Telemetry) ? $"{label}: -" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: - RPM");
         RpmUnder(2, hw.CpuRpm, "CPU");
         RpmUnder(3, hw.GpuRpm, "GPU");
         // CPU clock (approx.) under the CPU-usage ring — same row as the RPM counters
         MetricBox(new RectangleF(X(4) + 14, subY, ring - 28, subH),
-            Perf.CpuClockMhz() is int mhz and > 0 ? $"CPU: {mhz} MHz" : "CPU: — MHz");
+            Perf.CpuClockMhz() is int mhz and > 0 ? $"CPU: {mhz} MHz" : "CPU: - MHz");
 
         // second sub-row: battery, GPU load %, VRAM — same box width as the RPM counters, under rings 2/3/4
         int subY2 = subY + subH + 14;
@@ -495,7 +495,7 @@ public sealed class StatusPage : ThemedPage
         bool vramBar = vt > 0 && vm >= 0;   // only meaningful as a bar when we know the total (discussion #9)
         void Box2(int i, string text) => MetricBox(new RectangleF(X(i) + 14, subY2, ring - 28, subH), text);
         Box2(2, $"{Lang.T("st_battery")}: {BatteryText()}");
-        Box2(3, $"{Lang.T("ov_m_gpuusage")}: " + (gu >= 0 ? $"{gu} %" : "—"));
+        Box2(3, $"{Lang.T("ov_m_gpuusage")}: " + (gu >= 0 ? $"{gu} %" : "-"));
         // VRAM: shown as a bar under RAM when the total is known; otherwise fall back to the MB box.
         if (vramBar)
         {
@@ -508,7 +508,7 @@ public sealed class StatusPage : ThemedPage
         }
         else
         {
-            Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
+            Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "-"));
         }
 
         // Integrated card, two-card laptops only (roadmap #114): the free slot under the CPU-usage
@@ -582,7 +582,7 @@ public sealed class StatusPage : ThemedPage
             // read as the app breaking.
             var box = new RectangleF(X(2) + 14, subY3, wideW, subH);
             MetricBox(box, $"{Lang.T("st_gpu_clock")}: " +
-                (gt.Mhz <= 0 ? "— MHz"
+                (gt.Mhz <= 0 ? "- MHz"
                  : gt.MaxMhz > 0 ? $"{gt.Mhz} MHz · {gt.Percent} %"
                  : $"{gt.Mhz} MHz"));
             _gpuHelpText = gt.MaxMhz > 0 && gt.Mhz > 0
@@ -596,7 +596,7 @@ public sealed class StatusPage : ThemedPage
 
         int bm = Perf.BatteryMinutesLeftCached();
         MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),
-            $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "—"));
+            $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "-"));
 
         int rightH = gt.Ok ? subH * 2 + 14 : subH;
         int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
@@ -1103,12 +1103,12 @@ public sealed class StatusPage : ThemedPage
             (Lang.T("gm_game_lbl"), $"{s.Process}  ·  {s.End:HH:mm}", false),
             (Lang.T("gm_dur"), FmtTs(s.End - s.Start), false),
             ("FPS", string.Format(Lang.T("gm_fps_row"), s.AvgFps, s.MinFps, s.MaxFps), false),
-            ("1% low", s.P1LowFps > 0 ? s.P1LowFps + " FPS" : "—", false),
+            ("1% low", s.P1LowFps > 0 ? s.P1LowFps + " FPS" : "-", false),
             (Lang.T("gm_frames"), s.Frames.ToString("N0"), true),
             (Lang.T("gm_stut"), s.Stutters.ToString("N0"), true),
-            (Lang.T("gm_temp_max"), s.MaxCpuTemp > 0 ? $"CPU {s.MaxCpuTemp}°  ·  GPU {s.MaxGpuTemp}°" : "—", false),
-            (Lang.T("gm_rpm_avg"), s.AvgCpuRpm > 0 || s.AvgGpuRpm > 0 ? $"CPU {s.AvgCpuRpm}  ·  GPU {s.AvgGpuRpm}" : "—", false),
-            (Lang.T("gm_profile"), s.Profile.Length > 0 ? s.Profile : "—", false),
+            (Lang.T("gm_temp_max"), s.MaxCpuTemp > 0 ? $"CPU {s.MaxCpuTemp}°  ·  GPU {s.MaxGpuTemp}°" : "-", false),
+            (Lang.T("gm_rpm_avg"), s.AvgCpuRpm > 0 || s.AvgGpuRpm > 0 ? $"CPU {s.AvgCpuRpm}  ·  GPU {s.AvgGpuRpm}" : "-", false),
+            (Lang.T("gm_profile"), s.Profile.Length > 0 ? s.Profile : "-", false),
         };
         var card = new RectangleF(Pad, y, avail, GmSessRows * GmRowH + 14);
         Ui.FillCard(g, card);
@@ -1349,9 +1349,9 @@ public sealed class StatusPage : ThemedPage
 
     private string RecipeVal(ProfileId p, byte addr)
     {
-        if (_dev == null) return "—";
+        if (_dev == null) return "-";
         foreach (var (a, v) in _dev.Recipes[p]) if (a == addr) return v.ToString("X2");
-        return "—";
+        return "-";
     }
 
     private int DrawMatrix(Graphics g, int top, int avail, StatusInfo info)
@@ -1380,7 +1380,7 @@ public sealed class StatusPage : ThemedPage
         var rows = new List<string[]>();
         foreach (var id in order)
             rows.Add(new[] { Profiles.Get(id).Label, RecipeVal(id, shiftA), RecipeVal(id, 0x34), RecipeVal(id, 0xEB), FanCell(RecipeVal(id, fanA)) });
-        string LiveHex(int i) => _live.Length > i && !(Ec.OnBackupPath && i is 1 or 2) ? _live[i].ToString("X2") : "—";
+        string LiveHex(int i) => _live.Length > i && !(Ec.OnBackupPath && i is 1 or 2) ? _live[i].ToString("X2") : "-";
         rows.Add(new[] { Lang.T("st_now"), LiveHex(0), LiveHex(1), LiveHex(2), FanCell(LiveHex(3)) });
 
         int active = Array.IndexOf(order, info.Profile);
@@ -1440,7 +1440,7 @@ public sealed class StatusPage : ThemedPage
         // above the ring's own scale is a misread; temperatures and loads keep the old 130 guard
         bool ok = known && (allowZero ? value >= 0 : value > 0) && value <= Math.Max(max, 129);
         float frac = ok ? Math.Clamp(value / (float)max, 0, 1) : 0;
-        IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "—", unit, label, sub);
+        IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "-", unit, label, sub);
     }
 
     private static void DrawBar(Graphics g, RectangleF r, float frac, Color color)

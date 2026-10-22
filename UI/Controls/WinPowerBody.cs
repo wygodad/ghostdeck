@@ -36,7 +36,7 @@ public sealed class WinPowerBody : Control
     public event Action? ContentHeightChanged;
 
     // ---- model, refreshed by Sync() ----
-    private string _plan = "—";
+    private string _plan = "-";
     private bool _haveBoost;
     private uint _ac, _dc;
     private int[]? _snap;
@@ -239,7 +239,7 @@ public sealed class WinPowerBody : Control
         bool haveScheme = PowerPlan.TryGetActiveScheme(out var scheme);
         bool autonomous = PowerPlan.AutonomousOn(haveScheme ? scheme : null);
         if (autonomous != _autonomous) { _autonomous = autonomous; _cbAc.Invalidate(); _cbDc.Invalidate(); }   // the groups of 2 and 4 follow it
-        _plan = haveScheme ? PowerPlan.SchemeName(scheme) : "—";
+        _plan = haveScheme ? PowerPlan.SchemeName(scheme) : "-";
         _haveBoost = haveScheme && PowerPlan.TryReadBoost(scheme, out _ac, out _dc);
         _snap = haveScheme && s.TurboSnapshots.TryGetValue(scheme.ToString("D").ToLowerInvariant(), out var sn) && sn is { Length: 2 } ? sn : null;
 
@@ -259,7 +259,7 @@ public sealed class WinPowerBody : Control
             {
                 // two honest OFF texts: "comes back" ONLY when a snapshot really exists
                 if (_snap != null) { _statusText = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)_snap[0]), PowerPlan.BoostName((uint)_snap[1])); _statusKind = 1; }
-                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost() is { } fbm ? PowerPlan.BoostName(fbm.Value) : "—"); _statusKind = 1; }
+                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost() is { } fbm ? PowerPlan.BoostName(fbm.Value) : "-"); _statusKind = 1; }
             }
             else if (_ac != 0 && _dc != 0) { _statusText = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn); _statusKind = 0; }
             else { _statusText = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn); _statusKind = 1; }   // a real MIXED state, named
@@ -437,7 +437,7 @@ public sealed class WinPowerBody : Control
         string none = Lang.T("pw_none");
         var rows = new (string Label, string A, string B, Color Col)[]
         {
-            (Lang.T("pw_now"), _haveBoost ? PowerPlan.BoostName(_ac) : "—", _haveBoost ? PowerPlan.BoostName(_dc) : "—", Theme.Text),
+            (Lang.T("pw_now"), _haveBoost ? PowerPlan.BoostName(_ac) : "-", _haveBoost ? PowerPlan.BoostName(_dc) : "-", Theme.Text),
             (Lang.T("pw_saved"), _snap != null ? PowerPlan.BoostName((uint)_snap[0]) : none, _snap != null ? PowerPlan.BoostName((uint)_snap[1]) : none, _snap != null ? Theme.Amber : Theme.Faint),
         };
         for (int i = 0; i < rows.Length; i++)

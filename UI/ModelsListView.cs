@@ -86,18 +86,18 @@ internal sealed class ModelsListView : ModelsView
             if (fc.Verified) { curve = "✓ " + Lang.T(tested ? "mdl_curve_edit" : "mdl_curve_vopt"); curveCol = Theme.Green; }
             else { curve = "◉ " + Lang.T("mdl_curve_prev"); curveCol = Theme.Accent; }
         }
-        else { curve = "—"; curveCol = Theme.Muted; }
+        else { curve = "-"; curveCol = Theme.Muted; }
         // spaces around "/" let a two-fan pair wrap instead of being cut
         string rpm = m.CpuRpmAddr16 != 0
             ? (m.GpuRpmAddr16 == 0 ? $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}"   // wide (16-bit) pairs
                                    : $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2} / {m.GpuRpmAddr16:X2}:{m.GpuRpmAddr16 + 1:X2}")
-            : m.CpuRpmAddr == 0 ? "—"
+            : m.CpuRpmAddr == 0 ? "-"
             : m.GpuRpmAddr == 0 ? $"✓ 0x{m.CpuRpmAddr:X2}"   // single-tach boards (iGPU)
             : $"✓ 0x{m.CpuRpmAddr:X2} / 0x{m.GpuRpmAddr:X2}";
         return new RowText(m.Name, string.Join(", ", m.FirmwarePrefixes), m.ShiftMode == 0xF2 ? "G1" : "G2",
             Lang.T(tested ? "tier_tested" : "tier_experimental"), tested ? Theme.Green : Theme.Amber,
             curve, curveCol, ModelsStats.HasSuperBattery(m), rpm, ModelsStats.HasRpm(m),
-            m.Credit.Length > 0 ? "@" + m.Credit : "—");
+            m.Credit.Length > 0 ? "@" + m.Credit : "-");
     }
 
     private static readonly int[] WrapCols = { 0, 1, 3, 4, 6, 7 };
@@ -166,7 +166,7 @@ internal sealed class ModelsListView : ModelsView
     private int Details(Graphics? g, DeviceProfile m, int x, int y, int w)
     {
         var f = FCell;
-        string Dash = "—";
+        string Dash = "-";
         var lines = new List<(string Label, string Value)>
         {
             (Lang.T("mdl_d_prefixes"), string.Join(", ", m.FirmwarePrefixes)),
@@ -293,7 +293,7 @@ internal sealed class ModelsListView : ModelsView
                 Cell(g, cx[2], ry, top, h, ColW(cx, 2), t.Family, FCell, Theme.Muted);
                 Cell(g, cx[3], ry, top, h, ColW(cx, 3), c[2], FCell, t.StatusCol);
                 Cell(g, cx[4], ry, top, h, ColW(cx, 4), c[3], FCell, t.CurveCol);
-                Cell(g, cx[5], ry, top, h, ColW(cx, 5), t.Sb ? "✓" : "—", FCell, t.Sb ? Theme.Text : Theme.Muted);
+                Cell(g, cx[5], ry, top, h, ColW(cx, 5), t.Sb ? "✓" : "-", FCell, t.Sb ? Theme.Text : Theme.Muted);
                 Cell(g, cx[6], ry, top, h, ColW(cx, 6), c[4], t.HasRpm ? FMono : FCell, t.HasRpm ? Theme.Text : Theme.Muted);
                 Cell(g, cx[7], ry, top, h, ColW(cx, 7), c[5], FCell, m.Credit.Length > 0 ? Theme.Accent : Theme.Muted);
                 if (open) Details(g, m, Pad + S(46), ry + h + S(4), avail - S(46) - S(24));
@@ -305,7 +305,7 @@ internal sealed class ModelsListView : ModelsView
             ry += fullH;
         }
         if (rows.Count == 0)
-            T(g, "—", FCell, new Rectangle(cx[0], ry, avail, BaseRowH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            T(g, "-", FCell, new Rectangle(cx[0], ry, avail, BaseRowH), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
 
         // "not on the list?" box under the table
         int by = tableTop + tableH + S(14);

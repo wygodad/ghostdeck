@@ -320,7 +320,7 @@ public sealed partial class SettingsPage : ThemedPage
         if (!ReferenceEquals(_builtOrder, Profiles.Shown)) SyncProfileOrder();
         if (_themeSeg is { } ts) ts.Selected = Theme.Dark ? 1 : 0;
         if (_refreshNow is { IsDisposed: false })
-            _refreshNow.Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—";
+            _refreshNow.Text = Display.Current() > 0 ? Display.Current() + " Hz" : "-";
         _syncRefreshMan?.Invoke();
     }
 
@@ -861,7 +861,7 @@ public sealed partial class SettingsPage : ThemedPage
             var rates = Display.SupportedRates();
             _syncRefreshMan = null;   // re-pointed below when the panel offers a choice
             // live current panel rate first, so the switch rows below have a reference point
-            _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "—", AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold) };
+            _refreshNow = new Label { Text = Display.Current() > 0 ? Display.Current() + " Hz" : "-", AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold) };
             disp.AddRow(Lang.T("set_refresh_now"), _refreshNow);
             // which display the controls act on: the built-in panel when one is active, the
             // primary display otherwise (#69); EDID name appended when the panel reports one
@@ -932,10 +932,10 @@ public sealed partial class SettingsPage : ThemedPage
         var bh = BatteryHealth.Read();
         var batt = new CardSection(Lang.T("set_grp_batt"), "");
         Label BhVal(string txt) => new() { Text = txt, AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold) };
-        batt.AddRow(Lang.T("bh_design"), BhVal(bh.DesignMWh > 0 ? $"{bh.DesignMWh / 1000f:0.0} Wh" : "—"));
-        batt.AddRow(Lang.T("bh_full"), BhVal(bh.FullMWh > 0 ? $"{bh.FullMWh / 1000f:0.0} Wh" : "—"));
-        batt.AddRow(Lang.T("bh_wear"), BhVal(bh.WearPct >= 0 ? $"{bh.WearPct} %" : "—"));
-        batt.AddRow(Lang.T("bh_cycles"), BhVal(bh.Cycles > 0 ? bh.Cycles.ToString() : "—"));
+        batt.AddRow(Lang.T("bh_design"), BhVal(bh.DesignMWh > 0 ? $"{bh.DesignMWh / 1000f:0.0} Wh" : "-"));
+        batt.AddRow(Lang.T("bh_full"), BhVal(bh.FullMWh > 0 ? $"{bh.FullMWh / 1000f:0.0} Wh" : "-"));
+        batt.AddRow(Lang.T("bh_wear"), BhVal(bh.WearPct >= 0 ? $"{bh.WearPct} %" : "-"));
+        batt.AddRow(Lang.T("bh_cycles"), BhVal(bh.Cycles > 0 ? bh.Cycles.ToString() : "-"));
         _gRight[SubPower].Add(batt);
 
         // Battery-level rules: e.g. below 30 % -> Super Battery, above 80 % -> Balanced.

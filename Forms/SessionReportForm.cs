@@ -330,9 +330,9 @@ public sealed class SessionReportForm : Form
             }
         }
         Box(0, "AVG FPS", _s.AvgFps.ToString(), Cyan);
-        Box(1, "1% LOW", _s.P1LowFps > 0 ? _s.P1LowFps.ToString() : "—", White);
-        Box(2, "CPU MAX", _s.MaxCpuTemp > 0 ? $"{_s.MaxCpuTemp}°" : "—", _s.MaxCpuTemp > 0 ? Amber : Muted);
-        Box(3, "FAN AVG", _s.AvgCpuRpm > 0 ? FmtRpm(Math.Max(_s.AvgCpuRpm, _s.AvgGpuRpm)) : "—", White,
+        Box(1, "1% LOW", _s.P1LowFps > 0 ? _s.P1LowFps.ToString() : "-", White);
+        Box(2, "CPU MAX", _s.MaxCpuTemp > 0 ? $"{_s.MaxCpuTemp}°" : "-", _s.MaxCpuTemp > 0 ? Amber : Muted);
+        Box(3, "FAN AVG", _s.AvgCpuRpm > 0 ? FmtRpm(Math.Max(_s.AvgCpuRpm, _s.AvgGpuRpm)) : "-", White,
             _s.AvgCpuRpm > 0 ? "RPM" : "");
 
         // ---- frametime sparkline ----

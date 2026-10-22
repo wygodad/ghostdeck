@@ -70,20 +70,20 @@ public static class Lang
         // ---- report: fan-curve verification flow ----
         m["rep_curve_intro"]   = new[]
         {
-            "Help verify the fan-curve addresses for your model. Set the exact test curve below in MSI Center, then capture — we read it back from the EC (read-only) and locate it, then prepare a GitHub report.",
-            "Pomóż zweryfikować adresy krzywej wentylatora dla Twojego modelu. Ustaw w MSI Center dokładnie poniższą krzywą testową, potem kliknij Zbierz — odczytamy ją z EC (tylko odczyt), zlokalizujemy i przygotujemy zgłoszenie na GitHub.",
-            "Hilf, die Lüfterkurven-Adressen für dein Modell zu verifizieren. Stelle in MSI Center genau die untenstehende Testkurve ein, dann erfasse — wir lesen sie aus dem EC zurück (nur Lesen), lokalisieren sie und erstellen einen GitHub-Bericht.",
-            "Aidez à vérifier les adresses de la courbe de ventilation pour votre modèle. Réglez exactement la courbe de test ci-dessous dans MSI Center, puis capturez — nous la relisons depuis l'EC (lecture seule), la localisons et préparons un rapport GitHub.",
-            "Ayuda a verificar las direcciones de la curva del ventilador de tu modelo. Configura en MSI Center exactamente la curva de prueba de abajo y luego captura — la leemos del EC (solo lectura), la localizamos y preparamos un informe de GitHub.",
-            "帮助验证你机型的风扇曲线地址。在 MSI Center 中精确设置下面的测试曲线，然后采集——我们会从 EC 读回（只读）并定位它，随后生成 GitHub 报告。",
-            "Ajude a verificar os endereços da curva da ventoinha do seu modelo. Defina no MSI Center exatamente a curva de teste abaixo e capture — lemos de volta do EC (somente leitura), localizamos e preparamos um relatório no GitHub.",
-            "Помогите проверить адреса кривой вентилятора для вашей модели. Задайте в MSI Center точно указанную ниже тестовую кривую, затем снимите — мы считаем её из EC (только чтение), найдём и подготовим отчёт на GitHub.",
+            "Help verify the fan-curve addresses for your model. Set the exact test curve below in MSI Center, then capture - we read it back from the EC (read-only) and locate it, then prepare a GitHub report.",
+            "Pomóż zweryfikować adresy krzywej wentylatora dla Twojego modelu. Ustaw w MSI Center dokładnie poniższą krzywą testową, potem kliknij Zbierz - odczytamy ją z EC (tylko odczyt), zlokalizujemy i przygotujemy zgłoszenie na GitHub.",
+            "Hilf, die Lüfterkurven-Adressen für dein Modell zu verifizieren. Stelle in MSI Center genau die untenstehende Testkurve ein, dann erfasse - wir lesen sie aus dem EC zurück (nur Lesen), lokalisieren sie und erstellen einen GitHub-Bericht.",
+            "Aidez à vérifier les adresses de la courbe de ventilation pour votre modèle. Réglez exactement la courbe de test ci-dessous dans MSI Center, puis capturez - nous la relisons depuis l'EC (lecture seule), la localisons et préparons un rapport GitHub.",
+            "Ayuda a verificar las direcciones de la curva del ventilador de tu modelo. Configura en MSI Center exactamente la curva de prueba de abajo y luego captura - la leemos del EC (solo lectura), la localizamos y preparamos un informe de GitHub.",
+            "帮助验证你机型的风扇曲线地址。在 MSI Center 中精确设置下面的测试曲线，然后采集，我们会从 EC 读回（只读）并定位它，随后生成 GitHub 报告。",
+            "Ajude a verificar os endereços da curva da ventoinha do seu modelo. Defina no MSI Center exatamente a curva de teste abaixo e capture - lemos de volta do EC (somente leitura), localizamos e preparamos um relatório no GitHub.",
+            "Помогите проверить адреса кривой вентилятора для вашей модели. Задайте в MSI Center точно указанную ниже тестовую кривую, затем снимите - мы считаем её из EC (только чтение), найдём и подготовим отчёт на GitHub.",
             "お使いのモデルのファンカーブアドレス確認にご協力ください。MSI Center で下記のテストカーブを正確に設定してからキャプチャすると、EC から読み取り（読み取り専用）して位置を特定し、GitHub レポートを準備します。",
             "사용 중인 모델의 팬 곡선 주소 확인을 도와주세요. 아래 테스트 곡선을 MSI Center에서 정확히 설정한 뒤 캡처하면, EC에서 읽어(읽기 전용) 위치를 찾고 GitHub 보고서를 준비합니다.",
-            "協助驗證你的機型的風扇曲線位址。在 MSI Center 中精確設定下方的測試曲線，然後擷取——我們會從 EC 讀回（唯讀）並定位它，接著產生 GitHub 報告。",
-            "Modelinizin fan eğrisi adreslerini doğrulamamıza yardım edin. Aşağıdaki test eğrisini MSI Center'da birebir ayarlayın, sonra yakalayın — EC'den (salt okunur) geri okuyup konumunu buluruz ve bir GitHub raporu hazırlarız.",
-            "Giúp xác minh địa chỉ đường cong quạt cho model của bạn. Đặt đúng đường cong thử nghiệm bên dưới trong MSI Center, rồi ghi lại — chúng tôi đọc lại từ EC (chỉ đọc), định vị nó và soạn báo cáo GitHub.",
-            "Bantu verifikasi alamat kurva kipas untuk model Anda. Atur kurva uji persis seperti di bawah di MSI Center, lalu tangkap — kami membacanya kembali dari EC (hanya baca), menemukannya, lalu menyiapkan laporan GitHub.",
+            "協助驗證你的機型的風扇曲線位址。在 MSI Center 中精確設定下方的測試曲線，然後擷取，我們會從 EC 讀回（唯讀）並定位它，接著產生 GitHub 報告。",
+            "Modelinizin fan eğrisi adreslerini doğrulamamıza yardım edin. Aşağıdaki test eğrisini MSI Center'da birebir ayarlayın, sonra yakalayın - EC'den (salt okunur) geri okuyup konumunu buluruz ve bir GitHub raporu hazırlarız.",
+            "Giúp xác minh địa chỉ đường cong quạt cho model của bạn. Đặt đúng đường cong thử nghiệm bên dưới trong MSI Center, rồi ghi lại - chúng tôi đọc lại từ EC (chỉ đọc), định vị nó và soạn báo cáo GitHub.",
+            "Bantu verifikasi alamat kurva kipas untuk model Anda. Atur kurva uji persis seperti di bawah di MSI Center, lalu tangkap - kami membacanya kembali dari EC (hanya baca), menemukannya, lalu menyiapkan laporan GitHub.",
             "Aiuta a verificare gli indirizzi della curva ventole per il tuo modello. Imposta in MSI Center la curva di test esatta qui sotto, poi acquisisci: la rileggiamo dall'EC (sola lettura), la localizziamo e prepariamo un report GitHub."
         };
         m["rep_curve_warn"] = new[]
@@ -217,45 +217,45 @@ public static class Lang
         m["rep_curve_finish"]  = new[] { "Open GitHub report", "Otwórz zgłoszenie GitHub", "GitHub-Bericht öffnen", "Ouvrir le rapport GitHub", "Abrir informe de GitHub", "打开 GitHub 报告", "Abrir relatório no GitHub", "Открыть отчёт на GitHub", "GitHub レポートを開く", "GitHub 보고서 열기", "開啟 GitHub 報告", "GitHub raporunu aç", "Mở báo cáo GitHub", "Buka laporan GitHub", "Apri report GitHub" };
         m["rep_curve_found"]   = new[]
         {
-            "Test curve found — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Znaleziono krzywą testową — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "Testkurve gefunden — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Courbe de test trouvée — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "Curva de prueba encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "已找到测试曲线 — CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
-            "Curva de teste encontrada — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Тестовая кривая найдена — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "テストカーブを検出 — CPU @ 0x{0:X2}、GPU @ 0x{1:X2}。",
-            "테스트 곡선 발견 — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "已找到測試曲線 — CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
-            "Test eğrisi bulundu — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "Đã tìm thấy đường cong kiểm thử — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "Kurva uji ditemukan — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
-            "Curva di test trovata — CPU @ 0x{0:X2}, GPU @ 0x{1:X2}."
+            "Test curve found - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Znaleziono krzywą testową - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Testkurve gefunden - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Courbe de test trouvée - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Curva de prueba encontrada - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "已找到测试曲线 - CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
+            "Curva de teste encontrada - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.", "Тестовая кривая найдена - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "テストカーブを検出 - CPU @ 0x{0:X2}、GPU @ 0x{1:X2}。",
+            "테스트 곡선 발견 - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "已找到測試曲線 - CPU @ 0x{0:X2}，GPU @ 0x{1:X2}。",
+            "Test eğrisi bulundu - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Đã tìm thấy đường cong kiểm thử - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Kurva uji ditemukan - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}.",
+            "Curva di test trovata - CPU @ 0x{0:X2}, GPU @ 0x{1:X2}."
         };
         m["rep_curve_match"]   = new[]
         {
-            "Matches the shipped map — this model's curve can be marked verified.", "Zgodne z mapą w aplikacji — krzywą tego modelu można oznaczyć jako zweryfikowaną.",
-            "Stimmt mit der mitgelieferten Zuordnung überein — die Kurve dieses Modells kann als verifiziert markiert werden.", "Correspond à la carte fournie — la courbe de ce modèle peut être marquée comme vérifiée.",
-            "Coincide con el mapa incluido — la curva de este modelo puede marcarse como verificada.", "与内置映射一致——该机型的曲线可标记为已验证。",
-            "Corresponde ao mapa incluído — a curva deste modelo pode ser marcada como verificada.", "Совпадает со встроенной картой — кривую этой модели можно отметить как проверенную.",
-            "内蔵マップと一致 — このモデルのカーブは検証済みにできます。",
-            "내장 맵과 일치 — 이 모델의 곡선을 검증됨으로 표시할 수 있습니다.",
-            "與內建對應表一致——此機型的曲線可標記為已驗證。",
-            "Yerleşik haritayla eşleşiyor — bu modelin eğrisi doğrulanmış olarak işaretlenebilir.",
-            "Khớp với bản đồ đi kèm — đường cong của model này có thể đánh dấu là đã xác minh.",
-            "Cocok dengan peta bawaan — kurva model ini dapat ditandai terverifikasi.",
-            "Corrisponde alla mappa integrata — la curva di questo modello può dirsi verificata."
+            "Matches the shipped map - this model's curve can be marked verified.", "Zgodne z mapą w aplikacji - krzywą tego modelu można oznaczyć jako zweryfikowaną.",
+            "Stimmt mit der mitgelieferten Zuordnung überein - die Kurve dieses Modells kann als verifiziert markiert werden.", "Correspond à la carte fournie - la courbe de ce modèle peut être marquée comme vérifiée.",
+            "Coincide con el mapa incluido - la curva de este modelo puede marcarse como verificada.", "与内置映射一致，该机型的曲线可标记为已验证。",
+            "Corresponde ao mapa incluído - a curva deste modelo pode ser marcada como verificada.", "Совпадает со встроенной картой - кривую этой модели можно отметить как проверенную.",
+            "内蔵マップと一致 - このモデルのカーブは検証済みにできます。",
+            "내장 맵과 일치 - 이 모델의 곡선을 검증됨으로 표시할 수 있습니다.",
+            "與內建對應表一致，此機型的曲線可標記為已驗證。",
+            "Yerleşik haritayla eşleşiyor - bu modelin eğrisi doğrulanmış olarak işaretlenebilir.",
+            "Khớp với bản đồ đi kèm - đường cong của model này có thể đánh dấu là đã xác minh.",
+            "Cocok dengan peta bawaan - kurva model ini dapat ditandai terverifikasi.",
+            "Corrisponde alla mappa integrata - la curva di questo modello può dirsi verificata."
         };
         m["rep_curve_nomatch"] = new[]
         {
-            "Differs from the shipped map — sending the addresses for review.", "Różni się od mapy w aplikacji — wysyłam adresy do przeglądu.",
-            "Weicht von der mitgelieferten Zuordnung ab — Adressen werden zur Prüfung gesendet.", "Diffère de la carte fournie — envoi des adresses pour examen.",
-            "Difiere del mapa incluido — enviando las direcciones para revisión.", "与内置映射不同——正在发送地址以供审核。",
-            "Difere do mapa incluído — enviando os endereços para revisão.", "Отличается от встроенной карты — отправляю адреса на проверку.",
-            "内蔵マップと不一致 — アドレスをレビュー用に送信します。",
-            "내장 맵과 다름 — 검토를 위해 주소를 보냅니다.",
-            "與內建對應表不同——正在傳送位址以供審核。",
-            "Yerleşik haritadan farklı — adresler inceleme için gönderiliyor.",
-            "Khác với bản đồ đi kèm — đang gửi địa chỉ để xem xét.",
-            "Berbeda dari peta bawaan — mengirim alamat untuk ditinjau.",
-            "Diversa dalla mappa integrata — invio degli indirizzi per la revisione."
+            "Differs from the shipped map - sending the addresses for review.", "Różni się od mapy w aplikacji - wysyłam adresy do przeglądu.",
+            "Weicht von der mitgelieferten Zuordnung ab - Adressen werden zur Prüfung gesendet.", "Diffère de la carte fournie - envoi des adresses pour examen.",
+            "Difiere del mapa incluido - enviando las direcciones para revisión.", "与内置映射不同，正在发送地址以供审核。",
+            "Difere do mapa incluído - enviando os endereços para revisão.", "Отличается от встроенной карты - отправляю адреса на проверку.",
+            "内蔵マップと不一致 - アドレスをレビュー用に送信します。",
+            "내장 맵과 다름 - 검토를 위해 주소를 보냅니다.",
+            "與內建對應表不同，正在傳送位址以供審核。",
+            "Yerleşik haritadan farklı - adresler inceleme için gönderiliyor.",
+            "Khác với bản đồ đi kèm - đang gửi địa chỉ để xem xét.",
+            "Berbeda dari peta bawaan - mengirim alamat untuk ditinjau.",
+            "Diversa dalla mappa integrata - invio degli indirizzi per la revisione."
         };
         m["rep_curve_notfound"]= new[]
         {
@@ -309,21 +309,21 @@ public static class Lang
         };
         m["rep_curve_notadvanced"]= new[]
         {
-            "The Advanced fan curve isn't active right now — your laptop is in another profile, so the EC still holds the default curve. Switch to Extreme Performance, set the Advanced curve in MSI Center, click Save, and stay in Extreme, then capture again.",
-            "Zaawansowana krzywa nie jest teraz aktywna — laptop jest w innym profilu, więc w EC jest wciąż domyślna krzywa. Przełącz na Extreme Performance, ustaw krzywą (Advanced) w MSI Center, kliknij Save i zostań w Extreme, potem przechwyć ponownie.",
-            "Die erweiterte Lüfterkurve ist gerade nicht aktiv — dein Notebook ist in einem anderen Profil, daher enthält der EC noch die Standardkurve. Wechsle zu Extreme Performance, stelle die Advanced-Kurve in MSI Center ein, klicke Save, bleib in Extreme und erfasse erneut.",
-            "La courbe avancée n'est pas active actuellement — votre PC est sur un autre profil, donc l'EC contient encore la courbe par défaut. Passez en Extreme Performance, réglez la courbe (Advanced) dans MSI Center, cliquez sur Save, restez en Extreme, puis capturez à nouveau.",
-            "La curva avanzada no está activa ahora — tu portátil está en otro perfil, así que el EC aún tiene la curva por defecto. Cambia a Extreme Performance, configura la curva (Advanced) en MSI Center, haz clic en Save, quédate en Extreme y captura de nuevo.",
-            "高级风扇曲线当前未激活——你的笔记本处于其他配置文件，因此 EC 中仍是默认曲线。请切换到 Extreme Performance，在 MSI Center 设置 Advanced 曲线，点击 Save 并保持在 Extreme，然后重新采集。",
-            "A curva avançada não está ativa agora — seu notebook está em outro perfil, então o EC ainda tem a curva padrão. Mude para Extreme Performance, defina a curva (Advanced) no MSI Center, clique em Save, permaneça no Extreme e capture novamente.",
-            "Расширенная кривая сейчас не активна — ноутбук в другом профиле, поэтому в EC всё ещё стандартная кривая. Переключитесь на Extreme Performance, задайте кривую (Advanced) в MSI Center, нажмите Save, оставайтесь в Extreme и снимите ещё раз.",
-            "Advanced ファンカーブは現在有効ではありません — 別のプロファイル中のため、EC はまだ既定カーブのままです。Extreme Performance に切り替え、MSI Center で Advanced カーブを設定して Save をクリックし、Extreme のまま再度キャプチャしてください。",
-            "Advanced 팬 곡선이 현재 활성 상태가 아닙니다 — 노트북이 다른 프로필에 있어 EC에 아직 기본 곡선이 있습니다. Extreme Performance로 전환하고 MSI Center에서 Advanced 곡선을 설정한 뒤 Save를 클릭하고, Extreme을 유지한 채 다시 캡처하세요.",
-            "進階風扇曲線目前未啟用——你的筆電處於其他設定檔，因此 EC 中仍是預設曲線。請切換到 Extreme Performance，在 MSI Center 設定 Advanced 曲線，按一下 Save 並保持在 Extreme，然後重新擷取。",
-            "Advanced fan eğrisi şu anda etkin değil — dizüstünüz başka bir profilde, bu yüzden EC hâlâ varsayılan eğriyi tutuyor. Extreme Performance'a geçin, MSI Center'da Advanced eğrisini ayarlayın, Save'e tıklayın ve Extreme'de kalın, sonra yeniden yakalayın.",
-            "Đường cong quạt Advanced hiện không hoạt động — laptop đang ở hồ sơ khác nên EC vẫn giữ đường cong mặc định. Hãy chuyển sang Extreme Performance, đặt đường cong Advanced trong MSI Center, nhấn Save, giữ nguyên Extreme rồi thu thập lại.",
-            "Kurva kipas Advanced saat ini tidak aktif — laptop Anda berada di profil lain, sehingga EC masih menyimpan kurva default. Pindah ke Extreme Performance, atur kurva Advanced di MSI Center, klik Save, tetap di Extreme, lalu tangkap lagi.",
-            "La curva ventole Advanced non è attiva ora — il laptop è in un altro profilo, quindi l'EC contiene ancora la curva predefinita. Passa a Extreme Performance, imposta la curva Advanced in MSI Center, fai clic su Save, resta in Extreme e acquisisci di nuovo."
+            "The Advanced fan curve isn't active right now - your laptop is in another profile, so the EC still holds the default curve. Switch to Extreme Performance, set the Advanced curve in MSI Center, click Save, and stay in Extreme, then capture again.",
+            "Zaawansowana krzywa nie jest teraz aktywna - laptop jest w innym profilu, więc w EC jest wciąż domyślna krzywa. Przełącz na Extreme Performance, ustaw krzywą (Advanced) w MSI Center, kliknij Save i zostań w Extreme, potem przechwyć ponownie.",
+            "Die erweiterte Lüfterkurve ist gerade nicht aktiv - dein Notebook ist in einem anderen Profil, daher enthält der EC noch die Standardkurve. Wechsle zu Extreme Performance, stelle die Advanced-Kurve in MSI Center ein, klicke Save, bleib in Extreme und erfasse erneut.",
+            "La courbe avancée n'est pas active actuellement - votre PC est sur un autre profil, donc l'EC contient encore la courbe par défaut. Passez en Extreme Performance, réglez la courbe (Advanced) dans MSI Center, cliquez sur Save, restez en Extreme, puis capturez à nouveau.",
+            "La curva avanzada no está activa ahora - tu portátil está en otro perfil, así que el EC aún tiene la curva por defecto. Cambia a Extreme Performance, configura la curva (Advanced) en MSI Center, haz clic en Save, quédate en Extreme y captura de nuevo.",
+            "高级风扇曲线当前未激活，你的笔记本处于其他配置文件，因此 EC 中仍是默认曲线。请切换到 Extreme Performance，在 MSI Center 设置 Advanced 曲线，点击 Save 并保持在 Extreme，然后重新采集。",
+            "A curva avançada não está ativa agora - seu notebook está em outro perfil, então o EC ainda tem a curva padrão. Mude para Extreme Performance, defina a curva (Advanced) no MSI Center, clique em Save, permaneça no Extreme e capture novamente.",
+            "Расширенная кривая сейчас не активна - ноутбук в другом профиле, поэтому в EC всё ещё стандартная кривая. Переключитесь на Extreme Performance, задайте кривую (Advanced) в MSI Center, нажмите Save, оставайтесь в Extreme и снимите ещё раз.",
+            "Advanced ファンカーブは現在有効ではありません - 別のプロファイル中のため、EC はまだ既定カーブのままです。Extreme Performance に切り替え、MSI Center で Advanced カーブを設定して Save をクリックし、Extreme のまま再度キャプチャしてください。",
+            "Advanced 팬 곡선이 현재 활성 상태가 아닙니다 - 노트북이 다른 프로필에 있어 EC에 아직 기본 곡선이 있습니다. Extreme Performance로 전환하고 MSI Center에서 Advanced 곡선을 설정한 뒤 Save를 클릭하고, Extreme을 유지한 채 다시 캡처하세요.",
+            "進階風扇曲線目前未啟用，你的筆電處於其他設定檔，因此 EC 中仍是預設曲線。請切換到 Extreme Performance，在 MSI Center 設定 Advanced 曲線，按一下 Save 並保持在 Extreme，然後重新擷取。",
+            "Advanced fan eğrisi şu anda etkin değil - dizüstünüz başka bir profilde, bu yüzden EC hâlâ varsayılan eğriyi tutuyor. Extreme Performance'a geçin, MSI Center'da Advanced eğrisini ayarlayın, Save'e tıklayın ve Extreme'de kalın, sonra yeniden yakalayın.",
+            "Đường cong quạt Advanced hiện không hoạt động - laptop đang ở hồ sơ khác nên EC vẫn giữ đường cong mặc định. Hãy chuyển sang Extreme Performance, đặt đường cong Advanced trong MSI Center, nhấn Save, giữ nguyên Extreme rồi thu thập lại.",
+            "Kurva kipas Advanced saat ini tidak aktif - laptop Anda berada di profil lain, sehingga EC masih menyimpan kurva default. Pindah ke Extreme Performance, atur kurva Advanced di MSI Center, klik Save, tetap di Extreme, lalu tangkap lagi.",
+            "La curva ventole Advanced non è attiva ora - il laptop è in un altro profilo, quindi l'EC contiene ancora la curva predefinita. Passa a Extreme Performance, imposta la curva Advanced in MSI Center, fai clic su Save, resta in Extreme e acquisisci di nuovo."
         };
 
         // ---- Models: verify CTA ----
@@ -369,7 +369,7 @@ public static class Lang
 
         // ---- gaming overlay ----
         m["overlay_title"]    = new[] { "Gaming overlay", "Nakładka do gier", "Gaming-Overlay", "Overlay de jeu", "Overlay de juego", "游戏悬浮窗", "Overlay de jogo", "Игровой оверлей", "ゲームオーバーレイ", "게이밍 오버레이", "遊戲覆蓋層", "Oyun katmanı", "Lớp phủ chơi game", "Overlay gaming", "Overlay di gioco" };
-        m["overlay_hint"]     = new[] { "Detachable always-on-top mini panel with temps, fan RPM and profile — for gaming. Drag to move; toggle with the hotkey. Options in Settings.", "Odczepiany, zawsze-na-wierzchu mini panel z temperaturami, obrotami i profilem — do grania. Przeciągnij, by przesunąć; przełącz skrótem. Opcje w Ustawieniach.", "Abnehmbares Mini-Panel (immer im Vordergrund) mit Temperaturen, Lüfter-RPM und Profil — fürs Gaming. Zum Verschieben ziehen; per Hotkey umschalten. Optionen in den Einstellungen.", "Mini-panneau détachable toujours au premier plan (températures, RPM, profil) — pour le jeu. Glisser pour déplacer ; raccourci pour afficher. Options dans les Réglages.", "Mini panel desacoplable siempre visible con temperaturas, RPM y perfil — para juegos. Arrastra para mover; alterna con el atajo. Opciones en Ajustes.", "可拆卸的置顶小面板，显示温度、风扇转速和配置文件——为游戏而生。拖动移动；快捷键切换。选项在设置中。", "Mini-painel destacável sempre no topo com temperaturas, RPM e perfil — para jogos. Arraste para mover; alterne com o atalho. Opções nas Definições.", "Открепляемая мини-панель поверх окон: температуры, обороты, профиль — для игр. Перетаскивайте мышью; переключение горячей клавишей. Настройки в разделе Настройки.", "温度、ファン RPM、プロファイルを表示する切り離し可能な最前面ミニパネル — ゲーム向け。ドラッグで移動、ホットキーで切替。オプションは設定にあります。", "온도, 팬 RPM, 프로필을 표시하는 분리형 최상위 미니 패널 — 게임용. 드래그로 이동, 단축키로 전환. 옵션은 설정에서.", "可分離的置頂迷你面板，顯示溫度、風扇轉速和設定檔——專為遊戲設計。拖曳移動；用快速鍵切換。選項在設定中。", "Sıcaklık, fan RPM ve profili gösteren, ayrılabilir, her zaman üstte mini panel — oyun için. Sürükleyerek taşıyın; kısayolla açıp kapatın. Seçenekler Ayarlar'da.", "Bảng nhỏ tách rời luôn nổi trên cùng, hiển thị nhiệt độ, RPM quạt và hồ sơ — dành cho chơi game. Kéo để di chuyển; bật/tắt bằng phím tắt. Tùy chọn trong Cài đặt.", "Panel mini terpisah yang selalu di atas dengan suhu, RPM kipas, dan profil — untuk gaming. Seret untuk memindahkan; alihkan dengan hotkey. Opsi di Pengaturan.", "Mini pannello staccabile sempre in primo piano con temperature, RPM ventole e profilo, per il gaming. Trascina per spostarlo; attiva con la scorciatoia. Opzioni in Impostazioni." };
+        m["overlay_hint"]     = new[] { "Detachable always-on-top mini panel with temps, fan RPM and profile - for gaming. Drag to move; toggle with the hotkey. Options in Settings.", "Odczepiany, zawsze-na-wierzchu mini panel z temperaturami, obrotami i profilem - do grania. Przeciągnij, by przesunąć; przełącz skrótem. Opcje w Ustawieniach.", "Abnehmbares Mini-Panel (immer im Vordergrund) mit Temperaturen, Lüfter-RPM und Profil - fürs Gaming. Zum Verschieben ziehen; per Hotkey umschalten. Optionen in den Einstellungen.", "Mini-panneau détachable toujours au premier plan (températures, RPM, profil) - pour le jeu. Glisser pour déplacer ; raccourci pour afficher. Options dans les Réglages.", "Mini panel desacoplable siempre visible con temperaturas, RPM y perfil - para juegos. Arrastra para mover; alterna con el atajo. Opciones en Ajustes.", "可拆卸的置顶小面板，显示温度、风扇转速和配置文件，为游戏而生。拖动移动；快捷键切换。选项在设置中。", "Mini-painel destacável sempre no topo com temperaturas, RPM e perfil - para jogos. Arraste para mover; alterne com o atalho. Opções nas Definições.", "Открепляемая мини-панель поверх окон: температуры, обороты, профиль - для игр. Перетаскивайте мышью; переключение горячей клавишей. Настройки в разделе Настройки.", "温度、ファン RPM、プロファイルを表示する切り離し可能な最前面ミニパネル - ゲーム向け。ドラッグで移動、ホットキーで切替。オプションは設定にあります。", "온도, 팬 RPM, 프로필을 표시하는 분리형 최상위 미니 패널 - 게임용. 드래그로 이동, 단축키로 전환. 옵션은 설정에서.", "可分離的置頂迷你面板，顯示溫度、風扇轉速和設定檔，專為遊戲設計。拖曳移動；用快速鍵切換。選項在設定中。", "Sıcaklık, fan RPM ve profili gösteren, ayrılabilir, her zaman üstte mini panel - oyun için. Sürükleyerek taşıyın; kısayolla açıp kapatın. Seçenekler Ayarlar'da.", "Bảng nhỏ tách rời luôn nổi trên cùng, hiển thị nhiệt độ, RPM quạt và hồ sơ - dành cho chơi game. Kéo để di chuyển; bật/tắt bằng phím tắt. Tùy chọn trong Cài đặt.", "Panel mini terpisah yang selalu di atas dengan suhu, RPM kipas, dan profil - untuk gaming. Seret untuk memindahkan; alihkan dengan hotkey. Opsi di Pengaturan.", "Mini pannello staccabile sempre in primo piano con temperature, RPM ventole e profilo, per il gaming. Trascina per spostarlo; attiva con la scorciatoia. Opzioni in Impostazioni." };
         m["set_grp_overlay"]  = new[] { "Gaming overlay", "Nakładka do gier", "Gaming-Overlay", "Overlay de jeu", "Overlay de juego", "游戏悬浮窗", "Overlay de jogo", "Игровой оверлей", "ゲームオーバーレイ", "게이밍 오버레이", "遊戲覆蓋層", "Oyun katmanı", "Lớp phủ chơi game", "Overlay gaming", "Overlay di gioco" };
         m["ov_show"]          = new[] { "Show overlay", "Pokaż nakładkę", "Overlay anzeigen", "Afficher l'overlay", "Mostrar overlay", "显示悬浮窗", "Mostrar overlay", "Показать оверлей", "オーバーレイを表示", "오버레이 표시", "顯示覆蓋層", "Katmanı göster", "Hiện lớp phủ", "Tampilkan overlay", "Mostra overlay" };
         m["ov_layout"]        = new[] { "Layout", "Układ", "Layout", "Disposition", "Diseño", "布局", "Layout", "Вид", "レイアウト", "레이아웃", "版面", "Düzen", "Bố cục", "Tata letak", "Layout" };
@@ -392,7 +392,7 @@ public static class Lang
         m["ov_metrics"]       = new[] { "What to show", "Co pokazywać", "Was anzeigen", "Quoi afficher", "Qué mostrar", "显示内容", "O que mostrar", "Что показывать", "表示項目", "표시 항목", "顯示內容", "Gösterilecekler", "Nội dung hiển thị", "Yang ditampilkan", "Cosa mostrare" };
         m["ov_position"]      = new[] { "Position", "Pozycja", "Position", "Position", "Posición", "位置", "Posição", "Позиция", "位置", "위치", "位置", "Konum", "Vị trí", "Posisi", "Posizione" };
         m["ov_options"]       = new[] { "Options", "Opcje", "Optionen", "Options", "Opciones", "选项", "Opções", "Опции", "オプション", "옵션", "選項", "Seçenekler", "Tùy chọn", "Opsi", "Opzioni" };
-        m["ov_hotkey"]        = new[] { "Shortcut — show/hide", "Skrót — pokaż/ukryj", "Kürzel — ein/aus", "Raccourci — afficher/masquer", "Atajo — mostrar/ocultar", "快捷键 — 显示/隐藏", "Atalho — mostrar/ocultar", "Клавиша — показать/скрыть", "ショートカット — 表示/非表示", "단축키 — 표시/숨기기", "快速鍵 — 顯示/隱藏", "Kısayol — göster/gizle", "Phím tắt — hiện/ẩn", "Pintasan — tampil/sembunyi", "Scorciatoia — mostra/nascondi" };
+        m["ov_hotkey"]        = new[] { "Shortcut - show/hide", "Skrót - pokaż/ukryj", "Kürzel - ein/aus", "Raccourci - afficher/masquer", "Atajo - mostrar/ocultar", "快捷键 - 显示/隐藏", "Atalho - mostrar/ocultar", "Клавиша - показать/скрыть", "ショートカット - 表示/非表示", "단축키 - 표시/숨기기", "快速鍵 - 顯示/隱藏", "Kısayol - göster/gizle", "Phím tắt - hiện/ẩn", "Pintasan - tampil/sembunyi", "Scorciatoia - mostra/nascondi" };
         m["ov_drag_hint"]     = new[] { "or drag with the mouse", "lub przeciągnij myszą", "oder mit der Maus ziehen", "ou glisser à la souris", "o arrastra con el ratón", "或用鼠标拖动", "ou arraste com o rato", "или перетащите мышью", "またはマウスでドラッグ", "또는 마우스로 드래그", "或用滑鼠拖曳", "veya fareyle sürükleyin", "hoặc kéo bằng chuột", "atau seret dengan mouse", "o trascina con il mouse" };
         m["ov_pos_pick"]      = new[] { "Corners…", "Rogi…", "Ecken…", "Coins…", "Esquinas…", "边角…", "Cantos…", "Углы…", "コーナー…", "모서리…", "角落…", "Köşeler…", "Góc…", "Sudut…", "Angoli…" };
         m["ov_pos_tl"]        = new[] { "↖ Top-left", "↖ Lewy górny", "↖ Oben links", "↖ Haut gauche", "↖ Sup. izq.", "↖ 左上", "↖ Sup. esq.", "↖ Сверху слева", "↖ 左上", "↖ 왼쪽 위", "↖ 左上", "↖ Sol üst", "↖ Trên trái", "↖ Kiri atas", "↖ In alto a sinistra" };
@@ -554,25 +554,25 @@ public static class Lang
             "Tidak ada game terdeteksi. Jalankan game saat tab ini atau overlay terbuka, FPS akan muncul otomatis.",
             "Nessun gioco rilevato. Avvia un gioco con questa scheda o l'overlay aperti e gli FPS compaiono da soli."
         };
-        m["gm_chart"]       = new[] { "Frametime — last 60 s", "Czas klatki — ostatnie 60 s", "Frametime — letzte 60 s", "Temps d'image — 60 dernières s", "Tiempo de fotograma — últimos 60 s", "帧生成时间 — 最近 60 秒", "Tempo de quadro — últimos 60 s", "Время кадра — последние 60 с", "フレームタイム — 直近 60 秒", "프레임 타임 — 최근 60초", "畫格時間 — 最近 60 秒", "Kare süresi — son 60 sn", "Frametime — 60 s gần nhất", "Frametime — 60 dtk terakhir", "Frametime — ultimi 60 s" };
+        m["gm_chart"]       = new[] { "Frametime - last 60 s", "Czas klatki - ostatnie 60 s", "Frametime - letzte 60 s", "Temps d'image - 60 dernières s", "Tiempo de fotograma - últimos 60 s", "帧生成时间 - 最近 60 秒", "Tempo de quadro - últimos 60 s", "Время кадра - последние 60 с", "フレームタイム - 直近 60 秒", "프레임 타임 - 최근 60초", "畫格時間 - 最近 60 秒", "Kare süresi - son 60 sn", "Frametime - 60 s gần nhất", "Frametime - 60 dtk terakhir", "Frametime - ultimi 60 s" };
         m["gm_chart_empty"] = new[] { "Waiting for frames…", "Czekam na klatki…", "Warte auf Frames…", "En attente d'images…", "Esperando fotogramas…", "等待帧数据…", "Aguardando quadros…", "Ожидание кадров…", "フレーム待機中…", "프레임 대기 중…", "等待畫格資料…", "Kareler bekleniyor…", "Đang chờ khung hình…", "Menunggu frame…", "In attesa di frame…" };
         m["gm_stut"]        = new[] { "Stutters", "Przycięcia", "Ruckler", "Saccades", "Tirones", "卡顿", "Engasgos", "Статтеры", "カクつき", "끊김", "卡頓", "Takılmalar", "Giật hình", "Stutter", "Scatti" };
         m["gm_last"]        = new[] { "Last game session", "Ostatnia sesja gry", "Letzte Spielsitzung", "Dernière session de jeu", "Última sesión de juego", "上次游戏会话", "Última sessão de jogo", "Последняя игровая сессия", "前回のゲームセッション", "마지막 게임 세션", "上次遊戲工作階段", "Son oyun oturumu", "Phiên chơi gần nhất", "Sesi game terakhir", "Ultima sessione di gioco" };
         m["gm_last_none"]   = new[]
         {
-            "Play for at least a minute — a summary lands here when the game exits.",
-            "Zagraj co najmniej minutę — podsumowanie pojawi się tu po zamknięciu gry.",
-            "Spiele mindestens eine Minute — die Zusammenfassung erscheint hier nach dem Beenden des Spiels.",
-            "Jouez au moins une minute — le résumé apparaît ici à la fermeture du jeu.",
-            "Juega al menos un minuto — el resumen aparecerá aquí al cerrar el juego.",
+            "Play for at least a minute - a summary lands here when the game exits.",
+            "Zagraj co najmniej minutę - podsumowanie pojawi się tu po zamknięciu gry.",
+            "Spiele mindestens eine Minute - die Zusammenfassung erscheint hier nach dem Beenden des Spiels.",
+            "Jouez au moins une minute - le résumé apparaît ici à la fermeture du jeu.",
+            "Juega al menos un minuto - el resumen aparecerá aquí al cerrar el juego.",
             "至少游玩一分钟，游戏退出后摘要会显示在这里。",
-            "Jogue por pelo menos um minuto — o resumo aparece aqui quando o jogo fechar.",
-            "Поиграйте хотя бы минуту — сводка появится здесь после закрытия игры.",
+            "Jogue por pelo menos um minuto - o resumo aparece aqui quando o jogo fechar.",
+            "Поиграйте хотя бы минуту - сводка появится здесь после закрытия игры.",
             "1 分以上プレイすると、ゲーム終了時にここに概要が表示されます。",
             "1분 이상 플레이하면 게임 종료 시 요약이 여기에 표시됩니다.",
             "至少遊玩一分鐘，遊戲結束後摘要會顯示在這裡。",
             "En az bir dakika oynayın; oyun kapanınca özet burada görünür.",
-            "Chơi ít nhất một phút — bản tóm tắt sẽ hiện ở đây khi game thoát.",
+            "Chơi ít nhất một phút - bản tóm tắt sẽ hiện ở đây khi game thoát.",
             "Main minimal satu menit, ringkasan muncul di sini saat game ditutup.",
             "Gioca almeno un minuto: il riepilogo compare qui alla chiusura del gioco."
         };
@@ -1022,7 +1022,7 @@ public static class Lang
         m["upd_install"]    = new[] { "Install {0}", "Zainstaluj {0}", "{0} installieren", "Installer {0}", "Instalar {0}", "安装 {0}", "Instalar {0}", "Установить {0}", "{0} をインストール", "{0} 설치", "安裝 {0}", "{0} sürümünü yükle", "Cài đặt {0}", "Pasang {0}", "Installa {0}" };
         m["upd_downloading"] = new[] { "Downloading… {0}%", "Pobieranie… {0}%", "Wird heruntergeladen… {0}%", "Téléchargement… {0}%", "Descargando… {0}%", "正在下载… {0}%", "Baixando… {0}%", "Загрузка… {0}%", "ダウンロード中… {0}%", "다운로드 중… {0}%", "下載中… {0}%", "İndiriliyor… %{0}", "Đang tải xuống… {0}%", "Mengunduh… {0}%", "Download… {0}%" };
         m["upd_restarting"] = new[] { "Restarting to finish the update…", "Ponowne uruchamianie, aby dokończyć aktualizację…", "Neustart zum Abschluss des Updates…", "Redémarrage pour terminer la mise à jour…", "Reiniciando para finalizar la actualización…", "正在重启以完成更新…", "Reiniciando para concluir a atualização…", "Перезапуск для завершения обновления…", "更新を完了するため再起動しています…", "업데이트 완료를 위해 다시 시작하는 중…", "正在重新啟動以完成更新…", "Güncellemeyi bitirmek için yeniden başlatılıyor…", "Đang khởi động lại để hoàn tất cập nhật…", "Memulai ulang untuk menyelesaikan pembaruan…", "Riavvio per completare l'aggiornamento…" };
-        m["upd_dl_failed"]  = new[] { "Download failed — opening the releases page.", "Pobieranie nie powiodło się - otwieram stronę wydań.", "Download fehlgeschlagen — Release-Seite wird geöffnet.", "Échec du téléchargement — ouverture de la page des versions.", "Error de descarga — abriendo la página de versiones.", "下载失败 — 正在打开发布页面。", "Falha no download — abrindo a página de versões.", "Сбой загрузки — открываю страницу релизов.", "ダウンロード失敗 — リリースページを開きます。", "다운로드 실패 — 릴리스 페이지를 엽니다.", "下載失敗 — 正在開啟發行頁面。", "İndirme başarısız — sürümler sayfası açılıyor.", "Tải xuống thất bại — đang mở trang phát hành.", "Unduhan gagal — membuka halaman rilis.", "Download non riuscito — apertura della pagina release." };
+        m["upd_dl_failed"]  = new[] { "Download failed - opening the releases page.", "Pobieranie nie powiodło się - otwieram stronę wydań.", "Download fehlgeschlagen - Release-Seite wird geöffnet.", "Échec du téléchargement - ouverture de la page des versions.", "Error de descarga - abriendo la página de versiones.", "下载失败 - 正在打开发布页面。", "Falha no download - abrindo a página de versões.", "Сбой загрузки - открываю страницу релизов.", "ダウンロード失敗 - リリースページを開きます。", "다운로드 실패 - 릴리스 페이지를 엽니다.", "下載失敗 - 正在開啟發行頁面。", "İndirme başarısız - sürümler sayfası açılıyor.", "Tải xuống thất bại - đang mở trang phát hành.", "Unduhan gagal - membuka halaman rilis.", "Download non riuscito - apertura della pagina release." };
         m["upd_download"]   = new[] { "Download", "Pobierz", "Herunterladen", "Télécharger", "Descargar", "下载", "Baixar", "Скачать", "ダウンロード", "다운로드", "下載", "İndir", "Tải xuống", "Unduh", "Scarica" };
         m["upd_history"]    = new[] { "Release history", "Historia wydań", "Versionsverlauf", "Historique des versions", "Historial de versiones", "发布历史", "Histórico de versões", "История версий", "リリース履歴", "릴리스 기록", "發行歷程", "Sürüm geçmişi", "Lịch sử phát hành", "Riwayat rilis", "Cronologia release" };
         m["upd_details"]    = new[] { "Details", "Szczegóły", "Details", "Détails", "Detalles", "详情", "Detalhes", "Подробности", "詳細", "세부 정보", "詳細資訊", "Ayrıntılar", "Chi tiết", "Detail", "Dettagli" };
@@ -1107,7 +1107,7 @@ public static class Lang
 
     private static void L06(Dictionary<string, string[]> m)
     {
-        m["set_tab_as_icon"] = new[] { "{0} — as an icon on the right", "{0} - jako ikona po prawej", "{0} — als Symbol rechts", "{0} — en icône à droite", "{0} — como icono a la derecha", "{0} — 显示为右侧图标", "{0} — como ícone à direita", "{0} — значком справа", "{0} — 右側にアイコン表示", "{0} — 오른쪽에 아이콘으로", "{0} — 顯示為右側圖示", "{0} — sağda simge olarak", "{0} — dạng biểu tượng bên phải", "{0} — sebagai ikon di kanan", "{0} — come icona a destra" };
+        m["set_tab_as_icon"] = new[] { "{0} - as an icon on the right", "{0} - jako ikona po prawej", "{0} - als Symbol rechts", "{0} - en icône à droite", "{0} - como icono a la derecha", "{0} - 显示为右侧图标", "{0} - como ícone à direita", "{0} - значком справа", "{0} - 右側にアイコン表示", "{0} - 오른쪽에 아이콘으로", "{0} - 顯示為右側圖示", "{0} - sağda simge olarak", "{0} - dạng biểu tượng bên phải", "{0} - sebagai ikon di kanan", "{0} - come icona a destra" };
         m["set_charge"]     = new[] { "Battery charge limit", "Limit ładowania baterii", "Akkuladelimit", "Limite de charge batterie", "Límite de carga", "电池充电限制", "Limite de carga", "Лимит заряда батареи", "バッテリー充電上限", "배터리 충전 제한", "電池充電上限", "Pil şarj sınırı", "Giới hạn sạc pin", "Batas pengisian baterai", "Limite di carica batteria" };
         m["charge_dont"]    = new[] { "Don't change", "Nie zmieniaj", "Nicht ändern", "Ne pas changer", "No cambiar", "不更改", "Não alterar", "Не менять", "変更しない", "변경 안 함", "不變更", "Değiştirme", "Không thay đổi", "Jangan ubah", "Non modificare" };
         m["set_travel"]     = new[] { "Travel mode", "Tryb podróży", "Reisemodus", "Mode voyage", "Modo viaje", "旅行模式", "Modo viagem", "Режим поездки", "旅行モード", "여행 모드", "旅行模式", "Seyahat modu", "Chế độ du lịch", "Mode perjalanan", "Modalità viaggio" };
@@ -1153,7 +1153,7 @@ public static class Lang
         m["tm_none"]        = new[] { "None", "Brak", "Keine", "Aucun", "Ninguno", "无", "Nenhum", "Нет", "なし", "없음", "無", "Yok", "Không", "Tidak ada", "Nessuno" };
         m["st_cpu_fan"]     = new[] { "CPU curve target", "Cel krzywej CPU", "CPU-Kurvenziel", "Cible courbe CPU", "Objetivo curva CPU", "CPU 曲线目标", "Alvo da curva CPU", "Цель кривой ЦП", "CPU カーブ目標", "CPU 곡선 목표", "CPU 曲線目標", "CPU eğri hedefi", "Mục tiêu đường cong CPU", "Target kurva CPU", "Obiettivo curva CPU" };
         m["st_gpu_fan"]     = new[] { "GPU curve target", "Cel krzywej GPU", "GPU-Kurvenziel", "Cible courbe GPU", "Objetivo curva GPU", "GPU 曲线目标", "Alvo da curva GPU", "Цель кривой ГП", "GPU カーブ目標", "GPU 곡선 목표", "GPU 曲線目標", "GPU eğri hedefi", "Mục tiêu đường cong GPU", "Target kurva GPU", "Obiettivo curva GPU" };
-        m["st_fan_target_tip"] = new[] { "Curve target (EC fan target): the value the controller picked from the fan curve for the current temperature. It is not the measured speed - the profile you chose (Silent, Balanced, Extreme) can cap the real fan speed below it. The measured speed is the RPM number under the rings. The scale goes up to 150 %, like MSI's own fan settings.", "Cel krzywej (cel EC wentylatora): wartość, którą kontroler wybrał z krzywej wentylatora dla bieżącej temperatury. To nie jest zmierzona prędkość - wybrany profil (Silent, Balanced, Extreme) może ograniczać rzeczywiste obroty poniżej tej wartości. Zmierzoną prędkość pokazuje liczba RPM pod pierścieniami. Skala sięga 150 %, tak jak w ustawieniach wentylatorów MSI.", "Kurvenziel (EC-Lüfterziel): der Wert, den der Controller für die aktuelle Temperatur aus der Lüfterkurve gewählt hat. Das ist nicht die gemessene Drehzahl - das gewählte Profil (Silent, Balanced, Extreme) kann die tatsächliche Drehzahl darunter begrenzen. Die gemessene Drehzahl zeigt die RPM-Zahl unter den Ringen. Die Skala reicht bis 150 %, wie in MSIs eigenen Lüftereinstellungen.", "Cible de la courbe (cible EC du ventilateur) : la valeur que le contrôleur a choisie dans la courbe de ventilation pour la température actuelle. Ce n'est pas la vitesse mesurée - le profil choisi (Silent, Balanced, Extreme) peut limiter la vitesse réelle en dessous. La vitesse mesurée est le nombre de tr/min sous les anneaux. L'échelle va jusqu'à 150 %, comme dans les réglages de ventilation de MSI.", "Objetivo de la curva (objetivo EC del ventilador): el valor que el controlador eligió de la curva del ventilador para la temperatura actual. No es la velocidad medida: el perfil elegido (Silent, Balanced, Extreme) puede limitar la velocidad real por debajo de él. La velocidad medida es el número de RPM bajo los anillos. La escala llega al 150 %, como en los ajustes de ventilador de MSI.", "曲线目标（EC 风扇目标）：控制器根据当前温度从风扇曲线中选定的值。它不是实测转速——所选配置文件（Silent、Balanced、Extreme）可能把实际转速限制在此值以下。实测转速是圆环下方的 RPM 数字。刻度最高到 150 %，与 MSI 自己的风扇设置相同。", "Alvo da curva (alvo EC da ventoinha): o valor que o controlador escolheu na curva da ventoinha para a temperatura atual. Não é a velocidade medida - o perfil escolhido (Silent, Balanced, Extreme) pode limitar a velocidade real abaixo dele. A velocidade medida é o número de RPM sob os anéis. A escala vai até 150 %, como nas definições de ventoinha da MSI.", "Цель кривой (цель EC для вентилятора): значение, которое контроллер выбрал из кривой вентилятора для текущей температуры. Это не измеренная скорость - выбранный профиль (Silent, Balanced, Extreme) может ограничивать реальные обороты ниже этого значения. Измеренную скорость показывает число RPM под кольцами. Шкала доходит до 150 %, как в собственных настройках вентиляторов MSI.", "カーブ目標（EC ファン目標）：現在の温度に対してコントローラーがファンカーブから選んだ値です。実測の回転数ではありません。選択したプロファイル（Silent、Balanced、Extreme）によって、実際の回転数がこの値より低く制限されることがあります。実測の回転数はリングの下の RPM の数値です。目盛りは MSI 自身のファン設定と同じく 150 % までです。", "곡선 목표(EC 팬 목표): 컨트롤러가 현재 온도에 맞춰 팬 곡선에서 고른 값입니다. 측정된 속도가 아닙니다. 선택한 프로필(Silent, Balanced, Extreme)이 실제 팬 속도를 이 값보다 낮게 제한할 수 있습니다. 측정된 속도는 링 아래의 RPM 숫자입니다. 눈금은 MSI 자체 팬 설정처럼 150 %까지입니다.", "曲線目標（EC 風扇目標）：控制器依目前溫度從風扇曲線選定的值。它不是實測轉速——所選設定檔（Silent、Balanced、Extreme）可能把實際轉速限制在此值以下。實測轉速是圓環下方的 RPM 數字。刻度最高到 150 %，與 MSI 自己的風扇設定相同。", "Eğri hedefi (EC fan hedefi): denetleyicinin mevcut sıcaklık için fan eğrisinden seçtiği değer. Ölçülen hız değildir - seçtiğiniz profil (Silent, Balanced, Extreme) gerçek fan hızını bu değerin altında sınırlayabilir. Ölçülen hız, halkaların altındaki RPM sayısıdır. Ölçek, MSI'ın kendi fan ayarlarında olduğu gibi %150'ye kadar çıkar.", "Mục tiêu đường cong (mục tiêu quạt của EC): giá trị bộ điều khiển chọn từ đường cong quạt cho nhiệt độ hiện tại. Đây không phải tốc độ đo được - hồ sơ bạn chọn (Silent, Balanced, Extreme) có thể giới hạn tốc độ quạt thực tế thấp hơn giá trị này. Tốc độ đo được là con số RPM bên dưới các vòng. Thang đo lên tới 150 %, giống như cài đặt quạt của chính MSI.", "Target kurva (target kipas EC): nilai yang dipilih pengontrol dari kurva kipas untuk suhu saat ini. Ini bukan kecepatan terukur - profil yang Anda pilih (Silent, Balanced, Extreme) dapat membatasi kecepatan kipas sebenarnya di bawah nilai ini. Kecepatan terukur adalah angka RPM di bawah cincin. Skalanya hingga 150 %, seperti pengaturan kipas milik MSI sendiri.", "Obiettivo della curva (obiettivo EC della ventola): il valore che il controller ha scelto dalla curva della ventola per la temperatura attuale. Non è la velocità misurata - il profilo scelto (Silent, Balanced, Extreme) può limitare la velocità reale al di sotto di esso. La velocità misurata è il numero di RPM sotto gli anelli. La scala arriva al 150 %, come nelle impostazioni delle ventole di MSI." };
+        m["st_fan_target_tip"] = new[] { "Curve target (EC fan target): the value the controller picked from the fan curve for the current temperature. It is not the measured speed - the profile you chose (Silent, Balanced, Extreme) can cap the real fan speed below it. The measured speed is the RPM number under the rings. The scale goes up to 150 %, like MSI's own fan settings.", "Cel krzywej (cel EC wentylatora): wartość, którą kontroler wybrał z krzywej wentylatora dla bieżącej temperatury. To nie jest zmierzona prędkość - wybrany profil (Silent, Balanced, Extreme) może ograniczać rzeczywiste obroty poniżej tej wartości. Zmierzoną prędkość pokazuje liczba RPM pod pierścieniami. Skala sięga 150 %, tak jak w ustawieniach wentylatorów MSI.", "Kurvenziel (EC-Lüfterziel): der Wert, den der Controller für die aktuelle Temperatur aus der Lüfterkurve gewählt hat. Das ist nicht die gemessene Drehzahl - das gewählte Profil (Silent, Balanced, Extreme) kann die tatsächliche Drehzahl darunter begrenzen. Die gemessene Drehzahl zeigt die RPM-Zahl unter den Ringen. Die Skala reicht bis 150 %, wie in MSIs eigenen Lüftereinstellungen.", "Cible de la courbe (cible EC du ventilateur) : la valeur que le contrôleur a choisie dans la courbe de ventilation pour la température actuelle. Ce n'est pas la vitesse mesurée - le profil choisi (Silent, Balanced, Extreme) peut limiter la vitesse réelle en dessous. La vitesse mesurée est le nombre de tr/min sous les anneaux. L'échelle va jusqu'à 150 %, comme dans les réglages de ventilation de MSI.", "Objetivo de la curva (objetivo EC del ventilador): el valor que el controlador eligió de la curva del ventilador para la temperatura actual. No es la velocidad medida: el perfil elegido (Silent, Balanced, Extreme) puede limitar la velocidad real por debajo de él. La velocidad medida es el número de RPM bajo los anillos. La escala llega al 150 %, como en los ajustes de ventilador de MSI.", "曲线目标（EC 风扇目标）：控制器根据当前温度从风扇曲线中选定的值。它不是实测转速，所选配置文件（Silent、Balanced、Extreme）可能把实际转速限制在此值以下。实测转速是圆环下方的 RPM 数字。刻度最高到 150 %，与 MSI 自己的风扇设置相同。", "Alvo da curva (alvo EC da ventoinha): o valor que o controlador escolheu na curva da ventoinha para a temperatura atual. Não é a velocidade medida - o perfil escolhido (Silent, Balanced, Extreme) pode limitar a velocidade real abaixo dele. A velocidade medida é o número de RPM sob os anéis. A escala vai até 150 %, como nas definições de ventoinha da MSI.", "Цель кривой (цель EC для вентилятора): значение, которое контроллер выбрал из кривой вентилятора для текущей температуры. Это не измеренная скорость - выбранный профиль (Silent, Balanced, Extreme) может ограничивать реальные обороты ниже этого значения. Измеренную скорость показывает число RPM под кольцами. Шкала доходит до 150 %, как в собственных настройках вентиляторов MSI.", "カーブ目標（EC ファン目標）：現在の温度に対してコントローラーがファンカーブから選んだ値です。実測の回転数ではありません。選択したプロファイル（Silent、Balanced、Extreme）によって、実際の回転数がこの値より低く制限されることがあります。実測の回転数はリングの下の RPM の数値です。目盛りは MSI 自身のファン設定と同じく 150 % までです。", "곡선 목표(EC 팬 목표): 컨트롤러가 현재 온도에 맞춰 팬 곡선에서 고른 값입니다. 측정된 속도가 아닙니다. 선택한 프로필(Silent, Balanced, Extreme)이 실제 팬 속도를 이 값보다 낮게 제한할 수 있습니다. 측정된 속도는 링 아래의 RPM 숫자입니다. 눈금은 MSI 자체 팬 설정처럼 150 %까지입니다.", "曲線目標（EC 風扇目標）：控制器依目前溫度從風扇曲線選定的值。它不是實測轉速，所選設定檔（Silent、Balanced、Extreme）可能把實際轉速限制在此值以下。實測轉速是圓環下方的 RPM 數字。刻度最高到 150 %，與 MSI 自己的風扇設定相同。", "Eğri hedefi (EC fan hedefi): denetleyicinin mevcut sıcaklık için fan eğrisinden seçtiği değer. Ölçülen hız değildir - seçtiğiniz profil (Silent, Balanced, Extreme) gerçek fan hızını bu değerin altında sınırlayabilir. Ölçülen hız, halkaların altındaki RPM sayısıdır. Ölçek, MSI'ın kendi fan ayarlarında olduğu gibi %150'ye kadar çıkar.", "Mục tiêu đường cong (mục tiêu quạt của EC): giá trị bộ điều khiển chọn từ đường cong quạt cho nhiệt độ hiện tại. Đây không phải tốc độ đo được - hồ sơ bạn chọn (Silent, Balanced, Extreme) có thể giới hạn tốc độ quạt thực tế thấp hơn giá trị này. Tốc độ đo được là con số RPM bên dưới các vòng. Thang đo lên tới 150 %, giống như cài đặt quạt của chính MSI.", "Target kurva (target kipas EC): nilai yang dipilih pengontrol dari kurva kipas untuk suhu saat ini. Ini bukan kecepatan terukur - profil yang Anda pilih (Silent, Balanced, Extreme) dapat membatasi kecepatan kipas sebenarnya di bawah nilai ini. Kecepatan terukur adalah angka RPM di bawah cincin. Skalanya hingga 150 %, seperti pengaturan kipas milik MSI sendiri.", "Obiettivo della curva (obiettivo EC della ventola): il valore che il controller ha scelto dalla curva della ventola per la temperatura attuale. Non è la velocità misurata - il profilo scelto (Silent, Balanced, Extreme) può limitare la velocità reale al di sotto di esso. La velocità misurata è il numero di RPM sotto gli anelli. La scala arriva al 150 %, come nelle impostazioni delle ventole di MSI." };
         m["st_charge"]      = new[] { "Charge limit", "Limit ładowania", "Ladelimit", "Limite de charge", "Límite de carga", "充电限制", "Limite de carga", "Лимит заряда", "充電上限", "충전 제한", "充電上限", "Şarj sınırı", "Giới hạn sạc", "Batas pengisian", "Limite di carica" };
         m["st_firmware"]    = new[] { "EC firmware", "Firmware EC", "EC-Firmware", "Firmware EC", "Firmware EC", "EC 固件", "Firmware EC", "Прошивка EC", "EC ファームウェア", "EC 펌웨어", "EC 韌體", "EC ürün yazılımı", "Firmware EC", "Firmware EC", "Firmware EC" };
         m["st_switches"]    = new[] { "Switches (session)", "Przełączeń (sesja)", "Wechsel (Sitzung)", "Changements (session)", "Cambios (sesión)", "切换次数（本次）", "Trocas (sessão)", "Переключений (сессия)", "切替回数（セッション）", "전환 횟수(세션)", "切換次數（本次）", "Geçişler (oturum)", "Lần chuyển (phiên này)", "Peralihan (sesi)", "Cambi (sessione)" };
@@ -1168,7 +1168,7 @@ public static class Lang
         m["always_on_top"]  = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au-dessus", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон", "常に最前面", "항상 위에 표시", "永遠置頂", "Her zaman üstte", "Luôn trên cùng", "Selalu di atas", "Sempre in primo piano" };
         m["st_model"]       = new[] { "Model", "Model", "Modell", "Modèle", "Modelo", "型号", "Modelo", "Модель", "モデル", "모델", "機型", "Model", "Model", "Model", "Modello" };
         m["unsupported_title"] = new[] { "Unsupported model", "Niewspierany model", "Nicht unterstütztes Modell", "Modèle non pris en charge", "Modelo no compatible", "不支持的型号", "Modelo não suportado", "Модель не поддерживается", "未対応モデル", "지원되지 않는 모델", "不支援的機型", "Desteklenmeyen model", "Model không được hỗ trợ", "Model tidak didukung", "Modello non supportato" };
-        m["unsupported_sub"]   = new[] { "read-only — contribute on GitHub", "tylko odczyt — zgłoś model na GitHub", "schreibgeschützt — auf GitHub beitragen", "lecture seule — contribuez sur GitHub", "solo lectura — contribuye en GitHub", "只读 — 在 GitHub 上贡献", "somente leitura — contribua no GitHub", "только чтение — добавьте на GitHub", "読み取り専用 — GitHub で協力", "읽기 전용 — GitHub에서 기여", "唯讀 — 到 GitHub 上貢獻", "salt okunur — GitHub'da katkıda bulunun", "chỉ đọc — đóng góp trên GitHub", "hanya baca — berkontribusi di GitHub", "sola lettura — contribuisci su GitHub" };
+        m["unsupported_sub"]   = new[] { "read-only - contribute on GitHub", "tylko odczyt - zgłoś model na GitHub", "schreibgeschützt - auf GitHub beitragen", "lecture seule - contribuez sur GitHub", "solo lectura - contribuye en GitHub", "只读 - 在 GitHub 上贡献", "somente leitura - contribua no GitHub", "только чтение - добавьте на GitHub", "読み取り専用 - GitHub で協力", "읽기 전용 - GitHub에서 기여", "唯讀 - 到 GitHub 上貢獻", "salt okunur - GitHub'da katkıda bulunun", "chỉ đọc - đóng góp trên GitHub", "hanya baca - berkontribusi di GitHub", "sola lettura - contribuisci su GitHub" };
         m["experimental_enable_fw"] = new[] { "Enable writes for this model ({0} - unverified)", "Włącz zapis dla tego modelu ({0} - niezweryfikowany)", "Schreibzugriff für dieses Modell aktivieren ({0} - ungeprüft)", "Activer l'écriture pour ce modèle ({0} - non vérifié)", "Activar escritura para este modelo ({0} - no verificado)", "为此型号启用写入（{0} - 未验证）", "Ativar escrita para este modelo ({0} - não verificado)", "Включить запись для этой модели ({0} - непроверено)", "このモデルへの書き込みを有効化（{0} - 未検証）", "이 모델에 쓰기 활성화({0} - 미검증)", "為此機型啟用寫入（{0} - 未驗證）", "Bu model için yazmayı etkinleştir ({0} - doğrulanmamış)", "Bật ghi cho model này ({0} - chưa xác minh)", "Aktifkan penulisan untuk model ini ({0} - belum diverifikasi)", "Abilita la scrittura per questo modello ({0} - non verificato)" };
         m["set_check_updates"] = new[] {
             "Check for updates (once a day)", "Sprawdzaj aktualizacje (raz dziennie)", "Auf Updates prüfen (täglich)",
@@ -1219,7 +1219,7 @@ public static class Lang
             "⬇ Unduh versi baru",
             "⬇ Scarica nuova versione"
             };
-        m["experimental_locked"] = new[] { "experimental — enable in Settings", "eksperymentalny — włącz w Ustawieniach", "experimentell — in Einstellungen aktivieren", "expérimental — activez dans Paramètres", "experimental — actívalo en Ajustes", "实验性 — 在设置中启用", "experimental — ative nas Configurações", "экспериментально — включите в настройках", "実験的 — 設定で有効化", "실험적 — 설정에서 활성화", "實驗性 — 在設定中啟用", "deneysel — Ayarlar'da etkinleştirin", "thử nghiệm — bật trong Cài đặt", "eksperimental — aktifkan di Pengaturan", "sperimentale — abilita in Impostazioni" };
+        m["experimental_locked"] = new[] { "experimental - enable in Settings", "eksperymentalny - włącz w Ustawieniach", "experimentell - in Einstellungen aktivieren", "expérimental - activez dans Paramètres", "experimental - actívalo en Ajustes", "实验性 - 在设置中启用", "experimental - ative nas Configurações", "экспериментально - включите в настройках", "実験的 - 設定で有効化", "실험적 - 설정에서 활성화", "實驗性 - 在設定中啟用", "deneysel - Ayarlar'da etkinleştirin", "thử nghiệm - bật trong Cài đặt", "eksperimental - aktifkan di Pengaturan", "sperimentale - abilita in Impostazioni" };
         m["tier_experimental"]   = new[] { "experimental", "eksperymentalny", "experimentell", "expérimental", "experimental", "实验性", "experimental", "экспериментальный", "実験的", "실험적", "實驗性", "deneysel", "thử nghiệm", "eksperimental", "sperimentale" };
         m["tier_tested"]         = new[] { "tested", "zweryfikowany", "getestet", "testé", "probado", "已测试", "testado", "проверено", "テスト済み", "테스트됨", "已測試", "test edildi", "đã kiểm thử", "teruji", "testato" };
         m["tier_unsupported"]    = new[] { "unsupported", "niewspierany", "nicht unterstützt", "non pris en charge", "no compatible", "不支持", "não suportado", "не поддерживается", "未対応", "지원 안 됨", "不支援", "desteklenmiyor", "không hỗ trợ", "tidak didukung", "non supportato" };
@@ -1463,21 +1463,21 @@ public static class Lang
         m["test_rpm_a"]     = new[] { "Step 1: capture current speed", "Krok 1: zapisz obecne obroty", "Schritt 1: aktuelle Drehzahl", "Étape 1 : vitesse actuelle", "Paso 1: velocidad actual", "步骤 1：记录当前转速", "Passo 1: velocidade atual", "Шаг 1: текущие обороты", "手順 1：現在の回転数を記録", "1단계: 현재 속도 캡처", "步驟 1：記錄目前轉速", "Adım 1: mevcut hızı yakala", "Bước 1: ghi tốc độ hiện tại", "Langkah 1: tangkap kecepatan saat ini", "Passo 1: acquisisci velocità attuale" };
         m["test_rpm_b"]     = new[] { "Step 2: scan + compare", "Krok 2: skanuj i porównaj", "Schritt 2: scannen + vergleichen", "Étape 2 : scanner + comparer", "Paso 2: escanear y comparar", "步骤 2：扫描并比较", "Passo 2: escanear e comparar", "Шаг 2: сканировать и сравнить", "手順 2：スキャン + 比較", "2단계: 스캔 + 비교", "步驟 2：掃描並比較", "Adım 2: tara + karşılaştır", "Bước 2: quét + so sánh", "Langkah 2: pindai + bandingkan", "Passo 2: scansiona + confronta" };
         m["test_rpm_hint2"] = new[] {
-            "Run step 1, then change fan speed (use the experiment below), then step 2. Addresses whose value changed are the tachometers — match to MSI Center.",
-            "Zrób krok 1, potem zmień obroty (użyj eksperymentu poniżej), potem krok 2. Adresy, które się zmieniły, to tachometry — dopasuj do MSI Center.",
-            "Schritt 1, dann Drehzahl ändern (Experiment unten), dann Schritt 2. Geänderte Adressen sind die Tachos — mit MSI Center abgleichen.",
-            "Étape 1, changez la vitesse (expérience ci-dessous), puis étape 2. Les adresses modifiées sont les tachymètres — comparez à MSI Center.",
-            "Paso 1, cambia la velocidad (experimento abajo), luego paso 2. Las direcciones que cambiaron son los tacómetros — compara con MSI Center.",
-            "先步骤 1，改变转速（用下面的实验），再步骤 2。发生变化的地址就是转速寄存器——与 MSI Center 对照。",
-            "Passo 1, mude a velocidade (experimento abaixo), depois passo 2. Os endereços que mudaram são os tacômetros — compare com o MSI Center.",
-            "Шаг 1, измените обороты (эксперимент ниже), затем шаг 2. Изменившиеся адреса — это тахометры, сверьте с MSI Center.",
-            "手順 1 を実行し、ファン速度を変更（下の実験を使用）してから手順 2 を実行。値が変化したアドレスが回転計です — MSI Center と照合してください。",
-            "1단계 실행 후 팬 속도를 바꾸고(아래 실험 사용) 2단계를 실행합니다. 값이 바뀐 주소가 회전계입니다 — MSI Center와 대조하세요.",
-            "先執行步驟 1，改變轉速（用下面的實驗），再執行步驟 2。數值有變化的位址就是轉速計——與 MSI Center 對照。",
-            "Adım 1'i çalıştırın, fan hızını değiştirin (aşağıdaki deneyi kullanın), sonra adım 2. Değeri değişen adresler takometrelerdir — MSI Center ile eşleştirin.",
-            "Chạy bước 1, đổi tốc độ quạt (dùng thử nghiệm bên dưới), rồi bước 2. Các địa chỉ có giá trị thay đổi là bộ đo vòng quay — đối chiếu với MSI Center.",
-            "Jalankan langkah 1, lalu ubah kecepatan kipas (gunakan eksperimen di bawah), lalu langkah 2. Alamat yang nilainya berubah adalah takometer — cocokkan dengan MSI Center.",
-            "Esegui il passo 1, cambia la velocità delle ventole (usa l'esperimento sotto), poi il passo 2. Gli indirizzi con valore cambiato sono i tachimetri — confrontali con MSI Center."
+            "Run step 1, then change fan speed (use the experiment below), then step 2. Addresses whose value changed are the tachometers - match to MSI Center.",
+            "Zrób krok 1, potem zmień obroty (użyj eksperymentu poniżej), potem krok 2. Adresy, które się zmieniły, to tachometry - dopasuj do MSI Center.",
+            "Schritt 1, dann Drehzahl ändern (Experiment unten), dann Schritt 2. Geänderte Adressen sind die Tachos - mit MSI Center abgleichen.",
+            "Étape 1, changez la vitesse (expérience ci-dessous), puis étape 2. Les adresses modifiées sont les tachymètres - comparez à MSI Center.",
+            "Paso 1, cambia la velocidad (experimento abajo), luego paso 2. Las direcciones que cambiaron son los tacómetros - compara con MSI Center.",
+            "先步骤 1，改变转速（用下面的实验），再步骤 2。发生变化的地址就是转速寄存器，与 MSI Center 对照。",
+            "Passo 1, mude a velocidade (experimento abaixo), depois passo 2. Os endereços que mudaram são os tacômetros - compare com o MSI Center.",
+            "Шаг 1, измените обороты (эксперимент ниже), затем шаг 2. Изменившиеся адреса - это тахометры, сверьте с MSI Center.",
+            "手順 1 を実行し、ファン速度を変更（下の実験を使用）してから手順 2 を実行。値が変化したアドレスが回転計です - MSI Center と照合してください。",
+            "1단계 실행 후 팬 속도를 바꾸고(아래 실험 사용) 2단계를 실행합니다. 값이 바뀐 주소가 회전계입니다 - MSI Center와 대조하세요.",
+            "先執行步驟 1，改變轉速（用下面的實驗），再執行步驟 2。數值有變化的位址就是轉速計，與 MSI Center 對照。",
+            "Adım 1'i çalıştırın, fan hızını değiştirin (aşağıdaki deneyi kullanın), sonra adım 2. Değeri değişen adresler takometrelerdir - MSI Center ile eşleştirin.",
+            "Chạy bước 1, đổi tốc độ quạt (dùng thử nghiệm bên dưới), rồi bước 2. Các địa chỉ có giá trị thay đổi là bộ đo vòng quay - đối chiếu với MSI Center.",
+            "Jalankan langkah 1, lalu ubah kecepatan kipas (gunakan eksperimen di bawah), lalu langkah 2. Alamat yang nilainya berubah adalah takometer - cocokkan dengan MSI Center.",
+            "Esegui il passo 1, cambia la velocità delle ventole (usa l'esperimento sotto), poi il passo 2. Gli indirizzi con valore cambiato sono i tachimetri - confrontali con MSI Center."
             };
         m["test_dump_btn"]  = new[] { "Save EC dump to file", "Zapisz zrzut EC do pliku", "EC-Dump speichern", "Enregistrer le dump EC", "Guardar volcado EC", "保存 EC 转储到文件", "Salvar dump do EC", "Сохранить дамп EC", "EC ダンプをファイルに保存", "EC 덤프를 파일로 저장", "儲存 EC 傾印到檔案", "EC dökümünü dosyaya kaydet", "Lưu bản dump EC ra tệp", "Simpan dump EC ke file", "Salva dump EC su file" };
         m["test_live"]      = new[] { "Live RPM:", "RPM na żywo:", "Live-RPM:", "RPM en direct :", "RPM en vivo:", "实时转速：", "RPM ao vivo:", "Обороты вживую:", "現在の RPM：", "실시간 RPM:", "即時轉速：", "Canlı RPM:", "RPM trực tiếp:", "RPM langsung:", "RPM live:" };
@@ -1681,93 +1681,93 @@ public static class Lang
     {
         m["st_off"]         = new[] { "off", "wył", "aus", "désact.", "desact.", "关", "des.", "выкл", "オフ", "꺼짐", "關", "kapalı", "tắt", "mati", "off" };
         m["fc_preview"]     = new[] {
-            "Curve addresses are not verified on this model yet — check the preview matches MSI Center (Extreme → Advanced). You can revert any time.",
-            "Adresy krzywej nie są jeszcze zweryfikowane na tym modelu — sprawdź, czy podgląd zgadza się z MSI Center (Extreme → Advanced). Możesz cofnąć w każdej chwili.",
-            "Kurvenadressen für dieses Modell noch nicht geprüft — prüfe, ob die Vorschau MSI Center (Extreme → Advanced) entspricht. Jederzeit rückgängig.",
-            "Adresses de courbe non vérifiées sur ce modèle — vérifiez que l'aperçu correspond à MSI Center (Extreme → Advanced). Réversible à tout moment.",
-            "Direcciones de curva sin verificar en este modelo — comprueba que la vista coincide con MSI Center (Extreme → Advanced). Reversible.",
-            "此型号的曲线地址尚未验证——请确认预览与 MSI Center（Extreme → Advanced）一致。可随时还原。",
-            "Endereços da curva ainda não verificados neste modelo — confira se a prévia bate com o MSI Center (Extreme → Advanced). Reversível.",
-            "Адреса кривой на этой модели не проверены — сверьте предпросмотр с MSI Center (Extreme → Advanced). Можно вернуть в любой момент.",
-            "このモデルではカーブのアドレスが未検証です — プレビューが MSI Center（Extreme → Advanced）と一致するか確認してください。いつでも元に戻せます。",
-            "이 모델의 곡선 주소는 아직 검증되지 않았습니다 — 미리보기가 MSI Center(Extreme → Advanced)와 일치하는지 확인하세요. 언제든 되돌릴 수 있습니다.",
-            "此機型的曲線位址尚未驗證——請確認預覽與 MSI Center（Extreme → Advanced）一致。可隨時還原。",
-            "Eğri adresleri bu modelde henüz doğrulanmadı — önizlemenin MSI Center (Extreme → Advanced) ile eşleştiğini kontrol edin. İstediğiniz zaman geri alabilirsiniz.",
-            "Địa chỉ đường cong chưa được xác minh trên model này — hãy kiểm tra bản xem trước khớp với MSI Center (Extreme → Advanced). Có thể hoàn tác bất cứ lúc nào.",
-            "Alamat kurva belum diverifikasi pada model ini — pastikan pratinjau cocok dengan MSI Center (Extreme → Advanced). Anda dapat mengembalikannya kapan saja.",
+            "Curve addresses are not verified on this model yet - check the preview matches MSI Center (Extreme → Advanced). You can revert any time.",
+            "Adresy krzywej nie są jeszcze zweryfikowane na tym modelu - sprawdź, czy podgląd zgadza się z MSI Center (Extreme → Advanced). Możesz cofnąć w każdej chwili.",
+            "Kurvenadressen für dieses Modell noch nicht geprüft - prüfe, ob die Vorschau MSI Center (Extreme → Advanced) entspricht. Jederzeit rückgängig.",
+            "Adresses de courbe non vérifiées sur ce modèle - vérifiez que l'aperçu correspond à MSI Center (Extreme → Advanced). Réversible à tout moment.",
+            "Direcciones de curva sin verificar en este modelo - comprueba que la vista coincide con MSI Center (Extreme → Advanced). Reversible.",
+            "此型号的曲线地址尚未验证，请确认预览与 MSI Center（Extreme → Advanced）一致。可随时还原。",
+            "Endereços da curva ainda não verificados neste modelo - confira se a prévia bate com o MSI Center (Extreme → Advanced). Reversível.",
+            "Адреса кривой на этой модели не проверены - сверьте предпросмотр с MSI Center (Extreme → Advanced). Можно вернуть в любой момент.",
+            "このモデルではカーブのアドレスが未検証です - プレビューが MSI Center（Extreme → Advanced）と一致するか確認してください。いつでも元に戻せます。",
+            "이 모델의 곡선 주소는 아직 검증되지 않았습니다 - 미리보기가 MSI Center(Extreme → Advanced)와 일치하는지 확인하세요. 언제든 되돌릴 수 있습니다.",
+            "此機型的曲線位址尚未驗證，請確認預覽與 MSI Center（Extreme → Advanced）一致。可隨時還原。",
+            "Eğri adresleri bu modelde henüz doğrulanmadı - önizlemenin MSI Center (Extreme → Advanced) ile eşleştiğini kontrol edin. İstediğiniz zaman geri alabilirsiniz.",
+            "Địa chỉ đường cong chưa được xác minh trên model này - hãy kiểm tra bản xem trước khớp với MSI Center (Extreme → Advanced). Có thể hoàn tác bất cứ lúc nào.",
+            "Alamat kurva belum diverifikasi pada model ini - pastikan pratinjau cocok dengan MSI Center (Extreme → Advanced). Anda dapat mengembalikannya kapan saja.",
             "Indirizzi della curva non ancora verificati su questo modello: controlla che l'anteprima coincida con MSI Center (Extreme → Advanced). Puoi tornare indietro quando vuoi."
             };
         m["st_matrix_note"] = new[] {
-            "0x34 = Extreme power unlock (written 00 in Extreme, 01 elsewhere), but it reads dynamically and can show 00/01 in any comfort profile — so it is NOT used for detection. Silent vs Balanced is decided solely by the fan byte 0xD4 (1D = Silent).",
-            "0x34 = odblokowanie mocy Extreme (zapisywane 00 w Extreme, 01 w pozostałych), ale odczytuje się dynamicznie i bywa 00/01 w każdym profilu komfort — dlatego NIE służy do detekcji. O Silent vs Balanced decyduje wyłącznie bajt wentylatora 0xD4 (1D = Silent).",
-            "0x34 = Extreme-Leistungsfreigabe (00 in Extreme, sonst 01 geschrieben), liest sich aber dynamisch und kann in jedem Komfortprofil 00/01 zeigen — daher NICHT zur Erkennung. Silent vs Balanced entscheidet allein das Lüfterbyte 0xD4 (1D = Silent).",
-            "0x34 = déblocage puissance Extreme (écrit 00 en Extreme, 01 ailleurs), mais sa lecture est dynamique et peut afficher 00/01 dans tout profil confort — donc PAS utilisé pour la détection. Silent vs Balanced dépend uniquement de l'octet 0xD4 (1D = Silent).",
-            "0x34 = desbloqueo de potencia Extreme (se escribe 00 en Extreme, 01 en el resto), pero su lectura es dinámica y puede mostrar 00/01 en cualquier perfil confort — por eso NO se usa para detección. Silent vs Balanced lo decide solo el byte 0xD4 (1D = Silent).",
-            "0x34 = Extreme 功耗解锁（Extreme 写 00，其余写 01），但读取是动态的，任何舒适档都可能显示 00/01——故不用于识别。Silent 与 Balanced 仅由风扇字节 0xD4 区分（1D = Silent）。",
-            "0x34 = desbloqueio de potência Extreme (gravado 00 no Extreme, 01 nos outros), mas a leitura é dinâmica e pode mostrar 00/01 em qualquer perfil conforto — por isso NÃO é usado na detecção. Silent vs Balanced é decidido só pelo byte 0xD4 (1D = Silent).",
-            "0x34 = разблокировка мощности Extreme (пишется 00 в Extreme, 01 в остальных), но читается динамически и может показывать 00/01 в любом комфортном профиле — поэтому НЕ используется для определения. Silent и Balanced различает только байт 0xD4 (1D = Silent).",
+            "0x34 = Extreme power unlock (written 00 in Extreme, 01 elsewhere), but it reads dynamically and can show 00/01 in any comfort profile - so it is NOT used for detection. Silent vs Balanced is decided solely by the fan byte 0xD4 (1D = Silent).",
+            "0x34 = odblokowanie mocy Extreme (zapisywane 00 w Extreme, 01 w pozostałych), ale odczytuje się dynamicznie i bywa 00/01 w każdym profilu komfort - dlatego NIE służy do detekcji. O Silent vs Balanced decyduje wyłącznie bajt wentylatora 0xD4 (1D = Silent).",
+            "0x34 = Extreme-Leistungsfreigabe (00 in Extreme, sonst 01 geschrieben), liest sich aber dynamisch und kann in jedem Komfortprofil 00/01 zeigen - daher NICHT zur Erkennung. Silent vs Balanced entscheidet allein das Lüfterbyte 0xD4 (1D = Silent).",
+            "0x34 = déblocage puissance Extreme (écrit 00 en Extreme, 01 ailleurs), mais sa lecture est dynamique et peut afficher 00/01 dans tout profil confort - donc PAS utilisé pour la détection. Silent vs Balanced dépend uniquement de l'octet 0xD4 (1D = Silent).",
+            "0x34 = desbloqueo de potencia Extreme (se escribe 00 en Extreme, 01 en el resto), pero su lectura es dinámica y puede mostrar 00/01 en cualquier perfil confort - por eso NO se usa para detección. Silent vs Balanced lo decide solo el byte 0xD4 (1D = Silent).",
+            "0x34 = Extreme 功耗解锁（Extreme 写 00，其余写 01），但读取是动态的，任何舒适档都可能显示 00/01，故不用于识别。Silent 与 Balanced 仅由风扇字节 0xD4 区分（1D = Silent）。",
+            "0x34 = desbloqueio de potência Extreme (gravado 00 no Extreme, 01 nos outros), mas a leitura é dinâmica e pode mostrar 00/01 em qualquer perfil conforto - por isso NÃO é usado na detecção. Silent vs Balanced é decidido só pelo byte 0xD4 (1D = Silent).",
+            "0x34 = разблокировка мощности Extreme (пишется 00 в Extreme, 01 в остальных), но читается динамически и может показывать 00/01 в любом комфортном профиле - поэтому НЕ используется для определения. Silent и Balanced различает только байт 0xD4 (1D = Silent).",
             "0x34 = Extreme 電力アンロック（Extreme では 00、他では 01 を書き込み）。ただし読み取り値は動的で、どの快適プロファイルでも 00/01 になり得るため検出には使いません。Silent と Balanced はファンバイト 0xD4 のみで判定します（1D = Silent）。",
             "0x34 = Extreme 전력 해제(Extreme에서 00, 그 외 01 기록)이지만 동적으로 읽혀 어떤 일반 프로필에서도 00/01이 나올 수 있어 감지에는 사용하지 않습니다. Silent와 Balanced는 팬 바이트 0xD4(1D = Silent)만으로 구분합니다.",
-            "0x34 = Extreme 功耗解鎖（Extreme 寫入 00，其餘寫入 01），但讀取是動態的，任何舒適設定檔都可能顯示 00/01——因此不用於辨識。Silent 與 Balanced 僅由風扇位元組 0xD4 區分（1D = Silent）。",
-            "0x34 = Extreme güç kilidi açma (Extreme'de 00, diğerlerinde 01 yazılır), ancak dinamik okunur ve herhangi bir konfor profilinde 00/01 gösterebilir — bu yüzden algılamada KULLANILMAZ. Silent ve Balanced ayrımı yalnızca fan baytı 0xD4 ile yapılır (1D = Silent).",
-            "0x34 = mở khóa công suất Extreme (ghi 00 ở Extreme, 01 ở các hồ sơ khác), nhưng giá trị đọc thay đổi động và có thể là 00/01 ở bất kỳ hồ sơ thoải mái nào — nên KHÔNG dùng để nhận diện. Silent và Balanced chỉ được phân biệt bằng byte quạt 0xD4 (1D = Silent).",
-            "0x34 = buka kunci daya Extreme (ditulis 00 di Extreme, 01 di lainnya), tetapi dibaca secara dinamis dan dapat menampilkan 00/01 di profil nyaman mana pun — jadi TIDAK dipakai untuk deteksi. Silent vs Balanced ditentukan hanya oleh byte kipas 0xD4 (1D = Silent).",
+            "0x34 = Extreme 功耗解鎖（Extreme 寫入 00，其餘寫入 01），但讀取是動態的，任何舒適設定檔都可能顯示 00/01，因此不用於辨識。Silent 與 Balanced 僅由風扇位元組 0xD4 區分（1D = Silent）。",
+            "0x34 = Extreme güç kilidi açma (Extreme'de 00, diğerlerinde 01 yazılır), ancak dinamik okunur ve herhangi bir konfor profilinde 00/01 gösterebilir - bu yüzden algılamada KULLANILMAZ. Silent ve Balanced ayrımı yalnızca fan baytı 0xD4 ile yapılır (1D = Silent).",
+            "0x34 = mở khóa công suất Extreme (ghi 00 ở Extreme, 01 ở các hồ sơ khác), nhưng giá trị đọc thay đổi động và có thể là 00/01 ở bất kỳ hồ sơ thoải mái nào - nên KHÔNG dùng để nhận diện. Silent và Balanced chỉ được phân biệt bằng byte quạt 0xD4 (1D = Silent).",
+            "0x34 = buka kunci daya Extreme (ditulis 00 di Extreme, 01 di lainnya), tetapi dibaca secara dinamis dan dapat menampilkan 00/01 di profil nyaman mana pun - jadi TIDAK dipakai untuk deteksi. Silent vs Balanced ditentukan hanya oleh byte kipas 0xD4 (1D = Silent).",
             "0x34 = sblocco potenza Extreme (scritto 00 in Extreme, 01 altrove), ma la lettura è dinamica e può mostrare 00/01 in qualsiasi profilo comfort, quindi NON è usato per il rilevamento. Silent vs Balanced è deciso solo dal byte ventola 0xD4 (1D = Silent)."
             };
         m["fc_silent_warn"] = new[] {
-            "Silent's power cap lives in the same byte as the fan curve (0xD4), so a custom curve turns Silent off — the laptop runs at Balanced power with your fans. Continue?",
-            "Limit mocy Silenta siedzi w tym samym bajcie co krzywa (0xD4), więc własna krzywa wyłącza Silent — laptop pójdzie na mocy Balanced z Twoimi wentylatorami. Kontynuować?",
-            "Das Power-Limit von Silent liegt im selben Byte wie die Kurve (0xD4) — eine eigene Kurve schaltet Silent ab; der Laptop läuft mit Balanced-Leistung. Fortfahren?",
-            "Le plafond de puissance Silent est dans le même octet que la courbe (0xD4) ; une courbe désactive Silent — puissance Balanced avec vos ventilateurs. Continuer ?",
-            "El límite de potencia de Silent está en el mismo byte que la curva (0xD4); una curva desactiva Silent — potencia Balanced con tus ventiladores. ¿Continuar?",
-            "Silent 的功耗上限与风扇曲线在同一字节（0xD4），自定义曲线会关闭 Silent——将以 Balanced 功耗运行。继续？",
-            "O limite de potência do Silent está no mesmo byte da curva (0xD4); uma curva desliga o Silent — potência Balanced com suas ventoinhas. Continuar?",
-            "Лимит мощности Silent в том же байте, что и кривая (0xD4); своя кривая отключает Silent — ноутбук работает на мощности Balanced. Продолжить?",
-            "Silent の電力上限はファンカーブと同じバイト（0xD4）にあるため、カスタムカーブを適用すると Silent が解除されます — Balanced の電力で動作します。続行しますか？",
-            "Silent의 전력 제한은 팬 곡선과 같은 바이트(0xD4)에 있어 사용자 지정 곡선을 적용하면 Silent가 꺼집니다 — 사용자 팬 설정으로 Balanced 전력에서 동작합니다. 계속하시겠습니까?",
-            "Silent 的功耗上限與風扇曲線位於同一位元組（0xD4），自訂曲線會關閉 Silent——將以 Balanced 功耗搭配你的風扇運行。繼續？",
-            "Silent'ın güç sınırı fan eğrisiyle aynı bayttadır (0xD4); özel eğri Silent'ı kapatır — dizüstü, sizin fanlarınızla Balanced gücünde çalışır. Devam edilsin mi?",
-            "Giới hạn công suất của Silent nằm cùng byte với đường cong quạt (0xD4), nên đường cong tùy chỉnh sẽ tắt Silent — máy chạy ở công suất Balanced với quạt của bạn. Tiếp tục?",
-            "Batas daya Silent berada di byte yang sama dengan kurva kipas (0xD4), jadi kurva kustom mematikan Silent — laptop berjalan dengan daya Balanced memakai kipas Anda. Lanjutkan?",
+            "Silent's power cap lives in the same byte as the fan curve (0xD4), so a custom curve turns Silent off - the laptop runs at Balanced power with your fans. Continue?",
+            "Limit mocy Silenta siedzi w tym samym bajcie co krzywa (0xD4), więc własna krzywa wyłącza Silent - laptop pójdzie na mocy Balanced z Twoimi wentylatorami. Kontynuować?",
+            "Das Power-Limit von Silent liegt im selben Byte wie die Kurve (0xD4) - eine eigene Kurve schaltet Silent ab; der Laptop läuft mit Balanced-Leistung. Fortfahren?",
+            "Le plafond de puissance Silent est dans le même octet que la courbe (0xD4) ; une courbe désactive Silent - puissance Balanced avec vos ventilateurs. Continuer ?",
+            "El límite de potencia de Silent está en el mismo byte que la curva (0xD4); una curva desactiva Silent - potencia Balanced con tus ventiladores. ¿Continuar?",
+            "Silent 的功耗上限与风扇曲线在同一字节（0xD4），自定义曲线会关闭 Silent，将以 Balanced 功耗运行。继续？",
+            "O limite de potência do Silent está no mesmo byte da curva (0xD4); uma curva desliga o Silent - potência Balanced com suas ventoinhas. Continuar?",
+            "Лимит мощности Silent в том же байте, что и кривая (0xD4); своя кривая отключает Silent - ноутбук работает на мощности Balanced. Продолжить?",
+            "Silent の電力上限はファンカーブと同じバイト（0xD4）にあるため、カスタムカーブを適用すると Silent が解除されます - Balanced の電力で動作します。続行しますか？",
+            "Silent의 전력 제한은 팬 곡선과 같은 바이트(0xD4)에 있어 사용자 지정 곡선을 적용하면 Silent가 꺼집니다 - 사용자 팬 설정으로 Balanced 전력에서 동작합니다. 계속하시겠습니까?",
+            "Silent 的功耗上限與風扇曲線位於同一位元組（0xD4），自訂曲線會關閉 Silent，將以 Balanced 功耗搭配你的風扇運行。繼續？",
+            "Silent'ın güç sınırı fan eğrisiyle aynı bayttadır (0xD4); özel eğri Silent'ı kapatır - dizüstü, sizin fanlarınızla Balanced gücünde çalışır. Devam edilsin mi?",
+            "Giới hạn công suất của Silent nằm cùng byte với đường cong quạt (0xD4), nên đường cong tùy chỉnh sẽ tắt Silent - máy chạy ở công suất Balanced với quạt của bạn. Tiếp tục?",
+            "Batas daya Silent berada di byte yang sama dengan kurva kipas (0xD4), jadi kurva kustom mematikan Silent - laptop berjalan dengan daya Balanced memakai kipas Anda. Lanjutkan?",
             "Il limite di potenza di Silent risiede nello stesso byte della curva ventole (0xD4), quindi una curva personalizzata disattiva Silent: il laptop funziona con la potenza di Balanced e le tue ventole. Continuare?"
             };
         m["fc_mode"]        = new[] { "Fan mode:", "Tryb wentylatora:", "Lüftermodus:", "Mode ventilateur :", "Modo ventilador:", "风扇模式：", "Modo da ventoinha:", "Режим вентилятора:", "ファンモード：", "팬 모드:", "風扇模式：", "Fan modu:", "Chế độ quạt:", "Mode kipas:", "Modalità ventole:" };
         m["fc_default"]     = new[] { "MSI default", "MSI domyślny", "MSI-Standard", "MSI par défaut", "MSI predeterminado", "MSI 默认", "Padrão MSI", "По умолчанию MSI", "MSI 既定", "MSI 기본값", "MSI 預設", "MSI varsayılanı", "Mặc định MSI", "Default MSI", "Predefinita MSI" };
         m["fc_applied"]     = new[] { "Custom fan curve applied to the current mode.", "Własna krzywa zastosowana w aktualnym trybie.", "Eigene Lüfterkurve im aktuellen Modus angewendet.", "Courbe personnalisée appliquée au mode actuel.", "Curva personalizada aplicada al modo actual.", "已在当前模式应用自定义曲线。", "Curva personalizada aplicada ao modo atual.", "Своя кривая применена в текущем режиме.", "現在のモードにカスタムファンカーブを適用しました。", "현재 모드에 사용자 지정 팬 곡선을 적용했습니다.", "已在目前模式套用自訂風扇曲線。", "Özel fan eğrisi geçerli moda uygulandı.", "Đã áp dụng đường cong quạt tùy chỉnh cho chế độ hiện tại.", "Kurva kipas kustom diterapkan ke mode saat ini.", "Curva personalizzata applicata alla modalità corrente." };
         m["fc_warn_low"]    = new[] {
-            "The highest-temperature speed is low — fans may stay quiet under heavy load and the laptop can get hot. Apply anyway?",
-            "Prędkość przy najwyższej temperaturze jest niska — pod dużym obciążeniem wentylatory mogą zostać ciche i laptop się zagrzeje. Zastosować mimo to?",
-            "Die Drehzahl bei höchster Temperatur ist niedrig — unter Last können die Lüfter leise bleiben und das Gerät heiß werden. Trotzdem anwenden?",
-            "La vitesse à la température max est faible — sous charge, les ventilateurs peuvent rester silencieux et le PC chauffer. Appliquer quand même ?",
-            "La velocidad a la temperatura máxima es baja — con carga, los ventiladores pueden quedar silenciosos y el equipo calentarse. ¿Aplicar igual?",
-            "最高温度下的转速偏低——重载时风扇可能仍很安静、机器会发热。仍要应用吗？",
-            "A velocidade na temperatura máxima é baixa — sob carga, as ventoinhas podem ficar silenciosas e o aparelho esquentar. Aplicar mesmo assim?",
-            "Скорость при макс. температуре низкая — под нагрузкой вентиляторы могут остаться тихими, и ноутбук нагреется. Всё равно применить?",
-            "最高温度での回転数が低めです — 高負荷時もファンが静かなままで、本体が熱くなる可能性があります。それでも適用しますか？",
-            "최고 온도 구간의 속도가 낮습니다 — 고부하에서 팬이 조용히 유지되어 노트북이 뜨거워질 수 있습니다. 그래도 적용하시겠습니까?",
-            "最高溫度下的轉速偏低——重負載時風扇可能仍很安靜、機器會發熱。仍要套用嗎？",
-            "En yüksek sıcaklıktaki hız düşük — fanlar ağır yükte sessiz kalabilir ve dizüstü ısınabilir. Yine de uygulansın mı?",
-            "Tốc độ ở nhiệt độ cao nhất khá thấp — quạt có thể vẫn êm khi tải nặng và máy có thể nóng. Vẫn áp dụng?",
-            "Kecepatan pada suhu tertinggi rendah — kipas mungkin tetap pelan saat beban berat dan laptop bisa panas. Tetap terapkan?",
+            "The highest-temperature speed is low - fans may stay quiet under heavy load and the laptop can get hot. Apply anyway?",
+            "Prędkość przy najwyższej temperaturze jest niska - pod dużym obciążeniem wentylatory mogą zostać ciche i laptop się zagrzeje. Zastosować mimo to?",
+            "Die Drehzahl bei höchster Temperatur ist niedrig - unter Last können die Lüfter leise bleiben und das Gerät heiß werden. Trotzdem anwenden?",
+            "La vitesse à la température max est faible - sous charge, les ventilateurs peuvent rester silencieux et le PC chauffer. Appliquer quand même ?",
+            "La velocidad a la temperatura máxima es baja - con carga, los ventiladores pueden quedar silenciosos y el equipo calentarse. ¿Aplicar igual?",
+            "最高温度下的转速偏低，重载时风扇可能仍很安静、机器会发热。仍要应用吗？",
+            "A velocidade na temperatura máxima é baixa - sob carga, as ventoinhas podem ficar silenciosas e o aparelho esquentar. Aplicar mesmo assim?",
+            "Скорость при макс. температуре низкая - под нагрузкой вентиляторы могут остаться тихими, и ноутбук нагреется. Всё равно применить?",
+            "最高温度での回転数が低めです - 高負荷時もファンが静かなままで、本体が熱くなる可能性があります。それでも適用しますか？",
+            "최고 온도 구간의 속도가 낮습니다 - 고부하에서 팬이 조용히 유지되어 노트북이 뜨거워질 수 있습니다. 그래도 적용하시겠습니까?",
+            "最高溫度下的轉速偏低，重負載時風扇可能仍很安靜、機器會發熱。仍要套用嗎？",
+            "En yüksek sıcaklıktaki hız düşük - fanlar ağır yükte sessiz kalabilir ve dizüstü ısınabilir. Yine de uygulansın mı?",
+            "Tốc độ ở nhiệt độ cao nhất khá thấp - quạt có thể vẫn êm khi tải nặng và máy có thể nóng. Vẫn áp dụng?",
+            "Kecepatan pada suhu tertinggi rendah - kipas mungkin tetap pelan saat beban berat dan laptop bisa panas. Tetap terapkan?",
             "La velocità alla temperatura massima è bassa: le ventole potrebbero restare silenziose sotto carico e il laptop scaldarsi. Applicare comunque?"
             };
         m["test_curve_btn"] = new[] { "Show fan curve (read-only)", "Pokaż krzywą wentylatora (read-only)", "Lüfterkurve anzeigen (nur Lesen)", "Afficher la courbe (lecture seule)", "Mostrar curva (solo lectura)", "显示风扇曲线（只读）", "Mostrar curva (somente leitura)", "Показать кривую (только чтение)", "ファンカーブを表示（読み取り専用）", "팬 곡선 표시 (읽기 전용)", "顯示風扇曲線（唯讀）", "Fan eğrisini göster (salt okunur)", "Hiện đường cong quạt (chỉ đọc)", "Tampilkan kurva kipas (hanya baca)", "Mostra curva ventole (sola lettura)" };
         m["test_curve_none"]= new[] { "No fan-curve map for this model yet.", "Brak mapy krzywej dla tego modelu.", "Noch keine Lüfterkurven-Map für dieses Modell.", "Pas encore de courbe pour ce modèle.", "Aún no hay mapa de curva para este modelo.", "该型号尚无风扇曲线映射。", "Ainda não há mapa de curva para este modelo.", "Для этой модели пока нет карты кривой.", "このモデルのファンカーブマップはまだありません。", "이 모델의 팬 곡선 맵이 아직 없습니다.", "此機型尚無風扇曲線對應表。", "Bu model için henüz fan eğrisi haritası yok.", "Model này chưa có bản đồ đường cong quạt.", "Belum ada peta kurva kipas untuk model ini.", "Nessuna mappa curva ventole per questo modello." };
         m["test_curve_hint"]= new[] {
-            "Read-only preview — compare with MSI Center (Extreme → Advanced) to confirm the point count and values.",
-            "Podgląd tylko do odczytu — porównaj z MSI Center (Extreme → Advanced), aby potwierdzić liczbę punktów i wartości.",
-            "Nur-Lese-Vorschau — mit MSI Center (Extreme → Advanced) vergleichen, um Punktanzahl und Werte zu bestätigen.",
-            "Aperçu en lecture seule — comparez avec MSI Center (Extreme → Advanced) pour confirmer le nombre de points et les valeurs.",
-            "Vista previa de solo lectura — compara con MSI Center (Extreme → Advanced) para confirmar el número de puntos y los valores.",
-            "只读预览——与 MSI Center（Extreme → Advanced）对比以确认点数和数值。",
-            "Pré-visualização somente leitura — compare com o MSI Center (Extreme → Advanced) para confirmar o número de pontos e valores.",
-            "Предпросмотр только для чтения — сравните с MSI Center (Extreme → Advanced), чтобы подтвердить число точек и значения.",
-            "読み取り専用プレビュー — MSI Center（Extreme → Advanced）と比較して点数と値を確認してください。",
-            "읽기 전용 미리보기 — MSI Center(Extreme → Advanced)와 비교해 포인트 수와 값을 확인하세요.",
-            "唯讀預覽——與 MSI Center（Extreme → Advanced）比對以確認點數和數值。",
-            "Salt okunur önizleme — nokta sayısını ve değerleri doğrulamak için MSI Center (Extreme → Advanced) ile karşılaştırın.",
-            "Xem trước chỉ đọc — so sánh với MSI Center (Extreme → Advanced) để xác nhận số điểm và giá trị.",
-            "Pratinjau hanya baca — bandingkan dengan MSI Center (Extreme → Advanced) untuk memastikan jumlah titik dan nilainya.",
+            "Read-only preview - compare with MSI Center (Extreme → Advanced) to confirm the point count and values.",
+            "Podgląd tylko do odczytu - porównaj z MSI Center (Extreme → Advanced), aby potwierdzić liczbę punktów i wartości.",
+            "Nur-Lese-Vorschau - mit MSI Center (Extreme → Advanced) vergleichen, um Punktanzahl und Werte zu bestätigen.",
+            "Aperçu en lecture seule - comparez avec MSI Center (Extreme → Advanced) pour confirmer le nombre de points et les valeurs.",
+            "Vista previa de solo lectura - compara con MSI Center (Extreme → Advanced) para confirmar el número de puntos y los valores.",
+            "只读预览，与 MSI Center（Extreme → Advanced）对比以确认点数和数值。",
+            "Pré-visualização somente leitura - compare com o MSI Center (Extreme → Advanced) para confirmar o número de pontos e valores.",
+            "Предпросмотр только для чтения - сравните с MSI Center (Extreme → Advanced), чтобы подтвердить число точек и значения.",
+            "読み取り専用プレビュー - MSI Center（Extreme → Advanced）と比較して点数と値を確認してください。",
+            "읽기 전용 미리보기 - MSI Center(Extreme → Advanced)와 비교해 포인트 수와 값을 확인하세요.",
+            "唯讀預覽，與 MSI Center（Extreme → Advanced）比對以確認點數和數值。",
+            "Salt okunur önizleme - nokta sayısını ve değerleri doğrulamak için MSI Center (Extreme → Advanced) ile karşılaştırın.",
+            "Xem trước chỉ đọc - so sánh với MSI Center (Extreme → Advanced) để xác nhận số điểm và giá trị.",
+            "Pratinjau hanya baca - bandingkan dengan MSI Center (Extreme → Advanced) untuk memastikan jumlah titik dan nilainya.",
             "Anteprima in sola lettura: confronta con MSI Center (Extreme → Advanced) per verificare numero di punti e valori."
             };
         m["test_dump_saved"]= new[] { "Saved to:\n{0}", "Zapisano do:\n{0}", "Gespeichert:\n{0}", "Enregistré :\n{0}", "Guardado en:\n{0}", "已保存到：\n{0}", "Salvo em:\n{0}", "Сохранено:\n{0}", "保存先：\n{0}", "저장 위치:\n{0}", "已儲存到：\n{0}", "Kaydedildi:\n{0}", "Đã lưu vào:\n{0}", "Disimpan ke:\n{0}", "Salvato in:\n{0}" };
@@ -1811,7 +1811,7 @@ public static class Lang
             "Tutti gli ID firmware riconosciuti dall'app: {0} testati su hardware reale, gli altri sperimentali (opt-in) dalle mappe registri di msi-ec / MControlCenter. Con firmware non riconosciuto l'app resta in sola lettura."
             };
         m["mdl_you"]        = new[] { "Your model", "Twój model", "Dein Modell", "Votre modèle", "Tu modelo", "你的机型", "Seu modelo", "Ваша модель", "お使いのモデル", "내 모델", "你的機型", "Modeliniz", "Model của bạn", "Model Anda", "Il tuo modello" };
-        m["mdl_unknown"]    = new[] { "Firmware {0} not recognised — read-only mode.", "Firmware {0} nierozpoznany — tryb tylko do odczytu.", "Firmware {0} nicht erkannt — Nur-Lese-Modus.", "Firmware {0} non reconnu — mode lecture seule.", "Firmware {0} no reconocido — modo de solo lectura.", "未识别固件 {0} — 只读模式。", "Firmware {0} não reconhecido — modo somente leitura.", "Прошивка {0} не распознана — режим только чтения.", "ファームウェア {0} は未認識 — 読み取り専用モード。", "펌웨어 {0}을(를) 인식할 수 없습니다 — 읽기 전용 모드.", "未辨識韌體 {0} — 唯讀模式。", "Ürün yazılımı {0} tanınmadı — salt okunur mod.", "Chưa nhận diện firmware {0} — chế độ chỉ đọc.", "Firmware {0} tidak dikenali — mode hanya baca.", "Firmware {0} non riconosciuto: modalità sola lettura." };
+        m["mdl_unknown"]    = new[] { "Firmware {0} not recognised - read-only mode.", "Firmware {0} nierozpoznany - tryb tylko do odczytu.", "Firmware {0} nicht erkannt - Nur-Lese-Modus.", "Firmware {0} non reconnu - mode lecture seule.", "Firmware {0} no reconocido - modo de solo lectura.", "未识别固件 {0} - 只读模式。", "Firmware {0} não reconhecido - modo somente leitura.", "Прошивка {0} не распознана - режим только чтения.", "ファームウェア {0} は未認識 - 読み取り専用モード。", "펌웨어 {0}을(를) 인식할 수 없습니다 - 읽기 전용 모드.", "未辨識韌體 {0} - 唯讀模式。", "Ürün yazılımı {0} tanınmadı - salt okunur mod.", "Chưa nhận diện firmware {0} - chế độ chỉ đọc.", "Firmware {0} tidak dikenali - mode hanya baca.", "Firmware {0} non riconosciuto: modalità sola lettura." };
         m["mdl_c_family"]   = new[] { "Family", "Rodzina", "Familie", "Famille", "Familia", "家族", "Família", "Семейство", "ファミリー", "제품군", "系列", "Aile", "Dòng", "Keluarga", "Famiglia" };
         m["mdl_c_status"]   = new[] { "Status", "Status", "Status", "Statut", "Estado", "状态", "Status", "Статус", "ステータス", "상태", "狀態", "Durum", "Trạng thái", "Status", "Stato" };
         m["mdl_c_curve"]    = new[] { "Fan curve", "Krzywa", "Lüfterkurve", "Courbe", "Curva", "风扇曲线", "Curva", "Кривая", "ファンカーブ", "팬 곡선", "風扇曲線", "Fan eğrisi", "Đường cong quạt", "Kurva kipas", "Curva ventole" };
@@ -1856,21 +1856,21 @@ public static class Lang
             };
         m["mdl_search"]     = new[] { "Search model or firmware…", "Szukaj modelu lub firmware…", "Modell oder Firmware suchen…", "Rechercher un modèle ou firmware…", "Buscar modelo o firmware…", "搜索机型或固件…", "Pesquisar modelo ou firmware…", "Поиск модели или прошивки…", "モデルまたはファームウェアを検索…", "모델 또는 펌웨어 검색…", "搜尋機型或韌體…", "Model veya ürün yazılımı ara…", "Tìm model hoặc firmware…", "Cari model atau firmware…", "Cerca modello o firmware…" };
         m["mdl_legend"]     = new[] {
-            "Fan curve:  ✓ editable = writable now   ·   ◉ unverified = editable after enabling Experimental, but addresses unconfirmed - compare with MSI Center first   ·   — = none.   SB = has a super-battery register.   RPM = fan-tachometer address known (real RPM shown).",
-            "Krzywa:  ✓ edytowalna = zapisywalna od razu   ·   ◉ niezweryfikowany = edytowalna po włączeniu trybu eksperymentalnego, ale adresy niepotwierdzone - najpierw porównaj z MSI Center   ·   — = brak.   SB = ma rejestr super-baterii.   RPM = znany adres tachometru (pokazuje realne RPM).",
-            "Lüfterkurve:  ✓ editierbar = sofort beschreibbar   ·   ◉ unbestätigt = editierbar nach Aktivieren von Experimentell, Adressen unbestätigt - zuerst mit MSI Center vergleichen   ·   — = keine.   SB = hat ein Super-Battery-Register.   RPM = Tachometer-Adresse bekannt (echte RPM).",
-            "Courbe :  ✓ modifiable = inscriptible maintenant   ·   ◉ non vérifiée = modifiable après activation du mode expérimental, adresses non confirmées - comparez d'abord avec MSI Center   ·   — = aucune.   SB = registre super-batterie.   RPM = adresse du tachymètre connue (RPM réels).",
-            "Curva:  ✓ editable = escribible ya   ·   ◉ sin verificar = editable tras activar Experimental, direcciones sin confirmar - compara antes con MSI Center   ·   — = ninguna.   SB = registro de super-batería.   RPM = dirección del tacómetro conocida (RPM reales).",
-            "风扇曲线：✓ 可编辑 = 立即可写   ·   ◉ 未验证 = 启用实验模式后可编辑，但地址未确认 - 请先与 MSI Center 对比   ·   — = 无。SB = 有超级省电寄存器。RPM = 已知转速地址（显示真实转速）。",
-            "Curva:  ✓ editável = gravável agora   ·   ◉ não verificada = editável após ativar Experimental, endereços não confirmados - compare antes com o MSI Center   ·   — = nenhuma.   SB = registro de super-bateria.   RPM = endereço do tacômetro conhecido (RPM reais).",
-            "Кривая:  ✓ редактируемая = запись доступна   ·   ◉ не проверена = доступна после включения экспериментального режима, адреса не подтверждены - сначала сравните с MSI Center   ·   — = нет.   SB = есть регистр супер-батареи.   RPM = известен адрес тахометра (реальные обороты).",
-            "ファンカーブ：  ✓ 編集可 = 今すぐ書き込み可   ·   ◉ 未検証 = 実験的機能を有効にすると編集可、ただしアドレス未確認 - 先に MSI Center と比較   ·   — = なし。SB = Super Battery レジスタあり。RPM = ファン回転計アドレス既知（実 RPM を表示）。",
-            "팬 곡선:  ✓ 편집 가능 = 지금 쓰기 가능   ·   ◉ 미검증 = 실험 기능 활성화 후 편집 가능하나 주소 미확인 - 먼저 MSI Center와 비교   ·   — = 없음.   SB = Super Battery 레지스터 있음.   RPM = 팬 회전계 주소 확인됨(실제 RPM 표시).",
-            "風扇曲線：✓ 可編輯 = 立即可寫入   ·   ◉ 未驗證 = 啟用實驗模式後可編輯，但位址未確認 - 請先與 MSI Center 比對   ·   — = 無。SB = 有超級省電暫存器。RPM = 已知轉速計位址（顯示實際轉速）。",
-            "Fan eğrisi:  ✓ düzenlenebilir = şimdi yazılabilir   ·   ◉ doğrulanmadı = Deneysel etkinleştirilince düzenlenebilir, ancak adresler doğrulanmamış - önce MSI Center ile karşılaştırın   ·   — = yok.   SB = super-battery yazmacı var.   RPM = fan takometre adresi biliniyor (gerçek RPM gösterilir).",
-            "Đường cong quạt:  ✓ sửa được = ghi được ngay   ·   ◉ chưa xác minh = sửa được sau khi bật Thử nghiệm, nhưng địa chỉ chưa xác nhận - hãy so với MSI Center trước   ·   — = không có.   SB = có thanh ghi super-battery.   RPM = đã biết địa chỉ cảm biến vòng quay quạt (hiện RPM thật).",
-            "Kurva kipas:  ✓ dapat diedit = bisa ditulis sekarang   ·   ◉ belum diverifikasi = dapat diedit setelah mengaktifkan Eksperimental, tetapi alamat belum dikonfirmasi - bandingkan dulu dengan MSI Center   ·   — = tidak ada.   SB = punya register super-battery.   RPM = alamat takometer kipas diketahui (RPM nyata ditampilkan).",
-            "Curva ventole:  ✓ modificabile = scrivibile ora   ·   ◉ non verificata = modificabile dopo aver attivato Sperimentale, ma indirizzi non confermati - confronta prima con MSI Center   ·   — = nessuna.   SB = ha un registro super-battery.   RPM = indirizzo tachimetro ventola noto (RPM reali mostrati)."
+            "Fan curve:  ✓ editable = writable now   ·   ◉ unverified = editable after enabling Experimental, but addresses unconfirmed - compare with MSI Center first   ·   - = none.   SB = has a super-battery register.   RPM = fan-tachometer address known (real RPM shown).",
+            "Krzywa:  ✓ edytowalna = zapisywalna od razu   ·   ◉ niezweryfikowany = edytowalna po włączeniu trybu eksperymentalnego, ale adresy niepotwierdzone - najpierw porównaj z MSI Center   ·   - = brak.   SB = ma rejestr super-baterii.   RPM = znany adres tachometru (pokazuje realne RPM).",
+            "Lüfterkurve:  ✓ editierbar = sofort beschreibbar   ·   ◉ unbestätigt = editierbar nach Aktivieren von Experimentell, Adressen unbestätigt - zuerst mit MSI Center vergleichen   ·   - = keine.   SB = hat ein Super-Battery-Register.   RPM = Tachometer-Adresse bekannt (echte RPM).",
+            "Courbe :  ✓ modifiable = inscriptible maintenant   ·   ◉ non vérifiée = modifiable après activation du mode expérimental, adresses non confirmées - comparez d'abord avec MSI Center   ·   - = aucune.   SB = registre super-batterie.   RPM = adresse du tachymètre connue (RPM réels).",
+            "Curva:  ✓ editable = escribible ya   ·   ◉ sin verificar = editable tras activar Experimental, direcciones sin confirmar - compara antes con MSI Center   ·   - = ninguna.   SB = registro de super-batería.   RPM = dirección del tacómetro conocida (RPM reales).",
+            "风扇曲线：✓ 可编辑 = 立即可写   ·   ◉ 未验证 = 启用实验模式后可编辑，但地址未确认 - 请先与 MSI Center 对比   ·   - = 无。SB = 有超级省电寄存器。RPM = 已知转速地址（显示真实转速）。",
+            "Curva:  ✓ editável = gravável agora   ·   ◉ não verificada = editável após ativar Experimental, endereços não confirmados - compare antes com o MSI Center   ·   - = nenhuma.   SB = registro de super-bateria.   RPM = endereço do tacômetro conhecido (RPM reais).",
+            "Кривая:  ✓ редактируемая = запись доступна   ·   ◉ не проверена = доступна после включения экспериментального режима, адреса не подтверждены - сначала сравните с MSI Center   ·   - = нет.   SB = есть регистр супер-батареи.   RPM = известен адрес тахометра (реальные обороты).",
+            "ファンカーブ：  ✓ 編集可 = 今すぐ書き込み可   ·   ◉ 未検証 = 実験的機能を有効にすると編集可、ただしアドレス未確認 - 先に MSI Center と比較   ·   - = なし。SB = Super Battery レジスタあり。RPM = ファン回転計アドレス既知（実 RPM を表示）。",
+            "팬 곡선:  ✓ 편집 가능 = 지금 쓰기 가능   ·   ◉ 미검증 = 실험 기능 활성화 후 편집 가능하나 주소 미확인 - 먼저 MSI Center와 비교   ·   - = 없음.   SB = Super Battery 레지스터 있음.   RPM = 팬 회전계 주소 확인됨(실제 RPM 표시).",
+            "風扇曲線：✓ 可編輯 = 立即可寫入   ·   ◉ 未驗證 = 啟用實驗模式後可編輯，但位址未確認 - 請先與 MSI Center 比對   ·   - = 無。SB = 有超級省電暫存器。RPM = 已知轉速計位址（顯示實際轉速）。",
+            "Fan eğrisi:  ✓ düzenlenebilir = şimdi yazılabilir   ·   ◉ doğrulanmadı = Deneysel etkinleştirilince düzenlenebilir, ancak adresler doğrulanmamış - önce MSI Center ile karşılaştırın   ·   - = yok.   SB = super-battery yazmacı var.   RPM = fan takometre adresi biliniyor (gerçek RPM gösterilir).",
+            "Đường cong quạt:  ✓ sửa được = ghi được ngay   ·   ◉ chưa xác minh = sửa được sau khi bật Thử nghiệm, nhưng địa chỉ chưa xác nhận - hãy so với MSI Center trước   ·   - = không có.   SB = có thanh ghi super-battery.   RPM = đã biết địa chỉ cảm biến vòng quay quạt (hiện RPM thật).",
+            "Kurva kipas:  ✓ dapat diedit = bisa ditulis sekarang   ·   ◉ belum diverifikasi = dapat diedit setelah mengaktifkan Eksperimental, tetapi alamat belum dikonfirmasi - bandingkan dulu dengan MSI Center   ·   - = tidak ada.   SB = punya register super-battery.   RPM = alamat takometer kipas diketahui (RPM nyata ditampilkan).",
+            "Curva ventole:  ✓ modificabile = scrivibile ora   ·   ◉ non verificata = modificabile dopo aver attivato Sperimentale, ma indirizzi non confermati - confronta prima con MSI Center   ·   - = nessuna.   SB = ha un registro super-battery.   RPM = indirizzo tachimetro ventola noto (RPM reali mostrati)."
             };
         // ---- Models tab, five sub-tabs (2026-10-18) ----
         m["mdl_tab_list"]      = new[] { "List", "Lista", "Liste", "Liste", "Lista", "列表", "Lista", "Список", "リスト", "목록", "清單", "Liste", "Danh sách", "Daftar", "Elenco" };
@@ -2482,21 +2482,21 @@ public static class Lang
         m["rep_captured"]   = new[] { "captured", "przechwycono", "erfasst", "capturé", "capturado", "已采集", "capturado", "снято", "キャプチャ済み", "캡처됨", "已擷取", "yakalandı", "đã thu thập", "ditangkap", "acquisito" };
         m["rep_pending"]    = new[] { "pending", "oczekuje", "ausstehend", "en attente", "pendiente", "待采集", "pendente", "ожидание", "待機中", "대기 중", "待擷取", "bekliyor", "đang chờ", "menunggu", "in attesa" };
         m["rep_all_done"]   = new[] {
-            "All scenarios captured. The report was copied to your clipboard and saved to a file. Click Finish to open the GitHub form — paste the full report (Ctrl+V) into the \"Full EC dump per scenario (optional, very helpful)\" field.",
-            "Wszystkie scenariusze przechwycone. Raport skopiowano do schowka i zapisano do pliku. Kliknij Zakończ, aby otworzyć formularz GitHub — wklej pełny raport (Ctrl+V) w pole \"Full EC dump per scenario (optional, very helpful)\".",
-            "Alle Szenarien erfasst. Der Bericht wurde in die Zwischenablage kopiert und als Datei gespeichert. Auf Fertig klicken, um das GitHub-Formular zu öffnen — vollständigen Bericht (Strg+V) in das Feld \"Full EC dump per scenario (optional, very helpful)\" einfügen.",
-            "Tous les scénarios capturés. Le rapport a été copié dans le presse-papiers et enregistré. Cliquez sur Terminer pour ouvrir le formulaire GitHub — collez le rapport complet (Ctrl+V) dans le champ \"Full EC dump per scenario (optional, very helpful)\".",
-            "Todos los escenarios capturados. El informe se copió al portapapeles y se guardó en un archivo. Pulsa Finalizar para abrir el formulario de GitHub — pega el informe completo (Ctrl+V) en el campo \"Full EC dump per scenario (optional, very helpful)\".",
-            "已采集所有场景。报告已复制到剪贴板并保存为文件。点击完成以打开 GitHub 表单——将完整报告（Ctrl+V）粘贴到 \"Full EC dump per scenario (optional, very helpful)\" 字段。",
-            "Todos os cenários capturados. O relatório foi copiado para a área de transferência e salvo em arquivo. Clique em Concluir para abrir o formulário do GitHub — cole o relatório completo (Ctrl+V) no campo \"Full EC dump per scenario (optional, very helpful)\".",
-            "Все сценарии сняты. Отчёт скопирован в буфер обмена и сохранён в файл. Нажмите «Готово», чтобы открыть форму GitHub — вставьте полный отчёт (Ctrl+V) в поле \"Full EC dump per scenario (optional, very helpful)\".",
+            "All scenarios captured. The report was copied to your clipboard and saved to a file. Click Finish to open the GitHub form - paste the full report (Ctrl+V) into the \"Full EC dump per scenario (optional, very helpful)\" field.",
+            "Wszystkie scenariusze przechwycone. Raport skopiowano do schowka i zapisano do pliku. Kliknij Zakończ, aby otworzyć formularz GitHub - wklej pełny raport (Ctrl+V) w pole \"Full EC dump per scenario (optional, very helpful)\".",
+            "Alle Szenarien erfasst. Der Bericht wurde in die Zwischenablage kopiert und als Datei gespeichert. Auf Fertig klicken, um das GitHub-Formular zu öffnen - vollständigen Bericht (Strg+V) in das Feld \"Full EC dump per scenario (optional, very helpful)\" einfügen.",
+            "Tous les scénarios capturés. Le rapport a été copié dans le presse-papiers et enregistré. Cliquez sur Terminer pour ouvrir le formulaire GitHub - collez le rapport complet (Ctrl+V) dans le champ \"Full EC dump per scenario (optional, very helpful)\".",
+            "Todos los escenarios capturados. El informe se copió al portapapeles y se guardó en un archivo. Pulsa Finalizar para abrir el formulario de GitHub - pega el informe completo (Ctrl+V) en el campo \"Full EC dump per scenario (optional, very helpful)\".",
+            "已采集所有场景。报告已复制到剪贴板并保存为文件。点击完成以打开 GitHub 表单，将完整报告（Ctrl+V）粘贴到 \"Full EC dump per scenario (optional, very helpful)\" 字段。",
+            "Todos os cenários capturados. O relatório foi copiado para a área de transferência e salvo em arquivo. Clique em Concluir para abrir o formulário do GitHub - cole o relatório completo (Ctrl+V) no campo \"Full EC dump per scenario (optional, very helpful)\".",
+            "Все сценарии сняты. Отчёт скопирован в буфер обмена и сохранён в файл. Нажмите «Готово», чтобы открыть форму GitHub - вставьте полный отчёт (Ctrl+V) в поле \"Full EC dump per scenario (optional, very helpful)\".",
             "全シナリオをキャプチャしました。レポートはクリップボードにコピーされ、ファイルにも保存されました。「完了」をクリックして GitHub フォームを開き、レポート全体を（Ctrl+V で）\"Full EC dump per scenario (optional, very helpful)\" 欄に貼り付けてください。",
             "모든 시나리오를 캡처했습니다. 보고서가 클립보드에 복사되고 파일로 저장되었습니다. 완료를 클릭해 GitHub 양식을 연 뒤 전체 보고서(Ctrl+V)를 \"Full EC dump per scenario (optional, very helpful)\" 항목에 붙여넣으세요.",
-            "已擷取所有情境。報告已複製到剪貼簿並儲存為檔案。按一下完成以開啟 GitHub 表單 — 將完整報告（Ctrl+V）貼到 \"Full EC dump per scenario (optional, very helpful)\" 欄位。",
-            "Tüm senaryolar yakalandı. Rapor panoya kopyalandı ve bir dosyaya kaydedildi. GitHub formunu açmak için Bitir'e tıklayın — raporun tamamını (Ctrl+V) \"Full EC dump per scenario (optional, very helpful)\" alanına yapıştırın.",
-            "Đã thu thập mọi kịch bản. Báo cáo đã được sao chép vào bảng tạm và lưu vào tệp. Bấm Hoàn tất để mở biểu mẫu GitHub — dán toàn bộ báo cáo (Ctrl+V) vào trường \"Full EC dump per scenario (optional, very helpful)\".",
-            "Semua skenario sudah ditangkap. Laporan telah disalin ke papan klip dan disimpan ke file. Klik Selesai untuk membuka formulir GitHub — tempel laporan lengkap (Ctrl+V) ke kolom \"Full EC dump per scenario (optional, very helpful)\".",
-            "Tutti gli scenari acquisiti. Il report è stato copiato negli appunti e salvato in un file. Fai clic su Fine per aprire il modulo GitHub — incolla il report completo (Ctrl+V) nel campo \"Full EC dump per scenario (optional, very helpful)\"."
+            "已擷取所有情境。報告已複製到剪貼簿並儲存為檔案。按一下完成以開啟 GitHub 表單 - 將完整報告（Ctrl+V）貼到 \"Full EC dump per scenario (optional, very helpful)\" 欄位。",
+            "Tüm senaryolar yakalandı. Rapor panoya kopyalandı ve bir dosyaya kaydedildi. GitHub formunu açmak için Bitir'e tıklayın - raporun tamamını (Ctrl+V) \"Full EC dump per scenario (optional, very helpful)\" alanına yapıştırın.",
+            "Đã thu thập mọi kịch bản. Báo cáo đã được sao chép vào bảng tạm và lưu vào tệp. Bấm Hoàn tất để mở biểu mẫu GitHub - dán toàn bộ báo cáo (Ctrl+V) vào trường \"Full EC dump per scenario (optional, very helpful)\".",
+            "Semua skenario sudah ditangkap. Laporan telah disalin ke papan klip dan disimpan ke file. Klik Selesai untuk membuka formulir GitHub - tempel laporan lengkap (Ctrl+V) ke kolom \"Full EC dump per scenario (optional, very helpful)\".",
+            "Tutti gli scenari acquisiti. Il report è stato copiato negli appunti e salvato in un file. Fai clic su Fine per aprire il modulo GitHub - incolla il report completo (Ctrl+V) nel campo \"Full EC dump per scenario (optional, very helpful)\"."
             };
         m["rep_finish"]     = new[] { "Finish & open GitHub", "Zakończ i otwórz GitHub", "Fertig & GitHub öffnen", "Terminer & ouvrir GitHub", "Finalizar y abrir GitHub", "完成并打开 GitHub", "Concluir e abrir GitHub", "Готово и открыть GitHub", "完了して GitHub を開く", "완료 및 GitHub 열기", "完成並開啟 GitHub", "Bitir ve GitHub'ı aç", "Hoàn tất & mở GitHub", "Selesai & buka GitHub", "Fine e apri GitHub" };
         m["rep_cancel"]     = new[] { "Cancel", "Anuluj", "Abbrechen", "Annuler", "Cancelar", "取消", "Cancelar", "Отмена", "キャンセル", "취소", "取消", "İptal", "Hủy", "Batal", "Annulla" };
@@ -2930,12 +2930,12 @@ public static class Lang
             "Turbo ist im aktiven Windows-Plan deaktiviert. GhostDeck hat keine gespeicherten früheren Werte - beim Einschalten wird der GhostDeck-Standard verwendet: {0}.",
             "Le turbo est désactivé dans le plan Windows actif. GhostDeck n'a pas de valeurs précédentes enregistrées - l'activation utilisera le réglage par défaut de GhostDeck : {0}.",
             "El turbo está desactivado en el plan de Windows activo. GhostDeck no tiene valores anteriores guardados: al activarlo se usará el valor predeterminado de GhostDeck: {0}.",
-            "当前 Windows 计划中已禁用睿频。GhostDeck 没有保存的先前值——开启时将使用 GhostDeck 的默认值：{0}。",
+            "当前 Windows 计划中已禁用睿频。GhostDeck 没有保存的先前值，开启时将使用 GhostDeck 的默认值：{0}。",
             "O turbo está desativado no plano ativo do Windows. O GhostDeck não tem valores anteriores salvos - ao ligar será usado o padrão do GhostDeck: {0}.",
             "Турбо отключено в активном плане Windows. У GhostDeck нет сохранённых прежних значений - при включении будет использовано значение GhostDeck по умолчанию: {0}.",
             "アクティブな Windows プランでターボが無効です。GhostDeck に保存済みの以前の値はありません。オンにすると GhostDeck の既定値を使用します: {0}。",
             "활성 Windows 전원 관리 옵션에서 터보가 꺼져 있습니다. GhostDeck에 저장된 이전 값이 없어, 켜면 GhostDeck 기본값을 사용합니다: {0}.",
-            "目前的 Windows 計畫已停用 Turbo。GhostDeck 沒有已儲存的先前值——開啟時將使用 GhostDeck 的預設值：{0}。",
+            "目前的 Windows 計畫已停用 Turbo。GhostDeck 沒有已儲存的先前值，開啟時將使用 GhostDeck 的預設值：{0}。",
             "Etkin Windows planında turbo devre dışı. GhostDeck'in kayıtlı önceki değeri yok - açınca GhostDeck varsayılanı kullanılır: {0}.",
             "Turbo đã bị tắt trong kế hoạch Windows hiện hoạt. GhostDeck không có giá trị trước đó được lưu - bật lên sẽ dùng mặc định của GhostDeck: {0}.",
             "Turbo dinonaktifkan di rencana Windows aktif. GhostDeck tidak punya nilai sebelumnya yang tersimpan - menyalakan akan memakai default GhostDeck: {0}.",
@@ -2968,12 +2968,12 @@ public static class Lang
             "Wird nur beim Profilwechsel angewendet - verschiebst du danach selbst den Windows-Energiemodus-Regler, gilt deine Wahl bis zum nächsten Profilwechsel. Der Modus ist eine Anforderung: Windows kann vorübergehend einen anderen effektiven Modus anwenden; die Karte zeigt beide.",
             "Appliqué uniquement au moment du changement de profil - si vous déplacez ensuite vous-même le curseur du mode d'alimentation Windows, votre choix reste valable jusqu'au prochain changement de profil. Le mode est une demande : Windows peut appliquer temporairement un autre mode effectif, et la carte affiche les deux.",
             "Se aplica solo al cambiar de perfil: si después mueves tú mismo el control del modo de energía de Windows, tu elección se mantiene hasta el próximo cambio de perfil. El modo es una solicitud: Windows puede aplicar temporalmente otro modo efectivo, y la tarjeta muestra ambos.",
-            "仅在切换配置文件的那一刻生效——之后你自己移动 Windows 电源模式滑块，你的选择在下次切换配置文件前一直有效。该模式是一个请求：Windows 可能暂时应用不同的实际模式，卡片会同时显示两者。",
+            "仅在切换配置文件的那一刻生效，之后你自己移动 Windows 电源模式滑块，你的选择在下次切换配置文件前一直有效。该模式是一个请求：Windows 可能暂时应用不同的实际模式，卡片会同时显示两者。",
             "Aplicado apenas no momento da troca de perfil - se depois você mesmo mover o controle do modo de energia do Windows, sua escolha vale até a próxima troca de perfil. O modo é um pedido: o Windows pode aplicar temporariamente outro modo efetivo, e o cartão mostra os dois.",
             "Применяется только в момент смены профиля - если после этого вы сами передвинете ползунок режима питания Windows, ваш выбор действует до следующей смены профиля. Режим - это запрос: Windows может временно применить другой действующий режим, и карточка показывает оба.",
             "プロファイル変更の瞬間にのみ適用されます。その後自分で Windows の電源モードスライダーを動かした場合、次のプロファイル切り替えまであなたの選択が有効です。モードは要求であり、Windows が一時的に別の実効モードを適用することがあります。カードは両方を表示します。",
             "프로필이 바뀌는 순간에만 적용됩니다. 이후 직접 Windows 전원 모드 슬라이더를 움직이면 다음 프로필 전환까지 그 선택이 유지됩니다. 모드는 요청일 뿐이라 Windows가 일시적으로 다른 실제 모드를 적용할 수 있으며, 카드에는 둘 다 표시됩니다.",
-            "僅在切換設定檔的那一刻生效——之後你自行移動 Windows 電源模式滑桿，你的選擇在下次切換設定檔前一直有效。該模式是一項要求：Windows 可能暫時套用不同的實際模式，卡片會同時顯示兩者。",
+            "僅在切換設定檔的那一刻生效，之後你自行移動 Windows 電源模式滑桿，你的選擇在下次切換設定檔前一直有效。該模式是一項要求：Windows 可能暫時套用不同的實際模式，卡片會同時顯示兩者。",
             "Yalnızca profil değiştiği anda uygulanır - sonrasında Windows güç modu kaydırıcısını kendin oynatırsan, seçimin bir sonraki profil geçişine kadar geçerlidir. Mod bir istektir: Windows geçici olarak farklı bir geçerli mod uygulayabilir; kart ikisini de gösterir.",
             "Chỉ áp dụng đúng lúc đổi hồ sơ - nếu sau đó bạn tự di chuyển thanh trượt chế độ nguồn Windows, lựa chọn của bạn có hiệu lực đến lần đổi hồ sơ tiếp theo. Chế độ là một yêu cầu: Windows có thể tạm thời áp dụng chế độ hiệu lực khác, và thẻ hiển thị cả hai.",
             "Hanya diterapkan saat profil berganti - jika setelahnya Anda sendiri menggeser slider mode daya Windows, pilihan Anda berlaku sampai pergantian profil berikutnya. Mode adalah permintaan: Windows bisa sementara menerapkan mode efektif berbeda, dan kartu menampilkan keduanya.",
@@ -2988,12 +2988,12 @@ public static class Lang
             "Dadurch wird die ausgeblendete Einstellung \"Leistungssteigerungsmodus für Prozessoren\" in den Windows-Energieoptionen sichtbar. Es ist eine dauerhafte, globale Änderung der Windows-Konfiguration - sie bleibt auch nach dem Deinstallieren von GhostDeck bestehen, und GhostDeck braucht sie nicht; sie erlaubt nur, dieselbe Einstellung auch von Windows aus zu sehen und zu bearbeiten. Mit demselben Knopf kannst du sie wieder ausblenden. Fortfahren?",
             "Ceci rend visible le réglage masqué \"Mode d'amplification des performances du processeur\" dans les options d'alimentation Windows. C'est une modification permanente et globale de la configuration Windows - elle subsiste même après la désinstallation de GhostDeck, et GhostDeck n'en a pas besoin ; elle permet seulement de voir et de modifier le même réglage depuis Windows. Vous pouvez le masquer à nouveau avec le même bouton. Continuer ?",
             "Esto hace visible el ajuste oculto \"Modo de aumento de rendimiento del procesador\" en las opciones de energía de Windows. Es un cambio permanente y global de la configuración de Windows: permanece incluso tras desinstalar GhostDeck, y GhostDeck no lo necesita; solo permite ver y editar el mismo ajuste desde Windows. Puedes ocultarlo de nuevo con el mismo botón. ¿Continuar?",
-            "这会让隐藏的\"处理器性能提升模式\"设置显示在 Windows 电源选项中。这是对 Windows 配置的永久性全局更改——即使卸载 GhostDeck 也会保留，而 GhostDeck 并不需要它；它只是让你也能从 Windows 查看和编辑同一设置。可用同一按钮重新隐藏。继续？",
+            "这会让隐藏的\"处理器性能提升模式\"设置显示在 Windows 电源选项中。这是对 Windows 配置的永久性全局更改，即使卸载 GhostDeck 也会保留，而 GhostDeck 并不需要它；它只是让你也能从 Windows 查看和编辑同一设置。可用同一按钮重新隐藏。继续？",
             "Isto torna visível a configuração oculta \"Modo de aumento de desempenho do processador\" nas opções de energia do Windows. É uma mudança permanente e global da configuração do Windows - permanece mesmo após desinstalar o GhostDeck, e o GhostDeck não precisa dela; apenas permite ver e editar a mesma configuração pelo Windows. Você pode ocultá-la de novo com o mesmo botão. Continuar?",
             "Это делает скрытый параметр \"Режим повышения производительности процессора\" видимым в электропитании Windows. Это постоянное глобальное изменение конфигурации Windows - оно остаётся даже после удаления GhostDeck, и GhostDeck в нём не нуждается; оно лишь позволяет видеть и менять тот же параметр средствами Windows. Скрыть его обратно можно той же кнопкой. Продолжить?",
             "非表示の「プロセッサ パフォーマンスの向上モード」設定を Windows の電源オプションに表示します。これは Windows 構成への恒久的でグローバルな変更で、GhostDeck をアンインストールしても残ります。GhostDeck の動作には不要で、同じ設定を Windows 側からも表示・編集できるようにするだけです。同じボタンで再び非表示にできます。続行しますか？",
             "숨겨진 \"프로세서 성능 향상 모드\" 설정을 Windows 전원 옵션에 표시합니다. 이는 Windows 구성에 대한 영구적이고 전역적인 변경으로, GhostDeck을 제거해도 남습니다. GhostDeck 동작에는 필요 없으며, 같은 설정을 Windows에서도 보고 편집할 수 있게 할 뿐입니다. 같은 버튼으로 다시 숨길 수 있습니다. 계속할까요?",
-            "這會讓隱藏的「處理器效能提升模式」設定顯示在 Windows 電源選項中。這是對 Windows 設定的永久性全域變更——即使解除安裝 GhostDeck 也會保留，而 GhostDeck 並不需要它；它只是讓你也能從 Windows 檢視和編輯同一設定。可用同一按鈕重新隱藏。繼續？",
+            "這會讓隱藏的「處理器效能提升模式」設定顯示在 Windows 電源選項中。這是對 Windows 設定的永久性全域變更，即使解除安裝 GhostDeck 也會保留，而 GhostDeck 並不需要它；它只是讓你也能從 Windows 檢視和編輯同一設定。可用同一按鈕重新隱藏。繼續？",
             "Bu, gizli \"İşlemci performans artırma modu\" ayarını Windows güç seçeneklerinde görünür yapar. Windows yapılandırmasında kalıcı, genel bir değişikliktir - GhostDeck kaldırılsa bile kalır ve GhostDeck'in buna ihtiyacı yoktur; yalnızca aynı ayarı Windows tarafından da görüp düzenlemenizi sağlar. Aynı düğmeyle yeniden gizleyebilirsiniz. Devam edilsin mi?",
             "Thao tác này hiển thị cài đặt ẩn \"Chế độ tăng hiệu năng bộ xử lý\" trong tùy chọn nguồn Windows. Đây là thay đổi vĩnh viễn, toàn cục của cấu hình Windows - vẫn còn ngay cả sau khi gỡ GhostDeck, và GhostDeck không cần nó; nó chỉ cho phép bạn xem và sửa cùng cài đặt từ phía Windows. Bạn có thể ẩn lại bằng chính nút này. Tiếp tục?",
             "Ini membuat setelan tersembunyi \"Mode peningkatan performa prosesor\" terlihat di opsi daya Windows. Ini perubahan permanen dan global pada konfigurasi Windows - tetap ada bahkan setelah GhostDeck dihapus, dan GhostDeck tidak memerlukannya; hanya agar Anda bisa melihat dan menyunting setelan yang sama dari Windows. Anda bisa menyembunyikannya lagi dengan tombol yang sama. Lanjutkan?",

@@ -213,8 +213,8 @@ public sealed class OverlaySettingsPanel : Panel
         int presetH = Ceil(30 * k), presetW = Ceil(210 * k), capGap = Ceil(6 * k);
 
         // opacity (left) & size (right): caption + preset chips + free slider
-        _texts.Add(($"{Lang.T("ov_opacity")} — {s.OverlayOpacity}%", new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
-        _texts.Add(($"{Lang.T("ov_scale")} — {s.OverlayScale}%", new Rectangle(rightX, yR, colW, capH), 2)); yR += capH + capGap;
+        _texts.Add(($"{Lang.T("ov_opacity")} - {s.OverlayOpacity}%", new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
+        _texts.Add(($"{Lang.T("ov_scale")} - {s.OverlayScale}%", new Rectangle(rightX, yR, colW, capH), 2)); yR += capH + capGap;
         _opacityPre.SetBounds(leftX, yL, presetW, presetH); yL += presetH + Ceil(8 * k);
         _scalePre.SetBounds(rightX, yR, presetW, presetH); yR += presetH + Ceil(8 * k);
         _opacity.SetBounds(leftX, yL, colW, sliderH); yL += sliderH + blockGap;
@@ -236,7 +236,7 @@ public sealed class OverlaySettingsPanel : Panel
         _texts.Add((Lang.T("ov_bg_color"), new Rectangle(_bgColor.Right + Ceil(12 * k), yL, colW, bgRowH), 5));
         yL += bgRowH + Ceil(12 * k);
         // background opacity (independent of content) — preset chips + free-drag slider
-        _texts.Add(($"{Lang.T("ov_bg_opacity")} — {s.OverlayBgOpacity}%", new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
+        _texts.Add(($"{Lang.T("ov_bg_opacity")} - {s.OverlayBgOpacity}%", new Rectangle(leftX, yL, colW, capH), 2)); yL += capH + capGap;
         _bgOpacityPre.SetBounds(leftX, yL, presetW, presetH); yL += presetH + Ceil(8 * k);
         _bgOpacity.SetBounds(leftX, yL, colW, sliderH); yL += sliderH + blockGap;
 

@@ -48,7 +48,7 @@ public sealed class EcViewForm : Form
 
     private EcViewForm()
     {
-        Text = "GhostDeck — " + Lang.T("ec_view_title");
+        Text = "GhostDeck - " + Lang.T("ec_view_title");
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -159,7 +159,7 @@ public sealed class EcViewForm : Form
     private void UpdateNoiseLabel()
     {
         var muted = Enumerable.Range(0, 256).Where(Muted).Select(i => $"0x{i:X2}").ToList();
-        string txt = muted.Count == 0 ? "—"
+        string txt = muted.Count == 0 ? "-"
                    : muted.Count <= 16 ? string.Join(" ", muted)
                    : string.Join(" ", muted.Take(16)) + " …(+" + (muted.Count - 16) + ")";
         _noiseLbl.Text = string.Format(Lang.T("ec_view_noise"), txt);
