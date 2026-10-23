@@ -420,11 +420,22 @@ public static class ModelDb
     {
         // explicit local testing hook - unsigned, no version gate, this machine only
         var env = Environment.GetEnvironmentVariable("MSIPS_MODELS_JSON");
-        if (!string.IsNullOrEmpty(env) && File.Exists(env))
+        if (!string.IsNullOrEmpty(env))
         {
-            if (TryParse(File.ReadAllBytes(env), out var p, out var err) && p != null) return p;
-            AppLifecycle.Report(new InvalidDataException(err), "model-db env override");
-            return null;
+            if (!OverridePathAllowed(env))
+            {
+                AppLifecycle.Note("MSIPS_MODELS_JSON ignored: the file must sit in the application's own folder (" + env + ")");
+            }
+            else if (File.Exists(env))
+            {
+                if (TryParse(File.ReadAllBytes(env), out var p, out var err) && p != null)
+                {
+                    AppLifecycle.Note("MSIPS_MODELS_JSON: unsigned model database loaded from " + env);
+                    return p;
+                }
+                AppLifecycle.Report(new InvalidDataException(err), "model-db env override");
+                return null;
+            }
         }
         try
         {
@@ -447,6 +458,28 @@ public static class ModelDb
             AppLifecycle.Report(ex, "model-db load");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Where an unsigned override may come from: the application's own folder only. The hook
+    /// skips the signature, and an environment variable is set per user - any process of the
+    /// user can plant one, and the elevated relaunch inherits it. A file next to the exe has the
+    /// exe's protection (under Program Files, only an elevated process can write there), so the
+    /// hook cannot hand a medium-integrity process a set of EC recipes to run as administrator;
+    /// in a user-writable folder it is no weaker than the exe itself. Debug builds take any path.
+    /// </summary>
+    public static bool OverridePathAllowed(string path)
+    {
+#if DEBUG
+        return true;
+#else
+        try
+        {
+            string dir = Path.GetFullPath(Path.GetDirectoryName(Environment.ProcessPath!)!).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(path).StartsWith(dir, StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+#endif
     }
 
     /// <summary>Version waiting in the cache for the next start, or null (for the Settings row).</summary>

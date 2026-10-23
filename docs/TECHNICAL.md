@@ -1009,7 +1009,10 @@ message start in the same column; the dot sits on the middle of the first title 
 
 ![Wrapped OSD toast](images/osd_wrapped_toast.png)
 
-**Panic reset hotkey (default Ctrl+Alt+F10).** One press back to a safe stock state: clears the
+**Panic reset hotkey (default Ctrl+Alt+F10).** Every step runs on its own (Windows key lock,
+touchpad, Fan Boost, the Balanced recipe, the camera), a step that fails is recorded by name and
+the rest still run; the OSD, the log and the CLI (`--panic`) then say which steps failed instead of
+"done". One press back to a safe stock state: clears the
 Fan Boost bit, then applies the **Balanced** recipe. No separate fan write is needed — the recipe
 rewrites the fan-mode byte to auto (`0x0D`), which by design also releases a custom fan curve
 (`0x8D`) and the Silent cap (`0x1D`). User-initiated, so it works even while the firmware-change
@@ -1081,10 +1084,16 @@ print into the parent terminal.
   answer used to hold the pipe for everyone; now the server reads with a deadline and a cap
   (`Cli.ReadLineLimited`, on a pipe opened with `PipeOptions.Asynchronous` so the deadline can
   interrupt the read) and writes with a deadline, and drops such a client. On the client side a
-  busy instance (the pipe exists, the connect timed out) or one that does not answer in time is
-  reported as failed with exit code 1 and is **not** treated as "nobody listening": the command may
-  have been carried out, so it must not run a second time through the one-shot path (and its UAC
-  prompt). `--profile` takes only the four named profiles: `Enum.TryParse` alone accepted any
+  busy instance (the pipe exists, the connect timed out), one that does not answer in time, or a
+  connection that breaks after the command was sent (a write that fails, a half answer, the
+  streams throwing on cleanup over a broken pipe) is reported as failed with exit code 1 and is
+  **not** treated as "nobody listening": the command may have been carried out, so it must not run
+  a second time through the one-shot path (and its UAC prompt). "Nobody listening" is only a
+  connection that was never made. The refusals that used to be silent count as failures too: Fan
+  Boost on the backup WMI path, a charge limit saved but not written (automatic writes paused by
+  the firmware guard, or no register on the backup path), a turbo mode a scene could not set, a
+  fan mode that could not be put back after Fan Boost, and a fan-curve preset after a Silent to
+  Balanced switch that failed (the curve is then not written at all). `--profile` takes only the four named profiles: `Enum.TryParse` alone accepted any
   number, and `--profile 999` reached the dictionary lookup before it was refused.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
@@ -1998,7 +2007,12 @@ newer database is applied **while the app runs**. The Settings → System → Up
 the effective dataVersion, whether an override is active, a version waiting for the gate,
 and a **Check now** button; the change log gets one line when a database goes live.
 `MSIPS_MODELS_JSON=<path>` loads an unsigned local file (explicit testing hook, like
-MSIPS_FORCE_FIRMWARE).
+MSIPS_FORCE_FIRMWARE). In a Release build the file has to sit in the application's own folder
+(`ModelDb.OverridePathAllowed`): the hook skips the signature and an environment variable is set
+per user, so any process of the user could point it at a file of EC recipes that the elevated
+relaunch would then load; a file next to the exe has the exe's protection (under Program Files,
+only an elevated process can write there). A path elsewhere is ignored with a line in the log.
+Debug builds take any path.
 
 **Release flow for a model change:** edit `Devices.cs`, bump `Devices.DataVersion`
 (date-serial), `python tools/model-history.py` (stamps the dates of new prefixes and

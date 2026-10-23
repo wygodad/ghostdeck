@@ -474,6 +474,29 @@ public static class CrosshairPainter
     }
 
     /// <summary>
+    /// Whether a settings backup's picture (Base64) is one <see cref="ImportImage"/> would take:
+    /// valid Base64, within the byte cap, decodable, within the pixel cap. Checked in memory
+    /// BEFORE the import is committed, so a backup with a bad picture is refused as a whole and
+    /// nothing is written. Null = fine; otherwise the reason, in English, for the log.
+    /// </summary>
+    public static string? ValidateImageBase64(string base64)
+    {
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(base64); }
+        catch (FormatException) { return "the picture is not valid Base64"; }
+        if (bytes.LongLength > MaxImageBytes) return $"the picture is larger than {MaxImageBytes / 1024} KiB";
+        try
+        {
+            using var ms = new MemoryStream(bytes);
+            using var img = Image.FromStream(ms);
+            if (img.Width > MaxImagePx || img.Height > MaxImagePx || img.Width < 1 || img.Height < 1)
+                return $"the picture is {img.Width}x{img.Height} px, the limit is {MaxImagePx} px";
+            return null;
+        }
+        catch { return "the picture cannot be decoded"; }
+    }
+
+    /// <summary>
     /// The picture carried inside a settings backup, stored with exactly the checks of
     /// <see cref="ImportImage"/> (size cap, pixel cap, decoded and re-saved as PNG): the bytes go
     /// to a temporary file next to the stored picture and take the normal path from there.

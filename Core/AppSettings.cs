@@ -463,6 +463,9 @@ public sealed class AppSettings
             }
         }
         if (src.Language == null) return "Language is missing";
+        // the picture a backup may carry is part of the file: a bad one refuses the whole import
+        if (!string.IsNullOrEmpty(src.CrosshairImageBase64) && CrosshairPainter.ValidateImageBase64(src.CrosshairImageBase64) is { } pic)
+            return pic;
         return null;
     }
 

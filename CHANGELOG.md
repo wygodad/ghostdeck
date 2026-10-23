@@ -18,6 +18,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   failed instead of being run a second time outside the app.
 - **Release workflow actions pinned to commits** - every GitHub action in the build, release
   and sync workflows is referenced by its commit, not by a tag that could be re-pointed.
+- **The unsigned model-database override stays in the program's folder** - the developer hook
+  `MSIPS_MODELS_JSON` is taken only from the application's own folder in a release build; a path
+  anywhere else is ignored and logged.
 - **The in-app updater verifies the downloaded release** - before anything is swapped, the
   downloaded file has to carry a valid Authenticode signature from the GhostDeck release identity
   (the signer's Trusted Signing certificate profile and publisher name, which survive the
@@ -34,14 +37,20 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Command line reports the real result** - `--profile`, `--cycle`, `--fanboost`, `--curve`,
   `--kbd`, `--webcam`, `--fnswap`, `--charge`, `--panic` and `--scene` answered "done" with exit
   code 0 even when the write had failed and the app had shown the error on screen. They now
-  return exit code 1 with the reason. A scene runs each of its steps on its own, applies what it
-  can and reports the steps that failed, on screen, in the change log and on the command line.
+  return exit code 1 with the reason. A scene, and the panic reset, run each of their steps on
+  their own, apply what they can and report the steps that failed, on screen, in the change log
+  and on the command line. Refusals that used to pass as success count as failures: Fan Boost on
+  the backup WMI path, a charge limit saved but not written while automatic writes are paused, a
+  turbo mode a scene could not set, a fan mode that could not be put back after Fan Boost.
   `--profile` accepts only the four profile names (a number such as 999 is refused up front).
+  A command whose connection to the app broke before the answer is reported as uncertain, never
+  run a second time outside the app.
 - **Importing a settings backup is all or nothing** - a file that passed the first check but was
   missing a part (for example `"Hotkeys": null`) used to change the language and clear the
   shortcuts before it failed, and the next save kept that half-imported state. The file is now
   checked and rehearsed on a copy first; one that fails leaves every setting as it was. A picture
-  carried by the backup goes through the same size limits as a picture chosen by hand.
+  carried by the backup is checked with the same limits as a picture chosen by hand, before
+  anything changes; a backup with a bad picture is refused as a whole.
 - **Settings are saved through a temporary file** - a crash or a full disk during a save can no
   longer leave a truncated `settings.json` that the next start would read as "no settings"; the
   previous file is kept as `settings.json.bak`.

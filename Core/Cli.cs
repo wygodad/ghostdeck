@@ -359,9 +359,17 @@ public static class Cli
     public static bool TrySendToRunning(string[] args, out string resp, out int code, string pipeName = PipeName)
     {
         resp = ""; code = 1;
+        // Once the connection is made, NOTHING may turn into "nobody listening": the command
+        // may already have reached the app. A pipe that breaks while the answer is on its way,
+        // a write that fails, a half answer, an exception thrown by disposing the streams over
+        // a broken pipe (the writer's last flush) - all of these are "outcome unknown", exit
+        // code 1, and never the one-shot path. False is only for a connection that was never
+        // made.
+        bool connected = false;
+        NamedPipeClientStream? pipe = null;
         try
         {
-            using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
             try { pipe.Connect(700); }
             catch (TimeoutException)
             {
@@ -370,15 +378,13 @@ public static class Cli
                 resp = "the GhostDeck app is busy; try again in a moment"; code = 1;
                 return true;
             }
-            // The reader closes the pipe when it is disposed, so it is declared first and disposed
-            // last: the other way round the writer's final flush hit a closed pipe, the exception
-            // landed in the catch below and the command - already carried out by the running app -
-            // was reported as "nobody listening" and run a second time one-shot.
-            using var r = new StreamReader(pipe);
-            using var w = new StreamWriter(pipe) { AutoFlush = true };
+            catch { return false; }
+            connected = true;
+            var r = new StreamReader(pipe);
+            var w = new StreamWriter(pipe) { AutoFlush = true };
             if (!WriteLineWithin(w, string.Join('\t', args), ServerWriteMs))
             {
-                resp = "the GhostDeck app did not take the command"; code = 1;
+                resp = "the GhostDeck app did not take the command; it may or may not have been carried out"; code = 1;
                 return true;
             }
             string? line = ReadLineLimited(r, MaxLineChars, ClientReadMs);
@@ -392,7 +398,16 @@ public static class Cli
             resp = bar >= 0 ? line[(bar + 1)..] : line;
             return true;
         }
-        catch { return false; }   // nobody listening -> one-shot mode
+        catch
+        {
+            if (!connected) return false;   // nobody listening -> one-shot mode
+            resp = "the connection to the GhostDeck app broke before its answer; the command may or may not have been carried out"; code = 1;
+            return true;
+        }
+        finally
+        {
+            try { pipe?.Dispose(); } catch { }   // a broken pipe throws here too; it changes nothing above
+        }
     }
 
     // ---------------- one-shot (app not running): talk to the EC directly ----------------

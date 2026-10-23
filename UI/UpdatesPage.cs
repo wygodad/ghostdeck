@@ -195,7 +195,14 @@ public sealed class UpdatesPage : ThemedPage
         // page without the left column could not hold both (a 250 % scale in a small window).
         bool stack = _install.Visible && _check.Width + _install.Width + 10 > w;
         int buttonsW = stack ? Math.Max(_check.Width, _install.Width) : _check.Width + (_install.Visible ? _install.Width + 10 : 0);
-        int rowY = ClientSize.Width - 28 - buttonsW >= leftRight + 16 ? 66 : versionBottom + 12;
+        // in download mode the row holds the label + bar block instead of the buttons; the block
+        // is as wide as its widest text ("… 100%", "Checking the signature…") or the bar
+        // (+12 px of scale: a label is a few pixels wider than TextRenderer says, and a fallback
+        // font for CJK text wider still; the current text's own width is the last word below)
+        int blockW = Math.Min(w, Math.Max(_bar.Width, Math.Max(
+            TextRenderer.MeasureText(string.Format(Lang.T("upd_downloading"), 100), _status.Font).Width,
+            TextRenderer.MeasureText(Lang.T("upd_verifying"), _status.Font).Width) + (int)(12 * k)));
+        int rowY = ClientSize.Width - 28 - (_bar.Visible ? blockW : buttonsW) >= leftRight + 16 ? 66 : versionBottom + 12;
         _install.Location = new Point(ClientSize.Width - 28 - _install.Width, rowY);
         _check.Location = stack
             ? new Point(ClientSize.Width - 28 - _check.Width, _install.Bottom + 8)
@@ -212,8 +219,7 @@ public sealed class UpdatesPage : ThemedPage
             // right-aligned by its current width shifted with every digit and the block jittered).
             // "Last checked" moves under the bar instead of sharing its line.
             _status.MaximumSize = new Size(Math.Max(120, w), 0);
-            int widest = Math.Min(w, Math.Max(_bar.Width, TextRenderer.MeasureText(string.Format(Lang.T("upd_downloading"), 100), _status.Font).Width));
-            int bx = Math.Max(28, ClientSize.Width - 28 - widest);
+            int bx = Math.Max(28, ClientSize.Width - 28 - Math.Max(blockW, _status.PreferredWidth));
             _status.Location = new Point(bx, rowY);
             _bar.Location = new Point(bx, _status.Bottom + 8);
             _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _bar.Bottom + 10);

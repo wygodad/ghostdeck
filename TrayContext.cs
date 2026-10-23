@@ -1507,7 +1507,10 @@ public sealed class TrayContext : ApplicationContext
             if (p == null || !p.IsValid(fc)) { _opError = "preset not found: " + name; return; }
             // A curve in Silent drops the Silent cap (same EC byte) -> leave Silent for Balanced first.
             if (_current == ProfileId.Silent)
+            {
                 SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Tray, applyCurve: false);
+                if (_opError != null) return;   // still in Silent: writing the curve now would drop its cap
+            }
             if (!_simulate)
             {
                 Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
@@ -1753,6 +1756,7 @@ public sealed class TrayContext : ApplicationContext
         if (!PowerPlan.TryGetActiveScheme(out var scheme) || !PowerPlan.TryReadBoost(scheme, out uint ac, out uint dc)) return;
         if (on ? ac != 0 && dc != 0 : ac == 0 && dc == 0) return;
         string err = on ? PowerPlan.TurboOn(_settings) : PowerPlan.TurboOff(_settings);
+        if (err.Length > 0) _opError = "CPU turbo boost: " + err;
         ChangeLog.Add(source, "CPU turbo boost: " + (err.Length == 0 ? (on ? "on" : "off") : err));
     }
 
@@ -1853,6 +1857,7 @@ public sealed class TrayContext : ApplicationContext
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
         if (Ec.OnBackupPath)   // the Fan Boost register has no slot there
         {
+            _opError = Lang.T("backup_na");
             if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("cooler_boost"), Lang.T("backup_na"), Color.Gray);
             UpdateCoolerBoostMenu();
             return;
@@ -1880,7 +1885,8 @@ public sealed class TrayContext : ApplicationContext
                     byte fallback = 0x0D;   // auto fan, if the recipe somehow lacks the fan byte
                     foreach (var (a, v) in _device!.Recipes[_current]) if (a == _device!.FanMode) { fallback = v; break; }
                     byte restore = _fanBeforeBoost ?? fallback;
-                    try { Ec.SetFanMode(_device!, restore); } catch { }
+                    try { Ec.SetFanMode(_device!, restore); }
+                    catch (Exception ex) { _opError = "Fan Boost is off, but the fan mode could not be put back: " + ex.Message; }
                     _fanBeforeBoost = null;
                 }
                 try { read = $"{_device!.CoolerBoost:X2}={Ec.ReadByte(_device!.CoolerBoost):X2} {_device!.FanMode:X2}={Ec.ReadByte(_device!.FanMode):X2}"; }
@@ -2404,20 +2410,32 @@ public sealed class TrayContext : ApplicationContext
     // custom fan curve (0x8D) and the Silent cap (0x1D), so no separate fan write is needed.
     private void PanicReset()
     {
+        // Every step on its own: a step that fails is recorded by name and the rest still run,
+        // because a panic reset must do as much as it can; the result (OSD, log, CLI exit code)
+        // then says what did not happen instead of "done".
+        var failed = new List<string>();
+        void Step(string name, Action a)
+        {
+            _opError = null;
+            try { a(); } catch (Exception ex) { _opError = ex.Message; }
+            if (_opError != null) failed.Add(name + ": " + _opError);
+        }
         // Software locks lift first - they must release even on hardware where EC writes are off.
-        SetWinLockState(false, ChangeSource.Hotkey, osd: false);
-        try { if (Touchpad.State() == 0) Touchpad.Set(true); } catch { }   // keyboard-only escape hatch
-        if (!Writable) { ShowState(); return; }
-        if (!_simulate) { try { Ec.SetCoolerBoost(_device!, false); } catch { } }
+        Step("Windows key lock", () => SetWinLockState(false, ChangeSource.Hotkey, osd: false));
+        Step("touchpad", () => { if (Touchpad.State() == 0) Touchpad.Set(true); });   // keyboard-only escape hatch
+        if (!Writable) { ShowState(); _opError = failed.Count == 0 ? null : "panic reset: " + string.Join("; ", failed); return; }
+        Step("Fan Boost", () => { if (!_simulate) Ec.SetCoolerBoost(_device!, false); });
         _coolerBoost = false;
         _fanBeforeBoost = null;
         UpdateCoolerBoostMenu();
-        SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey, applyCurve: false);   // panic = stock fans, no preset
+        Step("profile", () => SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey, applyCurve: false));   // panic = stock fans, no preset
         _settings.ClearActiveCurve();   // (#49) panic means "stock state" - don't restore the curve at next boot
         // (#27) stock state includes a working camera: lift the hard block and re-enable the switch
-        if (_webcamSupported && !_simulate) { try { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); _webcamOn = true; } catch { } }
-        ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub"));
-        _osd.ShowProfile(OsdPrefix + Lang.T("hk_panic"), Lang.T("panic_sub"), Theme.Amber);
+        if (_webcamSupported && !_simulate) Step("webcam", () => { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); _webcamOn = true; });
+        string note = failed.Count == 0 ? "" : "  ·  " + string.Join("; ", failed);
+        ChangeLog.Add(ChangeSource.Hotkey, Lang.T("hk_panic") + "  ·  " + Lang.T("panic_sub") + note);
+        _osd.ShowProfile(OsdPrefix + Lang.T("hk_panic"), failed.Count == 0 ? Lang.T("panic_sub") : string.Format(Lang.T("scene_partly"), failed.Count), failed.Count == 0 ? Theme.Amber : Color.Firebrick);
+        _opError = failed.Count == 0 ? null : "panic reset done partly, failed: " + string.Join("; ", failed);
     }
 
     // RegisterHotKey fails when another running app already owns the combination. That result
@@ -2772,7 +2790,11 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (AutoWritable && !_simulate && !Ec.OnBackupPath && AppSettings.ChargeManaged(_settings.ChargeLimit))
+        if (!AppSettings.ChargeManaged(_settings.ChargeLimit) || _simulate) return;   // nothing to write, or a preview
+        // Saved, not written: the caller (CLI, scene) must not call that "set". The preference
+        // stays and is applied as soon as the gate opens again (the guard lifted, a tested model).
+        if (Ec.OnBackupPath) { _opError = "the charge limit has no register on the backup WMI path; the preference was saved"; return; }
+        if (!AutoWritable) { _opError = "the charge limit was saved but not written: automatic writes are paused (firmware guard or model not writable)"; return; }
         {
             using var _ec = EcBusy();
             try
