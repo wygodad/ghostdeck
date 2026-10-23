@@ -12,8 +12,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   text, lists are as wide as their longest value, long labels wrap instead of ending in "...", and
   the change log sizes its columns to what they hold. The crosshair sliders show their whole value
   and form one column of equal tracks, with the "?" beside the "Size" label instead of in front of
-  the slider. The Status gauges and the boxes under them grow with the display scale, so every box
-  shows its text in the same size; the history charts keep the value and time labels apart, fan
+  the slider. The boxes under the Status gauges grow with the display scale, so every box shows
+  its text in the same size, and the gauges above them grow by a quarter of the scale's growth; the history charts keep the value and time labels apart, fan
   curve point labels stay inside the chart, and the overlay settings fit every metric name. The
   "Show overlay" switch, the crosshair hotkey's "(disabled)", the switches on the Settings tiles and
   the travel mode "?" line up with what sits next to them, and help dots, colour swatches, slider
@@ -23,6 +23,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   dials with the scale labels below the centre, clear of the curve, and the live reading beside
   the dial. The "Report my model" wizard, the live EC view and the help bubbles scale with the
   display too.
+- **On/off switches at high scaling** - the switches on Settings, Scenarios and the overlay
+  settings grow by a quarter of the display scale's growth (57 x 31 px at 140 %, 65 x 35 px at
+  200 %), so they no longer look tiny next to their labels; at 100 % they are unchanged.
 - **Turkish card headings** ([#172](../../issues/172)) - headings written in capitals kept the
   dotless "ı" lower-case ("PİL SAĞLıĞı"); they now follow the rules of the selected language
   ("PİL SAĞLIĞI").

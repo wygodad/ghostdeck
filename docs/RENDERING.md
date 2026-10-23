@@ -637,6 +637,12 @@ hint pushes the sub-tabs down. A `ThemedComboBox` reports `PreferredFieldWidth` 
 Settings cards widen a list to it and keep lists built with one width at one width, so a column of
 them still lines up, and the drop-down list is never narrower than its longest item.
 
+Two drawn parts grow by only a quarter of the scale's growth, picked side by side at 200 %: the
+on/off switch (`ToggleSwitch`, 52 x 28 px at 100 %, 65 x 35 px at 200 %) and the Status rings
+(`StatusPage.RingDiameter`, at most 240 px at 100 %, 300 px at 200 %). At the full scale both
+looked oversized next to the text. A ring sits centred in its column (`RingSize`), and the boxes
+under the rings keep the full column width, so their text fits at any scale.
+
 **Preview at any DPI.** The preview tool (`DOC/tools/render-harness`) takes `FAKEDPI=144|192|240`
 and renders every page, sub-tab and card as at 150 / 200 / 250 % without touching the Windows
 display settings: `FAKEDPI=192 harness.exe <out> tr page Settings 5 dark`. It cannot show what

@@ -155,7 +155,7 @@ internal static class IconPainter
 
     /// <summary>Ring gauge with a centred value; fraction 0..1 lights the tick segments.</summary>
     public static void Ring(Graphics g, RectangleF box, float fraction, Color color,
-                            string value, string unit, string label, string? sub = null)
+                            string value, string unit, string label, string? sub = null, float labelWidth = 0)
     {
         g.SmoothingMode = SmoothingMode.AntiAlias;
         float thick = Math.Max(8f, box.Width * 0.11f);
@@ -188,14 +188,16 @@ internal static class IconPainter
             Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
         var labelFont = Dpi.Font("Segoe UI", 10f);
         int labelY = (int)(box.Bottom + 12);
+        // the label may use more than the ring's width (its column, when the ring sits centred in a wider one)
+        int lw = (int)Math.Max(box.Width + 32, labelWidth), lx = (int)(box.X + box.Width / 2 - lw / 2f);
         TextRenderer.DrawText(g, label, labelFont,
-            new Rectangle((int)box.X - 16, labelY, (int)box.Width + 32, labelFont.Height + 4),
+            new Rectangle(lx, labelY, lw, labelFont.Height + 4),
             Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: ring label under a gauge sized with the page; last resort for a very long translation
         if (!string.IsNullOrEmpty(sub))
         {
             var subFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             TextRenderer.DrawText(g, sub, subFont,
-                new Rectangle((int)box.X - 16, labelY + labelFont.Height + 4, (int)box.Width + 32, subFont.Height + 4),
+                new Rectangle(lx, labelY + labelFont.Height + 4, lw, subFont.Height + 4),
                 color, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: ring label under a gauge sized with the page; last resort for a very long translation
         }
     }
