@@ -15,6 +15,11 @@ the scale, the box around it does not, and the text is cut. The rules this scrip
                with the page's S() helper.
   ellipsis     No "..." truncation of interface text: TextFormatFlags.EndEllipsis hides words.
                Make the space fit the text, or wrap it (WordBreak) and let the box grow.
+  control-size A control that paints its own text does not give itself a fixed pixel height in
+               its constructor (`Height = 26;`, `Size = new Size(22, 22);`): its font grows with
+               the scale and the text is cut at the bottom (the slider values at 200 %). Take
+               the height from the font (`Math.Max(26, font.Height + 6)`) or scale it with
+               Dpi.Of(this).
   long-dash    No long dash in interface text: the em dash (U+2014) is not used in any string
                in the code (Core/Lang.cs included) nor in the newest announcements.json entry;
                write " - " or a comma instead. The en dash (U+2013) is allowed only between
@@ -213,6 +218,42 @@ def split_args(s):
     return out
 
 
+CONTROL_BASES = r"(?:Control|Panel|UserControl|Button|Label)"
+PAINTS_TEXT = re.compile(r"\b(?:TextRenderer\.DrawText|DrawString|CenterGlyph)\s*\(")
+FIXED_SIZE = re.compile(r"(?<![\w.])(?:Height\s*=\s*\d+\s*[;,}]|Size\s*=\s*new\s+Size\s*\(\s*\d+\s*,\s*\d+\s*\))")
+
+
+def braces(code, open_pos):
+    """Index just past the brace that closes the one at open_pos."""
+    depth = 0
+    for j in range(open_pos, len(code)):
+        if code[j] == "{":
+            depth += 1
+        elif code[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+    return len(code)
+
+
+def fixed_size_controls(code):
+    """Positions of literal Height / Size assignments in the constructors of controls that paint
+    their own text."""
+    hits = []
+    for m in re.finditer(r"\bclass\s+(\w+)\s*:\s*" + CONTROL_BASES + r"\b[^{;]*\{", code):
+        name, body_start = m.group(1), m.end() - 1
+        body_end = braces(code, body_start)
+        body = code[body_start:body_end]
+        if not PAINTS_TEXT.search(body):
+            continue
+        for c in re.finditer(r"\bpublic\s+" + name + r"\s*\([^)]*\)\s*(?::\s*(?:base|this)\s*\([^)]*\)\s*)?\{", body):
+            cs = body_start + c.end() - 1
+            ce = braces(code, cs)
+            for f in FIXED_SIZE.finditer(code, cs, ce):
+                hits.append(f.start())
+    return hits
+
+
 def statement_lines(code, pos):
     """Line range of the statement around pos (from the previous ; { } to the next ;)."""
     a = max(code.rfind(";", 0, pos), code.rfind("{", 0, pos), code.rfind("}", 0, pos))
@@ -268,6 +309,11 @@ def main():
                         report(pos, "text-rect", "text rectangle %s px high - derive it from the font "
                                "(font.Height / MeasureText) or scale it with S()" % args[3])
 
+        for pos in fixed_size_controls(code):
+            if not excused(pos):
+                report(pos, "control-size", "a control that paints text gives itself a fixed height - take it "
+                       "from the font (font.Height) or scale it with Dpi.Of(this)")
+
         for m in re.finditer(r"\bEndEllipsis\b", code):
             if not excused(m.start()):
                 report(m.start(), "ellipsis", "EndEllipsis cuts interface text - fit or wrap it instead "
@@ -306,7 +352,7 @@ def main():
         for p in problems:
             print("  -", p)
         return 1
-    print("OK - one DPI source, fonts via Dpi.Font, no fixed-height text rectangles, every ellipsis explained, no long dashes")
+    print("OK - one DPI source, fonts via Dpi.Font, no fixed-height text rectangles or text controls, every ellipsis explained, no long dashes")
     return 0
 
 

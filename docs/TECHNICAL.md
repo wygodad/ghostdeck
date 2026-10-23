@@ -3893,9 +3893,14 @@ log). The fix has three parts, described in `docs/RENDERING.md` §12:
   (`Dpi.Font`). The preview tool overrides it (`FAKEDPI`) to draw any page at 150-250 % on a
   140 % machine; the app itself always uses the real values.
 - Text boxes take the larger of their old fixed size and what the text needs; the old sizes fit
-  up to about 150 %, so the look there is unchanged. Text that still does not fit wraps.
-- `tools/dpi-check.py` in CI keeps the DPI and font rules, rejects fixed-height text rectangles
-  and unexplained ellipses, and rejects long dashes in interface text.
+  up to about 150 %, so the look there is unchanged. Text that still does not fit wraps. Geometry
+  that other boxes are cut from scales with the display instead: the Status gauge grid (the metric
+  boxes under it share one font, the largest at which every text fits), help dots, colour swatches,
+  slider handles and list arrows. Sliders stacked in a settings card share one value column, so
+  their tracks line up.
+- `tools/dpi-check.py` in CI keeps the DPI and font rules, rejects fixed-height text rectangles,
+  text-painting controls that give themselves a fixed height, and unexplained ellipses, and
+  rejects long dashes in interface text.
 
 Interface text no longer uses the em dash: between words it became " - ", in Chinese a
 full-width comma, and as a "no value" marker a plain "-". The en dash stays only in number ranges.

@@ -650,6 +650,9 @@ and fails the build on:
 - `new Font(...)` (or `Font x = new(...)`) instead of `Dpi.Font(...)`;
 - a `TextRenderer.DrawText` / `Ui.DrawText` rectangle whose height is a bare pixel number;
 - `TextFormatFlags.EndEllipsis` without a reason;
+- a control that paints its own text and gives itself a bare pixel height in its constructor
+  (`Height = 26;`, `Size = new Size(22, 22);`): take it from the font (`Math.Max(26, font.Height + 6)`)
+  or scale it with `Dpi.Of(this)`;
 - an em dash in any C# string (`Core/Lang.cs` included) or in the newest `announcements.json`
   entry, and an en dash anywhere but between two digits ("30-40 W" as a range). Write " - " or a
   comma instead.
