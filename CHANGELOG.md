@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Crosshair presets in the tray menu** - once you have saved a preset, the tray's *Crosshair*
+  entry becomes a submenu like *Scenes*: the on/off switch on top, then one entry per preset
+  with a dot on the active one; picking a preset loads it and shows the crosshair. Settings →
+  System → *Tray menu* gets two more switches, for the gaming overlay entries and for the
+  crosshair entry, next to the existing ones.
 ### Security
 - **The in-app updater verifies the downloaded release** - before anything is swapped, the
   downloaded file has to carry a valid Authenticode signature from the GhostDeck release identity
@@ -43,9 +49,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   text, lists are as wide as their longest value, long labels wrap instead of ending in "...", and
   the change log sizes its columns to what they hold. The crosshair sliders show their whole value
   and form one column of equal tracks, with the "?" beside the "Size" label instead of in front of
-  the slider. The Status gauges and the boxes under them grow with the display scale, so every box
-  shows its text in the same size; the history charts keep the value and time labels apart, fan
-  curve point labels stay inside the chart, and the overlay settings fit every metric name. The
+  the slider. The boxes under the Status gauges grow with the display scale, so every box shows
+  its text in the same size, and the gauges above them grow by half of the scale's growth; the
+  history charts keep the value and time labels apart, fan curve point labels stay inside the
+  chart, and the overlay settings fit every metric name. The
   "Show overlay" switch, the crosshair hotkey's "(disabled)", the switches on the Settings tiles and
   the travel mode "?" line up with what sits next to them, and help dots, colour swatches, slider
   handles and list arrows grow with the scale. The icon buttons in the window header (Models,
@@ -54,6 +61,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   dials with the scale labels below the centre, clear of the curve, and the live reading beside
   the dial. The "Report my model" wizard, the live EC view and the help bubbles scale with the
   display too.
+- **Older laptops without an entry recognised in every scenario** ([#268](../../issues/268), [#257](../../issues/257)) - on
+  laptops whose firmware does not answer MSI's usual interface, GhostDeck recognises a known layout
+  of the data blocks by a few values. One of them follows the MSI Center scenario, so a laptop
+  started in Balanced or Extreme showed temperatures only, without fan readings and without the
+  offer to send a report. The check no longer uses that value.
+- **On/off switches at high scaling** - the switches on Settings, Scenarios and the overlay
+  settings grow by a quarter of the display scale's growth (57 x 31 px at 140 %, 65 x 35 px at
+  200 %), so they no longer look tiny next to their labels; at 100 % they are unchanged.
+- **Turkish card headings** ([#172](../../issues/172)) - headings written in capitals kept the
+  dotless "ı" lower-case ("PİL SAĞLıĞı"); they now follow the rules of the selected language
+  ("PİL SAĞLIĞI").
 - **No long dashes in the interface** - every em dash in the app's texts, in all 15 languages,
   became a short dash or a comma.
 - **On-screen notifications at 125-150 % display scaling** - a short title such as "SSD running
@@ -62,6 +80,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   scale like its text; long messages still wrap, at spaces only.
 
 ### Changed
+- Model database 20261029: MSI Katana 17 HX B14WFK added to the B14WGK entry (`17L7EMS1`, the same MS-17L7 board) ([#269](../../issues/269), thanks @brnxt0); MSI Thin 15 B12UCX / B12VE (`16R8IMS2`) - a third owner's clean power test confirms stable switching ([#271](../../issues/271), thanks @skinthread).
 - Model database 20261028: MSI Katana 17 HX B14WGK (`17L7EMS1`) - fan curve verified ([#266](../../issues/266), thanks @kaszaslevi04).
 - Model database 20261027: MSI Vector GP68 HX 13V (`15M1IMS1`) promoted to Tested - scenario capture 1:1 with a real Silent, the fan curve confirmed again and a clean power test (Silent 81 % of Balanced's work, Extreme +7 %) ([#262](../../issues/262), [#263](../../issues/263), [#264](../../issues/264), thanks @mara-zhu).
 

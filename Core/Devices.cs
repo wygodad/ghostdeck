@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261028;
+    public const int DataVersion = 20261029;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1359,10 +1359,15 @@ public static class Devices
         // faster). The owner was asked for an optional HWiNFO power reading to chase it.
         // A second owner's per-scenario snapshot (issue #162) re-confirms every recipe byte
         // with four distinct columns - both owners share the credit.
+        // A third owner's power test (issue #271, a B12VE, app 1.41.0) is clean (1% drift, every
+        // phase's bytes read back) and confirms stable switching and per-profile fan speeds
+        // (Silent ~2790, Balanced ~3560, Extreme ~4180 rpm). The CPU held ~2.9 GHz in every
+        // phase at 63-68 C, so this run cannot show the power cap; his Windows plan was a custom
+        // one named "Gaming Capped" (hypothesis, unverified: it caps the processor state).
         new() { Name = "MSI Thin 15 B12UCX / B12VE",        FirmwarePrefixes = new[] { "16R8IMS2" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "arcfybr, pushtamper-nice", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/111",
-                CreditIssues = Issues("arcfybr:110,111,112,159; pushtamper-nice:162") },
+                Credit = "arcfybr, pushtamper-nice, skinthread", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/111",
+                CreditIssues = Issues("arcfybr:110,111,112,159; pushtamper-nice:162; skinthread:271") },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Thin A15 B7VF",                 FirmwarePrefixes = new[] { "16RKIMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 15 A11SCX",            FirmwarePrefixes = new[] { "16S6EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -1472,10 +1477,14 @@ public static class Devices
         // hardware checks, so the tier stays Experimental until a power test. RPM stays off: 0xC8 and
         // 0xCA read 00 next to live 0xC9/0xCB (A6/AE), and the sibling 17L5EMS1 reports fan speed as
         // 16-bit pairs - one idle dump cannot tell the two schemes apart (as in issue #232).
-        new() { Name = "MSI Katana 17 HX B14WGK",           FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental,
+        // B14WFK (issue #269, brnxt0, firmware .106, MSI Center 2.0.48) is the same MS-17L7 board
+        // (msi.com lists WGK/WFK/WEK on one spec page; parts catalogues file B14WFK under MS-17L7).
+        // His capture matches StdRecipes again, 0x34 included; Extreme read 0xD4=8D, i.e. the
+        // vendor's fan setting was on Advanced in that scenario - a setting, not another recipe.
+        new() { Name = "MSI Katana 17 HX B14WGK / B14WFK",  FirmwarePrefixes = new[] { "17L7EMS1" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "kaszaslevi04", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/266",
-                CreditIssues = Issues("kaszaslevi04:265,266") },
+                Credit = "kaszaslevi04, brnxt0", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/266",
+                CreditIssues = Issues("kaszaslevi04:265,266; brnxt0:269") },
         new() { Name = "MSI Stealth GS76 11UG",             FirmwarePrefixes = new[] { "17M1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Creator 17 B11UE",              FirmwarePrefixes = new[] { "17M1EMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Creator Z17 (17N1EMS1) — fan curve VERIFIED (issue #77): tracer speeds set in MSI Center

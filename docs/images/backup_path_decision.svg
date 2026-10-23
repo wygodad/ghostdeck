@@ -56,7 +56,7 @@
   <text x="500" y="356" fill="#d9a13b" font-size="12" font-weight="600">no entry (or two EC lines for the code)</text>
   <rect x="330" y="366" width="320" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
   <text x="490" y="392" fill="#dbe4f0" font-size="14" font-weight="600" text-anchor="middle">Do the blocks show the known layout?</text>
-  <text x="490" y="414" fill="#8d98ab" font-size="12" text-anchor="middle">19 / 18 / 21 / 8 instances and five constant markers</text>
+  <text x="490" y="414" fill="#8d98ab" font-size="12" text-anchor="middle">19 / 18 / 21 / 8 instances and four constant markers</text>
 
   <!-- yes -> monitoring only -->
   <path d="M650,398 L790,398 L790,454" fill="none" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#a)"/>

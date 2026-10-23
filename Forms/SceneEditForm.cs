@@ -63,7 +63,7 @@ public sealed class SceneEditForm : GhostCardForm
         });
 
         // "on" / "off" are lower-case words in the status texts they come from; a picker cell is a caption
-        static string Cap(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
+        static string Cap(string t) => t.Length == 0 ? t : char.ToUpper(t[0], Lang.Culture) + t[1..];
         var onOff = new[] { Cap(Lang.T("st_on")), Cap(Lang.T("st_off")) };
 
         if (d.HasFanCurve())
@@ -237,7 +237,7 @@ public sealed class SceneEditForm : GhostCardForm
 
         // ---- name + icon: caption above, field below ----
         string capGlyph = Lang.T("scene_glyph");
-        int glyphW = Ce(56 * k), capGlyphW = Ce(g.MeasureString(capGlyph.ToUpperInvariant(), CaptionFont).Width);
+        int glyphW = Ce(56 * k), capGlyphW = Ce(g.MeasureString(Lang.Upper(capGlyph), CaptionFont).Width);
         int glyphX = area.Right - Math.Max(glyphW, capGlyphW);
         int fy = area.Y + CapH(k) + Ce(6 * k), fh = FieldH(k);
         PaintCaption(g, Lang.T("scene_name"), area.X, area.Y);

@@ -98,8 +98,8 @@ public sealed class PowerMapForm : GhostCardForm
         int chipH = Ce(30 * k), gap = Ce(6 * k), padX = Ce(12 * k);
         void Label(string text)
         {
-            int h = Ce(g.MeasureString(text.ToUpperInvariant(), labF, width).Height) + Ce(2 * k);
-            items.Add(new Item(new Rectangle(0, y, width, h), -1, text.ToUpperInvariant(), false, 2));
+            int h = Ce(g.MeasureString(Lang.Upper(text), labF, width).Height) + Ce(2 * k);
+            items.Add(new Item(new Rectangle(0, y, width, h), -1, Lang.Upper(text), false, 2));
             y += h + Ce(6 * k);
         }
         void Chips(IEnumerable<(string Text, int Zone, bool On)> chips)

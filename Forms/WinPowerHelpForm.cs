@@ -106,14 +106,14 @@ public sealed class WinPowerHelpForm : GhostCardForm
                 // value | name in Windows (with the icon of its group) | what it does
                 string[] th = { Lang.T("pw_help_col_value"), Lang.T("pw_help_col_name"), Lang.T("pw_help_col_desc") };
                 // the value column is as wide as its caption, so the caption never breaks inside a word
-                int cV = Math.Max(Ce(56 * k), Ce(g.MeasureString(th[0].ToUpperInvariant(), f.Cap).Width) + Ce(14 * k));
+                int cV = Math.Max(Ce(56 * k), Ce(g.MeasureString(Lang.Upper(th[0]), f.Cap).Width) + Ce(14 * k));
                 int cN = Ce(236 * k), cD = width - cV - cN;
                 int[] x = { 0, cV, cV + cN };
                 int[] w = { cV - Ce(10 * k), cN - Ce(12 * k), cD };
                 int ic = Ce(20 * k), icGap = Ce(8 * k);
                 int thH = 0;
-                for (int j = 0; j < 3; j++) thH = Math.Max(thH, TextH(th[j].ToUpperInvariant(), f.Cap, w[j]));
-                for (int j = 0; j < 3; j++) items.Add(new Item(new Rectangle(x[j], y, w[j], thH), Kind.Th, th[j].ToUpperInvariant()));
+                for (int j = 0; j < 3; j++) thH = Math.Max(thH, TextH(Lang.Upper(th[j]), f.Cap, w[j]));
+                for (int j = 0; j < 3; j++) items.Add(new Item(new Rectangle(x[j], y, w[j], thH), Kind.Th, Lang.Upper(th[j])));
                 y += thH + Ce(6 * k);
                 items.Add(new Item(new Rectangle(0, y, width, 1), Kind.Line, ""));
                 foreach (var m in _modes)

@@ -595,7 +595,7 @@ public sealed class WinPowerBody : Control
         int h = S(22);
         if (g != null)
         {
-            string t = text.ToUpperInvariant();
+            string t = Lang.Upper(text);
             using var rb = new SolidBrush(color);
             g.FillRectangle(rb, 0, y + (h - S(14)) / 2, 3, S(14));
             var ts = TextRenderer.MeasureText(t, FCap, Size.Empty, TextFormatFlags.NoPadding);
@@ -611,7 +611,7 @@ public sealed class WinPowerBody : Control
     /// <summary>Small-caps section caption inside a group; a long one wraps.</summary>
     private int Sub(Graphics? g, int y, string text)
     {
-        string t = text.ToUpperInvariant();
+        string t = Lang.Upper(text);
         int h = Math.Max(S(20), TextH(t, FSub, Width - S(70)));
         if (g != null) Cell(g, t, FSub, 0, y, Width - S(70), h, Theme.Faint);
         return y + h + S(8);
@@ -621,12 +621,12 @@ public sealed class WinPowerBody : Control
     private int ThH(params (string Text, int Width)[] cells)
     {
         int h = S(28);
-        foreach (var (text, w) in cells) h = Math.Max(h, TextH(text.ToUpperInvariant(), FSub, w) + S(10));
+        foreach (var (text, w) in cells) h = Math.Max(h, TextH(Lang.Upper(text), FSub, w) + S(10));
         return h;
     }
 
     private void DrawTh(Graphics g, string text, int x, int y, int w, int h) =>
-        Cell(g, text.ToUpperInvariant(), FSub, x, y, w, h, Theme.Faint);
+        Cell(g, Lang.Upper(text), FSub, x, y, w, h, Theme.Faint);
 
     /// <summary>
     /// A text in a cell: wrapped, never cut and never ending in "...", centred in the row height

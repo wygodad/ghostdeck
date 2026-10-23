@@ -254,6 +254,13 @@ public sealed class StatusPage : ThemedPage
         int avail = width - Pad * 2, gap = RingGap();
         return Math.Max(S(150), Math.Min(S(240), (avail - gap * (RingCount - 1)) / RingCount));
     }
+    // The ring drawn inside its column. RingSize is the column: the boxes under the rings take
+    // their width from it, so their text fits at any scale. The ring itself grows by only a
+    // half of the scale's growth (at most 288 px at 140 %, 360 px at 200 %) and sits centred in
+    // the column; at the full scale the rings looked oversized next to the rest of the page.
+    private const float RingShare = 0.5f;
+    private int RingDiameter(int column) =>
+        Math.Min(column, (int)Math.Round(240 * (1 + (Dpi.Of(this) / 96f - 1) * RingShare)));
 
     // Wrapped so the scroll extent is recomputed after the canvas is resized: without it a
     // horizontal scrollbar survived a maximize/restore even though nothing overhangs any more
@@ -276,10 +283,10 @@ public sealed class StatusPage : ThemedPage
     {
         if (sub == 0)
         {
-            int ring = RingSize(width);
+            int dia = RingDiameter(RingSize(width));
             // rings, then three stacked 54px rows (RPM/clock, battery/GPU load/VRAM, storage), and
             // the graphics-clock tile adds a fourth on the right when Windows reports a card
-            int subY3 = SecTop + ring + RingBelow + SubH + 14 + SubH + 14;
+            int subY3 = SecTop + dia + RingBelow + SubH + 14 + SubH + 14;
             int rightH = GpuTelemetry.Read().Ok ? SubH * 2 + 14 : SubH;
             var disks = Perf.DisksCached();
             _laidDisks = disks.Count;   // RefreshAsync re-lays the page out when the list arrives or changes
@@ -437,26 +444,29 @@ public sealed class StatusPage : ThemedPage
         int cpuUse = SysInfo.CpuUsage();
         var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
         int X(int i) => Pad + i * (ring + ringGap);
+        int dia = RingDiameter(ring), inset = (ring - dia) / 2;
+        void Ring(int i, int value, int max, string unit, string label, Color color, bool known, bool allowZero = false)
+            => DrawRing(g, X(i) + inset, top, dia, value, max, unit, label, color, known, allowZero: allowZero, labelW: ring + 32);
         // temperature rings stay live in telemetry-only mode (#48); the fan rings do not
         bool temps = info.Known || info.Telemetry;
-        DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), temps);
-        DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), temps);
+        Ring(0, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), temps);
+        Ring(1, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), temps);
         // The fan rings show the curve target (0x71 / 0x89), not the fan speed, on MSI's own
         // 0-150 scale; 0 is a real target (the first curve point), so it reads "0", not a dash.
         // TECHNICAL §76.
         // While hardware readings are lost (Ec.ReadsLost) the zero fan targets are not real: dash them.
         bool fans = temps && !(info.Known && Ec.ReadsLost);
-        DrawRing(g, X(2), top, ring, fans ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, fans, allowZero: true);
-        DrawRing(g, X(3), top, ring, fans ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, fans, allowZero: true);
+        Ring(2, fans ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, fans, allowZero: true);
+        Ring(3, fans ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, fans, allowZero: true);
         int hd = S(22);   // help dot, grown with the scale like its "?"
-        _fanHelpBtns[0] = new RectangleF(X(2) + ring - hd, top, hd, hd);
-        _fanHelpBtns[1] = new RectangleF(X(3) + ring - hd, top, hd, hd);
+        _fanHelpBtns[0] = new RectangleF(X(2) + inset + dia - hd, top, hd, hd);
+        _fanHelpBtns[1] = new RectangleF(X(3) + inset + dia - hd, top, hd, hd);
         HelpDot.Render(g, _fanHelpBtns[0]);
         HelpDot.Render(g, _fanHelpBtns[1]);
-        DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
+        Ring(4, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
 
         // --- sub-row under the rings (clear gap above and below) ---
-        int subY = top + ring + RingBelow, subH = SubH, lineH = LineH;
+        int subY = top + dia + RingBelow, subH = SubH, lineH = LineH;
 
         // RAM as a horizontal bar spanning the two temperature rings, with values; bar inset ~20px each side
         int ramX = X(0), ramW = ring * 2 + ringGap;
@@ -1455,12 +1465,12 @@ public sealed class StatusPage : ThemedPage
         return DrawGrid(g, top + 16, avail, Lang.T("st_curve_live"), headers, lefts, rows, mono, cellColor: CurveCell);
     }
 
-    private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false)
+    private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false, int labelW = 0)
     {
         // above the ring's own scale is a misread; temperatures and loads keep the old 130 guard
         bool ok = known && (allowZero ? value >= 0 : value > 0) && value <= Math.Max(max, 129);
         float frac = ok ? Math.Clamp(value / (float)max, 0, 1) : 0;
-        IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "-", unit, label, sub);
+        IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "-", unit, label, sub, labelW);
     }
 
     private static void DrawBar(Graphics g, RectangleF r, float frac, Color color)
