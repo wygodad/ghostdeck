@@ -1617,17 +1617,25 @@ public sealed partial class SettingsPage : ThemedPage
         {
             var info = D.Status();
             Diagnostics.Save(dlg.FileName, D.AppVersion(), D.Firmware(), info.Device, info.TierText);
-            MessageBox.Show(FindForm(), string.Format(Lang.T("rep_saved_to"), dlg.FileName), "GhostDeck",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Card(Lang.T("set_grp_diag"), string.Format(Lang.T("rep_saved_to"), dlg.FileName));
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Card(Lang.T("set_grp_diag"), string.Format(Lang.T("bk_err"), ex.Message));
         }
     }
 
     // ---------------- settings backup ----------------
+    /// <summary>
+    /// A result of the backup / diagnostics actions as a GhostDeck card with one Close button
+    /// (#212: user-facing messages are cards, not system message boxes).
+    /// </summary>
+    private void Card(string heading, string body)
+    {
+        using var card = new GhostCardForm("//SETTINGS", heading, body, Lang.T("set_close"), "", () => { });
+        card.ShowOver(FindForm());
+    }
+
     private void ExportSettings()
     {
         using var dlg = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = "ghostdeck-settings.json" };
@@ -1641,7 +1649,7 @@ public sealed partial class SettingsPage : ThemedPage
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Card(Lang.T("set_grp_backup"), string.Format(Lang.T("bk_err"), ex.Message));
         }
         finally { D.Settings.CrosshairImageBase64 = null; }
     }
@@ -1661,7 +1669,7 @@ public sealed partial class SettingsPage : ThemedPage
                     imported = JsonSerializer.Deserialize<AppSettings>(txt);
             if (imported == null)
             {
-                MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Card(Lang.T("set_grp_backup"), Lang.T("imp_err"));
                 return;
             }
             // All or nothing: a file that fails its checks or its rehearsal leaves every live
@@ -1669,7 +1677,7 @@ public sealed partial class SettingsPage : ThemedPage
             if (!D.Settings.TryImportFrom(imported, out string why))
             {
                 AppLifecycle.Note("settings import refused: " + why);
-                MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Card(Lang.T("set_grp_backup"), Lang.T("imp_err"));
                 return;
             }
             // the picture the file may carry, through the same limits as a normal picture import
@@ -1691,15 +1699,15 @@ public sealed partial class SettingsPage : ThemedPage
             D.ApplyOverlaySettings();
             D.SetOverlay(D.Settings.OverlayEnabled);
             Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
-            MessageBox.Show(FindForm(), Lang.T("imp_ok"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Card(Lang.T("set_grp_backup"), Lang.T("imp_ok"));
         }
         catch (JsonException)
         {
-            MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Card(Lang.T("set_grp_backup"), Lang.T("imp_err"));
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Card(Lang.T("set_grp_backup"), string.Format(Lang.T("bk_err"), ex.Message));
         }
     }
 

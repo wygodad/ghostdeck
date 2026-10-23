@@ -47,7 +47,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   previous file is kept as `settings.json.bak`.
 - **Updates tab at very large scales** - the "Downloading… X%" label stays inside the page and
   "Last checked" moves under the progress bar; when the two buttons cannot share a row they sit
-  one under the other.
+  one under the other. The label and the bar keep one place while the percentage counts up.
+- **Backup and diagnostics results as GhostDeck cards** - "settings imported", "not a valid
+  settings file", "operation failed" and "saved to" on the Settings tab are GhostDeck cards now,
+  like every other message of the app, instead of Windows message boxes.
 - **In-app updates in folders with national letters** - the swap script was written as UTF-8 while
   the console reads it in the system's OEM code page, so a path such as `C:\Users\Łukasz\...` was
   invisible to it: the app closed with "Restarting", Windows reported that it could not find the

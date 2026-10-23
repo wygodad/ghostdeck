@@ -149,6 +149,8 @@ public static class Updater
             using var resp = await http.GetAsync(r.AssetUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
             long total = resp.Content.Headers.ContentLength ?? r.AssetSize;
+            var clock = Stopwatch.StartNew();
+            int reports = 0, lastPct = -1;
             await using (var src = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false))
             await using (var dst = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None))
             {
@@ -157,9 +159,13 @@ public static class Updater
                 {
                     await dst.WriteAsync(buf.AsMemory(0, n)).ConfigureAwait(false);
                     done += n;
-                    if (total > 0) progress?.Report((int)(done * 100 / total));
+                    // one report per whole percent: the page lays itself out on every report
+                    int pct = total > 0 ? (int)(done * 100 / total) : -1;
+                    if (pct >= 0 && pct != lastPct) { lastPct = pct; reports++; progress?.Report(pct); }
                 }
                 if (r.AssetSize > 0 && done != r.AssetSize) throw new IOException("size mismatch");
+                // for the log: whether a download was too quick for the bar to show anything
+                AppLifecycle.Note($"update downloaded: {done} bytes in {clock.ElapsedMilliseconds} ms, content-length {(resp.Content.Headers.ContentLength?.ToString() ?? "none")}, {reports} progress reports");
             }
         }
         catch (Exception ex)

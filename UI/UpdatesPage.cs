@@ -205,13 +205,17 @@ public sealed class UpdatesPage : ThemedPage
         int statusBottom = 0;
         if (_bar.Visible)
         {
-            // download mode: buttons hidden, "Downloading… X%" label stacked ABOVE the bar, both
-            // right-aligned to the page (like the report wizard's capture bar); the label may be
-            // wider than the bar in some languages, so it is bounded by the page, not by the bar,
-            // and "Last checked" moves under the bar instead of sharing its line
+            // download mode: buttons hidden, "Downloading… X%" label stacked ABOVE the bar (like
+            // the report wizard's capture bar). Both start at the same x, chosen once from the
+            // WIDEST the label can get ("… 100%") and the bar, so the block sits inside the page
+            // in every language and nothing moves while the percentage counts up (a label
+            // right-aligned by its current width shifted with every digit and the block jittered).
+            // "Last checked" moves under the bar instead of sharing its line.
             _status.MaximumSize = new Size(Math.Max(120, w), 0);
-            _status.Location = new Point(ClientSize.Width - 28 - _status.PreferredWidth, rowY);
-            _bar.Location = new Point(ClientSize.Width - 28 - _bar.Width, _status.Bottom + 8);
+            int widest = Math.Min(w, Math.Max(_bar.Width, TextRenderer.MeasureText(string.Format(Lang.T("upd_downloading"), 100), _status.Font).Width));
+            int bx = Math.Max(28, ClientSize.Width - 28 - widest);
+            _status.Location = new Point(bx, rowY);
+            _bar.Location = new Point(bx, _status.Bottom + 8);
             _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _bar.Bottom + 10);
             statusBottom = _bar.Bottom;
         }
