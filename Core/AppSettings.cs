@@ -406,14 +406,90 @@ public sealed class AppSettings
         return def;
     }
 
+    private static bool _saveFailureNoted;
+
+    /// <summary>
+    /// Writes the file through a temporary one and a swap, so a crash, a full disk or a
+    /// reboot in the middle of the write leaves either the previous file or the new one,
+    /// never a truncated settings.json (which Load would read as "no settings" and replace
+    /// with defaults). The previous file is kept as settings.json.bak. A failure is noted in
+    /// the log once per run; the app keeps running on what it has in memory.
+    /// </summary>
     public void Save()
     {
         try
         {
             Directory.CreateDirectory(Dir);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOpts));
+            string tmp = FilePath + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
+            if (File.Exists(FilePath)) File.Replace(tmp, FilePath, FilePath + ".bak", ignoreMetadataErrors: true);
+            else File.Move(tmp, FilePath);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            if (!_saveFailureNoted) { _saveFailureNoted = true; AppLifecycle.Note("settings could not be saved: " + ex.Message); }
+        }
+    }
+
+    /// <summary>
+    /// Why <paramref name="src"/> cannot be imported, or null when it can: every collection the
+    /// import copies has to be there (a file with "Hotkeys": null passes the shape check and used
+    /// to throw half-way through ImportFrom, after the language and the hotkeys were already
+    /// changed), and no list or dictionary may carry a null entry.
+    /// </summary>
+    public static string? Validate(AppSettings src)
+    {
+        var nullability = new System.Reflection.NullabilityInfoContext();
+        foreach (var prop in typeof(AppSettings).GetProperties())
+        {
+            if (!prop.CanRead || prop.GetIndexParameters().Length > 0) continue;
+            var pt = prop.PropertyType;
+            bool isList = pt.IsGenericType && pt.GetGenericTypeDefinition() == typeof(List<>);
+            bool isDict = pt.IsGenericType && pt.GetGenericTypeDefinition() == typeof(Dictionary<,>);
+            if (!isList && !isDict) continue;
+            object? value = prop.GetValue(src);
+            // a collection declared nullable (List<string>?) may be missing; the others may not
+            bool mayBeNull = nullability.Create(prop).ReadState == System.Reflection.NullabilityState.Nullable;
+            if (value == null) { if (mayBeNull) continue; return prop.Name + " is missing"; }
+            if (isList)
+            {
+                foreach (object? item in (System.Collections.IEnumerable)value)
+                    if (item == null) return prop.Name + " has an empty entry";
+            }
+            else
+            {
+                foreach (System.Collections.DictionaryEntry e in (System.Collections.IDictionary)value)
+                    if (e.Key == null || e.Value == null) return prop.Name + " has an empty entry";
+            }
+        }
+        if (src.Language == null) return "Language is missing";
+        return null;
+    }
+
+    /// <summary>
+    /// ImportFrom, all or nothing: the file is checked first (<see cref="Validate"/>), then the
+    /// import is rehearsed on a copy of these settings, and only an import that went through on
+    /// the copy is run on the live object. A file that fails leaves every live setting as it was.
+    /// The caller stores the picture the file may carry (CrosshairImageBase64) itself.
+    /// </summary>
+    public bool TryImportFrom(AppSettings src, out string why)
+    {
+        why = Validate(src) ?? "";
+        if (why.Length > 0) return false;
+        try
+        {
+            var rehearsal = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, JsonOpts))
+                            ?? throw new InvalidOperationException("settings could not be copied");
+            rehearsal.ImportFrom(src);
+        }
+        catch (Exception ex)
+        {
+            why = ex.Message;
+            Profiles.SetShown(ProfileOrder);   // the rehearsal may have told Profiles about ITS order
+            return false;
+        }
+        ImportFrom(src);
+        return true;
     }
 
     public void EnsureDefaults()
@@ -661,16 +737,9 @@ public sealed class AppSettings
         CrosshairPresets.Clear();
         foreach (var p in src.CrosshairPresets) CrosshairPresets.Add(p.Clone());
         CrosshairActivePreset = src.CrosshairActivePreset;
-        // the picture carried by the file replaces the stored one; a file without one leaves it alone
-        if (!string.IsNullOrEmpty(src.CrosshairImageBase64))
-        {
-            try
-            {
-                Directory.CreateDirectory(CrosshairPainter.ImageDir);
-                File.WriteAllBytes(CrosshairPainter.ImagePath, Convert.FromBase64String(src.CrosshairImageBase64));
-            }
-            catch { }
-        }
+        // The picture the file may carry is NOT written here: this method also runs as a rehearsal
+        // on a copy (TryImportFrom), and a file write has no place in it. The caller stores it
+        // through CrosshairPainter.ImportImageBytes, with the same size limits as a normal import.
         CrosshairImageBase64 = null;
         EnsureDefaults();
     }

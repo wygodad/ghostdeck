@@ -473,6 +473,26 @@ public static class CrosshairPainter
         catch { return "read"; }
     }
 
+    /// <summary>
+    /// The picture carried inside a settings backup, stored with exactly the checks of
+    /// <see cref="ImportImage"/> (size cap, pixel cap, decoded and re-saved as PNG): the bytes go
+    /// to a temporary file next to the stored picture and take the normal path from there.
+    /// </summary>
+    public static string? ImportImageBytes(byte[] bytes, out Size dims)
+    {
+        dims = Size.Empty;
+        if (bytes.LongLength > MaxImageBytes) return "size";
+        string tmp = Path.Combine(ImageDir, "import.tmp");
+        try
+        {
+            Directory.CreateDirectory(ImageDir);
+            File.WriteAllBytes(tmp, bytes);
+            return ImportImage(tmp, out dims);
+        }
+        catch { return "read"; }
+        finally { try { File.Delete(tmp); } catch { } }
+    }
+
     /// <summary>The stored picture, or null when there is none or it cannot be read.</summary>
     public static Bitmap? LoadImage()
     {

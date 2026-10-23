@@ -11,6 +11,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   System → *Tray menu* gets two more switches, for the gaming overlay entries and for the
   crosshair entry, next to the existing ones.
 ### Security
+- **The command-line channel has limits** - a program that connects to the running app's
+  command pipe and then says nothing, never ends its line, floods it or stops reading the answer
+  no longer holds the channel for every later command: the app reads with a deadline and a
+  length cap and drops such a client. A command the app did not answer in time is reported as
+  failed instead of being run a second time outside the app.
+- **Release workflow actions pinned to commits** - every GitHub action in the build, release
+  and sync workflows is referenced by its commit, not by a tag that could be re-pointed.
 - **The in-app updater verifies the downloaded release** - before anything is swapped, the
   downloaded file has to carry a valid Authenticode signature from the GhostDeck release identity
   (the signer's Trusted Signing certificate profile and publisher name, which survive the
@@ -24,6 +31,23 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   paths: they travel in the environment of the script's process. When it cannot be written
   there, the update is called off and the app keeps running.
 ### Fixed
+- **Command line reports the real result** - `--profile`, `--cycle`, `--fanboost`, `--curve`,
+  `--kbd`, `--webcam`, `--fnswap`, `--charge`, `--panic` and `--scene` answered "done" with exit
+  code 0 even when the write had failed and the app had shown the error on screen. They now
+  return exit code 1 with the reason. A scene runs each of its steps on its own, applies what it
+  can and reports the steps that failed, on screen, in the change log and on the command line.
+  `--profile` accepts only the four profile names (a number such as 999 is refused up front).
+- **Importing a settings backup is all or nothing** - a file that passed the first check but was
+  missing a part (for example `"Hotkeys": null`) used to change the language and clear the
+  shortcuts before it failed, and the next save kept that half-imported state. The file is now
+  checked and rehearsed on a copy first; one that fails leaves every setting as it was. A picture
+  carried by the backup goes through the same size limits as a picture chosen by hand.
+- **Settings are saved through a temporary file** - a crash or a full disk during a save can no
+  longer leave a truncated `settings.json` that the next start would read as "no settings"; the
+  previous file is kept as `settings.json.bak`.
+- **Updates tab at very large scales** - the "Downloading… X%" label stays inside the page and
+  "Last checked" moves under the progress bar; when the two buttons cannot share a row they sit
+  one under the other.
 - **In-app updates in folders with national letters** - the swap script was written as UTF-8 while
   the console reads it in the system's OEM code page, so a path such as `C:\Users\Łukasz\...` was
   invisible to it: the app closed with "Restarting", Windows reported that it could not find the

@@ -191,20 +191,28 @@ public sealed class UpdatesPage : ThemedPage
         int leftRight = 28 + Math.Max(TextRenderer.MeasureText(Lang.T("tab_updates"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold)).Width, Math.Max(
             TextRenderer.MeasureText(Lang.T("upd_installed"), Dpi.Font("Segoe UI", 10f)).Width,
             TextRenderer.MeasureText("v" + D.AppVersion(), Dpi.Font("Segoe UI", 16f, FontStyle.Bold)).Width));
-        int buttonsW = _check.Width + (_install.Visible ? _install.Width + 10 : 0);
+        // Two buttons side by side when the page has the room; one under the other when even a
+        // page without the left column could not hold both (a 250 % scale in a small window).
+        bool stack = _install.Visible && _check.Width + _install.Width + 10 > w;
+        int buttonsW = stack ? Math.Max(_check.Width, _install.Width) : _check.Width + (_install.Visible ? _install.Width + 10 : 0);
         int rowY = ClientSize.Width - 28 - buttonsW >= leftRight + 16 ? 66 : versionBottom + 12;
-        _check.Location = new Point(ClientSize.Width - 28 - _check.Width, rowY);
-        _install.Location = new Point(_check.Left - _install.Width - 10, rowY);
+        _install.Location = new Point(ClientSize.Width - 28 - _install.Width, rowY);
+        _check.Location = stack
+            ? new Point(ClientSize.Width - 28 - _check.Width, _install.Bottom + 8)
+            : new Point(ClientSize.Width - 28 - _check.Width, rowY);
+        if (!stack) _install.Location = new Point(_check.Left - _install.Width - 10, rowY);
         _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _check.Bottom + 12);
         int statusBottom = 0;
         if (_bar.Visible)
         {
-            // download mode: buttons hidden, "Downloading… X%" label stacked ABOVE the bar,
-            // right-aligned in the button area (like the report wizard's capture bar)
-            int bx = ClientSize.Width - 28 - _bar.Width;
+            // download mode: buttons hidden, "Downloading… X%" label stacked ABOVE the bar, both
+            // right-aligned to the page (like the report wizard's capture bar); the label may be
+            // wider than the bar in some languages, so it is bounded by the page, not by the bar,
+            // and "Last checked" moves under the bar instead of sharing its line
             _status.MaximumSize = new Size(Math.Max(120, w), 0);
-            _status.Location = new Point(bx, rowY);
-            _bar.Location = new Point(bx, _status.Bottom + 8);
+            _status.Location = new Point(ClientSize.Width - 28 - _status.PreferredWidth, rowY);
+            _bar.Location = new Point(ClientSize.Width - 28 - _bar.Width, _status.Bottom + 8);
+            _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _bar.Bottom + 10);
             statusBottom = _bar.Bottom;
         }
         else

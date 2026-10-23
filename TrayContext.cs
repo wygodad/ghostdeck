@@ -44,6 +44,12 @@ public sealed class TrayContext : ApplicationContext
     private SynchronizationContext? _ui;
     private string? _updateUrl;
     private Updater.Result? _updateAvail;      // newer release found by the daily check (Settings Start header chip)
+    // The last failure of a setter (profile, Fan Boost, curve, keyboard light, webcam, Fn swap,
+    // charge limit, scene). The setters are void and show their error on the OSD; the CLI used
+    // to answer "0|done" regardless. ExecuteCliCore clears this before a call and builds its
+    // exit code from it afterwards; a scene clears it before each step and collects what failed.
+    private string? _opError;
+    private string CliDone(string ok) => _opError is { } e ? "1|" + e : "0|" + ok;
     private bool _telemetryOnly;               // (#48) no EC interface, but MSI WMI data blocks answer
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
@@ -262,8 +268,12 @@ public sealed class TrayContext : ApplicationContext
                     srv.WaitForConnection();
                     using var r = new StreamReader(srv);
                     using var w = new StreamWriter(srv) { AutoFlush = true };
-                    string? line = r.ReadLine();
-                    if (line == null) continue;
+                    // One instance serves clients one after another, so a client that connects and
+                    // then says nothing, or never ends its line, must not hold the pipe: the read
+                    // has a deadline and a length limit (a command line is well under a kilobyte).
+                    string? line = Cli.ReadLineLimited(r, Cli.MaxLineChars, Cli.ServerReadMs);
+                    if (line == null) continue;   // silent, too long or gone: next client
+                    if (line.Length == 0) { Cli.WriteLineWithin(w, "2|empty command", Cli.ServerWriteMs); continue; }
                     string resp = "1|busy";
                     // deliberately NOT disposed here: on a timeout the UI thread may still call
                     // Set() later, which would throw on a disposed event inside a finally
@@ -282,7 +292,7 @@ public sealed class TrayContext : ApplicationContext
                         ui.Post(_ => { try { resp = ExecuteCli(line); } finally { done.Set(); } }, null);
                         done.Wait(8000);
                     }
-                    w.WriteLine(resp);
+                    Cli.WriteLineWithin(w, resp, Cli.ServerWriteMs);   // a client that stopped reading cannot hold the pipe either
                 }
                 catch { Thread.Sleep(300); }
             }
@@ -313,6 +323,7 @@ public sealed class TrayContext : ApplicationContext
 
     private string ExecuteCliCore(string raw)
     {
+        _opError = null;
         try
         {
             var cmd = Cli.Parse(raw.Split('\t'));
@@ -459,40 +470,40 @@ public sealed class TrayContext : ApplicationContext
             {
                 case CliKind.Profile:
                     SetProfile(Enum.Parse<ProfileId>(cmd.Arg), osd: true, ChangeSource.Cli);
-                    return "0|profile set: " + cmd.Arg;
+                    return CliDone("profile set: " + cmd.Arg);
                 case CliKind.Cycle:
                     Cycle(ChangeSource.Cli);
-                    return "0|profile set: " + _current;
+                    return CliDone("profile set: " + _current);
                 case CliKind.FanBoost:
                     SetCoolerBoostState(cmd.Arg == "on");
                     // optional per-call auto-off (#51): replaces the timer the setter just armed
                     if (cmd.Arg == "on" && cmd.Arg2.Length > 0 && int.TryParse(cmd.Arg2, out int fbSecs))
                         ArmBoostTimer(true, fbSecs);
-                    return "0|fan boost: " + cmd.Arg + (cmd.Arg2.Length > 0 ? $" (auto-off in {cmd.Arg2} s)" : "");
+                    return CliDone("fan boost: " + cmd.Arg + (cmd.Arg2.Length > 0 ? $" (auto-off in {cmd.Arg2} s)" : ""));
                 case CliKind.Curve:
                     if (_device?.FanCurve is not { } fc) return "1|no fan-curve support on this model";
-                    if (cmd.Arg.Equals("auto", StringComparison.OrdinalIgnoreCase)) { ApplyPresetFromTray(null); return "0|fan curve: stock"; }
+                    if (cmd.Arg.Equals("auto", StringComparison.OrdinalIgnoreCase)) { ApplyPresetFromTray(null); return CliDone("fan curve: stock"); }
                     if (_settings.FindPreset(cmd.Arg) is not { } p || !p.IsValid(fc)) return "1|preset not found: " + cmd.Arg;
                     ApplyPresetFromTray(p.Name);
-                    return "0|fan curve applied: " + p.Name;
+                    return CliDone("fan curve applied: " + p.Name);
                 case CliKind.Kbd:
                     if (_kbdAddr == 0) return "1|no keyboard-backlight support on this model";
                     SetKbdLight(Cli.ParseKbdLevel(cmd.Arg), ChangeSource.Cli);
-                    return "0|keyboard backlight: " + cmd.Arg;
+                    return CliDone("keyboard backlight: " + cmd.Arg);
                 case CliKind.Webcam:
                     if (!_webcamSupported) return "1|no webcam control on this model";
                     SetWebcamState(cmd.Arg == "on", ChangeSource.Cli);
-                    return "0|webcam: " + cmd.Arg;
+                    return CliDone("webcam: " + cmd.Arg);
                 case CliKind.FnSwap:
                     if (_fnSwap == null) return "1|no Fn/Win swap register on this model";
                     SetFnLeftState(cmd.Arg == "left", ChangeSource.Cli);
-                    return "0|fn key: " + cmd.Arg;
+                    return CliDone("fn key: " + cmd.Arg);
                 case CliKind.Scene:
                 {
                     var sc = _settings.Scenes.FirstOrDefault(x => x.Name.Equals(cmd.Arg, StringComparison.OrdinalIgnoreCase));
                     if (sc == null) return "1|scene not found: " + cmd.Arg;
                     ApplyScene(sc, ChangeSource.Cli);
-                    return "0|scene applied: " + sc.Name;
+                    return CliDone("scene applied: " + sc.Name);
                 }
                 case CliKind.Charge:
                 {
@@ -503,7 +514,7 @@ public sealed class TrayContext : ApplicationContext
                     TryApplyChargeLimit();   // logs the write itself; 0 = stop managing (no EC write)
                     if (limit == 0) ChangeLog.Add(ChangeSource.Cli, Lang.T("st_charge") + ": " + Lang.T("st_off"));
                     if (_main is { IsDisposed: false }) _main.RefreshActive();
-                    return "0|charge limit: " + (limit > 0 ? limit + " %" : "off (no longer managed)");
+                    return CliDone("charge limit: " + (limit > 0 ? limit + " %" : "off (no longer managed)"));
                 }
                 case CliKind.Travel:
                 {
@@ -520,7 +531,7 @@ public sealed class TrayContext : ApplicationContext
                 }
                 case CliKind.Panic:
                     PanicReset();
-                    return "0|panic reset done";
+                    return CliDone("panic reset done");
                 default:
                     return "2|bad command";
             }
@@ -1347,6 +1358,7 @@ public sealed class TrayContext : ApplicationContext
         catch (Exception ex)
         {
             ChangeLog.Add(source, Profiles.Get(id).Label, Lang.T("log_err") + ": " + ex.Message);
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1492,7 +1504,7 @@ public sealed class TrayContext : ApplicationContext
                 return;
             }
             var p = _settings.FindPreset(name);
-            if (p == null || !p.IsValid(fc)) return;
+            if (p == null || !p.IsValid(fc)) { _opError = "preset not found: " + name; return; }
             // A curve in Silent drops the Silent cap (same EC byte) -> leave Silent for Balanced first.
             if (_current == ProfileId.Silent)
                 SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Tray, applyCurve: false);
@@ -1510,6 +1522,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1540,6 +1553,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1568,6 +1582,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1593,6 +1608,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1618,6 +1634,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1652,19 +1669,29 @@ public sealed class TrayContext : ApplicationContext
     {
         if (!Writable) { ShowState(); return; }
         using var _ec = EcBusy();
-        try
+        // Every step runs on its own: one that fails (a refused write, a display that will not
+        // switch) is recorded by name and the next steps still run, so the scene applies what it
+        // can. The toast, the log and the CLI then say which steps failed instead of "applied".
+        var failed = new List<string>();
+        void Step(string name, Action a)
         {
-            if (s.Profile is { } pn && Enum.TryParse<ProfileId>(pn, out var pid))
-                SetProfile(pid, osd: false, source, applyCurve: s.CurvePreset == null);
-            if (s.CurvePreset is { } cp)
-                ApplyPresetFromTray(cp.Length == 0 ? null : cp, osd: false);
-            if (s.FanBoost is { } fb && fb != _coolerBoost)
-                SetCoolerBoostState(fb, osd: false);
-            if (s.Turbo is { } tb) SetTurboFromScene(tb, source);
-            // Schedule/battery-rule scenes must not defeat an active travel mode: the limit is
-            // skipped and the pending revert survives. A scene run by hand is an explicit choice.
-            if (s.ChargeLimit is { } cl &&
-                !(source is ChangeSource.Schedule or ChangeSource.Battery && _settings.TravelUntil != DateTime.MinValue))
+            _opError = null;
+            try { a(); }
+            catch (Exception ex) { _opError = ex.Message; }
+            if (_opError != null) failed.Add(name + ": " + _opError);
+        }
+        if (s.Profile is { } pn && Enum.TryParse<ProfileId>(pn, out var pid))
+            Step("profile", () => SetProfile(pid, osd: false, source, applyCurve: s.CurvePreset == null));
+        if (s.CurvePreset is { } cp)
+            Step("fan curve", () => ApplyPresetFromTray(cp.Length == 0 ? null : cp, osd: false));
+        if (s.FanBoost is { } fb && fb != _coolerBoost)
+            Step("fan boost", () => SetCoolerBoostState(fb, osd: false));
+        if (s.Turbo is { } tb) Step("turbo", () => SetTurboFromScene(tb, source));
+        // Schedule/battery-rule scenes must not defeat an active travel mode: the limit is
+        // skipped and the pending revert survives. A scene run by hand is an explicit choice.
+        if (s.ChargeLimit is { } cl &&
+            !(source is ChangeSource.Schedule or ChangeSource.Battery && _settings.TravelUntil != DateTime.MinValue))
+            Step("charge limit", () =>
             {
                 if (_settings.ChargeLimit != cl)
                 {
@@ -1672,49 +1699,50 @@ public sealed class TrayContext : ApplicationContext
                     _settings.ChargeLimit = cl; _settings.Save();
                 }
                 TryApplyChargeLimit();
-            }
-            if (s.RefreshHz is { } hz && hz > 0)
+            });
+        if (s.RefreshHz is { } hz && hz > 0)
+            Step("refresh rate", () =>
             {
                 int before = Display.Current();
-                if (before != hz && Display.SetRefresh(hz, s.RefreshTarget))
-                    ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
-            }
-            if (s.BrightnessPct is { } bp && Brightness.Supported)
-            {
-                try { Brightness.Set(bp); ChangeLog.Add(source, Lang.T("bri_title") + ": " + bp + " %"); } catch { }
-            }
-            if (s.Hdr is { } hd && Hdr.Supported() && Hdr.Enabled() != hd)
+                if (before == hz) return;
+                if (Display.SetRefresh(hz, s.RefreshTarget)) ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
+                else _opError = "the display refused " + hz + " Hz";
+            });
+        if (s.BrightnessPct is { } bp && Brightness.Supported)
+            Step("brightness", () => { Brightness.Set(bp); ChangeLog.Add(source, Lang.T("bri_title") + ": " + bp + " %"); });
+        if (s.Hdr is { } hd && Hdr.Supported() && Hdr.Enabled() != hd)
+            Step("HDR", () =>
             {
                 if (Hdr.Set(hd)) ChangeLog.Add(source, "HDR: " + Lang.T(hd ? "st_on" : "st_off"));
-            }
-            if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
-            if (s.Crosshair is { } ch)
+                else _opError = "the display refused the HDR change";
+            });
+        if (s.Overlay is { } ov && ov != OverlayVisible) Step("overlay", () => SetOverlay(ov, osd: false));
+        if (s.Crosshair is { } ch)
+            Step("crosshair", () =>
             {
                 // a named preset is loaded first; a missing one leaves the current look
                 if (ch && s.CrosshairPreset is { Length: > 0 } chp) LoadCrosshairPreset(chp);
                 if (ch != CrosshairVisible) SetCrosshair(ch, osd: false);
                 else if (ch) ApplyCrosshairSettings();
-            }
-            // True Color runs on a worker and reports to the history on its own; an automatic
-            // scene never shows a card for it, and nothing below waits for it
-            if (s.TrueColor is { } tcp) ApplyTrueColor(tcp, source, manual: false);
-            if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
-            if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
-            if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
-                SetMicState(mc, source, osd: false);
-            if (s.WinLock is { } wl) SetWinLockState(wl, source, osd: false);
-            if (s.Touchpad is { } tp && Touchpad.State() is >= 0 and var tst && (tst == 1) != tp)
-                SetTouchpadState(tp, source, osd: false);
+            });
+        // True Color runs on a worker and reports to the history on its own; an automatic
+        // scene never shows a card for it, and nothing below waits for it
+        if (s.TrueColor is { } tcp) Step("True Color", () => ApplyTrueColor(tcp, source, manual: false));
+        if (s.KbdLight is { } kl) Step("keyboard light", () => SetKbdLight(kl, source, osd: false));
+        if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) Step("webcam", () => SetWebcamState(wc, source, osd: false));
+        if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
+            Step("microphone", () => SetMicState(mc, source, osd: false));
+        if (s.WinLock is { } wl) Step("Windows key lock", () => SetWinLockState(wl, source, osd: false));
+        if (s.Touchpad is { } tp && Touchpad.State() is >= 0 and var tst && (tst == 1) != tp)
+            Step("touchpad", () => SetTouchpadState(tp, source, osd: false));
 
-            ChangeLog.Add(ChangeSource.Scene, string.Format(Lang.T("log_scene"), s.Name), s.Summary());
-            // no glyph in the OSD title: the OSD's text renderer has no emoji fallback (tofu)
-            _osd.ShowProfile(OsdPrefix + s.Name, Lang.T("scene_applied"), _settings.ColorFor(_current));
-            if (_main is { IsDisposed: false }) _main.RefreshActive();
-        }
-        catch (Exception ex)
-        {
-            _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
-        }
+        string partly = failed.Count == 0 ? "" : string.Join("; ", failed);
+        _opError = failed.Count == 0 ? null : "scene applied partly, failed: " + partly;
+        ChangeLog.Add(ChangeSource.Scene, string.Format(Lang.T("log_scene"), s.Name), failed.Count == 0 ? s.Summary() : s.Summary() + "  ·  " + partly);
+        // no glyph in the OSD title: the OSD's text renderer has no emoji fallback (tofu)
+        if (failed.Count == 0) _osd.ShowProfile(OsdPrefix + s.Name, Lang.T("scene_applied"), _settings.ColorFor(_current));
+        else _osd.ShowProfile(OsdPrefix + s.Name, string.Format(Lang.T("scene_partly"), failed.Count), Theme.Amber);
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
     }
 
     // A scene's turbo field goes through the same snapshot-keeping calls as the Windows power card
@@ -1743,6 +1771,7 @@ public sealed class TrayContext : ApplicationContext
             {
                 if (on && Ec.GetWebcamBlock())
                 {
+                    _opError = Lang.T("webcam_blocked_warn");
                     _osd.ShowProfile(OsdPrefix + Lang.T("webcam_title"), Lang.T("webcam_blocked_warn"), Theme.Amber);
                     return;
                 }
@@ -1758,6 +1787,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1783,6 +1813,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -1868,6 +1899,7 @@ public sealed class TrayContext : ApplicationContext
         }
         catch (Exception ex)
         {
+            _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
     }
@@ -2751,7 +2783,7 @@ public sealed class TrayContext : ApplicationContext
                     string.Format(Lang.T("log_charge"), _settings.ChargeLimit),
                     $"{_device!.ChargeCtrl:X2}={(0x80 | _settings.ChargeLimit):X2}");
             }
-            catch { }
+            catch (Exception ex) { _opError = ex.Message; }
         }
     }
 

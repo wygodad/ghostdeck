@@ -23,9 +23,9 @@ jobs:
     runs-on: windows-latest
     environment: release
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09   # v5
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1   # v5
         with:
           # Pinned so the same commit always builds with the same SDK. Raise deliberately when
           # Microsoft ships a new .NET 8 servicing release.
@@ -51,14 +51,14 @@ jobs:
             -p:Version=${{ steps.ver.outputs.version }} -o publish
 
       - name: Azure login (OIDC)
-        uses: azure/login@v3
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906   # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Podpisz exe (Azure Artifact Signing)
-        uses: azure/artifact-signing-action@v2
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82   # v2
         with:
           endpoint: https://eus.codesigning.azure.net/
           signing-account-name: ghostdeck-signing
@@ -97,7 +97,7 @@ jobs:
 
       - name: Artefakt testowy (dry-run)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02   # v4
         with:
           name: GhostDeck-signed-${{ steps.ver.outputs.version }}
           path: publish/GhostDeck-win-x64.exe
@@ -122,7 +122,7 @@ jobs:
 
       - name: Utworz Release i dolacz exe
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64   # v3
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: GhostDeck v${{ steps.ver.outputs.version }}

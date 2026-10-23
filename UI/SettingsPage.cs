@@ -1664,7 +1664,24 @@ public sealed partial class SettingsPage : ThemedPage
                 MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            D.Settings.ImportFrom(imported);
+            // All or nothing: a file that fails its checks or its rehearsal leaves every live
+            // setting as it was, and nothing below runs (so nothing half-imported gets saved).
+            if (!D.Settings.TryImportFrom(imported, out string why))
+            {
+                AppLifecycle.Note("settings import refused: " + why);
+                MessageBox.Show(FindForm(), Lang.T("imp_err"), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            // the picture the file may carry, through the same limits as a normal picture import
+            if (!string.IsNullOrEmpty(imported.CrosshairImageBase64))
+            {
+                try
+                {
+                    if (CrosshairPainter.ImportImageBytes(Convert.FromBase64String(imported.CrosshairImageBase64), out _) is { } imgErr)
+                        AppLifecycle.Note("crosshair picture in the settings file not taken: " + imgErr);
+                }
+                catch (Exception ex) { AppLifecycle.Note("crosshair picture in the settings file not taken: " + ex.Message); }
+            }
             Lang.Set(D.Settings.Language);
             Theme.Set(D.Settings.DarkMode);
             try { Autostart.Set(D.Settings.Autostart); } catch { }

@@ -958,12 +958,26 @@ from overlapping.
 user-chosen JSON file (same shape as `settings.json`). Import validates the file first (root must
 be a JSON object with a `Language` property — an arbitrary JSON object would otherwise deserialise
 into a defaults instance and silently wipe the user's settings), then calls
-`AppSettings.ImportFrom`, which mutates the **live** instance in place (the tray context and all
-pages hold references to it). Machine-local state is deliberately **not** imported: `LastFirmware`
-(the firmware-change guard must keep judging against this machine), the update-check timestamp,
-seen notice ids, and the window geometry. After a successful import the page applies language,
-theme, autostart, hotkeys/tray menu (`SettingsChanged`), charge limit, and overlay settings, then
-rebuilds itself.
+`AppSettings.TryImportFrom`, which is **all or nothing**: `Validate` first refuses a file whose
+collections are missing or carry null entries (a file with `"Hotkeys": null` passed the shape check
+and used to throw half-way through the import, after the language and the hotkeys were already
+changed on the live object), then the import is rehearsed on a serialised copy of the live
+settings, and only an import that went through on the copy is run on the live instance (the tray
+context and all pages hold references to it, so it is mutated in place). A refused file leaves
+every live setting as it was, is noted in `errors.log`, and nothing is saved. The picture a backup
+may carry (`CrosshairImageBase64`) is not written by the import itself: the page stores it
+afterwards through `CrosshairPainter.ImportImageBytes`, with the same 1 MiB / 512 px limits and
+the same decode-and-resave as a normal picture import. Machine-local state is deliberately **not**
+imported: `LastFirmware` (the firmware-change guard must keep judging against this machine), the
+update-check timestamp, seen notice ids, and the window geometry. After a successful import the
+page applies language, theme, autostart, hotkeys/tray menu (`SettingsChanged`), charge limit, and
+overlay settings, then rebuilds itself.
+
+**Saving.** `AppSettings.Save` writes `settings.json.tmp` and swaps it over the previous file
+(`File.Replace`, which keeps the previous one as `settings.json.bak`), so a crash, a full disk or
+a reboot in the middle of a write leaves either the old file or the new one, never a truncated
+one that `Load` would read as "no settings". A save that fails is noted in `errors.log` once per
+run; the app keeps running on what it has in memory.
 
 **Thermal alert (Settings → Automation; off by default).** Runs on the existing 3 s tray poll,
 *before* the `Writable` gate, so it also works on known-but-locked (Experimental) models; it is a
@@ -1056,6 +1070,22 @@ print into the parent terminal.
   through the same code paths as the UI (`SetProfile`, `SetCoolerBoostState`,
   `ApplyPresetFromTray`, `PanicReset`) - so every gate (tier, experimental opt-in) and every OSD /
   ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
+  **The exit code is the operation's real result.** The setters are `void` and show a failure on
+  the OSD; each records it in `TrayContext._opError` as well, `ExecuteCliCore` clears that before
+  a call and answers `1|<message>` when it is set afterwards (`CliDone`). A scene runs every step
+  on its own, collects the steps that failed by name and answers `1|scene applied partly, failed:
+  ...` (§44). Before, `--profile` answered `0|profile set` even when the write had thrown.
+  **The pipe has limits** (`Cli.MaxLineChars` 4096, `ServerReadMs` / `ServerWriteMs` 3 s,
+  `ClientReadMs` 15 s). One server instance serves clients one after another, so a client that
+  connected and said nothing, never ended its line, sent more than the cap or stopped reading the
+  answer used to hold the pipe for everyone; now the server reads with a deadline and a cap
+  (`Cli.ReadLineLimited`, on a pipe opened with `PipeOptions.Asynchronous` so the deadline can
+  interrupt the read) and writes with a deadline, and drops such a client. On the client side a
+  busy instance (the pipe exists, the connect timed out) or one that does not answer in time is
+  reported as failed with exit code 1 and is **not** treated as "nobody listening": the command may
+  have been carried out, so it must not run a second time through the one-shot path (and its UAC
+  prompt). `--profile` takes only the four named profiles: `Enum.TryParse` alone accepted any
+  number, and `--profile 999` reached the dictionary lookup before it was refused.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
   ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--crosshair`,
@@ -1443,6 +1473,10 @@ short-lived certificates in a Microsoft HSM; publisher subject
   release step - an unsigned or wrongly-signed exe can never be published.
 - `workflow_dispatch` has a **dry-run** input: build + sign + upload the exe as a workflow
   artifact, with no release created. Used to validate the pipeline end to end.
+- Every action in the three workflows is pinned to a **commit SHA** (`uses: owner/action@<sha>
+  # vN`), not a moving tag: a tag can be re-pointed by whoever controls the action's repository,
+  and in the release workflow that would be code running with the signing credential. Updating an
+  action means looking up the new tag's commit and changing the SHA on purpose.
 
 ## 36. msi-ec sync pipeline, stage 1 (2026-07-28)
 
@@ -1726,6 +1760,12 @@ refresh rate, overlay, backlight, webcam, microphone. Sub-steps run with `osd: f
 change-log entries; the scene adds one `ChangeSource.Scene` summary entry and shows a single
 OSD toast. Because the profile and curve go through the normal paths, `LastProfile` and the
 active-curve snapshot (#49) stay correct for the startup/resume restore for free.
+**Every step runs on its own** (`Step` in `ApplyScene`): a step that fails, by throwing or by
+leaving `_opError` set (a refused write, a display that will not switch), is recorded by name and
+the remaining steps still run, so the scene applies what it can. With failures the toast says
+"applied partly, N step(s) failed" in amber, the summary entry lists the failed steps, and the CLI
+answers `1|scene applied partly, failed: <step>: <why>; ...` instead of `0|scene applied`. Before,
+one throwing step ended the scene and the CLI still reported success.
 
 Entry points: scene cards on the Scenarios tab (click = run, pencil = edit, right-click =
 run/edit/reorder/delete), a tray submenu, per-scene global hotkeys stored as

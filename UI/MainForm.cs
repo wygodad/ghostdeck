@@ -31,7 +31,15 @@ public sealed class MainForm : Form
         Icon = TrayIconFactory.AppIcon();
         FormBorderStyle = FormBorderStyle.Sizable;
         AutoScaleMode = AutoScaleMode.Dpi;
-        MinimumSize = new Size(900, 620);
+        // The minimum is 900 x 620 at 100 %. Auto-scaling only rescales it on a DPI CHANGE (a move
+        // to another monitor); a window first opened on a 200 % screen kept the 100 % minimum and
+        // could be dragged down to a size the pages do not lay out for. Scaled here, and capped at
+        // 90 % of the working area so a small screen at a large scale can still show the window.
+        {
+            float k = Dpi.Of(this) / 96f;
+            var wa = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1600, 980);
+            MinimumSize = new Size(Math.Min((int)(900 * k), wa.Width * 9 / 10), Math.Min((int)(620 * k), wa.Height * 9 / 10));
+        }
         Font = Dpi.Font("Segoe UI", 10f);
         DoubleBuffered = true;
 

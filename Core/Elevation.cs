@@ -119,7 +119,9 @@ public static class Elevation
     {
         var sec = new PipeSecurity();
         sec.AddAccessRule(new PipeAccessRule(UserSid(), PipeAccessRights.FullControl, AccessControlType.Allow));
+        // Asynchronous: the server's bounded read (Cli.ReadLineLimited) cancels through the
+        // overlapped I/O; on a synchronous pipe a deadline could not interrupt a waiting read.
         return NamedPipeServerStreamAcl.Create(Cli.PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
-                                               PipeOptions.None, 0, 0, sec);
+                                               PipeOptions.Asynchronous, 0, 0, sec);
     }
 }

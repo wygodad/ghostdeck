@@ -20,6 +20,57 @@ public static class Cli
 {
     public const string PipeName = "GhostDeck_Cli";
 
+    // The pipe's limits. One server instance serves clients one after another, so a client that
+    // connects and says nothing, never ends its line, sends a flood or stops reading the answer
+    // must not hold it: the server reads with a deadline and a length cap, writes with a
+    // deadline, and the client waits a bounded time for the answer. A command line is well
+    // under a kilobyte; the cap leaves room for long scene or preset names.
+    public const int MaxLineChars = 4096;
+    public const int ServerReadMs = 3000;
+    public const int ServerWriteMs = 3000;
+    public const int ClientReadMs = 15000;
+
+    /// <summary>
+    /// One line from a pipe, at most <paramref name="max"/> characters, within
+    /// <paramref name="timeoutMs"/>. Null when the peer said nothing in time, went away before
+    /// a newline or sent more than the cap. The pipe has to be opened with
+    /// PipeOptions.Asynchronous for the deadline to interrupt the read.
+    /// </summary>
+    public static string? ReadLineLimited(StreamReader r, int max, int timeoutMs)
+    {
+        var sb = new System.Text.StringBuilder();
+        var one = new char[1];
+        using var cts = new CancellationTokenSource(timeoutMs);
+        try
+        {
+            while (sb.Length <= max)
+            {
+                int n = r.ReadAsync(one.AsMemory(0, 1), cts.Token).AsTask().GetAwaiter().GetResult();
+                if (n == 0) return null;                              // closed before a newline
+                if (one[0] == '\n') return sb.ToString().TrimEnd('\r');
+                sb.Append(one[0]);
+            }
+            return null;                                              // over the cap
+        }
+        catch (OperationCanceledException) { return null; }
+        catch (IOException) { return null; }
+        catch (ObjectDisposedException) { return null; }
+    }
+
+    /// <summary>Writes one line and waits at most <paramref name="timeoutMs"/> for it to leave.</summary>
+    public static bool WriteLineWithin(StreamWriter w, string line, int timeoutMs)
+    {
+        try { return w.WriteLineAsync(line).Wait(timeoutMs); }
+        catch { return false; }
+    }
+
+    /// <summary>Whether a named pipe of that name exists right now (a running server, busy or not).</summary>
+    public static bool PipeExists(string name)
+    {
+        try { return Directory.EnumerateFiles(@"\\.\pipe\").Any(p => p.EndsWith("\\" + name, StringComparison.OrdinalIgnoreCase)); }
+        catch { return false; }
+    }
+
     [DllImport("kernel32.dll")]
     private static extern bool AttachConsole(int pid);
 
@@ -70,7 +121,8 @@ public static class Cli
         switch (a[0].ToLowerInvariant())
         {
             case "--profile":
-                return Enum.TryParse<ProfileId>(Arg1(), true, out var id) ? new CliCommand(CliKind.Profile, id.ToString()) : null;
+                // Enum.TryParse accepts any number ("--profile 999"); only the named profiles are commands
+                return Enum.TryParse<ProfileId>(Arg1(), true, out var id) && Enum.IsDefined(id) ? new CliCommand(CliKind.Profile, id.ToString()) : null;
             case "--cycle": return new CliCommand(CliKind.Cycle);
             case "--fanboost":
             {
@@ -297,22 +349,44 @@ public static class Cli
         return 1;
     }
 
-    private static bool TrySendToRunning(string[] args, out string resp, out int code)
+    /// <summary>
+    /// Hands the command to the running instance. True = an instance was there and this is its
+    /// answer (or a reason it gave none); false = nobody is listening, the one-shot path is next.
+    /// A busy instance or one that does not answer in time is NOT "nobody listening": the
+    /// command may have been carried out, so it is reported as failed rather than run a second
+    /// time through the one-shot path (and its UAC prompt).
+    /// </summary>
+    public static bool TrySendToRunning(string[] args, out string resp, out int code, string pipeName = PipeName)
     {
         resp = ""; code = 1;
         try
         {
-            using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
-            pipe.Connect(700);
+            using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            try { pipe.Connect(700); }
+            catch (TimeoutException)
+            {
+                // the pipe exists but its one instance is serving someone else
+                if (!PipeExists(pipeName)) return false;
+                resp = "the GhostDeck app is busy; try again in a moment"; code = 1;
+                return true;
+            }
             // The reader closes the pipe when it is disposed, so it is declared first and disposed
             // last: the other way round the writer's final flush hit a closed pipe, the exception
             // landed in the catch below and the command - already carried out by the running app -
             // was reported as "nobody listening" and run a second time one-shot.
             using var r = new StreamReader(pipe);
             using var w = new StreamWriter(pipe) { AutoFlush = true };
-            w.WriteLine(string.Join('\t', args));
-            string? line = r.ReadLine();
-            if (line == null) return false;
+            if (!WriteLineWithin(w, string.Join('\t', args), ServerWriteMs))
+            {
+                resp = "the GhostDeck app did not take the command"; code = 1;
+                return true;
+            }
+            string? line = ReadLineLimited(r, MaxLineChars, ClientReadMs);
+            if (line == null)
+            {
+                resp = "the GhostDeck app did not answer in time; the command may or may not have been carried out"; code = 1;
+                return true;
+            }
             int bar = line.IndexOf('|');
             code = bar > 0 && int.TryParse(line[..bar], out int c) ? c : 1;
             resp = bar >= 0 ? line[(bar + 1)..] : line;
