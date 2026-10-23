@@ -107,7 +107,7 @@ public sealed class UpdatesPage : ThemedPage
         {
             _failureShown = true;
             _status.ForeColor = Theme.Red;
-            _status.Text = string.Format(Lang.T("upd_failed_restored"), Updater.LastFailure);
+            _status.Text = string.Format(Lang.T(Updater.FailureNeededHands(Updater.LastFailure) ? "upd_failed_manual" : "upd_failed_restored"), Updater.LastFailure);
             LayoutBits();
         }
         if (!_loaded) await LoadHistory();
@@ -187,9 +187,17 @@ public sealed class UpdatesPage : ThemedPage
         }
         else
         {
-            // idle: status ("new version…" / "up to date") sits to the LEFT of the buttons
+            // idle: status ("new version…" / "up to date", or a refusal) sits to the LEFT of the
+            // buttons. A refusal is a sentence, not a phrase: it wraps inside the room between
+            // the "Installed version" column and the buttons instead of running off the left
+            // edge, and a wrapped status hangs from the button row rather than centring on it.
             int rowLeft = _install.Visible ? _install.Left : _check.Left;
-            _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, 66 + (_check.Height - _status.PreferredHeight) / 2);
+            int leftColumn = 28 + Math.Max(
+                TextRenderer.MeasureText(Lang.T("upd_installed"), Dpi.Font("Segoe UI", 10f)).Width,
+                TextRenderer.MeasureText("v" + D.AppVersion(), Dpi.Font("Segoe UI", 16f, FontStyle.Bold)).Width) + 24;
+            _status.MaximumSize = new Size(Math.Max(120, rowLeft - 14 - leftColumn), 0);
+            int h = _status.PreferredHeight;
+            _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, h <= _check.Height ? 66 + (_check.Height - h) / 2 : 66);
         }
         _history.SetBounds(28, HistoryTop, w, Math.Max(120, ClientSize.Height - HistoryTop - 24));
     }
@@ -254,9 +262,18 @@ public sealed class UpdatesPage : ThemedPage
         _ = InstallNow();
     }
 
+    private bool _installing;   // one download at a time: the card's Install and the button share this
+
     private async Task InstallNow()
     {
-        if (_avail is not { } r) return;
+        if (_avail is not { } r || _installing) return;
+        _installing = true;
+        try { await InstallCore(r); }
+        finally { _installing = false; }
+    }
+
+    private async Task InstallCore(Updater.Result r)
+    {
         // download mode: hide the buttons, show the stacked label + progress bar
         _install.Visible = _check.Visible = false;
         _status.ForeColor = Theme.Accent;
@@ -271,14 +288,17 @@ public sealed class UpdatesPage : ThemedPage
             LayoutBits();
         });
         var dl = await Updater.DownloadAsync(r, progress);
-        if (dl.Why == Updater.Failure.Signature)
+        if (dl.Why is Updater.Failure.Signature or Updater.Failure.Version)
         {
-            // The file is not from the release identity. It has been deleted; say so and stop,
-            // without sending the user to a page that would hand them the same file.
+            // The file is not what the release claims (not the release identity's signature, or
+            // not the announced, newer version). It has been deleted; say so and stop, without
+            // sending the user to a page that would hand them the same file.
             _bar.Visible = false;
             _install.Visible = _check.Visible = true;
             _status.ForeColor = Theme.Red;
-            _status.Text = Lang.T("upd_sig_rejected");
+            _status.Text = dl.Why == Updater.Failure.Signature
+                ? Lang.T("upd_sig_rejected")
+                : string.Format(Lang.T("upd_version_mismatch"), dl.FileVersion?.ToString() ?? "?", r.Version.ToString(3));
             LayoutBits();
             return;
         }

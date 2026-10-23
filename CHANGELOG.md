@@ -7,12 +7,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 ### Security
 - **The in-app updater verifies the downloaded release** - before anything is swapped, the
   downloaded file has to carry a valid Authenticode signature from the GhostDeck release identity
-  (the signer's Trusted Signing identity and publisher name, which survive the certificate's
-  regular rotation). A file that fails is deleted and the Updates tab says so instead of
-  installing it or sending you to download it again. The verified file stays locked until the swap.
+  (the signer's Trusted Signing certificate profile and publisher name, which survive the
+  certificate's regular rotation), and the version written into that signed file has to be the
+  one the release announced and newer than the running program, so a genuine older build cannot
+  be served as an update. A file that fails is deleted and the Updates tab says so instead of
+  installing it or sending you to download it again. The verified file stays locked for as long
+  as the app runs.
 - **The update script no longer lives in the shared temp folder** - it is written next to the
   program, where it has the same protection the program itself has, and its text contains no
-  paths: they travel in the environment of the script's process.
+  paths: they travel in the environment of the script's process. When it cannot be written
+  there, the update is called off and the app keeps running.
 ### Fixed
 - **In-app updates in folders with national letters** - the swap script was written as UTF-8 while
   the console reads it in the system's OEM code page, so a path such as `C:\Users\Łukasz\...` was
@@ -20,9 +24,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   file, and the installed version stayed as it was. Paths now reach the
   script through its environment, which also keeps a `%` or `!` in a folder name literal.
 - **A failed swap puts the previous version back** - each step of the update script is checked;
-  when the new program cannot be put in place or does not start, the old one is restored and
-  started, and the Updates tab reports which step failed. Before, a failed second step left no
-  program under the original name (only the `.bak`).
+  when the new program cannot be put in place or cannot be started, the old one is restored and
+  started, and the Updates tab reports which step failed. When even that restore fails, the old
+  program is left as `.bak`, nothing is started, and the tab says it had to be put back by hand.
+  Before, a failed second step left no program under the original name (only the `.bak`).
 - **Power test: restore after a partly written profile** - a profile recipe is written byte by
   byte, and a write that failed on its second byte had already changed the first. The run now
   treats a started write as written, puts the starting profile back in that case too, and

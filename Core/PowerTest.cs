@@ -261,7 +261,7 @@ public static class PowerTest
 
                 wrote = true;
                 try { Ec.Apply(recipe); }
-                catch (Exception ex) { aborted = $"could not apply the {name} recipe: {ex.Message} (the write may have gone through partly; the starting profile was put back)"; break; }
+                catch (Exception ex) { aborted = $"could not apply the {name} recipe: {ex.Message} (the write may have gone through partly; see the restore line)"; break; }
                 Settle(pr, i, steps, name, SettleSeconds, ct);
 
                 var samples = Loaded(dev, pr, i, steps, name, threads, ct, ref aborted);
@@ -606,8 +606,13 @@ public static class PowerTest
                       $"after {SettleSeconds} s of settling; the figures below average the last {SteadySeconds} s");
         sb.AppendLine($"Graphics load: {(r.GpuLoaded ? $"ON, {r.GpuAdapter}" : "OFF - processor only, so a profile that only lifts a graphics or shared budget would not show here")}");
         if (r.Aborted != null) sb.AppendLine($"RUN DID NOT COMPLETE: {r.Aborted}");
-        if (r.RestoreError != null)
-            sb.AppendLine($"RESTORE INSIDE THE RUN FAILED: {r.RestoreError} - the app re-applied the profile afterwards through its normal path");
+        // What the run itself did about the starting profile. No readback: "written back without
+        // error" is what is known, and the app re-applies the profile through its normal path
+        // after this report is built, so that second attempt is not described here.
+        if (r.Wrote)
+            sb.AppendLine(r.RestoreError == null
+                ? "Restore inside the run: the starting profile's recipe was written back without error"
+                : $"RESTORE INSIDE THE RUN FAILED: {r.RestoreError} - check the profile tile after the run");
         sb.AppendLine();
 
         // ---- the comparison this whole thing exists for ----

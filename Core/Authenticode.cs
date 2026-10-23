@@ -14,8 +14,9 @@ namespace GhostDeck;
 /// What "ours" means. Releases are signed by Azure Trusted Signing, which issues a fresh
 /// certificate every few days (a measured one lived from 21 to 24 October 2026), so a pinned
 /// thumbprint would stop matching within a week. Two things are stable across that rotation:
-/// the durable identity EKU that Trusted Signing puts into every certificate issued for one
-/// identity validation (<see cref="IdentityEku"/>), and the publisher name in the subject, the
+/// the durable identity EKU that Trusted Signing puts into every certificate issued from one
+/// certificate profile (<see cref="IdentityEku"/>; a profile deleted and created again gets a
+/// new one, and this constant has to follow), and the publisher name in the subject, the
 /// same string release.yml checks. Both have to match. The chain, the timestamp and the
 /// signature itself are judged by <c>WinVerifyTrust</c>, exactly as the UAC prompt and
 /// SmartScreen would judge the file if the user had downloaded it by hand - which is the whole
@@ -23,7 +24,7 @@ namespace GhostDeck;
 /// </summary>
 public static class Authenticode
 {
-    /// <summary>The Trusted Signing durable identity of the GhostDeck releases.</summary>
+    /// <summary>The durable identity EKU of the GhostDeck release certificate profile (ghostdeck-public).</summary>
     public const string IdentityEku = "1.3.6.1.4.1.311.97.227492317.585399833.189491622.408323361";
     /// <summary>Part of the subject's common name; release.yml refuses to publish without it.</summary>
     public const string PublisherName = "FENIX INSPIRE";

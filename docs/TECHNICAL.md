@@ -860,12 +860,30 @@ certificate has to carry the project's **Trusted Signing durable identity EKU**
 (`1.3.6.1.4.1.311.97.227492317.585399833.189491622.408323361`) and the publisher name
 `FENIX INSPIRE` in its subject - the same string `release.yml` gates on. Trusted Signing rotates
 the certificate every few days, so a thumbprint pin would stop matching within a week; the EKU
-and the subject are what stays. A file that fails is deleted, logged (`errors.log`, `[note]`) and
-reported on the page as "not signed by the GhostDeck publisher" **without** opening the releases
-page, which would hand the user the same file. From the moment the file passed the check it is
-held open (read, share-read) until the process exits, so nothing can replace it between the check
-and the swap. Debug builds only: `GHOSTDECK_UPDATE_UNSIGNED=1` skips the check for an unsigned
-local build; Release builds have no such switch.
+and the subject are what stays. The EKU belongs to the **certificate profile** (`ghostdeck-public`
+in the signing account): every certificate issued from that profile carries it, and a profile
+deleted and created again gets a new one, so the constant in `Authenticode.cs` has to follow such
+a change. No revocation check is a deliberate choice: a revoked three-day certificate would still
+validate through its timestamp, and the trade is accepted for an update check that must work
+offline. A file that fails is deleted, logged (`errors.log`, `[note]`) and reported on the page as
+"could not be confirmed as the GhostDeck publisher's" **without** opening the releases page, which
+would hand the user the same file.
+
+**The signed file must also be the version the release announced.** A signature says who built
+the file, not that it is the newest one: with the release data under someone else's control, a
+genuine OLDER build (one without this check) would otherwise pass as "v9.9.9". So the version
+block of the signed image (`FileVersionInfo`, set by `dotnet publish -p:Version`) is read after
+the signature check and has to match the announced version on major.minor.build and be newer
+than the running exe's own file version (`Updater.VersionAcceptable`). A mismatch is refused the
+same way as a bad signature, with the two versions in the message.
+
+From the moment the file is checked it is held open (read, share-read) for as long as the
+process runs, so while the app is up nothing can write to it or rename it. The handle goes with
+the process and the script moves the file only after that, so between the exit and the move
+there is a gap of up to about a second in which the folder's own permissions are the only
+protection: the elevated token under Program Files, and in a folder the user can write to the
+same exposure the exe itself has there. Debug builds only: `GHOSTDECK_UPDATE_UNSIGNED=1` skips
+the signature check for an unsigned local build; Release builds have no such switch.
 
 **The swap is version-independent — this is the key design point.** A running exe can't overwrite
 itself, and the *downloaded* exe can't do the swap either (it might be any version, including one
@@ -889,20 +907,26 @@ exit (`tasklist /fi "PID eq <pid>" /fo csv | find`), `move`s the old exe to `<ta
   full path (`%SystemRoot%\System32\...`) so a `find` earlier in `PATH` (Git ships one) cannot end
   the wait loop early, and the one-second pause in the wait loop is a `ping` to loopback rather
   than `timeout`, which refuses to run without a console for its input.
-- **Every step is checked and a failed swap rolls back.** `move` of the old exe fails → it is
+- **Every step is checked, the restore included.** `move` of the old exe fails → it is
   untouched, start it again (result 11). `move` of the new exe fails (deleted, quarantined, locked)
-  → the `.bak` goes back, start it (12). The new exe does not start → the `.bak` goes back and is
-  started (13). Each failure writes its step into `<target>.update-result`; `CleanupAfterUpdate`
-  reads and removes that file on the next start, and the Updates tab says "the last update stopped
-  at step N; this version was kept". A failure before the script starts (no asset, download, launch)
-  still falls back to opening the releases page.
+  → the `.bak` goes back, start it (12). `start` of the new exe fails → the `.bak` goes back and
+  is started (13). When the `.bak` cannot be moved back either, it is left where it is, nothing is
+  started (there is nothing under the exe's name) and the result is 22 or 23 instead of 12 or 13.
+  Each failure writes its code into `<target>.update-result`; `CleanupAfterUpdate` reads and
+  removes that file on the next start (only the five codes above count), and the Updates tab
+  says "the last update stopped at step N; this version was kept", or for 22 / 23 that the
+  previous program had to be put back by hand. Limits: 13 covers a `start` that could not create
+  a process; a new exe that starts and then dies is not detected (no health check, and `.bak` is
+  removed 5 s into the next start). A failure before the script starts (no asset, download, script
+  write, launch) still falls back to opening the releases page, with the app still running.
 - **The script lives next to the exe, not in `%TEMP%`.** `cmd.exe` reads a batch file
   incrementally and `goto` re-scans it, so the script can be rewritten while it sits in its wait
   loop and the rewritten tail runs - with the elevated token the script inherited. `%TEMP%` is
   writable by every process of the user, elevated or not; the exe's own folder has whatever
   protection the exe has (under Program Files, only an elevated process can write there), which is
-  the right bar: a process that can write next to the exe can replace the exe. A folder this
-  process cannot write to falls back to `%TEMP%`, which is then no weaker than that exe itself.
+  the right bar: a process that can write next to the exe can replace the exe. There is no
+  fallback location: when the script cannot be written next to the exe, `StartSelfUpdate` returns
+  false and the update is called off.
 
 **Single instance UX.** Launching the exe while GhostDeck is already running can't start a second
 process (named mutex `GhostDeck_SingleInstance`); the second launch instead `Set`s the named event
