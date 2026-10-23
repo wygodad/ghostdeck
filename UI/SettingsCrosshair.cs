@@ -160,7 +160,15 @@ public sealed partial class SettingsPage
     private static FlowLayoutPanel Flow(params Control[] items)
     {
         var f = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Padding.Empty, Padding = Padding.Empty, WrapContents = true };
-        foreach (var c in items) { c.Margin = new Padding(0, 0, 8, 6); f.Controls.Add(c); }
+        // a text label beside buttons sits on their middle: the buttons grow with the scale, so a
+        // fixed top margin left "(disabled)" riding high next to "Change in Shortcuts"
+        int rowH = items.Max(c => c.GetPreferredSize(Size.Empty).Height);
+        foreach (var c in items)
+        {
+            int top = c is Label ? Math.Max(0, (rowH - c.GetPreferredSize(Size.Empty).Height) / 2) : 0;
+            c.Margin = new Padding(0, top, 8, 6);
+            f.Controls.Add(c);
+        }
         return f;
     }
 
@@ -201,7 +209,7 @@ public sealed partial class SettingsPage
         string hkText = Lang.T("ch_hotkey_off");
         if (D.Settings.Hotkeys.TryGetValue("Crosshair", out var hd) && hd.IsSet)
             hkText = hd.Display + (hd.Enabled && D.Settings.HotkeysEnabled ? "" : "  " + Lang.T("ch_hotkey_off"));
-        var hkLabel = new Label { Text = hkText, AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f), Margin = new Padding(0, 9, 14, 0) };
+        var hkLabel = new Label { Text = hkText, AutoSize = true, Font = Dpi.Font("Segoe UI", 10.5f) };
         var hkBtn = Ghost(Lang.T("ch_hotkey_edit"));
         hkBtn.Click += (_, _) => FocusHotkeys();
         card.AddRow(Lang.T("ch_hotkey"), Flow(hkLabel, hkBtn));
@@ -346,12 +354,15 @@ public sealed partial class SettingsPage
         var colourFlow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Padding.Empty, Padding = Padding.Empty, WrapContents = true };
         var any = Ghost(Lang.T("ch_color_any"));
         any.Margin = new Padding(8, 0, 0, 0);
-        // the button keeps its natural (auto-sized) height; the swatches get margins that centre them on it
-        int bh = any.GetPreferredSize(Size.Empty).Height, swTop = Math.Max(0, (bh - 22) / 2);
+        // the button keeps its natural (auto-sized) height; the swatches (grown with the scale, like
+        // the text) get margins that centre them on it
+        float k = Dpi.Of(this) / 96f;
+        int swW = (int)Math.Ceiling(24 * k), swH = (int)Math.Ceiling(22 * k);
+        int bh = any.GetPreferredSize(Size.Empty).Height, swTop = Math.Max(0, (bh - swH) / 2);
         foreach (var hex in Profiles.Palette)
         {
             string ph = hex;
-            var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, swTop, 4, Math.Max(0, bh - 22 - swTop)), Tag = hex };
+            var sw = new Panel { Size = new Size(swW, swH), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, swTop, (int)Math.Ceiling(4 * k), Math.Max(0, bh - swH - swTop)), Tag = hex };
             sw.Paint += (_, e) =>
             {
                 if (string.Equals(ColorTranslator.ToHtml(st.ColorValue), ph, StringComparison.OrdinalIgnoreCase))
@@ -384,13 +395,10 @@ public sealed partial class SettingsPage
             sl.ValueChanged += v => { set(v); ChChanged(); };
             return sl;
         }
-        // the first slider carries the help dot: wheel, keys and double-click work on every slider
+        // the first slider's label carries the help dot (wheel, keys and double-click work on every
+        // slider); the dot sits after the label, so this track is as long as the others
         var sizeSl = Sl(CrosshairStyle.MinSize, CrosshairStyle.MaxSize, st.Size, "", def.Size, null, v => st.Size = v);
-        var help = new HelpDot { TextProvider = () => Lang.T("ch_slider_hint") };
-        var sizeRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Padding.Empty, Padding = Padding.Empty, WrapContents = false };
-        help.Margin = new Padding(0, (sizeSl.Height - help.Height) / 2, 8, 0); sizeSl.Margin = Padding.Empty;
-        sizeRow.Controls.Add(help); sizeRow.Controls.Add(sizeSl);
-        card.AddRow(Lang.T("ch_size"), sizeRow);
+        card.AddRow(Lang.T("ch_size"), sizeSl, new HelpDot { TextProvider = () => Lang.T("ch_slider_hint") });
         card.AddRow(Lang.T("ch_thickness"), Sl(1, CrosshairStyle.MaxThickness, st.Thickness, "", def.Thickness, null, v => st.Thickness = v));
         card.AddRow(Lang.T("ch_outline"), Sl(0, CrosshairStyle.MaxOutline, st.Outline, "", def.Outline, null, v => st.Outline = v));
         card.AddRow(Lang.T("ch_opacity"), Sl(CrosshairStyle.MinOpacity, 100, st.Opacity, "%", def.Opacity, null, v => st.Opacity = v));

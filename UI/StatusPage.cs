@@ -224,7 +224,7 @@ public sealed class StatusPage : ThemedPage
     private int RamW(int width)
     {
         int ring = RingSize(width), avail = width - Pad * 2;
-        return ring * 2 + Math.Max(24, (avail - RingCount * ring) / (RingCount - 1));
+        return ring * 2 + Math.Max(RingGap(), (avail - RingCount * ring) / (RingCount - 1));
     }
 
     // Disk row: the name on the left, "used / total GB · temp" on the right. When both do not fit
@@ -244,11 +244,15 @@ public sealed class StatusPage : ThemedPage
         return Math.Max(SubH, h);
     }
     private static readonly Color CpuUseColor = Color.FromArgb(0x3C, 0x7D, 0xFF);   // blue: CPU side of the palette (fans = cyan/violet)
-    private int RingGap() => 24;
+    // #172: the ring grid is the base the metric boxes are cut from, so its bounds grow with the
+    // scale; with fixed 150-240 px rings the boxes under them stayed 100 % wide while their text
+    // doubled at 200 %, and each label shrank to its own size to fit
+    private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+    private int RingGap() => S(24);
     private int RingSize(int width)
     {
         int avail = width - Pad * 2, gap = RingGap();
-        return Math.Max(150, Math.Min(240, (avail - gap * (RingCount - 1)) / RingCount));
+        return Math.Max(S(150), Math.Min(S(240), (avail - gap * (RingCount - 1)) / RingCount));
     }
 
     // Wrapped so the scroll extent is recomputed after the canvas is resized: without it a
@@ -428,7 +432,7 @@ public sealed class StatusPage : ThemedPage
         int ring = RingSize(width);
         // justify the gauge row: spread the leftover width into the gaps so the five rings
         // (and the metric boxes that follow their columns) span the full content width
-        int ringGap = Math.Max(24, (avail - RingCount * ring) / (RingCount - 1));
+        int ringGap = Math.Max(RingGap(), (avail - RingCount * ring) / (RingCount - 1));
         int top = SecTop;
         int cpuUse = SysInfo.CpuUsage();
         var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
@@ -444,8 +448,9 @@ public sealed class StatusPage : ThemedPage
         bool fans = temps && !(info.Known && Ec.ReadsLost);
         DrawRing(g, X(2), top, ring, fans ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, fans, allowZero: true);
         DrawRing(g, X(3), top, ring, fans ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, fans, allowZero: true);
-        _fanHelpBtns[0] = new RectangleF(X(2) + ring - 22, top, 22, 22);
-        _fanHelpBtns[1] = new RectangleF(X(3) + ring - 22, top, 22, 22);
+        int hd = S(22);   // help dot, grown with the scale like its "?"
+        _fanHelpBtns[0] = new RectangleF(X(2) + ring - hd, top, hd, hd);
+        _fanHelpBtns[1] = new RectangleF(X(3) + ring - hd, top, hd, hd);
         HelpDot.Render(g, _fanHelpBtns[0]);
         HelpDot.Render(g, _fanHelpBtns[1]);
         DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
@@ -461,24 +466,17 @@ public sealed class StatusPage : ThemedPage
             new Rectangle(ramX, subY, ramW, lineH), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
         DrawBar(g, new RectangleF(ramX + 20, subY + BarOff, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
 
-        // Framed metric counter (shared by the RPM / clock / GPU / VRAM / battery boxes). Box width
-        // comes from the ring grid, so a label that carries two values has to step down a size or
-        // two to fit rather than be cut off at both ends.
-        void MetricBox(RectangleF box, string text)
+        // Framed metric counters (the RPM / clock / GPU / VRAM / battery boxes). The frames are
+        // drawn here, the texts at the end with ONE font for all of them: the largest size at
+        // which every text fits its box. Each box shrinking on its own made neighbours differ in
+        // size ("CPU: -" large, "CPU: 2383 MHz" small next to it).
+        var metricTexts = new List<(Rectangle r, string text)>();
+        void MetricBox(RectangleF box, string text, int reserveRight = 0)
         {
             Ui.FillCard(g, box);
             var r = Rectangle.Round(box);
-            r.Inflate(-10, 0);
-            Font f = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
-            for (float pt = 11.5f; pt > 8.5f && TextRenderer.MeasureText(g, text, f).Width > r.Width; )
-            {
-                f.Dispose();
-                pt -= 0.5f;
-                f = Dpi.Font("Segoe UI", pt, FontStyle.Bold);
-            }
-            TextRenderer.DrawText(g, text, f, r, Theme.Text,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            f.Dispose();
+            r.Inflate(-(S(10) + reserveRight), 0);
+            metricTexts.Add((r, text));
         }
         void RpmUnder(int i, int rpm, string label)
             => MetricBox(new RectangleF(X(i) + 14, subY, ring - 28, subH),
@@ -584,11 +582,11 @@ public sealed class StatusPage : ThemedPage
             MetricBox(box, $"{Lang.T("st_gpu_clock")}: " +
                 (gt.Mhz <= 0 ? "- MHz"
                  : gt.MaxMhz > 0 ? $"{gt.Mhz} MHz · {gt.Percent} %"
-                 : $"{gt.Mhz} MHz"));
+                 : $"{gt.Mhz} MHz"), hd + S(10));   // centred clear of the help dot on both sides
             _gpuHelpText = gt.MaxMhz > 0 && gt.Mhz > 0
                 ? string.Format(Lang.T("st_gpu_clock_tip"), gt.Name, gt.Mhz, gt.MaxMhz, gt.Percent)
                 : string.Format(Lang.T("st_gpu_clock_tip_idle"), gt.Name);
-            _gpuHelpBtn = new RectangleF(box.Right - 32, box.Y + (subH - 22) / 2f, 22, 22);
+            _gpuHelpBtn = new RectangleF(box.Right - S(10) - hd, box.Y + (subH - hd) / 2f, hd, hd);
             HelpDot.Render(g, _gpuHelpBtn);
         }
 
@@ -597,6 +595,20 @@ public sealed class StatusPage : ThemedPage
         int bm = Perf.BatteryMinutesLeftCached();
         MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),
             $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "-"));
+
+        // the metric texts, all in one size (see MetricBox)
+        float metricPt = 11.5f;
+        Font metricF = Dpi.Font("Segoe UI", metricPt, FontStyle.Bold);
+        foreach (var (r, text) in metricTexts)
+            while (metricPt > 8.5f && TextRenderer.MeasureText(g, text, metricF).Width > r.Width)
+            {
+                metricF.Dispose();
+                metricPt -= 0.5f;
+                metricF = Dpi.Font("Segoe UI", metricPt, FontStyle.Bold);
+            }
+        foreach (var (r, text) in metricTexts)
+            TextRenderer.DrawText(g, text, metricF, r, Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        metricF.Dispose();
 
         int rightH = gt.Ok ? subH * 2 + 14 : subH;
         int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
@@ -692,7 +704,9 @@ public sealed class StatusPage : ThemedPage
     }
 
     // ---- sub-tab 1: local hardware history (fed by the tray sampler, in-memory only) ----
-    private const int HistChartH = 310;
+    // 310 px up to about 150 %; above that the header and the time-label band grow with their
+    // text, and the plot keeps room for its five value labels
+    private static int HistChartH => Math.Max(310, ChartHead + ChartFoot + 6 * AxisH);
 
     // Chart geometry captured during the buffered render so the cursor overlay (drawn per
     // paint, on top of the buffer) can hit-test and map x -> time without a full re-render.
@@ -760,12 +774,16 @@ public sealed class StatusPage : ThemedPage
     private static readonly Font LegF = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
     private static int AxisH => Math.Max(18, AxisF.Height);
 
+    // header: the title (drawn at +10) and the top value label's upper half under it, with air;
+    // foot: the bottom value label's lower half, then the time labels under it
+    private static int ChartHead => Math.Max(46, 10 + GTitle.Height + 4 + AxisH / 2);
+    private static int ChartFoot => Math.Max(50, XLabelGap + AxisH + 8);
+    private static int XLabelGap => Math.Max(10, AxisH / 2 + 4);
+
     private static RectangleF ChartPlot(int top, int avail, int chartH, string widestValue)
     {
-        int head = Math.Max(46, GTitle.Height + AxisH / 2 + 4);
         int left = Math.Max(62, TextRenderer.MeasureText(widestValue, AxisF).Width + 14);
-        int foot = Math.Max(50, 10 + AxisH + 12);
-        return new RectangleF(Pad + left, top + head, avail - left - 20, chartH - head - foot);
+        return new RectangleF(Pad + left, top + ChartHead, avail - left - 20, chartH - ChartHead - ChartFoot);
     }
 
     // value label left of a grid line, centred on it
@@ -779,7 +797,7 @@ public sealed class StatusPage : ThemedPage
         int tw = TextRenderer.MeasureText(text, AxisF).Width;
         int cx = Math.Min((int)x, cardRight - 4 - tw / 2);
         int w = Math.Max(68, tw + 8);
-        TextRenderer.DrawText(g, text, AxisF, new Rectangle(cx - w / 2, (int)plot.Bottom + 10, w, AxisH),
+        TextRenderer.DrawText(g, text, AxisF, new Rectangle(cx - w / 2, (int)plot.Bottom + XLabelGap, w, AxisH),
             Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
     }
 
@@ -924,7 +942,7 @@ public sealed class StatusPage : ThemedPage
     }
 
     // ---- sub-tab 2: gaming (live FPS/frametime from the ETW monitor + last session summary) ----
-    private const int GmChartH = 310;
+    private static int GmChartH => Math.Max(310, ChartHead + ChartFoot + 6 * AxisH);   // grows like HistChartH
     // #172: the stat boxes grow with their two lines of text above about 150 % scaling
     private static readonly Font GmLabF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
     private static readonly Font GmValF = Dpi.Font("Segoe UI", 14f, FontStyle.Bold);

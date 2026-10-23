@@ -9,7 +9,8 @@ namespace GhostDeck;
 /// <summary>Themed horizontal slider: drag to set any value in [min,max]; shows the value + suffix.</summary>
 public sealed class Slider : Control
 {
-    private readonly int _min, _max, _step, _valueW;
+    private readonly int _min, _max, _step;
+    private int _valueW;
     private readonly string _suffix;
     private int _val;
     private bool _drag;
@@ -24,19 +25,34 @@ public sealed class Slider : Control
     {
         _min = min; _max = max; _step = Math.Max(1, step); _suffix = suffix;
         _val = Clamp(val);
-        DoubleBuffered = true; ResizeRedraw = true; Height = 26; Width = 240; Cursor = Cursors.Hand;
+        DoubleBuffered = true; ResizeRedraw = true; Width = 240; Cursor = Cursors.Hand;
         SetStyle(ControlStyles.Selectable, true);   // arrow keys, after a click
         TabStop = true;
-        // room for the longest value this slider can show ("100%", "-500"), never less than before
-        using var f = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
-        _valueW = Math.Max(46, Math.Max(TextRenderer.MeasureText(_max + _suffix, f).Width, TextRenderer.MeasureText(_min + _suffix, f).Width) + 6);
+        // as tall as the value's line plus air (26 px up to about 150 %), so the digits are not
+        // cut at the bottom; room for the longest value this slider can show ("100%", "-500")
+        Height = Math.Max(26, ValueF.Height + 6);
+        _valueW = NaturalValueWidth;
     }
+
+    private static readonly Font ValueF = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
+
+    /// <summary>The value column this slider needs for its own longest value.</summary>
+    public int NaturalValueWidth =>
+        Math.Max(46, Math.Max(TextRenderer.MeasureText(_max + _suffix, ValueF).Width, TextRenderer.MeasureText(_min + _suffix, ValueF).Width) + 6);
+
+    /// <summary>
+    /// Width of the value column. Sliders stacked in one card share the widest one, so their
+    /// tracks start and end at the same place whatever each can show.
+    /// </summary>
+    public int ValueWidth { get => _valueW; set { _valueW = Math.Max(NaturalValueWidth, value); Invalidate(); } }
 
     public int Value { get => _val; set { _val = Clamp(value); Invalidate(); } }
     private int Clamp(int v) => Math.Clamp(v, _min, _max);
     private int ValueW => ShowValue ? _valueW : 0;
-    private int X0 => 8;
-    private int X1 => Width - (ShowValue ? ValueW + 10 : 8);
+    // thumb, track and margins grow with the scale, so the thumb stays a target at 200 %
+    private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+    private int X0 => S(8);
+    private int X1 => Width - (ShowValue ? ValueW + S(10) : S(8));
 
     protected override void OnMouseDown(MouseEventArgs e) { Focus(); if (e.Button == MouseButtons.Left) { _drag = true; SetFromX(e.X); } }
     protected override void OnMouseMove(MouseEventArgs e) { if (_drag) SetFromX(e.X); }
@@ -91,12 +107,13 @@ public sealed class Slider : Control
         int cy = Height / 2;
         float t = (_val - _min) / (float)Math.Max(1, _max - _min);
         int tx = X0 + (int)(t * (X1 - X0));
-        using (var b = new SolidBrush(Theme.Border)) g.FillRectangle(b, X0, cy - 2, X1 - X0, 4);
-        using (var b = new SolidBrush(Theme.AccentFill)) g.FillRectangle(b, X0, cy - 2, Math.Max(0, tx - X0), 4);
-        using (var b = new SolidBrush(Theme.Surface)) g.FillEllipse(b, tx - 8, cy - 8, 16, 16);
-        using (var p = new Pen(Theme.BorderStrong)) g.DrawEllipse(p, tx - 8, cy - 8, 16, 16);
+        int th = S(4), r = S(8);
+        using (var b = new SolidBrush(Theme.Border)) g.FillRectangle(b, X0, cy - th / 2, X1 - X0, th);
+        using (var b = new SolidBrush(Theme.AccentFill)) g.FillRectangle(b, X0, cy - th / 2, Math.Max(0, tx - X0), th);
+        using (var b = new SolidBrush(Theme.Surface)) g.FillEllipse(b, tx - r, cy - r, r * 2, r * 2);
+        using (var p = new Pen(Theme.BorderStrong)) g.DrawEllipse(p, tx - r, cy - r, r * 2, r * 2);
         if (ShowValue)
-            TextRenderer.DrawText(g, _val + _suffix, Dpi.Font("Segoe UI", 10f, FontStyle.Bold),
-                new Rectangle(X1 + 6, 0, ValueW, Height), Theme.Text, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(g, _val + _suffix, ValueF,
+                new Rectangle(X1 + S(6), 0, ValueW, Height), Theme.Text, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
     }
 }

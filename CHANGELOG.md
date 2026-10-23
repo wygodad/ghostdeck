@@ -10,7 +10,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   and disk rows, the Gaming tiles and charts, the Fn left/right switch, the Settings tab strip and
   several drop-down lists were too small for their text. Boxes, rows and buttons now grow with the
   text, lists are as wide as their longest value, long labels wrap instead of ending in "...", and
-  the change log sizes its columns to what they hold. Nothing changes at 100-150 %.
+  the change log sizes its columns to what they hold. The crosshair sliders show their whole value
+  and form one column of equal tracks, with the "?" beside the "Size" label instead of in front of
+  the slider. The Status gauges and the boxes under them grow with the display scale, so every box
+  shows its text in the same size; the history charts keep the value and time labels apart, fan
+  curve point labels stay inside the chart, and the overlay settings fit every metric name. The
+  "Show overlay" switch, the crosshair hotkey's "(disabled)", the switches on the Settings tiles and
+  the travel mode "?" line up with what sits next to them, and help dots, colour swatches, slider
+  handles and list arrows grow with the scale.
 - **No long dashes in the interface** - every em dash in the app's texts, in all 15 languages,
   became a short dash or a comma.
 - **On-screen notifications at 125-150 % display scaling** - a short title such as "SSD running

@@ -597,7 +597,10 @@ public sealed partial class SettingsPage : ThemedPage
                 var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, Margin = Padding.Empty };
                 main.Margin = new Padding(0);
                 flow.Controls.Add(main);
-                flow.Controls.Add(new HelpDot { TextProvider = () => Lang.T("travel_help"), Margin = new Padding(6, 4, 0, 0) });
+                // the dot sits on the button's middle, whatever height the scale gives the button
+                var dot = new HelpDot { TextProvider = () => Lang.T("travel_help") };
+                dot.Margin = new Padding((int)Math.Ceiling(8 * Dpi.Of(this) / 96f), Math.Max(0, (main.GetPreferredSize(Size.Empty).Height - dot.Height) / 2), 0, 0);
+                flow.Controls.Add(dot);
                 return flow;
             }
             if (!travelOn)
@@ -1717,9 +1720,10 @@ public sealed partial class SettingsPage : ThemedPage
         // Single row of swatches (discussion #9): no wrap, no width cap.
         var flow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
         var list = new List<Panel>(); _swatches[key] = list;
+        float k = Dpi.Of(this) / 96f;   // swatches grow with the scale, like the text next to them
         foreach (var hex in Profiles.Palette)
         {
-            var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 0, 4, 0), Tag = hex };
+            var sw = new Panel { Size = new Size((int)Math.Ceiling(24 * k), (int)Math.Ceiling(22 * k)), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 0, (int)Math.Ceiling(4 * k), 0), Tag = hex };
             string ph = hex;
             sw.Paint += (s, e) =>
             {
@@ -1899,7 +1903,14 @@ public sealed partial class SettingsPage : ThemedPage
         // Checked's setter is silent (no Toggled), so re-syncing can't loop back into the action.
         public void SyncToggle() { if (_tgl != null && _tglGet != null) _tgl.Checked = _tglGet(); }
 
-        private void PlaceToggle() { if (_tgl != null) _tgl.Location = new Point(Width - _tgl.Width - 10, 10); }
+        // top-right, inside the same padding as the icon and on the icon's middle
+        private void PlaceToggle()
+        {
+            if (_tgl == null) return;
+            float k = Dpi.Of(this) / 96f;
+            int pad = (int)(16 * k);
+            _tgl.Location = new Point(Width - _tgl.Width - pad, (int)(12 * k) + Math.Max(0, (GlyphF.Height - _tgl.Height) / 2));
+        }
         protected override void OnResize(EventArgs e) { base.OnResize(e); PlaceToggle(); }
 
         protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
@@ -1934,9 +1945,10 @@ public sealed partial class SettingsPage : ThemedPage
                 int sx = pad;
                 if (_stateOn is { } on)
                 {
+                    int dd = (int)Math.Ceiling(7 * k);
                     using var b = new SolidBrush(on ? Theme.Green : Theme.Faint);
-                    g.FillEllipse(b, sx, sy + (StateF.Height - 7) / 2f, 7, 7);
-                    sx += 13;
+                    g.FillEllipse(b, sx, sy + (StateF.Height - dd) / 2f, dd, dd);
+                    sx += dd + (int)Math.Ceiling(6 * k);
                 }
                 TextRenderer.DrawText(g, st, StateF, new Rectangle(sx, sy, Width - sx - pad, StateF.Height + 2),
                     Theme.Text, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);   // dpi-ok: dashboard / icon tile summaries wrap or sit on one line; the full settings are one click away
@@ -2142,6 +2154,8 @@ public sealed partial class SettingsPage : ThemedPage
         private readonly string _glyph;
         private readonly List<(Label? label, Control ctl)> _rows = new();
         private readonly Dictionary<ThemedComboBox, int> _comboBase = new();   // the width each list was built with
+        private readonly Dictionary<Slider, int> _sliderBase = new();          // the width each slider was built with
+        private readonly Dictionary<Control, HelpDot> _labelHelp = new();       // a "?" right after a row's label
         private Color? _flash;                                  // temporary highlight frame (gear jump)
         private long _flashStart;
         private int _flashMs;
@@ -2191,6 +2205,15 @@ public sealed partial class SettingsPage : ThemedPage
             _rows.Add((l, ctl));
         }
 
+        /// <summary>A row whose label carries a help dot: the "?" sits right after the label text,
+        /// so the control keeps the same column and width as the rows around it.</summary>
+        public void AddRow(string label, Control ctl, HelpDot help)
+        {
+            AddRow(label, ctl);
+            Controls.Add(help);
+            _labelHelp[ctl] = help;
+        }
+
         /// <summary>
         /// Puts the rows holding these controls into the given sequence; they keep the slots
         /// they already occupy, every other row stays where it is.
@@ -2220,6 +2243,16 @@ public sealed partial class SettingsPage : ThemedPage
                     if (!_comboBase.TryGetValue(gc, out int gb)) _comboBase[gc] = gb = gc.Width;
                     groupWant[gb] = Math.Max(groupWant.TryGetValue(gb, out int gw) ? gw : gb, gc.PreferredFieldWidth);
                 }
+            // sliders beside labels form one column: one value column (the widest any of them
+            // shows) and one width, so every track starts and ends at the same x
+            int sliderValueW = 0, sliderRoom = int.MaxValue;
+            foreach (var (l, ctl) in _rows)
+                if (l != null && ctl is Slider sl && sl.ShowValue)
+                {
+                    if (!_sliderBase.ContainsKey(sl)) _sliderBase[sl] = sl.Width;
+                    sliderValueW = Math.Max(sliderValueW, sl.NaturalValueWidth);
+                    sliderRoom = Math.Min(sliderRoom, width - pad * 2 - LabelW(l, ctl) - Ceil(16 * Dpi.Of(this) / 96f));
+                }
             foreach (var (l, ctl) in _rows)
             {
                 // a hidden full-width row (conditional strips, the restore button) takes no
@@ -2242,21 +2275,35 @@ public sealed partial class SettingsPage : ThemedPage
                 if (l != null && ctl is ThemedComboBox cb)
                 {
                     int baseW = _comboBase[cb];
-                    int room = width - pad * 2 - l.Width - Ceil(16 * Dpi.Of(this) / 96f);
+                    int room = width - pad * 2 - LabelW(l, cb) - Ceil(16 * Dpi.Of(this) / 96f);
                     int want = groupWant[baseW];
                     bool wrap = want > room;
                     if (cb.WrapSelected != wrap) cb.WrapSelected = wrap;
                     int w = wrap ? Math.Max(Ceil(80 * Dpi.Of(this) / 96f), room) : want;
                     if (cb.Width != w) cb.Width = w;
                 }
+                // #172: the track keeps the length it was built with at 100 %, grown with the scale,
+                // as long as the label column leaves room for it
+                if (l != null && ctl is Slider sc && sc.ShowValue && _sliderBase.TryGetValue(sc, out int sb))
+                {
+                    if (sc.ValueWidth != sliderValueW) sc.ValueWidth = sliderValueW;
+                    int w = Math.Max(Ceil(120 * Dpi.Of(this) / 96f), Math.Min(Ceil(sb * Dpi.Of(this) / 96f), sliderRoom));
+                    if (sc.Width != w) sc.Width = w;
+                }
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
                 if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
+                if (l != null && _labelHelp.TryGetValue(ctl, out var hd))
+                    hd.Location = new Point(l.Right + Ceil(6 * Dpi.Of(this) / 96f), y + (rowH - hd.Height) / 2);
                 int cx = l != null ? Width - pad - ctl.Width : pad;
                 ctl.Location = new Point(Math.Max(pad, cx), y + (rowH - ctl.Height) / 2);
                 y += rowH + 16;
             }
             Height = y + 2;
         }
+
+        // the label's width plus its help dot, when it has one
+        private int LabelW(Label l, Control ctl) =>
+            l.Width + (_labelHelp.TryGetValue(ctl, out var hd) ? Ceil(6 * Dpi.Of(this) / 96f) + hd.Width : 0);
 
         public void ApplyTheme()
         {

@@ -150,6 +150,9 @@ public sealed class ThemedComboBox : Control
     /// The width at which every item fits the field on one line (icon, text, the arrow), so a
     /// layout can make room for the longest value instead of cutting it with "...".
     /// </summary>
+    /// <summary>The column on the right that holds the chevron: 30 px at 100 %, wider with the font.</summary>
+    private int ArrowW => Math.Max(30, Font.Height + 12);
+
     public int PreferredFieldWidth
     {
         get
@@ -162,7 +165,7 @@ public sealed class ThemedComboBox : Control
                 _prefW = text;
             }
             int icon = ItemIcon != null ? IconSide(_itemHeight) + 8 : 0;
-            return 8 + icon + _prefW + 30;
+            return 8 + icon + _prefW + ArrowW;
         }
     }
     private int _prefW = -1;
@@ -222,12 +225,12 @@ public sealed class ThemedComboBox : Control
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         using (var bg = new SolidBrush(Theme.Surface)) g.FillRectangle(bg, ClientRectangle);
-        var textRect = new Rectangle(8, 0, Width - 30, Height);
+        var textRect = new Rectangle(8, 0, Width - ArrowW, Height);
         if (ItemIcon != null && _sel >= 0)
         {
             int ic = IconSide(_itemHeight);
             ItemIcon(g, _sel, new Rectangle(8, (Height - ic) / 2, ic, ic), false);
-            textRect = new Rectangle(8 + ic + 8, 0, Width - 30 - ic - 8, Height);
+            textRect = new Rectangle(8 + ic + 8, 0, Width - ArrowW - ic - 8, Height);
         }
         if (_wrap)
         {
@@ -238,9 +241,10 @@ public sealed class ThemedComboBox : Control
         else
             TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? Theme.Text : Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);   // dpi-ok: last resort only; layouts size the field with PreferredFieldWidth or turn on WrapSelected
-        int cx = Width - 13, cy = Height / 2;
-        using (var pen = new Pen(Theme.Muted, 1.6f))
-            g.DrawLines(pen, new[] { new Point(cx - 4, cy - 2), new Point(cx, cy + 2), new Point(cx + 4, cy - 2) });
+        // the chevron grows with the font (8 x 4 px at 100 %), so it stays visible at 200 %
+        int a = Math.Max(4, Font.Height / 5), cx = Width - ArrowW / 2 + 2, cy = Height / 2;
+        using (var pen = new Pen(Theme.Muted, Math.Max(1.6f, Font.Height / 11f)))
+            g.DrawLines(pen, new[] { new Point(cx - a, cy - a / 2), new Point(cx, cy + a / 2), new Point(cx + a, cy - a / 2) });
         // keyboard focus shows on the frame; a mouse click does not light it up
         using (var bp = new Pen(Focused && ShowFocusCues ? Theme.Accent : Theme.Border))
             g.DrawRectangle(bp, 0, 0, Width - 1, Height - 1);

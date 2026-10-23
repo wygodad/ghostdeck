@@ -2397,20 +2397,21 @@ public sealed class FanCurvePage : ThemedPage
             if (n >= 2) g.DrawLines(line, pts);
 
         using var valFont = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
-        // label widths from the widest text they can hold ("100°", "150%"), centred on the node
-        int tw = Math.Max(48, TextRenderer.MeasureText(g, "100°", TempF).Width + 8);
-        int vw = Math.Max(56, TextRenderer.MeasureText(g, "150%", valFont).Width + 8);
+        // Each label is centred on its node and then kept inside the card; a value label also ends
+        // at the plot's right edge, where the last node sits ("93%" ran past the card there).
+        const TextFormatFlags LabelF = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding;
         for (int i = 0; i < n; i++)
         {
             // temperature label on the X axis
-            TextRenderer.DrawText(g, temps[i] + "°", TempF,
-                new Rectangle((int)pts[i].X - tw / 2, p.Bottom + 8, tw, TempF.Height + 2), Theme.Muted,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+            string tt = temps[i] + "°";
+            int tw = TextRenderer.MeasureText(g, tt, TempF, Size.Empty, LabelF).Width;
+            int tx = Math.Clamp((int)pts[i].X - tw / 2, card.X + S(8), card.Right - S(8) - tw);
+            TextRenderer.DrawText(g, tt, TempF, new Rectangle(tx, p.Bottom + 8, tw, TempF.Height + 2), Theme.Muted, LabelF);
             // speed % above the point
-            int vh = valFont.Height + 2;
-            TextRenderer.DrawText(g, speeds[i] + "%", valFont,
-                new Rectangle((int)pts[i].X - vw / 2, (int)pts[i].Y - vh - 10, vw, vh), Theme.Text,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+            string vt = speeds[i] + "%";
+            int vw = TextRenderer.MeasureText(g, vt, valFont, Size.Empty, LabelF).Width, vh = valFont.Height + 2;
+            int vx = Math.Clamp((int)pts[i].X - vw / 2, card.X + S(8), Math.Max(card.X + S(8), p.Right - vw));
+            TextRenderer.DrawText(g, vt, valFont, new Rectangle(vx, (int)pts[i].Y - vh - 10, vw, vh), Theme.Text, LabelF);
             // node (bigger while dragged; amber halo when its table row is hovered)
             bool active = fan == _dragFan && i == _dragIdx;
             bool rowHi = ShowTable && i == _hoverRow;

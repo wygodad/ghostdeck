@@ -14,7 +14,8 @@ public sealed class CheckItem : Control
     public event Action<bool>? Toggled;
     public CheckItem(string text, bool on)
     {
-        Text = text; _on = on; DoubleBuffered = true; Cursor = Cursors.Hand; Height = 26;
+        Text = text; _on = on; DoubleBuffered = true; Cursor = Cursors.Hand;
+        Height = Math.Max(26, F.Height + 6);   // the label's line plus air; layouts may set their own
         SetStyle(ControlStyles.Selectable, false);
     }
     public bool Checked { get => _on; set { _on = value; Invalidate(); } }

@@ -180,19 +180,24 @@ public sealed class OverlaySettingsPanel : Panel
         int pad = Ceil(22 * k), colGap = Ceil(40 * k), capH = Ceil(20 * k), gap = Ceil(24 * k), blockGap = Ceil(24 * k);
         var s = _d.Settings;
 
-        // header
+        // header: the switch and its caption on the title's middle line, the caption as wide as its text
         int hy = Ceil(22 * k);
-        _enable.Location = new Point(width - pad - _enable.Width, hy);
         int headerH = Math.Max(_enable.Height, Ceil(30 * k));
-        _texts.Add((Lang.T("overlay_title"), new Rectangle(pad + Ceil(42 * k), hy - Ceil(2 * k), width - pad * 2 - Ceil(180 * k), headerH), 0));
-        _texts.Add((Lang.T("ov_show"), new Rectangle(_enable.Left - Ceil(150 * k), hy, Ceil(142 * k), headerH), 4));
+        _enable.Location = new Point(width - pad - _enable.Width, hy + (headerH - _enable.Height) / 2);
+        int showW;
+        using (var showF = Dpi.Font("Segoe UI", 10f)) showW = TextRenderer.MeasureText(Lang.T("ov_show"), showF).Width + Ceil(4 * k);
+        int showX = _enable.Left - Ceil(10 * k) - showW;
+        _texts.Add((Lang.T("overlay_title"), new Rectangle(pad + Ceil(42 * k), hy - Ceil(2 * k), Math.Max(Ceil(120 * k), showX - pad - Ceil(52 * k)), headerH), 0));
+        _texts.Add((Lang.T("ov_show"), new Rectangle(showX, hy, showW, headerH), 4));
         int y = hy + headerH + Ceil(14 * k);
         _dividers.Add(y); y += Ceil(18 * k);
 
         // "what to show" checkbox grid
         _texts.Add((Lang.T("ov_metrics"), new Rectangle(pad, y, Ceil(300 * k), capH), 1));
         int gridTop = y + Ceil(28 * k);
-        int cols = Math.Max(1, (width - pad * 2) / Ceil(200 * k));
+        // as many columns as the longest metric name allows, so no name ends in "..."
+        int itemW = Math.Max(Ceil(200 * k), _metrics.Count == 0 ? 0 : _metrics.Max(m => m.item.PreferredWidth) + Ceil(14 * k));
+        int cols = Math.Max(1, (width - pad * 2) / itemW);
         int cellW = (width - pad * 2) / cols;
         int itemH = Ceil(30 * k), rowH = itemH + Ceil(6 * k);
         for (int i = 0; i < _metrics.Count; i++)

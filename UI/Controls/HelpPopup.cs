@@ -137,7 +137,9 @@ internal sealed class HelpDot : Control
     {
         DoubleBuffered = true;
         ResizeRedraw = true;
-        Size = new Size(22, 22);
+        // 22 px at 100 %, grown with the scale: the "?" inside grows with its font
+        int d = (int)Math.Ceiling(22 * Dpi.Of(this) / 96f);
+        Size = new Size(d, d);
         Cursor = Cursors.Hand;
         TabStop = false;
     }
