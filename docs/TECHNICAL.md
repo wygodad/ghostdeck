@@ -1099,6 +1099,17 @@ print into the parent terminal.
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
   ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--crosshair`,
   `--scene`, `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
+  **The same exit-code rule holds here.** A write that throws ends in exit code 1 with the
+  message (the outer catch). The partial cases are said so too, instead of being swallowed:
+  `--fanboost off` whose fan-mode restore failed answers "fan boost: off, but the fan mode could
+  not be put back (...)" with exit code 1 (the bit is cleared, the fans may stay at max);
+  `--profile` / `--cycle` whose assigned fan-curve preset could not be written answers "profile
+  set: X, but the assigned fan curve was not applied (...)" with exit code 1 (the profile is set);
+  `--panic` runs every step (Fan Boost off, camera back, Balanced) and answers "panic reset done
+  partly, failed: ..." with exit code 1 when any of them threw. A caught-up travel expiry whose
+  previous limit could not be written prints one line about it and logs it, and the command the
+  user asked for still runs on its own result; the preference is saved either way. No-ops stay
+  exit code 0: no assigned preset, a model without a curve, Silent (never gets a curve).
 
 **Per-model experimental consent (1.36).** The old global `ExperimentalEnabled` switch is
 replaced by `ExperimentalWriteFw`, a list of firmware prefixes the owner explicitly allowed
@@ -2828,6 +2839,14 @@ minutes later. Design decisions:
   schedule cannot silently kill a trip's 100 % on Monday morning.
 - **Re-picking a length while active keeps the original `TravelPrevLimit`** - extending a
   trip must not turn "the limit from before the trip" into "100 %".
+- **A limit the app could only save answers with exit code 1.** `--travel` through the running
+  app answers `1|travel mode: 100 % until <date>, but not applied: <reason>` (or `1|travel mode:
+  off, but not applied: <reason>`) when `TryApplyChargeLimit` refused the write (backup WMI path,
+  automatic writes paused by the firmware guard): the schedule and the preference are saved and
+  apply once the gate opens, and the exit code says the limit is not on the hardware yet.
+  "Travel mode is not active" and a previous limit of 0 (nothing to write) stay `0|`. In the
+  one-shot catch-up a previous limit that could not be written is printed and logged, and the
+  command the user asked for still runs (§27).
 - **Settings import cancels travel mode.** The imported file's charge limit takes effect,
   and a revert stamped on another machine or battery has no meaning here.
 - The UI is a picker + button, not a stateful combo: the state is a date, so a duration

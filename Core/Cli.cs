@@ -435,11 +435,19 @@ public static class Cli
             settings.TravelUntil = DateTime.MinValue;
             settings.ChargeLimit = back;
             settings.Save();
+            string ended = $"Travel mode: ended (limit {(back > 0 ? back + " %" : "off")})";
             if (back > 0 && writable && dev != null)
             {
-                try { Ec.SetChargeLimit(dev, back); } catch { }
+                // The preference is saved either way; a write that fails is said out loud and logged
+                // instead of swallowed. The command the user asked for still runs on its own result.
+                try { Ec.SetChargeLimit(dev, back); }
+                catch (Exception ex)
+                {
+                    ended += $", limit not written: {ex.Message}";
+                    Console.WriteLine($"travel mode ended, but the previous charge limit ({back} %) could not be written ({ex.Message})");
+                }
             }
-            ChangeLog.Add(ChangeSource.Cli, $"Travel mode: ended (limit {(back > 0 ? back + " %" : "off")})");
+            ChangeLog.Add(ChangeSource.Cli, ended);
         }
 
         try
@@ -615,8 +623,14 @@ public static class Cli
                         id = Profiles.Shown[(i + 1) % Profiles.Shown.Length];
                     }
                     Ec.Apply(dev.Recipes[id]);
-                    ApplyAssignedCurveOneShot(settings, dev, id);
-                    ChangeLog.Add(ChangeSource.Cli, $"{Profiles.Get(id).Label}  ·  CLI");
+                    string? curveErr = ApplyAssignedCurveOneShot(settings, dev, id);
+                    ChangeLog.Add(ChangeSource.Cli, $"{Profiles.Get(id).Label}  ·  CLI" + (curveErr == null ? "" : "  ·  assigned curve not applied: " + curveErr));
+                    if (curveErr != null)
+                    {
+                        // the profile is set, the curve is not: a partial result, said so
+                        Console.WriteLine($"profile set: {id}, but the assigned fan curve was not applied ({curveErr})");
+                        return 1;
+                    }
                     Console.WriteLine($"profile set: {id}");
                     return 0;
                 }
@@ -630,7 +644,14 @@ public static class Cli
                     {
                         // firmware keeps fans at max until the fan mode is re-asserted (same as the app)
                         byte b = Ec.GetCurrent(dev) == ProfileId.Silent ? dev.FanSilentValue : (byte)0x0D;
-                        try { Ec.SetFanMode(dev, b); } catch { }
+                        try { Ec.SetFanMode(dev, b); }
+                        catch (Exception ex)
+                        {
+                            // the bit is cleared but the fans may stay at max: a partial result, not "done"
+                            ChangeLog.Add(ChangeSource.Cli, "Fan Boost: off, fan mode not put back: " + ex.Message);
+                            Console.WriteLine($"fan boost: off, but the fan mode could not be put back ({ex.Message})");
+                            return 1;
+                        }
                     }
                     ChangeLog.Add(ChangeSource.Cli, $"Fan Boost: {(on ? "on" : "off")}");
                     Console.WriteLine($"fan boost: {cmd.Arg}");
@@ -739,13 +760,22 @@ public static class Cli
                 }
                 case CliKind.Panic:
                 {
-                    try { Ec.SetCoolerBoost(dev, false); } catch { }
+                    // Every step runs and the ones that failed are named, as in the app's panic reset.
+                    var failed = new List<string>();
+                    try { Ec.SetCoolerBoost(dev, false); } catch (Exception ex) { failed.Add("Fan Boost: " + ex.Message); }
                     // (#27) stock state includes a working camera (same as the in-app panic reset)
-                    if (Devices.WebcamSupported(fw)) { try { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); } catch { } }
-                    Ec.Apply(dev.Recipes[ProfileId.Balanced]);
-                    ChangeLog.Add(ChangeSource.Cli, "Panic reset  ·  CLI");
-                    Console.WriteLine("panic reset done: Balanced, Fan Boost off, fans auto");
-                    return 0;
+                    if (Devices.WebcamSupported(fw)) { try { Ec.SetWebcamBlock(false); Ec.SetWebcam(true); } catch (Exception ex) { failed.Add("webcam: " + ex.Message); } }
+                    try { Ec.Apply(dev.Recipes[ProfileId.Balanced]); } catch (Exception ex) { failed.Add("Balanced: " + ex.Message); }
+                    if (failed.Count == 0)
+                    {
+                        ChangeLog.Add(ChangeSource.Cli, "Panic reset  ·  CLI");
+                        Console.WriteLine("panic reset done: Balanced, Fan Boost off, fans auto");
+                        return 0;
+                    }
+                    string partly = string.Join("; ", failed);
+                    ChangeLog.Add(ChangeSource.Cli, "Panic reset  ·  CLI  ·  partly, failed: " + partly);
+                    Console.WriteLine("panic reset done partly, failed: " + partly);
+                    return 1;
                 }
             }
             return 2;
@@ -758,17 +788,19 @@ public static class Cli
     }
 
     // Same per-profile preset rule as the app: never Silent, only a valid assigned preset.
-    private static void ApplyAssignedCurveOneShot(AppSettings s, DeviceProfile dev, ProfileId id)
+    // Returns null when there was nothing to apply or the curve went in, else the failure.
+    private static string? ApplyAssignedCurveOneShot(AppSettings s, DeviceProfile dev, ProfileId id)
     {
-        if (id == ProfileId.Silent || dev.FanCurve is not { } fc) return;
-        if (!s.ProfileCurves.TryGetValue(Profiles.Get(id).Key, out var name) || string.IsNullOrEmpty(name)) return;
+        if (id == ProfileId.Silent || dev.FanCurve is not { } fc) return null;
+        if (!s.ProfileCurves.TryGetValue(Profiles.Get(id).Key, out var name) || string.IsNullOrEmpty(name)) return null;
         var p = s.FindPreset(name);
-        if (p == null || !p.IsValid(fc)) return;
+        if (p == null || !p.IsValid(fc)) return null;
         try
         {
             Ec.WriteFanCurve(dev, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
             Ec.SetFanMode(dev, fc.AdvancedModeValue);
+            return null;
         }
-        catch { }
+        catch (Exception ex) { return ex.Message; }
     }
 }

@@ -43,6 +43,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the backup WMI path, a charge limit saved but not written while automatic writes are paused, a
   turbo mode a scene could not set, a fan mode that could not be put back after Fan Boost.
   `--profile` accepts only the four profile names (a number such as 999 is refused up front).
+  The same holds with no app running: `--fanboost off` whose fan mode could not be put back,
+  `--profile` whose assigned fan curve could not be written and a `--panic` with a failed step
+  say so and return exit code 1 instead of "done"; a travel mode caught up on the command line
+  whose previous limit could not be written says so instead of staying silent.
   A command whose connection to the app broke before the answer is reported as uncertain, never
   run a second time outside the app.
 - **Importing a settings backup is all or nothing** - a file that passed the first check but was
