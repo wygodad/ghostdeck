@@ -382,7 +382,7 @@ public sealed class TrayContext : ApplicationContext
                 }
                 case CliKind.Overlay:
                     SetOverlay(cmd.Arg == "on", osd: false);
-                    return "0|overlay: " + cmd.Arg;
+                    return CliDone("overlay: " + cmd.Arg);
                 case CliKind.Crosshair:
                 {
                     // on / off, or on with a preset or a shared code (roadmap #118)
@@ -390,16 +390,16 @@ public sealed class TrayContext : ApplicationContext
                     {
                         if (!LoadCrosshairPreset(cmd.Arg2)) return "1|crosshair preset not found: " + cmd.Arg2;
                         SetCrosshair(true, osd: false);
-                        return "0|crosshair: on (preset " + cmd.Arg2 + ")";
+                        return CliDone("crosshair: on (preset " + cmd.Arg2 + ")");
                     }
                     if (cmd.Arg == "code")
                     {
                         if (!ApplyCrosshairCode(cmd.Arg2)) return "1|not a GhostDeck crosshair code";
                         SetCrosshair(true, osd: false);
-                        return "0|crosshair: on (code applied)";
+                        return CliDone("crosshair: on (code applied)");
                     }
                     SetCrosshair(cmd.Arg == "on", osd: false);
-                    return "0|crosshair: " + cmd.Arg;
+                    return CliDone("crosshair: " + cmd.Arg);
                 }
                 case CliKind.TrueColor:
                     return ExecuteTrueColorCli(cmd);   // normally taken before the UI post (StartCliServer)
@@ -413,7 +413,7 @@ public sealed class TrayContext : ApplicationContext
                 }
                 case CliKind.WinLock:
                     SetWinLockState(cmd.Arg == "on", ChangeSource.Cli, osd: false);
-                    return "0|win key lock: " + cmd.Arg;
+                    return CliDone("win key lock: " + cmd.Arg);
                 case CliKind.HdrSwitch:
                 {
                     // DisplayConfig API, independent of EC writability.
