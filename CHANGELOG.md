@@ -4,7 +4,28 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Security
+- **The in-app updater verifies the downloaded release** - before anything is swapped, the
+  downloaded file has to carry a valid Authenticode signature from the GhostDeck release identity
+  (the signer's Trusted Signing identity and publisher name, which survive the certificate's
+  regular rotation). A file that fails is deleted and the Updates tab says so instead of
+  installing it or sending you to download it again. The verified file stays locked until the swap.
+- **The update script no longer lives in the shared temp folder** - it is written next to the
+  program, where it has the same protection the program itself has, and its text contains no
+  paths: they travel in the environment of the script's process.
 ### Fixed
+- **In-app updates in folders with national letters** - the swap script was written as UTF-8 while
+  the console reads it in the system's OEM code page, so a path such as `C:\Users\Łukasz\...` was
+  invisible to it: the app closed with "Restarting" and nothing happened. Paths now reach the
+  script through its environment, which also keeps a `%` or `!` in a folder name literal.
+- **A failed swap puts the previous version back** - each step of the update script is checked;
+  when the new program cannot be put in place or does not start, the old one is restored and
+  started, and the Updates tab reports which step failed. Before, a failed second step left no
+  program under the original name (only the `.bak`).
+- **Power test: restore after a partly written profile** - a profile recipe is written byte by
+  byte, and a write that failed on its second byte had already changed the first. The run now
+  treats a started write as written, puts the starting profile back in that case too, and
+  reports a failed restore in the report and on the page instead of hiding it.
 - **Text cut off at high display scaling** ([#172](../../issues/172), thanks @UzaydaGezen) - at
   about 200 % the shortcut fields, the Fan curve buttons, mode label and chart axes, the RAM, VRAM
   and disk rows, the Gaming tiles and charts, the Fn left/right switch, the Settings tab strip and

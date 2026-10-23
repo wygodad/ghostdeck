@@ -81,6 +81,18 @@ public static class AppLifecycle
         _ => ex?.Message ?? "",
     };
 
+    /// <summary>One line in the same log for an event that is not an exception (a refused update, say). Never throws.</summary>
+    public static void Note(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppSettings.Dir);
+            if (File.Exists(LogPath) && new FileInfo(LogPath).Length > MaxLogBytes) File.Delete(LogPath);
+            File.AppendAllText(LogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [note] {message}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
     /// <summary>Swallow a transient failure, record anything else. Never throws.</summary>
     public static void Report(Exception? ex, string where)
     {

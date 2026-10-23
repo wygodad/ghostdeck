@@ -101,8 +101,19 @@ public sealed class UpdatesPage : ThemedPage
     {
         LayoutBits();
         ApplyThemeText();
+        // The previous in-app update stopped and the swap script kept this version: say which
+        // step failed, once, until a check or an install writes a newer status over it.
+        if (Updater.LastFailure != 0 && !_failureShown)
+        {
+            _failureShown = true;
+            _status.ForeColor = Theme.Red;
+            _status.Text = string.Format(Lang.T("upd_failed_restored"), Updater.LastFailure);
+            LayoutBits();
+        }
         if (!_loaded) await LoadHistory();
     }
+
+    private bool _failureShown;
 
     // Language can switch from the tray menu while this tab is visible - refresh the texts live.
     public override void LiveRefresh() { ApplyThemeText(); Invalidate(); }
@@ -259,10 +270,22 @@ public sealed class UpdatesPage : ThemedPage
             _status.Text = string.Format(Lang.T("upd_downloading"), p);
             LayoutBits();
         });
-        string? path = await Updater.DownloadAsync(r, progress);
-        if (path == null || !Updater.StartSelfUpdate(path))
+        var dl = await Updater.DownloadAsync(r, progress);
+        if (dl.Why == Updater.Failure.Signature)
+        {
+            // The file is not from the release identity. It has been deleted; say so and stop,
+            // without sending the user to a page that would hand them the same file.
+            _bar.Visible = false;
+            _install.Visible = _check.Visible = true;
+            _status.ForeColor = Theme.Red;
+            _status.Text = Lang.T("upd_sig_rejected");
+            LayoutBits();
+            return;
+        }
+        if (dl.Path == null || !Updater.StartSelfUpdate(dl.Path))
         {
             // no exe asset / download or launch failed - fall back to the release page
+            Updater.DiscardStaged();
             _bar.Visible = false;
             _install.Visible = _check.Visible = true;
             _status.ForeColor = Theme.Red;

@@ -846,18 +846,63 @@ so the app can install the update itself instead of only opening the download pa
 
 **Install flow (Updates tab):** *Install vX.Y.Z* → `DownloadAsync` streams the asset next to the
 running exe as `GhostDeck.update.exe` (progress bar; size is checked against the release asset
-size) → `StartSelfUpdate` → `Application.Exit()`.
+size) → the file's **Authenticode signature** is verified (below) → `StartSelfUpdate` →
+`Application.Exit()`.
+
+**The downloaded file must be signed by the release identity (`Core/Authenticode.cs`).** A release
+asset is just a file attached to a GitHub release: anyone with write access to the repository can
+replace it after the fact, without going through the signing step in `release.yml`, and the in-app
+path shows neither the UAC publisher prompt nor SmartScreen (the restart inherits the elevated
+token; `HttpClient` downloads carry no mark of the web). So the app does that check itself:
+`WinVerifyTrust` (chain to a trusted root, timestamp honoured, no revocation fetch so an offline
+machine can still judge a file whose chain is complete in the signature), then the signer
+certificate has to carry the project's **Trusted Signing durable identity EKU**
+(`1.3.6.1.4.1.311.97.227492317.585399833.189491622.408323361`) and the publisher name
+`FENIX INSPIRE` in its subject - the same string `release.yml` gates on. Trusted Signing rotates
+the certificate every few days, so a thumbprint pin would stop matching within a week; the EKU
+and the subject are what stays. A file that fails is deleted, logged (`errors.log`, `[note]`) and
+reported on the page as "not signed by the GhostDeck publisher" **without** opening the releases
+page, which would hand the user the same file. From the moment the file passed the check it is
+held open (read, share-read) until the process exits, so nothing can replace it between the check
+and the swap. Debug builds only: `GHOSTDECK_UPDATE_UNSIGNED=1` skips the check for an unsigned
+local build; Release builds have no such switch.
 
 **The swap is version-independent — this is the key design point.** A running exe can't overwrite
 itself, and the *downloaded* exe can't do the swap either (it might be any version, including one
 that predates this feature — an early attempt to run the swap inside the downloaded exe via a
 `--finish-update` arg failed exactly because the older downloaded build didn't know that arg and
-was killed by the single-instance mutex). So `StartSelfUpdate` writes a tiny **cmd script** to
-`%TEMP%\ghostdeck-update.cmd` and launches it hidden (`cmd.exe /d /c`, `CreateNoWindow`). The
-script: waits for our PID to exit (`tasklist /fi "PID eq <pid>" /fo csv | find`), `move`s the old
-exe to `<target>.bak`, `move`s the downloaded exe onto `<target>`, `start`s it, and deletes
-itself. `Program.CleanupAfterUpdate` (delayed 5 s on the next normal start) removes the leftover
-`.bak` / `.update.exe`. Failure at any point → fall back to opening the releases page.
+was killed by the single-instance mutex). So `StartSelfUpdate` writes a tiny **cmd script** and
+launches it hidden (`cmd.exe /d /V:OFF /c`, `CreateNoWindow`). The script waits for our PID to
+exit (`tasklist /fi "PID eq <pid>" /fo csv | find`), `move`s the old exe to `<target>.bak`,
+`move`s the downloaded exe onto `<target>`, `start`s it, and deletes itself.
+`Program.CleanupAfterUpdate` (delayed 5 s on the next normal start) removes the leftover `.bak` /
+`.update.exe`. Three rules keep that script honest (`Updater.ScriptText`, `Updater.WriteScript`):
+
+- **No path in the script's text.** `cmd.exe` reads a batch file in the console's OEM code page
+  (852 on a Polish system), not UTF-8, so a path with a national letter written into the script
+  does not exist as far as the script is concerned, and `%NAME%` is expanded even inside quotes.
+  Every path travels in the environment of the `cmd.exe` process (`GD_SCRIPT`, `GD_PID`,
+  `GD_TARGET`, `GD_UPDATE`, `GD_RESULT`) and the script is pure ASCII: the environment block is
+  Unicode and an expanded value is not expanded again. The script's own path is handed over the
+  same way (`cmd /c "%GD_SCRIPT%"`), because cmd expands `%NAME%` on its command line too.
+  `/V:OFF` keeps `!` literal whatever the user's registry says, the system tools are called by
+  full path (`%SystemRoot%\System32\...`) so a `find` earlier in `PATH` (Git ships one) cannot end
+  the wait loop early, and the one-second pause in the wait loop is a `ping` to loopback rather
+  than `timeout`, which refuses to run without a console for its input.
+- **Every step is checked and a failed swap rolls back.** `move` of the old exe fails → it is
+  untouched, start it again (result 11). `move` of the new exe fails (deleted, quarantined, locked)
+  → the `.bak` goes back, start it (12). The new exe does not start → the `.bak` goes back and is
+  started (13). Each failure writes its step into `<target>.update-result`; `CleanupAfterUpdate`
+  reads and removes that file on the next start, and the Updates tab says "the last update stopped
+  at step N; this version was kept". A failure before the script starts (no asset, download, launch)
+  still falls back to opening the releases page.
+- **The script lives next to the exe, not in `%TEMP%`.** `cmd.exe` reads a batch file
+  incrementally and `goto` re-scans it, so the script can be rewritten while it sits in its wait
+  loop and the rewritten tail runs - with the elevated token the script inherited. `%TEMP%` is
+  writable by every process of the user, elevated or not; the exe's own folder has whatever
+  protection the exe has (under Program Files, only an elevated process can write there), which is
+  the right bar: a process that can write next to the exe can replace the exe. A folder this
+  process cannot write to falls back to `%TEMP%`, which is then no weaker than that exe itself.
 
 **Single instance UX.** Launching the exe while GhostDeck is already running can't start a second
 process (named mutex `GhostDeck_SingleInstance`); the second launch instead `Set`s the named event

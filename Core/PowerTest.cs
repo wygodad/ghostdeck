@@ -103,15 +103,21 @@ public static class PowerTest
         byte[] DumpBefore, Phase[] Phases, FourthProbe? Fourth, string? Aborted,
         // >0 = refused before writing anything, because the machine was already this busy.
         int PreBusyPct = 0,
-        // Whether a single EC write happened. The caller restores the machine only when it did,
-        // and "nothing was written" has to be true when the report says it.
+        // Whether an EC write was ATTEMPTED. Ec.Apply writes a recipe byte by byte, so a write
+        // that threw may still have changed the first bytes; the caller restores the machine
+        // whenever a write was started, and "nothing was written" is only said for a run that
+        // never reached one (refused or cancelled before the first recipe).
         bool Wrote = false,
         // Whether the discrete graphics chip was loaded too, and which one. Without this the
         // report cannot be compared against one from a machine where that load never started.
         bool GpuLoaded = false, string GpuAdapter = "",
         // Windows plan, turbo boost and power mode at the start (#236). The run itself never
         // changes them, so the line holds for every phase.
-        string WinPower = "");
+        string WinPower = "",
+        // The run's own restore of the starting profile threw: what it said. The caller still
+        // re-applies the profile through the normal path, and the report says the restore
+        // inside the run did not go through instead of hiding it.
+        string? RestoreError = null);
 
     /// <summary>Where the run is, for the page's progress bar and live line.</summary>
     public readonly record struct Progress(
@@ -232,7 +238,11 @@ public static class PowerTest
         // validity, and turning it off would be a write the consent screen did not list.
         bool boost = false;
         try { boost = Ec.GetCoolerBoost(dev); } catch { }
+        // Set BEFORE each Ec.Apply, not after: a recipe is written byte by byte, and a write that
+        // fails on its second byte has already changed the first. "Nothing written" is only true
+        // for a run that never got this far.
         bool wrote = false;
+        string? restoreError = null;
 
         // Held for the whole run, started before the first settle so temperatures stabilise with it
         // already going. A processor-only load can miss a profile that raises a budget the two chips
@@ -249,8 +259,9 @@ public static class PowerTest
                 string name = id.ToString();
                 var recipe = dev.Recipes[id];
 
-                try { Ec.Apply(recipe); wrote = true; }
-                catch (Exception ex) { aborted = $"could not apply the {name} recipe: {ex.Message}"; break; }
+                wrote = true;
+                try { Ec.Apply(recipe); }
+                catch (Exception ex) { aborted = $"could not apply the {name} recipe: {ex.Message} (the write may have gone through partly; the starting profile was put back)"; break; }
                 Settle(pr, i, steps, name, SettleSeconds, ct);
 
                 var samples = Loaded(dev, pr, i, steps, name, threads, ct, ref aborted);
@@ -266,7 +277,8 @@ public static class PowerTest
                 int step = Order.Length + (dev.FourthMode != null ? 1 : 0);
                 string name = ProfileId.Balanced + RepeatSuffix;
                 var recipe = dev.Recipes[ProfileId.Balanced];
-                try { Ec.Apply(recipe); wrote = true; }
+                wrote = true;
+                try { Ec.Apply(recipe); }
                 catch (Exception ex) { aborted = $"could not re-apply the {ProfileId.Balanced} recipe: {ex.Message}"; }
                 if (aborted == null)
                 {
@@ -285,7 +297,9 @@ public static class PowerTest
             // Belt and braces: put the shift and fan registers back to the state the run found,
             // straight away, without waiting for the caller's restore. The caller then re-applies
             // through the normal path so the fan curve comes back too.
-            // Nothing to put back if nothing was ever written.
+            // Nothing to put back if no write was ever started. A failed restore is not
+            // swallowed: the result carries it, the caller's restore runs anyway, and the
+            // report says so.
             if (wrote)
             {
                 try
@@ -294,13 +308,13 @@ public static class PowerTest
                     if (dev.FourthMode is { } fm4 && startShift == fm4.ShiftValue)
                         Ec.Apply(new[] { (dev.ShiftMode, startShift) });
                 }
-                catch { }
+                catch (Exception ex) { restoreError = ex.Message; }
             }
         }
 
         return new Result(started, appVersion, firmware, dev.Name, dev.Tier.ToString(),
             onAc, boost, threads, startProfile, startShift, before, phases.ToArray(), fourth, aborted,
-            0, wrote, gpu.Active, gpu.Adapter, winPower);
+            0, wrote, gpu.Active, gpu.Adapter, winPower, restoreError);
     }
 
     // ---------------- fourth-mode probe ----------------
@@ -592,6 +606,8 @@ public static class PowerTest
                       $"after {SettleSeconds} s of settling; the figures below average the last {SteadySeconds} s");
         sb.AppendLine($"Graphics load: {(r.GpuLoaded ? $"ON, {r.GpuAdapter}" : "OFF - processor only, so a profile that only lifts a graphics or shared budget would not show here")}");
         if (r.Aborted != null) sb.AppendLine($"RUN DID NOT COMPLETE: {r.Aborted}");
+        if (r.RestoreError != null)
+            sb.AppendLine($"RESTORE INSIDE THE RUN FAILED: {r.RestoreError} - the app re-applied the profile afterwards through its normal path");
         sb.AppendLine();
 
         // ---- the comparison this whole thing exists for ----

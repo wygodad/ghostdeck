@@ -1221,6 +1221,10 @@ public sealed class ReportPage : ThemedPage
                 // A curve applied from the editor carries no preset name, so the profile path above
                 // does not bring it back. The phase recipes necessarily overwrote the fan mode byte.
                 try { D.RestoreActiveCurve(); } catch { }
+                // The run's own restore threw. The re-apply above is the second attempt; the user
+                // is told to check the tile rather than trust that it went through.
+                if (_ptResult is { RestoreError: { } re })
+                    _ptMsg = string.Format(Lang.T("pt_restore_failed"), re, Profiles.Get(back).Label);
             }
             RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
         }
