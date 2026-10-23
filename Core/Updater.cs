@@ -135,13 +135,14 @@ public static class Updater
     /// A refused file is deleted; the caller must not fall back to running it.
     /// <paramref name="running"/> is the version to beat; null = this exe's own file version.
     /// </summary>
-    public static async Task<Download> DownloadAsync(Result r, IProgress<int>? progress, Version? running = null)
+    public static async Task<Download> DownloadAsync(Result r, IProgress<int>? progress, Version? running = null, IProgress<string>? stage = null)
     {
         if (string.IsNullOrEmpty(r.AssetUrl)) return new Download(null, Failure.NoAsset, "the release has no " + AssetName);
         string dest;
         try { dest = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, UpdateFile); }
         catch (Exception ex) { return new Download(null, Failure.Download, ex.Message); }
         DiscardStaged();
+        var clock = Stopwatch.StartNew();
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
@@ -149,7 +150,7 @@ public static class Updater
             using var resp = await http.GetAsync(r.AssetUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
             long total = resp.Content.Headers.ContentLength ?? r.AssetSize;
-            var clock = Stopwatch.StartNew();
+            clock.Restart();
             int reports = 0, lastPct = -1;
             await using (var src = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false))
             await using (var dst = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -167,6 +168,8 @@ public static class Updater
                 // for the log: whether a download was too quick for the bar to show anything
                 AppLifecycle.Note($"update downloaded: {done} bytes in {clock.ElapsedMilliseconds} ms, content-length {(resp.Content.Headers.ContentLength?.ToString() ?? "none")}, {reports} progress reports");
             }
+            clock.Restart();
+            stage?.Report("verify");   // the page shows "checking the signature" for however long that takes
         }
         catch (Exception ex)
         {
@@ -202,6 +205,7 @@ public static class Updater
             try { File.Delete(dest); } catch { }
             return new Download(null, Failure.Download, ex.Message);
         }
+        AppLifecycle.Note($"update verified in {clock.ElapsedMilliseconds} ms (signature and version {fileVersion})");
         return new Download(dest, Failure.None, "", fileVersion);
     }
 

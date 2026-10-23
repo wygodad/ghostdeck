@@ -328,13 +328,29 @@ public sealed class UpdatesPage : ThemedPage
         _bar.Value = 0;
         _status.Text = string.Format(Lang.T("upd_downloading"), 0);
         LayoutBits();
+        // A fast link finishes the file in a fraction of a second and reports every percent of
+        // it; painting each one made the block flicker. The bar follows at most ~12 times a
+        // second and always lands on 100 %. The signature and version check that follows takes
+        // its own moment and gets its own line, so the page never looks stuck between the
+        // download and the restart.
+        long lastPaint = 0;
         var progress = new Progress<int>(p =>
         {
+            long now = Environment.TickCount64;
+            if (p < 100 && now - lastPaint < 80) return;
+            lastPaint = now;
             _bar.Value = p / 100f;
             _status.Text = string.Format(Lang.T("upd_downloading"), p);
             LayoutBits();
         });
-        var dl = await Updater.DownloadAsync(r, progress);
+        var stage = new Progress<string>(s =>
+        {
+            if (s != "verify") return;
+            _bar.Value = 1f;
+            _status.Text = Lang.T("upd_verifying");
+            LayoutBits();
+        });
+        var dl = await Updater.DownloadAsync(r, progress, null, stage);
         if (dl.Why is Updater.Failure.Signature or Updater.Failure.Version)
         {
             // The file is not what the release claims (not the release identity's signature, or

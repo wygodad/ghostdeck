@@ -47,7 +47,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   previous file is kept as `settings.json.bak`.
 - **Updates tab at very large scales** - the "Downloading… X%" label stays inside the page and
   "Last checked" moves under the progress bar; when the two buttons cannot share a row they sit
-  one under the other. The label and the bar keep one place while the percentage counts up.
+  one under the other. The label and the bar keep one place while the percentage counts up, the
+  bar is repainted at most a dozen times a second, and the signature check that follows the
+  download has its own line ("Checking the signature…") instead of a pause with no explanation.
 - **Backup and diagnostics results as GhostDeck cards** - "settings imported", "not a valid
   settings file", "operation failed" and "saved to" on the Settings tab are GhostDeck cards now,
   like every other message of the app, instead of Windows message boxes.
