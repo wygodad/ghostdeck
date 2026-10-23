@@ -23,9 +23,6 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   dials with the scale labels below the centre, clear of the curve, and the live reading beside
   the dial. The "Report my model" wizard, the live EC view and the help bubbles scale with the
   display too.
-- **Switches grow with the display scale** - the on/off switches on Settings, Scenarios and the
-  overlay settings kept their 100 % size and looked tiny next to the text at 200 %; they now scale
-  like everything around them.
 - **Turkish card headings** ([#172](../../issues/172)) - headings written in capitals kept the
   dotless "ı" lower-case ("PİL SAĞLıĞı"); they now follow the rules of the selected language
   ("PİL SAĞLIĞI").
