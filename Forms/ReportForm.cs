@@ -36,9 +36,16 @@ public sealed class ReportForm : Form
     private static readonly Color Green      = Color.FromArgb(0x2E, 0xA0, 0x43);
 
     // ---- geometry ----
-    private const int HeaderH = 64, FooterH = 82;
-    private const int LeftX = 32, ColW = 448, RightX = 528, RightW = 540;
-    private const int DividerX = 504;
+    // #172: the layout is drawn in 100 % pixels and every length is scaled with the display
+    // (S); fixed pixels left the 2x fonts of 200 % in a 100 % window, with cut and "..." text.
+    private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+    private int HeaderH => S(64);
+    private int FooterH => S(82);
+    private int LeftX => S(32);
+    private int ColW => S(448);
+    private int RightX => S(528);
+    private int RightW => S(540);
+    private int DividerX => S(504);
 
     private readonly string _firmware;
     private readonly string _detectedModel;
@@ -71,7 +78,9 @@ public sealed class ReportForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(1100, 990);
+        // never taller than the screen it opens on; the content scrolls when it does not fit
+        var wa = Screen.FromPoint(Cursor.Position).WorkingArea;
+        ClientSize = new Size(S(1100), Math.Min(S(990), Math.Max(S(480), wa.Height - S(60))));
         Font = Dpi.Font("Segoe UI", 10.5f);
         BackColor = Color.White;
         Text = Lang.T("rep_title");
@@ -92,7 +101,7 @@ public sealed class ReportForm : Form
         // Lock the width (min.Width == max.Width) but allow the height to be resized.
         // NB: a 0 in MaximumSize is NOT treated as "unlimited" here, so use real bounds.
         int w = Width;
-        MinimumSize = new Size(w, 480);
+        MinimumSize = new Size(w, S(480));
         MaximumSize = new Size(w, 4000);
     }
 
@@ -115,7 +124,7 @@ public sealed class ReportForm : Form
             TextRenderer.DrawText(g, title, titleFont, new Rectangle(LeftX, 0, tw + 4, HeaderH),
                 Color.White, (TextFormatFlags)flags);
             TextRenderer.DrawText(g, "·  GhostDeck", subFont,
-                new Rectangle(LeftX + tw + 14, 0, 500, HeaderH),
+                new Rectangle(LeftX + tw + S(14), 0, header.Width - LeftX - tw - S(14), HeaderH),
                 Color.FromArgb(220, 255, 255, 255), (TextFormatFlags)flags);
         };
         Controls.Add(header);
@@ -131,12 +140,12 @@ public sealed class ReportForm : Form
         };
 
         StylePrimary(_capture);
-        _capture.SetBounds(RightX, 18, RightW, 46);
+        _capture.SetBounds(RightX, S(18), RightW, S(46));
         _capture.Click += OnCapture;
 
         _cancel.Text = Lang.T("rep_cancel");
         StyleGhost(_cancel);
-        _cancel.SetBounds(LeftX, 18, 150, 46);
+        _cancel.SetBounds(LeftX, S(18), Math.Max(S(150), TextRenderer.MeasureText(_cancel.Text, _cancel.Font).Width + S(32)), S(46));
         _cancel.Click += (_, _) => Close();
 
         footer.Controls.Add(_capture);
@@ -149,18 +158,19 @@ public sealed class ReportForm : Form
     {
         _content.Dock = DockStyle.Fill;
         _content.BackColor = Color.White;
+        _content.AutoScroll = true;   // a low screen at a high scale: the left column scrolls instead of being cut
         _content.Paint += (_, e) =>
         {
             using var pen = new Pen(Color.FromArgb(0xEC, 0xED, 0xF1));
-            e.Graphics.DrawLine(pen, DividerX, 22, DividerX, _content.Height - 22);
+            e.Graphics.DrawLine(pen, DividerX, S(22), DividerX, _content.Height - S(22));
         };
 
         // ---- LEFT: info ----
-        int y = 24;
+        int y = S(24);
         var intro = Paragraph(Lang.T("rep_intro"), Muted, 10.5f, ColW);
         intro.Location = new Point(LeftX, y);
         _content.Controls.Add(intro);
-        y += intro.Height + 18;
+        y += intro.Height + S(18);
 
         var card = new InfoCard("ⓘ", new (string, string?)[]
         {
@@ -174,7 +184,7 @@ public sealed class ReportForm : Form
         }, ColW)
         { Location = new Point(LeftX, y) };
         _content.Controls.Add(card);
-        y += card.Height + 18;
+        y += card.Height + S(18);
 
         var pill = new Pill(Lang.T("st_firmware"), string.IsNullOrEmpty(_firmware) ? "-" : _firmware, ColW)
         { Location = new Point(LeftX, y) };
@@ -185,22 +195,22 @@ public sealed class ReportForm : Form
         {
             Text = Lang.T("rep_section"),
             AutoSize = true,
-            Location = new Point(RightX, 26),
+            Location = new Point(RightX, S(26)),
             ForeColor = Muted,
             Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
         };
         _content.Controls.Add(section);
 
-        int ry = 60;
+        int ry = S(60);
         for (int i = 0; i < Steps.Length; i++)
         {
             _rows[i] = new StepRow(i + 1, Steps[i].msiName, Profiles.Get(Steps[i].id).DefaultColor, RightW)
             { Location = new Point(RightX, ry) };
             _content.Controls.Add(_rows[i]);
-            ry += _rows[i].Height + 12;
+            ry += _rows[i].Height + S(12);
         }
 
-        ry += 14;
+        ry += S(14);
         _progressLabel.AutoSize = true;
         _progressLabel.ForeColor = Accent;
         _progressLabel.Font = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
@@ -208,7 +218,7 @@ public sealed class ReportForm : Form
         _progressLabel.Visible = false;
         _content.Controls.Add(_progressLabel);
 
-        _bar.SetBounds(RightX, ry + 28, RightW, 12);
+        _bar.SetBounds(RightX, ry + _progressLabel.Font.Height + S(6), RightW, S(12));
         _bar.Accent = Accent;
         _bar.Visible = false;
         _content.Controls.Add(_bar);
@@ -217,7 +227,7 @@ public sealed class ReportForm : Form
         _instruction.MaximumSize = new Size(RightW, 0);
         _instruction.Font = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
         _instruction.ForeColor = Ink;
-        _instruction.Location = new Point(RightX, ry + 50);
+        _instruction.Location = new Point(RightX, ry + _progressLabel.Font.Height + S(28));
         _content.Controls.Add(_instruction);
 
         Controls.Add(_content);
@@ -495,7 +505,10 @@ public sealed class ReportForm : Form
         private static readonly Color Bg = Color.FromArgb(0xFE, 0xF6, 0xE7);
         private static readonly Color Bd = Color.FromArgb(0xF3, 0xDC, 0xA9);
         private static readonly Color Fg = Color.FromArgb(0xB0, 0x6A, 0x10);
-        private const int LeftPad = 46, RightPad = 18, TopPad = 15;
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+        private int LeftPad => S(46);
+        private int RightPad => S(18);
+        private int TopPad => S(15);
         private readonly string _icon;
         private readonly Font _bodyFont = Dpi.Font("Segoe UI", 9.5f);
         private readonly List<(Rectangle rect, string text)> _paras = new();
@@ -515,7 +528,7 @@ public sealed class ReportForm : Form
                 {
                     int h = TextRenderer.MeasureText(text, _bodyFont, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
                     _paras.Add((new Rectangle(LeftPad, y, innerW, h), text));
-                    y += h; gap = 10;
+                    y += h; gap = S(10);
                 }
                 else
                 {
@@ -538,7 +551,7 @@ public sealed class ReportForm : Form
                         try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); } catch { }
                     };
                     Controls.Add(link);
-                    y += h; gap = 6;
+                    y += h; gap = S(6);
                 }
                 y += gap;
             }
@@ -551,12 +564,12 @@ public sealed class ReportForm : Form
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
-            using var path = RoundRect(r, 12);
+            using var path = RoundRect(r, S(12));
             using (var b = new SolidBrush(Bg)) g.FillPath(b, path);
             using (var p = new Pen(Bd)) g.DrawPath(p, path);
             var iconF = Dpi.Font("Segoe UI", 13f, FontStyle.Bold);
             TextRenderer.DrawText(g, _icon, iconF,
-                new Rectangle(14, TopPad - 1, 26, Math.Max(22, iconF.Height)), Fg, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+                new Rectangle(S(14), TopPad - 1, LeftPad - S(20), Math.Max(S(22), iconF.Height)), Fg, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
             foreach (var (rect, text) in _paras)
                 TextRenderer.DrawText(g, text, _bodyFont, rect, Fg,
                     TextFormatFlags.WordBreak | TextFormatFlags.Top | TextFormatFlags.Left);
@@ -567,11 +580,14 @@ public sealed class ReportForm : Form
     private sealed class Pill : Control
     {
         private readonly string _label, _value;
+        private static readonly Font LblF = Dpi.Font("Segoe UI", 10f);
+        private static readonly Font ValF = Dpi.Font("Consolas", 11.5f, FontStyle.Bold);
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
         public Pill(string label, string value, int width)
         {
             _label = label; _value = value;
             DoubleBuffered = true;
-            Size = new Size(width, 46);
+            Size = new Size(width, Math.Max(S(46), ValF.Height + S(16)));
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -579,15 +595,15 @@ public sealed class ReportForm : Form
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var r = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
-            using var path = RoundRect(r, 11);
+            using var path = RoundRect(r, S(11));
             using (var b = new SolidBrush(Color.FromArgb(0xF2, 0xF6, 0xFE))) g.FillPath(b, path);
             using (var p = new Pen(Color.FromArgb(0xDE, 0xE9, 0xFC))) g.DrawPath(p, path);
-            var lblFont = Dpi.Font("Segoe UI", 10f);
-            TextRenderer.DrawText(g, _label, lblFont, new Rectangle(18, 0, 220, Height), Muted,
+            int lw = TextRenderer.MeasureText(_label, LblF).Width;
+            TextRenderer.DrawText(g, _label, LblF, new Rectangle(S(18), 0, lw, Height), Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
-            int lw = TextRenderer.MeasureText(_label, lblFont).Width;
-            TextRenderer.DrawText(g, _value, Dpi.Font("Consolas", 11.5f, FontStyle.Bold),
-                new Rectangle(18 + lw + 12, 0, Width - (18 + lw + 12) - 12, Height), Accent,
+            int vx = S(18) + lw + S(12);
+            TextRenderer.DrawText(g, _value, ValF,
+                new Rectangle(vx, 0, Width - vx - S(12), Height), Accent,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         }
     }
@@ -595,7 +611,11 @@ public sealed class ReportForm : Form
     /// <summary>Animated step row: status circle (profile colour) + name + state.</summary>
     private sealed class StepRow : Control
     {
-        private const int StatusW = 164, Circle = 28, CircleCx = 32;
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+        private static readonly Font NameF = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
+        private int StatusW => S(164);
+        private int Circle => S(28);
+        private int CircleCx => S(32);
         private readonly int _num;
         private readonly string _name;
         private readonly Color _color;
@@ -606,7 +626,7 @@ public sealed class ReportForm : Form
         {
             _num = num; _name = name; _color = color;
             DoubleBuffered = true;
-            Size = new Size(width, 56);
+            Size = new Size(width, Math.Max(S(56), NameF.Height + S(20)));
         }
 
         public void SetState(bool done, bool current)
@@ -641,7 +661,7 @@ public sealed class ReportForm : Form
 
             if (_glowAnim > 0.01f)
             {
-                using var path = RoundRect(full, 13);
+                using var path = RoundRect(full, S(13));
                 int a = (int)(_glowAnim * 255);
                 using var b = new SolidBrush(Color.FromArgb((int)(a * 0.10), Accent));
                 g.FillPath(b, path);
@@ -675,16 +695,16 @@ public sealed class ReportForm : Form
                     Rectangle.Round(circle), Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
 
-            int nameX = CircleCx + Circle / 2 + 16;
+            int nameX = CircleCx + Circle / 2 + S(16);
             var nameColor = _done || _current ? Ink : Muted;
-            TextRenderer.DrawText(g, _name, Dpi.Font("Segoe UI", 11f, FontStyle.Bold),
-                new Rectangle(nameX, 6, Width - nameX - StatusW - 6, Height - 12), nameColor,
+            TextRenderer.DrawText(g, _name, NameF,
+                new Rectangle(nameX, 0, Width - nameX - StatusW - S(6), Height), nameColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);   // dpi-ok: short step names in the report wizard list; last resort
 
             string state = Lang.T(_done ? "rep_captured" : "rep_pending");
             var stateColor = _done ? Green : Muted;
             TextRenderer.DrawText(g, state, Dpi.Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
-                new Rectangle(Width - StatusW, 6, StatusW - 10, Height - 12), stateColor,
+                new Rectangle(Width - StatusW, 0, StatusW - S(10), Height), stateColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
         }
 

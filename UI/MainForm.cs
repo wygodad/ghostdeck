@@ -5,7 +5,11 @@ namespace GhostDeck;
 /// <summary>Single tabbed window. The tray menu opens it on a specific tab; tabs swap content in-place.</summary>
 public sealed class MainForm : Form
 {
-    private const int StripH = 78;
+    // #172: the strip and its icon buttons grow with the scale; 78 px stays the floor, so the
+    // strip looks the same up to about 135 %. Fixed 40 x 38 px buttons cut their glyphs at 200 %.
+    private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+    private int StripH => Math.Max(78, S(58));
+    private Size IconBtnSize => new(S(40), S(38));
     private readonly MainDeps _d;
     private readonly Panel _strip = new();
     private readonly NoticeBanner _banner = new();
@@ -135,20 +139,20 @@ public sealed class MainForm : Form
 
         // Report + Updates live as icons on the right (next to the theme toggle) instead of top-level
         // tabs, freeing room in the strip. Report opens the Report page (deep-linkable sub-tab).
-        _updatesBtn.Size = new Size(40, 38);
+        _updatesBtn.Size = IconBtnSize;
         _updatesBtn.Glyph = "⟳";
         _updatesBtn.GlyphDx = 1; _updatesBtn.GlyphDy = -2;   // ⟳ ink sits low/left — nudge up + right to match ⚑ / ☾
         _updatesBtn.Click += (_, _) => ShowTab(MainTab.Updates);
         _tip.SetToolTip(_updatesBtn, Lang.T("tab_updates"));
         _strip.Controls.Add(_updatesBtn);
 
-        _reportBtn.Size = new Size(40, 38);
+        _reportBtn.Size = IconBtnSize;
         _reportBtn.Glyph = "⚑";
         _reportBtn.Click += (_, _) => ShowTab(MainTab.Report);
         _tip.SetToolTip(_reportBtn, Lang.T("tab_report"));
         _strip.Controls.Add(_reportBtn);
 
-        _themeBtn.Size = new Size(40, 38);
+        _themeBtn.Size = IconBtnSize;
         _themeBtn.Glyph = Theme.Dark ? "☀" : "☾";
         _themeBtn.Click += (_, _) => { Theme.Toggle(); _d.Settings.DarkMode = Theme.Dark; _d.SaveSettings(); };
         _strip.Controls.Add(_themeBtn);
@@ -180,12 +184,15 @@ public sealed class MainForm : Form
     }
 
     // Tier badge (tested / experimental / unsupported) drawn left of the version label.
+    private int _tabsRight;   // right end of the tab row (LayoutStrip)
+
     private void DrawTierBadge(Graphics g)
     {
         var info = _d.Status();
         using var bf = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
         int w = TextRenderer.MeasureText(info.TierText, bf).Width + 32;
         int h = bf.Height + 14;
+        if (!_version.Visible || _version.Left - w - 16 < _tabsRight) return;   // no room left of the version
         Ui.Pill(g, info.TierText, new Point(_version.Left - w - 16, (StripH - h) / 2), info.TierColor);
     }
 
@@ -213,7 +220,7 @@ public sealed class MainForm : Form
         {
             if (asIcons.Contains(tab.ToString()))
             {
-                var gb = new GlyphButton { Size = new Size(40, 38), Glyph = glyph, Tag = tab };
+                var gb = new GlyphButton { Size = IconBtnSize, Glyph = glyph, Tag = tab };
                 gb.Click += (_, _) => ShowTab((MainTab)gb.Tag!, fromStrip: true);
                 _tip.SetToolTip(gb, Lang.T(key));
                 _strip.Controls.Add(gb);
@@ -257,26 +264,33 @@ public sealed class MainForm : Form
     {
         // tabs start after the left wordmark; buttons reach almost down to the separator line,
         // so the whole tab height is clickable (not just the text)
+        if (_strip.Height != StripH) _strip.Height = StripH;
         int x = 20 + WordmarkWidth() + 30, y = 6, h = StripH - 7;
-        var f = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
+        using var f = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
         foreach (var b in _tabs)
         {
-            int w = TextRenderer.MeasureText(b.Text, f).Width + 30 + 30; // text + icon + padding
+            int w = TextRenderer.MeasureText(b.Text, f).Width + S(30) + S(30); // text + icon + padding
             b.SetBounds(x, y, w, h);
             x += w + 8;
         }
-        _themeBtn.Location = new Point(_strip.Width - _themeBtn.Width - 18, (StripH - _themeBtn.Height) / 2);
-        _reportBtn.Location = new Point(_themeBtn.Left - _reportBtn.Width - 8, (StripH - _reportBtn.Height) / 2);
-        _updatesBtn.Location = new Point(_reportBtn.Left - _updatesBtn.Width - 8, (StripH - _updatesBtn.Height) / 2);
+        _tabsRight = x;
+        foreach (var gb in _tabIcons.Append(_themeBtn).Append(_reportBtn).Append(_updatesBtn))
+            if (gb.Size != IconBtnSize) gb.Size = IconBtnSize;
+        _themeBtn.Location = new Point(_strip.Width - _themeBtn.Width - S(18), (StripH - _themeBtn.Height) / 2);
+        _reportBtn.Location = new Point(_themeBtn.Left - _reportBtn.Width - S(8), (StripH - _reportBtn.Height) / 2);
+        _updatesBtn.Location = new Point(_reportBtn.Left - _updatesBtn.Width - S(8), (StripH - _updatesBtn.Height) / 2);
         // tabs demoted to icons sit right of the version number, before the updates button
         int ix = _updatesBtn.Left;
         for (int i = _tabIcons.Count - 1; i >= 0; i--)
         {
-            ix -= _tabIcons[i].Width + 8;
+            ix -= _tabIcons[i].Width + S(8);
             _tabIcons[i].Location = new Point(ix, (StripH - _tabIcons[i].Height) / 2);
         }
         _version.Text = "v" + _d.AppVersion();
-        _version.Location = new Point(ix - _version.Width - 14, (StripH - _version.Height) / 2);
+        _version.Location = new Point(ix - _version.Width - S(14), (StripH - _version.Height) / 2);
+        // a narrow window: the version (and the tier badge left of it) give way to the tabs
+        // instead of being drawn over them
+        _version.Visible = _version.Left >= _tabsRight;
     }
 
     /// <summary>Gear on the Scenarios tab: jump to Settings → General and flash the visibility card.</summary>
@@ -516,7 +530,7 @@ public sealed class MainForm : Form
             var iconFont = Dpi.Font("Segoe MDL2 Assets", 15f);
             var textFont = Dpi.Font("Segoe UI", 11.5f, Active ? FontStyle.Bold : FontStyle.Regular);
             int tw = TextRenderer.MeasureText(Text, textFont).Width;
-            const int iconW = 28, gap = 10;
+            int iconW = (int)Math.Ceiling(28 * Dpi.Of(this) / 96f), gap = (int)Math.Ceiling(10 * Dpi.Of(this) / 96f);   // grow with the icon font
             int total = iconW + gap + tw;
             int sx = Math.Max(6, (Width - total) / 2);
             // NoClipping: at some DPI scales / font fallbacks the glyph ink is wider than its
@@ -554,7 +568,8 @@ public sealed class MainForm : Form
                 using var pen = new Pen(Active ? Theme.Accent : Theme.Border, Active ? 1.4f : 1f);
                 g.DrawPath(pen, path);
             }
-            var gr = ClientRectangle; gr.Offset(GlyphDx, GlyphDy);
+            float k = Dpi.Of(this) / 96f;   // the optical nudge is in 100 % pixels
+            var gr = ClientRectangle; gr.Offset((int)Math.Round(GlyphDx * k), (int)Math.Round(GlyphDy * k));
             // PUA glyphs (the tab icons) live in Segoe MDL2 Assets; Segoe UI Symbol shows them as boxes
             bool mdl2 = Glyph.Length > 0 && Glyph[0] >= '' && Glyph[0] <= '';
             using var gf = Dpi.Font(mdl2 ? "Segoe MDL2 Assets" : "Segoe UI Symbol", 14f);

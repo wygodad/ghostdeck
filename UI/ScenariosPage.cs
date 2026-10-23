@@ -100,7 +100,7 @@ public sealed class ScenariosPage : ThemedPage
             int cur = Math.Max(0, _rates.IndexOf(Display.Current()));
             if (_rates.Count <= 4)
             {
-                _refreshSeg = new SegControl(_rates.Select(r => r + " Hz").ToArray(), cur) { Size = new Size(280, 34) };
+                _refreshSeg = new SegControl(_rates.Select(r => r + " Hz").ToArray(), cur) { Size = new Size(280, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
                 _refreshSeg.SelectedChanged += i => SetPanelRate(_rates[i]);
                 bricks.Add(("refresh", new FeatureBrick("ref_title", "▣", _refreshSeg)));
             }
@@ -117,7 +117,7 @@ public sealed class ScenariosPage : ThemedPage
         if (D.KbdLevel() >= 0)   // (#26) keyboard-backlight level (off/low/mid/high)
         {
             _kbd = new SegControl(new[] { Lang.T("kbd_off"), Lang.T("kbd_low"), Lang.T("kbd_mid"), Lang.T("kbd_high") },
-                                  Math.Max(0, D.KbdLevel())) { Size = new Size(280, 34) };
+                                  Math.Max(0, D.KbdLevel())) { Size = new Size(280, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
             _kbd.SelectedChanged += i => D.SetKbdLevel(i);
             bricks.Add(("kbd", new FeatureBrick("kbd_title", "⌨", _kbd)));
         }
@@ -151,7 +151,8 @@ public sealed class ScenariosPage : ThemedPage
         // flashes the "Scenarios tab" visibility card, so the switches are easy to find.
         _gear.Text = "⚙";
         _gear.Font = Dpi.Font("Segoe UI Symbol", 13f);
-        _gear.Size = new Size(42, 42);   // an easy click target (user feedback)
+        int iconBtn = (int)Math.Ceiling(42 * Dpi.Of(this) / 96f);   // grows with its glyph
+        _gear.Size = new Size(iconBtn, iconBtn);   // an easy click target (user feedback)
         _gear.TextAlign = ContentAlignment.MiddleCenter;
         _gear.FlatStyle = FlatStyle.Flat;
         _gear.TabStop = false;
@@ -171,7 +172,7 @@ public sealed class ScenariosPage : ThemedPage
         // order editor (discussion #101). Same flat glyph styling as the gear.
         _orderBtn.Text = "\uE70F";   // MDL2 Edit
         _orderBtn.Font = Dpi.Font("Segoe MDL2 Assets", 11.5f);
-        _orderBtn.Size = new Size(42, 42);
+        _orderBtn.Size = new Size(iconBtn, iconBtn);
         _orderBtn.TextAlign = ContentAlignment.MiddleCenter;
         _orderBtn.FlatStyle = FlatStyle.Flat;
         _orderBtn.TabStop = false;
@@ -478,17 +479,19 @@ public sealed class ScenariosPage : ThemedPage
         int y = _scenesHeadY + headFontH + 12;
         int sCols = cols;
         int cw = (avail - Gap * (sCols - 1)) / sCols;
-        // Chips wrap, so cards can need more than the base height; every card gets the
-        // tallest one's height (user request: a row must not have uneven cards).
-        int cardH = 74;
-        foreach (var c2 in _sceneCards) cardH = Math.Max(cardH, c2.DesiredHeight(cw));
-        for (int i = 0; i < _sceneCards.Count; i++)
+        // Chips wrap, so cards can need more than the base height; every card of a row gets
+        // that row's tallest height (user request: a row must not have uneven cards), and a
+        // row of short cards stays short instead of taking the tallest card's height.
+        int rows = (_sceneCards.Count + sCols - 1) / sCols;
+        for (int r = 0; r < rows; r++)
         {
-            int r = i / sCols, c = i % sCols;
-            _sceneCards[i].SetBounds(Pad + c * (cw + Gap) + ox, y + r * (cardH + Gap) + oy, cw, cardH);
+            int rowH = 74;
+            for (int i = r * sCols; i < Math.Min(_sceneCards.Count, (r + 1) * sCols); i++) rowH = Math.Max(rowH, _sceneCards[i].DesiredHeight(cw));
+            for (int i = r * sCols; i < Math.Min(_sceneCards.Count, (r + 1) * sCols); i++)
+                _sceneCards[i].SetBounds(Pad + (i % sCols) * (cw + Gap) + ox, y + oy, cw, rowH);
+            y += rowH + Gap;
         }
-        if (_sceneCards.Count > 0) y += ((_sceneCards.Count + sCols - 1) / sCols) * (cardH + Gap);
-        else y += Dpi.Font("Segoe UI", 9.5f).Height + 14;   // room for the empty-state hint text
+        if (_sceneCards.Count == 0) y += Dpi.Font("Segoe UI", 9.5f).Height + 14;   // room for the empty-state hint text
         _addScene.Location = new Point(Pad + ox, y + oy);
         _addExamples.Location = new Point(Pad + _addScene.PreferredSize.Width + 10 + ox, y + oy);
         int bottom = y + _addScene.PreferredSize.Height + 8;
@@ -696,8 +699,15 @@ public sealed class ScenariosPage : ThemedPage
         private int _hotHover = -1;          // which action hotspot the mouse is over
         private bool _armDelete;             // ✕ was clicked once; the next ✕ click deletes
         private readonly System.Windows.Forms.Timer _armTimer = new() { Interval = 3500 };
-        private const int HotW = 26, HotGap = 2, HotCount = 5;   // ▶ ↑ ↓ ✎ ✕
+        private const int HotCount = 5;   // ▶ ↑ ↓ ✎ ✕
         private static readonly string[] HotGlyphs = { "▶", "↑", "↓", "✎", "✕" };
+        // #172: every length on the card grows with the scale; a fixed 26 px hotspot cut the
+        // glyphs drawn in it in half at 200 %
+        private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
+        private static readonly Font HotF = Dpi.Font("Segoe UI", 10.5f);
+        private static readonly Font HotArmedF = Dpi.Font("Segoe UI", 12f, FontStyle.Bold);
+        private int HotW => Math.Max(S(26), HotArmedF.Height + S(2));
+        private int HotGap => S(2);
 
         public SceneCard(SceneDef scene, Action run, Action edit, Action del, Action<int> move,
                          Func<Color?> profileColor)
@@ -746,8 +756,9 @@ public sealed class ScenariosPage : ThemedPage
         private void Arm() { _armDelete = true; _armTimer.Stop(); _armTimer.Start(); Invalidate(); }
         private void Disarm() { _armTimer.Stop(); if (_armDelete) { _armDelete = false; Invalidate(); } }
 
+        // the action hotspots ride on the name line, so the pills below use the card's full width
         private Rectangle HotRect(int i) =>
-            new(Width - (HotCount - i) * (HotW + HotGap) - 8, (Height - HotW) / 2, HotW, HotW);
+            new(Width - (HotCount - i) * (HotW + HotGap) - S(8), TopPad + (NameF.Height - HotW) / 2, HotW, HotW);
 
         private int HotAt(Point p)
         {
@@ -761,21 +772,29 @@ public sealed class ScenariosPage : ThemedPage
         // Chips layout (user pick over marquee/tooltip): every setting is its own pill, pills
         // wrap to new lines, and the PAGE gives all cards the tallest card's height so a row
         // of cards stays even. 16 px of horizontal air per chip obeys the padding rule;
-        // NameGap keeps the pills off the scene name, the whole block centers vertically.
-        private const int ChipGapX = 5, ChipGapY = 8, ChipPad = 16, NameGap = 14;
+        // NameGap keeps the pills off the scene name. The pills start right under the name on
+        // every card, so cards side by side line up even when one has fewer pills.
+        private int ChipGapX => S(5);
+        private int ChipGapY => S(8);
+        private int ChipPad => S(16);
+        private int NameGap => S(14);
+        private int TopPad => S(10);
+        private int NameX => S(58);
 
         // The pill height follows the FONT, with 4 px of air above and below the text. A fixed
         // 20 px box left the outlined pills looking like the text touched their edges (the
         // filled profile pill hid it better), and it clipped outright once the font grew with
         // the display scaling.
         private static readonly Font ChipFont = Dpi.Font("Segoe UI", 8.5f);
+        private static readonly Font NameF = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
+        private static readonly Font GlyphF = Dpi.Font("Segoe UI Emoji", 15f);
         private static int ChipH => ChipFont.Height + 8;
 
-        private int TextAreaWidth(int width) => width - 58 - HotCount * (HotW + HotGap) - 16;
+        private int TextAreaWidth(int width) => width - NameX - HotCount * (HotW + HotGap) - S(16);
 
-        // Chips sit BELOW the icon+name line and reclaim the icon column, so they start at
-        // the card's left padding and only stop before the action hotspots.
-        private int ChipAreaWidth(int width) => width - 12 - HotCount * (HotW + HotGap) - 16;
+        // Chips sit BELOW the icon+name line (which also carries the action hotspots) and reclaim
+        // the icon column, so they run from the card's left padding to its right padding.
+        private int ChipAreaWidth(int width) => width - S(12) - S(12);
 
         private int ChipLines(int tw)
         {
@@ -795,8 +814,8 @@ public sealed class ScenariosPage : ThemedPage
         {
             int tw = Math.Max(40, ChipAreaWidth(width));
             int lines = ChipLines(tw);
-            int nameH = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold).Height;
-            return Math.Max(74, 10 + nameH + NameGap + lines * (ChipH + ChipGapY) - ChipGapY + 10);
+            int nameH = NameF.Height;
+            return Math.Max(74, TopPad + nameH + NameGap + lines * (ChipH + ChipGapY) - ChipGapY + TopPad);
         }
 
         protected override void Dispose(bool disposing)
@@ -820,34 +839,31 @@ public sealed class ScenariosPage : ThemedPage
             }
             // icon + name pinned to the TOP line; chips below reclaim the icon column's width
             string glyph = _scene.Glyph.Length > 0 ? _scene.Glyph : "▶";
-            var nameFont = Dpi.Font("Segoe UI", 10.5f, FontStyle.Bold);
-            int nameH = nameFont.Height;
-            const int top = 10;
-            Ui.DrawText(g, glyph, Dpi.Font("Segoe UI Emoji", 15f),
-                new Rectangle(12, top - 6, 40, nameH + 12), Theme.Accent,
+            var nameFont = NameF;
+            int nameH = nameFont.Height, top = TopPad;
+            Ui.DrawText(g, glyph, GlyphF,
+                new Rectangle(S(12), top - S(6), NameX - S(18), nameH + S(12)), Theme.Accent,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
             Ui.DrawText(g, _scene.Name, nameFont,
-                new Rectangle(58, top, Math.Max(20, TextAreaWidth(Width)), nameH),
+                new Rectangle(NameX, top, Math.Max(20, TextAreaWidth(Width)), nameH),
                 Theme.Text, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
 
-            // chips center vertically in the space UNDER the name line
+            // chips start right under the name line, the same on every card of the row
             int tw = Math.Max(40, ChipAreaWidth(Width));
             var chipFont = ChipFont;
             var parts = _scene.SummaryParts();
-            int pillsH = (_armDelete || parts.Count == 0 ? 1 : ChipLines(tw)) * (ChipH + ChipGapY) - ChipGapY;
-            int areaTop = top + nameH + NameGap;
-            int cy = areaTop + Math.Max(0, (Height - areaTop - 10 - pillsH) / 2);
+            int cy = top + nameH + NameGap;
             if (_armDelete)
             {
                 // armed delete replaces the chips with the confirm hint (amber), like the camera block
                 Ui.DrawText(g, Lang.T("scene_del_arm"), chipFont,
-                    new Rectangle(12, cy, tw, ChipH), Theme.Amber,
+                    new Rectangle(S(12), cy, tw, ChipH), Theme.Amber,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             }
             else if (parts.Count == 0)
             {
                 Ui.DrawText(g, Lang.T("scene_empty_def"), chipFont,
-                    new Rectangle(12, cy, tw, ChipH), Theme.Muted,
+                    new Rectangle(S(12), cy, tw, ChipH), Theme.Muted,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             }
             else
@@ -861,7 +877,7 @@ public sealed class ScenariosPage : ThemedPage
                 {
                     int w = TextRenderer.MeasureText(parts[i], chipFont).Width + ChipPad;
                     if (x > 0 && x + w > tw) { x = 0; cy += ChipH + ChipGapY; }
-                    var cr = new RectangleF(12 + x, cy, w, ChipH);
+                    var cr = new RectangleF(S(12) + x, cy, w, ChipH);
                     bool accent = hasProfile && i == 0;
                     using (var path = Theme.RoundRect(cr, ChipH / 2f))
                     {
@@ -885,8 +901,7 @@ public sealed class ScenariosPage : ThemedPage
                 Color c = i == 4 && _armDelete ? Theme.Red
                         : i == _hotHover ? (i == 4 ? Theme.Red : Theme.Accent)
                         : _hover ? Theme.Muted : Theme.Faint;
-                var f = Dpi.Font("Segoe UI", i == 4 && _armDelete ? 12f : 10.5f, i == 4 && _armDelete ? FontStyle.Bold : FontStyle.Regular);
-                Ui.DrawText(g, HotGlyphs[i], f, HotRect(i), c,
+                Ui.DrawText(g, HotGlyphs[i], i == 4 && _armDelete ? HotArmedF : HotF, HotRect(i), c,
                     TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
             }
         }

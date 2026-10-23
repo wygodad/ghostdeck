@@ -20,7 +20,7 @@ internal sealed class HelpPopup : ToolStripDropDown
 {
     // 640, not 430: the fan-curve bubbles explain a whole view (what it shows, how to
     // read it, what to watch for) and a narrow column turned them into a ribbon.
-    private const int MaxWidth = 640, PadX = 18, PadY = 15;
+    private const int MaxWidth = 640, PadX = 18, PadY = 15;   // at 100 %; the bubble scales them with the display
     private static readonly Font TextFont = Dpi.Font("Segoe UI", 10f);
 
     private static HelpPopup? _open;
@@ -35,9 +35,12 @@ internal sealed class HelpPopup : ToolStripDropDown
         DropShadowEnabled = true;
         BackColor = Theme.Card;
 
-        int textW = Math.Max(140, Math.Min(MaxWidth, maxScreenWidth) - PadX * 2);
+        // #172: a 640 px cap at 200 % held half the text per line it holds at 100 %
+        float k = Dpi.Of(this) / 96f;
+        int padX = (int)Math.Ceiling(PadX * k), padY = (int)Math.Ceiling(PadY * k);
+        int textW = Math.Max((int)(140 * k), Math.Min((int)(MaxWidth * k), maxScreenWidth) - padX * 2);
         var measured = TextRenderer.MeasureText(text, TextFont, new Size(textW, 0), TextFormatFlags.WordBreak);
-        var card = new Card(text, new Size(measured.Width + PadX * 2, measured.Height + PadY * 2));
+        var card = new Card(text, new Size(measured.Width + padX * 2, measured.Height + padY * 2), padX, padY);
         var host = new ToolStripControlHost(card)
         {
             AutoSize = false,
@@ -53,10 +56,11 @@ internal sealed class HelpPopup : ToolStripDropDown
     private sealed class Card : Control
     {
         private readonly string _text;
+        private readonly int _padX, _padY;
 
-        public Card(string text, Size size)
+        public Card(string text, Size size, int padX, int padY)
         {
-            _text = text;
+            _text = text; _padX = padX; _padY = padY;
             Size = size;
             DoubleBuffered = true;
             TabStop = false;
@@ -72,7 +76,7 @@ internal sealed class HelpPopup : ToolStripDropDown
             using (var pen = new Pen(Theme.Accent, 1.4f))
                 g.DrawPath(pen, path);
             TextRenderer.DrawText(g, _text, TextFont,
-                new Rectangle(PadX, PadY, Width - PadX * 2, Height - PadY * 2), Theme.Text,
+                new Rectangle(_padX, _padY, Width - _padX * 2, Height - _padY * 2), Theme.Text,
                 TextFormatFlags.WordBreak);
         }
     }

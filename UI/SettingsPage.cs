@@ -485,7 +485,7 @@ public sealed partial class SettingsPage : ThemedPage
 
         // ---- left column ----
         var look = new CardSection(Lang.T("set_grp_look"), "");
-        var theme = new SegControl(new[] { Lang.T("set_theme_light"), Lang.T("set_theme_dark") }, Theme.Dark ? 1 : 0) { Size = new Size(220, 34) };
+        var theme = new SegControl(new[] { Lang.T("set_theme_light"), Lang.T("set_theme_dark") }, Theme.Dark ? 1 : 0) { Size = new Size(220, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
         theme.SelectedChanged += i => { Theme.Set(i == 1); D.Settings.DarkMode = Theme.Dark; D.SaveSettings(); };
         _themeSeg = theme;
         look.AddRow(Lang.T("set_theme"), theme);
@@ -560,7 +560,7 @@ public sealed partial class SettingsPage : ThemedPage
             // is a click, not another aim with the mouse.
             bool chargeCustom = AppSettings.ChargeManaged(D.Settings.ChargeLimit) && !AppSettings.ChargeVerified(D.Settings.ChargeLimit);
             int chargeIdx = chargeCustom ? 4 : Math.Max(0, Array.IndexOf(ChargeVals, D.Settings.ChargeLimit));
-            var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%", Lang.T("charge_custom") }, chargeIdx) { Size = new Size(360, 34) };
+            var charge = new SegControl(new[] { Lang.T("gen_off_short"), "60%", "80%", "100%", Lang.T("charge_custom") }, chargeIdx) { Size = new Size(360, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
             charge.SelectedChanged += i =>
             {
                 bool wasTravel = D.Settings.TravelUntil != DateTime.MinValue;
@@ -1475,7 +1475,7 @@ public sealed partial class SettingsPage : ThemedPage
                 Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
             };
             var fnSeg = new SegControl(new[] { Lang.T("fnswap_left"), Lang.T("fnswap_right") },
-                D.FnLeft() == 1 ? 0 : 1) { Size = new Size(280, 34) };
+                D.FnLeft() == 1 ? 0 : 1) { Size = new Size(280, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
             fnSeg.SelectedChanged += i => D.SetFnLeft(i == 0);
             fnCard.AddRow(null, fnInfo);
             fnCard.AddRow(null, fnSeg);
@@ -1836,7 +1836,9 @@ public sealed partial class SettingsPage : ThemedPage
         };
         foreach (var (label, get, set) in items)
         {
-            var b = new Button { Text = label, AutoSize = false, Size = new Size(96, 30), Margin = new Padding(0, 0, 8, 0) };
+            // as wide and tall as its label needs, never smaller than 96 x 30 at 100 %
+            var b = new Button { Text = label, AutoSize = true, Padding = new Padding(10, 2, 10, 2), Margin = new Padding(0, 0, 8, 0),
+                                 MinimumSize = new Size((int)Math.Ceiling(96 * Dpi.Of(this) / 96f), (int)Math.Ceiling(30 * Dpi.Of(this) / 96f)) };
             Ui.StyleGhost(b);
             void Paint()
             {

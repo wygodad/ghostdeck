@@ -1164,16 +1164,55 @@ public sealed class FanCurvePage : ThemedPage
     // The circle a fan's dial is drawn in.
     private (PointF centre, float rMax) DialGeometry(int fan)
     {
+        var (c, r, _) = DialLayout(fan);
+        return (c, r);
+    }
+
+    private static readonly Font DeckValF = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
+    private static readonly Font DeckSmallF = Dpi.Font("Segoe UI", 8.5f);
+
+    // The live reading ("67°  →  68%" and "fans now: 75%") at its widest.
+    private Size DeckReadingSize()
+    {
+        const TextFormatFlags F = TextFormatFlags.NoPadding;
+        int w1 = TextRenderer.MeasureText("100°  →  150%", DeckValF, Size.Empty, F).Width;
+        int w2 = TextRenderer.MeasureText(string.Format(Lang.T("fc_deck_now"), 150), DeckSmallF, Size.Empty, F).Width;
+        return new Size(Math.Max(w1, w2) + S(4), DeckValF.Height + S(2) + DeckSmallF.Height);
+    }
+
+    // The dial, and where its live reading goes. The circle lives BELOW the card title, and its
+    // radius leaves room for the temperature labels drawn just outside the rim. The reading sits
+    // beside the dial when the column is wide enough for that to give the bigger dial (a wide,
+    // low card: high scaling or a short window), under it otherwise - never inside it, where the
+    // curve's handles and the scale labels are.
+    private (PointF centre, float rMax, Rectangle reading) DialLayout(int fan)
+    {
         var d = DeckRect;
         int fans = Single ? 1 : 2;
         int gap = S(40), w = (d.Width - gap * (fans - 1)) / fans;
-        // The circle lives BELOW the card title, and its radius leaves room for the temperature
-        // labels drawn just outside the rim - otherwise the topmost label lands on the title.
-        int titleBand = S(40), labelRoom = S(30);
+        int titleBand = DeckTitleF.Height + S(20);
+        int labelRoom = Math.Max(S(30), TextRenderer.MeasureText("100°", DeckSmallF).Width / 2 + S(18));
         var box = new Rectangle(d.X + fan * (w + gap), d.Y + titleBand, w, d.Height - titleBand - S(16));
-        float r = Math.Min(box.Width, box.Height) / 2f - labelRoom;
-        return (new PointF(box.X + box.Width / 2f, box.Y + box.Height / 2f), Math.Max(S(40), r));
+        var rs = DeckReadingSize();
+        int side = S(24), below = S(8);
+        float rBeside = Math.Min((box.Width - rs.Width - side) / 2f, box.Height / 2f) - labelRoom;
+        float rBelow = Math.Min(box.Width / 2f, (box.Height - rs.Height - below) / 2f) - labelRoom;
+        if (rBeside > rBelow)
+        {
+            float r = Math.Max(S(40), rBeside), dia = 2 * (r + labelRoom);
+            float x0 = box.X + (box.Width - (dia + side + rs.Width)) / 2f;
+            var c = new PointF(x0 + dia / 2f, box.Y + box.Height / 2f);
+            return (c, r, new Rectangle((int)(x0 + dia + side), (int)(c.Y - rs.Height / 2f), rs.Width, rs.Height));
+        }
+        else
+        {
+            float r = Math.Max(S(40), rBelow), dia = 2 * (r + labelRoom);
+            float y0 = box.Y + (box.Height - (dia + below + rs.Height)) / 2f;
+            var c = new PointF(box.X + box.Width / 2f, y0 + dia / 2f);
+            return (c, r, new Rectangle((int)(c.X - rs.Width / 2f), (int)(y0 + dia + below), rs.Width, rs.Height));
+        }
     }
+    private static readonly Font DeckTitleF = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
 
     // Node i of n sits on the sweep from 200° (bottom-left) clockwise through the top to 340°.
     private static float NodeAngle(int i, int n) => 200f + (n <= 1 ? 0 : i * 200f / (n - 1));
@@ -1223,16 +1262,16 @@ public sealed class FanCurvePage : ThemedPage
         _dials = new Rectangle[fans, n];
         var d = DeckRect;
         Ui.FillCard(g, d);
-        using var titleF = Dpi.Font("Segoe UI", 11f, FontStyle.Bold);
-        using var valF = Dpi.Font("Segoe UI", 10f, FontStyle.Bold);
-        using var smallF = Dpi.Font("Segoe UI", 8.5f);
+        var titleF = DeckTitleF;
+        var valF = DeckValF;
+        var smallF = DeckSmallF;
         using var capF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
         var live = _live.Sample;
         var cols = new[] { Theme.Accent, Theme.Violet };
 
         for (int fan = 0; fan < fans; fan++)
         {
-            var (c, rMax) = DialGeometry(fan);
+            var (c, rMax, readR) = DialLayout(fan);
             int[] temps = fan == 0 ? _cpuT : _gpuT, sp = fan == 0 ? _cpuS : _gpuS;
             var col = cols[fan];
             string title = Lang.T(fan == 0 ? (Single ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu");
@@ -1240,13 +1279,27 @@ public sealed class FanCurvePage : ThemedPage
             TextRenderer.DrawText(g, title, titleF, new Rectangle(d.X + fan * (colW + S(40)), d.Y + S(10), colW, titleF.Height + S(4)),
                 Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
 
-            // rings every 25 % up to the model top + the audibility tint between them when zones are on
+            // rings every 25 % up to the model top + the audibility tint between them when zones are on.
+            // The scale labels run straight DOWN from the centre: the curve's nodes sweep over the
+            // top (200° to 40°), so the bottom is the one side the curve never covers. When the
+            // rings are closer together than a label is tall, only every second (third) one is
+            // labelled, so the labels never sit on each other.
+            float ringStep = rMax * 0.78f * 25 / MaxPct;
+            int every = Math.Max(1, (int)Math.Ceiling((smallF.Height + S(2)) / Math.Max(1f, ringStep)));
             for (int v = 25; v <= MaxPct; v += 25)
             {
                 float rr = rMax * (0.22f + 0.78f * v / (float)MaxPct);
                 using var rp = new Pen(Color.FromArgb(v == MaxPct ? 90 : 55, Theme.Border), 1f) { DashStyle = v == MaxPct ? DashStyle.Solid : DashStyle.Dot };
                 g.DrawEllipse(rp, c.X - rr, c.Y - rr, rr * 2, rr * 2);
-                TextRenderer.DrawText(g, v + "%", smallF, new Rectangle((int)(c.X - S(18)), (int)(c.Y - rr) - smallF.Height / 2, S(36), smallF.Height),
+            }
+            for (int v = 25; v <= MaxPct; v += 25)
+            {
+                if ((v / 25) % every != 0 && v != MaxPct) continue;
+                if (v != MaxPct && MaxPct - v < 25 * every) continue;   // the top ring keeps its label; its neighbour gives way
+                float rr = rMax * (0.22f + 0.78f * v / (float)MaxPct);
+                string lbl = v + "%";
+                int lw = TextRenderer.MeasureText(lbl, smallF, Size.Empty, TextFormatFlags.NoPadding).Width;
+                TextRenderer.DrawText(g, lbl, smallF, new Rectangle((int)(c.X - lw / 2f), (int)(c.Y + rr) - smallF.Height / 2, lw, smallF.Height),
                     Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
             }
             if (D.Settings.FanCurveZones)
@@ -1301,19 +1354,21 @@ public sealed class FanCurvePage : ThemedPage
                         Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
             }
 
-            // the ghost in the axis + the live reading under it
+            // the ghost in the axis; the live reading beside or under the dial (DialLayout)
             float gs = rMax * 0.30f;
-            TrayIconFactory.DrawGhost(g, c.X - gs / 2, c.Y - gs / 2 - S(6), gs, Color.FromArgb(150, col), Theme.Card);
+            TrayIconFactory.DrawGhost(g, c.X - gs / 2, c.Y - gs / 2, gs, Color.FromArgb(150, col), Theme.Card);
             int t = fan == 0 ? live.CpuTemp : live.GpuTemp, duty = fan == 0 ? live.CpuFan : live.GpuFan;
             string mid = live.Time != DateTime.MinValue && t > 0
                 ? $"{t}°  →  {(int)Math.Round(CurveModel.SpeedAt(temps, sp, t))}%"
                 : "--";
-            TextRenderer.DrawText(g, mid, valF, new Rectangle((int)(c.X - rMax), (int)(c.Y + gs / 2 + S(2)), (int)(rMax * 2), valF.Height),
-                Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
+            bool beside = readR.Left > c.X + rMax;
+            var align = beside ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter;
+            TextRenderer.DrawText(g, mid, valF, new Rectangle(readR.X, readR.Y, readR.Width, valF.Height),
+                Theme.Text, align | TextFormatFlags.NoPadding);
             if (live.Time != DateTime.MinValue && t > 0)
                 TextRenderer.DrawText(g, string.Format(Lang.T("fc_deck_now"), duty), smallF,
-                    new Rectangle((int)(c.X - rMax), (int)(c.Y + gs / 2 + S(4)) + valF.Height, (int)(rMax * 2), smallF.Height),
-                    Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
+                    new Rectangle(readR.X, readR.Y + valF.Height + S(2), readR.Width, smallF.Height),
+                    Theme.Muted, align | TextFormatFlags.NoPadding);
         }
 
         // ---- crossfader ----

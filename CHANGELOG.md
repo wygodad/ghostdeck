@@ -17,7 +17,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   curve point labels stay inside the chart, and the overlay settings fit every metric name. The
   "Show overlay" switch, the crosshair hotkey's "(disabled)", the switches on the Settings tiles and
   the travel mode "?" line up with what sits next to them, and help dots, colour swatches, slider
-  handles and list arrows grow with the scale.
+  handles and list arrows grow with the scale. The icon buttons in the window header (Models,
+  updates, report, theme) and the scene cards' actions show whole icons; the scene actions sit on
+  the name line and every card's settings start right under its name. The Deck view draws bigger
+  dials with the scale labels below the centre, clear of the curve, and the live reading beside
+  the dial. The "Report my model" wizard, the live EC view and the help bubbles scale with the
+  display too.
 - **No long dashes in the interface** - every em dash in the app's texts, in all 15 languages,
   became a short dash or a comma.
 - **On-screen notifications at 125-150 % display scaling** - a short title such as "SSD running

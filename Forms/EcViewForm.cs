@@ -44,7 +44,7 @@ public sealed class EcViewForm : Form
     private readonly Font _mono = Dpi.Font("Consolas", 9.5f);
     private readonly Font _monoBold = Dpi.Font("Consolas", 9.5f, FontStyle.Bold);
     private readonly Font _hintFont = Dpi.Font("Segoe UI", 9f);
-    private readonly int _gridTop, _cellW, _rowH, _hdrW;
+    private readonly int _gridTop, _cellW, _rowH, _hdrW, _hintH;
 
     private EcViewForm()
     {
@@ -106,10 +106,12 @@ public sealed class EcViewForm : Form
         _cellW = TextRenderer.MeasureText("00", _monoBold).Width + 12;
         _rowH = _mono.Height + 4;
         _hdrW = TextRenderer.MeasureText("F0:", _mono).Width + 10;
-        _gridTop = 10 + _hintFont.Height * 2 + 12;
-        int gridW = 16 + _hdrW + 16 * _cellW + 16;
+        int gridW = 16 + _hdrW + 16 * _cellW + 16, formW = Math.Max(700, gridW);
+        // the hint takes as many lines as it needs at this width (two fixed lines cut it at 200 %)
+        _hintH = TextRenderer.MeasureText(Lang.T("ec_view_hint"), _hintFont, new Size(formW - 32, 0), TextFormatFlags.WordBreak).Height;
+        _gridTop = 10 + _hintH + 12;
         int gridBottom = _gridTop + 17 * _rowH + 8;
-        ClientSize = new Size(Math.Max(700, gridW), gridBottom + 40 + 230);
+        ClientSize = new Size(formW, gridBottom + 40 + 230);
 
         _log.Multiline = true;
         _log.ReadOnly = true;
@@ -229,8 +231,7 @@ public sealed class EcViewForm : Form
         var g = e.Graphics;
         g.Clear(Theme.Surface);
         TextRenderer.DrawText(g, Lang.T("ec_view_hint"), _hintFont,
-            new Rectangle(16, 10, ClientSize.Width - 32, _hintFont.Height * 2 + 4), Theme.Muted,
-            TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);   // dpi-ok: developer view: a two-line hint above the live byte grid
+            new Rectangle(16, 10, ClientSize.Width - 32, _hintH), Theme.Muted, TextFormatFlags.WordBreak);
 
         int x0 = 16 + _hdrW, y0 = _gridTop;
         // column header
