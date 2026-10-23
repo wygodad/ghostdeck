@@ -3568,6 +3568,8 @@ or deleting a preset in Settings calls `SettingsChanged`, so the menu is rebuilt
 Settings → System → *Tray menu* hide the overlay pair and the crosshair entry
 (`TrayShowOverlay`, `TrayShowCrosshair`), like the switches for Status or the change log.
 
+![Settings → System → Tray menu with the two new switches](images/tray_menu_settings.png)
+
 ### 79.5 Three fixes the owner's test turned up
 
 *Card widths after the scrollbar.* On entering a Settings view tall enough for a vertical
