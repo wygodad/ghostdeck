@@ -343,7 +343,7 @@ public sealed class ThemedComboBox : Control
         {
             int i = (Math.Max(cur, -1) + step) % _items.Count;
             string t = _items[i]?.ToString() ?? "";
-            if (t.Length == 0 || char.ToUpperInvariant(t[0]) != char.ToUpperInvariant(e.KeyChar)) continue;
+            if (t.Length == 0 || char.ToUpper(t[0], Lang.Culture) != char.ToUpper(e.KeyChar, Lang.Culture)) continue;
             e.Handled = true;
             Step(i);
             return;

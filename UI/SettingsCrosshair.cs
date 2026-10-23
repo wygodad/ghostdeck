@@ -83,7 +83,7 @@ public sealed partial class SettingsPage
                                  + " · " + Lang.T(string.Equals(s.OverlayLayout, "Bar", StringComparison.OrdinalIgnoreCase) ? "ov_layout_bar" : "ov_layout_card"), s.OverlayEnabled);
         var st = s.Crosshair;
         _gamingTiles[1].SetState(Lang.T(D.CrosshairOn() ? "st_on" : "st_off") + " · " + Lang.T(KindKeys[Math.Clamp(st.Kind, 0, KindKeys.Length - 1)])
-                                 + " · " + st.Size + " px · " + st.Color.ToUpperInvariant(), D.CrosshairOn());
+                                 + " · " + st.Size + " px · " + st.Color.ToUpperInvariant(), D.CrosshairOn());   // dpi-ok: a hex colour code
         foreach (var t in _gamingTiles) t.SyncToggle();
     }
 

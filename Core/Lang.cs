@@ -21,6 +21,23 @@ public static class Lang
         _idx = i >= 0 ? i : 0;
     }
 
+    /// <summary>The culture of the selected interface language (invariant if Windows lacks it).</summary>
+    public static System.Globalization.CultureInfo Culture
+    {
+        get
+        {
+            try { return System.Globalization.CultureInfo.GetCultureInfo(CurrentCode); }
+            catch { return System.Globalization.CultureInfo.InvariantCulture; }
+        }
+    }
+
+    /// <summary>
+    /// Upper-cases interface text by the rules of the selected language. Turkish has a dotted
+    /// and a dotless i (i → İ, ı → I); the invariant rules left "ı" lower-case inside an
+    /// upper-case heading ("PİL SAĞLıĞı" instead of "PİL SAĞLIĞI", issue #172).
+    /// </summary>
+    public static string Upper(string s) => s.ToUpper(Culture);
+
     public static string T(string key)
     {
         if (Map.TryGetValue(key, out var arr))

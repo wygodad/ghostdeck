@@ -2195,7 +2195,7 @@ public sealed partial class SettingsPage : ThemedPage
             DoubleBuffered = true;
             BackColor = Theme.Card;
             _glyph = glyph;
-            _head = new Label { Text = title.ToUpperInvariant(), AutoSize = true, UseMnemonic = false, Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold) };   // "Startup & tray" keeps its &
+            _head = new Label { Text = Lang.Upper(title), AutoSize = true, UseMnemonic = false, Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold) };   // "Startup & tray" keeps its &
             Controls.Add(_head);
         }
 

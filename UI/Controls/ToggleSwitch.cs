@@ -13,7 +13,14 @@ public sealed class ToggleSwitch : Control
     public event Action<bool>? Toggled;
     public bool Checked { get => _checked; set { _checked = value; Invalidate(); } }
 
-    public ToggleSwitch() { DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; Size = new Size(52, 28); }   // dpi-ok: a track and a knob, no text; layouts centre it on its row
+    // 52 x 28 at 100 %, grown with the display scale like the text next to it (at 200 % a
+    // 100 % switch looked tiny beside doubled labels, issue #172). Layouts centre it on its row.
+    public ToggleSwitch()
+    {
+        DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
+        float k = Dpi.Of(this) / 96f;
+        Size = new Size((int)Math.Round(52 * k), (int)Math.Round(28 * k));
+    }
 
     protected override void OnClick(EventArgs e) { if (!Enabled) return; _checked = !_checked; Invalidate(); Toggled?.Invoke(_checked); }
     protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Cursor = Enabled ? Cursors.Hand : Cursors.Default; Invalidate(); }
@@ -30,9 +37,10 @@ public sealed class ToggleSwitch : Control
         using (var path = Theme.RoundRect(r, Height / 2f))
         using (var b = new SolidBrush(track))
             g.FillPath(b, path);
-        float d = Height - 8;
-        float kx = _checked ? Width - d - 4 : 4;
+        float pad = 4 * Height / 28f;   // the knob's inset grows with the switch
+        float d = Height - 2 * pad;
+        float kx = _checked ? Width - d - pad : pad;
         using var kb = new SolidBrush(knob);
-        g.FillEllipse(kb, kx, 4, d, d);
+        g.FillEllipse(kb, kx, pad, d, d);
     }
 }

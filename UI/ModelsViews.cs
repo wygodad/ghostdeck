@@ -209,11 +209,11 @@ internal abstract class ModelsView : Control
         int tx = r.X + S(18) + isz + S(10);
         int tw = r.Right - S(18) - tx;
         if (sub == null)
-            T(g, title.ToUpperInvariant(), ModelsPage.FCardTitle, new Rectangle(tx, top, tw, isz), Theme.Accent, ModelsText.Line);
+            T(g, Lang.Upper(title), ModelsPage.FCardTitle, new Rectangle(tx, top, tw, isz), Theme.Accent, ModelsText.Line);
         else
         {
             int h1 = ModelsPage.FCardTitle.Height;
-            T(g, title.ToUpperInvariant(), ModelsPage.FCardTitle, new Rectangle(tx, top - S(3), tw, h1), Theme.Accent, ModelsText.Line);
+            T(g, Lang.Upper(title), ModelsPage.FCardTitle, new Rectangle(tx, top - S(3), tw, h1), Theme.Accent, ModelsText.Line);
             T(g, sub, ModelsPage.FSmall, new Rectangle(tx, top - S(3) + h1, tw, ModelsPage.FSmall.Height + 2), Theme.Faint, ModelsText.Line);
         }
         return top + isz + S(12);

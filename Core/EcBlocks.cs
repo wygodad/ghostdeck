@@ -222,7 +222,7 @@ public static class EcBlocks
     public static string? BoardFromBios(string biosVersion)
     {
         var m = BiosPattern.Match(biosVersion ?? "");
-        return m.Success ? m.Groups[1].Value.ToUpperInvariant() : null;
+        return m.Success ? m.Groups[1].Value.ToUpperInvariant() : null;   // dpi-ok: a board code, not interface text
     }
 
     // ---------------- diagnostic dump ----------------

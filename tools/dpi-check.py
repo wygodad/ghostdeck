@@ -25,6 +25,11 @@ the scale, the box around it does not, and the text is cut. The rules this scrip
                the box does not, which cut the header icons and the gear in half at 200 %.
                Scale the size (S(), Dpi.Of) or derive it from the font; a control that grows
                on its own (SegControl's MinimumSize) or holds no text says so with dpi-ok.
+  upper        Interface text is upper-cased with Lang.Upper(text) (single letters with
+               char.ToUpper(c, Lang.Culture)), never ToUpperInvariant() / ToUpper(): Turkish has
+               a dotted and a dotless i, and invariant rules left the dotless one lower-case
+               ("PİL SAĞLıĞı" in a Turkish card header, #172). Codes that are not words (a
+               board code, a hex colour) say so with dpi-ok.
   long-dash    No long dash in interface text: the em dash (U+2014) is not used in any string
                in the code (Core/Lang.cs included) nor in the newest announcements.json entry;
                write " - " or a comma instead. The en dash (U+2013) is allowed only between
@@ -50,6 +55,9 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 DIRS = ("Core", "UI", "Forms")
 TOP_FILES = ("Program.cs", "TrayContext.cs")
 DPI_FILE = os.path.normpath("UI/Dpi.cs")
+LANG_FILE = os.path.normpath("Core/Lang.cs")
+# ToUpperInvariant(), ToUpper() with no culture, char.ToUpper(c) / char.ToUpperInvariant(c)
+UPPER = re.compile(r"\.ToUpperInvariant\s*\(|\.ToUpper\s*\(\s*\)|\bchar\.ToUpper(?:Invariant)?\s*\(\s*[^,()]*\)")
 EM, EN = "—", "–"
 BACKSLASH, QUOTE = chr(92), chr(34)
 
@@ -337,6 +345,12 @@ def main():
                 report(m.start(), "ellipsis", "EndEllipsis cuts interface text - fit or wrap it instead "
                        "(or say why with // dpi-ok: <reason>)")
 
+        if rel != LANG_FILE:
+            for m in UPPER.finditer(code):
+                if not excused(m.start()):
+                    report(m.start(), "upper", "upper-cased without the interface language - use Lang.Upper(text) "
+                           "or char.ToUpper(c, Lang.Culture) (Turkish i and dotless i, #172)")
+
         for ln, s in strings:
             if EM in s:
                 report(ln, "long-dash", "long dash in a string - write \" - \" or a comma instead", by_line=True)
@@ -370,7 +384,7 @@ def main():
         for p in problems:
             print("  -", p)
         return 1
-    print("OK - one DPI source, fonts via Dpi.Font, no fixed-height text rectangles, text controls or control sizes, every ellipsis explained, no long dashes")
+    print("OK - one DPI source, fonts via Dpi.Font, no fixed-height text rectangles, text controls or control sizes, every ellipsis explained, interface text upper-cased per language, no long dashes")
     return 0
 
 

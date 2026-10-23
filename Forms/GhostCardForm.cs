@@ -329,7 +329,7 @@ public class GhostCardForm : Form
     private protected void PaintCaption(Graphics g, string text, int x, int y)
     {
         using var b = new SolidBrush(Muted);
-        g.DrawString(text.ToUpperInvariant(), CaptionFont, b, x, y);
+        g.DrawString(Lang.Upper(text), CaptionFont, b, x, y);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

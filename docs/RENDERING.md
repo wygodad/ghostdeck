@@ -656,6 +656,11 @@ and fails the build on:
 - any `Size = new Size(<n>, <n>)` on a control (the header's 40 x 38 icon buttons, the 42 x 42
   gear): the glyph inside grows with the scale and the box does not. A control that grows on its
   own (SegControl's `MinimumSize`) or holds no text says so with `dpi-ok`;
+- `ToUpperInvariant()`, `ToUpper()` or `char.ToUpper(c)` on interface text: card headings are
+  written in capitals, and Turkish has a dotted and a dotless i, so invariant rules left "ı"
+  lower-case ("PİL SAĞLıĞı"). Use `Lang.Upper(text)` or `char.ToUpper(c, Lang.Culture)`, which
+  follow the selected interface language; a code that is not a word (board code, hex colour)
+  says so with `dpi-ok`;
 - an em dash in any C# string (`Core/Lang.cs` included) or in the newest `announcements.json`
   entry, and an en dash anywhere but between two digits ("30-40 W" as a range). Write " - " or a
   comma instead.
