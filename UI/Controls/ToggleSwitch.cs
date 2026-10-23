@@ -13,7 +13,7 @@ public sealed class ToggleSwitch : Control
     public event Action<bool>? Toggled;
     public bool Checked { get => _checked; set { _checked = value; Invalidate(); } }
 
-    public ToggleSwitch() { DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; Size = new Size(52, 28); }
+    public ToggleSwitch() { DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; Size = new Size(52, 28); }   // dpi-ok: a track and a knob, no text; layouts centre it on its row
 
     protected override void OnClick(EventArgs e) { if (!Enabled) return; _checked = !_checked; Invalidate(); Toggled?.Invoke(_checked); }
     protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Cursor = Enabled ? Cursors.Hand : Cursors.Default; Invalidate(); }

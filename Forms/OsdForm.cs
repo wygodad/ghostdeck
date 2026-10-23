@@ -54,7 +54,7 @@ public sealed class OsdForm : Form
         TopMost = true;
         DoubleBuffered = true;
         BackColor = ColorTranslator.FromHtml("#16181D");
-        Size = new Size(440, 104);
+        Size = new Size(440, 104);   // dpi-ok: placeholder; ShowProfile sizes the toast from its text before it is shown
         Opacity = 0;
         _anim.Tick += Anim_Tick;
         Region = RoundedRegion(Width, Height, 18);

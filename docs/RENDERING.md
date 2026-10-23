@@ -653,6 +653,9 @@ and fails the build on:
 - a control that paints its own text and gives itself a bare pixel height in its constructor
   (`Height = 26;`, `Size = new Size(22, 22);`): take it from the font (`Math.Max(26, font.Height + 6)`)
   or scale it with `Dpi.Of(this)`;
+- any `Size = new Size(<n>, <n>)` on a control (the header's 40 x 38 icon buttons, the 42 x 42
+  gear): the glyph inside grows with the scale and the box does not. A control that grows on its
+  own (SegControl's `MinimumSize`) or holds no text says so with `dpi-ok`;
 - an em dash in any C# string (`Core/Lang.cs` included) or in the newest `announcements.json`
   entry, and an en dash anywhere but between two digits ("30-40 W" as a range). Write " - " or a
   comma instead.

@@ -29,7 +29,7 @@ public sealed class UpdatesPage : ThemedPage
     {
         private float _value;
         public float Value { get => _value; set { _value = Math.Clamp(value, 0, 1); Invalidate(); } }
-        public ThinBar() { DoubleBuffered = true; Size = new Size(320, 12); Visible = false; }
+        public ThinBar() { DoubleBuffered = true; Size = new Size(320, 12); Visible = false; }   // dpi-ok: a progress strip without text
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;

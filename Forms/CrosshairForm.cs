@@ -65,7 +65,7 @@ public sealed class CrosshairForm : Form
         ShowInTaskbar = false;
         AutoScaleMode = AutoScaleMode.None;
         TopMost = true;
-        Size = new Size(8, 8);
+        Size = new Size(8, 8);   // dpi-ok: placeholder; the window takes the crosshair's size before it is shown
         _fxTimer.Tick += (_, _) => FxFrame();
         _followTimer.Tick += (_, _) => Follow();
         // a game that comes up after the crosshair can land above it; re-assert quietly

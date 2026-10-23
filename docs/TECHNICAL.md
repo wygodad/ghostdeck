@@ -3899,8 +3899,14 @@ log). The fix has three parts, described in `docs/RENDERING.md` §12:
   slider handles and list arrows. Sliders stacked in a settings card share one value column, so
   their tracks line up.
 - `tools/dpi-check.py` in CI keeps the DPI and font rules, rejects fixed-height text rectangles,
-  text-painting controls that give themselves a fixed height, and unexplained ellipses, and
-  rejects long dashes in interface text.
+  text-painting controls that give themselves a fixed height, fixed pixel control sizes, and
+  unexplained ellipses, and rejects long dashes in interface text.
+- Icon boxes scale with the display: the main window's header (strip height `max(78, S(58))`,
+  icon buttons `S(40) x S(38)`), the scene cards' action hotspots (at least the armed glyph's
+  font height), the Scenarios gear and pencil. The Deck view's dial radius comes from the card:
+  the live reading goes beside the dial when that leaves the larger dial (a wide, low card),
+  under it otherwise, and the 25-150 % scale labels run down from the centre, the side the
+  curve's nodes (200° to 40°) never reach, thinned out when the rings are closer than a label.
 
 Interface text no longer uses the em dash: between words it became " - ", in Chinese a
 full-width comma, and as a "no value" marker a plain "-". The en dash stays only in number ranges.

@@ -20,6 +20,11 @@ the scale, the box around it does not, and the text is cut. The rules this scrip
                the scale and the text is cut at the bottom (the slider values at 200 %). Take
                the height from the font (`Math.Max(26, font.Height + 6)`) or scale it with
                Dpi.Of(this).
+  fixed-size   No control is given a fixed pixel size anywhere (`Size = new Size(40, 38)`,
+               `b.Size = new Size(42, 42)`): the glyph or text inside grows with the scale and
+               the box does not, which cut the header icons and the gear in half at 200 %.
+               Scale the size (S(), Dpi.Of) or derive it from the font; a control that grows
+               on its own (SegControl's MinimumSize) or holds no text says so with dpi-ok.
   long-dash    No long dash in interface text: the em dash (U+2014) is not used in any string
                in the code (Core/Lang.cs included) nor in the newest announcements.json entry;
                write " - " or a comma instead. The en dash (U+2013) is allowed only between
@@ -219,6 +224,9 @@ def split_args(s):
 
 
 CONTROL_BASES = r"(?:Control|Panel|UserControl|Button|Label)"
+# Size = new Size(<n>, <n>) as an assignment or initializer; MinimumSize / MaximumSize / ClientSize
+# and AutoScrollMinSize are other properties and do not match the (?<![\w.]) guard
+FIXED_CTL_SIZE = re.compile(r"(?<![\w])Size\s*=\s*new\s+Size\s*\(\s*\d+\s*,\s*\d+\s*\)")
 PAINTS_TEXT = re.compile(r"\b(?:TextRenderer\.DrawText|DrawString|CenterGlyph)\s*\(")
 FIXED_SIZE = re.compile(r"(?<![\w.])(?:Height\s*=\s*\d+\s*[;,}]|Size\s*=\s*new\s+Size\s*\(\s*\d+\s*,\s*\d+\s*\))")
 
@@ -309,10 +317,20 @@ def main():
                         report(pos, "text-rect", "text rectangle %s px high - derive it from the font "
                                "(font.Height / MeasureText) or scale it with S()" % args[3])
 
+        own = set()
         for pos in fixed_size_controls(code):
+            own.add(pos)
             if not excused(pos):
                 report(pos, "control-size", "a control that paints text gives itself a fixed height - take it "
                        "from the font (font.Height) or scale it with Dpi.Of(this)")
+        for m in FIXED_CTL_SIZE.finditer(code):
+            # "Size" must be the whole property name (not MinimumSize, ClientSize, ...)
+            if m.start() > 0 and (code[m.start() - 1].isalnum() or code[m.start() - 1] == "_"):
+                continue
+            if m.start() in own or excused(m.start()):
+                continue
+            report(m.start(), "fixed-size", "a control gets a fixed pixel size - scale it (S(), Dpi.Of) or "
+                   "take it from its font, or say why it is fine with // dpi-ok: <reason>")
 
         for m in re.finditer(r"\bEndEllipsis\b", code):
             if not excused(m.start()):
@@ -352,7 +370,7 @@ def main():
         for p in problems:
             print("  -", p)
         return 1
-    print("OK - one DPI source, fonts via Dpi.Font, no fixed-height text rectangles or text controls, every ellipsis explained, no long dashes")
+    print("OK - one DPI source, fonts via Dpi.Font, no fixed-height text rectangles, text controls or control sizes, every ellipsis explained, no long dashes")
     return 0
 
 

@@ -48,7 +48,7 @@ public sealed class StatusPage : ThemedPage
         new[] { Lang.T("st_sub_charts"), Lang.T("st_sub_history"), Lang.T("st_sub_gaming"), Lang.T("st_sub_bytes"), Lang.T("st_sub_log") },
         new[] { "\uE9D2", "\uE81C", "\uE7FC", "\uE943", "\uEA37" });
     private int _statusSub;
-    private readonly SegControl _histRange = new(new[] { "5 min", "15 min", "30 min", "60 min" }, 1) { Size = new Size(300, 30), Visible = false };
+    private readonly SegControl _histRange = new(new[] { "5 min", "15 min", "30 min", "60 min" }, 1) { Size = new Size(300, 30), Visible = false };   // dpi-ok: SegControl's MinimumSize grows it to its labels
     private readonly Button _histExport = new() { Visible = false };
     private readonly ThemedComboBox _sessPick = new() { Visible = false, Width = 280 };   // saved game sessions, newest first
     private readonly Button _sessExport = new() { Visible = false };
