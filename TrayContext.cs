@@ -63,6 +63,7 @@ public sealed class TrayContext : ApplicationContext
     private ToolStripMenuItem? _overlayLockItem;
     private CrosshairForm? _crosshair;         // the crosshair window (roadmap #118; lazy)
     private ToolStripMenuItem? _crosshairItem;
+    private readonly List<(string Name, ToolStripMenuItem Item)> _crosshairPresetItems = new();   // the submenu's presets (dot = active)
     private readonly List<ToolStripMenuItem> _tcItems = new();   // True Color submenu entries (Tag = profile id)
     private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
     private TrayWheel? _wheel;                 // (#23) wheel-over-tray hook, installed only while a wheel mode is set
@@ -939,20 +940,55 @@ public sealed class TrayContext : ApplicationContext
             menu.Items.Add(bpt);
         }
 
-        _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { CheckOnClick = false };
-        SetDot(_overlayItem, OverlayVisible);
-        _overlayItem.Click += (_, _) => ToggleOverlay();
-        menu.Items.Add(_overlayItem);
+        // The overlay pair and the crosshair can be hidden from the menu (Settings -> System -> Tray menu).
+        _overlayItem = null; _overlayLockItem = null;
+        if (_settings.TrayShowOverlay)
+        {
+            _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { CheckOnClick = false };
+            SetDot(_overlayItem, OverlayVisible);
+            _overlayItem.Click += (_, _) => ToggleOverlay();
+            menu.Items.Add(_overlayItem);
 
-        _overlayLockItem = new ToolStripMenuItem(Lang.T("ov_lock_menu")) { CheckOnClick = false };
-        SetDot(_overlayLockItem, _settings.OverlayClickThrough);
-        _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
-        menu.Items.Add(_overlayLockItem);
+            _overlayLockItem = new ToolStripMenuItem(Lang.T("ov_lock_menu")) { CheckOnClick = false };
+            SetDot(_overlayLockItem, _settings.OverlayClickThrough);
+            _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
+            menu.Items.Add(_overlayLockItem);
+        }
 
-        _crosshairItem = new ToolStripMenuItem(Lang.T("ch_title")) { CheckOnClick = false };
-        SetDot(_crosshairItem, CrosshairVisible);
-        _crosshairItem.Click += (_, _) => ToggleCrosshair();
-        menu.Items.Add(_crosshairItem);
+        _crosshairItem = null;
+        _crosshairPresetItems.Clear();
+        if (_settings.TrayShowCrosshair)
+        {
+            if (_settings.CrosshairPresets.Count == 0)
+            {
+                _crosshairItem = new ToolStripMenuItem(Lang.T("ch_title")) { CheckOnClick = false };
+                SetDot(_crosshairItem, CrosshairVisible);
+                _crosshairItem.Click += (_, _) => ToggleCrosshair();
+                menu.Items.Add(_crosshairItem);
+            }
+            else
+            {
+                // With presets the entry is a submenu, like Scenes: the switch on top, then one
+                // entry per preset with the dot on the active one; picking a preset loads it
+                // and shows the crosshair (the same path as "--crosshair preset").
+                var sub = new ToolStripMenuItem(Lang.T("ch_title"));
+                _crosshairItem = new ToolStripMenuItem(Lang.T("ch_enable")) { CheckOnClick = false };
+                SetDot(_crosshairItem, CrosshairVisible);
+                _crosshairItem.Click += (_, _) => ToggleCrosshair();
+                sub.DropDownItems.Add(_crosshairItem);
+                sub.DropDownItems.Add(new ToolStripSeparator());
+                foreach (var p in _settings.CrosshairPresets)
+                {
+                    var preset = p;
+                    var it = new ToolStripMenuItem(preset.Name) { CheckOnClick = false };
+                    SetDot(it, string.Equals(_settings.CrosshairActivePreset, preset.Name, StringComparison.OrdinalIgnoreCase));
+                    it.Click += (_, _) => { LoadCrosshairPreset(preset.Name); SetCrosshair(true, osd: true); };
+                    sub.DropDownItems.Add(it);
+                    _crosshairPresetItems.Add((preset.Name, it));
+                }
+                menu.Items.Add(sub);
+            }
+        }
 
         // MSI True Color (roadmap #119): only with the experimental switch on and a confirmed
         // version installed; the dot marks the profile True Color last recorded.
@@ -1903,6 +1939,8 @@ public sealed class TrayContext : ApplicationContext
     private void UpdateCrosshairMenu()
     {
         if (_crosshairItem is { } it && !it.IsDisposed) SetDot(it, CrosshairVisible);
+        foreach (var (name, pi) in _crosshairPresetItems)
+            if (!pi.IsDisposed) SetDot(pi, string.Equals(_settings.CrosshairActivePreset, name, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Copies a saved preset into the live look. False = no preset of that name.</summary>

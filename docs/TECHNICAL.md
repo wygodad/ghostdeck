@@ -3559,6 +3559,15 @@ the limits (512 × 512 px, 1 MB) and re-encodes BMP / JPG as PNG, the next impor
 The settings export carries it as base64 in `CrosshairImageBase64`, a property written only
 when not null, so `settings.json` never holds the picture; the import writes it back.
 
+*Tray menu.* With no preset the tray carries one *Crosshair* entry (on/off, a dot for the
+state). Once presets exist it becomes a submenu like *Scenes*: the switch on top, a separator,
+then one entry per preset with the dot on `CrosshairActivePreset`; a click runs
+`LoadCrosshairPreset` and `SetCrosshair(true)`, the same path as `--crosshair preset`. Saving
+or deleting a preset in Settings calls `SettingsChanged`, so the menu is rebuilt at once, and
+`UpdateCrosshairMenu` moves the dots when the active preset changes elsewhere. Two switches in
+Settings → System → *Tray menu* hide the overlay pair and the crosshair entry
+(`TrayShowOverlay`, `TrayShowCrosshair`), like the switches for Status or the change log.
+
 ### 79.5 Three fixes the owner's test turned up
 
 *Card widths after the scrollbar.* On entering a Settings view tall enough for a vertical

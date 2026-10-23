@@ -332,6 +332,7 @@ public sealed partial class SettingsPage
             else { var p = st.Clone(); p.Name = name; presets.Add(p); }
             s.CrosshairActivePreset = name;
             D.SaveSettings();
+            D.SettingsChanged();   // the tray submenu lists the presets
             RebuildCrosshairCards();
         };
         del.Click += (_, _) =>
@@ -344,6 +345,7 @@ public sealed partial class SettingsPage
                 if (sc.CrosshairPreset is { } cp && cp.Equals(ap.Name, StringComparison.OrdinalIgnoreCase)) sc.CrosshairPreset = null;
             s.CrosshairActivePreset = null;
             D.SaveSettings();
+            D.SettingsChanged();   // the tray submenu lists the presets
             RebuildCrosshairCards();
         };
         card.AddRow(null, Flow(modified, save, saveAs, del));

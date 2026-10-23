@@ -1182,6 +1182,8 @@ public sealed partial class SettingsPage : ThemedPage
         tray.AddRow(Lang.T("tray_report"), Toggle(D.Settings.TrayShowReport, v => { D.Settings.TrayShowReport = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("menu_log"), Toggle(D.Settings.TrayShowChangeLog, v => { D.Settings.TrayShowChangeLog = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("menu_feedback"), Toggle(D.Settings.TrayShowFeedback, v => { D.Settings.TrayShowFeedback = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("overlay_title"), Toggle(D.Settings.TrayShowOverlay, v => { D.Settings.TrayShowOverlay = v; D.SaveSettings(); D.SettingsChanged(); }));
+        tray.AddRow(Lang.T("ch_title"), Toggle(D.Settings.TrayShowCrosshair, v => { D.Settings.TrayShowCrosshair = v; D.SaveSettings(); D.SettingsChanged(); }));
         _gRight[SubSystem].Add(tray);
         _gRight[SubSystem].Add(BuildTrueColorCard());   // MSI True Color, experimental (roadmap #119)
 

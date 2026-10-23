@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Crosshair presets in the tray menu** - once you have saved a preset, the tray's *Crosshair*
+  entry becomes a submenu like *Scenes*: the on/off switch on top, then one entry per preset
+  with a dot on the active one; picking a preset loads it and shows the crosshair. Settings →
+  System → *Tray menu* gets two more switches, for the gaming overlay entries and for the
+  crosshair entry, next to the existing ones.
+
 ### Fixed
 - **Text cut off at high display scaling** ([#172](../../issues/172), thanks @UzaydaGezen) - at
   about 200 % the shortcut fields, the Fan curve buttons, mode label and chart axes, the RAM, VRAM

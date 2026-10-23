@@ -64,6 +64,8 @@ public sealed class AppSettings
     public bool TrayShowReport { get; set; } = true;
     public bool TrayShowChangeLog { get; set; } = true;
     public bool TrayShowFeedback { get; set; } = true;
+    public bool TrayShowOverlay { get; set; } = true;     // the overlay and its lock entries
+    public bool TrayShowCrosshair { get; set; } = true;   // the crosshair entry (a submenu once presets exist)
     public int IconStyle { get; set; } = 2;    // 0=logo, 1=ghost dark tile, 2=ghost light tile (default on new installs), 3=classic gauge, 4=ghost light cyan
     public List<string> IconTabs { get; set; } = new();   // MainTab names shown as strip icons instead of tabs
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
@@ -568,6 +570,7 @@ public sealed class AppSettings
         TrayShowStatus = src.TrayShowStatus; TrayShowFanCurve = src.TrayShowFanCurve; TrayShowModels = src.TrayShowModels;
         TrayShowReport = src.TrayShowReport; TrayShowChangeLog = src.TrayShowChangeLog;
         TrayShowFeedback = src.TrayShowFeedback;
+        TrayShowOverlay = src.TrayShowOverlay; TrayShowCrosshair = src.TrayShowCrosshair;
         TrayClickLeft = src.TrayClickLeft; TrayClickMiddle = src.TrayClickMiddle; TrayWheelMode = src.TrayWheelMode;
         IconStyle = src.IconStyle;
         IconTabs = new List<string>(src.IconTabs);
@@ -709,6 +712,7 @@ public sealed class AppSettings
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
             TrayShowReport = TrayShowReport, TrayShowChangeLog = TrayShowChangeLog,
             TrayShowFeedback = TrayShowFeedback,
+            TrayShowOverlay = TrayShowOverlay, TrayShowCrosshair = TrayShowCrosshair,
             TrayClickLeft = TrayClickLeft, TrayClickMiddle = TrayClickMiddle, TrayWheelMode = TrayWheelMode,
             IconStyle = IconStyle,
             IconTabs = new List<string>(IconTabs),
