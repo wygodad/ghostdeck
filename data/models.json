@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261028,
+  "dataVersion": 20261029,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -4239,7 +4239,7 @@
         "verified": true,
         "singleFan": true
       },
-      "credit": "arcfybr, pushtamper-nice",
+      "credit": "arcfybr, pushtamper-nice, skinthread",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/111",
       "creditIssues": {
         "arcfybr": [
@@ -4250,6 +4250,9 @@
         ],
         "pushtamper-nice": [
           162
+        ],
+        "skinthread": [
+          271
         ]
       },
       "added": "2026-06-29",
@@ -4946,7 +4949,7 @@
       }
     },
     {
-      "name": "MSI Katana 17 HX B14WGK",
+      "name": "MSI Katana 17 HX B14WGK / B14WFK",
       "prefixes": [
         "17L7EMS1"
       ],
@@ -4961,12 +4964,15 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "kaszaslevi04",
+      "credit": "kaszaslevi04, brnxt0",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/266",
       "creditIssues": {
         "kaszaslevi04": [
           265,
           266
+        ],
+        "brnxt0": [
+          269
         ]
       },
       "added": "2026-06-29",

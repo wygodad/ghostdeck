@@ -13,8 +13,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the change log sizes its columns to what they hold. The crosshair sliders show their whole value
   and form one column of equal tracks, with the "?" beside the "Size" label instead of in front of
   the slider. The boxes under the Status gauges grow with the display scale, so every box shows
-  its text in the same size, and the gauges above them grow by half of the scale's growth; the history charts keep the value and time labels apart, fan
-  curve point labels stay inside the chart, and the overlay settings fit every metric name. The
+  its text in the same size, and the gauges above them grow by half of the scale's growth; the
+  history charts keep the value and time labels apart, fan curve point labels stay inside the
+  chart, and the overlay settings fit every metric name. The
   "Show overlay" switch, the crosshair hotkey's "(disabled)", the switches on the Settings tiles and
   the travel mode "?" line up with what sits next to them, and help dots, colour swatches, slider
   handles and list arrows grow with the scale. The icon buttons in the window header (Models,
@@ -37,6 +38,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   scale like its text; long messages still wrap, at spaces only.
 
 ### Changed
+- Model database 20261029: MSI Katana 17 HX B14WFK added to the B14WGK entry (`17L7EMS1`, the same MS-17L7 board) ([#269](../../issues/269), thanks @brnxt0); MSI Thin 15 B12UCX / B12VE (`16R8IMS2`) - a third owner's clean power test confirms stable switching ([#271](../../issues/271), thanks @skinthread).
 - Model database 20261028: MSI Katana 17 HX B14WGK (`17L7EMS1`) - fan curve verified ([#266](../../issues/266), thanks @kaszaslevi04).
 - Model database 20261027: MSI Vector GP68 HX 13V (`15M1IMS1`) promoted to Tested - scenario capture 1:1 with a real Silent, the fan curve confirmed again and a clean power test (Silent 81 % of Balanced's work, Extreme +7 %) ([#262](../../issues/262), [#263](../../issues/263), [#264](../../issues/264), thanks @mara-zhu).
 
