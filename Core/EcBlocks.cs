@@ -114,6 +114,9 @@ public static class EcBlocks
     // A machine that shows this fingerprint is READ in that layout - fan duty and tachometers
     // in the monitoring-only mode, the report wizard's snapshots. Writing still needs a model
     // entry: the fingerprint says where the registers are, a recipe says what may go in them.
+    // MSI_System[11] is not a marker: on a GS66 Stealth (16V1EMS1, issue #268) it follows the
+    // scenario (Silent 5, Balanced 3, Extreme 2, Super Battery 5), so a machine started in
+    // Balanced or Extreme failed the check and showed temperatures only.
     private static bool? _layoutKnown;
 
     public static bool LayoutKnown()
@@ -126,8 +129,7 @@ public static class EcBlocks
             var sys = ReadClass("MSI_System"); var ap = ReadClass("MSI_AP");
             ok = cpu.Count == 19 && vga.Count == 18 && sys.Count == 21 && ap.Count == 8
                  && cpu.GetValueOrDefault(0) == 13 && sys.GetValueOrDefault(1) == 2
-                 && sys.GetValueOrDefault(11) == 5 && sys.GetValueOrDefault(19) == 226
-                 && ap.GetValueOrDefault(1) == 20;
+                 && sys.GetValueOrDefault(19) == 226 && ap.GetValueOrDefault(1) == 20;
         }
         catch { ok = false; }
         _layoutKnown = ok;

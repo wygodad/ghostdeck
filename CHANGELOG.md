@@ -24,6 +24,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   dials with the scale labels below the centre, clear of the curve, and the live reading beside
   the dial. The "Report my model" wizard, the live EC view and the help bubbles scale with the
   display too.
+- **Older laptops without an entry recognised in every scenario** ([#268](../../issues/268), [#257](../../issues/257)) - on
+  laptops whose firmware does not answer MSI's usual interface, GhostDeck recognises a known layout
+  of the data blocks by a few values. One of them follows the MSI Center scenario, so a laptop
+  started in Balanced or Extreme showed temperatures only, without fan readings and without the
+  offer to send a report. The check no longer uses that value.
 - **On/off switches at high scaling** - the switches on Settings, Scenarios and the overlay
   settings grow by a quarter of the display scale's growth (57 x 31 px at 140 %, 65 x 35 px at
   200 %), so they no longer look tiny next to their labels; at 100 % they are unchanged.
