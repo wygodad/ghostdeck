@@ -99,8 +99,8 @@ public sealed class UpdatesPage : ThemedPage
 
     public override async void OnEnter()
     {
+        ApplyThemeText();   // texts first: the button widths follow them
         LayoutBits();
-        ApplyThemeText();
         // The previous in-app update stopped and the swap script kept this version: say which
         // step failed, once, until a check or an install writes a newer status over it.
         if (Updater.LastFailure != 0 && !_failureShown)
@@ -171,35 +171,70 @@ public sealed class UpdatesPage : ThemedPage
     private int HistoryLabelY => VersionY + Dpi.Font("Segoe UI", 16f, FontStyle.Bold).Height + 26;
     private int HistoryTop => HistoryLabelY + Dpi.Font("Segoe UI", 10f, FontStyle.Bold).Height + 12;
 
+    // How far the release history (its heading and the list) moves down to clear a tall status.
+    // Zero for the one-line statuses; a refusal is a sentence and can take three or four lines.
+    private int _historyShift;
+
     private void LayoutBits()
     {
         int w = ClientSize.Width - 56;
-        _check.Location = new Point(ClientSize.Width - 28 - _check.Width, 66);
-        _install.Location = new Point(_check.Left - _install.Width - 10, 66);
+        // the buttons grow with the display scale and with their text (the 200 % "Check now"
+        // and a long translation of "Install vX" used to end mid-word in a 150 / 220 px box)
+        float k = Dpi.K(this);
+        _check.Width = Math.Max((int)(150 * k), TextRenderer.MeasureText(_check.Text, _check.Font).Width + (int)(32 * k));
+        _install.Width = Math.Max((int)(220 * k), TextRenderer.MeasureText(_install.Text, _install.Font).Width + (int)(32 * k));
+        // The left column: the title, "Installed version" and "vX.Y.Z", painted in OnPaint. The
+        // button row sits beside it at the title's height when it fits; on a page too narrow for
+        // both (a large scale in a small window) it moves under the version line instead, and
+        // everything below follows.
+        int versionBottom = VersionY + Dpi.Font("Segoe UI", 16f, FontStyle.Bold).Height;
+        int leftRight = 28 + Math.Max(TextRenderer.MeasureText(Lang.T("tab_updates"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold)).Width, Math.Max(
+            TextRenderer.MeasureText(Lang.T("upd_installed"), Dpi.Font("Segoe UI", 10f)).Width,
+            TextRenderer.MeasureText("v" + D.AppVersion(), Dpi.Font("Segoe UI", 16f, FontStyle.Bold)).Width));
+        int buttonsW = _check.Width + (_install.Visible ? _install.Width + 10 : 0);
+        int rowY = ClientSize.Width - 28 - buttonsW >= leftRight + 16 ? 66 : versionBottom + 12;
+        _check.Location = new Point(ClientSize.Width - 28 - _check.Width, rowY);
+        _install.Location = new Point(_check.Left - _install.Width - 10, rowY);
         _lastChecked.Location = new Point(ClientSize.Width - 28 - _lastChecked.PreferredWidth, _check.Bottom + 12);
+        int statusBottom = 0;
         if (_bar.Visible)
         {
             // download mode: buttons hidden, "Downloading… X%" label stacked ABOVE the bar,
             // right-aligned in the button area (like the report wizard's capture bar)
             int bx = ClientSize.Width - 28 - _bar.Width;
-            _status.Location = new Point(bx, 66);
+            _status.MaximumSize = new Size(Math.Max(120, w), 0);
+            _status.Location = new Point(bx, rowY);
             _bar.Location = new Point(bx, _status.Bottom + 8);
+            statusBottom = _bar.Bottom;
         }
         else
         {
             // idle: status ("new version…" / "up to date", or a refusal) sits to the LEFT of the
             // buttons. A refusal is a sentence, not a phrase: it wraps inside the room between
-            // the "Installed version" column and the buttons instead of running off the left
-            // edge, and a wrapped status hangs from the button row rather than centring on it.
+            // the left column and the buttons instead of running off the left edge, and a
+            // wrapped status hangs from the button row rather than centring on it. When that
+            // room is too narrow for a readable column (a narrow window, a large scale), the
+            // status goes UNDER the button row instead, across the whole page.
             int rowLeft = _install.Visible ? _install.Left : _check.Left;
-            int leftColumn = 28 + Math.Max(
-                TextRenderer.MeasureText(Lang.T("upd_installed"), Dpi.Font("Segoe UI", 10f)).Width,
-                TextRenderer.MeasureText("v" + D.AppVersion(), Dpi.Font("Segoe UI", 16f, FontStyle.Bold)).Width) + 24;
-            _status.MaximumSize = new Size(Math.Max(120, rowLeft - 14 - leftColumn), 0);
-            int h = _status.PreferredHeight;
-            _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, h <= _check.Height ? 66 + (_check.Height - h) / 2 : 66);
+            int beside = rowLeft - 14 - (leftRight + 24);
+            if (rowY == 66 && beside >= (int)(260 * k))
+            {
+                _status.MaximumSize = new Size(beside, 0);
+                int h = _status.PreferredHeight;
+                _status.Location = new Point(rowLeft - _status.PreferredWidth - 14, h <= _check.Height ? rowY + (_check.Height - h) / 2 : rowY);
+            }
+            else
+            {
+                _status.MaximumSize = new Size(Math.Max(120, w), 0);
+                _status.Location = new Point(28, Math.Max(_lastChecked.Bottom + 10, versionBottom + 12));
+            }
+            statusBottom = string.IsNullOrEmpty(_status.Text) ? 0 : _status.Bottom;
         }
-        _history.SetBounds(28, HistoryTop, w, Math.Max(120, ClientSize.Height - HistoryTop - 24));
+        // whatever the top block takes beyond the heading's usual place pushes the history down
+        int shift = Math.Max(0, Math.Max(statusBottom, _lastChecked.Bottom) + 16 - HistoryLabelY);
+        if (shift != _historyShift) { _historyShift = shift; Invalidate(); }
+        int top = HistoryTop + _historyShift;
+        _history.SetBounds(28, top, w, Math.Max(120, ClientSize.Height - top - 24));
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -209,7 +244,7 @@ public sealed class UpdatesPage : ThemedPage
         TextRenderer.DrawText(g, Lang.T("tab_updates"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(28, 24), Theme.Text);
         TextRenderer.DrawText(g, Lang.T("upd_installed"), Dpi.Font("Segoe UI", 10f), new Point(28, InstalledY), Theme.Muted);
         TextRenderer.DrawText(g, "v" + D.AppVersion(), Dpi.Font("Segoe UI", 16f, FontStyle.Bold), new Point(28, VersionY), Theme.Text);
-        TextRenderer.DrawText(g, Lang.T("upd_history"), Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(28, HistoryLabelY), Theme.Muted);
+        TextRenderer.DrawText(g, Lang.T("upd_history"), Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(28, HistoryLabelY + _historyShift), Theme.Muted);
     }
 
     private async Task CheckNow()

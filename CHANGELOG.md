@@ -28,6 +28,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   started, and the Updates tab reports which step failed. When even that restore fails, the old
   program is left as `.bak`, nothing is started, and the tab says it had to be put back by hand.
   Before, a failed second step left no program under the original name (only the `.bak`).
+- **Updates tab: a long status stays readable** - a refusal or a report about the previous update
+  is a sentence; it now wraps beside the buttons, or under them on a narrow window or a large
+  display scale, and the release history moves down to make room instead of covering it. The two
+  buttons grow with the display scale and with their text, so "Check now" at 200 % is whole.
 - **Power test: restore after a partly written profile** - a profile recipe is written byte by
   byte, and a write that failed on its second byte had already changed the first. The run now
   treats a started write as written, puts the starting profile back in that case too, and
