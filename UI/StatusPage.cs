@@ -256,9 +256,9 @@ public sealed class StatusPage : ThemedPage
     }
     // The ring drawn inside its column. RingSize is the column: the boxes under the rings take
     // their width from it, so their text fits at any scale. The ring itself grows by only a
-    // quarter of the scale's growth (at most 264 px at 140 %, 300 px at 200 %) and sits centred in
+    // half of the scale's growth (at most 288 px at 140 %, 360 px at 200 %) and sits centred in
     // the column; at the full scale the rings looked oversized next to the rest of the page.
-    private const float RingShare = 0.25f;
+    private const float RingShare = 0.5f;
     private int RingDiameter(int column) =>
         Math.Min(column, (int)Math.Round(240 * (1 + (Dpi.Of(this) / 96f - 1) * RingShare)));
 

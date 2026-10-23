@@ -13,7 +13,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the change log sizes its columns to what they hold. The crosshair sliders show their whole value
   and form one column of equal tracks, with the "?" beside the "Size" label instead of in front of
   the slider. The boxes under the Status gauges grow with the display scale, so every box shows
-  its text in the same size, and the gauges above them grow by a quarter of the scale's growth; the history charts keep the value and time labels apart, fan
+  its text in the same size, and the gauges above them grow by half of the scale's growth; the history charts keep the value and time labels apart, fan
   curve point labels stay inside the chart, and the overlay settings fit every metric name. The
   "Show overlay" switch, the crosshair hotkey's "(disabled)", the switches on the Settings tiles and
   the travel mode "?" line up with what sits next to them, and help dots, colour swatches, slider
