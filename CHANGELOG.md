@@ -16,7 +16,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 ### Fixed
 - **In-app updates in folders with national letters** - the swap script was written as UTF-8 while
   the console reads it in the system's OEM code page, so a path such as `C:\Users\Łukasz\...` was
-  invisible to it: the app closed with "Restarting" and nothing happened. Paths now reach the
+  invisible to it: the app closed with "Restarting", Windows reported that it could not find the
+  file, and the installed version stayed as it was. Paths now reach the
   script through its environment, which also keeps a `%` or `!` in a folder name literal.
 - **A failed swap puts the previous version back** - each step of the update script is checked;
   when the new program cannot be put in place or does not start, the old one is restored and
