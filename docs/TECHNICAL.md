@@ -2011,8 +2011,13 @@ MSIPS_FORCE_FIRMWARE). In a Release build the file has to sit in the application
 (`ModelDb.OverridePathAllowed`): the hook skips the signature and an environment variable is set
 per user, so any process of the user could point it at a file of EC recipes that the elevated
 relaunch would then load; a file next to the exe has the exe's protection (under Program Files,
-only an elevated process can write there). A path elsewhere is ignored with a line in the log.
-Debug builds take any path.
+only an elevated process can write there). "Next to the exe" is taken literally: the file's
+folder has to be the exe's folder itself, not a sub-folder (which may carry looser permissions),
+and the file has to be a plain file, not a link or junction (which would carry the folder's name
+while its bytes come from elsewhere). The check assumes what the folder's permissions are, it
+does not verify them: a program in a user-writable folder is no better protected than the file.
+A path elsewhere, a sub-folder or a link is ignored with a line in the log. Debug builds take
+any path.
 
 **Release flow for a model change:** edit `Devices.cs`, bump `Devices.DataVersion`
 (date-serial), `python tools/model-history.py` (stamps the dates of new prefixes and

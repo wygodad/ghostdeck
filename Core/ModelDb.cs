@@ -466,7 +466,9 @@ public static class ModelDb
     /// user can plant one, and the elevated relaunch inherits it. A file next to the exe has the
     /// exe's protection (under Program Files, only an elevated process can write there), so the
     /// hook cannot hand a medium-integrity process a set of EC recipes to run as administrator;
-    /// in a user-writable folder it is no weaker than the exe itself. Debug builds take any path.
+    /// in a user-writable folder it is no weaker than the exe itself. The file has to be in that
+    /// folder itself (a sub-folder may have its own, looser permissions) and a plain file (a link
+    /// would carry the folder's name while its bytes come from elsewhere). Debug builds take any path.
     /// </summary>
     public static bool OverridePathAllowed(string path)
     {
@@ -475,8 +477,15 @@ public static class ModelDb
 #else
         try
         {
-            string dir = Path.GetFullPath(Path.GetDirectoryName(Environment.ProcessPath!)!).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            return Path.GetFullPath(path).StartsWith(dir, StringComparison.OrdinalIgnoreCase);
+            // The exe's own folder itself, not a sub-folder (which could carry a looser ACL), and a
+            // plain file, not a link or junction that resolves somewhere writable. A null ProcessPath
+            // or a root path ends in the catch below: refused.
+            string exeDir = Path.GetFullPath(Path.GetDirectoryName(Environment.ProcessPath!)!).TrimEnd(Path.DirectorySeparatorChar);
+            string full = Path.GetFullPath(path);
+            string fileDir = Path.GetFullPath(Path.GetDirectoryName(full)!).TrimEnd(Path.DirectorySeparatorChar);
+            if (!string.Equals(fileDir, exeDir, StringComparison.OrdinalIgnoreCase)) return false;
+            var fi = new FileInfo(full);
+            return !fi.Exists || (fi.Attributes & FileAttributes.ReparsePoint) == 0;
         }
         catch { return false; }
 #endif

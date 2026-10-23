@@ -19,8 +19,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Release workflow actions pinned to commits** - every GitHub action in the build, release
   and sync workflows is referenced by its commit, not by a tag that could be re-pointed.
 - **The unsigned model-database override stays in the program's folder** - the developer hook
-  `MSIPS_MODELS_JSON` is taken only from the application's own folder in a release build; a path
-  anywhere else is ignored and logged.
+  `MSIPS_MODELS_JSON` is taken only from the application's own folder in a release build (the
+  folder itself, a plain file: no sub-folder, no link); a path anywhere else is ignored and logged.
 - **The in-app updater verifies the downloaded release** - before anything is swapped, the
   downloaded file has to carry a valid Authenticode signature from the GhostDeck release identity
   (the signer's Trusted Signing certificate profile and publisher name, which survive the

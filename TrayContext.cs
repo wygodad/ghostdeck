@@ -50,6 +50,9 @@ public sealed class TrayContext : ApplicationContext
     // exit code from it afterwards; a scene clears it before each step and collects what failed.
     private string? _opError;
     private string CliDone(string ok) => _opError is { } e ? "1|" + e : "0|" + ok;
+    // Travel mode is two things: a saved schedule (always done) and the charge limit's write (can
+    // fail). A failed write keeps the schedule and reports the limit, never a bare "done".
+    private string TravelDone(string ok) => _opError is { } e ? "1|" + ok + ", but not applied: " + e : "0|" + ok;
     private bool _telemetryOnly;               // (#48) no EC interface, but MSI WMI data blocks answer
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
@@ -523,11 +526,13 @@ public sealed class TrayContext : ApplicationContext
                     {
                         if (_settings.TravelUntil == DateTime.MinValue) return "0|travel mode is not active";
                         EndTravel(notify: false);
-                        return "0|travel mode: off";
+                        // the schedule is off and the preference saved either way; putting the previous
+                        // limit back can still fail (backup path, paused writes), and then the code says so
+                        return TravelDone("travel mode: off");
                     }
                     StartTravel(days);
                     // fixed format on purpose: CLI output is machine-readable, same as the one-shot path
-                    return $"0|travel mode: 100 % until {_settings.TravelUntil:yyyy-MM-dd}";
+                    return TravelDone($"travel mode: 100 % until {_settings.TravelUntil:yyyy-MM-dd}");
                 }
                 case CliKind.Panic:
                     PanicReset();
@@ -1753,7 +1758,12 @@ public sealed class TrayContext : ApplicationContext
     // rewrite a working non-default mode with the snapshot or GhostDeck's fallback.
     private void SetTurboFromScene(bool on, ChangeSource source)
     {
-        if (!PowerPlan.TryGetActiveScheme(out var scheme) || !PowerPlan.TryReadBoost(scheme, out uint ac, out uint dc)) return;
+        // An unreadable plan or setting is a failed step, not a silent success: the scene cannot
+        // know whether the state is the one it asked for. Only a confirmed target state is a no-op.
+        if (!PowerPlan.TryGetActiveScheme(out var scheme))
+        { _opError = "CPU turbo boost: the active Windows power plan could not be read"; ChangeLog.Add(source, _opError); return; }
+        if (!PowerPlan.TryReadBoost(scheme, out uint ac, out uint dc))
+        { _opError = "CPU turbo boost: the current setting could not be read"; ChangeLog.Add(source, _opError); return; }
         if (on ? ac != 0 && dc != 0 : ac == 0 && dc == 0) return;
         string err = on ? PowerPlan.TurboOn(_settings) : PowerPlan.TurboOff(_settings);
         if (err.Length > 0) _opError = "CPU turbo boost: " + err;
