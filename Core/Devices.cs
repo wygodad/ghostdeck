@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261029;
+    public const int DataVersion = 20261030;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -760,10 +760,12 @@ public static class Devices
         // (repeat phase read back an eco shift) and were not scored. Board quirk to watch: the
         // fan DUTY bytes read implausible constants under load (103/112, once 150) while both
         // tachometers stay live and plausible - RPM is the readout to trust here.
+        // Second independent curve confirmation (issue #273, harunomar54, firmware .103, MSI Center
+        // 2.0.74): the test curve sits byte for byte at 0x72/0x8A again.
         new() { Name = "MSI Vector A16 HX A8WIG",           FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "Matt99-sys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130",
-                CreditIssues = Issues("Matt99-sys:130,133,134,135") },
+                Credit = "Matt99-sys, harunomar54", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130",
+                CreditIssues = Issues("Matt99-sys:130,133,134,135; harunomar54:273") },
         // Raider GE68 HX 14VIG board (15M1IMS2), also sold as Vector 16 HX A13V - the owner's
         // report (issue #104, taken on MSI Center 2.0.48, the last lineup with the real Silent
         // scenario) matches StdRecipes on the three main profiles: shift 0xD2 C1/C1/C4, fan
@@ -873,11 +875,15 @@ public static class Devices
         //   of Balanced's work at 70 vs 88 C on 3365/3559 vs 4677/4902 rpm; Extreme 95% and
         //   C5 99% under the combined CPU+GPU load - the same picture as #213. C5 accepted and
         //   cleanly reverted again; 0xD6 self-set 03 under Extreme as before. No recipe change.
+        //   Eighth owner (issue #272, app 1.41.0, an RTX 5070 Ti unit, 2% drift, clean read-backs):
+        //   Silent 99% of Balanced's work at 63 vs 71 C on 3064/3557 vs 4279/4908 rpm; Extreme and
+        //   C5 both 97% with the CPU held flat near 5.67 GHz. C5 accepted and cleanly reverted;
+        //   writing it also moved 0xD9 09->19 (reverted with it). No recipe change.
         new() { Name = "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
-                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254") },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
+                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254; nicosergia08-cyber:272") },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
@@ -1121,10 +1127,22 @@ public static class Devices
         // MSI ships the same 158N board in the Katana A15 AI B8VG (issue #80): that owner's
         // per-scenario capture matches this entry byte for byte (0xD2 C1/C1/C4/C2,
         // 0xD4 1D/0D/0D/0D, 0xEB pinned to 00), with live RPM at 0xC9/0xCB.
-        new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Experimental,
+        // TESTED (issues #274-#276, PedroElBigo, a Katana A15 AI B8VG on firmware .507, MSI Center
+        // 2.0.74, app 1.41.0). Snapshot = recipes for Balanced/Extreme/Super Battery (2.0.74 has no
+        // Silent tile, so that column holds Super Battery's bytes); his test curve sits byte for
+        // byte at 0x72/0x8A - the third curve confirmation. Clean power test (0% drift, bytes read
+        // back in every phase): Extreme +8% at 4.34 GHz. Board trait "Silent = quieter, not
+        // slower": Silent did Balanced's work (100%) on clearly slower fans, 2672/2680 vs
+        // 3542/3571 rpm. The same trait shows in Lofre's two runs (#81, #87: Silent 97-101% on
+        // 2674 vs 3573 rpm) before their Extreme phase hit a thermal latch near 96 C - a second,
+        // independent measurement, so the exception for this trait applies (Issue Desk rule 11).
+        // Unconfirmed lead: 0xD3 read 83 in Balanced/Extreme and 80 in Super Battery - looks like
+        // the keyboard-backlight level (0x80 | level) switched off by the vendor's eco scenario;
+        // the owner was asked. 158NIMS1 stays out of KbdBacklightMap until then.
+        new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "dmas-dll, Lofre", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",
-                CreditIssues = Issues("dmas-dll:26,27; Lofre:80,81,87") },
+                Credit = "dmas-dll, Lofre, PedroElBigo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",
+                CreditIssues = Issues("dmas-dll:26,27; Lofre:80,81,87; PedroElBigo:274,275,276") },
         new() { Name = "MSI Summit E16 Flip A11UCT",        FirmwarePrefixes = new[] { "1591EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E16 Flip A12UCT / A12MT", FirmwarePrefixes = new[] { "1592EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Prestige 16 Studio A13VE / Summit E16 Flip A13VFT (1594EMS1) - one board, two retail
