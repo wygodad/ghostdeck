@@ -1021,7 +1021,10 @@ columns on the first row; *Copy shown*, *Open history file* and *Clear the histo
 A click on a column header sorts (time newest first by default, text columns A to Z); rows
 alternate two tints and light up under the mouse with the accent bar of the Models tab; columns
 are sized to their longest shown cell (the time in full, the detail column takes the rest, the
-readback at most 40 %). The newest 200 rows draw first, and when the page is scrolled to the last
+readback at most 40 %), and a detail or a readback longer than its column **wraps**, the row
+growing to what the text needs (a scene's readback is a line per setting), never an ellipsis.
+Wrapped heights are measured once per text and width and remembered; a text plainly shorter
+than its column skips the measurement. The newest 200 rows draw first, and when the page is scrolled to the last
 row (the paint of that row is the signal) the next 200 come in on their own, after the paint, so
 a history of thousands never draws at once and there are no pages to turn. *Clear the history*
 asks first, then `ChangeLog.ClearWithArchive` copies the history files of every year and the

@@ -34,7 +34,8 @@ public sealed class HistoryView : Control
     private bool _sortAsc;                  // time: newest first by default
     private int _hover = -1, _hoverHead = -1;
     private int[] _left = new int[4], _width = new int[4];
-    private int _headTop, _rowsTop, _rowH, _height;
+    private int _headTop, _rowsTop, _height;
+    private int[] _rowTop = { 0 };   // top of each shown row, plus the end; rows grow with their wrapped text
     private Rectangle _countRect;
     private bool _dirty = true, _moreQueued;
 
@@ -210,7 +211,6 @@ public sealed class HistoryView : Control
         top = by + lineH + S(12);
 
         _headTop = top;
-        _rowH = Cell.Height + S(14);
         _rowsTop = _headTop + Head.Height + S(12);
         int n = Shown;
         _cells = new string[n][];
@@ -220,7 +220,20 @@ public sealed class HistoryView : Control
             _cells[i] = new[] { e.Time.ToString("yyyy-MM-dd HH:mm:ss"), ChangeLog.SourceLabel(e.Source), e.Detail, e.Result };
         }
         Columns(w);
-        int bodyH = n == 0 ? Cell.Height + S(24) : n * _rowH;
+        // Rows grow with their text: the detail and the readback wrap inside their columns (no
+        // ellipsis), the time and the source are one line by construction (sized to their content).
+        _rowTop = new int[n + 1];
+        int y = _rowsTop, textH = Math.Max(Cell.Height, Mono.Height);
+        for (int i = 0; i < n; i++)
+        {
+            _rowTop[i] = y;
+            int h = textH;
+            h = Math.Max(h, WrapHeight(_cells[i][2], Cell, _width[2] - S(8)));
+            h = Math.Max(h, WrapHeight(_cells[i][3], Mono, _width[3] - S(8)));
+            y += h + S(14);
+        }
+        _rowTop[n] = y;
+        int bodyH = n == 0 ? Cell.Height + S(24) : y - _rowsTop;
         _height = _rowsTop + bodyH + S(8);
     }
 
@@ -282,15 +295,49 @@ public sealed class HistoryView : Control
 
     protected override void OnLayout(LayoutEventArgs levent) { base.OnLayout(levent); Relayout(); }
 
-    private Rectangle RowRect(int i) => new(0, _rowsTop + i * _rowH, Width, _rowH);
+    private Rectangle RowRect(int i) => new(0, _rowTop[i], Width, _rowTop[i + 1] - _rowTop[i]);
+    private const TextFormatFlags Wrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
+    // Measuring wrapped text is the one costly step of the layout (two calls per row). A text
+    // that is plainly shorter than its column skips the call (a conservative estimate from the
+    // font's average character width), and every measured height is remembered per text and width.
+    private static readonly Dictionary<(string Text, int Width, bool Mono), int> _wrapCache = new();
+    private static float _cellCharW, _monoCharW;
+    private static int WrapHeight(string text, Font font, int width)
+    {
+        if (text.Length == 0) return 0;
+        bool mono = ReferenceEquals(font, Mono);
+        float cw = mono ? _monoCharW : _cellCharW;
+        if (cw == 0)
+        {
+            const string sample = "abcdefghijklmnopqrstuvwxyz0123456789 ·=:ĄŁŻ";
+            cw = TextRenderer.MeasureText(sample, font, Size.Empty, TextFormatFlags.NoPadding).Width / (float)sample.Length;
+            if (mono) _monoCharW = cw; else _cellCharW = cw;
+        }
+        if (text.Length * cw < width * 0.6f) return font.Height;   // plainly one line
+        var key = (text, width, mono);
+        if (_wrapCache.TryGetValue(key, out int h)) return h;
+        if (_wrapCache.Count > 4000) _wrapCache.Clear();
+        h = TextRenderer.MeasureText(text, font, new Size(Math.Max(10, width), int.MaxValue), Wrap).Height;   // dpi-ok: measured, the row takes what the wrapped text needs
+        _wrapCache[key] = h;
+        return h;
+    }
+
+    private int RowAt(int y)
+    {
+        int n = Shown;
+        if (n == 0 || y < _rowTop[0] || y >= _rowTop[n]) return -1;
+        int lo = 0, hi = n - 1;
+        while (lo < hi) { int mid = (lo + hi + 1) / 2; if (_rowTop[mid] <= y) lo = mid; else hi = mid - 1; }
+        return lo;
+    }
     private Rectangle HeadRect(int c) => new(_left[c], _headTop, _width[c], Head.Height + S(8));
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
         int row = -1, head = -1;
-        if (e.Y >= _rowsTop && e.Y < _rowsTop + Shown * _rowH) row = (e.Y - _rowsTop) / _rowH;
-        else if (e.Y >= _headTop && e.Y < _headTop + Head.Height + S(8)) for (int c = 0; c < 4; c++) if (HeadRect(c).Contains(e.Location)) head = c;
+        row = RowAt(e.Y);
+        if (row < 0 && e.Y >= _headTop && e.Y < _headTop + Head.Height + S(8)) for (int c = 0; c < 4; c++) if (HeadRect(c).Contains(e.Location)) head = c;
         if (row != _hover) { int old = _hover; _hover = row; if (old >= 0) Invalidate(RowRect(old)); if (row >= 0) Invalidate(RowRect(row)); }
         if (head != _hoverHead) { _hoverHead = head; Invalidate(new Rectangle(0, _headTop, Width, Head.Height + S(8))); }
         Cursor = head >= 0 ? Cursors.Hand : Cursors.Default;
@@ -363,8 +410,9 @@ public sealed class HistoryView : Control
             {
                 var font = c is 0 or 3 ? Mono : Cell;
                 var col = c switch { 0 => Theme.Muted, 1 => Theme.Accent, 3 => Theme.Muted, _ => Theme.Text };
-                TextRenderer.DrawText(g, cells[c], font, new Rectangle(_left[c] + S(4), rr.Y, Math.Max(10, _width[c] - S(8)), rr.Height), col,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);   // dpi-ok: cells are data in columns sized to their longest text; only the detail column may end in an ellipsis when the window is narrow
+                // every cell starts at the same line; the detail and the readback wrap, the time and
+                // the source are sized to their content and never need to
+                TextRenderer.DrawText(g, cells[c], font, new Rectangle(_left[c] + S(4), rr.Y + S(7), Math.Max(10, _width[c] - S(8)), Math.Max(10, rr.Height - S(14))), col, Wrap);   // dpi-ok: cells are data in columns sized to their text, wrapped rows take the height they measured
             }
         }
         // The last shown row was just painted, so it is on screen: the next 200 come in on their
