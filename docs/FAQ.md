@@ -309,7 +309,8 @@ Properties → Digital Signatures), and the version written into that signed fil
 release announced and newer than the version you run. A file that fails is deleted and the tab
 tells you why; it is never started. The replacement itself is done step by step, and if a step fails the app tries to put the
 previous program back and the tab reports it on the next start; if even that fails, the previous
-program is left as `.bak` and the tab asks you to put it back by hand. If you still run
+program is left as `.bak` and the tab asks you to put it back by hand. A new program that starts and
+dies at once is not detected. If you still run
 a version older than v1.42.0, install this one by hand from the releases page: the updater in older
 versions does not verify what it downloads.
 
