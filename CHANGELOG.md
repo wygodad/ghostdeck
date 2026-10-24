@@ -84,6 +84,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   scale like its text; long messages still wrap, at spaces only.
 
 ### Changed
+- Model database 20261101: MSI Katana 17 B12VEK added to the B12UCXK / B12VGK entry (`17L5EMS2`, the same MS-17L5 board) ([#277](../../issues/277), thanks @bel5656).
 - Model database 20261030: MSI Bravo 15 C7V / Katana A15 AI B8VG (`158NIMS1`) promoted to Tested - snapshot and fan curve confirmed again and a clean power test (Extreme +8 %; Silent keeps the speed on clearly slower fans, the same in an earlier owner's runs, recorded as a trait of the board) ([#274](../../issues/274), [#275](../../issues/275), [#276](../../issues/276), thanks @PedroElBigo; earlier reports by @dmas-dll and @Lofre). An eighth owner confirms the Vector 16 HX AI / Raider 16 HX AI ([#272](../../issues/272), thanks @nicosergia08-cyber) and a second owner the Vector A16 HX A8WIG fan curve ([#273](../../issues/273), thanks @harunomar54).
 - Model database 20261029: MSI Katana 17 HX B14WFK added to the B14WGK entry (`17L7EMS1`, the same MS-17L7 board) ([#269](../../issues/269), thanks @brnxt0); MSI Thin 15 B12UCX / B12VE (`16R8IMS2`) - a third owner's clean power test confirms stable switching ([#271](../../issues/271), thanks @skinthread).
 - Model database 20261028: MSI Katana 17 HX B14WGK (`17L7EMS1`) - fan curve verified ([#266](../../issues/266), thanks @kaszaslevi04).

@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261031;
+    public const int DataVersion = 20261101;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1487,15 +1487,18 @@ public static class Devices
         // Katana 17 B12UCXK / B12VGK (17L5EMS2) - fan curve VERIFIED (issue #125): the B12VGK
         // owner's test curve sits byte-for-byte at the shipped 0x72/0x8A. Tier stays
         // Experimental: his scenario capture (issue #124) holds identical bytes in all four
-        // columns (the machine sat in one scenario throughout, the same procedure slip as
-        // issue #58 on this prefix) and his power test (issue #126) ran with Fan Boost ON and
-        // 8% drift, so both await clean re-runs. RPM stays off on purpose: the sibling
+        // columns, and his power test (issue #126) ran with Fan Boost ON and 8% drift.
+        // Three owners' captures on this board (#58 all Super Battery, #124 and #277 all
+        // Extreme, firmware .115, MSI Center 2.0.46/2.0.48) came out with one scenario in every
+        // column; the cause is not known, so a power test (which switches by itself) is the
+        // way to promote it. B12VEK (issue #277, bel5656) is the same MS-17L5 board (parts
+        // catalogues list B12VGK/B12VFK/B12VEK together), hence the third name. RPM stays off on purpose: the sibling
         // 17L5EMS1 reports fan speed as 16-bit wide-tach pairs, and one dump with
         // low-byte-only values cannot rule that out here - a dump with a live 0xC8 would.
-        new() { Name = "MSI Katana 17 B12UCXK / B12VGK",    FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
+        new() { Name = "MSI Katana 17 B12UCXK / B12VGK / B12VEK", FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Dkrimz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
-                CreditIssues = Issues("Dkrimz:124,125,126") },
+                Credit = "Dkrimz, bel5656", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
+                CreditIssues = Issues("Dkrimz:124,125,126; bel5656:277") },
         // Katana 17 HX B14WGK (17L7EMS1) - fan curve VERIFIED (issue #266, kaszaslevi04, firmware
         // .106, MSI Center 2.0.48): the test curve sits byte for byte at the shipped 0x72/0x8A. His
         // scenario capture (issue #265) matches StdRecipes 1:1 with a real Silent (0xD4=1D), zero
