@@ -29,6 +29,30 @@ Three separate signatures cover this project, and it is worth knowing which answ
 If you find a build, a model database or a commit that claims to be ours and does not verify, please
 report it through the process below rather than running it.
 
+## What the app checks on its own
+
+GhostDeck runs with administrator rights, so a few things it does are checked rather than trusted:
+
+- **Updates installed from the app** (Updates tab) are verified before anything is replaced: the
+  downloaded file must carry a valid Authenticode signature from the GhostDeck release identity,
+  and the version written into that signed file must be the one the release announced and newer
+  than the running program. A file that fails is deleted and the tab says so; it is never run.
+  The swap itself is checked step by step, and when it fails the previous program is put back.
+- **The model database** fetched between releases must carry a valid signature (see above); an
+  older or invalid file is refused.
+- **A settings backup you import** is checked and rehearsed on a copy before any live setting
+  changes; a file that fails leaves everything as it was.
+- **The command channel** (`GhostDeck.exe --profile ...`, `ghostdeck://` links) is reachable only
+  by your own user account, reads with a length cap and a deadline, and reports the real result of
+  every command (exit code 1 with the reason when a write failed).
+- **The release workflow** signs every release in CI and refuses to publish an unsigned or
+  wrongly-signed build; every GitHub action it uses is pinned to a commit, not to a tag.
+
+The code behind the updater, the command channel and the settings backup went through an
+independent security review in October 2026; the fixes that came out of it shipped in v1.42.0.
+If you run an older version, update: the in-app updater in versions before v1.42.0 does not
+verify what it downloads.
+
 ## Reporting a vulnerability
 
 Please do not report security vulnerabilities in public GitHub Issues or Discussions.

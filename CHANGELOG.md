@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.42.0] - 2026-10-24
 ### Added
 - **Keyboard backlight on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, model database 20261031,
   [#276](../../issues/276), thanks @PedroElBigo) - the backlight level (off / low / mid / high) now works on this board. Its

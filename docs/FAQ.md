@@ -300,6 +300,18 @@ The limits, as of 17 October 2026: the mechanism is **confirmed on one laptop** 
 
 EC access via WMI requires elevation. Launching the app manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**. Since 1.38 the exe no longer demands administrator rights by itself: the app asks for them when it starts for real, and a launch that only hands a command to the already running app (a jump-list entry, a `ghostdeck://` link, `GhostDeck.exe --profile Silent` from a script, a second double-click on the exe) runs without any prompt. A command run with no app running still prompts once, because it has to talk to the EC itself.
 
+## Is the in-app update safe? What does it check?
+
+Yes, and since v1.42.0 it checks more than it used to. The Updates tab downloads the release file
+from GitHub, then refuses to install it unless two things hold: the file carries a valid
+Authenticode signature from the GhostDeck release identity (the same publisher you see under
+Properties → Digital Signatures), and the version written into that signed file is the one the
+release announced and newer than the version you run. A file that fails is deleted and the tab
+tells you why; it is never started. The replacement itself is done step by step, and if a step
+fails the previous program is put back and the tab reports it on the next start. If you still run
+a version older than v1.42.0, install this one by hand from the releases page: the updater in older
+versions does not verify what it downloads.
+
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
 
 A side effect of the answer above. GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.
