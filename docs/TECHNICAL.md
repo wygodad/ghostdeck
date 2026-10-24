@@ -1005,8 +1005,11 @@ without a word and the next save overwrote the file, which is how an owner lost 
 tab-separated text file per year next to it (time, source, detail, readback) that the app never
 trims. **Status → Change log shows all of it** (`HistoryView`, 1.42; the separate full-log window
 is gone): `ChangeLog.Everything` merges the files of every year with the in-app list (duplicates
-dropped by time + source + detail, newest first), read once per show and extended in place from
-the in-app list while on screen. The view is a table the app draws itself. Everything you act on
+dropped by time **to the second** + source + detail, because the list keeps milliseconds and the
+file seconds; newest first), read once per show and extended in place from the in-app list while
+on screen. At start `ChangeLog.BackfillHistory` writes every entry the list holds and the files
+lack (the entries from before the file existed, up to 300) to the file of its year, oldest first,
+so the file is complete from the first start of a build that keeps one. The view is a table the app draws itself. Everything you act on
 sits above it: the range (today / 7 days / 30 days / all), the count ("200 of 1532 entries", so
 it is plain that more is to come) and the search field that filters as you type over all four
 columns on the first row; *Copy shown*, *Open history file* and *Clear the history* on the second.

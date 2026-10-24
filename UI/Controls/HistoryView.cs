@@ -93,8 +93,7 @@ public sealed class HistoryView : Control
         bool added = false;
         foreach (var e in recent)
         {
-            var k = (e.Time, e.Source, e.Detail);
-            if (_keys.Add(k)) { _all.Insert(0, e); added = true; }
+            if (_keys.Add(ChangeLog.KeyOf(e))) { _all.Insert(0, e); added = true; }
         }
         if (added) Refilter();
     }
@@ -104,7 +103,7 @@ public sealed class HistoryView : Control
     {
         _all = ChangeLog.Everything();
         _keys.Clear();
-        foreach (var e in _all) _keys.Add((e.Time, e.Source, e.Detail));
+        foreach (var e in _all) _keys.Add(ChangeLog.KeyOf(e));
         _dirty = false;
         Refilter();
     }

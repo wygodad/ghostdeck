@@ -18,7 +18,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   copied first; *Delete* removes one. You choose how many stay (50, 75, 100, 125 or 150); when
   there are more, the oldest are deleted and the new ones saved.
 - **The complete change history, on Status** - every entry is written to `history-<year>.log` in
-  the app folder, which the app never trims, and Status → Change log shows all of it: a range
+  the app folder, which the app never trims (the first start also writes the entries the app
+  still remembers from before the file existed), and Status → Change log shows all of it: a range
   (today, 7 days, 30 days, all), the count and a search field that filters as you type above the
   table, a click on a column header to sort, rows in two tints that light up under the mouse, the
   time in full. The newest 200 rows draw first and the next 200 come in on their own as you

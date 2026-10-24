@@ -124,6 +124,7 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.ProtocolLinks) Protocol.Register();
 
         ChangeLog.Load();
+        ChangeLog.BackfillHistory();   // entries from before the history file existed go into it once
         GameSessions.Load();
 
         FpsMonitor.StopOrphan();                   // clear an ETW session a crashed instance left behind

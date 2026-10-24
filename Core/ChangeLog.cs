@@ -48,23 +48,63 @@ public static class ChangeLog
     public static List<LogEntry> Everything()
     {
         var all = new Dictionary<(DateTime, ChangeSource, string), LogEntry>();
-        foreach (var e in All()) all[(e.Time, e.Source, e.Detail)] = e;
+        foreach (var e in All()) all[KeyOf(e)] = e;
+        foreach (var e in FromFiles())
+            if (!all.ContainsKey(KeyOf(e))) all[KeyOf(e)] = e;
+        return all.Values.OrderByDescending(e => e.Time).ToList();
+    }
+
+    /// <summary>
+    /// What makes two entries the same: the time to the second (the in-app list keeps milliseconds,
+    /// the file keeps seconds), the source and the detail.
+    /// </summary>
+    public static (DateTime Time, ChangeSource Source, string Detail) KeyOf(LogEntry e) =>
+        (new DateTime(e.Time.Year, e.Time.Month, e.Time.Day, e.Time.Hour, e.Time.Minute, e.Time.Second), e.Source, e.Detail);
+
+    private static string Line(LogEntry e) =>
+        $"{e.Time:yyyy-MM-dd HH:mm:ss}\t{e.Source}\t{e.Detail.Replace('\t', ' ').Replace('\n', ' ')}\t{e.Result.Replace('\t', ' ').Replace('\n', ' ')}";
+
+    /// <summary>The history files of every year, parsed; a line that does not parse is skipped.</summary>
+    private static List<LogEntry> FromFiles()
+    {
+        var list = new List<LogEntry>();
         try
         {
-            if (Directory.Exists(AppSettings.Dir))
-                foreach (var f in Directory.GetFiles(AppSettings.Dir, "history-*.log"))
-                    foreach (var line in File.ReadLines(f))
-                    {
-                        var p = line.Split('\t');
-                        if (p.Length < 3) continue;
-                        if (!DateTime.TryParseExact(p[0], "yyyy-MM-dd HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out var t)) continue;
-                        if (!Enum.TryParse<ChangeSource>(p[1], out var src)) src = ChangeSource.Startup;
-                        var key = (t, src, p[2]);
-                        if (!all.ContainsKey(key)) all[key] = new LogEntry(t, src, p[2], p.Length > 3 ? p[3] : "");
-                    }
+            if (!Directory.Exists(AppSettings.Dir)) return list;
+            foreach (var f in Directory.GetFiles(AppSettings.Dir, "history-*.log"))
+                foreach (var line in File.ReadLines(f))
+                {
+                    var p = line.Split('\t');
+                    if (p.Length < 3) continue;
+                    if (!DateTime.TryParseExact(p[0], "yyyy-MM-dd HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out var t)) continue;
+                    if (!Enum.TryParse<ChangeSource>(p[1], out var src)) src = ChangeSource.Startup;
+                    list.Add(new LogEntry(t, src, p[2], p.Length > 3 ? p[3] : ""));
+                }
         }
         catch (Exception ex) { AppLifecycle.Note("history files could not be read: " + ex.Message); }
-        return all.Values.OrderByDescending(e => e.Time).ToList();
+        return list;
+    }
+
+    /// <summary>
+    /// Once per start: every entry the in-app list holds that the history files do not (the
+    /// entries from before the file existed, up to 300) is written to the file of its year, oldest
+    /// first, so the file is complete from the first start of a build that keeps one. Returns how
+    /// many lines were written.
+    /// </summary>
+    public static int BackfillHistory()
+    {
+        try
+        {
+            var known = new HashSet<(DateTime, ChangeSource, string)>(FromFiles().Select(KeyOf));
+            var missing = All().Where(e => !known.Contains(KeyOf(e))).OrderBy(e => e.Time).ToList();
+            if (missing.Count == 0) return 0;
+            Directory.CreateDirectory(AppSettings.Dir);
+            foreach (var group in missing.GroupBy(e => e.Time.Year))
+                File.AppendAllLines(Path.Combine(AppSettings.Dir, $"history-{group.Key}.log"), group.Select(Line));
+            AppLifecycle.Note($"history files: {missing.Count} entries from the in-app list added");
+            return missing.Count;
+        }
+        catch (Exception ex) { AppLifecycle.Note("history backfill failed: " + ex.Message); return 0; }
     }
 
     public static void Add(ChangeSource src, string detail, string result = "")
@@ -75,11 +115,7 @@ public static class ChangeLog
             _items.AddFirst(e);
             while (_items.Count > Max) _items.RemoveLast();
             SaveNoLock();
-            try
-            {
-                File.AppendAllText(HistoryPath,
-                    $"{e.Time:yyyy-MM-dd HH:mm:ss}\t{e.Source}\t{e.Detail.Replace('\t', ' ').Replace('\n', ' ')}\t{e.Result.Replace('\t', ' ').Replace('\n', ' ')}{Environment.NewLine}");
-            }
+            try { File.AppendAllText(HistoryPath, Line(e) + Environment.NewLine); }
             catch { }
         }
         Changed?.Invoke();
