@@ -1026,6 +1026,31 @@ band (168 px), not a surface as tall as the history. Measured in the preview too
 entries at 100 %: switching the sub-tab away and back 14-18 ms (median of 16 passes), a filter
 keystroke 25 ms, the next 200 rows 32 ms, reading the files 0.6 ms.
 
+How an entry flows, and what the sub-tab shows:
+
+```mermaid
+flowchart LR
+    subgraph E["An event"]
+        E1[Panel, tray, hotkey]
+        E2[Scene, schedule, battery rule]
+        E3[CLI: in the app or one-shot]
+        E4[External change, alert, firmware]
+    end
+    E1 & E2 & E3 & E4 --> ADD[ChangeLog.Add]
+    ADD --> MEM[(In-app list: the last 300)]
+    MEM --> CJ[(changelog.json<br/>the whole list, rewritten)]
+    ADD --> HL[(history-year.log<br/>one line appended, never trimmed)]
+    MEM --> TRAY[Tray menu, diagnostics package]
+    MEM --> MERGE{{ChangeLog.Everything<br/>one entry per time-to-the-second + source + detail}}
+    HL --> MERGE
+    MERGE --> VIEW[Status → Change log<br/>range, search, sort, 200 rows + more on scroll]
+    HL --> OPEN[Open history file]
+    START[Start] -.BackfillHistory: entries the files lack.-> HL
+    CLR[Clear the history] -.copy to backups/history-moment/ first.-> HL
+```
+
+![Status → Change log](images/status-change-log.png)
+
 **Saving.** `AppSettings.Save` writes `settings.json.tmp` and swaps it over the previous file
 (`File.Replace`, which keeps the previous one as `settings.json.bak`), so a crash, a full disk or
 a reboot in the middle of a write leaves either the old file or the new one, never a truncated
