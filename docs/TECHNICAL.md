@@ -971,7 +971,29 @@ the same decode-and-resave as a normal picture import. Machine-local state is de
 imported: `LastFirmware` (the firmware-change guard must keep judging against this machine), the
 update-check timestamp, seen notice ids, and the window geometry. After a successful import the
 page applies language, theme, autostart, hotkeys/tray menu (`SettingsChanged`), charge limit, and
-overlay settings, then rebuilds itself.
+overlay settings, then asks the window to build **every page again** (`MainForm.ReloadPages`,
+deferred with `BeginInvoke` because the caller sits on the page being disposed). Pages build
+their content once (the Scenarios page its scene cards, the fan curve page its preset list), so
+without that the imported scenes and presets showed up only after a restart (24.10.2026).
+
+**Copies in the app folder (`SettingsBackups`, `%AppData%\GhostDeck\backups`).** A copy of
+`settings.json` is taken at start when its bytes differ from the newest copy (so a hundred starts
+of an unchanged file leave one copy), before every import or restore, by hand from the Backup card
+("Save a copy now"), and of a file `Load` could not read. Names carry the moment and the reason
+(`settings-20261024-011718-import.json`); the newest 50 stay, older ones are deleted (10-20 KB
+each, under 1 MB in all). The Backup card lists them newest first with the reason, and *Restore*
+puts one back through the same checked, all-or-nothing path as an import (the current file is
+copied first, so a restore of the wrong copy is one more restore away). `Load` no longer swallows
+a file it cannot read: the bytes are kept as a `-unreadable` copy and the reason goes to
+`errors.log` ("settings.json could not be read (...)"); before, the app started with defaults
+without a word and the next save overwrote the file, which is how an owner lost every setting on
+24.10.2026 with nothing left to look at.
+
+**The complete change history (`history-<year>.log`).** The in-app change log keeps the last
+300 entries (`changelog.json`), which a day of testing fills; every entry is also appended to a
+tab-separated text file per year next to it (time, source, detail, readback) that the app never
+trims or clears ("Clear" empties the list only). The full-log window's *Open history file* opens
+it in the system's text viewer.
 
 **Saving.** `AppSettings.Save` writes `settings.json.tmp` and swaps it over the previous file
 (`File.Replace`, which keeps the previous one as `settings.json.bak`), so a crash, a full disk or

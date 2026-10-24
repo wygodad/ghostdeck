@@ -309,6 +309,25 @@ public sealed class MainForm : Form
     }
 
     /// <summary>
+    /// Every page is built again from the settings, as at start. Called after a settings import
+    /// or restore: pages build their content once (the Scenarios page its scene cards, the fan
+    /// curve page its preset list, ...) and would otherwise show the old settings until the next
+    /// start. Deferred with BeginInvoke, because the caller is a handler on one of the pages
+    /// about to be disposed; the active tab stays active.
+    /// </summary>
+    public void ReloadPages()
+    {
+        if (IsDisposed || !IsHandleCreated) return;
+        BeginInvoke(() =>
+        {
+            if (IsDisposed) return;
+            foreach (var p in _pages.Values.ToList()) { _host.Controls.Remove(p); p.Dispose(); }
+            _pages.Clear();
+            ShowTab(_active);
+        });
+    }
+
+    /// <summary>
     /// Switch to a tab. <paramref name="fromStrip"/> is true only for clicks on the tab strip
     /// itself: clicking the tab you are already on takes that page back to its own start view
     /// (OnReenter). Deep links from the tray must NOT set it - they aim at a specific sub-page.

@@ -32,6 +32,14 @@ public static class ChangeLog
 
     private static string FilePath => Path.Combine(AppSettings.Dir, "changelog.json");
 
+    /// <summary>
+    /// The complete history, one line per entry, appended for ever: the in-app list keeps the
+    /// last <see cref="Max"/> entries (changelog.json), which a busy day of testing fills in
+    /// hours; this file keeps everything, one file per year, and is never cleared by the app.
+    /// Tab-separated: time, source, detail, readback.
+    /// </summary>
+    public static string HistoryPath => Path.Combine(AppSettings.Dir, $"history-{DateTime.Now:yyyy}.log");
+
     public static void Add(ChangeSource src, string detail, string result = "")
     {
         var e = new LogEntry(DateTime.Now, src, detail, result);
@@ -40,6 +48,12 @@ public static class ChangeLog
             _items.AddFirst(e);
             while (_items.Count > Max) _items.RemoveLast();
             SaveNoLock();
+            try
+            {
+                File.AppendAllText(HistoryPath,
+                    $"{e.Time:yyyy-MM-dd HH:mm:ss}\t{e.Source}\t{e.Detail.Replace('\t', ' ').Replace('\n', ' ')}\t{e.Result.Replace('\t', ' ').Replace('\n', ' ')}{Environment.NewLine}");
+            }
+            catch { }
         }
         Changed?.Invoke();
     }

@@ -105,13 +105,31 @@ public sealed class LogForm : Form
         Ui.StyleGhost(clear);
         clear.Click += (_, _) =>
         {
-            if (MessageBox.Show(this, Lang.T("log_clear_confirm"), Lang.T("log_title"),
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                ChangeLog.Clear();
+            // a GhostDeck card, not a MessageBox (#212); clearing the list leaves the history file alone
+            bool yes = false;
+            using (var ask = new GhostCardForm("//LOG", Lang.T("log_title"), Lang.T("log_clear_confirm"),
+                       Lang.T("log_clear"), Lang.T("gen_cancel"), () => yes = true))
+                ask.ShowOver(this);
+            if (yes) ChangeLog.Clear();
+        };
+        // The complete history lives in a text file (one per year) that the in-app list's 300-entry
+        // limit never touches; this opens it in the system's text viewer.
+        var history = new Button { Text = Lang.T("log_history_file"), AutoSize = true, Padding = new Padding(14, 6, 14, 6), Margin = new Padding(6, 0, 0, 0) };
+        Ui.StyleGhost(history);
+        history.Click += (_, _) =>
+        {
+            try
+            {
+                string p = ChangeLog.HistoryPath;
+                if (!File.Exists(p)) File.WriteAllText(p, "");
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(p) { UseShellExecute = true });
+            }
+            catch (Exception ex) { AppLifecycle.Note("history file could not be opened: " + ex.Message); }
         };
         bar.Controls.Add(close);
         bar.Controls.Add(copy);
         bar.Controls.Add(clear);
+        bar.Controls.Add(history);
 
         // Add the docked bar first, then the Fill list, so the list fills the space above the bar.
         Controls.Add(bar);

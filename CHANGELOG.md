@@ -10,6 +10,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   with a dot on the active one; picking a preset loads it and shows the crosshair. Settings →
   System → *Tray menu* gets two more switches, for the gaming overlay entries and for the
   crosshair entry, next to the existing ones.
+- **Copies of the settings in the app folder, and a Restore button** - GhostDeck keeps up to 50
+  copies of `settings.json` in its own folder: one at start whenever the file changed, one before
+  every import, one when you click *Save a copy now* (Settings → System → Backup), and one of a
+  file it could not read. The Backup card lists them with the date and the reason; *Restore* puts
+  the chosen copy back, checked like an import, with the current settings copied first.
+- **The complete change history in a file** - the in-app list shows the last 300 entries; every
+  entry is now also written to `history-<year>.log` in the app folder, which the app never trims.
+  *Full log…* → *Open history file* opens it.
 ### Security
 - **The command-line channel has limits** - a program that connects to the running app's
   command pipe and then says nothing, never ends its line, floods it or stops reading the answer
@@ -54,7 +62,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   shortcuts before it failed, and the next save kept that half-imported state. The file is now
   checked and rehearsed on a copy first; one that fails leaves every setting as it was. A picture
   carried by the backup is checked with the same limits as a picture chosen by hand, before
-  anything changes; a backup with a bad picture is refused as a whole.
+  anything changes; a backup with a bad picture is refused as a whole. After an import or a
+  restore every page of the window is built again, so the imported scenes, presets and the rest
+  show up at once instead of after a restart.
+- **A settings file the app cannot read is kept, not replaced** - when `settings.json` could not
+  be read, the app used to start with default settings without a word and the next save
+  overwrote the file. It now keeps the unreadable file as a copy in the backups folder, writes
+  the reason to `errors.log` and starts with defaults; the last good copy is one *Restore* away.
 - **Settings are saved through a temporary file** - a crash or a full disk during a save can no
   longer leave a truncated `settings.json` that the next start would read as "no settings"; the
   previous file is kept as `settings.json.bak`.

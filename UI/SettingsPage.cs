@@ -1283,6 +1283,25 @@ public sealed partial class SettingsPage : ThemedPage
         var bRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
         bRow.Controls.Add(expBtn); bRow.Controls.Add(impBtn);
         backup.AddRow(null, bRow);
+        // Copies kept in the app's own folder (taken at start, before an import, by hand, and of
+        // a file that could not be read): pick one and put it back, or take one now.
+        _bkList = new ThemedComboBox { Width = (int)(300 * Dpi.Of(this) / 96f), Font = PageFont };
+        RefreshBackupList();
+        backup.AddRow(Lang.T("bk_copies"), _bkList);
+        var restoreBtn = new Button { Text = Lang.T("bk_restore"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(restoreBtn);
+        restoreBtn.Click += (_, _) => RestoreBackup();
+        var copyBtn = new Button { Text = Lang.T("bk_save_copy"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(copyBtn);
+        copyBtn.Click += (_, _) =>
+        {
+            string? path = SettingsBackups.Take(SettingsBackups.Kind.Manual);
+            RefreshBackupList();
+            Card(Lang.T("set_grp_backup"), path != null ? Lang.T("bk_copy_saved") : string.Format(Lang.T("bk_err"), Lang.T("bk_none")));
+        };
+        var bRow2 = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
+        bRow2.Controls.Add(restoreBtn); bRow2.Controls.Add(copyBtn);
+        backup.AddRow(null, bRow2);
         _gLeft[SubSystem].Add(backup);   // left column (user request)
 
         // One-click diagnostics (#30 on the roadmap): everything a bug report needs, one zip.
@@ -1654,13 +1673,53 @@ public sealed partial class SettingsPage : ThemedPage
         finally { D.Settings.CrosshairImageBase64 = null; }
     }
 
+    private ThemedComboBox? _bkList;
+    private List<SettingsBackups.Entry> _bkEntries = new();
+
+    private void RefreshBackupList()
+    {
+        if (_bkList == null) return;
+        _bkEntries = SettingsBackups.List();
+        _bkList.Items.Clear();
+        foreach (var e in _bkEntries)
+            _bkList.Items.Add($"{e.Time:yyyy-MM-dd HH:mm}  {Lang.T("bk_kind_" + e.Kind.ToString().ToLowerInvariant())}  ({Math.Max(1, e.Size / 1024)} KB)");
+        if (_bkEntries.Count == 0) _bkList.Items.Add(Lang.T("bk_none"));
+        _bkList.SelectedIndex = 0;
+    }
+
+    private void RestoreBackup()
+    {
+        if (_bkList == null || _bkEntries.Count == 0) return;
+        int i = _bkList.SelectedIndex;
+        if (i < 0 || i >= _bkEntries.Count) return;
+        var e = _bkEntries[i];
+        // a decision card, like every other question of the app: Restore / Cancel
+        bool go = false;
+        using (var ask = new GhostCardForm("//SETTINGS", Lang.T("set_grp_backup"),
+                   string.Format(Lang.T("bk_restore_q"), e.Time.ToString("yyyy-MM-dd HH:mm")),
+                   Lang.T("bk_restore"), Lang.T("gen_cancel"), () => go = true))
+            ask.ShowOver(FindForm());
+        if (!go) return;
+        ImportFile(e.Path);
+    }
+
     private void ImportSettings()
     {
         using var dlg = new OpenFileDialog { Filter = "JSON (*.json)|*.json" };
         if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        ImportFile(dlg.FileName);
+    }
+
+    /// <summary>
+    /// Adopts the settings in <paramref name="file"/>: a copy of the current settings.json is
+    /// taken first, the file is checked and rehearsed (all or nothing), then every page of the
+    /// window is built again so scenes, presets and the rest show up at once, not after a restart.
+    /// </summary>
+    private void ImportFile(string file)
+    {
         try
         {
-            string txt = File.ReadAllText(dlg.FileName);
+            string txt = File.ReadAllText(file);
             AppSettings? imported = null;
             // Cheap shape check first: an arbitrary JSON object would otherwise deserialize
             // into a defaults instance and silently wipe the user's settings.
@@ -1672,6 +1731,9 @@ public sealed partial class SettingsPage : ThemedPage
                 Card(Lang.T("set_grp_backup"), Lang.T("imp_err"));
                 return;
             }
+            // The current file is kept as a copy before anything changes, so an import of the
+            // wrong file is one restore away.
+            SettingsBackups.Take(SettingsBackups.Kind.Import);
             // All or nothing: a file that fails its checks or its rehearsal leaves every live
             // setting as it was, and nothing below runs (so nothing half-imported gets saved).
             if (!D.Settings.TryImportFrom(imported, out string why))
@@ -1698,8 +1760,8 @@ public sealed partial class SettingsPage : ThemedPage
             D.SetChargeLimit(D.Settings.ChargeLimit);
             D.ApplyOverlaySettings();
             D.SetOverlay(D.Settings.OverlayEnabled);
-            Ui.BatchRedraw(this, () => { BuildForm(); Layout2(); });
             Card(Lang.T("set_grp_backup"), Lang.T("imp_ok"));
+            D.ReloadPages();   // this page included: it is built again from the imported settings
         }
         catch (JsonException)
         {

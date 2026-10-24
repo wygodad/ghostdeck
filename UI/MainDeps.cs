@@ -31,6 +31,7 @@ public sealed class MainDeps
     public required Action<Action<int>> CheckModelDbNow { get; init; }
     public required Action PollModelDb { get; init; }
     public required Action SettingsChanged { get; init; }     // tray rebuilds menu / hotkeys
+    public required Action ReloadPages { get; init; }         // after an import or restore: every page of the window is built again from the settings
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100
     public required Action<int> SetTravelDays { get; init; }   // >0 = charge to 100% until today+N; 0 = end now (previous limit returns)

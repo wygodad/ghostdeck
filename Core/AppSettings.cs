@@ -392,15 +392,27 @@ public sealed class AppSettings
     public static AppSettings Load()
     {
         MigrateFromOldDir();
+        // A file that cannot be read is NOT silently replaced: its bytes are kept as a copy in the
+        // backups folder and the reason goes to errors.log, so the owner can see what happened
+        // and put a good copy back (Settings → System → Backup). Before, the app started with
+        // defaults without a word and the next save overwrote the file (24.10.2026).
+        string? why = null;
         try
         {
             if (File.Exists(FilePath))
             {
                 var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath));
                 if (s != null) { s.EnsureDefaults(); Profiles.SetShown(s.ProfileOrder); return s; }
+                why = "the file holds no settings object";
             }
         }
-        catch { }
+        catch (Exception ex) { why = ex.Message; }
+        if (why != null)
+        {
+            string? kept = SettingsBackups.Take(SettingsBackups.Kind.Unreadable, FilePath);
+            AppLifecycle.Note("settings.json could not be read (" + why + "); defaults are in use" +
+                              (kept != null ? ", the file was kept as " + kept : ""));
+        }
         var def = new AppSettings();
         def.EnsureDefaults();
         return def;
