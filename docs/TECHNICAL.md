@@ -988,7 +988,9 @@ Names carry the moment and the reason (`settings-20261024-011718-import.json`); 
 deleted when a new copy comes (10-20 KB each, so even 150 stay under 3 MB). The Backup card
 lists them newest first with the reason; *Restore* puts one back through the same checked,
 all-or-nothing path as an import (the current file is copied first, so a restore of the wrong copy
-is one more restore away); *Delete* removes the chosen copy after a card asks. `Load` no longer swallows
+is one more restore away); *Delete* removes the chosen copy after a card asks.
+
+![Settings → System → Backup: the copies kept by the app](images/settings-backup-copies.png) `Load` no longer swallows
 a file it cannot read: the bytes are kept as a `-unreadable` copy and the reason goes to
 `errors.log` ("settings.json could not be read (...)"); before, the app started with defaults
 without a word and the next save overwrote the file, which is how an owner lost every setting on
