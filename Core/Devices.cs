@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261029;
+    public const int DataVersion = 20261101;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -263,9 +263,8 @@ public static class Devices
     // (#26) Keyboard-backlight level register, per firmware prefix. Generated from msi-ec's
     // per-conf kbd_bl blocks (bl_state_address): write 0x80 | level (0-3 = off/low/mid/high),
     // read the low 2 bits. Boards absent here have no EC-level brightness register in msi-ec -
-    // that includes the per-key RGB models (SteelSeries-controlled) and 158NIMS1, which msi-ec
-    // lists under two confs with contradicting kbd_bl data. Hardware-verified additions for
-    // boards outside msi-ec go here too (none yet).
+    // that includes the per-key RGB models (SteelSeries-controlled). Hardware-verified additions
+    // go at the end of the map.
     private static readonly Dictionary<string, byte> KbdBacklightMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["13P3EMS1"] = 0xD3, ["13P5EMS1"] = 0xD3, ["13Q2EMS1"] = 0xD3, ["13Q3EMS1"] = 0xD3, ["14C4EMS1"] = 0xD3, ["14C6EMS1"] = 0xD3, ["14D2EMS1"] = 0xD3, ["14D3EMS1"] = 0xD3,
@@ -279,6 +278,11 @@ public static class Devices
         ["158MEMS1"] = 0xF3, ["15HKEMS1"] = 0xF3, ["16R1EMS1"] = 0xF3, ["16R3EMS1"] = 0xF3, ["16R4EMS1"] = 0xF3, ["16R4EMS2"] = 0xF3, ["16R5EMS1"] = 0xF3, ["16S1EMS1"] = 0xF3,
         ["16S3EMS1"] = 0xF3, ["16U7EMS1"] = 0xF3, ["16V2EMS1"] = 0xF3, ["16W1EMS1"] = 0xF3, ["16W1EMS2"] = 0xF3, ["16W2EMS1"] = 0xF3, ["16WKEMS1"] = 0xF3, ["17E7EMS1"] = 0xF3,
         ["17E8EMS1"] = 0xF3, ["17F2EMS1"] = 0xF3, ["17F3EMS1"] = 0xF3, ["17F3EMS2"] = 0xF3, ["17F4EMS2"] = 0xF3, ["17F5EMS1"] = 0xF3, ["17F6EMS1"] = 0xF3, ["17FKEMS1"] = 0xF3,
+        // Hardware-verified. 158NIMS1 (Bravo 15 C7V / Katana A15 AI B8VG): msi-ec gives 0xD3 for the
+        // Bravo firmwares (CONF_G2_1) and "unsupported" for the Katana ones (CONF_G2_10); on a .507
+        // Katana MSI Center's Eco-Silent switched the backlight off and 0xD3 went 83 -> 80 (#274, #276).
+        // Its keyboard is 4-zone RGB, whose brightness is this one EC level; colours are never touched.
+        ["158NIMS1"] = 0xD3,
     };
 
     /// <summary>(#26) Keyboard-backlight register for this firmware, or 0 = not supported.</summary>
@@ -760,10 +764,12 @@ public static class Devices
         // (repeat phase read back an eco shift) and were not scored. Board quirk to watch: the
         // fan DUTY bytes read implausible constants under load (103/112, once 150) while both
         // tachometers stay live and plausible - RPM is the readout to trust here.
+        // Second independent curve confirmation (issue #273, harunomar54, firmware .103, MSI Center
+        // 2.0.74): the test curve sits byte for byte at 0x72/0x8A again.
         new() { Name = "MSI Vector A16 HX A8WIG",           FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "Matt99-sys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130",
-                CreditIssues = Issues("Matt99-sys:130,133,134,135") },
+                Credit = "Matt99-sys, harunomar54", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130",
+                CreditIssues = Issues("Matt99-sys:130,133,134,135; harunomar54:273") },
         // Raider GE68 HX 14VIG board (15M1IMS2), also sold as Vector 16 HX A13V - the owner's
         // report (issue #104, taken on MSI Center 2.0.48, the last lineup with the real Silent
         // scenario) matches StdRecipes on the three main profiles: shift 0xD2 C1/C1/C4, fan
@@ -873,11 +879,15 @@ public static class Devices
         //   of Balanced's work at 70 vs 88 C on 3365/3559 vs 4677/4902 rpm; Extreme 95% and
         //   C5 99% under the combined CPU+GPU load - the same picture as #213. C5 accepted and
         //   cleanly reverted again; 0xD6 self-set 03 under Extreme as before. No recipe change.
+        //   Eighth owner (issue #272, app 1.41.0, an RTX 5070 Ti unit, 2% drift, clean read-backs):
+        //   Silent 99% of Balanced's work at 63 vs 71 C on 3064/3557 vs 4279/4908 rpm; Extreme and
+        //   C5 both 97% with the CPU held flat near 5.67 GHz. C5 accepted and cleanly reverted;
+        //   writing it also moved 0xD9 09->19 (reverted with it). No recipe change.
         new() { Name = "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
-                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254") },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
+                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254; nicosergia08-cyber:272") },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
@@ -1121,10 +1131,25 @@ public static class Devices
         // MSI ships the same 158N board in the Katana A15 AI B8VG (issue #80): that owner's
         // per-scenario capture matches this entry byte for byte (0xD2 C1/C1/C4/C2,
         // 0xD4 1D/0D/0D/0D, 0xEB pinned to 00), with live RPM at 0xC9/0xCB.
-        new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Experimental,
+        // TESTED (issues #274-#276, PedroElBigo, a Katana A15 AI B8VG on firmware .507, MSI Center
+        // 2.0.74, app 1.41.0). Snapshot = recipes for Balanced/Extreme/Super Battery (2.0.74 has no
+        // Silent tile, so that column holds Super Battery's bytes); his test curve sits byte for
+        // byte at 0x72/0x8A - the third curve confirmation. Clean power test (0% drift, bytes read
+        // back in every phase): Extreme +8% at 4.34 GHz. Board trait "Silent = quieter, not
+        // slower": Silent did Balanced's work (100%) on clearly slower fans, 2672/2680 vs
+        // 3542/3571 rpm. The same trait shows in Lofre's two runs (#81, #87: Silent 97-101% on
+        // 2674 vs 3573 rpm) before their Extreme phase hit a thermal latch near 96 C - a second,
+        // independent measurement, so the exception for this trait applies (Issue Desk rule 11).
+        // Keyboard backlight: 0xD3 read 83 in Balanced/Extreme and 80 in Super Battery, and the
+        // owner confirmed that MSI Center's Eco-Silent (= Super Battery, shift C2) switches the
+        // backlight off - so 0xD3 holds the level (0x80 | level) as msi-ec's CONF_G2_1 says for the
+        // Bravo firmwares of this board. In KbdBacklightMap since 2026-10-24: the Katana's keyboard
+        // is 4-zone RGB, but its brightness lives in the EC like a single-colour one (only the level
+        // is written, never colours) - unlike per-key RGB keyboards with their own controller.
+        new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "dmas-dll, Lofre", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",
-                CreditIssues = Issues("dmas-dll:26,27; Lofre:80,81,87") },
+                Credit = "dmas-dll, Lofre, PedroElBigo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",
+                CreditIssues = Issues("dmas-dll:26,27; Lofre:80,81,87; PedroElBigo:274,275,276") },
         new() { Name = "MSI Summit E16 Flip A11UCT",        FirmwarePrefixes = new[] { "1591EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Summit E16 Flip A12UCT / A12MT", FirmwarePrefixes = new[] { "1592EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Prestige 16 Studio A13VE / Summit E16 Flip A13VFT (1594EMS1) - one board, two retail
@@ -1462,15 +1487,18 @@ public static class Devices
         // Katana 17 B12UCXK / B12VGK (17L5EMS2) - fan curve VERIFIED (issue #125): the B12VGK
         // owner's test curve sits byte-for-byte at the shipped 0x72/0x8A. Tier stays
         // Experimental: his scenario capture (issue #124) holds identical bytes in all four
-        // columns (the machine sat in one scenario throughout, the same procedure slip as
-        // issue #58 on this prefix) and his power test (issue #126) ran with Fan Boost ON and
-        // 8% drift, so both await clean re-runs. RPM stays off on purpose: the sibling
+        // columns, and his power test (issue #126) ran with Fan Boost ON and 8% drift.
+        // Three owners' captures on this board (#58 all Super Battery, #124 and #277 all
+        // Extreme, firmware .115, MSI Center 2.0.46/2.0.48) came out with one scenario in every
+        // column; the cause is not known, so a power test (which switches by itself) is the
+        // way to promote it. B12VEK (issue #277, bel5656) is the same MS-17L5 board (parts
+        // catalogues list B12VGK/B12VFK/B12VEK together), hence the third name. RPM stays off on purpose: the sibling
         // 17L5EMS1 reports fan speed as 16-bit wide-tach pairs, and one dump with
         // low-byte-only values cannot rule that out here - a dump with a live 0xC8 would.
-        new() { Name = "MSI Katana 17 B12UCXK / B12VGK",    FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
+        new() { Name = "MSI Katana 17 B12UCXK / B12VGK / B12VEK", FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Dkrimz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
-                CreditIssues = Issues("Dkrimz:124,125,126") },
+                Credit = "Dkrimz, bel5656", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
+                CreditIssues = Issues("Dkrimz:124,125,126; bel5656:277") },
         // Katana 17 HX B14WGK (17L7EMS1) - fan curve VERIFIED (issue #266, kaszaslevi04, firmware
         // .106, MSI Center 2.0.48): the test curve sits byte for byte at the shipped 0x72/0x8A. His
         // scenario capture (issue #265) matches StdRecipes 1:1 with a real Silent (0xD4=1D), zero

@@ -1832,10 +1832,14 @@ msi-ec's per-conf `kbd_bl` blocks document a single-byte brightness register: wr
 `0x80 | level` (level 0-3 = off/low/mid/high), read the low 2 bits. The address is per family
 - `0xF3` on some confs, `0xD3` on others, absent on the rest - so
 `Devices.KbdBacklightMap` carries a firmware-prefix → address map generated from msi-ec's
-raw source (82 prefixes). Boards absent from the map get no UI at all: that includes the
-per-key RGB models (SteelSeries-controlled, msi-ec marks their register unsupported - the
-GE78HX among them) and `158NIMS1`, which msi-ec lists under two confs with contradicting
-kbd_bl data. Hardware-verified additions for boards outside msi-ec go into the same map.
+raw source (82 prefixes) plus hardware-verified additions. Boards absent from the map get no
+UI at all: that includes the per-key RGB models (SteelSeries-controlled, msi-ec marks their
+register unsupported - the GE78HX among them). `158NIMS1` (Bravo 15 C7V / Katana A15 AI B8VG),
+which msi-ec lists under two confs with contradicting kbd_bl data (`0xD3` for the Bravo
+firmwares, unsupported for the Katana ones), was added on hardware evidence (#274, #276): on a
+`.507` Katana, MSI Center's Eco-Silent switched the backlight off and `0xD3` went `83` -> `80`.
+That keyboard is 4-zone RGB; zone keyboards keep their brightness in this one EC level like
+single-colour ones, and GhostDeck writes only the level, never colours.
 
 Surfaces: a segmented brick on Scenarios (`SegControl`, off/low/mid/high), a `KbdLight`
 hotkey that cycles like the Fn key, a `TrayWheelMode.KbdLight` wheel mode, `--kbd` in the
