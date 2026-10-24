@@ -37,7 +37,9 @@ GhostDeck runs with administrator rights, so a few things it does are checked ra
   downloaded file must carry a valid Authenticode signature from the GhostDeck release identity,
   and the version written into that signed file must be the one the release announced and newer
   than the running program. A file that fails is deleted and the tab says so; it is never run.
-  The swap itself is checked step by step, and when it fails the previous program is put back.
+  The swap itself is checked step by step; when it fails the app tries to put the previous program
+  back, and when even that fails the previous program is left as `.bak` and the tab asks for a
+  manual restore (a new program that starts and dies at once is not detected).
 - **The model database** fetched between releases must carry a valid signature (see above); an
   older or invalid file is refused.
 - **A settings backup you import** is checked and rehearsed on a copy before any live setting

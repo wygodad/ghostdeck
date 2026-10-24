@@ -307,11 +307,12 @@ from GitHub, then refuses to install it unless two things hold: the file carries
 Authenticode signature from the GhostDeck release identity (the same publisher you see under
 Properties → Digital Signatures), and the version written into that signed file is the one the
 release announced and newer than the version you run. A file that fails is deleted and the tab
-tells you why; it is never started. The replacement itself is done step by step, and if a step
-fails the previous program is put back and the tab reports it on the next start. If you still run
+tells you why; it is never started. The replacement itself is done step by step, and if a step fails the app tries to put the
+previous program back and the tab reports it on the next start; if even that fails, the previous
+program is left as `.bak` and the tab asks you to put it back by hand. If you still run
 a version older than v1.42.0, install this one by hand from the releases page: the updater in older
 versions does not verify what it downloads.
 
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
 
-A side effect of the answer above. GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.
+A side effect of running with administrator rights (see the UAC question above). GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.
