@@ -40,6 +40,33 @@ public static class ChangeLog
     /// </summary>
     public static string HistoryPath => Path.Combine(AppSettings.Dir, $"history-{DateTime.Now:yyyy}.log");
 
+    /// <summary>
+    /// Every entry ever written: the history files of all years, parsed back, plus the in-app list
+    /// (which has the entries of a build that wrote no history file yet). Duplicates are dropped by
+    /// time + source + detail. Newest first. A line that does not parse is skipped.
+    /// </summary>
+    public static List<LogEntry> Everything()
+    {
+        var all = new Dictionary<(DateTime, ChangeSource, string), LogEntry>();
+        foreach (var e in All()) all[(e.Time, e.Source, e.Detail)] = e;
+        try
+        {
+            if (Directory.Exists(AppSettings.Dir))
+                foreach (var f in Directory.GetFiles(AppSettings.Dir, "history-*.log"))
+                    foreach (var line in File.ReadLines(f))
+                    {
+                        var p = line.Split('\t');
+                        if (p.Length < 3) continue;
+                        if (!DateTime.TryParseExact(p[0], "yyyy-MM-dd HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out var t)) continue;
+                        if (!Enum.TryParse<ChangeSource>(p[1], out var src)) src = ChangeSource.Startup;
+                        var key = (t, src, p[2]);
+                        if (!all.ContainsKey(key)) all[key] = new LogEntry(t, src, p[2], p.Length > 3 ? p[3] : "");
+                    }
+        }
+        catch (Exception ex) { AppLifecycle.Note("history files could not be read: " + ex.Message); }
+        return all.Values.OrderByDescending(e => e.Time).ToList();
+    }
+
     public static void Add(ChangeSource src, string detail, string result = "")
     {
         var e = new LogEntry(DateTime.Now, src, detail, result);

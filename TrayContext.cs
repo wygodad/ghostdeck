@@ -1130,7 +1130,7 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.TrayShowChangeLog)
         {
             var log = new ToolStripMenuItem(Lang.T("menu_log"));
-            log.Click += (_, _) => LogForm.ShowSingleton();
+            log.Click += (_, _) => OpenLog();
             menu.Items.Add(log);
         }
 
@@ -1211,7 +1211,7 @@ public sealed class TrayContext : ApplicationContext
             case TrayAction.OpenFanCurve: OpenMain(MainTab.FanCurve); break;
             case TrayAction.OpenSettings: OpenMain(MainTab.Settings); break;
             case TrayAction.OpenModels: OpenMain(MainTab.Models); break;
-            case TrayAction.OpenChangeLog: LogForm.ShowSingleton(); break;
+            case TrayAction.OpenChangeLog: OpenLog(); break;
         }
     }
 
@@ -2581,6 +2581,13 @@ public sealed class TrayContext : ApplicationContext
         _main = new MainForm(BuildDeps());
         _main.FormClosed += (_, _) => _main = null;   // real close = app exit; user close only hides
         return _main;
+    }
+
+    // The change history lives on Status since 1.42 (it was a window of its own before).
+    private void OpenLog()
+    {
+        OpenMain(MainTab.Status);
+        if (_main is { IsDisposed: false }) _main.ShowStatusLog();
     }
 
     private void OpenMain(MainTab tab)

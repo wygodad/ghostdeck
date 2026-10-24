@@ -426,6 +426,13 @@ public sealed class MainForm : Form
         if (_pages.TryGetValue(MainTab.Status, out var p) && p is StatusPage sp) sp.ShowGaming();
     }
 
+    /// <summary>Open Status on the change-history sub-tab (tray menu, jump list).</summary>
+    public void ShowStatusLog()
+    {
+        ShowTab(MainTab.Status);
+        if (_pages.TryGetValue(MainTab.Status, out var p) && p is StatusPage sp) sp.ShowLog();
+    }
+
     public void RefreshActive()
     {
         if (_pages.TryGetValue(_active, out var p) && p.Visible) p.LiveRefresh();

@@ -17,9 +17,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   reason; *Restore* puts the chosen copy back, checked like an import, with the current settings
   copied first; *Delete* removes one. You choose how many stay (50, 75, 100, 125 or 150); when
   there are more, the oldest are deleted and the new ones saved.
-- **The complete change history in a file** - the in-app list shows the last 300 entries; every
-  entry is now also written to `history-<year>.log` in the app folder, which the app never trims.
-  *Full log…* → *Open history file* opens it.
+- **The complete change history, on Status** - every entry is written to `history-<year>.log` in
+  the app folder, which the app never trims, and Status → Change log shows all of it: a search
+  field that filters as you type, a range (today, 7 days, 30 days, all), a click on a column
+  header to sort, rows that light up under the mouse, the time in full. The newest 200 rows show
+  and *Show 200 older* adds the next 200. *Copy shown* copies what is on screen, *Open history
+  file* opens the year's file. The separate "Full log" window is gone; the tray's *Change log*
+  entry opens this sub-tab.
 ### Security
 - **The command-line channel has limits** - a program that connects to the running app's
   command pipe and then says nothing, never ends its line, floods it or stops reading the answer

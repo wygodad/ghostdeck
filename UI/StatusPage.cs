@@ -33,7 +33,7 @@ public sealed class StatusPage : ThemedPage
     }
 
     private readonly Button _test = new();
-    private readonly Button _logBtn = new();
+    private readonly HistoryView _hist = new() { Visible = false };   // sub-tab 4: the change history, a control of its own
     private DeviceProfile? _dev;   // re-pointed by OnDeviceDbChanged
     private byte[] _live = Array.Empty<byte>();    // [shift, 0x34, 0xEB, fan]
     private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
@@ -65,7 +65,7 @@ public sealed class StatusPage : ThemedPage
         Controls.Add(_canvas);
 
         _statusTabs.Location = new Point(Pad, SubY);
-        _statusTabs.Changed += i => { _statusSub = i; _logBtn.Visible = i == 4; _histRange.Visible = _histExport.Visible = i == 1; _sessPick.Visible = _sessExport.Visible = i == 2; if (i == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); };
+        _statusTabs.Changed += i => { _statusSub = i; _hist.Visible = i == 4; _histRange.Visible = _histExport.Visible = i == 1; _sessPick.Visible = _sessExport.Visible = i == 2; if (i == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); };
         _canvas.Controls.Add(_statusTabs);
 
         // History range picker (5-60 min) lives on the canvas, shown only on the History sub-tab.
@@ -93,13 +93,10 @@ public sealed class StatusPage : ThemedPage
         };
         _canvas.Controls.Add(_sessExport);
 
-        // "Full log…" button lives on the canvas so it scrolls with the recent-changes section.
-        _logBtn.Text = Lang.T("log_full");
-        _logBtn.AutoSize = false;
-        _logBtn.Visible = false;   // only on the change-log sub-tab
-        Ui.StyleGhost(_logBtn);
-        _logBtn.Click += (_, _) => LogForm.ShowSingleton();
-        _canvas.Controls.Add(_logBtn);
+        // The change history (sub-tab 4) lives on the canvas so it scrolls with the page; it tells
+        // the page when its height changed (a filter, "Show 200 older").
+        _hist.HeightChanged += () => { if (_statusSub == 4) { Relayout(); _canvas.Rebuild(); } };
+        _canvas.Controls.Add(_hist);
 
         _timer.Tick += (_, _) => RefreshAsync();
         // Hidden page: stop the timer AND drop the offscreen buffer. It is sized to the whole
@@ -119,7 +116,7 @@ public sealed class StatusPage : ThemedPage
         _test.Visible = false;
     }
 
-    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { Relayout(); _canvas.Rebuild(); }); } catch { } } }
+    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { if (_statusSub == 4) _hist.MarkDirty(); Relayout(); _canvas.Rebuild(); }); } catch { } } }
 
     // The ETW-based FPS monitor runs only while someone is looking; the Gaming sub-tab counts
     // as a viewer, so entering it starts the monitor and leaving it lets the tray turn it off.
@@ -127,6 +124,7 @@ public sealed class StatusPage : ThemedPage
 
     /// <summary>Deep-link: jump straight to the Gaming sub-tab (used by the session-report popup).</summary>
     public void ShowGaming() => _statusTabs.SetActive(2, raise: true);
+    public void ShowLog() => _statusTabs.SetActive(4, raise: true);
 
     private GameSession? SelectedSession()
     {
@@ -272,6 +270,12 @@ public sealed class StatusPage : ThemedPage
         if (_canvas == null) return;
         _statusTabs.Size = new Size(_statusTabs.FitTo(ClientSize.Width - 24), _statusTabs.Height);
         _canvas.Width = ClientSize.Width;
+        if (_statusSub == 4)
+        {
+            // width first (its OnLayout sizes the rows), then the height it asks for
+            _hist.Width = Math.Max(300, ClientSize.Width - Pad * 2);   // dpi-ok: a floor the page never goes under; the control lays its rows out from its fonts
+            _hist.Bounds = new Rectangle(Pad, SecTop - 16, _hist.Width, _hist.PreferredHeight);
+        }
         _canvas.Height = Math.Max(SectionHeight(_canvas.Width, _statusSub), ClientSize.Height);
     }
 
@@ -314,17 +318,16 @@ public sealed class StatusPage : ThemedPage
             if (_dev?.FanCurve is { } fc) h += 16 + GridH(true, fc.Points);
             return h + 40;
         }
-        return SecTop + 16 + GridH(true, RecentLogRows) + 40;
+        return SecTop - 16 + _hist.PreferredHeight + 40;
     }
 
-    private const int RecentLogRows = 16;
 
     // Paint the cached snapshot immediately (instant tab switch) and refresh in the background.
     /// <summary>Clicking the Status tab while already on it goes back to the first sub-tab.</summary>
     public override void OnReenter() => _statusTabs.SetActive(0, raise: true);
 
-    public override void OnEnter() { _logBtn.Text = Lang.T("log_full"); _logBtn.Visible = _statusSub == 4; _histRange.Visible = _histExport.Visible = _statusSub == 1; _sessPick.Visible = _sessExport.Visible = _statusSub == 2; if (_statusSub == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
-    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; Ui.StyleGhost(_logBtn); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
+    public override void OnEnter() { _hist.Visible = _statusSub == 4; _histRange.Visible = _histExport.Visible = _statusSub == 1; _sessPick.Visible = _sessExport.Visible = _statusSub == 2; if (_statusSub == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
+    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; _hist.ApplyTheme(); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
     public override void OnLanguageChanged()
     {
         _statusTabs.SetLabels(new[]
@@ -332,6 +335,7 @@ public sealed class StatusPage : ThemedPage
             Lang.T("st_sub_charts"), Lang.T("st_sub_history"), Lang.T("st_sub_gaming"),
             Lang.T("st_sub_bytes"), Lang.T("st_sub_log"),
         });
+        _hist.SetLabels();
         _histExport.Text = Lang.T("st_hist_export");
         _sessExport.Text = Lang.T("st_hist_export");
         _canvas.Rebuild();
@@ -364,31 +368,43 @@ public sealed class StatusPage : ThemedPage
 
         public void Rebuild() { RenderToBuffer(); Invalidate(); }
 
+        // On the change-log sub-tab the canvas draws only the title band: the HistoryView control
+        // below paints itself, and a buffer as tall as a long history (thousands of rows) would
+        // cost tens of MB and a full render on every change. The rest is a plain fill in OnPaint.
+        private int BufferHeight => _p._statusSub == 4 ? Math.Min(Height, SecTop) : Height;
+
         private void RenderToBuffer()
         {
             if (Width <= 0 || Height <= 0) return;
+            int h = BufferHeight;
             using var cg = CreateGraphics();   // DPI-aware DC of this control
-            if (_buf == null || _bufW != Width || _bufH != Height)
+            if (_buf == null || _bufW != Width || _bufH != h)
             {
                 _buf?.Dispose();
                 var ctx = BufferedGraphicsManager.Current;
-                ctx.MaximumBuffer = new Size(Width + 1, Height + 1);
-                _buf = ctx.Allocate(cg, new Rectangle(0, 0, Width, Height));
-                _bufW = Width; _bufH = Height;
+                ctx.MaximumBuffer = new Size(Width + 1, h + 1);
+                _buf = ctx.Allocate(cg, new Rectangle(0, 0, Width, h));
+                _bufW = Width; _bufH = h;
             }
             var g = _buf!.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Theme.Surface);
-            if (_p.D.Settings.ShowGrid) Ui.DrawGrid(g, new Rectangle(0, 0, Width, Height));
+            if (_p.D.Settings.ShowGrid) Ui.DrawGrid(g, new Rectangle(0, 0, Width, h));
             _p.Render(g, Width);
         }
 
-        protected override void OnPaintBackground(PaintEventArgs e) { }   // buffer covers the whole surface
+        protected override void OnPaintBackground(PaintEventArgs e) { }   // buffer (plus the fill below) covers the whole surface
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            if (_buf == null || _bufW != Width || _bufH != Height) RenderToBuffer();
+            if (_buf == null || _bufW != Width || _bufH != BufferHeight) RenderToBuffer();
             _buf?.Render(e.Graphics);
+            if (_bufH < Height)
+            {
+                var rest = new Rectangle(0, _bufH, Width, Height - _bufH);
+                using (var b = new SolidBrush(Theme.Surface)) e.Graphics.FillRectangle(b, rest);
+                if (_p.D.Settings.ShowGrid) Ui.DrawGrid(e.Graphics, rest);
+            }
             _p.DrawHistCursor(e.Graphics);   // cheap per-paint overlay (crosshair on the history charts)
         }
 
@@ -1274,52 +1290,7 @@ public sealed class StatusPage : ThemedPage
     }
 
     // ---- sub-tab 3: recent-changes log ----
-    private void RenderLog(Graphics g, int avail) => DrawRecentLog(g, SecTop - 16, avail);
-
-    private int DrawRecentLog(Graphics g, int top, int avail)
-    {
-        var headers = new[] { Lang.T("log_col_time"), Lang.T("log_col_source"), Lang.T("log_col_detail"), Lang.T("log_col_result") };
-        var rows = new List<string[]>();
-        foreach (var e in ChangeLog.Recent(RecentLogRows))
-            rows.Add(new[] { e.Time.ToString("MM-dd HH:mm:ss"), ChangeLog.SourceLabel(e.Source), e.Detail, e.Result });
-        if (rows.Count == 0) rows.Add(new[] { "-", "", Lang.T("log_empty"), "" });
-        bool[] mono = { true, false, false, true };
-        var lefts = LogColumns(headers, rows, mono, avail);
-        int titleY = top + 16;
-        // column colour language shared with the full-log window: muted time, accent source,
-        // plain detail, muted mono readback
-        Color? LogCell(int r, int c) => c switch { 0 => Theme.Muted, 1 => Theme.Accent, 3 => Theme.Muted, _ => Theme.Text };
-        int bottom = DrawGrid(g, titleY, avail, Lang.T("log_recent"), headers, lefts, rows, mono, cellColor: LogCell);
-
-        // Right-align the "Full log…" button on the section title row, as wide as its label needs.
-        int btnW = Math.Max(150, TextRenderer.MeasureText(_logBtn.Text, _logBtn.Font).Width + 28), btnH = GTitle.Height + 6;
-        var b = new Rectangle(Pad + avail - btnW, titleY - 3, btnW, btnH);
-        if (_logBtn.Bounds != b) _logBtn.Bounds = b;
-        _logBtn.BringToFront();
-        return bottom;
-    }
-
-    // #172: the change-log columns follow their content. Fixed shares (17 / 18 / 39 / 26 %) left a
-    // wide empty gap after the detail column at high scaling while the readback was cut. Time,
-    // source and readback get what their longest cell needs, the detail column takes the rest.
-    private static float[] LogColumns(string[] headers, List<string[]> rows, bool[] mono, int avail)
-    {
-        int inner = avail - 36;
-        int[] need = new int[headers.Length];
-        for (int c = 0; c < headers.Length; c++)
-        {
-            need[c] = TextRenderer.MeasureText(headers[c], GHead).Width;
-            foreach (var r in rows)
-                need[c] = Math.Max(need[c], TextRenderer.MeasureText(r[c], mono[c] ? GMono : GCell).Width);
-            need[c] += 24;   // the 10 px cell gap plus air
-        }
-        // the readback never takes more than 40 % (a very long one still leaves the detail room)
-        need[3] = Math.Min(need[3], inner * 2 / 5);
-        int detail = Math.Max(inner / 5, inner - need[0] - need[1] - need[3]);
-        float x0 = 0, x1 = x0 + need[0], x2 = x1 + need[1], x3 = x2 + detail;
-        if (x3 + need[3] > inner) x3 = inner - need[3];   // keep the readback whole, the detail gives way
-        return new[] { 0f, x1 / inner, x2 / inner, x3 / inner };
-    }
+    private void RenderLog(Graphics g, int avail) { }   // the HistoryView control draws itself
 
     // the EC-bytes note under the matrix wraps to as many lines as the width needs (#172)
     private static readonly Font NoteF = Dpi.Font("Segoe UI", 9f);

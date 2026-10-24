@@ -66,7 +66,15 @@ public static class SettingsBackups
             string path = Path.Combine(Dir, $"{Prefix}{DateTime.Now:yyyyMMdd-HHmmss}-{KindTag(kind)}.json");
             for (int n = 2; File.Exists(path); n++)   // two copies within one second
                 path = Path.Combine(Dir, $"{Prefix}{DateTime.Now:yyyyMMdd-HHmmss}-{KindTag(kind)}-{n}.json");
+            var top = List().FirstOrDefault();
             File.WriteAllBytes(path, bytes);
+            // Two copies within one timer tick get the same write time (Windows updates file times
+            // coarsely); the new one must sort first, so its time is pushed just past the newest.
+            if (top != null)
+            {
+                var prev = File.GetLastWriteTimeUtc(top.Path);
+                if (File.GetLastWriteTimeUtc(path) <= prev) File.SetLastWriteTimeUtc(path, prev.AddMilliseconds(1));
+            }
             Rotate();
             return path;
         }
