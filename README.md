@@ -386,6 +386,7 @@ rather than kept in someone's head. All of it lives in [`docs/`](docs/):
 | **[MSI-WMI-SCHEMA.md](docs/MSI-WMI-SCHEMA.md)** | Why a clean Windows install can report "unsupported" until MSI Center is installed once, measured end to end. |
 | **[WINDOWS-POWER.md](docs/WINDOWS-POWER.md)** | The Windows power card: the CPU turbo switch, choosing the exact turbo mode per power source (every mode explained), the power mode, what each profile sets, restoring, and showing the hidden setting in Windows. |
 | **[BACKUP-PATH.md](docs/BACKUP-PATH.md)** | Older MSI laptops (the Dragon Center generation) whose firmware refuses the EC control interface: what the backup WMI path is, what you will see, what to do, and a technical section with diagrams of both paths and of the path test. |
+| **[CHANGE-HISTORY.md](docs/CHANGE-HISTORY.md)** | The change history: the three files it lives in and their limits, what the Status → Change log tab shows (range, search, sort, rows that come in as you scroll), *Clear the history* with a copy first, the backups folder, the diagnostics package, and a diagram of how an entry flows. |
 | **[RENDERING.md](docs/RENDERING.md)** | How the UI is drawn: sharp text at high DPI, the buffered Status canvas, the per-pixel overlay, and the scrolling rules every page must obey (§5.1). |
 | **[LIGHTING.md](docs/LIGHTING.md)** | Keyboard backlight: what the EC exposes, and why per-key RGB laptops are out of scope. |
 | **[CLI.md](docs/CLI.md)** | Every command-line switch, for scripts, Stream Deck and Task Scheduler. |

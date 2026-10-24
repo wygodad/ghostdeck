@@ -1026,7 +1026,7 @@ band (168 px), not a surface as tall as the history. Measured in the preview too
 entries at 100 %: switching the sub-tab away and back 14-18 ms (median of 16 passes), a filter
 keystroke 25 ms, the next 200 rows 32 ms, reading the files 0.6 ms.
 
-How an entry flows, and what the sub-tab shows:
+User guide: [docs/CHANGE-HISTORY.md](CHANGE-HISTORY.md). How an entry flows, and what the sub-tab shows:
 
 ```mermaid
 flowchart LR
