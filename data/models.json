@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261030,
+  "dataVersion": 20261031,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -6754,6 +6754,7 @@
       "1585EMS2": "0xD3",
       "158KEMS1": "0xF3",
       "158MEMS1": "0xF3",
+      "158NIMS1": "0xD3",
       "158PIMS1": "0xD3",
       "1591EMS1": "0xD3",
       "1592EMS1": "0xD3",

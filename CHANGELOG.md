@@ -5,8 +5,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
-- **Keyboard backlight on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, [#276](../../issues/276),
-  thanks @PedroElBigo) - the backlight level (off / low / mid / high) now works on this board. Its
+- **Keyboard backlight on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, model database 20261031,
+  [#276](../../issues/276), thanks @PedroElBigo) - the backlight level (off / low / mid / high) now works on this board. Its
   4-zone RGB keyboard keeps the brightness in the same controller register as a single-colour one;
   GhostDeck sets only the brightness, never the colours.
 - **Crosshair presets in the tray menu** - once you have saved a preset, the tray's *Crosshair*
