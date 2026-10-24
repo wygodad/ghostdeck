@@ -99,7 +99,10 @@ public sealed class HistoryView : Control
     {
         var list = ChangeLog.All();
         if (list.Count == 0 && _all.Count > 0) { Reload(); return; }
-        if (list.Count >= ChangeLog.Max && _all.Count > 0 && !_keys.Contains(ChangeLog.KeyOf(list[^1]))) { Reload(); return; }
+        // A full list whose oldest entry the view does not know: more may have rolled off into
+        // the file (a hidden tab through a long day), so everything is read again. This holds for
+        // a view that was empty too (a cleared history, then the tab left for a while).
+        if (list.Count >= ChangeLog.Max && !_keys.Contains(ChangeLog.KeyOf(list[^1]))) { Reload(); return; }
         bool added = false;
         foreach (var e in list)
             if (_keys.Add(ChangeLog.KeyOf(e))) { _all.Add(e); added = true; }
@@ -120,6 +123,10 @@ public sealed class HistoryView : Control
 
     /// <summary>Rows the view holds after the range, the filter and the sort (tests).</summary>
     public int RowCount => _rows.Count;
+    /// <summary>The top of every shown row plus the end (tests): rows grow with their wrapped text.</summary>
+    public IReadOnlyList<int> RowTops => _rowTop;
+    /// <summary>The shown row under a y coordinate, or -1 (tests).</summary>
+    public int RowAtY(int y) => RowAt(y);
 
     protected override void OnVisibleChanged(EventArgs e)
     {
