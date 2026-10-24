@@ -1023,8 +1023,10 @@ alternate two tints and light up under the mouse with the accent bar of the Mode
 are sized to their longest shown cell (the time in full, the detail column takes the rest, the
 readback at most 40 %), and a detail or a readback longer than its column **wraps**, the row
 growing to what the text needs (a scene's readback is a line per setting), never an ellipsis.
-Wrapped heights are measured once per text and width and remembered; a text plainly shorter
-than its column skips the measurement. The newest 200 rows draw first, and when the page is scrolled to the last
+Every text is measured for real (`TextRenderer.MeasureText` with `WordBreak`, the same font,
+width and flags the cell is drawn with) and the height is remembered per text, width and font;
+a shortcut from an average Latin character width was tried and dropped, because CJK text, where
+every glyph is about two Latin widths, came out a line short and was cut off. The newest 200 rows draw first, and when the page is scrolled to the last
 row (the paint of that row is the signal) the next 200 come in on their own, after the paint, so
 a history of thousands never draws at once and there are no pages to turn. *Clear the history*
 asks first, then `ChangeLog.ClearWithArchive` copies the history files of every year and the

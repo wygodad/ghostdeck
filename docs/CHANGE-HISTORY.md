@@ -38,7 +38,7 @@ Above the table:
 - the **search** field, which filters as you type over the time, the source, the detail and the readback;
 - the buttons **Copy shown** (the rows on screen, as text), **Open history file** (this year's file in your text viewer) and **Clear the history**.
 
-A click on a column header sorts (time newest first by default, text columns A to Z; a second click reverses). Rows alternate two tints and light up under the mouse. The newest 200 rows draw first; when you scroll to the last one, the next 200 come in on their own, so a history of thousands of entries never draws at once and there are no pages to turn.
+A click on a column header sorts (time newest first by default, text columns A to Z; a second click reverses). Rows alternate two tints and light up under the mouse. A long detail or readback (a scene writes a line per setting) wraps inside its column and the row grows; nothing is cut off. The newest 200 rows draw first; when you scroll to the last one, the next 200 come in on their own, so a history of thousands of entries never draws at once and there are no pages to turn.
 
 While the tab is on screen, new entries appear as they happen; the files are read once, when the tab opens.
 

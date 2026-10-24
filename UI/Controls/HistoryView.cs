@@ -304,30 +304,30 @@ public sealed class HistoryView : Control
 
     private Rectangle RowRect(int i) => new(0, _rowTop[i], Width, _rowTop[i + 1] - _rowTop[i]);
     private const TextFormatFlags Wrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
-    // Measuring wrapped text is the one costly step of the layout (two calls per row). A text
-    // that is plainly shorter than its column skips the call (a conservative estimate from the
-    // font's average character width), and every measured height is remembered per text and width.
+    // Measuring wrapped text is the one costly step of the layout (two calls per row), so every
+    // measured height is remembered per text, width and font. Every text is measured for real:
+    // a shortcut from an average character width under-estimated CJK text (each glyph is about
+    // two Latin widths) and the row cut the sentence off (Codex, 24.10.2026).
     private static readonly Dictionary<(string Text, int Width, bool Mono), int> _wrapCache = new();
-    private static float _cellCharW, _monoCharW;
     private static int WrapHeight(string text, Font font, int width)
     {
         if (text.Length == 0) return 0;
-        bool mono = ReferenceEquals(font, Mono);
-        float cw = mono ? _monoCharW : _cellCharW;
-        if (cw == 0)
-        {
-            const string sample = "abcdefghijklmnopqrstuvwxyz0123456789 ·=:ĄŁŻ";
-            cw = TextRenderer.MeasureText(sample, font, Size.Empty, TextFormatFlags.NoPadding).Width / (float)sample.Length;
-            if (mono) _monoCharW = cw; else _cellCharW = cw;
-        }
-        if (text.Length * cw < width * 0.6f) return font.Height;   // plainly one line
-        var key = (text, width, mono);
+        var key = (text, width, ReferenceEquals(font, Mono));
         if (_wrapCache.TryGetValue(key, out int h)) return h;
         if (_wrapCache.Count > 4000) _wrapCache.Clear();
         h = TextRenderer.MeasureText(text, font, new Size(Math.Max(10, width), int.MaxValue), Wrap).Height;   // dpi-ok: measured, the row takes what the wrapped text needs
         _wrapCache[key] = h;
         return h;
     }
+
+    /// <summary>The box a cell's text is drawn in (tests): the row's text must fit it when measured with the same font, width and flags.</summary>
+    public (Rectangle Box, Font Font, string Text) CellBox(int row, int col)
+    {
+        var rr = RowRect(row);
+        return (new Rectangle(_left[col] + S(4), rr.Y + S(7), Math.Max(10, _width[col] - S(8)), Math.Max(10, rr.Height - S(14))), col is 0 or 3 ? Mono : Cell, _cells[row][col]);
+    }
+    /// <summary>The flags the cells are drawn and measured with (tests).</summary>
+    public static TextFormatFlags CellFlags => Wrap;
 
     private int RowAt(int y)
     {
