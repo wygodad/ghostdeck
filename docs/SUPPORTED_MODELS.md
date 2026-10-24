@@ -19,7 +19,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Alpha 17 C7VF / C7VG | `17KKIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Bravo 15 B7ED | `158PIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
 | MSI Bravo 15 C7V / Katana A15 AI B8VG | `158NIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
-| MSI Bravo 17 C7VE / D7VF / D7VFK | `17LNIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &mdash; |
+| MSI Bravo 17 C7VE / D7VF / D7VFK | `17LNIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Creator M14 A13VE | `14P1IWS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9 |
 | MSI Creator M16 B13VF / Pulse 15 B13VGK / Katana 15 B13UDXK / B13VFK / B13VGK / Crosshair 16 A13V | `1585EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Crosshair 15 B12UEZ / B12UGSZ | `1583EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |

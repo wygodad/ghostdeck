@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261101;
+    public const int DataVersion = 20261102;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -565,13 +565,18 @@ public static class Devices
         // curve at exactly 0x72 / 0x8A.
         // Second owner (issue #256, a Bravo 17 D7VF - the plain retail variant beside D7VFK on msi.com,
         // Ryzen 7 7735HS + RTX 4060; firmware .10E, MSI Center 2.0.74): curve wizard MATCH, the test
-        // curve byte-for-byte at 0x72 / 0x8A on both fans again; name added. RPM still off: the only
+        // curve byte-for-byte at 0x72 / 0x8A on both fans again; name added. That capture's only
         // live tach read 0xC9 = B5 (~2640 rpm, inside the band where the single-byte and 16-bit
         // formats coincide), 0xCB = 00.
+        // Third owner (issue #278, TheCzytacz, a D7VFK on firmware .10F, MSI Center 2.0.74): the
+        // test curve sits byte for byte at 0x72 / 0x8A once more. RPM ENABLED as 16-bit pairs: with
+        // the slow test curve both pairs read a non-zero high byte, 0xC8:0xC9 = 01:0A (266, ~1797
+        // rpm) and 0xCA:0xCB = 01:28 (296, ~1615 rpm) - a value a single-byte scheme never holds.
         new() { Name = "MSI Bravo 17 C7VE / D7VF / D7VFK", FirmwarePrefixes = new[] { "17LNIMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "inokra, andreyminayevdev", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/40",
-                CreditIssues = Issues("inokra:40,41; andreyminayevdev:256") },
+                Credit = "inokra, andreyminayevdev, TheCzytacz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/40",
+                CreditIssues = Issues("inokra:40,41; andreyminayevdev:256; TheCzytacz:278") },
 
         // Pulse/Katana 17 B13V/GK (17L5EMS1) — owner per-scenario dump (issue #38) matches
         // StdRecipes 1:1. Fan curve VERIFIED (issue #39): the wizard found the test curve at

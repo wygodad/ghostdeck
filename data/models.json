@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261101,
+  "dataVersion": 20261102,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -592,6 +592,8 @@
         "17LNIMS1"
       ],
       "tier": "Tested",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -602,7 +604,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "inokra, andreyminayevdev",
+      "credit": "inokra, andreyminayevdev, TheCzytacz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/40",
       "creditIssues": {
         "inokra": [
@@ -611,6 +613,9 @@
         ],
         "andreyminayevdev": [
           256
+        ],
+        "TheCzytacz": [
+          278
         ]
       },
       "added": "2026-06-29",
