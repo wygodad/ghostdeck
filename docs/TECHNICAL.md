@@ -1006,17 +1006,22 @@ tab-separated text file per year next to it (time, source, detail, readback) tha
 trims. **Status → Change log shows all of it** (`HistoryView`, 1.42; the separate full-log window
 is gone): `ChangeLog.Everything` merges the files of every year with the in-app list (duplicates
 dropped by time + source + detail, newest first), read once per show and extended in place from
-the in-app list while on screen. The view is a table the app draws itself: a search field that
-filters as you type over all four columns, a range (today / 7 days / 30 days / all), a click on a
-column header to sort (time newest first by default, text columns A to Z), rows that light up
-under the mouse with the accent bar of the Models tab, columns sized to their longest shown cell
-(the time in full, the detail column takes the rest, the readback at most 40 %). The newest 200
-rows show and *Show 200 older* adds the next 200, so a history of thousands never draws at once
-and there are no pages; the page scrolls as usual. *Copy shown* copies the rows on screen, *Open
-history file* opens the year's file. On this sub-tab the Status canvas buffers only its title
+the in-app list while on screen. The view is a table the app draws itself. Everything you act on
+sits above it: the range (today / 7 days / 30 days / all), the count ("200 of 1532 entries", so
+it is plain that more is to come) and the search field that filters as you type over all four
+columns on the first row; *Copy shown*, *Open history file* and *Clear the history* on the second.
+A click on a column header sorts (time newest first by default, text columns A to Z); rows
+alternate two tints and light up under the mouse with the accent bar of the Models tab; columns
+are sized to their longest shown cell (the time in full, the detail column takes the rest, the
+readback at most 40 %). The newest 200 rows draw first, and when the page is scrolled to the last
+row (the paint of that row is the signal) the next 200 come in on their own, after the paint, so
+a history of thousands never draws at once and there are no pages to turn. *Clear the history*
+asks first, then `ChangeLog.ClearWithArchive` copies the history files of every year and the
+in-app list to `backups\history-<moment>\` in the app folder, deletes the files and empties the
+list; a copy that fails clears nothing. On this sub-tab the Status canvas buffers only its title
 band (168 px), not a surface as tall as the history. Measured in the preview tool with 420
 entries at 100 %: switching the sub-tab away and back 14-18 ms (median of 16 passes), a filter
-keystroke 25 ms, 200 more rows 32 ms, reading the files 0.6 ms.
+keystroke 25 ms, the next 200 rows 32 ms, reading the files 0.6 ms.
 
 **Saving.** `AppSettings.Save` writes `settings.json.tmp` and swaps it over the previous file
 (`File.Replace`, which keeps the previous one as `settings.json.bak`), so a crash, a full disk or

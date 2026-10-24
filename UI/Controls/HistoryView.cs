@@ -4,12 +4,14 @@ namespace GhostDeck;
 
 /// <summary>
 /// The change history as a table the app draws itself (Status → Change log): every entry ever
-/// written (the in-app list plus the history files of all years, <see cref="ChangeLog.Everything"/>),
-/// a search field that filters as you type, a time range, a click on a column header to sort,
-/// and rows that light up under the mouse like the Models tab. The newest 200 rows show; "Show
-/// 200 older" adds the next 200, so a long history never draws thousands of rows at once and
-/// there are no pages to turn. Copy shown copies the rows on screen; Open history file opens
-/// the year's file. The control reports its height to the page, which scrolls as usual.
+/// written (the in-app list plus the history files of all years, <see cref="ChangeLog.Everything"/>).
+/// Everything you act on sits above the table: the time range, the count, the search field that
+/// filters as you type (row 1), then Copy shown, Open history file and Clear (row 2). Rows alternate
+/// two tints and light up under the mouse like the Models tab. The newest 200 rows draw first and
+/// the next 200 come in on their own when the page is scrolled to the last row, so a long history
+/// never draws thousands of rows at once and there are no pages to turn. Clear copies the history
+/// files and the in-app list to the app's backups folder first. The control reports its height
+/// to the page, which scrolls as usual.
 /// </summary>
 public sealed class HistoryView : Control
 {
@@ -23,7 +25,7 @@ public sealed class HistoryView : Control
 
     private readonly SearchBox _search = new();
     private readonly SegControl _range;
-    private readonly Button _older = new(), _copy = new(), _file = new();
+    private readonly Button _copy = new(), _file = new(), _clear = new();
     private List<LogEntry> _all = new();    // everything, newest first
     private List<LogEntry> _rows = new();   // after the range, the filter and the sort
     private string[][] _cells = Array.Empty<string[]>();   // the shown rows as text
@@ -32,8 +34,9 @@ public sealed class HistoryView : Control
     private bool _sortAsc;                  // time: newest first by default
     private int _hover = -1, _hoverHead = -1;
     private int[] _left = new int[4], _width = new int[4];
-    private int _headTop, _rowsTop, _rowH, _footTop, _height;
-    private bool _dirty = true;
+    private int _headTop, _rowsTop, _rowH, _height;
+    private Rectangle _countRect;
+    private bool _dirty = true, _moreQueued;
 
     /// <summary>Raised when the rows (and so the height) changed; the page lays itself out again.</summary>
     public event Action? HeightChanged;
@@ -44,10 +47,10 @@ public sealed class HistoryView : Control
         _range = new SegControl(RangeLabels(), 3) { Size = new Size(300, 30) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
         _range.SelectedChanged += _ => Refilter();
         _search.Box.TextChanged += (_, _) => Refilter();
-        foreach (var b in new[] { _older, _copy, _file }) { b.AutoSize = true; b.Padding = new Padding(10, 4, 10, 4); Ui.StyleGhost(b); Controls.Add(b); }
-        _older.Click += (_, _) => { _shown += Step; Relayout(); HeightChanged?.Invoke(); Invalidate(); };
+        foreach (var b in new[] { _copy, _file, _clear }) { b.AutoSize = true; b.Padding = new Padding(10, 4, 10, 4); Ui.StyleGhost(b); Controls.Add(b); }
         _copy.Click += (_, _) => Ui.CopyText(ShownText());
         _file.Click += (_, _) => OpenFile();
+        _clear.Click += (_, _) => ClearHistory();
         Controls.Add(_search);
         Controls.Add(_range);
         SetLabels();
@@ -61,9 +64,9 @@ public sealed class HistoryView : Control
     public void SetLabels()
     {
         _range.SetItems(RangeLabels(), _range.Selected);
-        _older.Text = Lang.T("hist_older");
         _copy.Text = Lang.T("hist_copy");
         _file.Text = Lang.T("log_history_file");
+        _clear.Text = Lang.T("hist_clear");
         Refilter();
     }
 
@@ -71,7 +74,7 @@ public sealed class HistoryView : Control
     {
         BackColor = Theme.Surface;
         _search.ApplyTheme();
-        foreach (var b in new[] { _older, _copy, _file }) Ui.StyleGhost(b);
+        foreach (var b in new[] { _copy, _file, _clear }) Ui.StyleGhost(b);
         Invalidate();
     }
 
@@ -79,13 +82,16 @@ public sealed class HistoryView : Control
 
     /// <summary>
     /// Something was logged. On screen: the new entries are merged in from the in-app list (no file
-    /// read, no re-parse); off screen: everything is read again at the next show.
+    /// read, no re-parse); off screen: everything is read again at the next show. An emptied list
+    /// (Clear) reads everything again, since entries went away.
     /// </summary>
     public void MarkDirty()
     {
         if (!Visible) { _dirty = true; return; }
+        var recent = ChangeLog.Recent(20);
+        if (recent.Count == 0 && _all.Count > 0) { Reload(); return; }
         bool added = false;
-        foreach (var e in ChangeLog.Recent(20))
+        foreach (var e in recent)
         {
             var k = (e.Time, e.Source, e.Detail);
             if (_keys.Add(k)) { _all.Insert(0, e); added = true; }
@@ -137,7 +143,18 @@ public sealed class HistoryView : Control
 
     private static bool Has(string s, string q) => s.Contains(q, StringComparison.CurrentCultureIgnoreCase);
 
-    private int Visible_() => Math.Min(_shown, _rows.Count);
+    private int Shown => Math.Min(_shown, _rows.Count);
+
+    /// <summary>The next 200 rows (the page scrolled to the last one, or a tool asks).</summary>
+    public void LoadMore()
+    {
+        _moreQueued = false;
+        if (_shown >= _rows.Count) return;
+        _shown += Step;
+        Relayout();
+        HeightChanged?.Invoke();
+        Invalidate();
+    }
 
     /// <summary>Height the control needs for what it shows; the page sizes it to this.</summary>
     public int PreferredHeight => _height;
@@ -145,18 +162,43 @@ public sealed class HistoryView : Control
     private void Relayout()
     {
         int w = Math.Max(S(300), Width);
-        int top = 0;
-        // search left, range right, on one row; the range goes under the search on a narrow page
-        int searchH = _search.PreferredHeight;
+        int gap = S(8);
+        // row 1: the range on the left, the count beside it, the search on the right
         int rangeW = _range.Width, rangeH = _range.Height;
-        int searchW = Math.Min(S(380), w - rangeW - S(16));
-        if (searchW < S(200)) { searchW = Math.Min(S(380), w); _search.SetBounds(0, top, searchW, searchH); top += searchH + S(8); _range.Location = new Point(0, top); top += rangeH + S(12); }
-        else { _search.SetBounds(0, top, searchW, searchH); _range.Location = new Point(w - rangeW, top + (searchH - rangeH) / 2); top += Math.Max(searchH, rangeH) + S(12); }
+        int searchH = _search.PreferredHeight;
+        int searchW = Math.Min(S(380), Math.Max(S(200), w - rangeW - S(200)));
+        int row1H = Math.Max(rangeH, searchH);
+        int top = 0;
+        if (rangeW + S(200) + searchW > w)
+        {
+            // narrow: the search goes under the range, full width
+            _range.Location = new Point(0, top);
+            _countRect = new Rectangle(rangeW + gap, top, Math.Max(10, w - rangeW - gap), rangeH);
+            top += rangeH + gap;
+            _search.SetBounds(0, top, w, searchH);
+            top += searchH + gap;
+        }
+        else
+        {
+            _range.Location = new Point(0, top + (row1H - rangeH) / 2);
+            _search.SetBounds(w - searchW, top + (row1H - searchH) / 2, searchW, searchH);
+            _countRect = new Rectangle(rangeW + S(16), top, Math.Max(10, w - searchW - rangeW - S(24)), row1H);
+            top += row1H + gap;
+        }
+        // row 2: the buttons, left to right, wrapping on a narrow page
+        int bx = 0, by = top, lineH = _copy.Height;
+        foreach (var b in new[] { _copy, _file, _clear })
+        {
+            if (bx > 0 && bx + b.Width > w) { bx = 0; by += lineH + gap; }
+            b.Location = new Point(bx, by);
+            bx += b.Width + gap;
+        }
+        top = by + lineH + S(12);
 
         _headTop = top;
         _rowH = Cell.Height + S(14);
         _rowsTop = _headTop + Head.Height + S(12);
-        int n = Visible_();
+        int n = Shown;
         _cells = new string[n][];
         for (int i = 0; i < n; i++)
         {
@@ -165,19 +207,7 @@ public sealed class HistoryView : Control
         }
         Columns(w);
         int bodyH = n == 0 ? Cell.Height + S(24) : n * _rowH;
-        _footTop = _rowsTop + bodyH + S(12);
-        // footer: the count on the left, the buttons on the right (Show older only while there is more)
-        _older.Visible = _rows.Count > n;
-        int bx = w;
-        foreach (var b in new[] { _file, _copy, _older })
-        {
-            if (!b.Visible) continue;
-            bx -= b.Width;
-            b.Location = new Point(bx, _footTop);
-            bx -= S(8);
-        }
-        int footH = Math.Max(_copy.Height, Note.Height);
-        _height = _footTop + footH + S(8);
+        _height = _rowsTop + bodyH + S(8);
     }
 
     // Columns follow their content, as the change-log grid on Status did (#172): time, source and
@@ -186,8 +216,8 @@ public sealed class HistoryView : Control
     private void Columns(int w)
     {
         string[] heads = { Lang.T("log_col_time"), Lang.T("log_col_source"), Lang.T("log_col_detail"), Lang.T("log_col_result") };
-        int gap = S(10), need0 = 0, need1 = 0, need3 = 0;
-        need0 = TextRenderer.MeasureText(heads[0], Head).Width; need1 = TextRenderer.MeasureText(heads[1], Head).Width; need3 = TextRenderer.MeasureText(heads[3], Head).Width;
+        int gap = S(10);
+        int need0 = TextRenderer.MeasureText(heads[0], Head).Width, need1 = TextRenderer.MeasureText(heads[1], Head).Width, need3 = TextRenderer.MeasureText(heads[3], Head).Width;
         foreach (var r in _cells)
         {
             need0 = Math.Max(need0, TextRenderer.MeasureText(r[0], Mono).Width);
@@ -222,6 +252,20 @@ public sealed class HistoryView : Control
         catch (Exception ex) { AppLifecycle.Note("history file could not be opened: " + ex.Message); }
     }
 
+    private void ClearHistory()
+    {
+        bool go = false;
+        using (var ask = new GhostCardForm("//LOG", Lang.T("log_title"), Lang.T("hist_clear_q"), Lang.T("hist_clear"), Lang.T("gen_cancel"), () => go = true))
+            ask.ShowOver(FindForm());
+        if (!go) return;
+        string? dir = ChangeLog.ClearWithArchive();
+        Reload();
+        using var done = new GhostCardForm("//LOG", Lang.T("log_title"),
+            dir != null ? string.Format(Lang.T("hist_cleared"), dir) : string.Format(Lang.T("bk_err"), Lang.T("hist_clear")),
+            Lang.T("set_close"), "", () => { });
+        done.ShowOver(FindForm());
+    }
+
     protected override void OnLayout(LayoutEventArgs levent) { base.OnLayout(levent); Relayout(); }
 
     private Rectangle RowRect(int i) => new(0, _rowsTop + i * _rowH, Width, _rowH);
@@ -231,7 +275,7 @@ public sealed class HistoryView : Control
     {
         base.OnMouseMove(e);
         int row = -1, head = -1;
-        if (e.Y >= _rowsTop && e.Y < _rowsTop + Visible_() * _rowH) row = (e.Y - _rowsTop) / _rowH;
+        if (e.Y >= _rowsTop && e.Y < _rowsTop + Shown * _rowH) row = (e.Y - _rowsTop) / _rowH;
         else if (e.Y >= _headTop && e.Y < _headTop + Head.Height + S(8)) for (int c = 0; c < 4; c++) if (HeadRect(c).Contains(e.Location)) head = c;
         if (row != _hover) { int old = _hover; _hover = row; if (old >= 0) Invalidate(RowRect(old)); if (row >= 0) Invalidate(RowRect(row)); }
         if (head != _hoverHead) { _hoverHead = head; Invalidate(new Rectangle(0, _headTop, Width, Head.Height + S(8))); }
@@ -259,6 +303,10 @@ public sealed class HistoryView : Control
         var g = e.Graphics;
         g.Clear(Theme.Surface);
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        int n = Shown;
+        // the count beside the range: "200 of 1532 entries" says there is more to come
+        TextRenderer.DrawText(g, string.Format(Lang.T("hist_count"), n, _rows.Count), Note, _countRect, Theme.Muted,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);   // dpi-ok: a short count in the room between the range and the search; it yields on a narrow page
         string[] heads = { Lang.T("log_col_time"), Lang.T("log_col_source"), Lang.T("log_col_detail"), Lang.T("log_col_result") };
         int headH = Head.Height + S(8);
         // header: a flat band, the sorted column in accent with a small arrow
@@ -277,23 +325,25 @@ public sealed class HistoryView : Control
                 Ui.CenterGlyph(g, _sortAsc ? "" : "", Glyph, col, new RectangleF(r.X + S(4) + tw + S(2), r.Y, arrowW, r.Height));
             }
         }
-        int n = Visible_();
         if (n == 0)
         {
             TextRenderer.DrawText(g, Lang.T("hist_none"), Cell, new Rectangle(0, _rowsTop, Width, Cell.Height + S(24)), Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);   // dpi-ok: one centred line, the box is a font height plus air
         }
         var clip = e.ClipRectangle;
+        bool lastRowPainted = false;
         for (int i = 0; i < n; i++)
         {
             var rr = RowRect(i);
             if (rr.Bottom < clip.Top || rr.Top > clip.Bottom) continue;
+            if (i == n - 1) lastRowPainted = true;
+            // two tints in turn, the hovered row lit with the accent bar
+            if (i % 2 == 1) { using var b = new SolidBrush(Theme.Card); g.FillRectangle(b, rr); }
             if (i == _hover)
             {
                 using (var b = new SolidBrush(Color.FromArgb(Theme.Dark ? 14 : 10, Theme.Text))) g.FillRectangle(b, rr);
                 using (var bar = new SolidBrush(Theme.Accent)) g.FillRectangle(bar, rr.X, rr.Y, S(3), rr.Height);
             }
-            using (var p = new Pen(Color.FromArgb(Theme.Dark ? 40 : 60, Theme.Border))) g.DrawLine(p, rr.X + S(14), rr.Bottom - 1, rr.Right, rr.Bottom - 1);
             var cells = _cells[i];
             for (int c = 0; c < 4; c++)
             {
@@ -303,11 +353,12 @@ public sealed class HistoryView : Control
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);   // dpi-ok: cells are data in columns sized to their longest text; only the detail column may end in an ellipsis when the window is narrow
             }
         }
-        // the count, left of the buttons
-        string count = string.Format(Lang.T("hist_count"), n, _rows.Count);
-        int countRight = Width;
-        foreach (var b in new[] { _file, _copy, _older }) if (b.Visible) countRight = Math.Min(countRight, b.Left);
-        TextRenderer.DrawText(g, count, Note, new Rectangle(0, _footTop, Math.Max(10, countRight - S(12)), Math.Max(_copy.Height, Note.Height)), Theme.Muted,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);   // dpi-ok: a short count that yields to the buttons on a narrow page
+        // The last shown row was just painted, so it is on screen: the next 200 come in on their
+        // own, after this paint (never from inside it). One request per batch.
+        if (lastRowPainted && _shown < _rows.Count && !_moreQueued && IsHandleCreated)
+        {
+            _moreQueued = true;
+            try { BeginInvoke(LoadMore); } catch { _moreQueued = false; }
+        }
     }
 }

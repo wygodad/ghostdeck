@@ -101,6 +101,38 @@ public static class ChangeLog
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Clears the history the way the owner asked for: the history files of every year and the
+    /// in-app list are copied to <c>backups\history-&lt;moment&gt;\</c> in the app folder first,
+    /// then the files are deleted and the list emptied. Returns the archive folder, or null (and a
+    /// note in the log) when the copy failed, in which case nothing is cleared.
+    /// </summary>
+    public static string? ClearWithArchive()
+    {
+        string dir = Path.Combine(AppSettings.Dir, "backups", $"history-{DateTime.Now:yyyyMMdd-HHmmss}");
+        try
+        {
+            Directory.CreateDirectory(dir);
+            var files = Directory.Exists(AppSettings.Dir) ? Directory.GetFiles(AppSettings.Dir, "history-*.log").ToList() : new List<string>();
+            lock (_lock)
+            {
+                SaveNoLock();
+                if (File.Exists(FilePath)) File.Copy(FilePath, Path.Combine(dir, "changelog.json"), overwrite: true);
+                foreach (var f in files) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)), overwrite: true);
+                foreach (var f in files) File.Delete(f);
+                _items.Clear();
+                SaveNoLock();
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLifecycle.Note("history not cleared, the copy failed: " + ex.Message);
+            return null;
+        }
+        Changed?.Invoke();
+        return dir;
+    }
+
     public static void Load()
     {
         try
