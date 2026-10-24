@@ -10,11 +10,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   with a dot on the active one; picking a preset loads it and shows the crosshair. Settings →
   System → *Tray menu* gets two more switches, for the gaming overlay entries and for the
   crosshair entry, next to the existing ones.
-- **Copies of the settings in the app folder, and a Restore button** - GhostDeck keeps up to 50
-  copies of `settings.json` in its own folder: one at start whenever the file changed, one before
-  every import, one when you click *Save a copy now* (Settings → System → Backup), and one of a
-  file it could not read. The Backup card lists them with the date and the reason; *Restore* puts
-  the chosen copy back, checked like an import, with the current settings copied first.
+- **Copies of the settings in the app folder, with Restore and Delete** - GhostDeck keeps copies
+  of `settings.json` in its own folder: one at start whenever a preference changed since the last
+  copy, one before every import, one when you click *Save a copy now* (Settings → System →
+  Backup), and one of a file it could not read. The Backup card lists them with the date and the
+  reason; *Restore* puts the chosen copy back, checked like an import, with the current settings
+  copied first; *Delete* removes one. You choose how many stay (50, 75, 100, 125 or 150); when
+  there are more, the oldest are deleted and the new ones saved.
 - **The complete change history in a file** - the in-app list shows the last 300 entries; every
   entry is now also written to `history-<year>.log` in the app folder, which the app never trims.
   *Full log…* → *Open history file* opens it.

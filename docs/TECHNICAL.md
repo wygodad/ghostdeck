@@ -977,13 +977,18 @@ their content once (the Scenarios page its scene cards, the fan curve page its p
 without that the imported scenes and presets showed up only after a restart (24.10.2026).
 
 **Copies in the app folder (`SettingsBackups`, `%AppData%\GhostDeck\backups`).** A copy of
-`settings.json` is taken at start when its bytes differ from the newest copy (so a hundred starts
-of an unchanged file leave one copy), before every import or restore, by hand from the Backup card
-("Save a copy now"), and of a file `Load` could not read. Names carry the moment and the reason
-(`settings-20261024-011718-import.json`); the newest 50 stay, older ones are deleted (10-20 KB
-each, under 1 MB in all). The Backup card lists them newest first with the reason, and *Restore*
-puts one back through the same checked, all-or-nothing path as an import (the current file is
-copied first, so a restore of the wrong copy is one more restore away). `Load` no longer swallows
+`settings.json` is taken at start when the preferences in it differ from the newest copy, before
+every import or restore, by hand from the Backup card ("Save a copy now"), and of a file `Load`
+could not read. "Differ" means the two files parsed as JSON and compared key by key without the
+fields that change on their own between starts (`LastUpdateCheckUtc`, `LastProfile`,
+`LastFirmware`, `ModelsSeen`, the window geometry and the remembered sub-tabs), so a hundred
+starts with the same preferences leave one copy, while a changed hotkey or scene leaves a new one.
+Names carry the moment and the reason (`settings-20261024-011718-import.json`); the newest
+`BackupKeep` stay (50 by default; the card offers 50, 75, 100, 125 and 150), older ones are
+deleted when a new copy comes (10-20 KB each, so even 150 stay under 3 MB). The Backup card
+lists them newest first with the reason; *Restore* puts one back through the same checked,
+all-or-nothing path as an import (the current file is copied first, so a restore of the wrong copy
+is one more restore away); *Delete* removes the chosen copy after a card asks. `Load` no longer swallows
 a file it cannot read: the bytes are kept as a `-unreadable` copy and the reason goes to
 `errors.log` ("settings.json could not be read (...)"); before, the app started with defaults
 without a word and the next save overwrote the file, which is how an owner lost every setting on

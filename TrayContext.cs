@@ -105,7 +105,8 @@ public sealed class TrayContext : ApplicationContext
     public TrayContext()
     {
         _settings = AppSettings.Load();
-        SettingsBackups.Take(SettingsBackups.Kind.Start, onlyIfChanged: true);   // one copy per change of the file, 50 kept
+        SettingsBackups.Keep = _settings.BackupKeep;
+        SettingsBackups.Take(SettingsBackups.Kind.Start, onlyIfChanged: true);   // one copy per change of the preferences, BackupKeep kept
         Autostart.Migrate();                       // move a pre-rename "MSIProfileSwitcher" autostart task to "GhostDeck"
         Autostart.Heal();                          // re-point the task if the exe was moved since it was created
         _settings.Autostart = Autostart.IsEnabled();

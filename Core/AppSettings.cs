@@ -136,6 +136,7 @@ public sealed class AppSettings
     }
 
     public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases (+ ogloszenia)
+    public int BackupKeep { get; set; } = 50;                          // ile kopii settings.json trzymac w backups/ (50-150, krok 25)
     public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
     // The model database has its OWN timestamp. It is a static file on the CDN with no request
     // limit, so it can be checked far more often than the release check, which goes to the
@@ -700,6 +701,7 @@ public sealed class AppSettings
         RefreshSwitchEnabled = src.RefreshSwitchEnabled;
         RefreshOnAC = src.RefreshOnAC;
         RefreshOnBattery = src.RefreshOnBattery;
+        BackupKeep = src.BackupKeep;
         OverlayEnabled = src.OverlayEnabled;
         OverlayLayout = src.OverlayLayout;
         OverlayOpacity = src.OverlayOpacity;

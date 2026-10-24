@@ -11,7 +11,25 @@ namespace GhostDeck;
 /// </summary>
 public static class SettingsBackups
 {
-    public const int Keep = 50;
+    /// <summary>The choices the Backup card offers for <see cref="Keep"/>.</summary>
+    public static readonly int[] KeepChoices = { 50, 75, 100, 125, 150 };
+
+    private static int _keep = 50;
+    /// <summary>How many copies stay (Settings → System → Backup); older ones are deleted when a new one comes.</summary>
+    public static int Keep
+    {
+        get => _keep;
+        set => _keep = Math.Clamp(value, KeepChoices[0], KeepChoices[^1]);
+    }
+
+    // Fields that change on their own between two starts without the owner changing a setting:
+    // they are left out of the "did the file change" comparison, so a start copy is taken when a
+    // preference changed, not because the update check ran or the window was moved.
+    private static readonly string[] Volatile =
+    {
+        "LastUpdateCheckUtc", "LastProfile", "LastFirmware", "ModelsSeen",
+        "SettingsSubTab", "SettingsGamingSub", "WinX", "WinY", "WinW", "WinH", "WinMaximized",
+    };
 
     /// <summary>Set by a test harness to work in a folder of its own; null = the app's folder.</summary>
     public static string? DirOverride { get; set; }
@@ -42,7 +60,7 @@ public static class SettingsBackups
             if (onlyIfChanged)
             {
                 var newest = List().FirstOrDefault();
-                if (newest != null && SameBytes(newest.Path, bytes)) return null;
+                if (newest != null && SameSettings(newest.Path, bytes)) return null;
             }
             Directory.CreateDirectory(Dir);
             string path = Path.Combine(Dir, $"{Prefix}{DateTime.Now:yyyyMMdd-HHmmss}-{KindTag(kind)}.json");
@@ -115,13 +133,44 @@ public static class SettingsBackups
         return kind is { } k ? (t, k) : null;
     }
 
-    private static bool SameBytes(string path, byte[] bytes)
+    /// <summary>Deletes one copy. Returns false (and notes the reason) when the file would not go.</summary>
+    public static bool Delete(Entry e)
+    {
+        try { File.Delete(e.Path); return true; }
+        catch (Exception ex) { AppLifecycle.Note("settings copy could not be deleted: " + ex.Message); return false; }
+    }
+
+    /// <summary>
+    /// The same settings, ignoring the volatile fields and the formatting: both files parsed as
+    /// JSON, the volatile keys dropped, the rest compared key by key. Files that do not parse are
+    /// compared byte for byte.
+    /// </summary>
+    private static bool SameSettings(string path, byte[] bytes)
     {
         try
         {
-            var fi = new FileInfo(path);
-            return fi.Exists && fi.Length == bytes.Length && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes);
+            byte[] other = File.ReadAllBytes(path);
+            string? a = Fingerprint(bytes), b = Fingerprint(other);
+            return a != null && b != null ? a == b : other.AsSpan().SequenceEqual(bytes);
         }
         catch { return false; }
+    }
+
+    /// <summary>A compact, key-sorted rendering of the file without the volatile fields; null when it is not a JSON object.</summary>
+    public static string? Fingerprint(byte[] json)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
+            var sb = new System.Text.StringBuilder();
+            foreach (var p in doc.RootElement.EnumerateObject().OrderBy(p => p.Name, StringComparer.Ordinal))
+            {
+                if (Array.IndexOf(Volatile, p.Name) >= 0) continue;
+                sb.Append(p.Name).Append('=').Append(p.Value.GetRawText()).Append('\n');
+            }
+            return sb.ToString();
+        }
+        catch { return null; }
     }
 }

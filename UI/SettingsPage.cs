@@ -1299,9 +1299,32 @@ public sealed partial class SettingsPage : ThemedPage
             RefreshBackupList();
             Card(Lang.T("set_grp_backup"), path != null ? Lang.T("bk_copy_saved") : string.Format(Lang.T("bk_err"), Lang.T("bk_none")));
         };
+        var delBtn = new Button { Text = Lang.T("bk_delete"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(delBtn);
+        delBtn.Click += (_, _) => DeleteBackup();
         var bRow2 = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
-        bRow2.Controls.Add(restoreBtn); bRow2.Controls.Add(copyBtn);
+        bRow2.Controls.Add(restoreBtn); bRow2.Controls.Add(copyBtn); bRow2.Controls.Add(delBtn);
         backup.AddRow(null, bRow2);
+        // how many copies stay: the oldest go when a new one comes
+        var keep = new ThemedComboBox { Width = (int)(84 * Dpi.Of(this) / 96f), Font = PageFont };
+        foreach (int n in SettingsBackups.KeepChoices) keep.Items.Add(n.ToString());
+        keep.SelectedIndex = Math.Max(0, Array.IndexOf(SettingsBackups.KeepChoices, D.Settings.BackupKeep));
+        keep.SelectedIndexChanged += (_, _) =>
+        {
+            if (keep.SelectedIndex < 0) return;
+            D.Settings.BackupKeep = SettingsBackups.KeepChoices[keep.SelectedIndex];
+            SettingsBackups.Keep = D.Settings.BackupKeep;
+            D.SaveSettings();
+            SettingsBackups.Rotate();
+            RefreshBackupList();
+        };
+        backup.AddRow(Lang.T("bk_keep"), keep);
+        var keepInfo = new Label
+        {
+            Text = Lang.T("bk_keep_info"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
+        };
+        backup.AddRow(null, keepInfo);
         _gLeft[SubSystem].Add(backup);   // left column (user request)
 
         // One-click diagnostics (#30 on the roadmap): everything a bug report needs, one zip.
@@ -1701,6 +1724,22 @@ public sealed partial class SettingsPage : ThemedPage
             ask.ShowOver(FindForm());
         if (!go) return;
         ImportFile(e.Path);
+    }
+
+    private void DeleteBackup()
+    {
+        if (_bkList == null || _bkEntries.Count == 0) return;
+        int i = _bkList.SelectedIndex;
+        if (i < 0 || i >= _bkEntries.Count) return;
+        var e = _bkEntries[i];
+        bool go = false;
+        using (var ask = new GhostCardForm("//SETTINGS", Lang.T("set_grp_backup"),
+                   string.Format(Lang.T("bk_delete_q"), e.Time.ToString("yyyy-MM-dd HH:mm")),
+                   Lang.T("bk_delete"), Lang.T("gen_cancel"), () => go = true))
+            ask.ShowOver(FindForm());
+        if (!go) return;
+        if (!SettingsBackups.Delete(e)) Card(Lang.T("set_grp_backup"), string.Format(Lang.T("bk_err"), e.Path));
+        RefreshBackupList();
     }
 
     private void ImportSettings()
