@@ -24,7 +24,7 @@ public sealed record LogEntry(DateTime Time, ChangeSource Source, string Detail,
 /// </summary>
 public static class ChangeLog
 {
-    private const int Max = 300;
+    public const int Max = 300;
     private static readonly LinkedList<LogEntry> _items = new();
     private static readonly object _lock = new();
 
@@ -59,10 +59,10 @@ public static class ChangeLog
     /// the file keeps seconds), the source and the detail.
     /// </summary>
     public static (DateTime Time, ChangeSource Source, string Detail) KeyOf(LogEntry e) =>
-        (new DateTime(e.Time.Year, e.Time.Month, e.Time.Day, e.Time.Hour, e.Time.Minute, e.Time.Second), e.Source, e.Detail);
+        (new DateTime(e.Time.Year, e.Time.Month, e.Time.Day, e.Time.Hour, e.Time.Minute, e.Time.Second), e.Source, Plain(e.Detail));
 
     private static string Line(LogEntry e) =>
-        $"{e.Time:yyyy-MM-dd HH:mm:ss}\t{e.Source}\t{e.Detail.Replace('\t', ' ').Replace('\n', ' ')}\t{e.Result.Replace('\t', ' ').Replace('\n', ' ')}";
+        $"{e.Time:yyyy-MM-dd HH:mm:ss}\t{e.Source}\t{Plain(e.Detail)}\t{Plain(e.Result)}";
 
     /// <summary>The history files of every year, parsed; a line that does not parse is skipped.</summary>
     private static List<LogEntry> FromFiles()
@@ -107,9 +107,16 @@ public static class ChangeLog
         catch (Exception ex) { AppLifecycle.Note("history backfill failed: " + ex.Message); return 0; }
     }
 
+    /// <summary>
+    /// One line of text: tabs and line breaks become spaces, because the history file keeps one
+    /// entry per line with tab-separated fields. Applied when the entry is made, so the list, the
+    /// file and the merge key all see the same text.
+    /// </summary>
+    public static string Plain(string s) => s.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
+
     public static void Add(ChangeSource src, string detail, string result = "")
     {
-        var e = new LogEntry(DateTime.Now, src, detail, result);
+        var e = new LogEntry(DateTime.Now, src, Plain(detail), Plain(result));
         lock (_lock)
         {
             _items.AddFirst(e);
@@ -145,16 +152,21 @@ public static class ChangeLog
     /// </summary>
     public static string? ClearWithArchive()
     {
-        string dir = Path.Combine(AppSettings.Dir, "backups", $"history-{DateTime.Now:yyyyMMdd-HHmmss}");
+        string root = Path.Combine(AppSettings.Dir, "backups");
+        string dir = Path.Combine(root, $"history-{DateTime.Now:yyyyMMdd-HHmmss}");
         try
         {
+            // a folder of its own every time: two clears within one second must not share one
+            // (the second would have overwritten the first copy), so the name gets a suffix
+            for (int n = 2; Directory.Exists(dir); n++) dir = Path.Combine(root, $"history-{DateTime.Now:yyyyMMdd-HHmmss}-{n}");
             Directory.CreateDirectory(dir);
             var files = Directory.Exists(AppSettings.Dir) ? Directory.GetFiles(AppSettings.Dir, "history-*.log").ToList() : new List<string>();
             lock (_lock)
             {
                 SaveNoLock();
-                if (File.Exists(FilePath)) File.Copy(FilePath, Path.Combine(dir, "changelog.json"), overwrite: true);
-                foreach (var f in files) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)), overwrite: true);
+                // every copy first, never over an existing file; the sources go only after all of them
+                if (File.Exists(FilePath)) File.Copy(FilePath, Path.Combine(dir, "changelog.json"), overwrite: false);
+                foreach (var f in files) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)), overwrite: false);
                 foreach (var f in files) File.Delete(f);
                 _items.Clear();
                 SaveNoLock();

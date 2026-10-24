@@ -324,6 +324,8 @@ public sealed class MainForm : Form
             foreach (var p in _pages.Values.ToList()) { _host.Controls.Remove(p); p.Dispose(); }
             _pages.Clear();
             ShowTab(_active);
+            _warmed = false;   // the other pages are built again off-screen, as after the first show
+            EnsureWarm();
         });
     }
 

@@ -1800,6 +1800,7 @@ public sealed partial class SettingsPage : ThemedPage
             D.ApplyOverlaySettings();
             D.SetOverlay(D.Settings.OverlayEnabled);
             Card(Lang.T("set_grp_backup"), Lang.T("imp_ok"));
+            SettingsBackups.Keep = D.Settings.BackupKeep;   // the imported choice counts from now, not from the next start
             D.ReloadPages();   // this page included: it is built again from the imported settings
         }
         catch (JsonException)

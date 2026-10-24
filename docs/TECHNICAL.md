@@ -1006,8 +1006,13 @@ tab-separated text file per year next to it (time, source, detail, readback) tha
 trims. **Status → Change log shows all of it** (`HistoryView`, 1.42; the separate full-log window
 is gone): `ChangeLog.Everything` merges the files of every year with the in-app list (duplicates
 dropped by time **to the second** + source + detail, because the list keeps milliseconds and the
-file seconds; newest first), read once per show and extended in place from the in-app list while
-on screen. At start `ChangeLog.BackfillHistory` writes every entry the list holds and the files
+file seconds; newest first). The detail and the readback are made one line of text when the
+entry is made (`ChangeLog.Plain`: tabs and line breaks become spaces), so the list, the file and
+the key see the same text; before, an entry with a tab counted twice and was written again at
+every start. The view reads the files once per show; on every change while on screen, and on
+every return to the screen, it merges **the whole in-app list** (not its last few entries, so a
+burst of a dozen entries and a long absence lose nothing), and reads the files again when even
+the oldest entry of a full list is new to it, since more may have rolled off into the file. At start `ChangeLog.BackfillHistory` writes every entry the list holds and the files
 lack (the entries from before the file existed, up to 300) to the file of its year, oldest first,
 so the file is complete from the first start of a build that keeps one. The view is a table the app draws itself. Everything you act on
 sits above it: the range (today / 7 days / 30 days / all), the count ("200 of 1532 entries", so
@@ -1020,8 +1025,9 @@ readback at most 40 %). The newest 200 rows draw first, and when the page is scr
 row (the paint of that row is the signal) the next 200 come in on their own, after the paint, so
 a history of thousands never draws at once and there are no pages to turn. *Clear the history*
 asks first, then `ChangeLog.ClearWithArchive` copies the history files of every year and the
-in-app list to `backups\history-<moment>\` in the app folder, deletes the files and empties the
-list; a copy that fails clears nothing. On this sub-tab the Status canvas buffers only its title
+in-app list to `backups\history-<moment>\` in the app folder (a folder of its own every time,
+suffixed when two clears fall in one second; a copy never overwrites an existing file), and only
+after every copy deletes the files and empties the list; a copy that fails clears nothing. On this sub-tab the Status canvas buffers only its title
 band (168 px), not a surface as tall as the history. Measured in the preview tool with 420
 entries at 100 %: switching the sub-tab away and back 14-18 ms (median of 16 passes), a filter
 keystroke 25 ms, the next 200 rows 32 ms, reading the files 0.6 ms.

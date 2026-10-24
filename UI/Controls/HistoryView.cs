@@ -81,21 +81,30 @@ public sealed class HistoryView : Control
     private readonly HashSet<(DateTime, ChangeSource, string)> _keys = new();
 
     /// <summary>
-    /// Something was logged. On screen: the new entries are merged in from the in-app list (no file
-    /// read, no re-parse); off screen: everything is read again at the next show. An emptied list
-    /// (Clear) reads everything again, since entries went away.
+    /// Something was logged. On screen: every entry of the in-app list that the view does not
+    /// have yet is merged in (no file read); off screen: the merge happens at the next show. The
+    /// whole list is walked, not its last few entries, so a burst (a scene is a dozen entries) and
+    /// a long absence lose nothing. When even the oldest entry of a full list is new to the view,
+    /// more may have rolled off into the file: then everything is read again. An emptied list
+    /// (Clear) reads everything again too, since entries went away.
     /// </summary>
     public void MarkDirty()
     {
         if (!Visible) { _dirty = true; return; }
-        var recent = ChangeLog.Recent(20);
-        if (recent.Count == 0 && _all.Count > 0) { Reload(); return; }
+        Merge();
+    }
+
+    private void Merge()
+    {
+        var list = ChangeLog.All();
+        if (list.Count == 0 && _all.Count > 0) { Reload(); return; }
+        if (list.Count >= ChangeLog.Max && _all.Count > 0 && !_keys.Contains(ChangeLog.KeyOf(list[^1]))) { Reload(); return; }
         bool added = false;
-        foreach (var e in recent)
-        {
-            if (_keys.Add(ChangeLog.KeyOf(e))) { _all.Insert(0, e); added = true; }
-        }
-        if (added) Refilter();
+        foreach (var e in list)
+            if (_keys.Add(ChangeLog.KeyOf(e))) { _all.Add(e); added = true; }
+        if (!added) return;
+        _all.Sort((a, b) => b.Time.CompareTo(a.Time));
+        Refilter();
     }
 
     /// <summary>The history files and the in-app list, read once per show (a few thousand lines take milliseconds).</summary>
@@ -108,10 +117,16 @@ public sealed class HistoryView : Control
         Refilter();
     }
 
+    /// <summary>Rows the view holds after the range, the filter and the sort (tests).</summary>
+    public int RowCount => _rows.Count;
+
     protected override void OnVisibleChanged(EventArgs e)
     {
         base.OnVisibleChanged(e);
-        if (Visible && _dirty) Reload();
+        // Back on screen: read everything when flagged, else merge what the list gained while the
+        // page was hidden (the page does not forward log events while hidden).
+        if (!Visible) return;
+        if (_dirty) Reload(); else Merge();
     }
 
     private void Refilter()

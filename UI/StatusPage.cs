@@ -116,7 +116,7 @@ public sealed class StatusPage : ThemedPage
         _test.Visible = false;
     }
 
-    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { if (_statusSub == 4) _hist.MarkDirty(); Relayout(); _canvas.Rebuild(); }); } catch { } } }
+    private void OnLogChanged() { if (!IsDisposed && Visible) { try { BeginInvoke(() => { if (IsDisposed) return; if (_statusSub == 4) _hist.MarkDirty(); Relayout(); _canvas.Rebuild(); }); } catch { } } }
 
     // The ETW-based FPS monitor runs only while someone is looking; the Gaming sub-tab counts
     // as a viewer, so entering it starts the monitor and leaving it lets the tray turn it off.
