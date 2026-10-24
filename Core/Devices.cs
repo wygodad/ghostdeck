@@ -1136,9 +1136,12 @@ public static class Devices
         // 3542/3571 rpm. The same trait shows in Lofre's two runs (#81, #87: Silent 97-101% on
         // 2674 vs 3573 rpm) before their Extreme phase hit a thermal latch near 96 C - a second,
         // independent measurement, so the exception for this trait applies (Issue Desk rule 11).
-        // Unconfirmed lead: 0xD3 read 83 in Balanced/Extreme and 80 in Super Battery - looks like
-        // the keyboard-backlight level (0x80 | level) switched off by the vendor's eco scenario;
-        // the owner was asked. 158NIMS1 stays out of KbdBacklightMap until then.
+        // Keyboard backlight: 0xD3 read 83 in Balanced/Extreme and 80 in Super Battery, and the
+        // owner confirmed that MSI Center's Eco-Silent (= Super Battery, shift C2) switches the
+        // backlight off - so 0xD3 holds the level (0x80 | level) as msi-ec's CONF_G2_1 says for the
+        // Bravo firmwares of this board. Still NOT in KbdBacklightMap: the Katana A15 AI B8VG has a
+        // 4-zone RGB keyboard (retail specs), and the owner's rule is no backlight control on RGB
+        // keyboards (decision 2026-10-24).
         new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "dmas-dll, Lofre, PedroElBigo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",
