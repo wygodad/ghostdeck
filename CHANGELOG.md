@@ -71,6 +71,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   be read, the app used to start with default settings without a word and the next save
   overwrote the file. It now keeps the unreadable file as a copy in the backups folder, writes
   the reason to `errors.log` and starts with defaults; the last good copy is one *Restore* away.
+- **Settings that were never loaded are never saved** - a settings object that did not go
+  through the app's own initialisation (one a tool or a test built a page on) is refused by the
+  save, with a line in the error log, so it can never replace your file with defaults.
 - **Settings are saved through a temporary file** - a crash or a full disk during a save can no
   longer leave a truncated `settings.json` that the next start would read as "no settings"; the
   previous file is kept as `settings.json.bak`.

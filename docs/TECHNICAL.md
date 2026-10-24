@@ -990,7 +990,9 @@ lists them newest first with the reason; *Restore* puts one back through the sam
 all-or-nothing path as an import (the current file is copied first, so a restore of the wrong copy
 is one more restore away); *Delete* removes the chosen copy after a card asks.
 
-![Settings → System → Backup: the copies kept by the app](images/settings-backup-copies.png) `Load` no longer swallows
+![Settings → System → Backup: the copies kept by the app](images/settings-backup-copies.png)
+
+![The question before a restore](images/settings-backup-restore-card.png) `Load` no longer swallows
 a file it cannot read: the bytes are kept as a `-unreadable` copy and the reason goes to
 `errors.log` ("settings.json could not be read (...)"); before, the app started with defaults
 without a word and the next save overwrote the file, which is how an owner lost every setting on
@@ -1006,7 +1008,12 @@ it in the system's text viewer.
 (`File.Replace`, which keeps the previous one as `settings.json.bak`), so a crash, a full disk or
 a reboot in the middle of a write leaves either the old file or the new one, never a truncated
 one that `Load` would read as "no settings". A save that fails is noted in `errors.log` once per
-run; the app keeps running on what it has in memory.
+run; the app keeps running on what it has in memory. **An instance that never passed
+`EnsureDefaults` is not saved at all** (a note in the log instead): a bare `new AppSettings()`
+that a tool or a test builds a page on, and that the page's code then saves, would otherwise
+land in the owner's file as defaults, which is exactly what the preview tool did twice on
+24.10.2026. Tools and tests also point `AppSettings.DirOverride` at a folder of their own, so
+every settings, history and backup file they produce stays out of the owner's profile.
 
 **Thermal alert (Settings → Automation; off by default).** Runs on the existing 3 s tray poll,
 *before* the `Writable` gate, so it also works on known-but-locked (Experimental) models; it is a

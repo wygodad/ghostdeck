@@ -364,8 +364,16 @@ public sealed class AppSettings
 
     [JsonIgnore]
     private static string AppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+    /// <summary>
+    /// Set by a tool or a test harness that builds the app's pages outside the app (the preview
+    /// tool, the check harness): every settings, history and backup file then lives in that
+    /// folder, never in the owner's. The preview tool overwrote the owner's settings.json twice
+    /// on 24.10.2026 before this existed.
+    /// </summary>
     [JsonIgnore]
-    public static string Dir => Path.Combine(AppData, "GhostDeck");
+    public static string? DirOverride { get; set; }
+    [JsonIgnore]
+    public static string Dir => DirOverride ?? Path.Combine(AppData, "GhostDeck");
     [JsonIgnore]
     private static string OldDir => Path.Combine(AppData, "MSIProfileSwitcher");   // pre-rename settings folder
     [JsonIgnore]
@@ -428,8 +436,20 @@ public sealed class AppSettings
     /// with defaults). The previous file is kept as settings.json.bak. A failure is noted in
     /// the log once per run; the app keeps running on what it has in memory.
     /// </summary>
+    // Set by EnsureDefaults, which every instance that stands for the owner's settings passes
+    // (Load calls it on both of its paths). A bare `new AppSettings()` that some code saves by
+    // mistake (a tool building a page on an empty object, a test) would otherwise overwrite the
+    // owner's file with defaults, as the preview tool did on 24.10.2026.
+    [JsonIgnore]
+    private bool _initialised;
+
     public void Save()
     {
+        if (!_initialised)
+        {
+            AppLifecycle.Note("settings not saved: this settings object was never initialised (a tool or test instance, not the app's)");
+            return;
+        }
         try
         {
             Directory.CreateDirectory(Dir);
@@ -510,6 +530,7 @@ public sealed class AppSettings
 
     public void EnsureDefaults()
     {
+        _initialised = true;   // from here on this instance may be saved (see Save)
         const uint CA = Hk.MOD_CONTROL | Hk.MOD_ALT;
         void Def(string k, uint vk, string disp)
         {
