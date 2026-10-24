@@ -263,9 +263,8 @@ public static class Devices
     // (#26) Keyboard-backlight level register, per firmware prefix. Generated from msi-ec's
     // per-conf kbd_bl blocks (bl_state_address): write 0x80 | level (0-3 = off/low/mid/high),
     // read the low 2 bits. Boards absent here have no EC-level brightness register in msi-ec -
-    // that includes the per-key RGB models (SteelSeries-controlled) and 158NIMS1, which msi-ec
-    // lists under two confs with contradicting kbd_bl data. Hardware-verified additions for
-    // boards outside msi-ec go here too (none yet).
+    // that includes the per-key RGB models (SteelSeries-controlled). Hardware-verified additions
+    // go at the end of the map.
     private static readonly Dictionary<string, byte> KbdBacklightMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["13P3EMS1"] = 0xD3, ["13P5EMS1"] = 0xD3, ["13Q2EMS1"] = 0xD3, ["13Q3EMS1"] = 0xD3, ["14C4EMS1"] = 0xD3, ["14C6EMS1"] = 0xD3, ["14D2EMS1"] = 0xD3, ["14D3EMS1"] = 0xD3,
@@ -279,6 +278,11 @@ public static class Devices
         ["158MEMS1"] = 0xF3, ["15HKEMS1"] = 0xF3, ["16R1EMS1"] = 0xF3, ["16R3EMS1"] = 0xF3, ["16R4EMS1"] = 0xF3, ["16R4EMS2"] = 0xF3, ["16R5EMS1"] = 0xF3, ["16S1EMS1"] = 0xF3,
         ["16S3EMS1"] = 0xF3, ["16U7EMS1"] = 0xF3, ["16V2EMS1"] = 0xF3, ["16W1EMS1"] = 0xF3, ["16W1EMS2"] = 0xF3, ["16W2EMS1"] = 0xF3, ["16WKEMS1"] = 0xF3, ["17E7EMS1"] = 0xF3,
         ["17E8EMS1"] = 0xF3, ["17F2EMS1"] = 0xF3, ["17F3EMS1"] = 0xF3, ["17F3EMS2"] = 0xF3, ["17F4EMS2"] = 0xF3, ["17F5EMS1"] = 0xF3, ["17F6EMS1"] = 0xF3, ["17FKEMS1"] = 0xF3,
+        // Hardware-verified. 158NIMS1 (Bravo 15 C7V / Katana A15 AI B8VG): msi-ec gives 0xD3 for the
+        // Bravo firmwares (CONF_G2_1) and "unsupported" for the Katana ones (CONF_G2_10); on a .507
+        // Katana MSI Center's Eco-Silent switched the backlight off and 0xD3 went 83 -> 80 (#274, #276).
+        // Its keyboard is 4-zone RGB, whose brightness is this one EC level; colours are never touched.
+        ["158NIMS1"] = 0xD3,
     };
 
     /// <summary>(#26) Keyboard-backlight register for this firmware, or 0 = not supported.</summary>
@@ -1139,9 +1143,9 @@ public static class Devices
         // Keyboard backlight: 0xD3 read 83 in Balanced/Extreme and 80 in Super Battery, and the
         // owner confirmed that MSI Center's Eco-Silent (= Super Battery, shift C2) switches the
         // backlight off - so 0xD3 holds the level (0x80 | level) as msi-ec's CONF_G2_1 says for the
-        // Bravo firmwares of this board. Still NOT in KbdBacklightMap: the Katana A15 AI B8VG has a
-        // 4-zone RGB keyboard (retail specs), and the owner's rule is no backlight control on RGB
-        // keyboards (decision 2026-10-24).
+        // Bravo firmwares of this board. In KbdBacklightMap since 2026-10-24: the Katana's keyboard
+        // is 4-zone RGB, but its brightness lives in the EC like a single-colour one (only the level
+        // is written, never colours) - unlike per-key RGB keyboards with their own controller.
         new() { Name = "MSI Bravo 15 C7V / Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "dmas-dll, Lofre, PedroElBigo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",
