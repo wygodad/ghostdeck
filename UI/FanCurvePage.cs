@@ -1450,7 +1450,7 @@ public sealed class FanCurvePage : ThemedPage
             return $"{t}/{d} ({Count})";
         }
         /// <summary>Every distinct reading, coolest first, with its sample count when above one.</summary>
-        public string Listing() => string.Join("   ", _readings.OrderBy(k => k.Key.temp).ThenBy(k => k.Key.duty)
+        public string Listing(string sep) => string.Join(sep, _readings.OrderBy(k => k.Key.temp).ThenBy(k => k.Key.duty)
             .Select(k => k.Value > 1 ? $"{k.Key.temp}°/{k.Key.duty}% ×{k.Value}" : $"{k.Key.temp}°/{k.Key.duty}%"));
     }
     private readonly CheckItem _optDotLabels = new(Lang.T("fc_play_values"), false);
@@ -1724,7 +1724,7 @@ public sealed class FanCurvePage : ThemedPage
         // (#172) pass 1: every reading joins the group whose single labels it would touch
         // (measured once from a typical label), newest reading first - so a group's anchor is
         // its newest sample and its label sits where the eye lands.
-        var sampleSz = TextRenderer.MeasureText(g, "88°/100%", dotF, Size.Empty, TextFormatFlags.NoPadding);
+        var sampleSz = TextRenderer.MeasureText(g, fans > 1 ? "GPU 88°/100%" : "88°/100%", dotF, Size.Empty, TextFormatFlags.NoPadding);
         int joinW = sampleSz.Width + S(4), joinH = sampleSz.Height;
         for (int i = cnt - 1; i >= 0; i--)
         {
@@ -1745,12 +1745,17 @@ public sealed class FanCurvePage : ThemedPage
                 if (!_dotHits.ContainsKey(key)) _dotHits[key] = new Rectangle((int)(pt.X - S(6)), (int)(pt.Y - S(6)), S(12), S(12));
             }
         }
-        // pass 2: dots and one label per group
+        // pass 2: dots and one label per group. A lit group (hovered or pinned) lists its readings
+        // in the info row under the chart - a fixed place that nothing overlaps - never in a bubble
+        // over the plot, where it collided with the live reading's label and with other labels.
         var labelled = new List<Rectangle>();
+        DotGroup? litGroup = null;
         foreach (var grp in _groups)
         {
             var dotCol = grp.Fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
-            bool lit = (_hoverDot.HasValue && grp.Has(_hoverDot.Value)) || grp.AnyPinned(_pinnedDots);
+            bool hoveredHere = _hoverDot.HasValue && grp.Has(_hoverDot.Value);
+            bool lit = hoveredHere || grp.AnyPinned(_pinnedDots);
+            if (lit && (litGroup == null || hoveredHere)) litGroup = grp;
             foreach (var (mpt, malpha) in grp.Points)
                 using (var hb = new SolidBrush(Color.FromArgb(lit ? 200 : malpha, dotCol))) g.FillEllipse(hb, mpt.X - dr, mpt.Y - dr, dr * 2, dr * 2);
             // the anchor: bigger and ringed when it stands for several readings, bigger still when lit
@@ -1759,7 +1764,8 @@ public sealed class FanCurvePage : ThemedPage
             if (grp.Count > 1)
                 using (var ring = new Pen(Color.FromArgb(lit ? 255 : 150, dotCol), Sf(1.2f))) g.DrawEllipse(ring, grp.Anchor.X - rr - Sf(2), grp.Anchor.Y - rr - Sf(2), (rr + Sf(2)) * 2, (rr + Sf(2)) * 2);
             if (!(allLabels || lit)) continue;
-            string dl = grp.Label();
+            // which fan a reading belongs to was only told by the dot's shade: say it (#172)
+            string dl = (fans > 1 ? (grp.Fan == 0 ? "CPU " : "GPU ") : "") + grp.Label();
             var dsz = TextRenderer.MeasureText(g, dl, dotF, Size.Empty, TextFormatFlags.NoPadding);
             int dx = (int)grp.Anchor.X + S(6) + (grp.Count > 1 ? S(3) : 0);
             if (dx + dsz.Width > plot.Right) dx = (int)grp.Anchor.X - S(6) - dsz.Width;
@@ -1774,23 +1780,6 @@ public sealed class FanCurvePage : ThemedPage
             }
             TextRenderer.DrawText(g, dl, dotF, lrect,
                 Color.FromArgb(lit ? 255 : Math.Clamp(grp.Alpha + 60, 0, 255), dotCol), TextFormatFlags.Left | TextFormatFlags.NoPadding);
-        }
-        // pass 3: the bubble with every reading of a lit group, drawn last so nothing paints over it
-        foreach (var grp in _groups)
-        {
-            if (grp.Count < 2 || !((_hoverDot.HasValue && grp.Has(_hoverDot.Value)) || grp.AnyPinned(_pinnedDots))) continue;
-            var dotCol = grp.Fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
-            string body = grp.Listing();
-            var bsz = TextRenderer.MeasureText(g, body, dotF, new Size(S(360), int.MaxValue), TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
-            int bw = bsz.Width + S(14), bh = bsz.Height + S(10);
-            int bx = (int)grp.Anchor.X + S(16); if (bx + bw > plot.Right) bx = (int)grp.Anchor.X - bw - S(16);
-            int by = (int)grp.Anchor.Y - bh - S(12); if (by < plot.Top) by = (int)grp.Anchor.Y + S(14);
-            using (var path3 = Theme.RoundRect(new RectangleF(bx, by, bw, bh), Sf(5)))
-            {
-                using var bb4 = new SolidBrush(Color.FromArgb(Theme.Dark ? 230 : 245, Theme.Card)); g.FillPath(bb4, path3);
-                using var bp4 = new Pen(Color.FromArgb(170, dotCol)); g.DrawPath(bp4, path3);
-            }
-            TextRenderer.DrawText(g, body, dotF, new Rectangle(bx + S(7), by + S(5), bsz.Width, bsz.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
         }
         // curves
         for (int fan = 0; fan < fans; fan++)
@@ -1880,7 +1869,14 @@ public sealed class FanCurvePage : ThemedPage
             hourS = string.Format(Lang.T("fc_play_hour"), cnt, ct.Count > 0 ? ct.Min() : 0, ct.Count > 0 ? ct.Max() : 0, cf.Min(), cf.Max());
         }
         else hourS = Lang.T("fc_play_hour_none");
-        TextRenderer.DrawText(g, hourS, subF, new Rectangle(ir.X + S(16), ir.Y + S(10) + bF.Height, ir.Width - S(32), subF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
+        var hourCol = Theme.Muted;
+        if (litGroup != null)
+        {
+            // the hovered / pinned group: which fan, then every distinct reading with its count
+            hourS = Lang.T(fans == 1 ? "fc_fan_single" : litGroup.Fan == 0 ? "fc_fan_cpu" : "fc_fan_gpu") + ":  " + litGroup.Listing("  ·  ");
+            hourCol = litGroup.Fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
+        }
+        TextRenderer.DrawText(g, hourS, subF, new Rectangle(ir.X + S(16), ir.Y + S(10) + bF.Height, ir.Width - S(32), subF.Height), hourCol, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box (or a group with more distinct readings than the row can hold)
         DrawSweepPanel(g, titleF, subF, bF, axisF);
     }
 
