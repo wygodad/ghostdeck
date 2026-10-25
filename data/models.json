@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261105,
+  "dataVersion": 20261106,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -5571,7 +5571,7 @@
       }
     },
     {
-      "name": "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG / A9WJG",
+      "name": "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG / Raider A18 HX A9WJG",
       "prefixes": [
         "182LIMS1"
       ],

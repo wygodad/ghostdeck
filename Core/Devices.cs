@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261105;
+    public const int DataVersion = 20261106;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1665,7 +1665,7 @@ public static class Devices
         //   line exists on msi.com) runs the same firmware. That owner's capture is also the
         //   first on this board with a REAL Silent column (MSI Center 2.0.48): recipes 1:1,
         //   0xEB=00 in every column re-confirmed, 0xD6=03 under the vendor's Extreme again.
-        new() { Name = "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG / A9WJG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
+        new() { Name = "MSI Vector A18 HX A9WHG / Raider A18 HX A9WIG / Raider A18 HX A9WJG", FirmwarePrefixes = new[] { "182LIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "Skullkidsrevenge, bnjhdaskghsnlh, UzaydaGezen", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/54",
                 CreditIssues = Issues("Skullkidsrevenge:54; bnjhdaskghsnlh:166,167,168; UzaydaGezen:172") },
