@@ -4114,6 +4114,14 @@ model at the previous visit. The list as it was when the app started is the refe
 the whole run, so a model added or promoted since then carries the badge (List, header line,
 "New" chip) until the next start. The very first run marks nothing.
 
+### 82.4 The owner's own variant inside a shared entry name (1.43)
+
+Several retail models share one EC firmware and therefore one entry: `MSI Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG`. The entry name stays whole on purpose (one name per firmware, the same in the app, the signed database and the docs), but the **Your laptop** card on the Start sub-tab marks the variant this machine is: the word is drawn in the accent colour inside the name ([#172](https://github.com/wygodad/ghostdeck/issues/172)).
+
+The machine's own name comes from the SMBIOS system product name (`Core/Smbios.cs`), read once from the registry copy Windows keeps under `HKLM\HARDWARE\DESCRIPTION\System\BIOS\SystemProductName` - no WMI, no elevation. Its last word is the variant code (`A9WJG`). `ModelsViews.OwnVariantWord` splits the entry name into model lines at the comma, picks the line that mentions that code and shares the most words with the product name (`Titan 18 HX A14V, Raider 18 HX A14V` both end in `A14V`), and returns the index of that word; `NameWithOwnVariant` then lays the name out word by word, wrapping like a paragraph, with that one word in `Theme.Accent`. An entry with a single name, a machine whose product name matches nothing, or an empty product name (virtual machines) falls back to the plain paragraph. The preview tool renders any machine with `GHOSTDECK_PRODUCT=<name>` next to `HARNESS_FW=<prefix>`.
+
+**Entry naming rule (database 20261107).** A slash separates variants of one model line (`Raider A18 HX A9WIG / A9WJG`); a comma separates different lines that share the board (`Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG`). Thirteen entries were renamed to follow it; the rule is what makes the variant lookup above unambiguous.
+
 ## 83. Hardware readings unavailable (2026-10)
 
 Every hardware sample goes through `Ec.TryReadHw`, which swallows a refused read (WMI or COM

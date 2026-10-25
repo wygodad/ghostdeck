@@ -17,9 +17,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 - **Fan curve, "In action" view** ([#172](../../issues/172)) - readings whose value labels would overlap now form one group: a
-  bigger ringed dot at the newest reading, one label with the temperature range, the duty and the count ("45-50°/0% (14)"),
-  and the full list of readings in a bubble when the group is hovered or pinned. A pile of idle readings in one spot or a row
-  one degree apart along the curve used to paint their labels on top of each other.
+  bigger ringed dot at the newest reading, one label with the fan, the temperature range, the duty and the count
+  ("CPU 45-50°/0% (14)"), and the full list of readings in the info row under the chart while the group is hovered or pinned.
+  A pile of idle readings in one spot or a row one degree apart along the curve used to paint their labels on top of each
+  other. Labels say which fan they belong to and are 9 pt instead of 7.5.
 - **Models tab, "Your laptop" card** ([#172](../../issues/172)) - when several retail models share the firmware, the variant this
   machine is (the model name Windows reports) is drawn in the accent colour inside the entry name. The name itself stays
   whole: one name per firmware, the same in the app and the docs.

@@ -146,6 +146,18 @@ The panel is never squeezed: on a wide window the table, findings and mini chart
 below a threshold they stack and the panel grows, and if the result no longer fits the window, the
 view scrolls (§10).
 
+### 6.1 Grouped reading labels (1.43)
+
+With the **Values** switch on, every history dot used to get its own `temperature°/duty%` label. A laptop that idles at the same temperature for twenty minutes paints twenty dots on one spot, and a slow warm-up paints a row one degree apart along the curve: both put their labels on top of each other, and the result could not be read ([#172](https://github.com/wygodad/ghostdeck/issues/172)).
+
+The labels are now grouped. While painting, each reading joins the group whose labels it would touch (a reading joins when it is within one label's width and height of **any** member, so a row chains into one group, not into pairs). A group with more than one reading shows:
+
+- a bigger, ringed dot at its **newest** reading, with the members still drawn as faint dots, so the spread stays visible;
+- one label with the fan, the temperature range, the duty range and the count, e.g. `CPU 45-50°/0% (14)`, with a backing so it reads over its own members;
+- its full list of readings in the **info row under the chart** when it is hovered or pinned (click a dot to pin): the fan's name, then every distinct reading with its sample count (`57°/48% ×13 · 58°/48% ×7 · 59°/48% ×9`), in the fan's colour. The list replaces the "last hour" line while the group is lit and never floats over the plot, where it would collide with the live reading's label.
+
+Labels never overlap: when a range label would still reach a neighbouring group's label, the later group keeps its dot and ring and drops the text (the reading is still one hover away). Single readings keep their plain label, prefixed with `CPU` / `GPU` on two-fan boards so the two shades of orange are no longer the only hint. The labels are 9 pt (they were 7.5 pt, unreadable at a distance).
+
 ## 7. The fan sweep
 
 The one thing on this page that writes to the EC for measurement rather than for control.
