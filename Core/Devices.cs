@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261104;
+    public const int DataVersion = 20261105;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1263,7 +1263,24 @@ public static class Devices
         new() { Name = "MSI Modern 15 B12HW",               FirmwarePrefixes = new[] { "15H2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H B13M",              FirmwarePrefixes = new[] { "15H4IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Cyborg 15 AI A1VFK",            FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Cyborg 15 AI A1VFK / A1VEK (15K2EMS1) - TESTED on one owner's complete set (issues
+        // #281/#282/#283, Jur15, firmware .109, MSI Center 2.0.48, app 1.42.0). Capture: all four
+        // columns 1:1 with StdRecipes, with a real Silent column (0xD4=1D); the three hardware
+        // checks confirmed. Second retail name A1VEK (the RTX 4050 line) from his report.
+        //   RPM: wide-tach 16-bit pair 0xC8:0xC9, CPU only - the power test's pre-run idle dump
+        //   reads 01:1D (~1680 rpm), a high byte a single-byte scheme never sets; 0xCA:0xCB read
+        //   00:00 in all nine dumps, graphics load included (one fan, like every Cyborg 15).
+        //   Curve VERIFIED, single fan: the test curve sits byte for byte at 0x72; the 0x8A table
+        //   never changed in any dump.
+        //   Power test (#283): bytes written and read back intact in all four phases, but 20 %
+        //   drift at a constant 72-75 C (the repeat Balanced at 3083 MHz against 3608 at the
+        //   start; cause unknown), so profile differences are unreadable from that run. Silent
+        //   held the fan at 28 % for 48 s where Balanced ran 63 %; CPU work 99 % of Balanced.
+        //   An earlier owner's capture (#149) showed four unswitched columns - no evidence then.
+        new() { Name = "MSI Cyborg 15 AI A1VFK / A1VEK",    FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Jur15", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/281",
+                CreditIssues = Issues("Jur15:281,282,283") },
         // Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG (15Q3EMS1) - Tested on two owners' evidence.
         // Recipes: the first owner's vendor capture (issue #97) and the second owner's
         // snapshot (issue #140) both match StdRecipes 1:1. Measured (issue #146; the run was

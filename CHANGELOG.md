@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Cyborg 15 AI A1VFK / A1VEK** (`15K2EMS1`, model database 20261105, [#281](../../issues/281), [#282](../../issues/282),
+  [#283](../../issues/283), thanks @Jur15) - tested: all four profiles confirmed on the hardware, fan RPM readout switched
+  on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
+
 ### Changed
 - **Model database 20261104** - credits: @XereJay on the Stealth 16 Studio A13VG (`15F2EMS1`, [#279](../../issues/279), Super
   Battery state confirmed), @HardFlakeCZ on the Katana 15 HX B14WEK / B14WFK (`1587EMS1`, [#280](../../issues/280), curve confirmed again).
