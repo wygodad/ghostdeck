@@ -10,8 +10,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
 
 ### Changed
-- **Model database 20261106** - the Vector A18 HX / Raider A18 HX entry (`182LIMS1`) names each variant in full:
-  Vector A18 HX A9WHG / Raider A18 HX A9WIG / Raider A18 HX A9WJG.
+- **Model database 20261107** - entry names: a slash separates variants of one model line (Raider A18 HX A9WIG / A9WJG),
+  a comma separates different lines on the same board (Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG); 13 entries renamed.
 - **Model database 20261104** - credits: @XereJay on the Stealth 16 Studio A13VG (`15F2EMS1`, [#279](../../issues/279), Super
   Battery state confirmed), @HardFlakeCZ on the Katana 15 HX B14WEK / B14WFK (`1587EMS1`, [#280](../../issues/280), curve confirmed again).
 - **Cyborg 15 A12VF / A13VF / A13VE** (`15K1IMS1`, model database 20261103, [#224](../../issues/224)) - the chassis has one fan, so the

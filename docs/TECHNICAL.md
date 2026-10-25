@@ -1838,7 +1838,7 @@ msi-ec's per-conf `kbd_bl` blocks document a single-byte brightness register: wr
 `Devices.KbdBacklightMap` carries a firmware-prefix → address map generated from msi-ec's
 raw source (82 prefixes) plus hardware-verified additions. Boards absent from the map get no
 UI at all: that includes the per-key RGB models (SteelSeries-controlled, msi-ec marks their
-register unsupported - the GE78HX among them). `158NIMS1` (Bravo 15 C7V / Katana A15 AI B8VG),
+register unsupported - the GE78HX among them). `158NIMS1` (Bravo 15 C7V, Katana A15 AI B8VG),
 which msi-ec lists under two confs with contradicting kbd_bl data (`0xD3` for the Bravo
 firmwares, unsupported for the Katana ones), was added on hardware evidence (#274, #276): on a
 `.507` Katana, MSI Center's Eco-Silent switched the backlight off and `0xD3` went `83` -> `80`.
@@ -3046,7 +3046,7 @@ toggling a child's `Visible` from inside `OnPaint` (which schedules the next pai
 ## 67. A board that needed one more byte: `0xD6` on the GE66/GP66 (v1.34.0, issue #52)
 
 Until now every supported board took the same three-register recipe: shift mode, fan mode and the
-super-battery flag. The GE66 Raider / GP66 Leopard (`1543EMS1`) is the first exception, and it is
+super-battery flag. The GE66 Raider, GP66 Leopard (`1543EMS1`) is the first exception, and it is
 worth writing down because the same shape will repeat on other families.
 
 **The symptom.** The owner's HWiNFO logs showed our Balanced pinned at a **fixed PL1 of 30 W - the
