@@ -1715,7 +1715,7 @@ public sealed class FanCurvePage : ThemedPage
         try { hist = HwHistory.Window(TimeSpan.FromMinutes(60)); } catch { hist = new List<HwSample>(); }
         int cnt = hist.Count;
         float dr = Sf(2.2f);
-        using var dotF = Dpi.Font("Segoe UI", 7.5f);
+        using var dotF = Dpi.Font("Segoe UI", 9f);   // 7.5 pt was unreadable on the owner's screen (#172)
         // The dots carry their values only where the reader asks for it: hovering one shows its
         // label, clicking pins it (click again to unpin), and the "Values" switch turns every
         // label on at once. Labelling all of them by default was a wall of text.
