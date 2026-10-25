@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261103;
+    public const int DataVersion = 20261104;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1130,10 +1130,12 @@ public static class Devices
         //   at 73% of Balanced's work on slower fans. Note the spread: the #177 machine's
         //   Silent cut almost nothing while this one cuts a quarter - both runs look valid,
         //   so it is recorded as unit-to-unit spread, not corrected either way.
+        //   Fifth report (issue #280, HardFlakeCZ, MSI Center 2.0.48, firmware .106): the test
+        //   curve byte for byte at 0x72/0x8A on both fans again.
         new() { Name = "MSI Katana 15 HX B14WEK / B14WFK", FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63",
-                CreditIssues = Issues("zajebistylukasz-beep:63,64; DRLOGIC01:176,177; Osanosa:191; sensini82:192,193") },
+                Credit = "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82, HardFlakeCZ", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63",
+                CreditIssues = Issues("zajebistylukasz-beep:63,64; DRLOGIC01:176,177; Osanosa:191; sensini82:192,193; HardFlakeCZ:280") },
         // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
         // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
         // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register
@@ -1216,14 +1218,17 @@ public static class Devices
         // Silent column (0xD4=1D) in Silent / Balanced / Extreme, and the owner confirmed all
         // three hardware checks. The Super Battery column repeats the Extreme state (that tile
         // was not clicked), so the eco recipe rides on the family standard, unconfirmed by a
-        // capture. 0xD6 sits at 03 under the vendor's Extreme and 05 elsewhere (the #52
+        // capture there. CONFIRMED by a second owner (issue #279, XereJay, MSI Center 2.0.74):
+        // Super Battery C2 + 0xEB=0F, Balanced and Extreme 1:1; that capture's Silent step
+        // repeats Extreme, as 2.0.74 has no Silent tile. 0xD6 sits at 03 under the vendor's Extreme and 05 elsewhere (the #52
         // self-setting observation, 14th board). RPM: 0xC9/0xCB moved per scenario but every
         // reading sat above ~1870 rpm where the single-byte and 16-bit formats coincide
-        // (TECHNICAL 16) - left off until an idle reading classifies the format.
+        // (TECHNICAL 16); the #279 set sat there too - left off until an idle reading classifies
+        // the format (a curve-wizard capture at idle would do; asked for in #279).
         new() { Name = "MSI Stealth 16 Studio A13VG",       FirmwarePrefixes = new[] { "15F2EMS1" }, Tier = Tier.Tested,
                 FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "sevi-05", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/206",
-                CreditIssues = Issues("sevi-05:206") },
+                Credit = "sevi-05, XereJay", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/206",
+                CreditIssues = Issues("sevi-05:206; XereJay:279") },
         new() { Name = "MSI Stealth 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI Studio A1VFG",    FirmwarePrefixes = new[] { "15F4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI A2HWFG",          FirmwarePrefixes = new[] { "15F5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

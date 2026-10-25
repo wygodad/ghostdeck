@@ -5,6 +5,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **Model database 20261104** - credits: @XereJay on the Stealth 16 Studio A13VG (`15F2EMS1`, [#279](../../issues/279), Super
+  Battery state confirmed), @HardFlakeCZ on the Katana 15 HX B14WEK / B14WFK (`1587EMS1`, [#280](../../issues/280), curve confirmed again).
 - **Cyborg 15 A12VF / A13VF / A13VE** (`15K1IMS1`, model database 20261103, [#224](../../issues/224)) - the chassis has one fan, so the
   curve editor shows a single curve and the second fan's RPM reading (always zero on this board) is gone.
 
