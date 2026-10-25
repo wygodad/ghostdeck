@@ -300,6 +300,19 @@ The limits, as of 17 October 2026: the mechanism is **confirmed on one laptop** 
 
 EC access via WMI requires elevation. Launching the app manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**. Since 1.38 the exe no longer demands administrator rights by itself: the app asks for them when it starts for real, and a launch that only hands a command to the already running app (a jump-list entry, a `ghostdeck://` link, `GhostDeck.exe --profile Silent` from a script, a second double-click on the exe) runs without any prompt. A command run with no app running still prompts once, because it has to talk to the EC itself.
 
+## Will there be a Linux version?
+
+No, and not for lack of interest. GhostDeck is Windows through and through: the interface, the gaming overlay, the Windows power plans, the scheduled task that starts it, the hotkeys, and above all the road to the Embedded Controller, which on Windows is MSI's own WMI bridge. On Linux that road does not exist, so a Linux GhostDeck would be a second application written from scratch, not a port.
+
+It would also duplicate two excellent projects that GhostDeck itself builds on and gladly recommends:
+
+- **[msi-ec](https://github.com/BeardOverflow/msi-ec)** - the Linux kernel driver for MSI laptops: profiles (shift modes), fan modes, Cooler Boost, battery charge limit, keyboard backlight, webcam, Fn/Win swap. GhostDeck's model database is built on its register maps.
+- **[MControlCenter](https://github.com/dmitry-s93/MControlCenter)** - the graphical app on top of msi-ec: profile switching, automatic switching on charger, battery limit, fan curve, temperature and fan readouts.
+
+Check msi-ec's [list of supported devices](https://github.com/BeardOverflow/msi-ec/discussions/277) first; if your laptop is missing there, the msi-ec project is the place to report it.
+
+---
+
 ## Is the in-app update safe? What does it check?
 
 Yes, and since v1.42.0 it checks more than it used to. The Updates tab downloads the release file
