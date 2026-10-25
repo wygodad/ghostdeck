@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261102;
+    public const int DataVersion = 20261103;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -495,8 +495,13 @@ public static class Devices
         // Third retail name (issue #224): the reporter's machine is a Cyborg 15 A13VE - the
         // RTX 4050 sibling of the same Cyborg 15 A13V family, listed beside the A13VF on
         // msi.com's own spec page (one chassis, same MS-15K1 board, firmware .108).
+        // ONE FAN (issue #224, 2026-10-25): the Cyborg 15 A12V/A13V chassis has a single shared
+        // fan (LaptopMedia teardown - the same chassis fact recorded on the B13WFKG entry). MSI
+        // Center 2.0.71 shows one slider, the GPU tach 0xCB read 00 in all eleven captures from
+        // five owners, and the second curve table at 0x8A accepts values (#29) but drives
+        // nothing - the Thin GF63 12VE pattern. Single curve, CPU tach only.
         new() { Name = "MSI Cyborg 15 A12VF / A13VF / A13VE", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "hengeleng10-tech, M-Essa11, qq588849, DeimosCreator", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19",
                 CreditIssues = Issues("hengeleng10-tech:19,29; M-Essa11:57; qq588849:220,222,223; DeimosCreator:224") },
 

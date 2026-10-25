@@ -3,6 +3,11 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Cyborg 15 A12VF / A13VF / A13VE** (`15K1IMS1`, model database 20261103, [#224](../../issues/224)) - the chassis has one fan, so the
+  curve editor shows a single curve and the second fan's RPM reading (always zero on this board) is gone.
+
 ## [1.42.0] - 2026-10-24
 ### Added
 - **Keyboard backlight on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, model database 20261031,

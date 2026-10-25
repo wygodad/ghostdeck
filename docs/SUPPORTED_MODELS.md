@@ -27,7 +27,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Crosshair 17 HX AI D2XW | `17T4EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Crosshair 18 HX AI A2XW | `1841EMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Crosshair A16 HX (D7W/D8W) | `15PLIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
-| MSI Cyborg 15 A12VF / A13VF / A13VE | `15K1IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Cyborg 15 A12VF / A13VF / A13VE | `15K1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
 | MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG | `15Q3EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI Cyborg A15 AI B2HWGKG / B2HWEKG | `15QLIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
 | MSI GE66 Raider / GP66 Leopard | `1543EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
