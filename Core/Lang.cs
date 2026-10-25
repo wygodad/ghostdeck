@@ -2575,7 +2575,7 @@ public static class Lang
 
         m["sub_silent"]       = new[] { "quiet · ~30–40 W", "cicho · ~30–40 W", "leise · ~30–40 W", "silencieux · ~30–40 W", "silencioso · ~30–40 W", "安静 · ~30–40 W", "silencioso · ~30–40 W", "тихо · ~30–40 W", "静音 · ~30–40 W", "조용함 · ~30–40 W", "安靜 · ~30–40 W", "sessiz · ~30–40 W", "êm · ~30–40 W", "senyap · ~30–40 W", "silenzioso · ~30–40 W" };
         m["sub_balanced"]     = new[] { "full power", "pełna moc", "volle Leistung", "pleine puissance", "máxima potencia", "全功率", "potência total", "полная мощность", "フルパワー", "풀 파워", "全功率", "tam güç", "toàn công suất", "daya penuh", "piena potenza" };
-        m["sub_extreme"]      = new[] { "max · loud", "maks · głośno", "max · laut", "max · bruyant", "máx · ruidoso", "最大 · 吵", "máx · ruidoso", "макс · громко", "最大 · 高騒音", "최대 · 시끄러움", "最大 · 吵", "maks · gürültülü", "tối đa · ồn", "maks · bising", "max · rumoroso" };
+        m["sub_extreme"]      = new[] { "max · loud", "maks · głośno", "max · laut", "max · bruyant", "máx · ruidoso", "最大 · 吵", "máx · ruidoso", "макс · громко", "最大 · 高騒音", "최대 · 시끄러움", "最大 · 吵", "en yüksek · gürültülü", "tối đa · ồn", "maks · bising", "max · rumoroso" };
         m["sub_superbattery"] = new[] { "saving · ~15 W", "oszczędzanie · ~15 W", "sparen · ~15 W", "économie · ~15 W", "ahorro · ~15 W", "省电 · ~15 W", "economia · ~15 W", "экономия · ~15 W", "省電力 · ~15 W", "절전 · ~15 W", "省電 · ~15 W", "tasarruf · ~15 W", "tiết kiệm · ~15 W", "hemat · ~15 W", "risparmio · ~15 W" };
     }
 

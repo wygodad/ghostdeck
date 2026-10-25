@@ -375,6 +375,23 @@ public sealed class ScenariosPage : ThemedPage
         Invalidate(true);
     }
 
+    /// <summary>
+    /// (#172) The feature bricks paint their captions from Lang on every paint, but the controls
+    /// inside them carry a Text set once at build time - after a language switch the Panic reset
+    /// button kept its old caption next to a freshly translated label. Re-read every such caption.
+    /// </summary>
+    public override void OnLanguageChanged()
+    {
+        if (_panicBtn != null) _panicBtn.Text = Lang.T("hk_panic");
+        _addScene.Text = "+  " + Lang.T("scene_add");
+        _addExamples.Text = Lang.T("scene_add_examples");
+        _gearTip.SetToolTip(_gear, Lang.T("scen_gear_tip"));
+        _gearTip.SetToolTip(_orderBtn, Lang.T("po_edit_tip"));
+        _kbd?.SetItems(new[] { Lang.T("kbd_off"), Lang.T("kbd_low"), Lang.T("kbd_mid"), Lang.T("kbd_high") }, _kbd.Selected);
+        PerformLayout();
+        Invalidate(true);
+    }
+
     public override void ApplyTheme()
     {
         base.ApplyTheme();

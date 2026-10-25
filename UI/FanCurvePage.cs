@@ -1405,6 +1405,54 @@ public sealed class FanCurvePage : ThemedPage
     private readonly Dictionary<(int fan, int temp, int duty), Rectangle> _dotHits = new();   // history dots, hit-tested for labels
     private (int fan, int temp, int duty)? _hoverDot;
     private readonly HashSet<(int fan, int temp, int duty)> _pinnedDots = new();
+    private readonly List<DotGroup> _groups = new();   // (#172) readings whose labels would overlap, one label per group
+
+    /// <summary>
+    /// (#172) A pile of readings in one spot used to paint a pile of labels on top of each
+    /// other. Readings whose single labels would touch now form one group: a bigger ringed
+    /// dot at the newest reading, one label with the range and the count ("45-50°/0% (12)"),
+    /// and the full list in a bubble on hover or pin.
+    /// </summary>
+    private sealed class DotGroup
+    {
+        public readonly int Fan;
+        public readonly PointF Anchor;
+        public int Alpha;
+        public int Count;
+        public readonly List<(PointF pt, int alpha)> Points = new();
+        private readonly Dictionary<(int fan, int temp, int duty), int> _readings = new();   // reading -> samples
+        private int _minT = int.MaxValue, _maxT = int.MinValue, _minD = int.MaxValue, _maxD = int.MinValue;
+        public DotGroup(int fan, PointF anchor, int alpha) { Fan = fan; Anchor = anchor; Alpha = alpha; }
+        public void Add((int fan, int temp, int duty) key, PointF pt, int alpha)
+        {
+            Count++; Points.Add((pt, alpha)); if (alpha > Alpha) Alpha = alpha;
+            _readings[key] = _readings.TryGetValue(key, out int c) ? c + 1 : 1;
+            _minT = Math.Min(_minT, key.temp); _maxT = Math.Max(_maxT, key.temp);
+            _minD = Math.Min(_minD, key.duty); _maxD = Math.Max(_maxD, key.duty);
+        }
+        public bool Has((int fan, int temp, int duty) key) => _readings.ContainsKey(key);
+        /// <summary>A reading joins when its label would touch ANY member's label, so a row of
+        /// readings one degree apart chains into one group instead of pairs.</summary>
+        public bool Touches(PointF pt, int w, int h)
+        {
+            foreach (var (mpt, _) in Points) if (Math.Abs(mpt.X - pt.X) < w && Math.Abs(mpt.Y - pt.Y) < h) return true;
+            return false;
+        }
+        public bool AnyPinned(HashSet<(int fan, int temp, int duty)> pinned)
+        {
+            foreach (var k in _readings.Keys) if (pinned.Contains(k)) return true;
+            return false;
+        }
+        public string Label()
+        {
+            if (Count == 1) return $"{_minT}°/{_minD}%";
+            string t = _minT == _maxT ? $"{_minT}°" : $"{_minT}-{_maxT}°", d = _minD == _maxD ? $"{_minD}%" : $"{_minD}-{_maxD}%";
+            return $"{t}/{d} ({Count})";
+        }
+        /// <summary>Every distinct reading, coolest first, with its sample count when above one.</summary>
+        public string Listing() => string.Join("   ", _readings.OrderBy(k => k.Key.temp).ThenBy(k => k.Key.duty)
+            .Select(k => k.Value > 1 ? $"{k.Key.temp}°/{k.Key.duty}% ×{k.Value}" : $"{k.Key.temp}°/{k.Key.duty}%"));
+    }
     private readonly CheckItem _optDotLabels = new(Lang.T("fc_play_values"), false);
     private bool _sweepOpen;
     private FanSweep.Result? _sweepResult;
@@ -1671,9 +1719,13 @@ public sealed class FanCurvePage : ThemedPage
         // The dots carry their values only where the reader asks for it: hovering one shows its
         // label, clicking pins it (click again to unpin), and the "Values" switch turns every
         // label on at once. Labelling all of them by default was a wall of text.
-        _dotHits.Clear();
+        _dotHits.Clear(); _groups.Clear();
         bool allLabels = D.Settings.FanCurveDotLabels;
-        var labelled = new List<PointF>();
+        // (#172) pass 1: every reading joins the group whose single labels it would touch
+        // (measured once from a typical label), newest reading first - so a group's anchor is
+        // its newest sample and its label sits where the eye lands.
+        var sampleSz = TextRenderer.MeasureText(g, "88°/100%", dotF, Size.Empty, TextFormatFlags.NoPadding);
+        int joinW = sampleSz.Width + S(4), joinH = sampleSz.Height;
         for (int i = cnt - 1; i >= 0; i--)
         {
             var smp = hist[i];
@@ -1683,30 +1735,62 @@ public sealed class FanCurvePage : ThemedPage
                 int t = fan == 0 ? smp.CpuTemp : smp.GpuTemp, d = fan == 0 ? smp.CpuFan : smp.GpuFan;
                 int[] temps = fan == 0 ? _cpuT : _gpuT;
                 if (t <= 0) continue;
-                var dotCol = fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
                 var pt = new PointF(plot.Left + CurveModel.OrdinalX(temps, t) * plot.Width / (n - 1), plot.Bottom - Math.Clamp(d, 0, MaxPct) / (float)MaxPct * plot.Height);
                 var key = (fan, t, d);
-                _dotHits[key] = new Rectangle((int)(pt.X - S(6)), (int)(pt.Y - S(6)), S(12), S(12));
-                bool hovered = _hoverDot.HasValue && _hoverDot.Value == key;
-                bool pinned = _pinnedDots.Contains(key);
-                float rr = hovered || pinned ? dr * 1.6f : dr;
-                using (var hb = new SolidBrush(Color.FromArgb(hovered || pinned ? 230 : alpha, dotCol))) g.FillEllipse(hb, pt.X - rr, pt.Y - rr, rr * 2, rr * 2);
-                if (!(allLabels || hovered || pinned)) continue;
-                if (allLabels && !hovered && !pinned && labelled.Any(q => Math.Abs(q.X - pt.X) < S(24) && Math.Abs(q.Y - pt.Y) < S(13))) continue;
-                labelled.Add(pt);
-                string dl = $"{t}°/{d}%";
-                var dsz = TextRenderer.MeasureText(g, dl, dotF, Size.Empty, TextFormatFlags.NoPadding);
-                int dx = (int)pt.X + S(6);
-                if (dx + dsz.Width > plot.Right) dx = (int)pt.X - S(6) - dsz.Width;
-                var lrect = new Rectangle(dx, (int)pt.Y - dsz.Height / 2, dsz.Width, dsz.Height);
-                if (hovered || pinned)
-                {
-                    using var bb3 = new SolidBrush(Color.FromArgb(Theme.Dark ? 220 : 240, Theme.Card));
-                    g.FillRectangle(bb3, Rectangle.Inflate(lrect, S(3), S(2)));
-                }
-                TextRenderer.DrawText(g, dl, dotF, lrect,
-                    Color.FromArgb(hovered || pinned ? 255 : Math.Clamp(alpha + 60, 0, 255), dotCol), TextFormatFlags.Left | TextFormatFlags.NoPadding);
+                DotGroup? grp = null;
+                foreach (var cand in _groups)
+                    if (cand.Fan == fan && cand.Touches(pt, joinW, joinH)) { grp = cand; break; }
+                if (grp == null) { grp = new DotGroup(fan, pt, alpha); _groups.Add(grp); }
+                grp.Add(key, pt, alpha);
+                if (!_dotHits.ContainsKey(key)) _dotHits[key] = new Rectangle((int)(pt.X - S(6)), (int)(pt.Y - S(6)), S(12), S(12));
             }
+        }
+        // pass 2: dots and one label per group
+        var labelled = new List<Rectangle>();
+        foreach (var grp in _groups)
+        {
+            var dotCol = grp.Fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
+            bool lit = (_hoverDot.HasValue && grp.Has(_hoverDot.Value)) || grp.AnyPinned(_pinnedDots);
+            foreach (var (mpt, malpha) in grp.Points)
+                using (var hb = new SolidBrush(Color.FromArgb(lit ? 200 : malpha, dotCol))) g.FillEllipse(hb, mpt.X - dr, mpt.Y - dr, dr * 2, dr * 2);
+            // the anchor: bigger and ringed when it stands for several readings, bigger still when lit
+            float rr = grp.Count > 1 ? dr * (lit ? 2.1f : 1.7f) : (lit ? dr * 1.6f : dr);
+            using (var ab = new SolidBrush(Color.FromArgb(lit ? 240 : Math.Min(255, grp.Alpha + 40), dotCol))) g.FillEllipse(ab, grp.Anchor.X - rr, grp.Anchor.Y - rr, rr * 2, rr * 2);
+            if (grp.Count > 1)
+                using (var ring = new Pen(Color.FromArgb(lit ? 255 : 150, dotCol), Sf(1.2f))) g.DrawEllipse(ring, grp.Anchor.X - rr - Sf(2), grp.Anchor.Y - rr - Sf(2), (rr + Sf(2)) * 2, (rr + Sf(2)) * 2);
+            if (!(allLabels || lit)) continue;
+            string dl = grp.Label();
+            var dsz = TextRenderer.MeasureText(g, dl, dotF, Size.Empty, TextFormatFlags.NoPadding);
+            int dx = (int)grp.Anchor.X + S(6) + (grp.Count > 1 ? S(3) : 0);
+            if (dx + dsz.Width > plot.Right) dx = (int)grp.Anchor.X - S(6) - dsz.Width;
+            var lrect = new Rectangle(dx, (int)grp.Anchor.Y - dsz.Height / 2, dsz.Width, dsz.Height);
+            // a range label is wider than a single one and can still reach the next group's: the later one yields
+            if (!lit && labelled.Any(q => q.IntersectsWith(lrect))) continue;
+            labelled.Add(lrect);
+            if (lit || grp.Count > 1)   // a group label sits over its own members' dots: give it a backing
+            {
+                using var bb3 = new SolidBrush(Color.FromArgb(Theme.Dark ? 220 : 240, Theme.Card));
+                g.FillRectangle(bb3, Rectangle.Inflate(lrect, S(3), S(2)));
+            }
+            TextRenderer.DrawText(g, dl, dotF, lrect,
+                Color.FromArgb(lit ? 255 : Math.Clamp(grp.Alpha + 60, 0, 255), dotCol), TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        }
+        // pass 3: the bubble with every reading of a lit group, drawn last so nothing paints over it
+        foreach (var grp in _groups)
+        {
+            if (grp.Count < 2 || !((_hoverDot.HasValue && grp.Has(_hoverDot.Value)) || grp.AnyPinned(_pinnedDots))) continue;
+            var dotCol = grp.Fan == 0 ? Theme.Amber : Color.FromArgb(0xF0, 0x8A, 0x3C);
+            string body = grp.Listing();
+            var bsz = TextRenderer.MeasureText(g, body, dotF, new Size(S(360), int.MaxValue), TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
+            int bw = bsz.Width + S(14), bh = bsz.Height + S(10);
+            int bx = (int)grp.Anchor.X + S(16); if (bx + bw > plot.Right) bx = (int)grp.Anchor.X - bw - S(16);
+            int by = (int)grp.Anchor.Y - bh - S(12); if (by < plot.Top) by = (int)grp.Anchor.Y + S(14);
+            using (var path3 = Theme.RoundRect(new RectangleF(bx, by, bw, bh), Sf(5)))
+            {
+                using var bb4 = new SolidBrush(Color.FromArgb(Theme.Dark ? 230 : 245, Theme.Card)); g.FillPath(bb4, path3);
+                using var bp4 = new Pen(Color.FromArgb(170, dotCol)); g.DrawPath(bp4, path3);
+            }
+            TextRenderer.DrawText(g, body, dotF, new Rectangle(bx + S(7), by + S(5), bsz.Width, bsz.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
         }
         // curves
         for (int fan = 0; fan < fans; fan++)

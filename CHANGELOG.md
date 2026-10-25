@@ -4,12 +4,25 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Fixed
+- **Panic reset button kept its old caption after a language switch** ([#172](../../issues/172)) - the feature bricks on the
+  Scenarios tab translate themselves on every paint, but the button inside one of them was captioned once at build time.
+  The Scenarios tab now re-reads every such caption when the language changes.
+- **Turkish: the Extreme tile said "maks"** ([#172](../../issues/172)) - now "en yüksek · gürültülü".
+
 ### Added
 - **Cyborg 15 AI A1VFK / A1VEK** (`15K2EMS1`, model database 20261105, [#281](../../issues/281), [#282](../../issues/282),
   [#283](../../issues/283), thanks @Jur15) - tested: all four profiles confirmed on the hardware, fan RPM readout switched
   on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
 
 ### Changed
+- **Fan curve, "In action" view** ([#172](../../issues/172)) - readings whose value labels would overlap now form one group: a
+  bigger ringed dot at the newest reading, one label with the temperature range, the duty and the count ("45-50°/0% (14)"),
+  and the full list of readings in a bubble when the group is hovered or pinned. A pile of idle readings in one spot or a row
+  one degree apart along the curve used to paint their labels on top of each other.
+- **Models tab, "Your laptop" card** ([#172](../../issues/172)) - when several retail models share the firmware, the variant this
+  machine is (the model name Windows reports) is drawn in the accent colour inside the entry name. The name itself stays
+  whole: one name per firmware, the same in the app and the docs.
 - **Model database 20261107** - entry names: a slash separates variants of one model line (Raider A18 HX A9WIG / A9WJG),
   a comma separates different lines on the same board (Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG); 13 entries renamed.
 - **Model database 20261104** - credits: @XereJay on the Stealth 16 Studio A13VG (`15F2EMS1`, [#279](../../issues/279), Super

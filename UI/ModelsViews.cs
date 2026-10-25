@@ -259,6 +259,64 @@ internal abstract class ModelsView : Control
     protected int ChipH() => ModelsPage.FSmall.Height + S(8);
 
     protected static string Short(DeviceProfile d) => d.Name.StartsWith("MSI ", StringComparison.OrdinalIgnoreCase) ? d.Name[4..] : d.Name;
+
+    /// <summary>
+    /// (#172) Several retail models share one firmware and so one entry name ("Vector A18 HX
+    /// A9WHG, Raider A18 HX A9WIG / A9WJG"). The name stays whole - one name per firmware,
+    /// the same in the app and the docs - but the variant this machine is (SMBIOS product
+    /// name, last word = the variant code) is drawn in the accent colour. Returns the index
+    /// of that word in the space-split name, or -1 when nothing matches or there is only one
+    /// name to begin with.
+    /// </summary>
+    internal static int OwnVariantWord(DeviceProfile d)
+    {
+        string name = Short(d);
+        if (!name.Contains(" / ") && !name.Contains(", ")) return -1;
+        var prod = Smbios.ProductName().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (prod.Length == 0) return -1;
+        string code = prod[^1];
+        var prodSet = new HashSet<string>(prod, StringComparer.OrdinalIgnoreCase);
+        var words = name.Split(' ');
+        // each comma-separated part is one model line; pick the line that mentions the code and
+        // shares the most words with the product name (Titan 18 HX A14V vs Raider 18 HX A14V)
+        int best = -1, bestScore = -1, offset = 0;
+        foreach (var line in name.Split(", "))
+        {
+            var lw = line.Split(' ');
+            int hit = -1, score = 0;
+            for (int i = 0; i < lw.Length; i++)
+            {
+                if (lw[i] == "/") continue;
+                if (prodSet.Contains(lw[i])) score++;
+                if (hit < 0 && string.Equals(lw[i], code, StringComparison.OrdinalIgnoreCase)) hit = i;
+            }
+            if (hit >= 0 && score > bestScore) { bestScore = score; best = offset + hit; }
+            offset += lw.Length;   // the ", " split consumed the comma: the next part's words follow directly
+        }
+        return best < words.Length ? best : -1;
+    }
+
+    /// <summary>The entry name wrapped like a paragraph, with the owner's variant word in the accent colour.</summary>
+    protected int NameWithOwnVariant(Graphics? g, DeviceProfile d, int x, int y, int w)
+    {
+        int own = OwnVariantWord(d);
+        if (own < 0) return Para(g, Short(d), ModelsPage.FName, x, y, w, Theme.Text);
+        var f = ModelsPage.FName;
+        var words = Short(d).Split(' ');
+        // the ", " split in OwnVariantWord joins "A9WHG," and the next word; here the comma stays on its word
+        int lineH = ModelsText.LineH(f);
+        int space = ModelsText.NaturalW("a a", f) - ModelsText.NaturalW("aa", f);
+        int cx = x, cy = y;
+        const TextFormatFlags fl = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
+        for (int i = 0; i < words.Length; i++)
+        {
+            int ww = TextRenderer.MeasureText(words[i], f, Size.Empty, fl).Width;
+            if (cx > x && cx + ww > x + w) { cx = x; cy += lineH; }
+            T(g, words[i], f, new Rectangle(cx, cy, ww + 2, lineH), i == own ? Theme.Accent : Theme.Text, fl);
+            cx += ww + space;
+        }
+        return cy + lineH - y;
+    }
     protected static string IssueNo(string url)
     {
         int i = url.LastIndexOf('/');
@@ -413,7 +471,7 @@ internal sealed class ModelsStartView : ModelsView
             return cy - r.Y;
         }
         bool tested = d.Tier == Tier.Tested;
-        cy += Para(gg, Short(d), ModelsPage.FName, ix, cy, iw, Theme.Text) + S(2);
+        cy += NameWithOwnVariant(gg, d, ix, cy, iw) + S(2);
         cy += Para(gg, string.Join(", ", d.FirmwarePrefixes) + "   ·   " + (d.ShiftMode == 0xF2 ? "G1" : "G2"),
                    ModelsPage.FSmall, ix, cy, iw, Theme.Faint) + S(8);
         // status chip
