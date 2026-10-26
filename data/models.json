@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261107,
+  "dataVersion": 20261108,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -3478,6 +3478,46 @@
         "singleFan": false
       },
       "added": "2026-06-29",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Creator 16 AI Studio A1VHG",
+      "prefixes": [
+        "15F3EMS3"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "added": "2026-10-27",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
