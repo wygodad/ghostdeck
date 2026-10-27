@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261108;
+    public const int DataVersion = 20261109;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1238,7 +1238,12 @@ public static class Devices
         // RPM left off: 0xC8/0xCA read 00 next to live 0xC9/0xCB (AF/B2), the zone where the single-
         // byte and 16-bit formats coincide (TECHNICAL 16). 0xD6 03 under the vendor's Extreme (the #52
         // observation). 0x33 05 in Silent, 0D elsewhere - observation only.
-        new() { Name = "MSI Creator 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS3" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Curve VERIFIED (issue #285, same owner): the test curve sits byte for byte at 0x72 (25-75)
+        // and 0x8A (20-70) - two fans. The curve capture's tachs (0xC8:C9 00:C5, 0xCA:CB 00:D3,
+        // ~2430 / ~2270 rpm) are still above the zone where the formats diverge - RPM stays off.
+        new() { Name = "MSI Creator 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS3" }, Tier = Tier.Experimental, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "bengervais", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/285",
+                CreditIssues = Issues("bengervais:284,285") },
         new() { Name = "MSI Stealth 16 AI Studio A1VFG",    FirmwarePrefixes = new[] { "15F4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI A2HWFG",          FirmwarePrefixes = new[] { "15F5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth A16 AI+ A3XVFG / A3XVGG", FirmwarePrefixes = new[] { "15FKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

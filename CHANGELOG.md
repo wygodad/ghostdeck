@@ -7,6 +7,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 - **Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261108, [#284](../../issues/284), thanks @bengervais) - recognised as an
   experimental model; the owner's capture matches the standard recipes in all four profiles, with a real Silent state.
+  Fan curve verified on both fans (database 20261109, [#285](../../issues/285)).
 
 ### Fixed
 - **Panic reset button kept its old caption after a language switch** ([#172](../../issues/172)) - the feature bricks on the

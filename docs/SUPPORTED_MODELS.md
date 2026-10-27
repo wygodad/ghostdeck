@@ -72,7 +72,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG | `182LIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
 | MSI Vector GP68 HX 13V | `15M1IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
 | MSI Creator 15 A11UE | `16V4EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Creator 16 AI Studio A1VHG | `15F3EMS3` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
+| MSI Creator 16 AI Studio A1VHG | `15F3EMS3` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &mdash; |
 | MSI Creator 17 B11UE | `17M1EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator Z16 A11UE | `1571EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator Z16 A12U | `1572EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261108,
+  "dataVersion": 20261109,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -3514,8 +3514,16 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
+      },
+      "credit": "bengervais",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/285",
+      "creditIssues": {
+        "bengervais": [
+          284,
+          285
+        ]
       },
       "added": "2026-10-27",
       "recipes": {
