@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Raider GE68HX 13V** (`15M2IMS1`, model database 20261110, [#286](../../issues/286), [#287](../../issues/287),
+  [#288](../../issues/288), thanks @ctimmons25) - tested: the power test measured Silent, Balanced and Extreme on the hardware
+  (Silent at 80 % of Balanced's work, every profile read back intact), fan RPM readout switched on (16-bit pairs) and the fan
+  curve verified on both fans.
 - **Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261108, [#284](../../issues/284), thanks @bengervais) - recognised as an
   experimental model; the owner's capture matches the standard recipes in all four profiles, with a real Silent state.
   Fan curve verified on both fans (database 20261109, [#285](../../issues/285)).
