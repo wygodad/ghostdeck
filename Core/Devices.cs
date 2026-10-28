@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261110;
+    public const int DataVersion = 20261111;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -677,6 +677,7 @@ public static class Devices
 
         // ---------- EXPERIMENTAL (from msi-ec, unverified, opt-in) ----------
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
+        new() { Name = "MSI Raider GE68HX 13V",          FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // 16V1EMS1 is msi-ec CONF_G1_3 (G1 board), not G2 — corrected to 0xF2/0xF4 (was wrongly 0xD2/0xD4).
         // Backup WMI path (issue #258, a GS66 Stealth 10SF, BIOS E16V1IMS.112, Dragon Center 2.0.149):
         // the firmware refuses MSI_ACPI, and the owner's block report shows the Dragon Center-era
@@ -835,23 +836,6 @@ public static class Devices
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Ghli", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/245",
                 CreditIssues = Issues("Ghli:244,245") },
-        // Raider GE68HX 13V (15M2IMS1) - TESTED by measurement (issues #286/#287/#288,
-        // ctimmons25, firmware .113, MSI Center 2.0.74, app 1.42.0). The per-scenario capture
-        // (#286) shows four unswitched columns, all Extreme with the Advanced fan mode
-        // (0xD2 = C4, 0xD4 = 8D), so it carries no recipe evidence. The power test (#288)
-        // settles it: every phase read its own StdRecipes bytes back intact and the starting
-        // profile was restored without error; Silent held 80 % of Balanced's work at 3074 vs
-        // 3830 MHz, CPU 69 C vs 77 C, CPU fan 56 % vs 75 %; Extreme 108 % at 4135 MHz. Drift
-        // 7 % (repeat Balanced 93), below the Silent gap. Super Battery not measured.
-        //   RPM: wide-tach 16-bit pairs 0xC8:0xC9 / 0xCA:0xCB - the power test's pre-run idle
-        //   dump reads the GPU pair as 01:0A (~1797 rpm), a high byte a single-byte scheme never
-        //   sets; every other dump sits in the coinciding zone (A3/A3 in Silent, 6C/4C in Extreme).
-        //   Curve VERIFIED: the test curve sits byte for byte at 0x72 and 0x8A (#287).
-        //   0x89 read 0x68 under graphics load in all four phases - observation only.
-        new() { Name = "MSI Raider GE68HX 13V",             FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "ctimmons25", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/288",
-                CreditIssues = Issues("ctimmons25:286,287,288") },
         // Vector 16 HX AI (15M3EMS1) - the first model promoted on a MEASUREMENT rather than on its
         // owner's judgement. The Power test (issue #74) answers all three hardware checks with
         // numbers: Silent holds 84 % of Balanced's delivered work at 4728 MHz against 5432 and
