@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261116;
+    public const int DataVersion = 20261117;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -504,12 +504,22 @@ public static class Devices
         // ONE FAN (issue #224, 2026-10-25): the Cyborg 15 A12V/A13V chassis has a single shared
         // fan (LaptopMedia teardown - the same chassis fact recorded on the B13WFKG entry). MSI
         // Center 2.0.71 shows one slider, the GPU tach 0xCB read 00 in all eleven captures from
-        // five owners, and the second curve table at 0x8A accepts values (#29) but drives
-        // nothing - the Thin GF63 12VE pattern. Single curve, CPU tach only.
+        // five owners, and the second curve table at 0x8A accepts values (#29). One curve in the
+        // editor, CPU tach only.
+        // TWO TABLES, ONE FAN (issue #293, 2026-10-29, the two-table test on the A13VE): the
+        // firmware follows the HIGHER of the two tables - 25/45, 45/25 and 45/45 all held ~2676
+        // rpm, 0/45 and 45/0 ~2664, 25/25 ~1494. MSI Center 2.0.74 writes its one slider into
+        // table 1 only, accepts 0 % there, and leaves table 2 at its factory 38-78 %, which is what
+        // held the fan at ~2700 rpm once the app did the same (#224). The app keeps writing table 1
+        // only by default (the vendor's behaviour); writing both is the opt-in of TECHNICAL 85.
+        // 0xD4 read 9D under MSI Center's all-zero curve and 8D otherwise - observation only.
+        // Tach is 16-BIT (0xC8:C9): the 25/25 pair read 0x40 in 0xC9 alone, an impossible 7468 rpm
+        // for this fan; as the pair 0x0140 = 320 it is 1494 rpm, exactly 25 % at the board's
+        // ~60 rpm per percent (2676 / 45 = 59.5) - the sibling 15K2EMS1's format.
         new() { Name = "MSI Cyborg 15 A12VF / A13VF / A13VE", FirmwarePrefixes = new[] { "15K1IMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                CpuRpmAddr16 = 0xC8, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "hengeleng10-tech, M-Essa11, qq588849, DeimosCreator", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/19",
-                CreditIssues = Issues("hengeleng10-tech:19,29; M-Essa11:57; qq588849:220,222,223; DeimosCreator:224") },
+                CreditIssues = Issues("hengeleng10-tech:19,29; M-Essa11:57; qq588849:220,222,223; DeimosCreator:224,293") },
 
         // Thin GF63 12VE (16R8IMS1) — owner per-scenario dump (issue #21) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery
@@ -1257,9 +1267,12 @@ public static class Devices
         // self-setting observation, 14th board). RPM: 0xC9/0xCB moved per scenario but every
         // reading sat above ~1870 rpm where the single-byte and 16-bit formats coincide
         // (TECHNICAL 16); the #279 set sat there too - left off until an idle reading classifies
-        // the format (a curve-wizard capture at idle would do; asked for in #279).
+        // the format. Curve VERIFIED (issue #279, XereJay, 2026-10-29): his test curve sits byte for
+        // byte at 0x72 (25-75) and 0x8A (20-70), two fans. That capture's tachs (0xC8:C9 00:BC,
+        // 0xCA:CB 00:C1, ~2540 / ~2480 rpm at 25 / 20 % duty) are still above the zone where the
+        // formats diverge - RPM stays off.
         new() { Name = "MSI Stealth 16 Studio A13VG",       FirmwarePrefixes = new[] { "15F2EMS1" }, Tier = Tier.Tested,
-                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "sevi-05, XereJay", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/206",
                 CreditIssues = Issues("sevi-05:206; XereJay:279") },
         new() { Name = "MSI Stealth 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -1274,9 +1287,14 @@ public static class Devices
         // Curve VERIFIED (issue #285, same owner): the test curve sits byte for byte at 0x72 (25-75)
         // and 0x8A (20-70) - two fans. The curve capture's tachs (0xC8:C9 00:C5, 0xCA:CB 00:D3,
         // ~2430 / ~2270 rpm) are still above the zone where the formats diverge - RPM stays off.
-        new() { Name = "MSI Creator 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS3" }, Tier = Tier.Experimental, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+        //   Tested via the same owner's power test and his ear (issue #294): every phase read its
+        //   recipe back intact, Balanced twice with 0 % drift; under the combined CPU+GPU load the
+        //   clocks and work were identical across the profiles (the shared-budget pattern, Extreme
+        //   = Balanced - recorded, not held against it), and the owner reports Silent audibly
+        //   quieter than Balanced under a graphics load - the fan-side Silent criterion.
+        new() { Name = "MSI Creator 16 AI Studio A1VHG",    FirmwarePrefixes = new[] { "15F3EMS3" }, Tier = Tier.Tested, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "bengervais", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/285",
-                CreditIssues = Issues("bengervais:284,285") },
+                CreditIssues = Issues("bengervais:284,285,294") },
         new() { Name = "MSI Stealth 16 AI Studio A1VFG",    FirmwarePrefixes = new[] { "15F4EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 16 AI A2HWFG",          FirmwarePrefixes = new[] { "15F5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth A16 AI+ A3XVFG / A3XVGG", FirmwarePrefixes = new[] { "15FKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

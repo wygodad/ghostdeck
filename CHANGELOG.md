@@ -5,6 +5,15 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261117, [#294](../../issues/294), thanks @bengervais) - tested: the
+  power test read every profile back intact with 0 % drift, and the owner hears Silent clearly quieter than Balanced under a
+  graphics load; Extreme matches Balanced under a combined load, as on several other boards.
+- **Stealth 16 Studio A13VG** (`15F2EMS1`, model database 20261117, [#279](../../issues/279), thanks @XereJay) - fan curve
+  verified on both fans.
+- **Cyborg 15 A12VF / A13VF / A13VE** (`15K1IMS1`, model database 20261117, [#293](../../issues/293), thanks @DeimosCreator) -
+  fan RPM read as a 16-bit pair, so a slow fan no longer shows an impossible number; the owner's two-table test measured
+  that the firmware follows the higher of its two fan-curve tables, and his MSI Center capture that the vendor's single slider
+  writes table 1 only and leaves table 2 at its factory values.
 - **Modern 15 B11M** (`15H3IMS1`, model database 20261116, [#300](../../issues/300), [#301](../../issues/301),
   [#302](../../issues/302), thanks @rock3tup) - recognised as an experimental model; fan curve verified on both tables and the
   fan RPM readout on (16-bit pair).

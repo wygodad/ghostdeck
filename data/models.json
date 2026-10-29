@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261116,
+  "dataVersion": 20261117,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -285,7 +285,7 @@
         "15K1IMS1"
       ],
       "tier": "Tested",
-      "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -312,7 +312,8 @@
           223
         ],
         "DeimosCreator": [
-          224
+          224,
+          293
         ]
       },
       "added": "2026-06-29",
@@ -3445,7 +3446,7 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
       },
       "credit": "sevi-05, XereJay",
@@ -3528,7 +3529,7 @@
       "prefixes": [
         "15F3EMS3"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3544,10 +3545,12 @@
       "creditIssues": {
         "bengervais": [
           284,
-          285
+          285,
+          294
         ]
       },
       "added": "2026-10-27",
+      "tested": "2026-10-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
