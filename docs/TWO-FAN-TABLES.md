@@ -25,8 +25,9 @@ at the current GPU temperature - on a Cyborg 15 that is roughly 2700 rpm at idle
 GhostDeck gives you two things about it:
 
 - **The two-table test** measures, on your own laptop, which table the fan follows and how the
-  firmware combines the two. It is one of the four tests on the *Report my model* start screen
-  and runs from the Fan curve page.
+  firmware combines the two. It has its own sub-tab on the *Report my model* page (the fourth
+  card on its start screen), with the explanation, the progress, the result and a GitHub form
+  for the report; the same run is also on the Fan curve page's In action view, next to the sweep.
 - **The "write to both fan tables" switch** (experimental) makes GhostDeck write your one curve
   into both tables, so the fan follows your curve alone and can slow below the factory minimum,
   or stop. It is off by default, lives behind a consent card, and switching it off puts the
@@ -58,28 +59,38 @@ The entry was corrected in the model database.
 **What it answers:** which fan-curve table does the firmware follow, and how does it combine
 the two?
 
-**Where:** *Report my model* → the fourth card, or directly: Fan curve → **In action** →
-**Show diagnostics** → **Run the two-table test**.
+**Where:** *Report my model* → **Two-table test** (the fourth card on the start screen, or the
+sub-tab of the same name). The sub-tab has the explanation, the six pairs with what each one
+separates, a consent box, the run with its progress, the result, and a button that opens the
+GitHub form with your report. The same run also sits on the Fan curve page: **In action** →
+**Show diagnostics** → **Run the two-table test**, next to the fan sweep, where the result is
+drawn in the diagnostics panel and the picker keeps every run.
 
 ![The Report start screen with its four tests](images/report_start_four_tests.png)
 
+![The two-table test sub-tab with a finished run](images/two_table_subtab.png)
+
 **What it does:** writes six pairs of flat curves into the two tables - 25/25, 25/45, 45/25,
-45/45, 0/45 and 45/0 % (table 1 / table 2) - holds each pair for 30 seconds and records the
+45/45, 0/45 and 45/0 % (table 1 / table 2) - holds each pair for 20 seconds and records the
 fan. One table always keeps the fan turning; the pairs never put 0 % in both. At the end both
 tables and your fan mode are restored, and the run lands in the same history as the fan
-sweep, marked 2×, with a report you can paste into an issue.
+sweep, marked 2×. The Report sub-tab copies the report to your clipboard, saves it on your
+Desktop and opens the **Two-table test result** form on GitHub with the model, the firmware
+and the verdict already filled in.
 
-![A finished two-table test on a single-fan board](images/two_table_test_result.png)
+![A finished two-table test on a single-fan board, as the Fan curve page draws it](images/two_table_test_result.png)
 
 **How to read it:** if 25/45 and 45/25 both spin like 45/45, the fan follows the higher of the
 two tables. If 25/45 spins like 25/25, it follows table 1 only. The zero pairs say what a 0 %
 in one table does while the other holds the fan. On a two-fan laptop the same run confirms
 which table drives which fan.
 
-**Safeguards:** mains power only; the test refuses to start above 70 °C CPU or 60 °C GPU (a
-warm laptop holds its fans up by itself, and then the pairs read alike) and stops itself at
-85 °C. The consent card names every address it writes and says in so many words that on a
-single-fan board the app normally writes table 1 only.
+**Safeguards:** mains power only; the test refuses to start above 85 °C CPU or 75 °C GPU (a
+hot laptop holds its fans up by itself, and then the pairs read alike; a gaming laptop idling
+at 70-85 °C is fine) and stops itself at 92 °C. Each pair is held for 20 seconds, so the whole
+run takes about two and a half minutes. Every address it writes is listed before you start,
+and the consent says in so many words that on a single-fan board the app normally writes
+table 1 only.
 
 **What it is usually for:** a single-fan laptop whose fan will not slow down below a certain
 speed - run the test before touching the switch below, so the decision rests on your own

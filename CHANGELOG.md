@@ -9,8 +9,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   [#293](../../issues/293)). Every board keeps two fan-curve tables in its controller even with one fan in the chassis, and
   that fan listens to both: on a Cyborg 15 the factory values left in the second table kept the fan from dropping below about
   2700 rpm. The test writes six pairs of flat curves into both tables (25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %, one table
-  always keeping the fans turning), holds each pair for 30 s and says which table each fan follows and how the firmware combines
-  the two. Mains only, refuses a warm laptop, stops itself at 85 °C, restores both tables and the fan mode; the run lands in the
+  always keeping the fans turning), holds each pair for 20 s and says which table each fan follows and how the firmware combines
+  the two. Mains only, refuses to start above 85 °C CPU / 75 °C GPU (a gaming laptop idles at 70-85 °C, so the gate sits above
+  that and the run is kept short instead), stops itself at 92 °C, restores both tables and the fan mode; the run lands in the
   sweep's history marked 2×, with a report ready to paste.
 - The diagnostics panel on the In action view remembers whether it was left open.
 - **"Write to both fan tables"** - an experimental, opt-in switch on the Fan curve page for single-fan laptops
@@ -19,10 +20,21 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   fan up; with the switch on, GhostDeck writes the one curve into both tables, so the fan follows it alone and can slow
   below the factory minimum. Off by default, a consent card explains what changes before it goes on, and switching it
   off puts the saved table 2 back.
-- **The two-table test is the fourth card** on the Report start screen, with what it answers and what it is usually for;
-  the card opens the Fan curve page's In action view with the diagnostics panel.
+- **The two-table test has its own sub-tab on the Report page**, the fourth card on the start screen (with what it answers
+  and what it is usually for), built like the power test's: the explanation, the six pairs with what each one separates,
+  a consent box, Start / Cancel / Start over, the progress, then the outcome, the findings and the table of pairs. The
+  report goes to the clipboard and to a file on the Desktop, and *Finish & open GitHub* opens the new **Two-table test
+  result** issue form with the model, the firmware and the verdict filled in. The run restores both tables and the fan
+  mode from the controller's own values on its worker, so closing the window cannot leave a flat curve behind; a finished
+  run also shows up in the Fan curve page's history picker.
 - **docs/TWO-FAN-TABLES.md** - the whole story in plain language with pictures: the two tables, the measurement, the test
   and the switch; a matching FAQ entry.
+
+### Fixed
+- **Report page above 150 % display scale**: the step rows of the Profiles and Power test wizards kept a fixed height, so
+  their second line was clipped and the rows overlapped at 200 %; the "Addresses the test may write" label sat on top of the
+  address list; and the *Finish & open GitHub* button swallowed its ampersand. Rows and labels now take their height from
+  the fonts ([#172](../../issues/172)).
 
 ### Changed
 - **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table

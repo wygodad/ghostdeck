@@ -4209,16 +4209,34 @@ not a limit in the vendor's interface. Whether the vendor leaves it alone on pur
 known. One observation without a conclusion: under that all-zero curve `0xD4` read `9D`, `8D`
 otherwise. The app keeps the vendor's behaviour - table 1 only - as the default.
 
-**The two-table test** (`Core/TwoTableTest.cs`, Fan curve → In action → diagnostics, next to the
-sweep) is that measurement, on any board with a curve. It writes six pairs of flat curves into
-**both** tables through `Ec.WriteFanCurve(..., bothTables: true)` - 25/25, 25/45, 45/25, 45/45,
-0/45, 45/0 %, one table always keeping the fans turning - holds each for 30 s and records each
-table's duty readback, the tachometers, the temperatures and the mode byte. The verdict per fan
-(the higher of the two / table 1 only / table 2 only / flat / undecided) and the composition of the
-findings are in FAN-CURVE.md §7a. Mains only; refuses to start above 70 °C CPU or 60 °C GPU and
-stops itself at 85 °C, because a warm machine holds its fans up on its own and the pairs then read
-alike. The restore puts table 1 back as the page has it and table 2 as the controller held it just
-before the run. Runs share the sweep's history file and picker (`Kind` = 1, marked 2×).
+**The two-table test** (`Core/TwoTableTest.cs`; Report → Two-table test sub-tab, and Fan curve →
+In action → diagnostics next to the sweep) is that measurement, on any board with a curve. It
+writes six pairs of flat curves into **both** tables through `Ec.WriteFanCurve(..., bothTables: true)`
+- 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %, one table always keeping the fans turning - holds each
+for 20 s and records each table's duty readback, the tachometers, the temperatures and the mode
+byte. The verdict per fan (the higher of the two / table 1 only / table 2 only / flat / undecided)
+and the composition of the findings are in FAN-CURVE.md §7a. Mains only; refuses to start above
+85 °C CPU or 75 °C GPU and stops itself at 92 °C: a hot machine holds its fans up on its own and
+the pairs then read alike, while a gaming laptop idles at 70-85 °C with nothing running, so the gate
+sits above that and the run is kept short (about 2.5 min) instead of asking for a temperature such
+a laptop never reaches. On the Fan curve page the restore puts table 1 back as the page has it and
+table 2 as the controller held it just before the run. Runs share the sweep's history file and
+picker (`Kind` = 1, marked 2×).
+
+**The Report sub-tab** (`UI/ReportPage.cs`, `_sub` = 3, `MainForm.ShowReport(3)`) wraps the same
+`TwoTableTest.Run` the way the power test is wrapped: intro, warning card, the six pairs as step
+rows with what each one separates, a consent box, Start / Cancel / Start over, a bar that follows
+the clock between the per-pair callbacks, then the outcome line, the findings, the table of pairs
+and where the report went. The run restores on its worker: both tables and the mode byte are read
+before the first write and written back in the worker's `finally` (`Ec.WriteFanCurve(...,
+bothTables: true)` + `Ec.SetFanMode`), so closing the window or the app - which waits for it through
+`StopPowerTest` - cannot leave a flat curve behind; Silent is switched to Balanced for the run and
+returned afterwards, and a failed pre-read falls back to the profile path (`RestoreActiveCurve`).
+The result goes to `fan-sweeps.json` through `FanSweepHistory.AddTwoTable` (the Fan curve picker
+re-reads it, `ReloadSweepHistory`), the report to the clipboard and to
+`ghostdeck-two-table-test-<fw>-<stamp>.txt` on the Desktop, and *Finish & open GitHub* opens
+`two-table-test.yml` (label `two-table-test`) with model, firmware and the verdict line prefilled;
+the paste field is left empty on purpose, like the other three forms.
 
 The fan-curve report (Report → Fan curve) names the **table** a single found curve sits in - "one
 test curve (the Fan 2 values) in the Fan 1 / CPU table @ 0x72", a match with the shipped map -

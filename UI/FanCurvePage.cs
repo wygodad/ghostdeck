@@ -624,6 +624,15 @@ public sealed class FanCurvePage : ThemedPage
     }
 
     /// <summary>The Report start screen's two-table card lands here: the In action view with the diagnostics open.</summary>
+    /// <summary>The Report page's two-table test writes the same history file; re-read it so the picker shows the run.</summary>
+    public void ReloadSweepHistory()
+    {
+        if (_sweepCts != null) return;   // a run of this page's own is about to rewrite the list itself
+        _sweepEntries = FanSweepHistory.Load();
+        FillSweepHistory();
+        Invalidate();
+    }
+
     public void ShowDiagnostics()
     {
         SelectView(ViewPlay, save: true);

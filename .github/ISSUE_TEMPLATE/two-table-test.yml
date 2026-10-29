@@ -1,0 +1,102 @@
+name: Two-table test result
+description: Send the measured answer to "which fan-curve table does my firmware follow?"
+title: "[Two tables] <your model> (<EC firmware>)"
+labels: ["two-table-test"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for measuring instead of guessing.
+
+        This form is filled in for you by the app: **Report / verify (⚑) → Two-table test → Start the test**.
+        Every MSI laptop on record keeps two fan-curve tables in its controller, one per fan, even when
+        the chassis has a single fan. The test writes six pairs of flat values into both tables, holds
+        each pair for 20 seconds and records what the fan does, so the result says whether your fan
+        follows table 1, table 2 or the higher of the two. About two and a half minutes; both tables and
+        your fan mode are restored at the end.
+
+        Like the power test, this one does **not** need MSI Center installed.
+
+  - type: input
+    id: model
+    attributes:
+      label: Laptop model
+      description: Exact model (sticker on the bottom, or MSI Center).
+      placeholder: MSI ...
+    validations:
+      required: true
+
+  - type: input
+    id: actual-model
+    attributes:
+      label: Actual model (if different)
+      description: The app pre-fills the model it DETECTED. If your laptop's real name differs from the field above, write it here.
+      placeholder: e.g. MSI Cyborg 15 A13VE
+    validations:
+      required: false
+
+  - type: input
+    id: firmware
+    attributes:
+      label: EC firmware
+      description: From the app → Status → "EC firmware" (e.g. 15K1EMS1.108).
+      placeholder: xxxxEMS1.xxx
+    validations:
+      required: true
+
+  - type: input
+    id: fans
+    attributes:
+      label: How many fans does your laptop have?
+      description: One or two. If you are not sure, the spec sheet or a look through the bottom vents tells.
+      placeholder: e.g. one
+    validations:
+      required: true
+
+  - type: input
+    id: verdict
+    attributes:
+      label: Verdict (from the app)
+      description: The verdict line(s) the app showed when the run finished.
+      placeholder: "e.g. Fan (CPU): follows the HIGHER of the two tables (25/25 → 1460 rpm, 25/45 → 2680, 45/25 → 2680, 45/45 → 2680)."
+
+  - type: textarea
+    id: report
+    attributes:
+      label: Full two-table test report
+      description: |
+        The app copies the whole report to your clipboard and saves it to a file on your Desktop.
+        Paste it here with Ctrl+V. It contains the table of pairs with each table's duty readback,
+        the fan speeds, the temperatures and the mode byte.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: msi-center
+    attributes:
+      label: What MSI Center lets you set (optional, very helpful)
+      description: |
+        If MSI Center is installed: how many fan sliders does it show, and how low does the lowest
+        one go? A screenshot of its fan page at the minimum setting is ideal - drag the image straight
+        into this box. The two-table story started with a laptop whose vendor software showed one
+        slider and wrote only one of the two tables.
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything you noticed (optional)
+      description: |
+        A fan that never slowed down whatever the pair said, a fan that stopped, a speed reading that
+        looked impossible, a laptop that was warm when the test started - anything the numbers alone
+        would not show.
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The laptop was on mains power and left idle for the whole run.
+          required: true
+        - label: I understand the test writes to the Embedded Controller and that EC writes are at my own risk.
+          required: true
