@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261112;
+    public const int DataVersion = 20261113;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1223,10 +1223,14 @@ public static class Devices
         //   observation). Fan duty bytes read on the 0-150 scale (MaxFanPct default holds).
         //   The scenario key Fn+F7 arrives as raw keyboard input from ACPI\MSNB1001, scan code
         //   E0 11, plus an MSI_Event (0x22001D) - recorded for roadmap #106, nothing wired yet.
-        new() { Name = "MSI Prestige 16 AI Studio B1VFG",   FirmwarePrefixes = new[] { "15A2EMS1" }, Tier = Tier.Tested,
+        //   B1VGG (issue #289, u9328009, firmware .111, MSI Center 2.0.48): the RTX 4070 variant
+        //   of the same B1VX line on msi.com; the per-scenario capture matches StdRecipes in all
+        //   four scenarios with a real Silent (0xD4=1D) and Super Battery C2/0F. 0x34 read 00 only
+        //   in Balanced there (dynamic, not written).
+        new() { Name = "MSI Prestige 16 AI Studio B1VFG / B1VGG", FirmwarePrefixes = new[] { "15A2EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "halexys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/237",
-                CreditIssues = Issues("halexys:237") },
+                Credit = "halexys, u9328009", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/237",
+                CreditIssues = Issues("halexys:237; u9328009:289") },
         new() { Name = "MSI Prestige 16 AI+ Evo B2VMG",     FirmwarePrefixes = new[] { "15A3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M B12UE",             FirmwarePrefixes = new[] { "15B1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Stealth 16 Studio A13VG (15F2EMS1) - owner-verified via the form path (issue #206,

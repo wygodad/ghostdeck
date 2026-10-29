@@ -5,6 +5,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Prestige 16 AI Studio B1VGG** (`15A2EMS1`, model database 20261113, [#289](../../issues/289), thanks @u9328009) - the RTX 4070
+  variant joins the tested B1VFG entry; the owner's capture matches the standard recipes in all four profiles.
 - **Raider GE68HX 13V** (`15M2IMS1`, model database 20261112, [#286](../../issues/286), [#287](../../issues/287),
   [#288](../../issues/288), thanks @ctimmons25) - tested: the power test measured Silent, Balanced and Extreme on the hardware
   (Silent at 80 % of Balanced's work, every profile read back intact), fan RPM readout switched on (16-bit pairs) and the fan
