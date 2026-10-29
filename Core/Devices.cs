@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261113;
+    public const int DataVersion = 20261114;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -278,11 +278,8 @@ public static class Devices
         ["158MEMS1"] = 0xF3, ["15HKEMS1"] = 0xF3, ["16R1EMS1"] = 0xF3, ["16R3EMS1"] = 0xF3, ["16R4EMS1"] = 0xF3, ["16R4EMS2"] = 0xF3, ["16R5EMS1"] = 0xF3, ["16S1EMS1"] = 0xF3,
         ["16S3EMS1"] = 0xF3, ["16U7EMS1"] = 0xF3, ["16V2EMS1"] = 0xF3, ["16W1EMS1"] = 0xF3, ["16W1EMS2"] = 0xF3, ["16W2EMS1"] = 0xF3, ["16WKEMS1"] = 0xF3, ["17E7EMS1"] = 0xF3,
         ["17E8EMS1"] = 0xF3, ["17F2EMS1"] = 0xF3, ["17F3EMS1"] = 0xF3, ["17F3EMS2"] = 0xF3, ["17F4EMS2"] = 0xF3, ["17F5EMS1"] = 0xF3, ["17F6EMS1"] = 0xF3, ["17FKEMS1"] = 0xF3,
-        // Hardware-verified. 158NIMS1 (Bravo 15 C7V / Katana A15 AI B8VG): msi-ec gives 0xD3 for the
-        // Bravo firmwares (CONF_G2_1) and "unsupported" for the Katana ones (CONF_G2_10); on a .507
-        // Katana MSI Center's Eco-Silent switched the backlight off and 0xD3 went 83 -> 80 (#274, #276).
-        // Its keyboard is 4-zone RGB, whose brightness is this one EC level; colours are never touched.
-        ["158NIMS1"] = 0xD3,
+        // 158NIMS1 (Bravo 15 C7V / Katana A15 AI B8VG) is deliberately absent: writing 0x80 | level
+        // to 0xD3 left the Katana's 4-zone RGB backlight unchanged on the owner's machine (#276).
     };
 
     /// <summary>(#26) Keyboard-backlight register for this firmware, or 0 = not supported.</summary>
@@ -396,8 +393,12 @@ public static class Devices
             // A third 17S1IMS1.114 capture (issue #246, MSI Center 2.0.48) matched the recipes
             // again, with 0x34 reading 01 in every scenario, Extreme included, where the
             // reference unit reads 00 there - the register is dynamic, nothing written changes.
-            Credit = "wygodad, megadude9704", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/1",
-                CreditIssues = Issues("wygodad:1,72; megadude9704:115"),
+            // A 17S2IMS2.112 capture (issue #296, Vector 17 HX A14V, MSI Center 2.0.74, all three
+            // hardware checks) matched Balanced C1/0D, Extreme C4 (0xD4=8D: his own Advanced curve)
+            // and Super Battery C2/0F; the "Silent" column held Super Battery's bytes (2.0.74 has no
+            // Silent tile). 0x34 read 01 under Extreme and 00 under Super Battery - observation only.
+            Credit = "wygodad, megadude9704, Sombrilla1994", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/1",
+                CreditIssues = Issues("wygodad:1,72; megadude9704:115; Sombrilla1994:296"),
 
             // Fan-curve tables located via the test tool; 6 points each (read-only preview for now).
             // First point is the 0°C→0% entry; tables verified 1:1 against MSI Center (6 points each).
@@ -1177,9 +1178,10 @@ public static class Devices
         // Keyboard backlight: 0xD3 read 83 in Balanced/Extreme and 80 in Super Battery, and the
         // owner confirmed that MSI Center's Eco-Silent (= Super Battery, shift C2) switches the
         // backlight off - so 0xD3 holds the level (0x80 | level) as msi-ec's CONF_G2_1 says for the
-        // Bravo firmwares of this board. In KbdBacklightMap since 2026-10-24: the Katana's keyboard
-        // is 4-zone RGB, but its brightness lives in the EC like a single-colour one (only the level
-        // is written, never colours) - unlike per-key RGB keyboards with their own controller.
+        // Bravo firmwares of this board. It was in KbdBacklightMap from 2026-10-24 to 2026-10-29:
+        // on the owner's Katana (4-zone RGB) the tile's Off / Low / Mid / High writes changed
+        // nothing visible, while MSI Center and the keyboard shortcut still set the brightness
+        // (#276), so the backlight tile is off for this board.
         new() { Name = "MSI Bravo 15 C7V, Katana A15 AI B8VG", FirmwarePrefixes = new[] { "158NIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "dmas-dll, Lofre, PedroElBigo", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/27",

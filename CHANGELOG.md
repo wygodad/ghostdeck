@@ -5,6 +5,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Vector 17 HX A14V** (`17S2IMS2`, model database 20261114, [#296](../../issues/296), thanks @Sombrilla1994) - another
+  owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
 - **Prestige 16 AI Studio B1VGG** (`15A2EMS1`, model database 20261113, [#289](../../issues/289), thanks @u9328009) - the RTX 4070
   variant joins the tested B1VFG entry; the owner's capture matches the standard recipes in all four profiles.
 - **Raider GE68HX 13V** (`15M2IMS1`, model database 20261112, [#286](../../issues/286), [#287](../../issues/287),
@@ -16,6 +18,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Fan curve verified on both fans (database 20261109, [#285](../../issues/285)).
 
 ### Fixed
+- **Keyboard backlight tile off on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, model database 20261114,
+  [#276](../../issues/276)) - on the owner's Katana the tile's levels did not change the backlight; MSI Center and the
+  Fn key keep controlling it.
 - **Panic reset button kept its old caption after a language switch** ([#172](../../issues/172)) - the feature bricks on the
   Scenarios tab translate themselves on every paint, but the button inside one of them was captioned once at build time.
   The Scenarios tab now re-reads every such caption when the language changes.

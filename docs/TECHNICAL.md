@@ -1841,10 +1841,10 @@ raw source (82 prefixes) plus hardware-verified additions. Boards absent from th
 UI at all: that includes the per-key RGB models (SteelSeries-controlled, msi-ec marks their
 register unsupported - the GE78HX among them). `158NIMS1` (Bravo 15 C7V, Katana A15 AI B8VG),
 which msi-ec lists under two confs with contradicting kbd_bl data (`0xD3` for the Bravo
-firmwares, unsupported for the Katana ones), was added on hardware evidence (#274, #276): on a
-`.507` Katana, MSI Center's Eco-Silent switched the backlight off and `0xD3` went `83` -> `80`.
-That keyboard is 4-zone RGB; zone keyboards keep their brightness in this one EC level like
-single-colour ones, and GhostDeck writes only the level, never colours.
+firmwares, unsupported for the Katana ones), is not in the map: on a `.507` Katana with a
+4-zone RGB keyboard, MSI Center's Eco-Silent switches the backlight off and `0xD3` goes
+`83` -> `80`, but writing `0x80 | level` to `0xD3` left the backlight unchanged, while MSI
+Center and the Fn key still set it (#274, #276). GhostDeck writes only the level, never colours.
 
 Surfaces: a segmented brick on Scenarios (`SegControl`, off/low/mid/high), a `KbdLight`
 hotkey that cycles like the Fn key, a `TrayWheelMode.KbdLight` wheel mode, `--kbd` in the
