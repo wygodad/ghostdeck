@@ -563,9 +563,12 @@ public sealed class FanCurvePage : ThemedPage
         _optIntents.Text = Lang.T("fc_opt_intents");
         _optTrail.Text = Lang.T("fc_opt_trail");
         foreach (var c in new Control[] { _optZones, _optIntents, _optTrail, _optCompare, _optHelp }) { c.ForeColor = Theme.Text; c.BackColor = Theme.Surface; }
-        // playground buttons
-        if (_sweepCts != null) { Ui.StyleGhost(_sweepStart); _sweepStart.Text = Lang.T("fc_sweep_stop"); }
+        // playground buttons: the running test's button turns into its Stop; the other one hides
+        if (_running == 1) { Ui.StyleGhost(_sweepStart); _sweepStart.Text = Lang.T("fc_sweep_stop"); }
         else { Ui.StylePrimary(_sweepStart); _sweepStart.Text = Lang.T("fc_sweep_start"); }
+        Ui.StyleGhost(_ttStart);
+        _ttStart.Text = Lang.T(_running == 2 ? "tt_stop" : "tt_start");
+        _ttStart.Width = TextRenderer.MeasureText(_ttStart.Text, _ttStart.Font).Width + 34;
         Ui.StyleGhost(_sweepToggle);
         _sweepToggle.Text = (_sweepOpen ? "▴  " : "▾  ") + Lang.T(_sweepOpen ? "fc_sweep_hide" : "fc_sweep_show");
         _sweepToggle.Width = TextRenderer.MeasureText(_sweepToggle.Text, _sweepToggle.Font).Width + S(28);
@@ -1395,7 +1398,13 @@ public sealed class FanCurvePage : ThemedPage
     // Bottom: a collapsible "diagnostics" panel with the fan sweep (Core/FanSweep) - real EC
     // writes behind a consent dialog, its own explanation and start button, results table.
     private readonly Button _sweepStart = new(), _sweepCopy = new(), _sweepToggle = new();
-    private readonly HelpDot _playHelp = new(), _sweepHelp = new(), _reactHelp = new();   // click-open explanations
+    // The two-table test (Core/TwoTableTest) shares the panel, the picker, the copy button and
+    // the status line with the sweep; it has its own start button and explanation.
+    private readonly Button _ttStart = new();
+    private readonly HelpDot _playHelp = new(), _sweepHelp = new(), _reactHelp = new(), _ttHelp = new();   // click-open explanations
+    private TwoTableTest.Result? _ttResult;
+    private int _running;   // 0 nothing, 1 the sweep, 2 the two-table test (one at a time; _sweepCts cancels either)
+    private int _shown;     // which result the panel shows: 1 the sweep's, 2 the two-table test's
     private readonly ThemedComboBox _sweepHistory = new() { Width = 210 };   // past sweeps, newest first
     private List<FanSweepHistory.Entry> _sweepEntries = new();
     private FanSweepHistory.Entry? _sweepEntry;   // set when the shown result came from the picker
@@ -1462,7 +1471,7 @@ public sealed class FanCurvePage : ThemedPage
 
     private void InitPlayground()
     {
-        foreach (var c in new Control[] { _sweepStart, _sweepCopy, _sweepToggle, _playHelp, _sweepHelp, _reactHelp, _optDotLabels, _sweepHistory }) { c.Visible = false; Controls.Add(c); }
+        foreach (var c in new Control[] { _sweepStart, _ttStart, _sweepCopy, _sweepToggle, _playHelp, _sweepHelp, _reactHelp, _ttHelp, _optDotLabels, _sweepHistory }) { c.Visible = false; Controls.Add(c); }
         _sweepHistory.SelectedIndexChanged += (_, _) =>
         {
             if (_syncingHistory || _sweepHistory.SelectedIndex < 0 || _sweepHistory.SelectedIndex >= _sweepEntries.Count) return;
@@ -1470,11 +1479,14 @@ public sealed class FanCurvePage : ThemedPage
             Restyle(); LayoutButtons(); Invalidate();
         };
         _sweepEntries = FanSweepHistory.Load();
+        _sweepOpen = D.Settings.FanCurveDiagOpen;   // the panel stays the way it was left
         FillSweepHistory();
         _optDotLabels.Toggled += v => { D.Settings.FanCurveDotLabels = v; D.SaveSettings(); Invalidate(); };
         _playHelp.TextProvider = () => Lang.T("fc_play_help");
         _sweepHelp.TextProvider = () => Lang.T("fc_sweep_help");
         _reactHelp.TextProvider = () => Lang.T("fc_react_help");
+        _ttHelp.TextProvider = () => Lang.T("tt_help");
+        _ttStart.Click += (_, _) => { if (_sweepCts != null) _sweepCts.Cancel(); else StartTwoTable(); };
         _airTimer.Tick += (_, _) =>
         {
             if (_view != ViewPlay || !Visible) return;
@@ -1482,18 +1494,23 @@ public sealed class FanCurvePage : ThemedPage
             var a = PlayAirRect;
             Invalidate(a);
         };
-        _sweepToggle.Click += (_, _) => { _sweepOpen = !_sweepOpen; Restyle(); LayoutButtons(); Invalidate(); };
+        _sweepToggle.Click += (_, _) => { _sweepOpen = !_sweepOpen; D.Settings.FanCurveDiagOpen = _sweepOpen; D.SaveSettings(); Restyle(); LayoutButtons(); Invalidate(); };
         _sweepStart.Click += (_, _) => { if (_sweepCts != null) _sweepCts.Cancel(); else StartSweep(); };
         _sweepCopy.Click += (_, _) =>
         {
-            if (_sweepResult == null || _dev == null) return;
+            if (_dev == null) return;
             // A report re-exported from history must describe the machine as it was AT THE TIME:
             // firmware, app version and the findings the app worded then. Stamping today's values
             // on an old run would put a false claim in whatever issue it gets pasted into.
             var e2 = _sweepEntry;
-            Ui.CopyText(e2 != null
-                ? FanSweep.Report(_sweepResult, _dev, e2.Firmware, e2.AppVersion, e2.Findings.Count > 0 ? e2.Findings : FindingLines(_sweepResult))
-                : FanSweep.Report(_sweepResult, _dev, D.Firmware(), D.AppVersion(), FindingLines(_sweepResult)));
+            if (_shown == 2 && _ttResult != null)
+                Ui.CopyText(e2 != null
+                    ? TwoTableTest.Report(_ttResult, _dev, e2.Firmware, e2.AppVersion, e2.Findings.Count > 0 ? e2.Findings : TwoTableLines(_ttResult))
+                    : TwoTableTest.Report(_ttResult, _dev, D.Firmware(), D.AppVersion(), TwoTableLines(_ttResult)));
+            else if (_sweepResult != null)
+                Ui.CopyText(e2 != null
+                    ? FanSweep.Report(_sweepResult, _dev, e2.Firmware, e2.AppVersion, e2.Findings.Count > 0 ? e2.Findings : FindingLines(_sweepResult))
+                    : FanSweep.Report(_sweepResult, _dev, D.Firmware(), D.AppVersion(), FindingLines(_sweepResult)));
         };
     }
 
@@ -1502,7 +1519,7 @@ public sealed class FanCurvePage : ThemedPage
     // What the diagnostics panel needs: one row when collapsed, a side-by-side layout on a wide
     // window, a stacked one when narrow. It is never squeezed - if the two blocks do not fit in
     // the window, the view scrolls (see PlayNeededH).
-    private int SweepPanelH => !_sweepOpen ? S(64) : (Width >= S(1000) + Pad * 2 ? S(320) : S(640));
+    private int SweepPanelH => !_sweepOpen ? S(64) : (Width >= S(1000) + Pad * 2 ? S(380) : S(700));
 
     // Height the In-action view wants: a usable chart + the readings row + the panel.
     private int PlayMinChartH => S(300);
@@ -1522,8 +1539,8 @@ public sealed class FanCurvePage : ThemedPage
         {
             // scrolling belongs to this view only; the others are laid out to fit by construction
             _scrollY = 0;
-            _sweepToggle.Visible = _playHelp.Visible = _sweepHelp.Visible = false;
-            _sweepStart.Visible = _sweepCopy.Visible = false;
+            _sweepToggle.Visible = _playHelp.Visible = _sweepHelp.Visible = _ttHelp.Visible = false;
+            _sweepStart.Visible = _sweepCopy.Visible = _ttStart.Visible = false;
             _reactHelp.Visible = _sweepHistory.Visible = _optDotLabels.Visible = false;
             if (_airTimer.Enabled) _airTimer.Stop();
             return;
@@ -1542,15 +1559,25 @@ public sealed class FanCurvePage : ThemedPage
         Place(_sweepToggle, true, sp.Right - S(16) - _sweepToggle.Width, sp.Y + S(14), _sweepToggle.Width, S(32));
         _sweepHelp.Size = new Size(S(22), S(22));
         Place(_sweepHelp, true, _sweepToggle.Left - S(10) - _sweepHelp.Width, sp.Y + S(14) + (S(32) - _sweepHelp.Height) / 2, _sweepHelp.Width, _sweepHelp.Height);
-        Place(_sweepStart, _sweepOpen, sp.X + S(20), sp.Bottom - S(50), _sweepStart.Width, S(34));
-        Place(_sweepCopy, _sweepOpen && _sweepResult is { Steps.Count: > 0 }, _sweepStart.Right + S(10), sp.Bottom - S(50), _sweepCopy.Width, S(34));
-        _sweepHistory.Width = S(150);   // fits "2026-08-16 15:55" at any DPI (a fixed 210 clipped it at 140 %)
+        // bottom row: [sweep] [two tables ?] [copy] ... [picker]; while a test runs only its own
+        // button stays (as Stop) - starting the other one mid-run is not an option
+        Place(_sweepStart, _sweepOpen && _running != 2, sp.X + S(20), sp.Bottom - S(50), _sweepStart.Width, S(34));
+        int bx = _running == 2 ? sp.X + S(20) : _sweepStart.Right + S(10);
+        Place(_ttStart, _sweepOpen && _running != 1, bx, sp.Bottom - S(50), _ttStart.Width, S(34));
+        _ttHelp.Size = new Size(S(20), S(20));
+        Place(_ttHelp, _sweepOpen && _running != 1, _ttStart.Right + S(6), sp.Bottom - S(50) + (S(34) - _ttHelp.Height) / 2, _ttHelp.Width, _ttHelp.Height);
+        int cx = _running == 1 ? _sweepStart.Right + S(10) : _ttHelp.Right + S(10);
+        bool haveResult = _shown == 2 ? _ttResult is { Steps.Count: > 0 } : _sweepResult is { Steps.Count: > 0 };
+        Place(_sweepCopy, _sweepOpen && haveResult, cx, sp.Bottom - S(50), _sweepCopy.Width, S(34));
+        _sweepHistory.Width = S(196);   // fits "2× 2026-08-16 15:55" at any DPI (a fixed 210 clipped it at 140 %, S(170) clipped it at 100 %)
         Place(_sweepHistory, _sweepOpen && _sweepEntries.Count > 0,
-              Math.Max(_sweepCopy.Right + S(16), sp.Right - S(20) - _sweepHistory.Width), sp.Bottom - S(48),
+              Math.Max((_sweepCopy.Visible ? _sweepCopy.Right : cx) + S(16), sp.Right - S(20) - _sweepHistory.Width), sp.Bottom - S(48),
               _sweepHistory.Width, _sweepHistory.Height);
-        _sweepStart.Enabled = _sweepCts != null || (Editable && D.Status().Known && !D.Simulating());
-        foreach (var b in new[] { _sweepCopy, _sweepStart })
-            b.ForeColor = b.Enabled ? (b == _sweepStart && _sweepCts == null ? Theme.AccentText : Theme.Text) : Theme.Faint;
+        bool canStart = Editable && D.Status().Known && !D.Simulating();
+        _sweepStart.Enabled = _running == 1 || (canStart && _running == 0);
+        _ttStart.Enabled = _running == 2 || (canStart && _running == 0);
+        foreach (var b in new[] { _sweepCopy, _sweepStart, _ttStart })
+            b.ForeColor = b.Enabled ? (b == _sweepStart && _running == 0 ? Theme.AccentText : Theme.Text) : Theme.Faint;
         if (!_airTimer.Enabled) _airTimer.Start();
     }
 
@@ -1576,8 +1603,104 @@ public sealed class FanCurvePage : ThemedPage
     {
         if (index < 0 || index >= _sweepEntries.Count) { _sweepEntry = null; return; }
         _sweepEntry = _sweepEntries[index];
-        _sweepResult = _sweepEntry.ToResult();
+        if (_sweepEntry.Kind == 1) { _ttResult = _sweepEntry.ToTwoTable(_fc?.AdvancedModeValue ?? 0x8D); _shown = 2; }
+        else { _sweepResult = _sweepEntry.ToResult(); _shown = 1; }
         _sweepStatus = "";
+    }
+
+    // The two-table findings as the panel shows them: fan-scoped lines get the fan's name.
+    private IEnumerable<string> TwoTableLines(TwoTableTest.Result r) =>
+        TwoTableTest.Findings(r).Select(f =>
+        {
+            var args = (object[])f.args.Clone();
+            if (args.Length > 0 && args[0] is int fi && TwoTableTest.IsFanScoped(f.key))
+                args[0] = Lang.T(fi == 1 ? (Single ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu");
+            return string.Format(Lang.T(f.key), args);
+        });
+
+    private void StartTwoTable()
+    {
+        if (!Editable || _dev == null || _fc == null) return;
+        var dev = _dev; var fc = _fc;
+        // the readings that gate the start: a warm machine holds its fans up by itself
+        if (!Ec.TryReadHw(dev, out var hw)) hw = default;
+        if (TwoTableTest.Blocked(dev, hw) is { } why)
+        {
+            using var no = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), Lang.T(why), Lang.T("gen_ok"), "", () => { });
+            no.ShowOver(FindForm());
+            return;
+        }
+        // same order as the sweep: every question first, the profile change only after a Yes
+        bool wasSilent = D.Current() == ProfileId.Silent;
+        bool go = false;
+        if (wasSilent)
+        {
+            using (var ask = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), Lang.T("fc_sweep_silent"), Lang.T("tt_go"), Lang.T("gen_cancel"), () => go = true))
+                ask.ShowOver(FindForm());
+            if (!go) return;
+            go = false;
+        }
+        string consent = string.Format(Lang.T("tt_consent"),
+            $"0x{fc.CpuSpeedBase:X2}-0x{fc.CpuSpeedBase + fc.Points - 1:X2}",
+            $"0x{fc.GpuSpeedBase:X2}-0x{fc.GpuSpeedBase + fc.Points - 1:X2}",
+            $"0x{dev.FanMode:X2}");
+        using (var ask = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), consent, Lang.T("tt_go"), Lang.T("gen_cancel"), () => go = true))
+            ask.ShowOver(FindForm());
+        if (!go) return;
+        if (wasSilent) D.SetProfile(ProfileId.Balanced);
+
+        // what to put back: table 1 as the page has it (the editor's curve, or the profile's), and
+        // table 2 exactly as the controller holds it NOW - on a single-fan entry the page never
+        // reads or writes that table, so its own arrays would not describe it
+        bool wasOn = _enable.Checked;
+        int[] ct = (int[])_cpuT.Clone(), cs = (int[])_cpuS.Clone(), gt = (int[])_gpuT.Clone(), gs = (int[])_gpuS.Clone();
+        try { if (Ec.ReadFanCurve(dev) is { } cur) { gt = cur.gpuTemp; gs = cur.gpuSpeed; } } catch { }
+        byte restoreMode = wasOn ? fc.AdvancedModeValue : ProfileFanByte();
+        var session = D.EcSession();
+        _sweepCts = new CancellationTokenSource();
+        var ctk = _sweepCts.Token;
+        _running = 2; _shown = 2;
+        _ttResult = null; _sweepEntry = null; _sweepStatus = Lang.T("fc_sweep_running"); _sweepStep = 0; _sweepCount = TwoTableTest.Pairs.Length;
+        CloseCellEditor(commit: false);
+        _enable.Enabled = _enableLabel.Enabled = _default.Enabled = false;
+        Restyle(); LayoutButtons(); Invalidate();
+        ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_tt_start"));
+        Task.Run(() =>
+        {
+            TwoTableTest.Result? r = null;
+            try
+            {
+                r = TwoTableTest.Run(dev,
+                    (i, n, msg) => { try { BeginInvoke(() => { _sweepStep = i; _sweepCount = n; _sweepStatus = msg; Invalidate(); }); } catch { } },
+                    ctk);
+            }
+            finally
+            {
+                // restore BOTH tables and the previous mode, whatever happened
+                try { Ec.WriteFanCurve(dev, ct, cs, gt, gs, bothTables: true); Ec.SetFanMode(dev, restoreMode); } catch { }
+                session.Dispose();
+                try
+                {
+                    BeginInvoke(() =>
+                    {
+                        _sweepCts?.Dispose(); _sweepCts = null; _running = 0;
+                        _ttResult = r; _shown = 2;
+                        ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_tt_end"), r == null ? "" : $"{r.Steps.Count} pairs");
+                        if (r is { Steps.Count: > 0 })
+                        {
+                            _sweepEntries = FanSweepHistory.AddTwoTable(r, dev.Name, D.Firmware(), D.AppVersion(), TwoTableLines(r));
+                            FillSweepHistory();   // selects the run that just finished
+                        }
+                        _sweepStatus = r == null ? "" : r.Aborted ? Lang.T(r.AbortReason ?? "tt_aborted") : r.Error != null ? r.Error : Lang.T("tt_done");
+                        if (wasSilent && !wasOn) D.SetProfile(ProfileId.Silent);
+                        _enable.Enabled = _enableLabel.Enabled = _default.Enabled = Editable;
+                        RefreshMode();
+                        Restyle(); LayoutButtons(); Invalidate();
+                    });
+                }
+                catch { }
+            }
+        });
     }
 
     private IEnumerable<string> FindingLines(FanSweep.Result r) =>
@@ -1618,6 +1741,7 @@ public sealed class FanCurvePage : ThemedPage
         var session = D.EcSession();   // blocks the automatic engines and a model-DB swap while we hold the fans
         _sweepCts = new CancellationTokenSource();
         var ctk = _sweepCts.Token;
+        _running = 1; _shown = 1;
         _sweepResult = null; _sweepEntry = null; _sweepStatus = Lang.T("fc_sweep_running"); _sweepStep = 0; _sweepCount = FanSweep.StepsFor(dev).Length;
         // freeze the user-facing writers for the duration: switch, default button, cell editor
         CloseCellEditor(commit: false);
@@ -1642,8 +1766,8 @@ public sealed class FanCurvePage : ThemedPage
                 {
                     BeginInvoke(() =>
                     {
-                        _sweepCts?.Dispose(); _sweepCts = null;
-                        _sweepResult = r;
+                        _sweepCts?.Dispose(); _sweepCts = null; _running = 0;
+                        _sweepResult = r; _shown = 1;
                         ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_sweep_end"), r == null ? "" : $"{r.Steps.Count} steps");
                         if (r is { Steps.Count: > 0 })
                         {
@@ -1942,7 +2066,12 @@ public sealed class FanCurvePage : ThemedPage
                 : string.Format(Lang.T("fc_sweep_note"), string.Join(" / ", _dev is { } dv ? FanSweep.StepsFor(dv) : FanSweep.DefaultSteps)), subF,
             new Rectangle(pnl.X + S(16), ty + S(4), Math.Max(S(240), _sweepHelp.Left - pnl.X - S(28)), subF.Height * 3),
             Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
-        int top = ty + subF.Height * 3 + S(8);
+        // the second test of this panel, in one line of its own under the sweep's note
+        int ty2 = ty + S(4) + subF.Height * 3 + S(4);
+        TextRenderer.DrawText(g, Lang.T("tt_title") + ":  " + Lang.T("tt_note"), subF,
+            new Rectangle(pnl.X + S(16), ty2, Math.Max(S(240), _sweepHelp.Left - pnl.X - S(28)), subF.Height * 3),
+            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; the full text is one click away in the ? bubble next to the button
+        int top = ty2 + subF.Height * 3 + S(8);
         int bottom = pnl.Bottom - S(60);
         if (_sweepCts != null)
         {
@@ -1951,7 +2080,13 @@ public sealed class FanCurvePage : ThemedPage
             using (var tb = new SolidBrush(Theme.Surface)) g.FillRectangle(tb, pb);
             float frac = _sweepCount == 0 ? 0 : (_sweepStep + 0.5f) / _sweepCount;
             using (var fb = new SolidBrush(Theme.AccentFill)) g.FillRectangle(fb, pb.X, pb.Y, (int)(pb.Width * frac), pb.Height);
-            TextRenderer.DrawText(g, string.Format(Lang.T("fc_sweep_step"), _sweepStep + 1, _sweepCount, _sweepStatus), bF, new Rectangle(pnl.X + S(20), pb.Bottom + S(6), pnl.Width - S(40), bF.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+            string stepS = string.Format(Lang.T(_running == 2 ? "tt_step" : "fc_sweep_step"), _sweepStep + 1, _sweepCount, _sweepStatus);
+            TextRenderer.DrawText(g, stepS, bF, new Rectangle(pnl.X + S(20), pb.Bottom + S(6), pnl.Width - S(40), bF.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        }
+        else if (_shown == 2 && _ttResult is { Steps.Count: > 0 } tr)
+        {
+            _reactHelp.Visible = false;
+            DrawTwoTableResult(g, tr, pnl, top, bottom, subF, bF);
         }
         else if (_sweepResult is { Steps.Count: > 0 } r)
         {
@@ -2024,7 +2159,7 @@ public sealed class FanCurvePage : ThemedPage
                 }
                 TextRenderer.DrawText(g, "set %", axisF, new Rectangle(mc.Right - S(50), mc.Bottom + S(2), S(50), axisF.Height), Theme.Faint, TextFormatFlags.Right | TextFormatFlags.NoPadding);
             }
-            int stX = _sweepCopy.Right + S(16);
+            int stX = (_sweepCopy.Visible ? _sweepCopy.Right : _ttHelp.Right) + S(16);
             int stW = Math.Max(S(40), (_sweepHistory.Visible ? _sweepHistory.Left - S(12) : pnl.Right - S(16)) - stX);
             TextRenderer.DrawText(g, _sweepStatus, subF, new Rectangle(stX, pnl.Bottom - S(50), stW, S(34)), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
         }
@@ -2033,6 +2168,66 @@ public sealed class FanCurvePage : ThemedPage
             _reactHelp.Visible = false;
             TextRenderer.DrawText(g, _sweepStatus.Length > 0 ? _sweepStatus : Lang.T("fc_sweep_idle"), subF, new Rectangle(pnl.X + S(20), top, pnl.Width - S(40), subF.Height * 2), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
         }
+    }
+
+    // The two-table result: the pairs table on the left, the findings on the right (under it
+    // when narrow). No chart - six pairs are a table, not a curve.
+    private void DrawTwoTableResult(Graphics g, TwoTableTest.Result r, Rectangle pnl, int top, int bottom, Font subF, Font bF)
+    {
+        using var mono = Dpi.Font("Consolas", 9.5f);
+        string unit = r.HasTach ? " rpm" : " %";
+        var heads = new List<string> { Lang.T("tt_col_t1"), Lang.T("tt_col_t2"), (Single ? Lang.T("fc_fan_single") : Lang.T("fc_fan_cpu")) + unit };
+        if (!Single) heads.Add(Lang.T("fc_fan_gpu") + unit);
+        heads.Add(Lang.T("tt_col_cpu")); heads.Add(Lang.T("tt_col_gpu"));
+        var rows = new List<string[]>();
+        foreach (var st in r.Steps)
+        {
+            var cells = new List<string> { st.Table1 + "%", st.Table2 + "%", r.HasTach ? (st.CpuRpm > 0 ? st.CpuRpm.ToString() : "--") : st.CpuDuty.ToString() };
+            if (!Single) cells.Add(r.HasTach ? (st.GpuRpm > 0 ? st.GpuRpm.ToString() : "--") : st.GpuDuty.ToString());
+            cells.Add(st.CpuTemp.ToString()); cells.Add(st.GpuTemp > 0 ? st.GpuTemp.ToString() : "--");
+            rows.Add(cells.ToArray());
+        }
+        var colW = new int[heads.Count];
+        for (int i = 0; i < heads.Count; i++)
+        {
+            int w = TextRenderer.MeasureText(heads[i], mono, Size.Empty, TextFormatFlags.NoPadding).Width;
+            foreach (var row in rows) w = Math.Max(w, TextRenderer.MeasureText(row[i], mono, Size.Empty, TextFormatFlags.NoPadding).Width);
+            colW[i] = w;
+        }
+        int tableW = colW.Sum() + SweepColGap * (heads.Count - 1);
+        int y = top, tx = pnl.X + S(20);
+        DrawSweepRow(g, heads.ToArray(), mono, tx, y, colW, Theme.Muted);
+        y += mono.Height + S(2);
+        foreach (var cells in rows)
+        {
+            if (y + mono.Height > bottom) break;
+            DrawSweepRow(g, cells, mono, tx, y, colW, Theme.Text);
+            y += mono.Height + S(1);
+        }
+        bool wide = pnl.Width >= S(1000);
+        int tableH = mono.Height * (r.Steps.Count + 2);
+        var fr = wide
+            ? new Rectangle(pnl.X + S(20) + tableW + S(40), top, pnl.Width - tableW - S(100), bottom - top)
+            : new Rectangle(pnl.X + S(20), top + tableH + S(16), pnl.Width - S(40), Math.Max(S(60), bottom - top - tableH - S(16)));
+        int fy = fr.Y;
+        TextRenderer.DrawText(g, Lang.T("fc_find_title"), bF, new Rectangle(fr.X, fy, fr.Width, bF.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        fy += bF.Height + S(4);
+        var keys = TwoTableTest.Findings(r).Select(f => f.key).ToList();
+        var texts = TwoTableLines(r).ToList();
+        for (int i = 0; i < texts.Count; i++)
+        {
+            string line = "•  " + texts[i];
+            var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak);
+            if (fy + need.Height > bottom) break;
+            // the verdict lines in the text colour, the rest muted; a mode byte that moved is a warning
+            var col = keys[i] is "tt_find_higher" or "tt_find_table1" or "tt_find_table2" ? Theme.Text
+                    : keys[i] is "tt_find_mode" or "tt_find_flat" ? Theme.Amber : Theme.Muted;
+            TextRenderer.DrawText(g, line, subF, new Rectangle(fr.X, fy, fr.Width, need.Height), col, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
+            fy += need.Height + S(3);
+        }
+        int stX = _sweepCopy.Visible ? _sweepCopy.Right + S(16) : _ttHelp.Right + S(16);
+        int stW = Math.Max(S(40), (_sweepHistory.Visible ? _sweepHistory.Left - S(12) : pnl.Right - S(16)) - stX);
+        TextRenderer.DrawText(g, _sweepStatus, subF, new Rectangle(stX, pnl.Bottom - S(50), stW, S(34)), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);   // dpi-ok: the page scales its boxes with S() like the font; last resort for a translation longer than its box
     }
 
     // ---- geometry ----

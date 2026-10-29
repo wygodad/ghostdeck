@@ -324,6 +324,7 @@ public sealed class AppSettings
     public bool FanCurveZones { get; set; } = true;      // audibility bands behind the plot
     public bool FanCurveTrail { get; set; }              // 3-minute temperature trail on the curve (opt-in)
     public bool FanCurveDotLabels { get; set; }          // "In action": values next to every history dot (opt-in)
+    public bool FanCurveDiagOpen { get; set; }           // "In action": the diagnostics panel (sweep, two-table test) expanded
     public bool FanCurveIntents { get; set; } = true;    // intent tiles above the charts
     public bool FanCurveCompareBar { get; set; } = true; // comparison-chip row between the preset bar and the tiles
     public bool FanCurveTable { get; set; }              // coupled points table expanded

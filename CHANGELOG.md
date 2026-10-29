@@ -5,6 +5,21 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Two-table test** on the Fan curve page (In action → diagnostics), next to the fan sweep ([#224](../../issues/224),
+  [#293](../../issues/293)). Every board keeps two fan-curve tables in its controller even with one fan in the chassis, and
+  that fan listens to both: on a Cyborg 15 the factory values left in the second table kept the fan from dropping below about
+  2700 rpm. The test writes six pairs of flat curves into both tables (25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %, one table
+  always keeping the fans turning), holds each pair for 30 s and says which table each fan follows and how the firmware combines
+  the two. Mains only, refuses a warm laptop, stops itself at 85 °C, restores both tables and the fan mode; the run lands in the
+  sweep's history marked 2×, with a report ready to paste.
+- The diagnostics panel on the In action view remembers whether it was left open.
+
+### Changed
+- **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
+  @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
+  the shipped map ([#293](../../issues/293)).
+
+### Added
 - **Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261117, [#294](../../issues/294), thanks @bengervais) - tested: the
   power test read every profile back intact with 0 % drift, and the owner hears Silent clearly quieter than Balanced under a
   graphics load; Extreme matches Balanced under a combined load, as on several other boards.

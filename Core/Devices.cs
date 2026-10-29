@@ -14,9 +14,14 @@ public sealed record FanCurveSpec(
     byte GpuTempBase, byte GpuSpeedBase,
     int Points,
     bool Verified = false,    // false = read-only preview (addresses unconfirmed on real hardware)
-    bool SingleFan = false,   // true = board exposes ONE controllable curve (MSI Center shows a
-                              // single slider); the editor hides the GPU plot and the GPU table
-                              // is never written (it is a dead field on such boards, see #22)
+    bool SingleFan = false,   // true = one fan in the chassis and ONE slider in MSI Center: the
+                              // editor shows one curve and the normal writes go to the Fan 1
+                              // tables only, the way MSI Center's single slider does (#22, #293).
+                              // The Fan 2 tables still exist in the firmware and it reads them
+                              // (#224: their factory values set a floor under the one fan); what
+                              // the firmware does with the two is what the two-table test
+                              // measures (TwoTableTest, TECHNICAL 85). Not a statement that the
+                              // Fan 2 tables are unused.
     int MaxFanPct = 150);     // top of the speed scale the editor allows. 150 matches the vendor
                               // tools: MSI Center's Advanced sliders go to 150 % (byte-proven on
                               // 17S1IMS1: Save 150 -> 0x77/0x8F = 0x96) and MControlCenter hard-

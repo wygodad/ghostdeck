@@ -387,9 +387,14 @@ public static class Ec
     }
 
     // Write the fan-curve point tables (temps + speeds) for CPU (Fan 1) and GPU (Fan 2).
-    public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)
+    // On a single-fan board the editor and the sweep write the Fan 1 tables only, the way the
+    // vendor's one-slider software does (issue #293: MSI Center 2.0.74 leaves the Fan 2 tables
+    // at their factory values). bothTables = true writes the Fan 2 tables regardless: the
+    // two-table test needs them, and so does its restore.
+    public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed, bool bothTables = false)
     {
         if (dev.FanCurve is not { } fc) return;
+        bool fan2 = bothTables || !fc.SingleFan;
         // Backup path: every value is range-checked and put on its slot's allow-list right
         // before the write; the gate in BackupWrite does the rest (locked until the path test
         // has passed on this machine).
@@ -408,7 +413,7 @@ public static class Ec
             lock (_wmiLock)
             {
                 Table(cc, cpuTemp, cpuSpeed);
-                if (!fc.SingleFan) Table(bk.Spec.GpuCurve, gpuTemp, gpuSpeed);
+                if (fan2) Table(bk.Spec.GpuCurve, gpuTemp, gpuSpeed);
             }
             return;
         }
@@ -420,9 +425,7 @@ public static class Ec
         lock (_wmiLock)
         {
             W(fc.CpuTempBase, cpuTemp); W(fc.CpuSpeedBase, cpuSpeed);
-            // single-curve boards (e.g. GF63 12VE): the GPU tables are a dead field the firmware
-            // never reads - don't write them at all
-            if (!fc.SingleFan) { W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed); }
+            if (fan2) { W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed); }
         }
     }
 

@@ -19,6 +19,9 @@ public static class FanSweepHistory
 
     public sealed class Entry
     {
+        /// <summary>0 = fan sweep, 1 = two-table test (TwoTableTest). Absent in files written
+        /// before the test existed, which reads as 0.</summary>
+        public int Kind { get; set; }
         public DateTime When { get; set; }
         public string Model { get; set; } = "";
         public string Firmware { get; set; } = "";
@@ -33,6 +36,10 @@ public static class FanSweepHistory
         public sealed class Step
         {
             public int Set { get; set; }
+            /// <summary>Two-table test only: the value written into table 2 (Set holds table 1's).</summary>
+            public int Set2 { get; set; }
+            /// <summary>Two-table test only: the fan-mode byte read back during the pair.</summary>
+            public int Mode { get; set; }
             public int CpuDuty { get; set; }
             public int GpuDuty { get; set; }
             public int CpuRpm { get; set; }
@@ -51,11 +58,24 @@ public static class FanSweepHistory
             return r;
         }
 
+        /// <summary>Back to the two-table result (Kind 1), for the same painter and report code.</summary>
+        public TwoTableTest.Result ToTwoTable(byte advancedMode)
+        {
+            var r = new TwoTableTest.Result { HasTach = HasTach, SingleFan = SingleFan, AdvancedMode = advancedMode, Started = When, Aborted = Aborted, Duration = TimeSpan.FromSeconds(Seconds) };
+            foreach (var s in Steps)
+                r.Steps.Add(new TwoTableTest.StepResult(s.Set, s.Set2, s.CpuDuty, s.GpuDuty, s.CpuRpm, s.GpuRpm, s.CpuTemp, s.GpuTemp, s.Mode));
+            return r;
+        }
+
+        /// <summary>Two-table test only: whether the entry was Fan 1 alone in the editor.</summary>
+        public bool SingleFan { get; set; }
+
         /// <summary>
-        /// Label for the picker: when the sweep ran, and nothing else. A run is identified by
-        /// its time - anything more (step counts, flags) only made the list harder to read.
+        /// Label for the picker: when the run happened, and nothing else. A run is identified by
+        /// its time - anything more (step counts, flags) only made the list harder to read. The
+        /// two-table test gets a short mark in front, so the two kinds can be told apart.
         /// </summary>
-        public string Label() => $"{When:yyyy-MM-dd HH:mm}";
+        public string Label() => (Kind == 1 ? "2× " : "") + $"{When:yyyy-MM-dd HH:mm}";
     }
 
     private static string FilePath => Path.Combine(AppSettings.Dir, "fan-sweeps.json");
@@ -93,6 +113,35 @@ public static class FanSweepHistory
                 Set = s.DutyPct, CpuDuty = s.CpuDuty, GpuDuty = s.GpuDuty,
                 CpuRpm = s.CpuRpm, GpuRpm = s.GpuRpm, CpuTemp = s.CpuTemp, GpuTemp = s.GpuTemp,
                 Settle = s.SecondsToSettle,
+            });
+        list.Insert(0, e);
+        if (list.Count > Keep) list.RemoveRange(Keep, list.Count - Keep);
+        Save(list);
+        return list;
+    }
+
+    /// <summary>Store a finished two-table test at the front of the same list; returns the trimmed list.</summary>
+    public static List<Entry> AddTwoTable(TwoTableTest.Result r, string model, string firmware, string appVersion, IEnumerable<string> findings)
+    {
+        var list = Load();
+        var e = new Entry
+        {
+            Kind = 1,
+            When = r.Started,
+            Model = model,
+            Firmware = firmware,
+            AppVersion = appVersion,
+            HasTach = r.HasTach,
+            SingleFan = r.SingleFan,
+            Aborted = r.Aborted,
+            Seconds = r.Duration.TotalSeconds,
+            Findings = findings.ToList(),
+        };
+        foreach (var s in r.Steps)
+            e.Steps.Add(new Entry.Step
+            {
+                Set = s.Table1, Set2 = s.Table2, Mode = s.FanModeByte, CpuDuty = s.CpuDuty, GpuDuty = s.GpuDuty,
+                CpuRpm = s.CpuRpm, GpuRpm = s.GpuRpm, CpuTemp = s.CpuTemp, GpuTemp = s.GpuTemp,
             });
         list.Insert(0, e);
         if (list.Count > Keep) list.RemoveRange(Keep, list.Count - Keep);
