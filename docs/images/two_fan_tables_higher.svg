@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8d98ab"/>
+    </marker>
+  </defs>
+  <rect width="860" height="400" rx="12" fill="#0e1420"/>
+  <text x="430" y="36" text-anchor="middle" font-size="19" font-weight="bold" fill="#dbe4f0">One fan, two fan-curve tables: the firmware follows the HIGHER request</text>
+  <text x="430" y="58" text-anchor="middle" font-size="12.5" fill="#8d98ab">measured on a Cyborg 15 (15K1IMS1) with the two-table test, issue #293</text>
+
+  <!-- table 1 -->
+  <rect x="40" y="90" width="250" height="118" rx="10" fill="#151d2c" stroke="#26314a"/>
+  <text x="165" y="116" text-anchor="middle" font-size="14" font-weight="bold" fill="#46c8ff">Table 1  (Fan 1 / CPU)</text>
+  <text x="165" y="138" text-anchor="middle" font-size="12" fill="#8d98ab">driven by the CPU temperature</text>
+  <text x="165" y="162" text-anchor="middle" font-size="13" fill="#dbe4f0">MSI Center writes its one slider here</text>
+  <text x="165" y="184" text-anchor="middle" font-size="13" fill="#dbe4f0">GhostDeck writes your curve here</text>
+
+  <!-- table 2 -->
+  <rect x="40" y="236" width="250" height="118" rx="10" fill="#151d2c" stroke="#26314a"/>
+  <text x="165" y="262" text-anchor="middle" font-size="14" font-weight="bold" fill="#b08cff">Table 2  (Fan 2 / GPU)</text>
+  <text x="165" y="284" text-anchor="middle" font-size="12" fill="#8d98ab">driven by the GPU temperature</text>
+  <text x="165" y="308" text-anchor="middle" font-size="13" fill="#dbe4f0">left at its factory values</text>
+  <text x="165" y="330" text-anchor="middle" font-size="13" fill="#d9a13b">lowest step 38 %, never written</text>
+
+  <!-- requests -->
+  <line x1="290" y1="149" x2="400" y2="200" stroke="#46c8ff" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="290" y1="295" x2="400" y2="244" stroke="#b08cff" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="330" y="160" font-size="12" fill="#46c8ff">request A</text>
+  <text x="330" y="302" font-size="12" fill="#b08cff">request B</text>
+
+  <!-- combiner -->
+  <rect x="405" y="182" width="150" height="80" rx="10" fill="#101827" stroke="#46c8ff" stroke-width="1.5"/>
+  <text x="480" y="214" text-anchor="middle" font-size="15" font-weight="bold" fill="#dbe4f0">max(A, B)</text>
+  <text x="480" y="238" text-anchor="middle" font-size="12" fill="#8d98ab">firmware, every second</text>
+
+  <!-- fan -->
+  <line x1="555" y1="222" x2="640" y2="222" stroke="#8d98ab" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <circle cx="710" cy="222" r="56" fill="#151d2c" stroke="#26314a"/>
+  <g fill="#46c8ff" transform="translate(710 222)">
+    <ellipse rx="10" ry="34" transform="rotate(0)"/>
+    <ellipse rx="10" ry="34" transform="rotate(60)"/>
+    <ellipse rx="10" ry="34" transform="rotate(120)"/>
+    <circle r="9" fill="#0e1420"/>
+  </g>
+  <text x="710" y="300" text-anchor="middle" font-size="13" font-weight="bold" fill="#dbe4f0">the one fan</text>
+  <text x="710" y="318" text-anchor="middle" font-size="12" fill="#8d98ab">~60 rpm per 1 % on this board</text>
+
+  <!-- measured rows -->
+  <text x="430" y="372" text-anchor="middle" font-size="12.5" fill="#8d98ab">measured: 25/25 → ~1500 rpm · 25/45 → 2676 · 45/25 → 2676 · 45/45 → 2676 · 0/45 → 2664 · 45/0 → 2664</text>
+  <text x="430" y="390" text-anchor="middle" font-size="12.5" fill="#d9a13b">a curve at 0 % in table 1 changes nothing while table 2 keeps asking for 45 % - that is the 2700 rpm floor</text>
+</svg>

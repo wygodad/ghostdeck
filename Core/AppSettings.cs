@@ -119,6 +119,16 @@ public sealed class AppSettings
     // pattern as the experimental-writes consent. ApexConfirmed = the one-time explainer
     // card was acknowledged once; it is not asked again on other machines.
     public List<string> ApexFw { get; set; } = new();
+    // (#293) Single-fan boards where the owner switched on writing the ONE curve into BOTH fan
+    // tables (the firmware follows the higher of the two, so the untouched second table is what
+    // holds the fan up). Opt-in per model behind a consent card; the vendor's behaviour (table 1
+    // only) stays the default. Fan2TableBackup keeps, per prefix, the Fan 2 tables exactly as the
+    // controller held them when the switch went on ("t,t,..|s,s,.."), so switching it off puts
+    // them back rather than leaving the last mirrored curve there.
+    public List<string> BothTablesFw { get; set; } = new();
+    public Dictionary<string, string> Fan2TableBackup { get; set; } = new();
+    public bool BothTablesEnabledFor(string? prefix) =>
+        prefix != null && BothTablesFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
     public bool ApexConfirmed { get; set; } = false;
 
     public bool ApexEnabledFor(string? prefix) =>
@@ -704,6 +714,8 @@ public sealed class AppSettings
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
         ApexFw = new List<string>(src.ApexFw ?? new());
         ApexConfirmed = src.ApexConfirmed;
+        BothTablesFw = new List<string>(src.BothTablesFw ?? new());
+        Fan2TableBackup = new Dictionary<string, string>(src.Fan2TableBackup ?? new());
         // True Color: the switch and the consent travel; the owner-verified version and the last
         // profile are this machine's (another laptop has another True Color)
         TrueColorEnabled = src.TrueColorEnabled;
@@ -813,6 +825,8 @@ public sealed class AppSettings
             BackupPathPassed = new List<string>(BackupPathPassed),
             ApexFw = new List<string>(ApexFw),
             ApexConfirmed = ApexConfirmed,
+            BothTablesFw = new List<string>(BothTablesFw),
+            Fan2TableBackup = new Dictionary<string, string>(Fan2TableBackup),
             TrueColorEnabled = TrueColorEnabled,
             TrueColorConfirmed = TrueColorConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,

@@ -50,17 +50,17 @@ public sealed class ReportPage : ThemedPage
     private int _rightX, _barY, _introY, _contentTop, _rowsTop, _introH, _instrTop, _instrH, _capY;
     private static readonly Font IntroFont = Dpi.Font("Segoe UI", 10.5f);
 
-    // ---- sub-tabs: segment 0 is the start screen, segments 1..3 map to _sub 0..2 ----
-    // (_sub keeps its 0 = profiles / 1 = curve / 2 = power meaning everywhere else on the page)
+    // ---- sub-tabs: segment 0 is the start screen, segments 1..4 map to _sub 0..3 ----
+    // (_sub keeps its 0 = profiles / 1 = curve / 2 = power / 3 = two tables meaning everywhere else on the page)
     private readonly SubTabs _subTabs = new(
-        new[] { Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power") },
-        new[] { "\uE80F", "\uE8AB", "\uE9D2", "\uE945" });
+        new[] { Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"), Lang.T("tt_title") },
+        new[] { "\uE80F", "\uE8AB", "\uE9D2", "\uE945", "\uE7E8" });
     private int _sub;
     private int _subTop;
     // The page opens on a start screen that says what the three tests are for and which one to
     // run; picking a tile (or a sub-tab) leaves it, and the Start segment brings it back.
     private bool _landing = true;
-    private readonly Rectangle[] _landCards = new Rectangle[3];
+    private readonly Rectangle[] _landCards = new Rectangle[4];
     private int _landHover = -1;
     private int _landIntroY, _landCardsY, _landTitleY, _landI3Y, _landColW;
     private bool _landTwoCol;
@@ -82,6 +82,28 @@ public sealed class ReportPage : ThemedPage
     private float _ptBar;
     private int _ptTop, _ptRowsTop, _ptBtnY, _ptBarY, _ptWritesY, _ptWritesH, _ptConsentY;
     private static readonly Font WritesFont = Dpi.Font("Consolas", 11f, FontStyle.Bold);
+
+    // ---- two-table test (#293): the measurement is Core/TwoTableTest.cs, the same one the Fan curve
+    // page's diagnostics run; this sub-tab wraps it the way the power test is wrapped - explanation,
+    // consent, progress, result, the report on the clipboard and the GitHub form ----
+    private readonly Button _ttStart = new();
+    private readonly Button _ttSecondary = new();     // Cancel while running, Start over once there is a result
+    private readonly CheckItem _ttConsent = new(Lang.T("tt_consent_box"), false);
+    private InfoCardT _ttCard = null!;
+    private readonly StepRowT[] _ttRows = new StepRowT[TwoTableTest.Pairs.Length];
+    private CancellationTokenSource? _ttCts;
+    private Task<TwoTableTest.Result?>? _ttTask;      // the EC restore runs on the worker; app exit waits for it
+    private bool _ttRunning;
+    private TwoTableTest.Result? _ttResult;
+    private string? _ttSavedPath;
+    private string? _ttMsg;                           // blocked reason / missing consent / EC failure
+    private string _ttLive = "";
+    private int _ttStep;
+    private DateTime _ttPairStart;                    // the bar advances with the clock between the per-pair callbacks
+    private float _ttBar;
+    private bool _ttCopied;
+    private int _ttTop, _ttBtnY, _ttBarY, _ttWritesY, _ttWritesH, _ttConsentY;
+    private bool TtHasReport => _ttResult is { Steps.Count: > 0 };
 
     /// <summary>The model definition in effect right now (follows a live model-database swap).</summary>
     private DeviceProfile? Dev => Devices.Detect(D.Firmware());
@@ -119,6 +141,12 @@ public sealed class ReportPage : ThemedPage
     private static readonly Font StepF = Dpi.Font("Segoe UI", 10.5f);
     private static readonly Font PillMonoF = Dpi.Font("Consolas", 11f, FontStyle.Bold);
     private static int PillH => Math.Max(44, PillMonoF.Height + 14);
+    // Space a section label ("Addresses the test may write") takes above what follows it: its
+    // own font height, not a fixed 20 px that the label outgrows above 150 %.
+    private static int SecH => Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold).Height + 4;
+    // The progress bar sits under the stage line ("Pair 3 of 6 - ...") by that line's font height,
+    // not a fixed 20 px (the two overlapped above 125 %).
+    private static int StageH => Dpi.Font("Segoe UI", 10f, FontStyle.Bold).Height + 4;
     private int BtnH => Math.Max(44, Ui.ButtonHeight(_capture.Font));
     private static string[] CurveSteps() =>
         new[] { Lang.T("rep_curve_s1"), Lang.T("rep_curve_s2"), Lang.T("rep_curve_s3"), Lang.T("rep_curve_s4"), Lang.T("rep_curve_s5") };
@@ -152,6 +180,7 @@ public sealed class ReportPage : ThemedPage
         }
 
         Ui.StylePrimary(_capture);
+        _capture.UseMnemonic = false;   // "Finish & open GitHub" carries a literal &
         _capture.Click += OnCapture;
         Controls.Add(_capture);
 
@@ -193,6 +222,7 @@ public sealed class ReportPage : ThemedPage
         }
 
         Ui.StylePrimary(_ptStart);
+        _ptStart.UseMnemonic = false;   // "Finish & open GitHub" carries a literal &
         _ptStart.Click += OnPowerStart;
         Controls.Add(_ptStart);
         Ui.StyleGhost(_ptSecondary);
@@ -202,10 +232,30 @@ public sealed class ReportPage : ThemedPage
         _ptConsent.Toggled += _ => { _ptMsg = null; SyncPower(); Invalidate(); };
         Controls.Add(_ptConsent);
 
+        // ---- two-table test ----
+        _ttCard = new InfoCardT("", TtCardItems(), _leftW);
+        Controls.Add(_ttCard);
+        for (int i = 0; i < _ttRows.Length; i++)
+        {
+            var (t1, t2) = TwoTableTest.Pairs[i];
+            _ttRows[i] = new StepRowT(i + 1, $"{t1} % / {t2} %", Theme.Accent) { Alt = Lang.T(TtPairKey(i)) };
+            Controls.Add(_ttRows[i]);
+        }
+        Ui.StylePrimary(_ttStart);
+        _ttStart.UseMnemonic = false;   // "Finish & open GitHub" carries a literal &
+        _ttStart.Click += OnTtStart;
+        Controls.Add(_ttStart);
+        Ui.StyleGhost(_ttSecondary);
+        _ttSecondary.Click += OnTtSecondary;
+        Controls.Add(_ttSecondary);
+        _ttConsent.Toggled += _ => { _ttMsg = null; SyncTt(); Invalidate(); };
+        Controls.Add(_ttConsent);
+
         _anim.Tick += (_, _) => OnAnim();
         Resize += (_, _) => Relayout();
         RefreshSteps();
         RefreshPowerRows();
+        RefreshTtRows();
         SyncSub();
     }
 
@@ -214,11 +264,11 @@ public sealed class ReportPage : ThemedPage
     private const int PtRowCount = 5;
     private const int PtRestoreRow = 4;
 
-    /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve, 2 = power test). Used by deep links.</summary>
+    /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve, 2 = power test, 3 = two-table test). Used by deep links.</summary>
     public void SetSubTab(int sub)
     {
         _landing = false;
-        _sub = Math.Clamp(sub, 0, 2);
+        _sub = Math.Clamp(sub, 0, 3);
         _subTabs.SetActive(_sub + 1);
         SyncSub(); Relayout(); Invalidate();
     }
@@ -226,7 +276,12 @@ public sealed class ReportPage : ThemedPage
     // Show only the active sub-tab's controls (the rest are hand-painted, gated in OnPaint).
     private void SyncSub()
     {
-        bool prof = !_landing && _sub == 0, curve = !_landing && _sub == 1, power = !_landing && _sub == 2;
+        bool prof = !_landing && _sub == 0, curve = !_landing && _sub == 1, power = !_landing && _sub == 2, tt = !_landing && _sub == 3;
+        _ttCard.Visible = tt;
+        _ttStart.Visible = tt;
+        _ttConsent.Visible = tt && !_ttRunning;
+        foreach (var r in _ttRows) r.Visible = tt;
+        if (tt) { RefreshTtRows(); SyncTt(); } else _ttSecondary.Visible = false;
         _card.Visible = prof;
         foreach (var r in _rows) r.Visible = prof;
         _capture.Visible = prof;
@@ -247,6 +302,7 @@ public sealed class ReportPage : ThemedPage
         // A refusal ("plug the charger in") is answered by leaving and coming back, so it should not
         // survive that. A run in progress keeps whatever it is saying.
         if (!_ptRunning) _ptMsg = null;
+        if (!_ttRunning) _ttMsg = null;
         Relayout(); RefreshSteps(); SyncSub(); Invalidate();
     }
 
@@ -285,18 +341,20 @@ public sealed class ReportPage : ThemedPage
     {
         _subTabs.SetLabels(new[]
         {
-            Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"),
+            Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"), Lang.T("tt_title"),
         });
-        // Everything that captured a text at build time: the three cards, the "start over"
-        // captions, the consent line and the rows' second names (#170: switching the language
+        // Everything that captured a text at build time: the four cards, the "start over"
+        // captions, the consent lines and the rows' second names (#170: switching the language
         // left the cards and these captions in the old one).
-        _card.SetItems(CardItems()); _curveCard.SetItems(CurveCardItems()); _ptCard.SetItems(PtCardItems());
+        _card.SetItems(CardItems()); _curveCard.SetItems(CurveCardItems()); _ptCard.SetItems(PtCardItems()); _ttCard.SetItems(TtCardItems());
         _restart.Text = _curveRestart.Text = Lang.T("rep_restart");
         _ptConsent.Text = Lang.T("pt_consent");
+        _ttConsent.Text = Lang.T("tt_consent_box");
         for (int i = 0; i < _rows.Length; i++)
             if (Steps[i].altKey is { } ak) { _rows[i].Alt = Lang.T(ak); _tip.SetToolTip(_rows[i], Lang.T(ak)); }
+        for (int i = 0; i < _ttRows.Length; i++) _ttRows[i].Alt = Lang.T(TtPairKey(i));
         // Button captions and checklist rows are re-derived by the same refreshes OnEnter uses.
-        RefreshSteps(); RefreshCurve(); RefreshPowerRows(); SyncSub(); Relayout(); Invalidate();
+        RefreshSteps(); RefreshCurve(); RefreshPowerRows(); RefreshTtRows(); SyncSub(); Relayout(); Invalidate();
     }
 
     public override void ApplyTheme()
@@ -314,6 +372,11 @@ public sealed class ReportPage : ThemedPage
         _ptCard.ApplyTheme();
         RefreshPowerRows();
         _ptConsent.Invalidate();
+        Ui.StylePrimary(_ttStart);
+        Ui.StyleGhost(_ttSecondary);
+        _ttCard.ApplyTheme();
+        foreach (var r in _ttRows) { r.Tint = Theme.Accent; r.Invalidate(); }
+        _ttConsent.Invalidate();
         _subTabs.Invalidate();
     }
 
@@ -335,7 +398,8 @@ public sealed class ReportPage : ThemedPage
         if (_landing) LayoutLanding(top);
         else if (_sub == 0) LayoutProfiles(top, ox, oy);
         else if (_sub == 1) LayoutCurve(top, ox, oy);
-        else LayoutPower(top, ox, oy);
+        else if (_sub == 2) LayoutPower(top, ox, oy);
+        else LayoutTt(top, ox, oy);
     }
 
     // =================================================================
@@ -346,14 +410,16 @@ public sealed class ReportPage : ThemedPage
     private static readonly Font LandDF = Dpi.Font("Segoe UI", 10f);
     private static readonly Font LandFootF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
     private static readonly Font LandGlyphF = Dpi.Font("Segoe MDL2 Assets", 16f);
-    private static readonly string[] LandGlyphs = { "\uE8AB", "\uE9D2", "\uE945" };
+    private static readonly string[] LandGlyphs = { "\uE8AB", "\uE9D2", "\uE945", "\uE7E8" };
     private const int LandPad = 20, LandGap = 14, LandIconBox = 42;
 
     private static string LandIntro12 => Lang.T("rep_home_intro1") + "\n\n" + Lang.T("rep_home_intro2");
-    private static string LandQ(int i) => Lang.T(i == 0 ? "rep_home_q1" : i == 1 ? "rep_home_q2" : "rep_home_q3");
-    private static string LandD(int i) => Lang.T(i == 0 ? "rep_home_d1" : i == 1 ? "rep_home_d2" : "rep_home_d3");
-    private static string LandF(int i) => Lang.T(i == 2 ? "rep_home_f_power" : "rep_home_f_read");
-    private string LandTitle(int i) => Lang.T(i == 0 ? "subtab_profiles" : i == 1 ? "subtab_curve" : "subtab_power");
+    // Four cards, one per sub-tab: the three report wizards and, fourth, the two-table test (#293).
+    private const int LandN = 4;
+    private static string LandQ(int i) => Lang.T(i == 0 ? "rep_home_q1" : i == 1 ? "rep_home_q2" : i == 2 ? "rep_home_q3" : "rep_home_q4");
+    private static string LandD(int i) => Lang.T(i == 0 ? "rep_home_d1" : i == 1 ? "rep_home_d2" : i == 2 ? "rep_home_d3" : "rep_home_d4");
+    private static string LandF(int i) => Lang.T(i == 2 ? "rep_home_f_power" : i == 3 ? "rep_home_f_tt" : "rep_home_f_read");
+    private string LandTitle(int i) => Lang.T(i == 0 ? "subtab_profiles" : i == 1 ? "subtab_curve" : i == 2 ? "subtab_power" : "tt_title");
 
     private void LayoutLanding(int top)
     {
@@ -373,15 +439,16 @@ public sealed class ReportPage : ThemedPage
         _landI3Y = _landIntroY + i12H + 28;
         _landCardsY = _landI3Y + Measure(Lang.T("rep_home_intro3"), avail) + 26;
 
-        // Three equal tiles side by side; stacked once they would drop under a readable width.
-        bool row = avail >= 3 * 300 + 2 * LandGap;
-        int cardW = row ? (avail - 2 * LandGap) / 3 : avail;
+        // Equal tiles: four in a row on a wide window, two by two below that, stacked once even
+        // two would drop under a readable width.
+        int cols = avail >= LandN * 280 + (LandN - 1) * LandGap ? LandN : avail >= 2 * 300 + LandGap ? 2 : 1;
+        int cardW = (avail - (cols - 1) * LandGap) / cols;
         int innerW = cardW - LandPad * 2;
 
-        // Same height for all three, decided by the tallest: a ragged row reads as three
-        // unrelated boxes rather than one choice.
+        // Same height for all, decided by the tallest: a ragged row reads as unrelated boxes
+        // rather than one choice.
         int bodyH = 0;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < LandN; i++)
         {
             int qH = TextRenderer.MeasureText(LandQ(i), LandQF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
             int dH = TextRenderer.MeasureText(LandD(i), LandDF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
@@ -390,13 +457,12 @@ public sealed class ReportPage : ThemedPage
         }
         int cardH = LandPad + LandIconBox + 14 + bodyH + LandPad;
 
-        for (int i = 0; i < 3; i++)
-            _landCards[i] = row
-                ? new Rectangle(Pad + i * (cardW + LandGap), _landCardsY, cardW, cardH)
-                : new Rectangle(Pad, _landCardsY + i * (cardH + LandGap), cardW, cardH);
+        int rows = (LandN + cols - 1) / cols;
+        for (int i = 0; i < LandN; i++)
+            _landCards[i] = new Rectangle(Pad + (i % cols) * (cardW + LandGap), _landCardsY + (i / cols) * (cardH + LandGap), cardW, cardH);
 
-        int bottom = row ? _landCardsY + cardH : _landCardsY + 3 * cardH + 2 * LandGap;
-        AutoScrollMinSize = new Size(Pad * 2 + 3 * 300 + 2 * LandGap, bottom + 40);
+        int bottom = _landCardsY + rows * cardH + (rows - 1) * LandGap;
+        AutoScrollMinSize = new Size(Pad * 2 + 2 * 300 + LandGap, bottom + 40);
     }
 
     private void PaintLanding(Graphics g)
@@ -423,7 +489,7 @@ public sealed class ReportPage : ThemedPage
             new Rectangle(Pad, _landI3Y, avail, _landCardsY - _landI3Y), Theme.Text,
             TextFormatFlags.Left | TextFormatFlags.WordBreak);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < LandN; i++)
         {
             var r = _landCards[i];
             bool hover = i == _landHover;
@@ -461,29 +527,49 @@ public sealed class ReportPage : ThemedPage
         }
     }
 
+    // The "Saved to: <file>" line of the wizard on screen, in content coordinates, and the file
+    // it opens. Set by PaintSaved, cleared when nothing painted one.
+    private (Rectangle rect, string path)? _savedLink;
+    private bool _savedHover;
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        if (!_landing) return;
         var p = ContentPoint(e.Location);
-        int h = -1;
-        for (int i = 0; i < 3; i++) if (_landCards[i].Contains(p)) { h = i; break; }
-        if (h != _landHover) { _landHover = h; Cursor = h >= 0 ? Cursors.Hand : Cursors.Default; Invalidate(); }
+        if (_landing)
+        {
+            int h = -1;
+            for (int i = 0; i < LandN; i++) if (_landCards[i].Contains(p)) { h = i; break; }
+            if (h != _landHover) { _landHover = h; Cursor = h >= 0 ? Cursors.Hand : Cursors.Default; Invalidate(); }
+            return;
+        }
+        bool over = _savedLink is { } sl && sl.rect.Contains(p);
+        if (over != _savedHover) { _savedHover = over; Cursor = over ? Cursors.Hand : Cursors.Default; }
     }
 
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
         if (_landHover != -1) { _landHover = -1; Cursor = Cursors.Default; Invalidate(); }
+        if (_savedHover) { _savedHover = false; Cursor = Cursors.Default; }
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
-        if (!_landing || e.Button != MouseButtons.Left) return;
+        if (e.Button != MouseButtons.Left) return;
         var p = ContentPoint(e.Location);
-        for (int i = 0; i < 3; i++)
-            if (_landCards[i].Contains(p)) { _subTabs.SetActive(i + 1, raise: true); return; }
+        if (_landing)
+        {
+            for (int i = 0; i < LandN; i++)
+                if (_landCards[i].Contains(p)) { _subTabs.SetActive(i + 1, raise: true); return; }
+            return;
+        }
+        // The saved report opens in whatever Windows uses for .txt files (Notepad by default).
+        if (_savedLink is { } sl && sl.rect.Contains(p) && File.Exists(sl.path))
+        {
+            try { Process.Start(new ProcessStartInfo(sl.path) { UseShellExecute = true }); } catch { }
+        }
     }
 
     // The landing rectangles live in content coordinates; mouse events arrive in client ones.
@@ -508,7 +594,7 @@ public sealed class ReportPage : ThemedPage
 
         int ry = _rowsTop;
         // Two lines of text per row since the rows name the tile in the other MSI apps as well.
-        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 58); ry += 66; }
+        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, StepRowT.RowH(true)); ry += StepRowT.RowH(true) + 8; }
         _barY = ry + 26;
         _instrTop = _barY + 58;
         var instrFont = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
@@ -563,9 +649,11 @@ public sealed class ReportPage : ThemedPage
 
         Ui.DrawText(g, Lang.T("menu_report"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
+        _savedLink = null;   // whichever wizard paints a "Saved to" line below sets it again
         if (_landing) { PaintLanding(g); return; }
         if (_sub == 1) { PaintCurve(g); return; }
         if (_sub == 2) { PaintPower(g); return; }
+        if (_sub == 3) { PaintTt(g); return; }
 
         int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
         // left: intro under title, info card (child) already placed, firmware pill below it
@@ -833,9 +921,22 @@ public sealed class ReportPage : ThemedPage
     private void EnsureAnim() { if (!_anim.Enabled) _anim.Start(); }
     private void OnAnim()
     {
-        bool busy = _capturing || _ptRunning;
+        bool busy = _capturing || _ptRunning || _ttRunning;
         foreach (var r in _rows) busy |= r.Animate();
         foreach (var r in _ptRows) busy |= r.Animate();
+        foreach (var r in _ttRows) busy |= r.Animate();
+        if (_ttRunning)
+        {
+            // The test reports pair boundaries only; between them the bar follows the clock. Only
+            // the bar's own strip is repainted, and only when it moved a visible amount.
+            double within = Math.Clamp((DateTime.Now - _ttPairStart).TotalSeconds / (TwoTableTest.SettleSeconds + TwoTableTest.SamplesPerStep), 0, 1);
+            float bar = (float)((_ttStep + within) / _ttRows.Length);
+            if (bar - _ttBar > 0.004f)
+            {
+                _ttBar = bar;
+                Invalidate(new Rectangle(_rightX + AutoScrollPosition.X - 2, _ttBarY + StageH - 2 + AutoScrollPosition.Y, ClientSize.Width - _rightX, 16));
+            }
+        }
         if (!busy) _anim.Stop();
     }
 
@@ -1156,9 +1257,17 @@ public sealed class ReportPage : ThemedPage
     /// </summary>
     public void StopPowerTest(bool wait)
     {
-        if (!_ptRunning) return;
-        try { _ptCts?.Cancel(); } catch { }
-        if (wait) { try { _ptTask?.Wait(6000); } catch { } }
+        // The two-table test restores the controller on its worker too, so it gets the same wait.
+        if (_ptRunning)
+        {
+            try { _ptCts?.Cancel(); } catch { }
+            if (wait) { try { _ptTask?.Wait(6000); } catch { } }
+        }
+        if (_ttRunning)
+        {
+            try { _ttCts?.Cancel(); } catch { }
+            if (wait) { try { _ttTask?.Wait(6000); } catch { } }
+        }
     }
 
     // Every address the run may write, from the model's own tables. The recipes are the run itself;
@@ -1322,8 +1431,8 @@ public sealed class ReportPage : ThemedPage
         int ry = _ptRowsTop;
         for (int i = 0; i < _ptRows.Length; i++)
         {
-            _ptRows[i].SetBounds(_rightX + ox, ry + oy, rightW, 52);
-            if (PtRowShown(i)) ry += 60;
+            _ptRows[i].SetBounds(_rightX + ox, ry + oy, rightW, StepRowT.RowH(false));
+            if (PtRowShown(i)) ry += StepRowT.RowH(false) + 8;
         }
         // The consent sentence is long in every language and must never be cut, so it wraps across
         // the whole column and everything below it follows its measured height.
@@ -1347,7 +1456,7 @@ public sealed class ReportPage : ThemedPage
         _ptBarY = _ptBtnY + BtnH + 16;
 
         // bottoms in CONTENT coords (a child's .Bottom is client-side once the page is scrolled)
-        int leftBottom = _ptWritesY + 20 + _ptWritesH + 14 + PillH;   // address block + firmware pill
+        int leftBottom = _ptWritesY + SecH + _ptWritesH + 14 + PillH;   // address block + firmware pill
         int rightBottom = _ptBarY + 180 + (_ptCopied ? 0 : ClipWarnHeight(rightW));
         AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
     }
@@ -1363,9 +1472,9 @@ public sealed class ReportPage : ThemedPage
             new Rectangle(Pad, _ptTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
         Ui.DrawText(g, Lang.T("pt_writes"), secFont, new Point(Pad, _ptWritesY), Theme.Muted);
         Ui.DrawText(g, PtWriteList(dev), WritesFont,
-            new Rectangle(Pad, _ptWritesY + 20, _leftW, _ptWritesH + 4), Theme.Accent,
+            new Rectangle(Pad, _ptWritesY + SecH, _leftW, _ptWritesH + 4), Theme.Accent,
             TextFormatFlags.Left | TextFormatFlags.WordBreak);
-        PaintFirmwarePill(g, _ptWritesY + 20 + _ptWritesH + 14);
+        PaintFirmwarePill(g, _ptWritesY + SecH + _ptWritesH + 14);
 
         // ---- right column: checklist label ----
         Ui.DrawText(g, Lang.T("pt_steps"), secFont, new Point(_rightX, _contentTop), Theme.Muted);
@@ -1384,12 +1493,12 @@ public sealed class ReportPage : ThemedPage
             };
             Ui.DrawText(g, stage + (_ptLive.Length > 0 ? "   " + _ptLive : ""),
                 Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, y - 4), Theme.Accent);
-            var track = new RectangleF(_rightX, y + 20, rightW, 12);
+            var track = new RectangleF(_rightX, y + StageH, rightW, 12);
             using (var path = Theme.RoundRect(track, 6))
             { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
-            using (var path = Theme.RoundRect(new RectangleF(_rightX, y + 20, Math.Max(12, rightW * _ptBar), 12), 6))
+            using (var path = Theme.RoundRect(new RectangleF(_rightX, y + StageH, Math.Max(12, rightW * _ptBar), 12), 6))
             { using var b = new SolidBrush(Theme.Accent); g.FillPath(b, path); }
-            y += 48;
+            y += StageH + 28;
         }
 
         // ---- right column: verdict, then whatever needs saying ----
@@ -1416,6 +1525,363 @@ public sealed class ReportPage : ThemedPage
                 Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
     }
 
+    // =================================================================
+    //  two-table test (#293) - the sub-tab around Core/TwoTableTest.cs
+    // =================================================================
+    private static string TtPairKey(int i) => "tt_pair_" + (char)('a' + i);
+    private static (string, string?)[] TtCardItems() => new (string, string?)[]
+    {
+        (Lang.T("tt_warn_tables"), null),
+        (Lang.T("tt_warn_temps"), null),
+        (Lang.T("tt_warn_restore2"), null),
+    };
+
+    private void RefreshTtRows()
+    {
+        // A cancelled or aborted run ticks only the pairs that were measured.
+        int reached = _ttResult?.Steps.Count ?? 0;
+        for (int i = 0; i < _ttRows.Length; i++)
+            _ttRows[i].SetState(_ttRunning ? i < _ttStep : TtHasReport && i < reached, _ttRunning && i == _ttStep);
+        EnsureAnim();
+    }
+
+    private void SyncTt()
+    {
+        bool on = !_landing && _sub == 3;
+        bool done = TtHasReport && !_ttRunning;
+        _ttStart.Text = done ? Lang.T("rep_finish") : Lang.T("pt_start");
+        _ttStart.Visible = on && !_ttRunning;
+        _ttConsent.Visible = on && !_ttRunning && !TtHasReport;
+        _ttSecondary.Visible = on && (_ttRunning || done);
+        _ttSecondary.Text = _ttRunning ? Lang.T("pt_cancel") : Lang.T("rep_restart");
+    }
+
+    private void OnTtSecondary(object? sender, EventArgs e)
+    {
+        if (_ttRunning) { _ttCts?.Cancel(); return; }
+        _ttResult = null; _ttSavedPath = null; _ttMsg = null; _ttBar = 0; _ttStep = 0; _ttLive = "";
+        _ttConsent.Checked = false;
+        RefreshTtRows(); SyncTt(); Relayout(); Invalidate();
+    }
+
+    // Why the run must not start now, in the user's language; null when it may. The power test's
+    // reasons apply here too (no entry, preview mode, writes locked), then the test's own gates
+    // (no curve tables on this model, battery, too hot).
+    private string? TtBlocked(DeviceProfile? dev)
+    {
+        if (dev == null) return Lang.T("pt_block_unknown");
+        if (D.Simulating()) return Lang.T("pt_block_sim");
+        if (!D.Writable()) return Lang.T("pt_block_locked");
+        if (!Ec.TryReadHw(dev, out var hw)) hw = default;
+        return TwoTableTest.Blocked(dev, hw) is { } key ? Lang.T(key) : null;
+    }
+
+    private async void OnTtStart(object? sender, EventArgs e)
+    {
+        if (_ttRunning) return;
+        if (TtHasReport) { OpenTtIssue(); return; }
+
+        var dev = Dev;
+        if (TtBlocked(dev) is { } blocked) { _ttMsg = blocked; Invalidate(); return; }
+        if (!_ttConsent.Checked) { _ttMsg = Lang.T("pt_need_consent"); Invalidate(); return; }
+
+        _ttRunning = true;
+        _ttResult = null; _ttMsg = null; _ttSavedPath = null; _ttCopied = true; _ttBar = 0; _ttStep = 0; _ttLive = "";
+        _ttPairStart = DateTime.Now;
+        _ttCts = new CancellationTokenSource();
+        var ct = _ttCts.Token;
+        RefreshTtRows(); SyncTt(); Relayout(); Invalidate();
+
+        // Silent cannot hold the custom-curve fan mode (its power cap shares the register), so the
+        // run happens in Balanced and Silent comes back at the end - as on the Fan curve page. The
+        // gate keeps a model-database swap from changing the register map under a run.
+        bool wasSilent = D.Current() == ProfileId.Silent;
+        if (wasSilent) D.SetProfile(ProfileId.Balanced);
+        var gate = D.EcSession();
+        bool ecRestored = false;
+        ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_tt_start"));
+        _ttTask = Task.Run<TwoTableTest.Result?>(() =>
+        {
+            // What to put back: both tables and the mode byte exactly as the controller holds them
+            // now, read before anything is written. The restore stays on this worker, so closing
+            // the window or the app cannot leave a flat curve behind (StopPowerTest waits for it).
+            (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? before = null;
+            byte modeBefore = 0;
+            TwoTableTest.Result? r = null;
+            try
+            {
+                try { before = Ec.ReadFanCurve(dev!); modeBefore = Ec.ReadByte(dev!.FanMode); } catch { }
+                r = TwoTableTest.Run(dev!,
+                    (i, n, msg) => { try { BeginInvoke(() => OnTtProgress(i, n, msg)); } catch { } },
+                    ct);
+            }
+            finally
+            {
+                if (before is { } b)
+                {
+                    try
+                    {
+                        Ec.WriteFanCurve(dev!, b.cpuTemp, b.cpuSpeed, b.gpuTemp, b.gpuSpeed, bothTables: true);
+                        Ec.SetFanMode(dev!, modeBefore);
+                        ecRestored = true;
+                    }
+                    catch { }
+                }
+                gate.Dispose();
+            }
+            return r;
+        });
+        try { _ttResult = await _ttTask; }
+        catch (Exception ex) { _ttMsg = string.Format(Lang.T("rep_read_fail"), AppLifecycle.DescribeEcFailure(ex)); }
+        finally
+        {
+            _ttRunning = false;
+            _ttCts?.Dispose(); _ttCts = null;
+            _ttTask = null;
+            _ttStep = _ttRows.Length - 1;
+            _ttBar = 1;
+            // The read before the run failed, so the tables could not be put back byte for byte:
+            // the profile path re-applies whatever curve is assigned, the second-best restore.
+            if (!ecRestored) { try { D.RestoreActiveCurve(); } catch { } }
+            if (wasSilent) { try { D.SetProfile(ProfileId.Silent); } catch { } }
+            ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_tt_end"), _ttResult == null ? "" : $"{_ttResult.Steps.Count} pairs");
+            if (_ttResult is { Error: { } err }) _ttMsg = string.Format(Lang.T("rep_read_fail"), err);
+            if (TtHasReport)
+            {
+                // The same history the Fan curve page's picker lists, marked 2× there.
+                FanSweepHistory.AddTwoTable(_ttResult!, dev!.Name, D.Firmware(), D.AppVersion(), TtLines(_ttResult!));
+                (FindForm() as MainForm)?.OnTwoTableRunSaved();
+                PrepareTtReport(dev!);
+            }
+            RefreshTtRows(); SyncTt(); Relayout(); Invalidate();
+        }
+    }
+
+    private void OnTtProgress(int i, int n, string live)
+    {
+        _ttStep = i; _ttLive = live; _ttPairStart = DateTime.Now;
+        _ttBar = (float)i / Math.Max(1, n);
+        RefreshTtRows();
+        Invalidate();
+    }
+
+    // The findings with the fan named in the user's language, as the Fan curve page shows them.
+    private IEnumerable<string> TtLines(TwoTableTest.Result r) =>
+        TwoTableTest.Findings(r).Select(f =>
+        {
+            var args = (object[])f.args.Clone();
+            if (args.Length > 0 && args[0] is int fi && TwoTableTest.IsFanScoped(f.key))
+                args[0] = Lang.T(fi == 1 ? (r.SingleFan ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu");
+            return string.Format(Lang.T(f.key), args);
+        });
+
+    private static bool TtIsVerdict(string key) => key is "tt_find_higher" or "tt_find_table1" or "tt_find_table2" or "tt_find_flat" or "tt_find_undecided";
+
+    private void PrepareTtReport(DeviceProfile dev)
+    {
+        if (_ttResult is not { } r) return;
+        string report = TwoTableTest.Report(r, dev, D.Firmware(), D.AppVersion(), TtLines(r));
+        _ttCopied = Ui.CopyText(report);
+        try
+        {
+            string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string fwTag = string.IsNullOrEmpty(D.Firmware()) ? "unknown" : D.Firmware().Replace('.', '_');
+            _ttSavedPath = Path.Combine(dir, $"ghostdeck-two-table-test-{fwTag}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+            File.WriteAllText(_ttSavedPath, report, new UTF8Encoding(false));
+        }
+        catch { _ttSavedPath = null; }
+    }
+
+    private void OpenTtIssue()
+    {
+        try { Process.Start(new ProcessStartInfo(BuildTtIssueUrl()) { UseShellExecute = true }); } catch { }
+    }
+
+    private string BuildTtIssueUrl()
+    {
+        string title = $"[Two tables] {ModelName()} ({D.Firmware()})";
+        string verdict = "";
+        if (_ttResult is { } r)
+        {
+            var keys = TwoTableTest.Findings(r).Select(f => f.key).ToList();
+            var texts = TtLines(r).ToList();
+            verdict = string.Join(" ", texts.Where((_, i) => TtIsVerdict(keys[i])));
+        }
+        // As in the other three forms, the paste field is NOT prefilled: the full report is on the
+        // clipboard and in a file, and reloading a prefilled URL would wipe what was pasted.
+        return RepoUrl + "/issues/new?template=two-table-test.yml&labels=two-table-test"
+            + "&title=" + Uri.EscapeDataString(title)
+            + "&model=" + Uri.EscapeDataString(ModelName())
+            + "&firmware=" + Uri.EscapeDataString(D.Firmware())
+            + "&verdict=" + Uri.EscapeDataString(verdict);
+    }
+
+    // Every address the run writes: both tables, temperatures and speeds, and the fan-mode byte.
+    private static string TtWriteList(DeviceProfile? dev)
+    {
+        if (dev?.FanCurve is not { } fc) return "-";
+        var addrs = new SortedSet<byte> { dev.FanMode };
+        foreach (var b in new[] { fc.CpuTempBase, fc.CpuSpeedBase, fc.GpuTempBase, fc.GpuSpeedBase })
+            for (int i = 0; i < fc.Points; i++) addrs.Add((byte)(b + i));
+        return string.Join("   ", addrs.Select(a => $"0x{a:X2}"));
+    }
+
+    private void LayoutTt(int top, int ox, int oy)
+    {
+        _leftW = Math.Max(360, (ClientSize.Width - Pad * 2 - Gutter) / 2);
+        _rightX = Pad + _leftW + Gutter;
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
+        int secH = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold).Height;
+
+        _ttTop = top;
+        _introH = TextRenderer.MeasureText(Lang.T("tt_rep_intro"), IntroFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
+        _contentTop = _ttTop + _introH + 18;
+        _ttCard.Location = new Point(Pad + ox, _contentTop + oy);
+        _ttCard.SetWidth(_leftW);
+        _ttWritesY = _contentTop + _ttCard.Height + 16;
+        _ttWritesH = TextRenderer.MeasureText(TtWriteList(Dev), WritesFont, new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
+
+        int ry = _contentTop + secH + 14;
+        for (int i = 0; i < _ttRows.Length; i++) { _ttRows[i].SetBounds(_rightX + ox, ry + oy, rightW, StepRowT.RowH(true)); ry += StepRowT.RowH(true) + 8; }
+        _ttConsentY = ry + 8;
+        int boxW = (int)Math.Ceiling(18 * Dpi.Of(this) / 96f) + 10;
+        int consentH = Math.Max((int)Math.Ceiling(26 * Dpi.Of(this) / 96f),
+            TextRenderer.MeasureText(_ttConsent.Text, Dpi.Font("Segoe UI", 10.5f),
+                new Size(Math.Max(40, rightW - boxW - 6), 0), TextFormatFlags.WordBreak).Height + 8);
+        _ttConsent.Wrap = true;
+        _ttConsent.SetBounds(_rightX + ox, _ttConsentY + oy, rightW, consentH);
+
+        // Once there is a result the consent box is gone and the buttons move up into its place.
+        _ttBtnY = (_ttConsent.Visible ? _ttConsentY + consentH : _ttConsentY - 8) + 16;
+        int bw = Math.Min(320, rightW - 180);
+        if (_ttRunning) _ttSecondary.SetBounds(_rightX + ox, _ttBtnY + oy, bw, BtnH);
+        else
+        {
+            _ttStart.SetBounds(_rightX + ox, _ttBtnY + oy, bw, BtnH);
+            _ttSecondary.SetBounds(_rightX + bw + 10 + ox, _ttBtnY + oy, 170, BtnH);
+        }
+        _ttBarY = _ttBtnY + BtnH + 16;
+
+        int leftBottom = _ttWritesY + SecH + _ttWritesH + 14 + PillH;
+        int rightBottom = _ttBarY + (_ttRunning ? StageH + 28 : 0) + DrawTtResult(null, _rightX, _ttBarY, rightW) + 20;
+        AutoScrollMinSize = new Size(_rightX + 360 + Pad, Math.Max(leftBottom, rightBottom) + 20);
+    }
+
+    private void PaintTt(Graphics g)
+    {
+        int rightW = Math.Max(360, ClientSize.Width - _rightX - Pad);
+        var secFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+
+        // ---- left column: intro + warning card (child) + the exact addresses + firmware pill ----
+        Ui.DrawText(g, Lang.T("tt_rep_intro"), IntroFont,
+            new Rectangle(Pad, _ttTop, _leftW, _introH + 4), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        Ui.DrawText(g, Lang.T("pt_writes"), secFont, new Point(Pad, _ttWritesY), Theme.Muted);
+        Ui.DrawText(g, TtWriteList(Dev), WritesFont,
+            new Rectangle(Pad, _ttWritesY + SecH, _leftW, _ttWritesH + 4), Theme.Accent,
+            TextFormatFlags.Left | TextFormatFlags.WordBreak);
+        PaintFirmwarePill(g, _ttWritesY + SecH + _ttWritesH + 14);
+
+        // ---- right column: the pairs, then the run, then what it said ----
+        Ui.DrawText(g, Lang.T("tt_pairs"), secFont, new Point(_rightX, _contentTop), Theme.Muted);
+
+        int y = _ttBarY;
+        if (_ttRunning)
+        {
+            string stage = string.Format(Lang.T("tt_step"), _ttStep + 1, _ttRows.Length, _ttLive);
+            Ui.DrawText(g, stage, Dpi.Font("Segoe UI", 10f, FontStyle.Bold), new Point(_rightX, y - 4), Theme.Accent);
+            var track = new RectangleF(_rightX, y + StageH, rightW, 12);
+            using (var path = Theme.RoundRect(track, 6))
+            { using var b = new SolidBrush(Theme.Card); g.FillPath(b, path); using var p = new Pen(Theme.Border); g.DrawPath(p, path); }
+            using (var path = Theme.RoundRect(new RectangleF(_rightX, y + StageH, Math.Max(12, rightW * _ttBar), 12), 6))
+            { using var b = new SolidBrush(Theme.Accent); g.FillPath(b, path); }
+            y += StageH + 28;
+        }
+        DrawTtResult(g, _rightX, y, rightW);
+    }
+
+    // The result block: the one-line outcome, the findings, the table of pairs, where the report
+    // went, and whatever the page has to complain about. Draws when g is given, and in both cases
+    // returns the height it takes, so the layout can reserve exactly that much.
+    private int DrawTtResult(Graphics? g, int x, int y, int w)
+    {
+        int y0 = y;
+        if (_ttResult is { } r && !_ttRunning && r.Steps.Count > 0)
+        {
+            // Green only for a run that went the distance; a stopped one keeps its numbers but is
+            // not a verdict.
+            var vf = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
+            string outcome = r.Aborted ? Lang.T(r.AbortReason ?? "tt_aborted") : Lang.T("pt_res_done");
+            int vh = TextRenderer.MeasureText(outcome, vf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
+            if (g != null) Ui.DrawText(g, outcome, vf, new Rectangle(x, y, w, vh + 6), r.Aborted ? Theme.Amber : Theme.Green, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            y += vh + 10;
+
+            var keys = TwoTableTest.Findings(r).Select(f => f.key).ToList();
+            var texts = TtLines(r).ToList();
+            for (int i = 0; i < texts.Count; i++)
+            {
+                string line = "•  " + texts[i];
+                int lh = TextRenderer.MeasureText(line, StepF, new Size(w, 0), TextFormatFlags.WordBreak).Height;
+                var col = TtIsVerdict(keys[i]) && keys[i] is not "tt_find_flat" and not "tt_find_undecided" ? Theme.Text
+                        : keys[i] is "tt_find_mode" or "tt_find_flat" ? Theme.Amber : Theme.Muted;
+                if (g != null) Ui.DrawText(g, line, StepF, new Rectangle(x, y, w, lh + 2), col, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+                y += lh + 3;
+            }
+            y += 8;
+
+            // the pairs as measured, in the report's own columns
+            var mono = Dpi.Font("Consolas", 9.5f);
+            string unit = r.HasTach ? " rpm" : " %";
+            var heads = new List<string> { Lang.T("tt_col_t1"), Lang.T("tt_col_t2"), (r.SingleFan ? Lang.T("fc_fan_single") : Lang.T("fc_fan_cpu")) + unit };
+            if (!r.SingleFan) heads.Add(Lang.T("fc_fan_gpu") + unit);
+            heads.Add(Lang.T("tt_col_cpu")); heads.Add(Lang.T("tt_col_gpu"));
+            var rows = new List<string[]>();
+            foreach (var st in r.Steps)
+            {
+                var cells = new List<string> { st.Table1 + "%", st.Table2 + "%", r.HasTach ? (st.CpuRpm > 0 ? st.CpuRpm.ToString() : "--") : st.CpuDuty.ToString() };
+                if (!r.SingleFan) cells.Add(r.HasTach ? (st.GpuRpm > 0 ? st.GpuRpm.ToString() : "--") : st.GpuDuty.ToString());
+                cells.Add(st.CpuTemp.ToString()); cells.Add(st.GpuTemp > 0 ? st.GpuTemp.ToString() : "--");
+                rows.Add(cells.ToArray());
+            }
+            var colW = new int[heads.Count];
+            for (int i = 0; i < heads.Count; i++)
+            {
+                int cw = TextRenderer.MeasureText(heads[i], mono, Size.Empty, TextFormatFlags.NoPadding).Width;
+                foreach (var row in rows) cw = Math.Max(cw, TextRenderer.MeasureText(row[i], mono, Size.Empty, TextFormatFlags.NoPadding).Width);
+                colW[i] = cw;
+            }
+            int gap = Math.Max(12, mono.Height);
+            void Row(string[] cells, Color c, int ry)
+            {
+                int cx = x;
+                for (int i = 0; i < cells.Length; i++)
+                {
+                    Ui.DrawText(g!, cells[i], mono, new Rectangle(cx, ry, colW[i] + 2, mono.Height + 2), c, TextFormatFlags.Right | TextFormatFlags.NoPadding);
+                    cx += colW[i] + gap;
+                }
+            }
+            if (g != null) Row(heads.ToArray(), Theme.Muted, y);
+            y += mono.Height + 4;
+            foreach (var cells in rows) { if (g != null) Row(cells, Theme.Text, y); y += mono.Height + 2; }
+            y += 10;
+
+            if (g != null) y += PaintSaved(g, x, y, w, _ttSavedPath, _ttCopied) + 8;
+            else
+            {
+                if (_ttSavedPath != null)
+                    y += TextRenderer.MeasureText(string.Format(Lang.T("rep_saved_to"), _ttSavedPath), Dpi.Font("Segoe UI", 9f), new Size(w, 0), TextFormatFlags.WordBreak).Height + 6;
+                y += (_ttCopied ? 0 : ClipWarnHeight(w) + 6) + 8;
+            }
+        }
+        if (_ttMsg != null)
+        {
+            int mh = TextRenderer.MeasureText(_ttMsg, StepF, new Size(w, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height + 4;
+            if (g != null) Ui.DrawText(g, _ttMsg, StepF, new Rectangle(x, y, w, mh), Theme.Amber, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+            y += mh + 6;
+        }
+        return y - y0;
+    }
+
     // Where the report went, and - when the clipboard refused it - the line that stops the user
     // pasting whatever happened to be there already. Returns the height it used.
     private int PaintSaved(Graphics g, int x, int y, int w, string? path, bool copied)
@@ -1423,10 +1889,14 @@ public sealed class ReportPage : ThemedPage
         int sh = 0;
         if (path != null)
         {
+            // The line is a link: a click opens the report in whatever handles .txt files. Only
+            // one wizard is painted at a time, so one remembered rectangle covers all four.
             string saved = string.Format(Lang.T("rep_saved_to"), path);
             var sf = Dpi.Font("Segoe UI", 9f);
-            sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
-            Ui.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
+            var size = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak);
+            sh = size.Height;
+            Ui.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Accent, TextFormatFlags.WordBreak);
+            _savedLink = (new Rectangle(x, y, Math.Min(w, size.Width + 4), sh + 4), path);
             sh += 6;
         }
         // Deliberately NOT tied to the path: a run that lost the clipboard AND the file is the one
@@ -1467,8 +1937,21 @@ public sealed class ReportPage : ThemedPage
     // =================================================================
     private sealed class StepRowT : Control
     {
-        private const int StatusW = 150, Circle = 26, Cx = 28;
+        private const int Circle = 26, Cx = 28;
+        // The status column holds "captured" / "pending" in the row's font, so it scales with it.
+        private int StatusW => (int)Math.Ceiling(150 * Dpi.Of(this) / 96f);
         private int _num;
+
+        /// <summary>
+        /// Row height from the fonts (#172: a fixed 52 / 58 px clipped the second line and made the
+        /// rows overlap above 150 %), with the old values as the floor so 100 % looks as before.
+        /// </summary>
+        public static int RowH(bool twoLine)
+        {
+            int h = Dpi.Font("Segoe UI", 11f, FontStyle.Bold).Height + 16;
+            if (twoLine) h += Dpi.Font("Segoe UI", 9.75f).Height - 2;
+            return Math.Max(twoLine ? 58 : 52, h);
+        }
         private string _name;
         private string? _alt;
         public Color Tint;

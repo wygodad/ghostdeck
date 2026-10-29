@@ -238,6 +238,8 @@ To get your chosen profile back automatically, turn on **Settings → Power → 
 
 Very low. The app uses MSI's **official WMI interface** (the same channel MSI Center uses), writes only the exact register values MSI's own profiles use, and EC writes are **volatile** - a reboot resets the EC to firmware defaults (nothing is flashed). On an **unrecognized firmware it stays read-only** and writes nothing. The CPU also keeps its own hardware thermal protection that no EC write can disable. Experimental models are opt-in and write only documented mode registers.
 
+Two things go beyond what MSI's own software writes on your laptop, and both are opt-in. The **two-table test** (Report my model → Two-table test) writes flat fan curves into *both* fan-curve tables for about two and a half minutes and puts both back exactly as they were. The **"Write to both fan tables"** switch on the Fan curve page (single-fan laptops only) writes your curve into the second table as well, which MSI Center never touches; it saves that table when it goes on and restores it when it goes off. Each one lists every address it writes and asks for your consent before the first write. The whole story: [docs/TWO-FAN-TABLES.md](TWO-FAN-TABLES.md).
+
 ## My antivirus / VirusTotal flags GhostDeck.exe - is it malware?
 
 No - but the flag is understandable, and here is how to verify it yourself. GhostDeck ticks several boxes that antivirus heuristics dislike: it's a self-contained single-file exe (it self-extracts the .NET runtime), asks for administrator rights, talks to the Embedded Controller, registers global hotkeys and can update itself. Occasionally a single engine (typically a small one, via a generic "W32.Malware.*" heuristic name) flags it on VirusTotal while all the major engines stay clean - a classic false positive pattern.
@@ -295,6 +297,12 @@ The limits, as of 17 October 2026: the mechanism is **confirmed on one laptop** 
 **Not running.** True Color normally starts with Windows and sits in the tray. If the card says it is not running (or a scene's history line says the True Color step was skipped), start it from the Start menu; GhostDeck never starts it for you, because starting it shows its window. **The switch is off.** Enable it on the card; with the switch off a scene skips its True Color field with a history line, and `--truecolor <profile>` or a link answers with a refusal (`--truecolor status` works always).
 
 **What the card shows.** *Recorded in True Color* is what True Color itself last recorded, so it follows Fn+A and True Color's own window too, within a moment; *Last set by GhostDeck* is only GhostDeck's memory. Neither is a measurement of the panel. Switching to the profile that is already recorded sends nothing (*already recorded* in the history). Not tested, so not promised: external monitors, HDR, other laptops.
+
+## My laptop has one fan and it never slows below ~2700 rpm, whatever curve I set. Why?
+
+Because the controller keeps **two** fan-curve tables even on a single-fan laptop - one driven by the CPU temperature, one by the GPU temperature - and the fan follows the **higher** of the two (measured on a Cyborg 15 with the app's two-table test, [#293](../../../issues/293)). MSI Center shows one slider and writes it into the first table only; the second keeps its factory curve, whose lowest step is about 38 %. GhostDeck does the same by default, so your curve can only ever lower the first table, and the second one holds the fan up.
+
+Two things help. Run the **two-table test** (Report my model → Two-table test, the fourth card on the start screen; about two and a half minutes) to see what your own board does. Then, if you want the fan to follow your curve alone, the Fan curve page has a **"Write to both fan tables"** switch on single-fan models: it is experimental, off by default, explains itself before it goes on, and switching it off puts the original second table back. With it on, the fan can slow below the factory minimum or stop at low temperatures; MSI's documentation says the firmware restarts the fan above a safe temperature, but the threshold is not published. Everything in one place: [docs/TWO-FAN-TABLES.md](TWO-FAN-TABLES.md).
 
 ## Why does it ask for administrator (UAC)?
 

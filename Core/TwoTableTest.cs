@@ -6,7 +6,7 @@ namespace GhostDeck;
 /// GPU) even when the chassis has one fan (issues #224, #293: a Cyborg 15 whose single fan
 /// would not drop below ~2700 rpm once the app wrote table 1 alone - the factory values left
 /// in table 2 kept it up). The test writes a FLAT curve into each table (every node = the
-/// same duty, so temperature plays no part), holds each pair of values for half a minute and
+/// same duty, so temperature plays no part), holds each pair of values for twenty seconds and
 /// records the duty readback of each table, the tachometers and the temperatures. The pairs
 /// are chosen so that one table always keeps the fans turning - the fans never stop - and
 /// so that the readings separate "the higher of the two" from "table 1 only" from "table 2
@@ -23,10 +23,14 @@ public static class TwoTableTest
     /// <summary>(table 1, table 2) duty pairs, in run order. The first four separate the rules;
     /// the last two ask what a zero in ONE table does while the other holds the fan.</summary>
     public static readonly (int Table1, int Table2)[] Pairs = { (25, 25), (25, 45), (45, 25), (45, 45), (0, 45), (45, 0) };
-    public const int SettleSeconds = 30;   // a fan slowing down takes longer than one spinning up
+    public const int SettleSeconds = 20;   // a fan slowing down takes longer than one spinning up; 20 s was enough on every board measured
     public const int SamplesPerStep = 5;   // the last five 1 s readings are averaged
-    public const int MaxStartCpuTemp = 70, MaxStartGpuTemp = 60;   // a warm machine holds its fans up by itself
-    public const int AbortCpuTemp = 85;
+    // A hot machine holds its fans up by itself and the pairs then read alike, so the start is
+    // gated - but a gaming laptop idles at 70-85 °C CPU with nothing running, so the gate sits
+    // above that and the run is kept short instead. The abort is a safety stop, not a judgement
+    // of the readings (the verdict logic reports "undecided" on its own).
+    public const int MaxStartCpuTemp = 85, MaxStartGpuTemp = 75;
+    public const int AbortCpuTemp = 92;
     public const double Tolerance = 0.08;  // readings within 8 % of each other count as the same speed
 
     public readonly record struct StepResult(int Table1, int Table2, int CpuDuty, int GpuDuty, int CpuRpm, int GpuRpm,

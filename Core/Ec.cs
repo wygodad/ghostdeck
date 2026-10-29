@@ -391,10 +391,22 @@ public static class Ec
     // vendor's one-slider software does (issue #293: MSI Center 2.0.74 leaves the Fan 2 tables
     // at their factory values). bothTables = true writes the Fan 2 tables regardless: the
     // two-table test needs them, and so does its restore.
+    /// <summary>
+    /// (#293) The owner's opt-in on a single-fan board: when it answers true for the model, every
+    /// normal curve write (Apply, presets, CLI, the sweep) puts the Fan 1 curve into the Fan 2
+    /// tables as well, so the fan - which follows the higher of the two tables - follows the one
+    /// curve alone. Set by the tray context and the CLI from AppSettings.BothTablesFw; null = off.
+    /// </summary>
+    public static Func<DeviceProfile, bool>? MirrorToFan2 { get; set; }
+
     public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed, bool bothTables = false)
     {
         if (dev.FanCurve is not { } fc) return;
         bool fan2 = bothTables || !fc.SingleFan;
+        if (!bothTables && fc.SingleFan && (MirrorToFan2?.Invoke(dev) ?? false))
+        {
+            gpuTemp = cpuTemp; gpuSpeed = cpuSpeed; fan2 = true;
+        }
         // Backup path: every value is range-checked and put on its slot's allow-list right
         // before the write; the gate in BackupWrite does the rest (locked until the path test
         // has passed on this machine).

@@ -664,6 +664,26 @@ first run with no stored firmware) records the current firmware and re-enables a
 deliberately a *soft* guard (auto only), not a full lockout; do not widen it to block manual
 switching without discussing the trade-off.
 
+### 19.9 Writes that go beyond what the vendor's software writes
+
+The rule everywhere else in this document is "we write what MSI's own software writes, nothing
+more". Two features, both from 2026-10 and both opt-in, deliberately step outside it, and the
+user-facing documents (FAQ "Is there any risk", TWO-FAN-TABLES.md §5) name them so nobody has to
+read the code to know:
+
+- **The two-table test** (§85) writes flat curves into **both** fan-curve tables, the temperature
+  tables with the board's own values, and the fan-mode byte, six times, then writes everything
+  back as read before the run. On a single-fan entry the second table is one the vendor's
+  one-slider software never writes. The run lists every address first and needs the user's
+  consent (a card on the Fan curve page, a box on the Report sub-tab).
+- **The "write to both fan tables" switch** (§85) adds the Fan 2 tables to every normal curve
+  write while it is on, saves the Fan 2 tables the moment it goes on and writes them back when it
+  goes off. Experimental, off by default, consent card with the before/after/impact/responsibility
+  parts.
+
+Any further feature that writes something the vendor does not must be added to this list and to
+the two user-facing places above in the same change.
+
 ---
 
 ## 20. Gaming overlay and extra hardware metrics
@@ -4198,33 +4218,72 @@ values land at `0x72`, the Fan 2 table stays at its factory `38 40 45 54 60 68 7
 #145 show the same on 2.0.48). An older MSI Center wrote both tables on the same board (#29,
 July 2026: two different test curves at `0x72` and `0x8A`).
 
-What the firmware does with the two is the open question. The one fan does read both: on
-`15K1IMS1` the owner of #224 could bring his fan to ~1900 rpm and to a stop while the app still
-wrote both tables, and once the entry became `SingleFan` the fan would not drop below ~2700 rpm
-with his curve at 0 % - the factory Fan 2 table's 45 % step at his idle GPU temperature, at the
-board's ~60 rpm per percent (msi-ec #848). Whether the firmware takes the higher of the two
-requests, or follows one table with the other as a floor, nobody has measured, and whether the
-vendor leaves the second table alone on purpose (a floor under a one-slider UI) or by omission is
-not known either. The app therefore stays on the vendor's side of that line - table 1 only - until
-the measurement says otherwise.
+The one fan reads both tables: on `15K1IMS1` the owner of #224 could bring his fan to ~1900 rpm
+and to a stop while the app still wrote both tables, and once the entry became `SingleFan` the
+fan would not drop below ~2700 rpm with his curve at 0 % - the factory Fan 2 table's 45 % step
+at his idle GPU temperature, at the board's ~60 rpm per percent (msi-ec #848).
 
-**The two-table test** (`Core/TwoTableTest.cs`, Fan curve → In action → diagnostics, next to the
-sweep) is that measurement, on any board with a curve. It writes six pairs of flat curves into
-**both** tables through `Ec.WriteFanCurve(..., bothTables: true)` - 25/25, 25/45, 45/25, 45/45,
-0/45, 45/0 %, one table always keeping the fans turning - holds each for 30 s and records each
-table's duty readback, the tachometers, the temperatures and the mode byte. The verdict per fan
-(the higher of the two / table 1 only / table 2 only / flat / undecided) and the composition of the
-findings are in FAN-CURVE.md §7a. Mains only; refuses to start above 70 °C CPU or 60 °C GPU and
-stops itself at 85 °C, because a warm machine holds its fans up on its own and the pairs then read
-alike. The restore puts table 1 back as the page has it and table 2 as the controller held it just
-before the run. Runs share the sweep's history file and picker (`Kind` = 1, marked 2×).
+**Measured on 2026-10-29 (#293, the same owner, the two-table test below):** the firmware follows
+the **higher** of the two tables. With both tables flat, 25/45, 45/25 and 45/45 all held ~2676
+rpm, 0/45 and 45/0 held ~2664, and 25/25 ~1494 (read as the 16-bit pair `0xC8:C9`; the single
+byte `0xC9` alone gave an impossible 7468 rpm, which is how the entry's tachometer format was
+corrected to the pair). A read-only capture of MSI Center 2.0.74 at its lowest setting showed
+table 1 at `00 00 00 00 00 00` and table 2 untouched at `26 28 2D 36 3C 44 4E`: MSI Center lets
+the user take table 1 to 0 % and never writes table 2, so the floor is the untouched second table,
+not a limit in the vendor's interface. Whether the vendor leaves it alone on purpose is still not
+known. One observation without a conclusion: under that all-zero curve `0xD4` read `9D`, `8D`
+otherwise. The app keeps the vendor's behaviour - table 1 only - as the default.
+
+**The two-table test** (`Core/TwoTableTest.cs`; Report → Two-table test sub-tab, and Fan curve →
+In action → diagnostics next to the sweep) is that measurement, on any board with a curve. It
+writes six pairs of flat curves into **both** tables through `Ec.WriteFanCurve(..., bothTables: true)`
+- 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %, one table always keeping the fans turning - holds each
+for 20 s and records each table's duty readback, the tachometers, the temperatures and the mode
+byte. The verdict per fan (the higher of the two / table 1 only / table 2 only / flat / undecided)
+and the composition of the findings are in FAN-CURVE.md §7a. Mains only; refuses to start above
+85 °C CPU or 75 °C GPU and stops itself at 92 °C: a hot machine holds its fans up on its own and
+the pairs then read alike, while a gaming laptop idles at 70-85 °C with nothing running, so the gate
+sits above that and the run is kept short (about 2.5 min) instead of asking for a temperature such
+a laptop never reaches. On the Fan curve page the restore puts table 1 back as the page has it and
+table 2 as the controller held it just before the run. Runs share the sweep's history file and
+picker (`Kind` = 1, marked 2×).
+
+**The Report sub-tab** (`UI/ReportPage.cs`, `_sub` = 3, `MainForm.ShowReport(3)`) wraps the same
+`TwoTableTest.Run` the way the power test is wrapped: intro, warning card, the six pairs as step
+rows with what each one separates, a consent box, Start / Cancel / Start over, a bar that follows
+the clock between the per-pair callbacks, then the outcome line, the findings, the table of pairs
+and where the report went. The run restores on its worker: both tables and the mode byte are read
+before the first write and written back in the worker's `finally` (`Ec.WriteFanCurve(...,
+bothTables: true)` + `Ec.SetFanMode`), so closing the window or the app - which waits for it through
+`StopPowerTest` - cannot leave a flat curve behind; Silent is switched to Balanced for the run and
+returned afterwards, and a failed pre-read falls back to the profile path (`RestoreActiveCurve`).
+The result goes to `fan-sweeps.json` through `FanSweepHistory.AddTwoTable` (the Fan curve picker
+re-reads it, `ReloadSweepHistory`), the report to the clipboard and to
+`ghostdeck-two-table-test-<fw>-<stamp>.txt` on the Desktop, and *Finish & open GitHub* opens
+`two-table-test.yml` (label `two-table-test`) with model, firmware and the verdict line prefilled;
+the paste field is left empty on purpose, like the other three forms.
 
 The fan-curve report (Report → Fan curve) names the **table** a single found curve sits in - "one
 test curve (the Fan 2 values) in the Fan 1 / CPU table @ 0x72", a match with the shipped map -
 rather than naming it after the test values typed into the one slider, which on a single-fan
 board had produced "GPU @ 0x72, differs from shipped map" (#293).
 
-Model DB implication: none yet. `SingleFan` keeps its meaning (one fan, one slider, Fan 1 writes).
-Should the test show that a board follows the higher of its two tables, the editor's one curve can
-be written into both tables on that board - a separate flag, decided per board from a measurement,
-never from the fan count.
+**The "write to both fan tables" switch** (experimental, opt-in, `UI/FanCurvePage.cs`) is the
+owner's answer to the measurement. It shows next to the curve switch on single-fan entries only.
+Switching it on opens a consent card with four parts (how the writes were done until now, what
+changes, what it means, own responsibility); on Yes the Fan 2 tables are saved as the controller
+holds them (`AppSettings.Fan2TableBackup`, per firmware prefix) and the prefix joins
+`AppSettings.BothTablesFw`. From then on `Ec.WriteFanCurve` copies the Fan 1 temperatures and
+speeds into the Fan 2 tables on every normal write (Apply, assigned presets, the CLI, the sweep;
+the hook is `Ec.MirrorToFan2`, set by the tray context and the one-shot CLI). Switching it off
+removes the prefix and writes the saved Fan 2 tables back, so the board is as it was before the
+opt-in. The chart's note line says which state the page is in. It is a settings matter, not a
+model-database one: `SingleFan` keeps its meaning (one fan, one slider), and the rule "the fan
+follows the higher table" has been measured on one board so far - the switch's help and the
+consent card say to run the two-table test first on any other single-fan model.
+
+The two-table test is also the fourth card on the Report start screen (`UI/ReportPage.cs`,
+`LandN` = 4, four in a row on a wide window, two by two below that); the card jumps to the Fan
+curve page's In action view with the diagnostics open (`MainForm.ShowFanCurveDiagnostics`,
+`FanCurvePage.ShowDiagnostics`). The user-facing write-up with pictures is
+`docs/TWO-FAN-TABLES.md`.

@@ -202,7 +202,7 @@ sweep write the Fan 1 tables only, the way the vendor's one-slider software does
 **both**, on purpose, through `Ec.WriteFanCurve(..., bothTables: true)`.
 
 Six (table 1, table 2) pairs go in as **flat** curves - every node the same duty, so temperature
-plays no part - each held `SettleSeconds` = 30 s with the last 5 one-second readings averaged:
+plays no part - each held `SettleSeconds` = 20 s with the last 5 one-second readings averaged:
 
 | pair | table 1 | table 2 | what it separates |
 |---|---|---|---|
@@ -227,13 +227,23 @@ On a two-fan board the same verdicts come out per fan, which also confirms the t
 assignment.
 
 Safeguards beyond the sweep's: **mains only** (on battery the firmware limits the fans itself),
-**refuses to start** above 70 °C CPU or 60 °C GPU, **stops itself** at 85 °C CPU, and the consent
+**refuses to start** above 85 °C CPU or 75 °C GPU (a gaming laptop idles at 70-85 °C, so the gate
+sits above that and the pairs are short instead), **stops itself** at 92 °C CPU, and the consent
 card says in so many words that the app normally writes table 1 only on this board and that the
 test writes both. The restore in the `finally` puts back table 1 as the page has it and table 2 as
 the controller held it right before the run (read with `Ec.ReadFanCurve`), then the previous mode.
 
 Runs are stored in the same `fan-sweeps.json` as sweeps (`Kind` = 1, `Set` / `Set2` per step),
 listed in the same picker with a `2×` mark, and copied as a report of the same shape as the sweep's.
+The test also has its own sub-tab on the Report page (the fourth card on its start screen) with a
+consent box instead of the card, a restore taken from the controller's own values, and a GitHub form
+for the report; the picker here re-reads the history when that run finishes (TECHNICAL §85).
+
+**The "write to both fan tables" switch** (single-fan entries only, next to the curve switch) is
+what the measurement is for: with it on, Apply and every other curve write put the one curve into
+both tables through `Ec.WriteFanCurve`'s `MirrorToFan2` hook, the chart's note line says so, and
+switching it off restores the Fan 2 tables saved when it went on. The consent card, the risk and
+the full story are in [TWO-FAN-TABLES.md](TWO-FAN-TABLES.md); the mechanics in TECHNICAL §85.
 
 ## 8. How the findings are composed
 

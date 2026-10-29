@@ -334,6 +334,13 @@ public sealed class MainForm : Form
     /// itself: clicking the tab you are already on takes that page back to its own start view
     /// (OnReenter). Deep links from the tray must NOT set it - they aim at a specific sub-page.
     /// </summary>
+    /// <summary>The Report start screen's fourth card: the two-table test lives on the Fan curve page's In action view.</summary>
+    public void ShowFanCurveDiagnostics()
+    {
+        ShowTab(MainTab.FanCurve);
+        if (_pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fp) fp.ShowDiagnostics();
+    }
+
     public void ShowTab(MainTab tab, bool fromStrip = false)
     {
         bool reenter = fromStrip && _active == tab
@@ -408,14 +415,20 @@ public sealed class MainForm : Form
         foreach (Control ch in c.Controls) ForceHandles(ch);
     }
 
-    /// <summary>Open the Report page on a given sub-tab (0 = profiles, 1 = fan curve, 2 = power test). Deep-linked from Models / Fan curve / the tray.</summary>
+    /// <summary>A two-table run finished on the Report page: the Fan curve page's history picker lists it too.</summary>
+    public void OnTwoTableRunSaved()
+    {
+        if (_pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fp) fp.ReloadSweepHistory();
+    }
+
+    /// <summary>Open the Report page on a given sub-tab (0 = profiles, 1 = fan curve, 2 = power test, 3 = two-table test). Deep-linked from Models / Fan curve / the tray.</summary>
     public void ShowReport(int sub)
     {
         ShowTab(MainTab.Report);
         if (_pages.TryGetValue(MainTab.Report, out var p) && p is ReportPage rp) rp.SetSubTab(sub);
     }
 
-    /// <summary>Stop a running power test (window closing, or app exit - see ReportPage.StopPowerTest).</summary>
+    /// <summary>Stop a running power or two-table test (window closing, or app exit - see ReportPage.StopPowerTest).</summary>
     public void StopPowerTest(bool wait)
     {
         if (_pages.TryGetValue(MainTab.Report, out var p) && p is ReportPage rp) rp.StopPowerTest(wait);
