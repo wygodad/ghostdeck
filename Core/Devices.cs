@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261115;
+    public const int DataVersion = 20261116;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1308,6 +1308,20 @@ public static class Devices
         new() { Name = "MSI CreatorPro Z16HXStudio B13VJTO / B13VKTO", FirmwarePrefixes = new[] { "15G2EWS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B13M",                FirmwarePrefixes = new[] { "15H1IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 B12HW",               FirmwarePrefixes = new[] { "15H2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Modern 15 B11M (15H3IMS1) - a prefix absent from msi-ec, from one owner's reports (issues
+        // #300-#302, rock3tup, firmware .105, MSI Center Pro 2.1.42, a build from source carrying
+        // its own entry). His power test wrote StdRecipes and read every phase back intact, but all
+        // profiles ran alike (2 threads on a 2-core/4-thread CPU, ~2.9 GHz, 61 C, work 100 each).
+        // The pre-run state was 0xD2 = C0 / 0xD4 = 4D, the value MSI Center Pro gives High
+        // Performance on the sibling Modern 14 B11MOU (14D3EMS1, #170); his per-scenario capture
+        // did not switch modes, so the Extreme value on this board is not confirmed - asked for one.
+        //   Curve VERIFIED: the test curve sits byte for byte at 0x72 and 0x8A (#301).
+        //   RPM: wide-tach 16-bit pair 0xC8:0xC9 - the curve capture reads 01:40 (~1490 rpm), a
+        //   high byte a single-byte scheme never sets; 0xCA:0xCB read 00:00 (no discrete GPU).
+        new() { Name = "MSI Modern 15 B11M",                FirmwarePrefixes = new[] { "15H3IMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr16 = 0xC8, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "rock3tup", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/302",
+                CreditIssues = Issues("rock3tup:300,301,302") },
         new() { Name = "MSI Modern 15 H B13M",              FirmwarePrefixes = new[] { "15H4IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 15 H AI C1MG",           FirmwarePrefixes = new[] { "15H5EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Cyborg 15 AI A1VFK / A1VEK (15K2EMS1) - TESTED on one owner's complete set (issues

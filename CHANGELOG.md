@@ -5,6 +5,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Modern 15 B11M** (`15H3IMS1`, model database 20261116, [#300](../../issues/300), [#301](../../issues/301),
+  [#302](../../issues/302), thanks @rock3tup) - recognised as an experimental model; fan curve verified on both tables and the
+  fan RPM readout on (16-bit pair).
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261115, [#297](../../issues/297), [#298](../../issues/298), thanks
   @maestory) - a second owner confirmed the fan curve on both fans and ran a clean power test; added to the model's credit.
 - **Vector 17 HX A14V** (`17S2IMS2`, model database 20261114, [#296](../../issues/296), thanks @Sombrilla1994) - another
