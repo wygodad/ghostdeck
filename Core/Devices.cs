@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261117;
+    public const int DataVersion = 20261118;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -939,8 +939,8 @@ public static class Devices
         new() { Name = "MSI Vector 16 HX AI, Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
-                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254; nicosergia08-cyber:272") },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
+                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254; nicosergia08-cyber:272; denizkat0:306") },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
@@ -1175,10 +1175,13 @@ public static class Devices
         //   so it is recorded as unit-to-unit spread, not corrected either way.
         //   Fifth report (issue #280, HardFlakeCZ, MSI Center 2.0.48, firmware .106): the test
         //   curve byte for byte at 0x72/0x8A on both fans again.
-        new() { Name = "MSI Katana 15 HX B14WEK / B14WFK", FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Tested,
+        // B14WGK (the RTX 5070 variant): two owners on .104 (#304, MSI Center 2.0.74, captured on
+        // battery) and .106 (#305, 2.0.48, BIOS E1587IMS.108) - Balanced/Extreme/Super Battery 1:1,
+        // and the 2.0.48 capture with a real Silent (0xD4=1D) in all four scenarios.
+        new() { Name = "MSI Katana 15 HX B14WEK / B14WFK / B14WGK", FirmwarePrefixes = new[] { "1587EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82, HardFlakeCZ", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63",
-                CreditIssues = Issues("zajebistylukasz-beep:63,64; DRLOGIC01:176,177; Osanosa:191; sensini82:192,193; HardFlakeCZ:280") },
+                Credit = "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82, HardFlakeCZ, suivan1, rudnet054", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/63",
+                CreditIssues = Issues("zajebistylukasz-beep:63,64; DRLOGIC01:176,177; Osanosa:191; sensini82:192,193; HardFlakeCZ:280; suivan1:304; rudnet054:305") },
         // Bravo 15 C7V (158NIMS1) — fan curve VERIFIED (issue #27): the wizard found the test
         // curve at exactly 0x72 / 0x8A. The owner's capture (issue #26) shows standard shift/fan
         // bytes, and like the other AMD Bravos 0xEB never leaves 00 → no super-battery register
@@ -1895,8 +1898,16 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Modern 14 C5M", FirmwarePrefixes = new[] { "14JKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+        // GE66 Raider 10SF (1541EMS1) - backup WMI path (issue #303, chopin312, BIOS E1541IMS.10A,
+        // Dragon Center 2.0.158): the firmware refuses MSI_ACPI, and the owner's block report shows
+        // the Dragon Center-era layout (System 21 / CPU 19 / VGA 18 / AP 8 instances). Switching
+        // Dragon Center scenarios moved System[7] C1/C1/C4/C2 and System[9] 1D/0D/0D/0D - this
+        // entry's recipes 1:1. Layout added so the path test can run; no curve on this path yet.
         new() { Name = "MSI GE66 Raider 10SF", FirmwarePrefixes = new[] { "1541EMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block report in issue #303
+                Credit = "chopin312", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/303",
+                CreditIssues = Issues("chopin312:303") },
         new() { Name = "MSI GP66 Leopard 10UG / 10UE / 10UH", FirmwarePrefixes = new[] { "1542EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Modern 15 A10M", FirmwarePrefixes = new[] { "1551EMS1" }, Tier = Tier.Experimental,

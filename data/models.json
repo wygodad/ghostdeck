@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261117,
+  "dataVersion": 20261118,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -1482,7 +1482,7 @@
         "name": "MSI Center Extreme",
         "shiftValue": "0xC5"
       },
-      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber",
+      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
       "creditIssues": {
         "xulu19861102-hub": [
@@ -1515,6 +1515,9 @@
         ],
         "nicosergia08-cyber": [
           272
+        ],
+        "denizkat0": [
+          306
         ]
       },
       "added": "2026-06-29",
@@ -2927,7 +2930,7 @@
       }
     },
     {
-      "name": "MSI Katana 15 HX B14WEK / B14WFK",
+      "name": "MSI Katana 15 HX B14WEK / B14WFK / B14WGK",
       "prefixes": [
         "1587EMS1"
       ],
@@ -2944,7 +2947,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82, HardFlakeCZ",
+      "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82, HardFlakeCZ, suivan1, rudnet054",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/63",
       "creditIssues": {
         "zajebistylukasz-beep": [
@@ -2964,6 +2967,12 @@
         ],
         "HardFlakeCZ": [
           280
+        ],
+        "suivan1": [
+          304
+        ],
+        "rudnet054": [
+          305
         ]
       },
       "added": "2026-06-29",
@@ -6123,6 +6132,35 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "blockPath": {
+        "shiftMode": "MSI_System[7]",
+        "fanMode": "MSI_System[9]",
+        "cpuTemp": "MSI_CPU[1]",
+        "gpuTemp": "MSI_VGA[1]",
+        "cpuDuty": "MSI_CPU[2]",
+        "gpuDuty": "MSI_VGA[2]",
+        "cpuRpm": "MSI_AP[2]",
+        "gpuRpm": "MSI_AP[4]",
+        "cpuCurve": {
+          "class": "MSI_CPU",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        },
+        "gpuCurve": {
+          "class": "MSI_VGA",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        }
+      },
+      "credit": "chopin312",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/303",
+      "creditIssues": {
+        "chopin312": [
+          303
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [

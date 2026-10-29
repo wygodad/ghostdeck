@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **GE66 Raider 10SF** (`1541EMS1`, model database 20261118, [#303](../../issues/303), thanks @chopin312) - the backup WMI
+  path layout is on record, so GhostDeck offers the path test on this laptop; the owner's Dragon Center capture matches the recipes.
+- **Katana 15 HX B14WGK** (`1587EMS1`, [#304](../../issues/304), [#305](../../issues/305), thanks @suivan1 and @rudnet054) - the
+  RTX 5070 variant joins the tested B14WEK / B14WFK entry. Credit also for @denizkat0 on the Vector 16 HX AI ([#306](../../issues/306)).
 - **Two-table test** on the Fan curve page (In action → diagnostics), next to the fan sweep ([#224](../../issues/224),
   [#293](../../issues/293)). Every board keeps two fan-curve tables in its controller even with one fan in the chassis, and
   that fan listens to both: on a Cyborg 15 the factory values left in the second table kept the fan from dropping below about
