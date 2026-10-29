@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261118;
+    public const int DataVersion = 20261119;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -390,7 +390,13 @@ public static class Devices
             // fan-curve wizard found the test curve at the shipped 0x72/0x8A — independent 14V confirmation.
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
-            CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
+            // Tachometers are 16-bit pairs (RPM = 478000 / raw). The single-byte 0xC9/0xCB read
+            // matched MSI Center for a year because the factory curves never let the fans drop
+            // below ~1870 rpm, where both formats coincide. A flat 25 % curve on the reference
+            // GE78HX (17S1IMS1.114, 2026-10-29) took them lower: 0xCA:0xCB = 01:4D / 01:40 =
+            // 1435 / 1493 rpm, exactly HWiNFO64's "MSI EC" figures, and the CPU fan at 1435 rpm
+            // (HWiNFO) read 0x4D in 0xC9 alone, i.e. "6207 rpm" - only 0x014D explains it.
+            CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA,
             // Re-confirmed on firmware 17S1IMS1.114 by a 13VH owner (issue #115, MSI Center
             // 2.0.48): recipe bytes match in all four scenarios and all three hardware checks
             // passed - credit shared as thanks. (His Extreme column showed 0xD4=8D: his own

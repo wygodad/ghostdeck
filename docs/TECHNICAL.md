@@ -372,7 +372,12 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   ~1797 / ~1615 rpm), `15K2EMS1` (CPU pair only - single fan, #283 - the power test's pre-run
   idle dump read `01:1D` = ~1680 rpm; the GPU pair read `00:00` in every dump, graphics load
   included), `15M2IMS1` (#288 - the power test's pre-run idle dump read the GPU pair as
-  `01:0A` = ~1797 rpm; every loaded dump sat in the coinciding zone). Detection caveat: above ~1870 RPM the
+  `01:0A` = ~1797 rpm; every loaded dump sat in the coinciding zone), `17S1IMS1` / `17S2IMS2` (the
+  reference GE78HX itself, 2026-10-29 - a flat 25 % curve took both fans below the zone for the
+  first time: `0xCA:0xCB` = `01:4D` / `01:40` = 1435 / 1493 rpm, HWiNFO64's exact figures, while
+  the single-byte read showed "6207" and "7468"; the CPU fan at 1435 rpm read `0x4D` in `0xC9`,
+  which only `0x014D` explains. The single-byte scheme had matched MSI Center for a year because
+  the factory curves never let these fans drop that low). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed

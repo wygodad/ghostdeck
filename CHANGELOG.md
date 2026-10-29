@@ -22,6 +22,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
   @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
   the shipped map ([#293](../../issues/293)).
+- **Raider GE78HX 13V / Vector 17 HX A14V** (`17S1IMS1`, `17S2IMS2`, model database 20261119): fan RPM is read as
+  16-bit pairs (`0xC8:0xC9` / `0xCA:0xCB`). Measured on the reference GE78HX with a flat 25 % curve: below ~1870 rpm the
+  single-byte read showed 6207 or 7468 rpm where HWiNFO64 showed 1435 / 1493, and the pairs read 01:4D / 01:40 = exactly
+  those figures. MSI Center's factory curves never took the fans that low, which is why the old read matched for a year.
 
 ### Added
 - **Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261117, [#294](../../issues/294), thanks @bengervais) - tested: the
