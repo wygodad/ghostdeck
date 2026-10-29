@@ -371,7 +371,8 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   (#278 - the curve capture caught both fans slow under the test curve, `01:0A` / `01:28` =
   ~1797 / ~1615 rpm), `15K2EMS1` (CPU pair only - single fan, #283 - the power test's pre-run
   idle dump read `01:1D` = ~1680 rpm; the GPU pair read `00:00` in every dump, graphics load
-  included). Detection caveat: above ~1870 RPM the
+  included), `15M2IMS1` (#288 - the power test's pre-run idle dump read the GPU pair as
+  `01:0A` = ~1797 rpm; every loaded dump sat in the coinciding zone). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed
