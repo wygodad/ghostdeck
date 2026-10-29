@@ -37,22 +37,6 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **"Saved to: …" is a link** in all four Report wizards (profiles, fan curve, power test, two-table test): a click opens
   the report file in whatever Windows uses for .txt files.
 
-### Fixed
-- **Report page above 150 % display scale**: the step rows of the Profiles and Power test wizards kept a fixed height, so
-  their second line was clipped and the rows overlapped at 200 %; the "Addresses the test may write" label sat on top of the
-  address list; and the *Finish & open GitHub* button swallowed its ampersand. Rows and labels now take their height from
-  the fonts ([#172](../../issues/172)).
-
-### Changed
-- **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
-  @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
-  the shipped map ([#293](../../issues/293)).
-- **Raider GE78HX 13V / Vector 17 HX A14V** (`17S1IMS1`, `17S2IMS2`, model database 20261119): fan RPM is read as
-  16-bit pairs (`0xC8:0xC9` / `0xCA:0xCB`). Measured on the reference GE78HX with a flat 25 % curve: below ~1870 rpm the
-  single-byte read showed 6207 or 7468 rpm where HWiNFO64 showed 1435 / 1493, and the pairs read 01:4D / 01:40 = exactly
-  those figures. MSI Center's factory curves never took the fans that low, which is why the old read matched for a year.
-
-### Added
 - **Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261117, [#294](../../issues/294), thanks @bengervais) - tested: the
   power test read every profile back intact with 0 % drift, and the owner hears Silent clearly quieter than Balanced under a
   graphics load; Extreme matches Balanced under a combined load, as on several other boards.
@@ -79,21 +63,19 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   experimental model; the owner's capture matches the standard recipes in all four profiles, with a real Silent state.
   Fan curve verified on both fans (database 20261109, [#285](../../issues/285)).
 
-### Fixed
-- **Keyboard backlight tile off on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, model database 20261114,
-  [#276](../../issues/276)) - on the owner's Katana the tile's levels did not change the backlight; MSI Center and the
-  Fn key keep controlling it.
-- **Panic reset button kept its old caption after a language switch** ([#172](../../issues/172)) - the feature bricks on the
-  Scenarios tab translate themselves on every paint, but the button inside one of them was captioned once at build time.
-  The Scenarios tab now re-reads every such caption when the language changes.
-- **Turkish: the Extreme tile said "maks"** ([#172](../../issues/172)) - now "en yüksek · gürültülü".
-
-### Added
 - **Cyborg 15 AI A1VFK / A1VEK** (`15K2EMS1`, model database 20261105, [#281](../../issues/281), [#282](../../issues/282),
   [#283](../../issues/283), thanks @Jur15) - tested: all four profiles confirmed on the hardware, fan RPM readout switched
   on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
 
 ### Changed
+- **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
+  @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
+  the shipped map ([#293](../../issues/293)).
+- **Raider GE78HX 13V / Vector 17 HX A14V** (`17S1IMS1`, `17S2IMS2`, model database 20261119): fan RPM is read as
+  16-bit pairs (`0xC8:0xC9` / `0xCA:0xCB`). Measured on the reference GE78HX with a flat 25 % curve: below ~1870 rpm the
+  single-byte read showed 6207 or 7468 rpm where HWiNFO64 showed 1435 / 1493, and the pairs read 01:4D / 01:40 = exactly
+  those figures. MSI Center's factory curves never took the fans that low, which is why the old read matched for a year.
+
 - **Fan curve, "In action" view** ([#172](../../issues/172)) - readings whose value labels would overlap now form one group: a
   bigger ringed dot at the newest reading, one label with the fan, the temperature range, the duty and the count
   ("CPU 45-50°/0% (14)"), and the full list of readings in the info row under the chart while the group is hovered or pinned.
@@ -108,6 +90,20 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Battery state confirmed), @HardFlakeCZ on the Katana 15 HX B14WEK / B14WFK (`1587EMS1`, [#280](../../issues/280), curve confirmed again).
 - **Cyborg 15 A12VF / A13VF / A13VE** (`15K1IMS1`, model database 20261103, [#224](../../issues/224)) - the chassis has one fan, so the
   curve editor shows a single curve and the second fan's RPM reading (always zero on this board) is gone.
+
+### Fixed
+- **Report page above 150 % display scale**: the step rows of the Profiles and Power test wizards kept a fixed height, so
+  their second line was clipped and the rows overlapped at 200 %; the "Addresses the test may write" label sat on top of the
+  address list; and the *Finish & open GitHub* button swallowed its ampersand. Rows and labels now take their height from
+  the fonts ([#172](../../issues/172)).
+
+- **Keyboard backlight tile off on the Bravo 15 C7V / Katana A15 AI B8VG** (`158NIMS1`, model database 20261114,
+  [#276](../../issues/276)) - on the owner's Katana the tile's levels did not change the backlight; MSI Center and the
+  Fn key keep controlling it.
+- **Panic reset button kept its old caption after a language switch** ([#172](../../issues/172)) - the feature bricks on the
+  Scenarios tab translate themselves on every paint, but the button inside one of them was captioned once at build time.
+  The Scenarios tab now re-reads every such caption when the language changes.
+- **Turkish: the Extreme tile said "maks"** ([#172](../../issues/172)) - now "en yüksek · gürültülü".
 
 ## [1.42.0] - 2026-10-24
 ### Added
