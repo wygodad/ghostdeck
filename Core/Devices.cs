@@ -684,7 +684,7 @@ public static class Devices
         // added so the path test can run; the recipes stay msi-ec's CONF_G1_3 values (C1/C4/C2,
         // 0D/1D). Switching Dragon Center scenarios moved neither slot in his capture, so the values
         // are unconfirmed on this board until a path test passes. No curve on this path yet.
-        //   Confirmed 27.10 by a third owner (MyatThuyaAung, BIOS .112, Dragon Center 2.0.155):
+        //   Confirmed 27.10 by a second owner (MyatThuyaAung, BIOS .112, Dragon Center 2.0.155):
         //   his capture (#292) moved System[7] C1/C1/C4/C2 and System[9] 1D/0D/0D/0D with the
         //   scenarios - the recipes 1:1 - and his path test (#291) PASSED: every profile read back
         //   as written, the original state restored, Super Battery 27 % of Extreme's work (1053 vs
