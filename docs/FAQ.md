@@ -296,6 +296,12 @@ The limits, as of 17 October 2026: the mechanism is **confirmed on one laptop** 
 
 **What the card shows.** *Recorded in True Color* is what True Color itself last recorded, so it follows Fn+A and True Color's own window too, within a moment; *Last set by GhostDeck* is only GhostDeck's memory. Neither is a measurement of the panel. Switching to the profile that is already recorded sends nothing (*already recorded* in the history). Not tested, so not promised: external monitors, HDR, other laptops.
 
+## My laptop has one fan and it never slows below ~2700 rpm, whatever curve I set. Why?
+
+Because the controller keeps **two** fan-curve tables even on a single-fan laptop - one driven by the CPU temperature, one by the GPU temperature - and the fan follows the **higher** of the two (measured on a Cyborg 15 with the app's two-table test, [#293](../../../issues/293)). MSI Center shows one slider and writes it into the first table only; the second keeps its factory curve, whose lowest step is about 38 %. GhostDeck does the same by default, so your curve can only ever lower the first table, and the second one holds the fan up.
+
+Two things help. Run the **two-table test** (Report my model → the fourth card) to see what your own board does. Then, if you want the fan to follow your curve alone, the Fan curve page has a **"Write to both fan tables"** switch on single-fan models: it is experimental, off by default, explains itself before it goes on, and switching it off puts the original second table back. With it on, the fan can slow below the factory minimum or stop at low temperatures; MSI's documentation says the firmware restarts the fan above a safe temperature, but the threshold is not published. Everything in one place: [docs/TWO-FAN-TABLES.md](TWO-FAN-TABLES.md).
+
 ## Why does it ask for administrator (UAC)?
 
 EC access via WMI requires elevation. Launching the app manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**. Since 1.38 the exe no longer demands administrator rights by itself: the app asks for them when it starts for real, and a launch that only hands a command to the already running app (a jump-list entry, a `ghostdeck://` link, `GhostDeck.exe --profile Silent` from a script, a second double-click on the exe) runs without any prompt. A command run with no app running still prompts once, because it has to talk to the EC itself.

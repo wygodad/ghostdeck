@@ -105,6 +105,8 @@ public sealed class TrayContext : ApplicationContext
     public TrayContext()
     {
         _settings = AppSettings.Load();
+        // (#293) the per-model opt-in that mirrors the one curve into both fan tables
+        Ec.MirrorToFan2 = dev => _firmware != null && _settings.BothTablesEnabledFor(dev.MatchedPrefix(_firmware));
         SettingsBackups.Keep = _settings.BackupKeep;
         SettingsBackups.Take(SettingsBackups.Kind.Start, onlyIfChanged: true);   // one copy per change of the preferences, BackupKeep kept
         Autostart.Migrate();                       // move a pre-rename "MSIProfileSwitcher" autostart task to "GhostDeck"

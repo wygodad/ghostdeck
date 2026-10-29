@@ -234,6 +234,13 @@ the controller held it right before the run (read with `Ec.ReadFanCurve`), then 
 
 Runs are stored in the same `fan-sweeps.json` as sweeps (`Kind` = 1, `Set` / `Set2` per step),
 listed in the same picker with a `2×` mark, and copied as a report of the same shape as the sweep's.
+The test is also the fourth card on the Report start screen, which lands here with the panel open.
+
+**The "write to both fan tables" switch** (single-fan entries only, next to the curve switch) is
+what the measurement is for: with it on, Apply and every other curve write put the one curve into
+both tables through `Ec.WriteFanCurve`'s `MirrorToFan2` hook, the chart's note line says so, and
+switching it off restores the Fan 2 tables saved when it went on. The consent card, the risk and
+the full story are in [TWO-FAN-TABLES.md](TWO-FAN-TABLES.md); the mechanics in TECHNICAL §85.
 
 ## 8. How the findings are composed
 

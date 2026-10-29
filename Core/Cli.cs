@@ -416,6 +416,7 @@ public static class Cli
         var settings = AppSettings.Load();
         var probe = Ec.ProbeFirmware();
         string fw = probe.Firmware;
+        Ec.MirrorToFan2 = dev => settings.BothTablesEnabledFor(dev.MatchedPrefix(fw));   // (#293)
         // method interface refused: a model with a backup-path layout is read through its data blocks
         if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
             && Ec.TryBackupPath() is { Active: true } bp)

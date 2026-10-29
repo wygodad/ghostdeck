@@ -90,6 +90,11 @@ public sealed class FanCurvePage : ThemedPage
 
     private readonly ToggleSwitch _enable = new();
     private readonly Label _enableLabel = new();
+    // (#293) single-fan boards only: the opt-in that writes the one curve into both fan tables
+    private readonly ToggleSwitch _both = new();
+    private readonly Label _bothLabel = new();
+    private readonly HelpDot _bothHelp = new();
+    private bool _syncingBoth;
     private readonly Button _default = new();
     private readonly Button _report = new();
 
@@ -202,6 +207,10 @@ public sealed class FanCurvePage : ThemedPage
         // current profile's normal behaviour and reset the graph to the MSI default.
         // ToggleSwitch.Toggled fires on user click only (programmatic Checked= does not), so no guard needed.
         _enable.Toggled += on => { if (on) Apply(); else RevertToProfileDefault(); };
+        _bothLabel.AutoSize = true;
+        Controls.Add(_bothLabel); Controls.Add(_both); Controls.Add(_bothHelp);
+        _bothHelp.TextProvider = () => Lang.T("bt_help");
+        _both.Toggled += on => { if (_syncingBoth) return; if (on) EnableBothTables(); else DisableBothTables(); };
         _default.Click += (_, _) => { _cpuS = (int[])DefCpuS.Clone(); _gpuS = (int[])DefGpuS.Clone(); if (_enable.Checked) ReApply(); Invalidate(); };
 
         VisibleChanged += (_, _) => { if (Visible && _fc != null) _live.Start(); else _live.Stop(); };
@@ -539,6 +548,89 @@ public sealed class FanCurvePage : ThemedPage
         Invalidate();
     }
 
+    // (#293) the both-tables switch shows the stored opt-in; a programmatic set must not fire Toggled
+    private void SyncBoth()
+    {
+        _syncingBoth = true;
+        try { _both.Checked = _dev != null && D.Settings.BothTablesEnabledFor(_dev.MatchedPrefix(D.Firmware())); }
+        finally { _syncingBoth = false; }
+    }
+
+    private static string PackTable(int[] temps, int[] speeds) => string.Join(",", temps) + "|" + string.Join(",", speeds);
+    private static (int[] temps, int[] speeds)? UnpackTable(string s)
+    {
+        try
+        {
+            var halves = s.Split('|');
+            if (halves.Length != 2) return null;
+            return (halves[0].Split(',').Select(int.Parse).ToArray(), halves[1].Split(',').Select(int.Parse).ToArray());
+        }
+        catch { return null; }
+    }
+
+    // (#293) Switching the opt-in ON: the consent card first; on Yes the Fan 2 tables are saved
+    // as the controller holds them now, the prefix joins the opt-in list, and a curve that is
+    // already on is re-applied so the second table gets it straight away.
+    private void EnableBothTables()
+    {
+        if (_dev == null || _fc is not { } fc || !Editable) { SyncBoth(); return; }
+        string? prefix = _dev.MatchedPrefix(D.Firmware());
+        if (prefix == null) { SyncBoth(); return; }
+        bool go = false;
+        string body = string.Format(Lang.T("bt_consent"),
+            $"0x{fc.CpuSpeedBase:X2}-0x{fc.CpuSpeedBase + fc.Points - 1:X2}",
+            $"0x{fc.GpuSpeedBase:X2}-0x{fc.GpuSpeedBase + fc.Points - 1:X2}");
+        using (var ask = new GhostCardForm("//FAN CURVE", Lang.T("bt_title"), body, Lang.T("bt_go"), Lang.T("gen_cancel"), () => go = true))
+            ask.ShowOver(FindForm());
+        if (!go) { SyncBoth(); return; }
+        try
+        {
+            if (Ec.ReadFanCurve(_dev) is { } cur && !D.Settings.Fan2TableBackup.ContainsKey(prefix))
+                D.Settings.Fan2TableBackup[prefix] = PackTable(cur.gpuTemp, cur.gpuSpeed);
+        }
+        catch { }
+        if (!D.Settings.BothTablesEnabledFor(prefix)) D.Settings.BothTablesFw.Add(prefix);
+        D.SaveSettings();
+        ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_bt_on"), $"{fc.GpuSpeedBase:X2}");
+        if (_enable.Checked) ReApply();
+        SyncBoth(); Invalidate();
+    }
+
+    // Switching it OFF: the prefix leaves the list and the saved Fan 2 tables go back into the
+    // controller, so the board is exactly as it was before the opt-in - not left with the last
+    // mirrored curve in its second table.
+    private void DisableBothTables()
+    {
+        if (_dev == null || _fc == null) { SyncBoth(); return; }
+        string? prefix = _dev.MatchedPrefix(D.Firmware());
+        if (prefix == null) { SyncBoth(); return; }
+        D.Settings.BothTablesFw.RemoveAll(x => string.Equals(x, prefix, StringComparison.OrdinalIgnoreCase));
+        bool restored = false;
+        if (D.Settings.Fan2TableBackup.TryGetValue(prefix, out var packed) && UnpackTable(packed) is { } bk && Editable)
+        {
+            var dev = _dev;
+            D.WithEcWrite(d =>
+            {
+                var cur = Ec.ReadFanCurve(d);
+                int[] ct = cur?.cpuTemp ?? _cpuT, cs = cur?.cpuSpeed ?? _cpuS;
+                Ec.WriteFanCurve(d, ct, cs, bk.temps, bk.speeds, bothTables: true);
+            });
+            restored = true;
+            D.Settings.Fan2TableBackup.Remove(prefix);
+        }
+        D.SaveSettings();
+        ChangeLog.Add(ChangeSource.FanCurve, Lang.T("log_bt_off"), restored ? "restored" : "");
+        SyncBoth(); Invalidate();
+    }
+
+    /// <summary>The Report start screen's two-table card lands here: the In action view with the diagnostics open.</summary>
+    public void ShowDiagnostics()
+    {
+        SelectView(ViewPlay, save: true);
+        if (!_sweepOpen) { _sweepOpen = true; D.Settings.FanCurveDiagOpen = true; D.SaveSettings(); }
+        Restyle(); LayoutButtons(); Invalidate();
+    }
+
     // Everything that edits the curve or writes fan registers is off while a sweep holds the fans.
     private bool Editable => _fc != null && D.Writable() && _sweepCts == null;
 
@@ -582,6 +674,10 @@ public sealed class FanCurvePage : ThemedPage
         _enableLabel.Font = Dpi.Font("Segoe UI", 11.5f);
         _enableLabel.ForeColor = Theme.Text;
         _enableLabel.BackColor = Theme.Surface;
+        _bothLabel.Text = Lang.T("bt_switch");
+        _bothLabel.Font = Dpi.Font("Segoe UI", 11.5f);
+        _bothLabel.ForeColor = Theme.Text;
+        _bothLabel.BackColor = Theme.Surface;
 
         var barFont = Dpi.Font("Segoe UI", 10.5f);
         foreach (var (btn, key) in new (Button, string)[]
@@ -660,7 +756,8 @@ public sealed class FanCurvePage : ThemedPage
                : _fc is { Verified: false } ? Lang.T("fc_preview")   // editable, but addresses unconfirmed
                : Lang.T("fc_hint"),
         };
-        if (Single && _view == ViewChart) hint = Lang.T("fc_single_note") + "  ·  " + hint;
+        if (Single && _view == ViewChart)
+            hint = (_dev != null && D.Settings.BothTablesEnabledFor(_dev.MatchedPrefix(D.Firmware())) ? Lang.T("bt_note_on") : Lang.T("fc_single_note")) + "  ·  " + hint;
         return hint;
     }
 
@@ -688,6 +785,19 @@ public sealed class FanCurvePage : ThemedPage
         int bh = Math.Max(42, Ui.ButtonHeight(_report.Font)), by = Height - bh - 20;
         _enable.Location = new Point(Pad, by + (bh - _enable.Height) / 2);
         _enableLabel.Location = new Point(Pad + _enable.Width + 12, by + (bh - _enableLabel.Height) / 2);
+        // (#293) the both-tables switch sits after the curve switch, on single-fan boards only,
+        // and only where the curve switch itself is shown (not on the In action view)
+        bool showBoth = Single && _enable.Visible;
+        _both.Visible = _bothLabel.Visible = _bothHelp.Visible = showBoth;
+        if (showBoth)
+        {
+            _both.Location = new Point(_enableLabel.Right + S(28), by + (bh - _both.Height) / 2);
+            _bothLabel.Location = new Point(_both.Right + 12, by + (bh - _bothLabel.Height) / 2);
+            _bothHelp.Size = new Size(S(20), S(20));
+            _bothHelp.Location = new Point(_bothLabel.Right + S(6), by + (bh - _bothHelp.Height) / 2);
+            _both.Enabled = Editable;
+            SyncBoth();
+        }
         int dw = Math.Max(170, TextRenderer.MeasureText(_default.Text, _default.Font).Width + 28);
         _default.SetBounds(Width - Pad - dw, by, dw, bh);
         int rw = TextRenderer.MeasureText(_report.Text, _report.Font).Width + 40;

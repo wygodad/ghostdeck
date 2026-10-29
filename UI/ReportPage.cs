@@ -60,7 +60,7 @@ public sealed class ReportPage : ThemedPage
     // The page opens on a start screen that says what the three tests are for and which one to
     // run; picking a tile (or a sub-tab) leaves it, and the Start segment brings it back.
     private bool _landing = true;
-    private readonly Rectangle[] _landCards = new Rectangle[3];
+    private readonly Rectangle[] _landCards = new Rectangle[4];
     private int _landHover = -1;
     private int _landIntroY, _landCardsY, _landTitleY, _landI3Y, _landColW;
     private bool _landTwoCol;
@@ -346,14 +346,17 @@ public sealed class ReportPage : ThemedPage
     private static readonly Font LandDF = Dpi.Font("Segoe UI", 10f);
     private static readonly Font LandFootF = Dpi.Font("Segoe UI", 9f, FontStyle.Bold);
     private static readonly Font LandGlyphF = Dpi.Font("Segoe MDL2 Assets", 16f);
-    private static readonly string[] LandGlyphs = { "\uE8AB", "\uE9D2", "\uE945" };
+    private static readonly string[] LandGlyphs = { "\uE8AB", "\uE9D2", "\uE945", "\uE7E8" };
     private const int LandPad = 20, LandGap = 14, LandIconBox = 42;
 
     private static string LandIntro12 => Lang.T("rep_home_intro1") + "\n\n" + Lang.T("rep_home_intro2");
-    private static string LandQ(int i) => Lang.T(i == 0 ? "rep_home_q1" : i == 1 ? "rep_home_q2" : "rep_home_q3");
-    private static string LandD(int i) => Lang.T(i == 0 ? "rep_home_d1" : i == 1 ? "rep_home_d2" : "rep_home_d3");
-    private static string LandF(int i) => Lang.T(i == 2 ? "rep_home_f_power" : "rep_home_f_read");
-    private string LandTitle(int i) => Lang.T(i == 0 ? "subtab_profiles" : i == 1 ? "subtab_curve" : "subtab_power");
+    // Four cards: the three report wizards of this page and, fourth, the two-table test (#293),
+    // which lives on the Fan curve page's In action view - the card takes you there.
+    private const int LandN = 4;
+    private static string LandQ(int i) => Lang.T(i == 0 ? "rep_home_q1" : i == 1 ? "rep_home_q2" : i == 2 ? "rep_home_q3" : "rep_home_q4");
+    private static string LandD(int i) => Lang.T(i == 0 ? "rep_home_d1" : i == 1 ? "rep_home_d2" : i == 2 ? "rep_home_d3" : "rep_home_d4");
+    private static string LandF(int i) => Lang.T(i == 2 ? "rep_home_f_power" : i == 3 ? "rep_home_f_tt" : "rep_home_f_read");
+    private string LandTitle(int i) => Lang.T(i == 0 ? "subtab_profiles" : i == 1 ? "subtab_curve" : i == 2 ? "subtab_power" : "tt_title");
 
     private void LayoutLanding(int top)
     {
@@ -373,15 +376,16 @@ public sealed class ReportPage : ThemedPage
         _landI3Y = _landIntroY + i12H + 28;
         _landCardsY = _landI3Y + Measure(Lang.T("rep_home_intro3"), avail) + 26;
 
-        // Three equal tiles side by side; stacked once they would drop under a readable width.
-        bool row = avail >= 3 * 300 + 2 * LandGap;
-        int cardW = row ? (avail - 2 * LandGap) / 3 : avail;
+        // Equal tiles: four in a row on a wide window, two by two below that, stacked once even
+        // two would drop under a readable width.
+        int cols = avail >= LandN * 280 + (LandN - 1) * LandGap ? LandN : avail >= 2 * 300 + LandGap ? 2 : 1;
+        int cardW = (avail - (cols - 1) * LandGap) / cols;
         int innerW = cardW - LandPad * 2;
 
-        // Same height for all three, decided by the tallest: a ragged row reads as three
-        // unrelated boxes rather than one choice.
+        // Same height for all, decided by the tallest: a ragged row reads as unrelated boxes
+        // rather than one choice.
         int bodyH = 0;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < LandN; i++)
         {
             int qH = TextRenderer.MeasureText(LandQ(i), LandQF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
             int dH = TextRenderer.MeasureText(LandD(i), LandDF, new Size(innerW, 0), TextFormatFlags.WordBreak).Height;
@@ -390,13 +394,12 @@ public sealed class ReportPage : ThemedPage
         }
         int cardH = LandPad + LandIconBox + 14 + bodyH + LandPad;
 
-        for (int i = 0; i < 3; i++)
-            _landCards[i] = row
-                ? new Rectangle(Pad + i * (cardW + LandGap), _landCardsY, cardW, cardH)
-                : new Rectangle(Pad, _landCardsY + i * (cardH + LandGap), cardW, cardH);
+        int rows = (LandN + cols - 1) / cols;
+        for (int i = 0; i < LandN; i++)
+            _landCards[i] = new Rectangle(Pad + (i % cols) * (cardW + LandGap), _landCardsY + (i / cols) * (cardH + LandGap), cardW, cardH);
 
-        int bottom = row ? _landCardsY + cardH : _landCardsY + 3 * cardH + 2 * LandGap;
-        AutoScrollMinSize = new Size(Pad * 2 + 3 * 300 + 2 * LandGap, bottom + 40);
+        int bottom = _landCardsY + rows * cardH + (rows - 1) * LandGap;
+        AutoScrollMinSize = new Size(Pad * 2 + 2 * 300 + LandGap, bottom + 40);
     }
 
     private void PaintLanding(Graphics g)
@@ -423,7 +426,7 @@ public sealed class ReportPage : ThemedPage
             new Rectangle(Pad, _landI3Y, avail, _landCardsY - _landI3Y), Theme.Text,
             TextFormatFlags.Left | TextFormatFlags.WordBreak);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < LandN; i++)
         {
             var r = _landCards[i];
             bool hover = i == _landHover;
@@ -467,7 +470,7 @@ public sealed class ReportPage : ThemedPage
         if (!_landing) return;
         var p = ContentPoint(e.Location);
         int h = -1;
-        for (int i = 0; i < 3; i++) if (_landCards[i].Contains(p)) { h = i; break; }
+        for (int i = 0; i < LandN; i++) if (_landCards[i].Contains(p)) { h = i; break; }
         if (h != _landHover) { _landHover = h; Cursor = h >= 0 ? Cursors.Hand : Cursors.Default; Invalidate(); }
     }
 
@@ -482,8 +485,13 @@ public sealed class ReportPage : ThemedPage
         base.OnMouseDown(e);
         if (!_landing || e.Button != MouseButtons.Left) return;
         var p = ContentPoint(e.Location);
-        for (int i = 0; i < 3; i++)
-            if (_landCards[i].Contains(p)) { _subTabs.SetActive(i + 1, raise: true); return; }
+        for (int i = 0; i < LandN; i++)
+            if (_landCards[i].Contains(p))
+            {
+                if (i == 3) (FindForm() as MainForm)?.ShowFanCurveDiagnostics();
+                else _subTabs.SetActive(i + 1, raise: true);
+                return;
+            }
     }
 
     // The landing rectangles live in content coordinates; mouse events arrive in client ones.

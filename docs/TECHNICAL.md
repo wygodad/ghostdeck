@@ -4193,15 +4193,21 @@ values land at `0x72`, the Fan 2 table stays at its factory `38 40 45 54 60 68 7
 #145 show the same on 2.0.48). An older MSI Center wrote both tables on the same board (#29,
 July 2026: two different test curves at `0x72` and `0x8A`).
 
-What the firmware does with the two is the open question. The one fan does read both: on
-`15K1IMS1` the owner of #224 could bring his fan to ~1900 rpm and to a stop while the app still
-wrote both tables, and once the entry became `SingleFan` the fan would not drop below ~2700 rpm
-with his curve at 0 % - the factory Fan 2 table's 45 % step at his idle GPU temperature, at the
-board's ~60 rpm per percent (msi-ec #848). Whether the firmware takes the higher of the two
-requests, or follows one table with the other as a floor, nobody has measured, and whether the
-vendor leaves the second table alone on purpose (a floor under a one-slider UI) or by omission is
-not known either. The app therefore stays on the vendor's side of that line - table 1 only - until
-the measurement says otherwise.
+The one fan reads both tables: on `15K1IMS1` the owner of #224 could bring his fan to ~1900 rpm
+and to a stop while the app still wrote both tables, and once the entry became `SingleFan` the
+fan would not drop below ~2700 rpm with his curve at 0 % - the factory Fan 2 table's 45 % step
+at his idle GPU temperature, at the board's ~60 rpm per percent (msi-ec #848).
+
+**Measured on 2026-10-29 (#293, the same owner, the two-table test below):** the firmware follows
+the **higher** of the two tables. With both tables flat, 25/45, 45/25 and 45/45 all held ~2676
+rpm, 0/45 and 45/0 held ~2664, and 25/25 ~1494 (read as the 16-bit pair `0xC8:C9`; the single
+byte `0xC9` alone gave an impossible 7468 rpm, which is how the entry's tachometer format was
+corrected to the pair). A read-only capture of MSI Center 2.0.74 at its lowest setting showed
+table 1 at `00 00 00 00 00 00` and table 2 untouched at `26 28 2D 36 3C 44 4E`: MSI Center lets
+the user take table 1 to 0 % and never writes table 2, so the floor is the untouched second table,
+not a limit in the vendor's interface. Whether the vendor leaves it alone on purpose is still not
+known. One observation without a conclusion: under that all-zero curve `0xD4` read `9D`, `8D`
+otherwise. The app keeps the vendor's behaviour - table 1 only - as the default.
 
 **The two-table test** (`Core/TwoTableTest.cs`, Fan curve → In action → diagnostics, next to the
 sweep) is that measurement, on any board with a curve. It writes six pairs of flat curves into
@@ -4219,7 +4225,22 @@ test curve (the Fan 2 values) in the Fan 1 / CPU table @ 0x72", a match with the
 rather than naming it after the test values typed into the one slider, which on a single-fan
 board had produced "GPU @ 0x72, differs from shipped map" (#293).
 
-Model DB implication: none yet. `SingleFan` keeps its meaning (one fan, one slider, Fan 1 writes).
-Should the test show that a board follows the higher of its two tables, the editor's one curve can
-be written into both tables on that board - a separate flag, decided per board from a measurement,
-never from the fan count.
+**The "write to both fan tables" switch** (experimental, opt-in, `UI/FanCurvePage.cs`) is the
+owner's answer to the measurement. It shows next to the curve switch on single-fan entries only.
+Switching it on opens a consent card with four parts (how the writes were done until now, what
+changes, what it means, own responsibility); on Yes the Fan 2 tables are saved as the controller
+holds them (`AppSettings.Fan2TableBackup`, per firmware prefix) and the prefix joins
+`AppSettings.BothTablesFw`. From then on `Ec.WriteFanCurve` copies the Fan 1 temperatures and
+speeds into the Fan 2 tables on every normal write (Apply, assigned presets, the CLI, the sweep;
+the hook is `Ec.MirrorToFan2`, set by the tray context and the one-shot CLI). Switching it off
+removes the prefix and writes the saved Fan 2 tables back, so the board is as it was before the
+opt-in. The chart's note line says which state the page is in. It is a settings matter, not a
+model-database one: `SingleFan` keeps its meaning (one fan, one slider), and the rule "the fan
+follows the higher table" has been measured on one board so far - the switch's help and the
+consent card say to run the two-table test first on any other single-fan model.
+
+The two-table test is also the fourth card on the Report start screen (`UI/ReportPage.cs`,
+`LandN` = 4, four in a row on a wide window, two by two below that); the card jumps to the Fan
+curve page's In action view with the diagnostics open (`MainForm.ShowFanCurveDiagnostics`,
+`FanCurvePage.ShowDiagnostics`). The user-facing write-up with pictures is
+`docs/TWO-FAN-TABLES.md`.

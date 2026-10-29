@@ -13,6 +13,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the two. Mains only, refuses a warm laptop, stops itself at 85 °C, restores both tables and the fan mode; the run lands in the
   sweep's history marked 2×, with a report ready to paste.
 - The diagnostics panel on the In action view remembers whether it was left open.
+- **"Write to both fan tables"** - an experimental, opt-in switch on the Fan curve page for single-fan laptops
+  ([#293](../../issues/293)). The owner's two-table test measured that the firmware follows the higher of its two
+  fan-curve tables, and that MSI Center writes its one slider into table 1 only, leaving the factory table 2 to hold the
+  fan up; with the switch on, GhostDeck writes the one curve into both tables, so the fan follows it alone and can slow
+  below the factory minimum. Off by default, a consent card explains what changes before it goes on, and switching it
+  off puts the saved table 2 back.
+- **The two-table test is the fourth card** on the Report start screen, with what it answers and what it is usually for;
+  the card opens the Fan curve page's In action view with the diagnostics panel.
+- **docs/TWO-FAN-TABLES.md** - the whole story in plain language with pictures: the two tables, the measurement, the test
+  and the switch; a matching FAQ entry.
 
 ### Changed
 - **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table

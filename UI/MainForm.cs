@@ -334,6 +334,13 @@ public sealed class MainForm : Form
     /// itself: clicking the tab you are already on takes that page back to its own start view
     /// (OnReenter). Deep links from the tray must NOT set it - they aim at a specific sub-page.
     /// </summary>
+    /// <summary>The Report start screen's fourth card: the two-table test lives on the Fan curve page's In action view.</summary>
+    public void ShowFanCurveDiagnostics()
+    {
+        ShowTab(MainTab.FanCurve);
+        if (_pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fp) fp.ShowDiagnostics();
+    }
+
     public void ShowTab(MainTab tab, bool fromStrip = false)
     {
         bool reenter = fromStrip && _active == tab
