@@ -5,6 +5,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261115, [#297](../../issues/297), [#298](../../issues/298), thanks
+  @maestory) - a second owner confirmed the fan curve on both fans and ran a clean power test; added to the model's credit.
 - **Vector 17 HX A14V** (`17S2IMS2`, model database 20261114, [#296](../../issues/296), thanks @Sombrilla1994) - another
   owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
 - **Prestige 16 AI Studio B1VGG** (`15A2EMS1`, model database 20261113, [#289](../../issues/289), thanks @u9328009) - the RTX 4070

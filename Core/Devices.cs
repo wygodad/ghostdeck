@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261114;
+    public const int DataVersion = 20261115;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -422,10 +422,15 @@ public static class Devices
         // Intel reference board, ECO shift (C2) doesn't cap further than Comfort+silent-fan (C1/1D) here.
         // Fan curve VERIFIED (issue #11): the owner ran the wizard and it found the test curve at exactly
         // 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
+        // Second owner (maestory, issues #297/#298, .106, MSI Center 2.0.75, app 1.42.0, RTX 5070,
+        // 8 logical processors - he reports one chiplet disabled): the test curve sits byte for byte
+        // at 0x72/0x8A again; clean power test (0 % drift, bytes read back in every phase): Silent
+        // and Balanced both held 2495 MHz with no spread (work 100), Silent on slower fans (2400 vs
+        // 3655 rpm, 70 vs 74 C); Extreme 5037 MHz, work 202.
         new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "cesarcamps", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
-                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100") },
+                Credit = "cesarcamps, maestory", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
+                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298") },
 
         // Sword 16 HX B13V / B14V (15P2EMS1) — owner per-scenario dump (issue #6) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Real-hardware
