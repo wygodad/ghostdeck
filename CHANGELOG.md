@@ -5,6 +5,21 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Two-table test** on the Fan curve page (In action → diagnostics), next to the fan sweep ([#224](../../issues/224),
+  [#293](../../issues/293)). Every board keeps two fan-curve tables in its controller even with one fan in the chassis, and
+  that fan listens to both: on a Cyborg 15 the factory values left in the second table kept the fan from dropping below about
+  2700 rpm. The test writes six pairs of flat curves into both tables (25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %, one table
+  always keeping the fans turning), holds each pair for 30 s and says which table each fan follows and how the firmware combines
+  the two. Mains only, refuses a warm laptop, stops itself at 85 °C, restores both tables and the fan mode; the run lands in the
+  sweep's history marked 2×, with a report ready to paste.
+- The diagnostics panel on the In action view remembers whether it was left open.
+
+### Changed
+- **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
+  @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
+  the shipped map ([#293](../../issues/293)).
+
+### Added
 - **Prestige 16 AI Studio B1VGG** (`15A2EMS1`, model database 20261113, [#289](../../issues/289), thanks @u9328009) - the RTX 4070
   variant joins the tested B1VFG entry; the owner's capture matches the standard recipes in all four profiles.
 - **Raider GE68HX 13V** (`15M2IMS1`, model database 20261112, [#286](../../issues/286), [#287](../../issues/287),

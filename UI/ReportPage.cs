@@ -692,12 +692,13 @@ public sealed class ReportPage : ThemedPage
         else if (_curveCpuAt >= 0 || _curveGpuAt >= 0)
         {
             // one tracer only: single-fan boards (MSI Center shows one slider) land here by
-            // design - report the found half instead of a blanket "not located" (#22)
-            bool cpuSide = _curveCpuAt >= 0;
-            int at = cpuSide ? _curveCpuAt : _curveGpuAt;
-            byte shipped = cpuSide ? (fcs?.CpuSpeedBase ?? 0) : (fcs?.GpuSpeedBase ?? 0);
-            _curveMatch = fcs != null && at == shipped;
-            _curveMsg = string.Format(Lang.T(cpuSide ? "rep_curve_cpuonly" : "rep_curve_gpuonly"), at)
+            // design - report the found half instead of a blanket "not located" (#22). The one
+            // slider lands in the Fan 1 table whichever tracer the owner typed into it (#293:
+            // the Fan 2 values at 0x72), so the table is named by where the curve sits.
+            int at = _curveCpuAt >= 0 ? _curveCpuAt : _curveGpuAt;
+            bool fan1Table = OneCurveInFan1Table(fcs) >= 0 || (fcs == null && _curveCpuAt >= 0);
+            _curveMatch = fcs != null && (fan1Table || at == fcs.GpuSpeedBase);
+            _curveMsg = string.Format(Lang.T(fan1Table ? "rep_curve_cpuonly" : "rep_curve_gpuonly"), at)
                         + "  " + Lang.T(_curveMatch ? "rep_curve_match" : "rep_curve_nomatch");
         }
         else
@@ -713,6 +714,14 @@ public sealed class ReportPage : ThemedPage
         PrepareCurveReport();
         RefreshCurve();
         Invalidate();
+    }
+
+    // Exactly one tracer found, sitting at the shipped Fan 1 (CPU) table: its address, else -1.
+    private int OneCurveInFan1Table(FanCurveSpec? fc)
+    {
+        if (fc == null || (_curveCpuAt >= 0) == (_curveGpuAt >= 0)) return -1;
+        int at = _curveCpuAt >= 0 ? _curveCpuAt : _curveGpuAt;
+        return at == fc.CpuSpeedBase ? at : -1;
     }
 
     // Scan the 256-byte dump for the tracer speeds. Exact 6-value run first; fall back to the first 5.
@@ -743,11 +752,18 @@ public sealed class ReportPage : ThemedPage
         sb.AppendLine();
         if (_curveCpuAt >= 0 || _curveGpuAt >= 0)
         {
-            string cpuPart = _curveCpuAt >= 0 ? $"CPU speed table @ 0x{_curveCpuAt:X2}" : "CPU test curve not found";
-            string gpuPart = _curveGpuAt >= 0 ? $"GPU speed table @ 0x{_curveGpuAt:X2}"
-                                              : "GPU test curve not found (single-fan model or Fan 2 not set)";
-            sb.AppendLine($"Located in EC dump:  {cpuPart}   {gpuPart}");
             var fc = Devices.Detect(D.Firmware())?.FanCurve;
+            int one = OneCurveInFan1Table(fc);
+            if (one >= 0)
+                sb.AppendLine($"Located in EC dump:  one test curve ({(_curveCpuAt >= 0 ? "the Fan 1" : "the Fan 2")} values) in the Fan 1 / CPU table @ 0x{one:X2};"
+                              + " no test curve in the Fan 2 / GPU table (single-fan model or Fan 2 not set)");
+            else
+            {
+                string cpuPart = _curveCpuAt >= 0 ? $"CPU speed table @ 0x{_curveCpuAt:X2}" : "CPU test curve not found";
+                string gpuPart = _curveGpuAt >= 0 ? $"GPU speed table @ 0x{_curveGpuAt:X2}"
+                                                  : "GPU test curve not found (single-fan model or Fan 2 not set)";
+                sb.AppendLine($"Located in EC dump:  {cpuPart}   {gpuPart}");
+            }
             if (fc != null) sb.AppendLine($"Shipped map for this model:  CPU 0x{fc.CpuSpeedBase:X2}  GPU 0x{fc.GpuSpeedBase:X2}  → {(_curveMatch ? "MATCH" : "DIFFERENT")}");
             else sb.AppendLine("Shipped map for this model:  (none - model not recognised)");
         }
@@ -788,8 +804,10 @@ public sealed class ReportPage : ThemedPage
     {
         string title = $"[Curve] {ModelName()} ({D.Firmware()})";
         string suffix = _curveMatch ? " (matches shipped map)" : " (differs from shipped map)";
+        int one = OneCurveInFan1Table(Devices.Detect(D.Firmware())?.FanCurve);
         string found =
-            _curveCpuAt >= 0 && _curveGpuAt >= 0 ? $"CPU @ 0x{_curveCpuAt:X2}, GPU @ 0x{_curveGpuAt:X2}" + suffix
+            one >= 0 ? $"one curve @ 0x{one:X2}, the Fan 1 table" + suffix + "; Fan 2 table not set (single-fan model?)"
+            : _curveCpuAt >= 0 && _curveGpuAt >= 0 ? $"CPU @ 0x{_curveCpuAt:X2}, GPU @ 0x{_curveGpuAt:X2}" + suffix
             : _curveCpuAt >= 0 ? $"CPU @ 0x{_curveCpuAt:X2}" + suffix + "; GPU not set (single-fan model?)"
             : _curveGpuAt >= 0 ? $"GPU @ 0x{_curveGpuAt:X2}" + suffix + "; CPU test curve not found"
             : "not located in dump";

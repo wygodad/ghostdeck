@@ -4179,3 +4179,47 @@ log). The fix has three parts, described in `docs/RENDERING.md` §12:
 
 Interface text no longer uses the em dash: between words it became " - ", in Chinese a
 full-width comma, and as a "no value" marker a plain "-". The en dash stays only in number ranges.
+
+## 85. Two fan-curve tables on a single-fan board, and the two-table test (issues #224, #293, 2026-10)
+
+Every board on record carries two fan-curve tables in its controller - temperatures and speeds
+for Fan 1 (CPU, `0x6A`-`0x70` / `0x72`-`0x78` on the modern layout) and for Fan 2 (GPU,
+`0x82`-`0x88` / `0x8A`-`0x90`) - whether or not the chassis has two fans. The Cyborg 15 family
+(`15K1IMS1`, `15K2EMS1`, `15Q3EMS1`, `15T1EMS1`) has one fan; so do the Thin GF63 12VE, Thin 15
+B12, Modern 14 C12M and Summit E14 Flip entries. Those entries carry `SingleFan = true`: the
+editor shows one curve and the normal writes (Apply, the sweep) go to the Fan 1 tables only,
+which is what MSI Center's single slider does on the same boards (#293: on 2.0.74 the slider's
+values land at `0x72`, the Fan 2 table stays at its factory `38 40 45 54 60 68 78`; #282 and
+#145 show the same on 2.0.48). An older MSI Center wrote both tables on the same board (#29,
+July 2026: two different test curves at `0x72` and `0x8A`).
+
+What the firmware does with the two is the open question. The one fan does read both: on
+`15K1IMS1` the owner of #224 could bring his fan to ~1900 rpm and to a stop while the app still
+wrote both tables, and once the entry became `SingleFan` the fan would not drop below ~2700 rpm
+with his curve at 0 % - the factory Fan 2 table's 45 % step at his idle GPU temperature, at the
+board's ~60 rpm per percent (msi-ec #848). Whether the firmware takes the higher of the two
+requests, or follows one table with the other as a floor, nobody has measured, and whether the
+vendor leaves the second table alone on purpose (a floor under a one-slider UI) or by omission is
+not known either. The app therefore stays on the vendor's side of that line - table 1 only - until
+the measurement says otherwise.
+
+**The two-table test** (`Core/TwoTableTest.cs`, Fan curve → In action → diagnostics, next to the
+sweep) is that measurement, on any board with a curve. It writes six pairs of flat curves into
+**both** tables through `Ec.WriteFanCurve(..., bothTables: true)` - 25/25, 25/45, 45/25, 45/45,
+0/45, 45/0 %, one table always keeping the fans turning - holds each for 30 s and records each
+table's duty readback, the tachometers, the temperatures and the mode byte. The verdict per fan
+(the higher of the two / table 1 only / table 2 only / flat / undecided) and the composition of the
+findings are in FAN-CURVE.md §7a. Mains only; refuses to start above 70 °C CPU or 60 °C GPU and
+stops itself at 85 °C, because a warm machine holds its fans up on its own and the pairs then read
+alike. The restore puts table 1 back as the page has it and table 2 as the controller held it just
+before the run. Runs share the sweep's history file and picker (`Kind` = 1, marked 2×).
+
+The fan-curve report (Report → Fan curve) names the **table** a single found curve sits in - "one
+test curve (the Fan 2 values) in the Fan 1 / CPU table @ 0x72", a match with the shipped map -
+rather than naming it after the test values typed into the one slider, which on a single-fan
+board had produced "GPU @ 0x72, differs from shipped map" (#293).
+
+Model DB implication: none yet. `SingleFan` keeps its meaning (one fan, one slider, Fan 1 writes).
+Should the test show that a board follows the higher of its two tables, the editor's one curve can
+be written into both tables on that board - a separate flag, decided per board from a measurement,
+never from the fan count.

@@ -290,21 +290,21 @@ public static class Lang
         };
         m["rep_curve_cpuonly"] = new[]
         {
-            "CPU test curve found at 0x{0:X2}; no GPU test curve in the dump - single-fan model (one slider in MSI Center) or Fan 2 not set.",
-            "Znaleziono krzywą testową CPU pod 0x{0:X2}; brak krzywej GPU w zrzucie - model z jednym wentylatorem (jeden suwak w MSI Center) albo Fan 2 nie został ustawiony.",
-            "CPU-Testkurve bei 0x{0:X2} gefunden; keine GPU-Testkurve im Dump - Modell mit einem Lüfter (ein Regler in MSI Center) oder Fan 2 nicht gesetzt.",
-            "Courbe de test CPU trouvée à 0x{0:X2} ; pas de courbe GPU dans le vidage - modèle à un seul ventilateur (un seul curseur dans MSI Center) ou Fan 2 non réglé.",
-            "Curva de prueba de CPU encontrada en 0x{0:X2}; sin curva de GPU en el volcado - modelo de un solo ventilador (un deslizador en MSI Center) o Fan 2 sin configurar.",
-            "在 0x{0:X2} 找到 CPU 测试曲线；转储中没有 GPU 测试曲线 - 单风扇机型（MSI Center 只有一个滑块）或未设置风扇 2。",
-            "Curva de teste da CPU encontrada em 0x{0:X2}; sem curva de GPU no despejo - modelo com uma ventoinha (um controle no MSI Center) ou Fan 2 não definido.",
-            "Тестовая кривая CPU найдена по адресу 0x{0:X2}; кривой GPU в дампе нет - модель с одним вентилятором (один ползунок в MSI Center) или Fan 2 не задан.",
-            "CPU テストカーブを 0x{0:X2} で検出。ダンプに GPU テストカーブなし - 単一ファンモデル（MSI Center のスライダーが1つ）または Fan 2 未設定。",
-            "0x{0:X2}에서 CPU 테스트 곡선 발견. 덤프에 GPU 테스트 곡선 없음 - 단일 팬 모델(MSI Center 슬라이더 1개)이거나 팬 2가 설정되지 않았습니다.",
-            "在 0x{0:X2} 找到 CPU 測試曲線；傾印中沒有 GPU 測試曲線 - 單風扇機型（MSI Center 只有一個滑桿）或未設定風扇 2。",
-            "CPU test eğrisi 0x{0:X2} adresinde bulundu; dökümde GPU test eğrisi yok - tek fanlı model (MSI Center'da tek kaydırıcı) veya Fan 2 ayarlanmamış.",
-            "Thấy đường cong kiểm thử CPU tại 0x{0:X2}; không có đường cong GPU trong bản dump - model một quạt (một thanh trượt trong MSI Center) hoặc chưa đặt Fan 2.",
-            "Kurva uji CPU ditemukan di 0x{0:X2}; tidak ada kurva uji GPU di dump - model satu kipas (satu slider di MSI Center) atau Fan 2 belum diatur.",
-            "Curva di test CPU trovata a 0x{0:X2}; nessuna curva di test GPU nel dump - modello a ventola singola (un solo cursore in MSI Center) o Fan 2 non impostata."
+            "Test curve found at 0x{0:X2}, the Fan 1 table; the Fan 2 table holds no test curve - single-fan model (one slider in MSI Center) or Fan 2 not set.",
+            "Znaleziono krzywą testową pod 0x{0:X2}, w tablicy wentylatora 1; w tablicy wentylatora 2 nie ma krzywej testowej - model z jednym wentylatorem (jeden suwak w MSI Center) albo Fan 2 nie został ustawiony.",
+            "Testkurve bei 0x{0:X2} gefunden, in der Tabelle von Lüfter 1; die Tabelle von Lüfter 2 enthält keine Testkurve - Modell mit einem Lüfter (ein Regler in MSI Center) oder Fan 2 nicht gesetzt.",
+            "Courbe de test trouvée à 0x{0:X2}, dans la table du ventilateur 1 ; la table du ventilateur 2 ne contient pas de courbe de test - modèle à un seul ventilateur (un seul curseur dans MSI Center) ou Fan 2 non réglé.",
+            "Curva de prueba encontrada en 0x{0:X2}, en la tabla del ventilador 1; la tabla del ventilador 2 no contiene curva de prueba - modelo de un solo ventilador (un deslizador en MSI Center) o Fan 2 sin configurar.",
+            "在 0x{0:X2}（风扇 1 的表）找到测试曲线；风扇 2 的表中没有测试曲线 - 单风扇机型（MSI Center 只有一个滑块）或未设置风扇 2。",
+            "Curva de teste encontrada em 0x{0:X2}, na tabela da ventoinha 1; a tabela da ventoinha 2 não tem curva de teste - modelo com uma ventoinha (um controle no MSI Center) ou Fan 2 não definido.",
+            "Тестовая кривая найдена по адресу 0x{0:X2}, в таблице вентилятора 1; в таблице вентилятора 2 тестовой кривой нет - модель с одним вентилятором (один ползунок в MSI Center) или Fan 2 не задан.",
+            "テストカーブを 0x{0:X2}（ファン 1 のテーブル）で検出。ファン 2 のテーブルにテストカーブなし - 単一ファンモデル（MSI Center のスライダーが1つ）または Fan 2 未設定。",
+            "0x{0:X2}(팬 1 테이블)에서 테스트 곡선 발견. 팬 2 테이블에는 테스트 곡선 없음 - 단일 팬 모델(MSI Center 슬라이더 1개)이거나 팬 2가 설정되지 않았습니다.",
+            "在 0x{0:X2}（風扇 1 的表）找到測試曲線；風扇 2 的表中沒有測試曲線 - 單風扇機型（MSI Center 只有一個滑桿）或未設定風扇 2。",
+            "Test eğrisi 0x{0:X2} adresinde, fan 1 tablosunda bulundu; fan 2 tablosunda test eğrisi yok - tek fanlı model (MSI Center'da tek kaydırıcı) veya Fan 2 ayarlanmamış.",
+            "Thấy đường cong kiểm thử tại 0x{0:X2}, trong bảng của quạt 1; bảng của quạt 2 không có đường cong kiểm thử - model một quạt (một thanh trượt trong MSI Center) hoặc chưa đặt Fan 2.",
+            "Kurva uji ditemukan di 0x{0:X2}, di tabel kipas 1; tabel kipas 2 tidak berisi kurva uji - model satu kipas (satu slider di MSI Center) atau Fan 2 belum diatur.",
+            "Curva di test trovata a 0x{0:X2}, nella tabella della ventola 1; la tabella della ventola 2 non contiene curve di test - modello a ventola singola (un solo cursore in MSI Center) o Fan 2 non impostata."
         };
         m["rep_curve_gpuonly"] = new[]
         {
@@ -1679,6 +1679,564 @@ public static class Lang
         m["fc_sweep_aborted"] = new[] { "Sweep stopped - your curve and fan mode are back.", "Przejazd przerwany - krzywa i tryb wentylatora przywrócone.", "Sweep abgebrochen - Kurve und Lüftermodus sind wiederhergestellt.", "Balayage arrêté - courbe et mode ventilateur restaurés.", "Barrido detenido - curva y modo restaurados.", "扫描已停止 - 曲线和风扇模式已恢复。", "Varrimento parado - curva e modo repostos.", "Прогон остановлен - кривая и режим восстановлены.", "スイープを停止 - カーブとファンモードを復元しました。", "스윕 중지 - 곡선과 팬 모드가 복원되었습니다.", "掃描已停止 - 曲線與風扇模式已還原。", "Tarama durduruldu - eğri ve fan modu geri yüklendi.", "Đã dừng quét - đường cong và chế độ quạt đã khôi phục.", "Sapuan dihentikan - kurva dan mode kipas dipulihkan.", "Sweep fermato - curva e modalità ventole ripristinate." };
         m["log_sweep_start"] = new[] { "Fan sweep started", "Start przejazdu wentylatorów", "Lüfter-Sweep gestartet", "Balayage des ventilateurs lancé", "Barrido de ventiladores iniciado", "风扇扫描已开始", "Varrimento das ventoinhas iniciado", "Прогон вентиляторов начат", "ファンスイープ開始", "팬 스윕 시작", "風扇掃描已開始", "Fan taraması başladı", "Bắt đầu quét quạt", "Sapuan kipas dimulai", "Sweep ventole avviato" };
         m["log_sweep_end"]  = new[] { "Fan sweep ended, curve restored", "Koniec przejazdu, krzywa przywrócona", "Lüfter-Sweep beendet, Kurve wiederhergestellt", "Balayage terminé, courbe restaurée", "Barrido terminado, curva restaurada", "风扇扫描结束，曲线已恢复", "Varrimento terminado, curva reposta", "Прогон завершён, кривая восстановлена", "ファンスイープ終了、カーブ復元", "팬 스윕 종료, 곡선 복원", "風扇掃描結束，曲線已還原", "Fan taraması bitti, eğri geri yüklendi", "Kết thúc quét quạt, đã khôi phục đường cong", "Sapuan kipas selesai, kurva dipulihkan", "Sweep ventole terminato, curva ripristinata" };
+        m["tt_title"] = new[]
+        {
+            "Two-table test",
+            "Test dwóch tablic",
+            "Zwei-Tabellen-Test",
+            "Test des deux tables",
+            "Prueba de dos tablas",
+            "双表测试",
+            "Teste de duas tabelas",
+            "Тест двух таблиц",
+            "2 テーブルテスト",
+            "두 테이블 테스트",
+            "雙表測試",
+            "İki tablo testi",
+            "Kiểm tra hai bảng",
+            "Uji dua tabel",
+            "Test delle due tabelle"
+        };
+        m["tt_start"] = new[]
+        {
+            "Run the two-table test",
+            "Uruchom test dwóch tablic",
+            "Zwei-Tabellen-Test starten",
+            "Lancer le test des deux tables",
+            "Iniciar prueba de dos tablas",
+            "开始双表测试",
+            "Iniciar teste de duas tabelas",
+            "Запустить тест двух таблиц",
+            "2 テーブルテスト開始",
+            "두 테이블 테스트 실행",
+            "開始雙表測試",
+            "İki tablo testini başlat",
+            "Chạy kiểm tra hai bảng",
+            "Jalankan uji dua tabel",
+            "Avvia il test delle due tabelle"
+        };
+        m["tt_stop"] = new[]
+        {
+            "Stop the test",
+            "Zatrzymaj test",
+            "Test stoppen",
+            "Arrêter le test",
+            "Detener la prueba",
+            "停止测试",
+            "Parar o teste",
+            "Остановить тест",
+            "テストを停止",
+            "테스트 중지",
+            "停止測試",
+            "Testi durdur",
+            "Dừng kiểm tra",
+            "Hentikan uji",
+            "Ferma il test"
+        };
+        m["tt_go"] = new[]
+        {
+            "Start the test",
+            "Rozpocznij test",
+            "Test starten",
+            "Démarrer le test",
+            "Empezar la prueba",
+            "开始测试",
+            "Começar o teste",
+            "Начать тест",
+            "テスト開始",
+            "테스트 시작",
+            "開始測試",
+            "Testi başlat",
+            "Bắt đầu kiểm tra",
+            "Mulai uji",
+            "Inizia il test"
+        };
+        m["tt_note"] = new[]
+        {
+            "Writes six pairs of flat curves into BOTH fan tables (table 1 / table 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), holds each pair for 30 s and records the fans: which table each fan follows and how the firmware combines the two. One table always keeps the fans turning. About four minutes; both tables and your fan mode are restored afterwards.",
+            "Zapisuje sześć par płaskich krzywych do OBU tablic wentylatorów (tablica 1 / tablica 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), trzyma każdą parę 30 s i zapisuje, co robią wentylatory: za którą tablicą idzie każdy z nich i jak firmware łączy obie. Jedna tablica zawsze utrzymuje wentylatory w ruchu. Około czterech minut; obie tablice i tryb wentylatora są potem przywracane.",
+            "Schreibt sechs Paare flacher Kurven in BEIDE Lüftertabellen (Tabelle 1 / Tabelle 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), hält jedes Paar 30 s und zeichnet die Lüfter auf: welcher Tabelle jeder Lüfter folgt und wie die Firmware beide verknüpft. Eine Tabelle hält die Lüfter immer in Bewegung. Etwa vier Minuten; beide Tabellen und der Lüftermodus werden danach wiederhergestellt.",
+            "Écrit six paires de courbes plates dans les DEUX tables de ventilateurs (table 1 / table 2 : 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), maintient chaque paire 30 s et enregistre les ventilateurs : quelle table suit chaque ventilateur et comment le firmware combine les deux. Une table garde toujours les ventilateurs en marche. Environ quatre minutes ; les deux tables et le mode ventilateur sont ensuite restaurés.",
+            "Escribe seis pares de curvas planas en AMBAS tablas de ventilador (tabla 1 / tabla 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), mantiene cada par 30 s y registra los ventiladores: qué tabla sigue cada uno y cómo combina el firmware las dos. Una tabla siempre mantiene los ventiladores girando. Unos cuatro minutos; después se restauran ambas tablas y el modo del ventilador.",
+            "向两个风扇表都写入六组平直曲线（表 1 / 表 2：25/25、25/45、45/25、45/45、0/45、45/0 %），每组保持 30 秒并记录风扇：每个风扇跟随哪个表，固件如何合并两者。始终有一个表让风扇保持转动。约四分钟；结束后恢复两个表和风扇模式。",
+            "Escreve seis pares de curvas planas em AMBAS as tabelas de ventoinhas (tabela 1 / tabela 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), mantém cada par 30 s e regista as ventoinhas: que tabela segue cada uma e como o firmware combina as duas. Uma tabela mantém sempre as ventoinhas a girar. Cerca de quatro minutos; ambas as tabelas e o modo da ventoinha são repostos no fim.",
+            "Записывает шесть пар плоских кривых в ОБЕ таблицы вентиляторов (таблица 1 / таблица 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), держит каждую пару 30 с и записывает вентиляторы: за какой таблицей идёт каждый и как прошивка объединяет обе. Одна таблица всегда держит вентиляторы в движении. Около четырёх минут; обе таблицы и режим вентилятора потом восстанавливаются.",
+            "両方のファンテーブルに平坦なカーブを 6 組書き込み（テーブル 1 / テーブル 2：25/25、25/45、45/25、45/45、0/45、45/0 %）、各組を 30 秒保持してファンを記録します：各ファンがどのテーブルに従うか、ファームウェアが両者をどう組み合わせるか。常にどちらかのテーブルがファンを回し続けます。約 4 分；終了後に両テーブルとファンモードを復元します。",
+            "두 팬 테이블 모두에 평탄한 곡선 여섯 쌍을 씁니다(테이블 1 / 테이블 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %). 각 쌍을 30초 유지하며 팬을 기록합니다: 각 팬이 어느 테이블을 따르는지, 펌웨어가 둘을 어떻게 합치는지. 한 테이블은 항상 팬을 돌립니다. 약 4분; 끝나면 두 테이블과 팬 모드를 복원합니다.",
+            "向兩個風扇表都寫入六組平直曲線（表 1 / 表 2：25/25、25/45、45/25、45/45、0/45、45/0 %），每組保持 30 秒並記錄風扇：每個風扇跟隨哪個表，韌體如何合併兩者。始終有一個表讓風扇保持轉動。約四分鐘；結束後還原兩個表與風扇模式。",
+            "HER İKİ fan tablosuna altı çift düz eğri yazar (tablo 1 / tablo 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), her çifti 30 s tutar ve fanları kaydeder: her fanın hangi tabloyu izlediğini ve donanım yazılımının ikisini nasıl birleştirdiğini. Bir tablo fanları her zaman dönmeye devam ettirir. Yaklaşık dört dakika; sonrasında her iki tablo ve fan modu geri yüklenir.",
+            "Ghi sáu cặp đường cong phẳng vào CẢ HAI bảng quạt (bảng 1 / bảng 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), giữ mỗi cặp 30 s và ghi lại quạt: mỗi quạt theo bảng nào và firmware kết hợp hai bảng ra sao. Luôn có một bảng giữ quạt quay. Khoảng bốn phút; sau đó cả hai bảng và chế độ quạt được khôi phục.",
+            "Menulis enam pasang kurva datar ke KEDUA tabel kipas (tabel 1 / tabel 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), menahan tiap pasang 30 s dan mencatat kipas: tabel mana yang diikuti tiap kipas dan bagaimana firmware menggabungkan keduanya. Satu tabel selalu menjaga kipas berputar. Sekitar empat menit; kedua tabel dan mode kipas dipulihkan sesudahnya.",
+            "Scrive sei coppie di curve piatte in ENTRAMBE le tabelle delle ventole (tabella 1 / tabella 2: 25/25, 25/45, 45/25, 45/45, 0/45, 45/0 %), mantiene ogni coppia per 30 s e registra le ventole: quale tabella segue ciascuna e come il firmware combina le due. Una tabella tiene sempre le ventole in moto. Circa quattro minuti; entrambe le tabelle e la modalità ventole vengono poi ripristinate."
+        };
+        m["tt_help"] = new[]
+        {
+            "WHAT IT IS FOR. Every laptop on record keeps TWO fan-curve tables in its controller - one for the CPU fan, one for the GPU fan - even when the chassis has a single fan. On such laptops the one fan listens to both tables, and the vendor's software with its single slider writes only the first. This test measures what the firmware really does with the two tables.\n\nHOW IT WORKS. Six pairs of values go into the two tables as flat curves (the same speed at every temperature, so temperature plays no part): 25/25, 25/45, 45/25, 45/45, then 0/45 and 45/0. Each pair is held for 30 s and the fan speed is recorded. One table always keeps the fans turning.\n\nHOW TO READ IT. If 25/45 and 45/25 both spin like 45/45, the fan follows the HIGHER of the two tables. If 25/45 spins like 25/25, it follows table 1 only. The zero pairs show what a 0 % in one table does while the other holds the fan. On a two-fan laptop the same run shows which table drives which fan.\n\nIMPORTANT: a warm laptop holds its fans up by itself, and then the pairs cannot be told apart - the test refuses to start above 70 °C CPU or 60 °C GPU and stops itself at 85 °C. Run it on mains, idle, after a few quiet minutes.\n\nHISTORY. Every run is kept in the same picker as the sweeps, marked 2×.",
+            "DO CZEGO SŁUŻY. Każdy laptop w bazie trzyma w kontrolerze DWIE tablice krzywej wentylatora - jedną dla wentylatora CPU, drugą dla GPU - nawet gdy obudowa ma jeden wentylator. Na takich laptopach ten jeden wentylator słucha obu tablic, a oprogramowanie producenta z jednym suwakiem zapisuje tylko pierwszą. Ten test mierzy, co firmware naprawdę robi z dwiema tablicami.\n\nJAK DZIAŁA. Sześć par wartości trafia do obu tablic jako płaskie krzywe (ta sama prędkość przy każdej temperaturze, więc temperatura nie gra roli): 25/25, 25/45, 45/25, 45/45, potem 0/45 i 45/0. Każda para jest trzymana 30 s, a prędkość wentylatora zapisywana. Jedna tablica zawsze utrzymuje wentylatory w ruchu.\n\nJAK CZYTAĆ. Jeśli 25/45 i 45/25 kręcą jak 45/45, wentylator idzie za WYŻSZĄ z dwóch tablic. Jeśli 25/45 kręci jak 25/25, idzie tylko za tablicą 1. Pary z zerem pokazują, co robi 0 % w jednej tablicy, gdy druga trzyma wentylator. Na laptopie z dwoma wentylatorami ten sam przebieg pokazuje, która tablica steruje którym.\n\nWAŻNE: ciepły laptop sam trzyma wentylatory w górze i wtedy par nie da się rozróżnić - test nie startuje powyżej 70 °C CPU lub 60 °C GPU i sam się zatrzymuje przy 85 °C. Uruchamiaj na zasilaczu, bez obciążenia, po kilku spokojnych minutach.\n\nHISTORIA. Każdy przebieg trafia do tej samej listy co przejazdy, oznaczony 2×.",
+            "WOZU. Jeder erfasste Laptop hält im Controller ZWEI Lüfterkurven-Tabellen - eine für den CPU-, eine für den GPU-Lüfter - auch wenn das Gehäuse nur einen Lüfter hat. Dort hört der eine Lüfter auf beide Tabellen, und die Herstellersoftware mit ihrem einen Regler schreibt nur die erste. Dieser Test misst, was die Firmware mit den beiden Tabellen wirklich tut.\n\nWIE. Sechs Wertepaare gehen als flache Kurven in beide Tabellen (bei jeder Temperatur dieselbe Drehzahl, Temperatur spielt also keine Rolle): 25/25, 25/45, 45/25, 45/45, dann 0/45 und 45/0. Jedes Paar wird 30 s gehalten, die Lüfterdrehzahl aufgezeichnet. Eine Tabelle hält die Lüfter immer in Bewegung.\n\nLESEN. Drehen 25/45 und 45/25 beide wie 45/45, folgt der Lüfter der HÖHEREN Tabelle. Dreht 25/45 wie 25/25, folgt er nur Tabelle 1. Die Null-Paare zeigen, was 0 % in einer Tabelle bewirkt, während die andere den Lüfter hält. Bei zwei Lüftern zeigt derselbe Lauf, welche Tabelle welchen Lüfter steuert.\n\nWICHTIG: Ein warmer Laptop hält seine Lüfter selbst oben, dann sind die Paare nicht unterscheidbar - der Test startet nicht über 70 °C CPU oder 60 °C GPU und stoppt sich bei 85 °C. Am Netz, im Leerlauf, nach ein paar ruhigen Minuten ausführen.\n\nVERLAUF. Jeder Lauf landet in derselben Liste wie die Sweeps, mit 2× markiert.",
+            "À QUOI ÇA SERT. Chaque portable connu garde DEUX tables de courbe dans son contrôleur - une pour le ventilateur CPU, une pour le GPU - même quand le châssis n'a qu'un ventilateur. Sur ces portables, l'unique ventilateur écoute les deux tables, et le logiciel du fabricant avec son curseur unique n'écrit que la première. Ce test mesure ce que le firmware fait vraiment des deux tables.\n\nCOMMENT. Six paires de valeurs vont dans les deux tables sous forme de courbes plates (même vitesse à toute température, donc la température ne joue pas) : 25/25, 25/45, 45/25, 45/45, puis 0/45 et 45/0. Chaque paire est maintenue 30 s et la vitesse enregistrée. Une table garde toujours les ventilateurs en marche.\n\nLECTURE. Si 25/45 et 45/25 tournent comme 45/45, le ventilateur suit la PLUS HAUTE des deux tables. Si 25/45 tourne comme 25/25, il ne suit que la table 1. Les paires à zéro montrent ce que fait un 0 % dans une table pendant que l'autre tient le ventilateur. Avec deux ventilateurs, le même passage montre quelle table pilote lequel.\n\nIMPORTANT : un portable chaud maintient lui-même ses ventilateurs, et les paires ne se distinguent plus - le test refuse de démarrer au-dessus de 70 °C CPU ou 60 °C GPU et s'arrête à 85 °C. Lancez-le sur secteur, au repos, après quelques minutes calmes.\n\nHISTORIQUE. Chaque passage rejoint la même liste que les balayages, marqué 2×.",
+            "PARA QUÉ. Cada portátil registrado guarda DOS tablas de curva en su controlador - una para el ventilador de CPU y otra para el de GPU - incluso cuando el chasis tiene un solo ventilador. En esos portátiles el único ventilador escucha ambas tablas, y el software del fabricante con su único deslizador escribe solo la primera. Esta prueba mide qué hace realmente el firmware con las dos tablas.\n\nCÓMO. Seis pares de valores van a ambas tablas como curvas planas (la misma velocidad a cualquier temperatura, así que la temperatura no influye): 25/25, 25/45, 45/25, 45/45, luego 0/45 y 45/0. Cada par se mantiene 30 s y se registra la velocidad. Una tabla siempre mantiene los ventiladores girando.\n\nCÓMO LEERLO. Si 25/45 y 45/25 giran como 45/45, el ventilador sigue la MÁS ALTA de las dos tablas. Si 25/45 gira como 25/25, sigue solo la tabla 1. Los pares con cero muestran qué hace un 0 % en una tabla mientras la otra sostiene el ventilador. Con dos ventiladores, la misma pasada muestra qué tabla manda en cuál.\n\nIMPORTANTE: un portátil caliente sostiene sus ventiladores por sí mismo y entonces los pares no se distinguen - la prueba no arranca por encima de 70 °C de CPU o 60 °C de GPU y se detiene sola a 85 °C. Ejecútala con el cargador, en reposo, tras unos minutos tranquilos.\n\nHISTORIAL. Cada pasada queda en la misma lista que los barridos, marcada 2×.",
+            "用途。数据库里的每台笔记本都在控制器中保存两张风扇曲线表（一张给 CPU 风扇，一张给 GPU 风扇），即使机身只有一个风扇。这类笔记本的唯一风扇同时听从两张表，而厂商软件只有一个滑块，只写第一张表。本测试测量固件对两张表的真实处理方式。\n\n原理。六组数值以平直曲线写入两张表（任何温度下速度相同，因此温度不起作用）：25/25、25/45、45/25、45/45，然后 0/45 和 45/0。每组保持 30 秒并记录转速。始终有一张表让风扇转动。\n\n解读。若 25/45 和 45/25 都像 45/45 一样转，风扇跟随两表中较高者。若 25/45 像 25/25，则只跟随表 1。含零的组显示：当另一张表维持风扇时，某张表的 0 % 起什么作用。双风扇笔记本上，同一次运行显示哪张表控制哪个风扇。\n\n重要：热机会自行维持风扇转速，此时各组无法区分，因此 CPU 高于 70 °C 或 GPU 高于 60 °C 时测试不会开始，85 °C 时自动停止。请在接通电源、空闲并安静几分钟后运行。\n\n历史。每次运行都和扫描保存在同一列表中，标记为 2×。",
+            "PARA QUE SERVE. Cada portátil registado guarda DUAS tabelas de curva no controlador - uma para a ventoinha da CPU, outra para a da GPU - mesmo quando o chassis tem uma só ventoinha. Nesses portáteis a única ventoinha ouve as duas tabelas, e o software do fabricante com o seu único controlo escreve apenas a primeira. Este teste mede o que o firmware faz realmente com as duas tabelas.\n\nCOMO. Seis pares de valores vão para as duas tabelas como curvas planas (a mesma velocidade a qualquer temperatura, por isso a temperatura não conta): 25/25, 25/45, 45/25, 45/45, depois 0/45 e 45/0. Cada par é mantido 30 s e a velocidade registada. Uma tabela mantém sempre as ventoinhas a girar.\n\nCOMO LER. Se 25/45 e 45/25 giram como 45/45, a ventoinha segue a MAIS ALTA das duas tabelas. Se 25/45 gira como 25/25, segue só a tabela 1. Os pares com zero mostram o que faz um 0 % numa tabela enquanto a outra segura a ventoinha. Com duas ventoinhas, a mesma passagem mostra que tabela comanda qual.\n\nIMPORTANTE: um portátil quente segura as ventoinhas por si e então os pares não se distinguem - o teste não arranca acima de 70 °C de CPU ou 60 °C de GPU e pára sozinho aos 85 °C. Corre-o ligado à corrente, em repouso, após alguns minutos calmos.\n\nHISTÓRICO. Cada passagem fica na mesma lista dos varrimentos, marcada 2×.",
+            "ДЛЯ ЧЕГО. Каждый ноутбук в базе хранит в контроллере ДВЕ таблицы кривой вентилятора - одну для вентилятора CPU, другую для GPU - даже если в корпусе один вентилятор. На таких ноутбуках единственный вентилятор слушает обе таблицы, а фирменная программа с одним ползунком пишет только первую. Этот тест измеряет, что прошивка на самом деле делает с двумя таблицами.\n\nКАК. Шесть пар значений записываются в обе таблицы как плоские кривые (одна скорость при любой температуре, так что температура не влияет): 25/25, 25/45, 45/25, 45/45, затем 0/45 и 45/0. Каждая пара держится 30 с, скорость записывается. Одна таблица всегда держит вентиляторы в движении.\n\nКАК ЧИТАТЬ. Если 25/45 и 45/25 крутятся как 45/45, вентилятор идёт за БОЛЬШЕЙ из двух таблиц. Если 25/45 крутится как 25/25, он идёт только за таблицей 1. Пары с нулём показывают, что делает 0 % в одной таблице, пока другая держит вентилятор. На ноутбуке с двумя вентиляторами тот же прогон показывает, какая таблица управляет каким.\n\nВАЖНО: тёплый ноутбук сам держит вентиляторы, и тогда пары неразличимы - тест не стартует выше 70 °C CPU или 60 °C GPU и сам останавливается при 85 °C. Запускайте от сети, без нагрузки, после нескольких спокойных минут.\n\nИСТОРИЯ. Каждый прогон хранится в том же списке, что и прогоны вентиляторов, с пометкой 2×.",
+            "目的。登録されたノート PC はすべて、筐体のファンが 1 つでも、コントローラに 2 つのファンカーブテーブル（CPU 用と GPU 用）を持っています。そうした機種では 1 つのファンが両方のテーブルに従い、メーカーのソフトはスライダーが 1 つで最初のテーブルしか書きません。このテストは、ファームウェアが 2 つのテーブルを実際どう扱うかを測ります。\n\n仕組み。6 組の値を平坦なカーブとして両テーブルに書きます（どの温度でも同じ速度なので温度は無関係）：25/25、25/45、45/25、45/45、続いて 0/45 と 45/0。各組を 30 秒保持し回転数を記録します。常にどちらかのテーブルがファンを回し続けます。\n\n読み方。25/45 と 45/25 が 45/45 と同じように回れば、ファンは 2 つのうち高い方に従います。25/45 が 25/25 と同じなら、テーブル 1 だけに従います。ゼロの組は、片方がファンを保持している間にもう片方の 0 % が何をするかを示します。2 ファン機では同じ実行で、どのテーブルがどのファンを動かすかが分かります。\n\n重要：温かい PC は自分でファンを高く保つため組を区別できません。CPU 70 °C または GPU 60 °C を超えるとテストは開始せず、85 °C で自動停止します。AC 電源、アイドル状態で、数分静かにしてから実行してください。\n\n履歴。各実行はスイープと同じリストに 2× の印付きで保存されます。",
+            "용도. 등록된 모든 노트북은 섀시에 팬이 하나뿐이어도 컨트롤러에 팬 곡선 테이블을 두 개(CPU 팬용, GPU 팬용) 보관합니다. 그런 노트북에서는 하나의 팬이 두 테이블을 모두 따르고, 제조사 소프트웨어는 슬라이더가 하나라 첫 테이블만 씁니다. 이 테스트는 펌웨어가 두 테이블을 실제로 어떻게 다루는지 측정합니다.\n\n동작. 여섯 쌍의 값을 평탄한 곡선으로 두 테이블에 씁니다(모든 온도에서 같은 속도이므로 온도는 무관): 25/25, 25/45, 45/25, 45/45, 그다음 0/45, 45/0. 각 쌍을 30초 유지하며 팬 속도를 기록합니다. 한 테이블은 항상 팬을 돌립니다.\n\n해석. 25/45와 45/25가 모두 45/45처럼 돌면 팬은 두 테이블 중 높은 쪽을 따릅니다. 25/45가 25/25처럼 돌면 테이블 1만 따릅니다. 0이 든 쌍은 다른 테이블이 팬을 유지하는 동안 한 테이블의 0 %가 무엇을 하는지 보여 줍니다. 팬이 둘인 노트북에서는 같은 실행으로 어느 테이블이 어느 팬을 구동하는지 알 수 있습니다.\n\n중요: 따뜻한 노트북은 스스로 팬을 높게 유지해 쌍을 구분할 수 없습니다. CPU 70 °C 또는 GPU 60 °C 이상이면 테스트가 시작되지 않고 85 °C에서 스스로 멈춥니다. 전원 연결, 유휴 상태에서 몇 분 조용히 둔 뒤 실행하세요.\n\n기록. 모든 실행은 스윕과 같은 목록에 2× 표시로 보관됩니다.",
+            "用途。資料庫裡的每台筆電都在控制器中保存兩張風扇曲線表（一張給 CPU 風扇，一張給 GPU 風扇），即使機身只有一個風扇。這類筆電的唯一風扇同時聽從兩張表，而廠商軟體只有一個滑桿，只寫第一張表。本測試測量韌體對兩張表的真實處理方式。\n\n原理。六組數值以平直曲線寫入兩張表（任何溫度下速度相同，因此溫度不起作用）：25/25、25/45、45/25、45/45，然後 0/45 和 45/0。每組保持 30 秒並記錄轉速。始終有一張表讓風扇轉動。\n\n解讀。若 25/45 和 45/25 都像 45/45 一樣轉，風扇跟隨兩表中較高者。若 25/45 像 25/25，則只跟隨表 1。含零的組顯示：當另一張表維持風扇時，某張表的 0 % 起什麼作用。雙風扇筆電上，同一次執行顯示哪張表控制哪個風扇。\n\n重要：熱機會自行維持風扇轉速，此時各組無法區分，因此 CPU 高於 70 °C 或 GPU 高於 60 °C 時測試不會開始，85 °C 時自動停止。請在接上電源、閒置並安靜幾分鐘後執行。\n\n歷史。每次執行都和掃描保存在同一列表中，標記為 2×。",
+            "NE İŞE YARAR. Kayıtlı her dizüstü, kasada tek fan olsa bile denetleyicisinde İKİ fan eğrisi tablosu tutar - biri CPU fanı, biri GPU fanı için. Böyle dizüstülerde tek fan her iki tabloyu dinler; üreticinin tek kaydırıcılı yazılımı ise yalnızca ilkini yazar. Bu test, donanım yazılımının iki tabloyla gerçekte ne yaptığını ölçer.\n\nNASIL. Altı değer çifti her iki tabloya düz eğri olarak yazılır (her sıcaklıkta aynı hız, yani sıcaklığın etkisi yok): 25/25, 25/45, 45/25, 45/45, sonra 0/45 ve 45/0. Her çift 30 s tutulur ve fan hızı kaydedilir. Bir tablo fanları her zaman dönmeye devam ettirir.\n\nNASIL OKUNUR. 25/45 ve 45/25, 45/45 gibi dönüyorsa fan iki tablonun YÜKSEK olanını izler. 25/45, 25/25 gibi dönüyorsa yalnızca tablo 1'i izler. Sıfırlı çiftler, diğeri fanı tutarken bir tablodaki 0 %'nin ne yaptığını gösterir. İki fanlı dizüstünde aynı çalıştırma hangi tablonun hangi fanı sürdüğünü gösterir.\n\nÖNEMLİ: Sıcak bir dizüstü fanlarını kendi tutar ve çiftler ayırt edilemez - test CPU 70 °C veya GPU 60 °C üzerinde başlamaz ve 85 °C'de kendini durdurur. Prizde, boşta, birkaç sakin dakikadan sonra çalıştırın.\n\nGEÇMİŞ. Her çalıştırma, taramalarla aynı listede 2× işaretiyle saklanır.",
+            "ĐỂ LÀM GÌ. Mọi máy trong cơ sở dữ liệu đều giữ HAI bảng đường cong quạt trong bộ điều khiển - một cho quạt CPU, một cho quạt GPU - kể cả khi máy chỉ có một quạt. Trên những máy đó, quạt duy nhất nghe cả hai bảng, còn phần mềm của hãng với một thanh trượt chỉ ghi bảng đầu. Kiểm tra này đo firmware thực sự làm gì với hai bảng.\n\nCÁCH LÀM. Sáu cặp giá trị được ghi vào cả hai bảng dưới dạng đường cong phẳng (cùng tốc độ ở mọi nhiệt độ, nên nhiệt độ không ảnh hưởng): 25/25, 25/45, 45/25, 45/45, rồi 0/45 và 45/0. Mỗi cặp giữ 30 s và tốc độ quạt được ghi lại. Luôn có một bảng giữ quạt quay.\n\nCÁCH ĐỌC. Nếu 25/45 và 45/25 đều quay như 45/45, quạt theo bảng CAO HƠN trong hai bảng. Nếu 25/45 quay như 25/25, quạt chỉ theo bảng 1. Các cặp có số 0 cho thấy 0 % ở một bảng làm gì khi bảng kia giữ quạt. Trên máy hai quạt, cùng lần chạy cho biết bảng nào điều khiển quạt nào.\n\nQUAN TRỌNG: máy nóng tự giữ quạt ở mức cao và khi đó không phân biệt được các cặp - kiểm tra không bắt đầu khi CPU trên 70 °C hoặc GPU trên 60 °C và tự dừng ở 85 °C. Chạy khi cắm sạc, máy rảnh, sau vài phút yên tĩnh.\n\nLỊCH SỬ. Mỗi lần chạy được lưu trong cùng danh sách với các lần quét, đánh dấu 2×.",
+            "UNTUK APA. Setiap laptop yang tercatat menyimpan DUA tabel kurva kipas di pengontrolnya - satu untuk kipas CPU, satu untuk kipas GPU - bahkan saat sasis hanya punya satu kipas. Di laptop seperti itu, satu kipas mendengarkan kedua tabel, sedangkan perangkat lunak vendor dengan satu slider hanya menulis tabel pertama. Uji ini mengukur apa yang sebenarnya dilakukan firmware dengan kedua tabel.\n\nCARA KERJA. Enam pasang nilai ditulis ke kedua tabel sebagai kurva datar (kecepatan sama di setiap suhu, jadi suhu tidak berperan): 25/25, 25/45, 45/25, 45/45, lalu 0/45 dan 45/0. Tiap pasang ditahan 30 s dan kecepatan kipas dicatat. Satu tabel selalu menjaga kipas berputar.\n\nCARA MEMBACA. Jika 25/45 dan 45/25 berputar seperti 45/45, kipas mengikuti tabel yang LEBIH TINGGI. Jika 25/45 berputar seperti 25/25, kipas hanya mengikuti tabel 1. Pasangan nol menunjukkan apa yang dilakukan 0 % di satu tabel saat tabel lain menahan kipas. Di laptop dua kipas, jalannya uji yang sama menunjukkan tabel mana menggerakkan kipas mana.\n\nPENTING: laptop yang hangat menahan kipasnya sendiri sehingga pasangan tak bisa dibedakan - uji menolak mulai di atas 70 °C CPU atau 60 °C GPU dan berhenti sendiri pada 85 °C. Jalankan dengan charger, saat idle, setelah beberapa menit tenang.\n\nRIWAYAT. Setiap jalannya uji disimpan di daftar yang sama dengan sapuan, ditandai 2×.",
+            "A COSA SERVE. Ogni portatile registrato tiene nel controller DUE tabelle della curva ventole - una per la ventola CPU, una per la GPU - anche quando il telaio ha una sola ventola. Su questi portatili l'unica ventola ascolta entrambe le tabelle, e il software del produttore con il suo unico cursore scrive solo la prima. Questo test misura cosa fa davvero il firmware con le due tabelle.\n\nCOME. Sei coppie di valori vanno in entrambe le tabelle come curve piatte (stessa velocità a ogni temperatura, quindi la temperatura non conta): 25/25, 25/45, 45/25, 45/45, poi 0/45 e 45/0. Ogni coppia è mantenuta 30 s e la velocità registrata. Una tabella tiene sempre le ventole in moto.\n\nCOME LEGGERLO. Se 25/45 e 45/25 girano come 45/45, la ventola segue la PIÙ ALTA delle due tabelle. Se 25/45 gira come 25/25, segue solo la tabella 1. Le coppie con zero mostrano cosa fa uno 0 % in una tabella mentre l'altra regge la ventola. Con due ventole, la stessa esecuzione mostra quale tabella comanda quale ventola.\n\nIMPORTANTE: un portatile caldo tiene su le ventole da solo e allora le coppie non si distinguono - il test non parte sopra 70 °C di CPU o 60 °C di GPU e si ferma da solo a 85 °C. Eseguilo a rete, a riposo, dopo qualche minuto tranquillo.\n\nCRONOLOGIA. Ogni esecuzione resta nello stesso elenco degli sweep, contrassegnata 2×."
+        };
+        m["tt_consent"] = new[]
+        {
+            "The two-table test WRITES to the Embedded Controller: fan-speed tables {0} (table 1) and {1} (table 2) and fan mode {2}, then restores both tables and your previous mode. On this laptop the app normally writes table 1 only; this test writes both on purpose. Keep the laptop on mains and idle, and do not switch profiles or curves while it runs. Continue?",
+            "Test dwóch tablic ZAPISUJE do kontrolera EC: tablice prędkości wentylatorów {0} (tablica 1) i {1} (tablica 2) oraz tryb wentylatora {2}, a potem przywraca obie tablice i poprzedni tryb. Na tym laptopie aplikacja normalnie zapisuje tylko tablicę 1; ten test celowo zapisuje obie. Zostaw laptopa na zasilaczu i bez obciążenia, nie przełączaj profili ani krzywych w trakcie. Kontynuować?",
+            "Der Zwei-Tabellen-Test SCHREIBT in den Embedded Controller: Lüftertabellen {0} (Tabelle 1) und {1} (Tabelle 2) sowie Lüftermodus {2}, danach stellt er beide Tabellen und den vorherigen Modus wieder her. Auf diesem Laptop schreibt die App normalerweise nur Tabelle 1; dieser Test schreibt absichtlich beide. Laptop am Netz und im Leerlauf lassen, währenddessen keine Profile oder Kurven wechseln. Fortfahren?",
+            "Le test des deux tables ÉCRIT dans le contrôleur embarqué : tables de vitesse {0} (table 1) et {1} (table 2) et mode ventilateur {2}, puis restaure les deux tables et votre mode précédent. Sur ce portable l'application n'écrit normalement que la table 1 ; ce test écrit les deux volontairement. Gardez le portable sur secteur et au repos, sans changer de profil ni de courbe pendant le test. Continuer ?",
+            "La prueba de dos tablas ESCRIBE en el Embedded Controller: tablas de velocidad {0} (tabla 1) y {1} (tabla 2) y modo del ventilador {2}, y luego restaura ambas tablas y tu modo anterior. En este portátil la app normalmente escribe solo la tabla 1; esta prueba escribe ambas a propósito. Mantén el portátil con el cargador y en reposo, sin cambiar perfiles ni curvas mientras corre. ¿Continuar?",
+            "双表测试会向嵌入式控制器写入：风扇速度表 {0}（表 1）和 {1}（表 2）以及风扇模式 {2}，然后恢复两个表和之前的模式。本机上应用通常只写表 1；本测试特意写两个表。请保持接通电源并空闲，测试期间不要切换配置或曲线。继续？",
+            "O teste de duas tabelas ESCREVE no Embedded Controller: tabelas de velocidade {0} (tabela 1) e {1} (tabela 2) e modo da ventoinha {2}, repondo depois ambas as tabelas e o modo anterior. Neste portátil a app escreve normalmente só a tabela 1; este teste escreve as duas de propósito. Mantém o portátil ligado à corrente e em repouso, sem mudar perfis ou curvas durante o teste. Continuar?",
+            "Тест двух таблиц ПИШЕТ в Embedded Controller: таблицы скорости {0} (таблица 1) и {1} (таблица 2) и режим вентилятора {2}, затем восстанавливает обе таблицы и прежний режим. На этом ноутбуке приложение обычно пишет только таблицу 1; этот тест нарочно пишет обе. Держите ноутбук от сети и без нагрузки, не переключайте профили и кривые во время теста. Продолжить?",
+            "2 テーブルテストは Embedded Controller に書き込みます：ファン速度テーブル {0}（テーブル 1）と {1}（テーブル 2）、ファンモード {2}。その後、両テーブルと以前のモードを復元します。この PC ではアプリは通常テーブル 1 のみ書きますが、このテストは意図的に両方書きます。AC 電源・アイドルのまま、実行中はプロファイルやカーブを切り替えないでください。続行しますか？",
+            "두 테이블 테스트는 Embedded Controller에 씁니다: 팬 속도 테이블 {0}(테이블 1)과 {1}(테이블 2), 팬 모드 {2}. 그 뒤 두 테이블과 이전 모드를 복원합니다. 이 노트북에서 앱은 보통 테이블 1만 쓰지만 이 테스트는 일부러 둘 다 씁니다. 전원을 연결하고 유휴 상태로 두고, 실행 중 프로필이나 곡선을 바꾸지 마세요. 계속할까요?",
+            "雙表測試會向嵌入式控制器寫入：風扇速度表 {0}（表 1）和 {1}（表 2）以及風扇模式 {2}，然後還原兩個表和之前的模式。本機上應用程式通常只寫表 1；本測試特意寫兩個表。請保持接上電源並閒置，測試期間不要切換設定檔或曲線。繼續？",
+            "İki tablo testi Embedded Controller'a YAZAR: fan hızı tabloları {0} (tablo 1) ve {1} (tablo 2) ile fan modu {2}; ardından her iki tabloyu ve önceki modu geri yükler. Bu dizüstünde uygulama normalde yalnızca tablo 1'i yazar; bu test bilerek ikisini de yazar. Dizüstünü prizde ve boşta tutun, test sırasında profil veya eğri değiştirmeyin. Devam edilsin mi?",
+            "Kiểm tra hai bảng GHI vào Embedded Controller: bảng tốc độ quạt {0} (bảng 1) và {1} (bảng 2) cùng chế độ quạt {2}, sau đó khôi phục cả hai bảng và chế độ trước. Trên máy này ứng dụng thường chỉ ghi bảng 1; kiểm tra này cố ý ghi cả hai. Giữ máy cắm sạc và rảnh, không đổi hồ sơ hay đường cong trong lúc chạy. Tiếp tục?",
+            "Uji dua tabel MENULIS ke Embedded Controller: tabel kecepatan kipas {0} (tabel 1) dan {1} (tabel 2) serta mode kipas {2}, lalu memulihkan kedua tabel dan mode sebelumnya. Di laptop ini aplikasi biasanya hanya menulis tabel 1; uji ini sengaja menulis keduanya. Biarkan laptop tersambung charger dan idle, jangan ganti profil atau kurva selama uji. Lanjutkan?",
+            "Il test delle due tabelle SCRIVE nell'Embedded Controller: tabelle di velocità {0} (tabella 1) e {1} (tabella 2) e modalità ventole {2}, poi ripristina entrambe le tabelle e la modalità precedente. Su questo portatile l'app scrive normalmente solo la tabella 1; questo test scrive entrambe di proposito. Tieni il portatile a rete e a riposo, senza cambiare profili o curve durante il test. Continuare?"
+        };
+        m["tt_block_nocurve"] = new[]
+        {
+            "This model has no fan-curve tables on record.",
+            "Ten model nie ma w bazie tablic krzywej wentylatora.",
+            "Für dieses Modell sind keine Lüfterkurven-Tabellen erfasst.",
+            "Aucune table de courbe de ventilateur connue pour ce modèle.",
+            "Este modelo no tiene tablas de curva registradas.",
+            "此机型没有已记录的风扇曲线表。",
+            "Este modelo não tem tabelas de curva registadas.",
+            "Для этой модели таблицы кривой вентилятора не записаны.",
+            "この機種にはファンカーブテーブルの記録がありません。",
+            "이 모델은 팬 곡선 테이블 기록이 없습니다.",
+            "此機型沒有已記錄的風扇曲線表。",
+            "Bu modelin kayıtlı fan eğrisi tablosu yok.",
+            "Mẫu máy này không có bảng đường cong quạt trong hồ sơ.",
+            "Model ini tidak punya tabel kurva kipas yang tercatat.",
+            "Questo modello non ha tabelle della curva ventole registrate."
+        };
+        m["tt_block_battery"] = new[]
+        {
+            "The two-table test needs mains power: on battery the firmware limits the fans on its own, and the readings would describe that, not the tables.",
+            "Test dwóch tablic wymaga zasilacza: na baterii firmware sam ogranicza wentylatory, więc odczyty opisywałyby to, a nie tablice.",
+            "Der Zwei-Tabellen-Test braucht Netzstrom: im Akkubetrieb drosselt die Firmware die Lüfter selbst, und die Messwerte würden das beschreiben, nicht die Tabellen.",
+            "Le test des deux tables exige le secteur : sur batterie le firmware limite lui-même les ventilateurs, et les mesures décriraient cela, pas les tables.",
+            "La prueba de dos tablas necesita el cargador: con batería el firmware limita los ventiladores por su cuenta y las lecturas describirían eso, no las tablas.",
+            "双表测试需要接通电源：使用电池时固件会自行限制风扇，读数反映的将是这一点而非表的内容。",
+            "O teste de duas tabelas precisa de corrente: com bateria o firmware limita as ventoinhas por si, e as leituras descreveriam isso, não as tabelas.",
+            "Тесту двух таблиц нужно питание от сети: от батареи прошивка сама ограничивает вентиляторы, и показания описывали бы это, а не таблицы.",
+            "2 テーブルテストには AC 電源が必要です：バッテリー駆動ではファームウェアが自らファンを制限し、読み取り値はテーブルではなくそれを示してしまいます。",
+            "두 테이블 테스트는 전원 연결이 필요합니다: 배터리에서는 펌웨어가 스스로 팬을 제한하므로 측정값이 테이블이 아니라 그것을 나타냅니다.",
+            "雙表測試需要接上電源：使用電池時韌體會自行限制風扇，讀數反映的將是這一點而非表的內容。",
+            "İki tablo testi için prize takılı olmak gerekir: pilde donanım yazılımı fanları kendisi sınırlar ve okumalar tabloları değil bunu yansıtır.",
+            "Kiểm tra hai bảng cần cắm sạc: khi dùng pin, firmware tự giới hạn quạt và số đo sẽ phản ánh điều đó chứ không phải các bảng.",
+            "Uji dua tabel butuh daya listrik: dengan baterai firmware membatasi kipas sendiri, dan pembacaan akan menggambarkan itu, bukan tabelnya.",
+            "Il test delle due tabelle richiede la rete elettrica: a batteria il firmware limita le ventole da solo, e le letture descriverebbero quello, non le tabelle."
+        };
+        m["tt_block_warm"] = new[]
+        {
+            "The laptop is too warm for this test (CPU above 70 °C or GPU above 60 °C): a warm machine holds its fans up by itself. Let it idle for a few minutes and try again.",
+            "Laptop jest za ciepły na ten test (CPU powyżej 70 °C albo GPU powyżej 60 °C): ciepła maszyna sama trzyma wentylatory w górze. Zostaw go na kilka minut bez obciążenia i spróbuj ponownie.",
+            "Der Laptop ist für diesen Test zu warm (CPU über 70 °C oder GPU über 60 °C): eine warme Maschine hält ihre Lüfter selbst oben. Ein paar Minuten im Leerlauf lassen und erneut versuchen.",
+            "Le portable est trop chaud pour ce test (CPU au-dessus de 70 °C ou GPU au-dessus de 60 °C) : une machine chaude maintient elle-même ses ventilateurs. Laissez-le au repos quelques minutes et réessayez.",
+            "El portátil está demasiado caliente para esta prueba (CPU por encima de 70 °C o GPU por encima de 60 °C): una máquina caliente sostiene sus ventiladores por sí misma. Déjalo en reposo unos minutos e inténtalo de nuevo.",
+            "笔记本太热，无法进行此测试（CPU 高于 70 °C 或 GPU 高于 60 °C）：热机会自行维持风扇转速。请空闲几分钟后重试。",
+            "O portátil está demasiado quente para este teste (CPU acima de 70 °C ou GPU acima de 60 °C): uma máquina quente segura as ventoinhas por si. Deixa-o em repouso alguns minutos e tenta de novo.",
+            "Ноутбук слишком тёплый для этого теста (CPU выше 70 °C или GPU выше 60 °C): тёплая машина сама держит вентиляторы. Дайте ему постоять без нагрузки несколько минут и повторите.",
+            "この PC はテストには温かすぎます（CPU 70 °C 超または GPU 60 °C 超）：温かい機体は自らファンを高く保ちます。数分アイドルにしてから再試行してください。",
+            "노트북이 이 테스트에 너무 따뜻합니다(CPU 70 °C 초과 또는 GPU 60 °C 초과): 따뜻한 기기는 스스로 팬을 높게 유지합니다. 몇 분 유휴 상태로 둔 뒤 다시 시도하세요.",
+            "筆電太熱，無法進行此測試（CPU 高於 70 °C 或 GPU 高於 60 °C）：熱機會自行維持風扇轉速。請閒置幾分鐘後重試。",
+            "Dizüstü bu test için fazla sıcak (CPU 70 °C veya GPU 60 °C üzerinde): sıcak bir makine fanlarını kendi tutar. Birkaç dakika boşta bırakıp yeniden deneyin.",
+            "Máy quá nóng cho kiểm tra này (CPU trên 70 °C hoặc GPU trên 60 °C): máy nóng tự giữ quạt ở mức cao. Để máy rảnh vài phút rồi thử lại.",
+            "Laptop terlalu hangat untuk uji ini (CPU di atas 70 °C atau GPU di atas 60 °C): mesin yang hangat menahan kipasnya sendiri. Biarkan idle beberapa menit lalu coba lagi.",
+            "Il portatile è troppo caldo per questo test (CPU sopra 70 °C o GPU sopra 60 °C): una macchina calda tiene su le ventole da sola. Lascialo a riposo qualche minuto e riprova."
+        };
+        m["tt_abort_hot"] = new[]
+        {
+            "Test stopped: the CPU reached 85 °C - both tables and your fan mode are back.",
+            "Test zatrzymany: CPU osiągnął 85 °C - obie tablice i tryb wentylatora przywrócone.",
+            "Test gestoppt: die CPU hat 85 °C erreicht - beide Tabellen und der Lüftermodus sind wiederhergestellt.",
+            "Test arrêté : le CPU a atteint 85 °C - les deux tables et le mode ventilateur sont restaurés.",
+            "Prueba detenida: la CPU llegó a 85 °C - ambas tablas y el modo del ventilador restaurados.",
+            "测试已停止：CPU 达到 85 °C - 两个表和风扇模式已恢复。",
+            "Teste parado: a CPU chegou aos 85 °C - ambas as tabelas e o modo da ventoinha repostos.",
+            "Тест остановлен: CPU достиг 85 °C - обе таблицы и режим вентилятора восстановлены.",
+            "テスト停止：CPU が 85 °C に到達 - 両テーブルとファンモードを復元しました。",
+            "테스트 중지: CPU가 85 °C에 도달 - 두 테이블과 팬 모드가 복원되었습니다.",
+            "測試已停止：CPU 達到 85 °C - 兩個表和風扇模式已還原。",
+            "Test durduruldu: CPU 85 °C'ye ulaştı - her iki tablo ve fan modu geri yüklendi.",
+            "Đã dừng kiểm tra: CPU đạt 85 °C - cả hai bảng và chế độ quạt đã khôi phục.",
+            "Uji dihentikan: CPU mencapai 85 °C - kedua tabel dan mode kipas dipulihkan.",
+            "Test fermato: la CPU ha raggiunto 85 °C - entrambe le tabelle e la modalità ventole sono ripristinate."
+        };
+        m["tt_step"] = new[]
+        {
+            "Pair {0} of {1} - tables at {2}",
+            "Para {0} z {1} - tablice na {2}",
+            "Paar {0} von {1} - Tabellen auf {2}",
+            "Paire {0} sur {1} - tables à {2}",
+            "Par {0} de {1} - tablas en {2}",
+            "第 {0}/{1} 组 - 表设为 {2}",
+            "Par {0} de {1} - tabelas em {2}",
+            "Пара {0} из {1} - таблицы на {2}",
+            "{1} 組中の {0} 組目 - テーブル {2}",
+            "{1}쌍 중 {0}번째 - 테이블 {2}",
+            "第 {0}/{1} 組 - 表設為 {2}",
+            "Çift {0} / {1} - tablolar {2}",
+            "Cặp {0} / {1} - bảng ở {2}",
+            "Pasangan {0} dari {1} - tabel di {2}",
+            "Coppia {0} di {1} - tabelle a {2}"
+        };
+        m["tt_done"] = new[]
+        {
+            "Test finished - both tables and your fan mode are back.",
+            "Test zakończony - obie tablice i tryb wentylatora przywrócone.",
+            "Test beendet - beide Tabellen und der Lüftermodus sind wiederhergestellt.",
+            "Test terminé - les deux tables et le mode ventilateur sont restaurés.",
+            "Prueba terminada - ambas tablas y el modo del ventilador restaurados.",
+            "测试完成 - 两个表和风扇模式已恢复。",
+            "Teste terminado - ambas as tabelas e o modo da ventoinha repostos.",
+            "Тест завершён - обе таблицы и режим вентилятора восстановлены.",
+            "テスト完了 - 両テーブルとファンモードを復元しました。",
+            "테스트 완료 - 두 테이블과 팬 모드가 복원되었습니다.",
+            "測試完成 - 兩個表和風扇模式已還原。",
+            "Test bitti - her iki tablo ve fan modu geri yüklendi.",
+            "Kiểm tra xong - cả hai bảng và chế độ quạt đã khôi phục.",
+            "Uji selesai - kedua tabel dan mode kipas dipulihkan.",
+            "Test terminato - entrambe le tabelle e la modalità ventole sono ripristinate."
+        };
+        m["tt_aborted"] = new[]
+        {
+            "Test stopped - both tables and your fan mode are back.",
+            "Test przerwany - obie tablice i tryb wentylatora przywrócone.",
+            "Test abgebrochen - beide Tabellen und der Lüftermodus sind wiederhergestellt.",
+            "Test arrêté - les deux tables et le mode ventilateur sont restaurés.",
+            "Prueba detenida - ambas tablas y el modo del ventilador restaurados.",
+            "测试已停止 - 两个表和风扇模式已恢复。",
+            "Teste parado - ambas as tabelas e o modo da ventoinha repostos.",
+            "Тест остановлен - обе таблицы и режим вентилятора восстановлены.",
+            "テスト停止 - 両テーブルとファンモードを復元しました。",
+            "테스트 중지 - 두 테이블과 팬 모드가 복원되었습니다.",
+            "測試已停止 - 兩個表和風扇模式已還原。",
+            "Test durduruldu - her iki tablo ve fan modu geri yüklendi.",
+            "Đã dừng kiểm tra - cả hai bảng và chế độ quạt đã khôi phục.",
+            "Uji dihentikan - kedua tabel dan mode kipas dipulihkan.",
+            "Test fermato - entrambe le tabelle e la modalità ventole sono ripristinate."
+        };
+        m["tt_col_t1"] = new[]
+        {
+            "table 1",
+            "tablica 1",
+            "Tabelle 1",
+            "table 1",
+            "tabla 1",
+            "表 1",
+            "tabela 1",
+            "таблица 1",
+            "テーブル 1",
+            "테이블 1",
+            "表 1",
+            "tablo 1",
+            "bảng 1",
+            "tabel 1",
+            "tabella 1"
+        };
+        m["tt_col_t2"] = new[]
+        {
+            "table 2",
+            "tablica 2",
+            "Tabelle 2",
+            "table 2",
+            "tabla 2",
+            "表 2",
+            "tabela 2",
+            "таблица 2",
+            "テーブル 2",
+            "테이블 2",
+            "表 2",
+            "tablo 2",
+            "bảng 2",
+            "tabel 2",
+            "tabella 2"
+        };
+        m["tt_col_cpu"] = new[]
+        {
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C",
+            "CPU °C"
+        };
+        m["tt_col_gpu"] = new[]
+        {
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C",
+            "GPU °C"
+        };
+        m["tt_find_higher"] = new[]
+        {
+            "{0}: follows the HIGHER of the two tables (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: idzie za WYŻSZĄ z dwóch tablic (25/25 → {1} obr., 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: folgt der HÖHEREN der beiden Tabellen (25/25 → {1} U/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0} : suit la PLUS HAUTE des deux tables (25/25 → {1} tr/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: sigue la MÁS ALTA de las dos tablas (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：跟随两表中较高者（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: segue a MAIS ALTA das duas tabelas (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: идёт за БОЛЬШЕЙ из двух таблиц (25/25 → {1} об/мин, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：2 つのテーブルのうち高い方に従います（25/25 → {1} rpm、25/45 → {2}、45/25 → {3}、45/45 → {4}）。",
+            "{0}: 두 테이블 중 높은 쪽을 따릅니다(25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：跟隨兩表中較高者（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: iki tablonun YÜKSEK olanını izliyor (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: theo bảng CAO HƠN trong hai bảng (25/25 → {1} vòng/phút, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: mengikuti tabel yang LEBIH TINGGI (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: segue la PIÙ ALTA delle due tabelle (25/25 → {1} giri/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4})."
+        };
+        m["tt_find_table1"] = new[]
+        {
+            "{0}: follows table 1 only - table 2 changes nothing (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: idzie tylko za tablicą 1 - tablica 2 niczego nie zmienia (25/25 → {1} obr., 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: folgt nur Tabelle 1 - Tabelle 2 ändert nichts (25/25 → {1} U/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0} : ne suit que la table 1 - la table 2 ne change rien (25/25 → {1} tr/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: sigue solo la tabla 1 - la tabla 2 no cambia nada (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：只跟随表 1 - 表 2 没有影响（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: segue só a tabela 1 - a tabela 2 não muda nada (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: идёт только за таблицей 1 - таблица 2 ничего не меняет (25/25 → {1} об/мин, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：テーブル 1 のみに従います - テーブル 2 は影響しません（25/25 → {1} rpm、25/45 → {2}、45/25 → {3}、45/45 → {4}）。",
+            "{0}: 테이블 1만 따릅니다 - 테이블 2는 영향이 없습니다(25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：只跟隨表 1 - 表 2 沒有影響（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: yalnızca tablo 1'i izliyor - tablo 2 hiçbir şeyi değiştirmiyor (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: chỉ theo bảng 1 - bảng 2 không thay đổi gì (25/25 → {1} vòng/phút, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: hanya mengikuti tabel 1 - tabel 2 tidak mengubah apa pun (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: segue solo la tabella 1 - la tabella 2 non cambia nulla (25/25 → {1} giri/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4})."
+        };
+        m["tt_find_table2"] = new[]
+        {
+            "{0}: follows table 2 only - table 1 changes nothing (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: idzie tylko za tablicą 2 - tablica 1 niczego nie zmienia (25/25 → {1} obr., 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: folgt nur Tabelle 2 - Tabelle 1 ändert nichts (25/25 → {1} U/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0} : ne suit que la table 2 - la table 1 ne change rien (25/25 → {1} tr/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: sigue solo la tabla 2 - la tabla 1 no cambia nada (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：只跟随表 2 - 表 1 没有影响（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: segue só a tabela 2 - a tabela 1 não muda nada (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: идёт только за таблицей 2 - таблица 1 ничего не меняет (25/25 → {1} об/мин, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：テーブル 2 のみに従います - テーブル 1 は影響しません（25/25 → {1} rpm、25/45 → {2}、45/25 → {3}、45/45 → {4}）。",
+            "{0}: 테이블 2만 따릅니다 - 테이블 1은 영향이 없습니다(25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：只跟隨表 2 - 表 1 沒有影響（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: yalnızca tablo 2'yi izliyor - tablo 1 hiçbir şeyi değiştirmiyor (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: chỉ theo bảng 2 - bảng 1 không thay đổi gì (25/25 → {1} vòng/phút, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: hanya mengikuti tabel 2 - tabel 1 tidak mengubah apa pun (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: segue solo la tabella 2 - la tabella 1 non cambia nulla (25/25 → {1} giri/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4})."
+        };
+        m["tt_find_flat"] = new[]
+        {
+            "{0}: the same speed at 25 % and at 45 % ({1} vs {2} rpm) - the firmware held the fan where it was, so this run cannot tell the tables apart. Try again on a cooler laptop.",
+            "{0}: ta sama prędkość przy 25 % i przy 45 % ({1} vs {2} obr.) - firmware trzymał wentylator tam, gdzie był, więc ten przebieg nie rozróżnia tablic. Spróbuj ponownie na chłodniejszym laptopie.",
+            "{0}: dieselbe Drehzahl bei 25 % und bei 45 % ({1} vs. {2} U/min) - die Firmware hielt den Lüfter, wo er war, dieser Lauf kann die Tabellen also nicht unterscheiden. Auf einem kühleren Laptop erneut versuchen.",
+            "{0} : même vitesse à 25 % et à 45 % ({1} vs {2} tr/min) - le firmware a maintenu le ventilateur tel quel, ce passage ne peut donc pas distinguer les tables. Réessayez sur un portable plus frais.",
+            "{0}: la misma velocidad al 25 % y al 45 % ({1} vs {2} rpm) - el firmware mantuvo el ventilador donde estaba, así que esta pasada no distingue las tablas. Inténtalo con el portátil más frío.",
+            "{0}：25 % 和 45 % 时转速相同（{1} vs {2} rpm）- 固件把风扇维持在原处，本次运行无法区分两表。请在机器更凉时重试。",
+            "{0}: a mesma velocidade a 25 % e a 45 % ({1} vs {2} rpm) - o firmware segurou a ventoinha onde estava, por isso esta passagem não distingue as tabelas. Tenta de novo com o portátil mais frio.",
+            "{0}: одна и та же скорость при 25 % и при 45 % ({1} vs {2} об/мин) - прошивка держала вентилятор на месте, так что этот прогон не различает таблицы. Повторите на более холодном ноутбуке.",
+            "{0}：25 % と 45 % で同じ速度（{1} vs {2} rpm）- ファームウェアがファンをそのまま保持したため、この実行ではテーブルを区別できません。PC が冷えてから再試行してください。",
+            "{0}: 25 %와 45 %에서 같은 속도({1} vs {2} rpm) - 펌웨어가 팬을 그대로 유지해 이 실행으로는 테이블을 구분할 수 없습니다. 노트북이 식은 뒤 다시 시도하세요.",
+            "{0}：25 % 和 45 % 時轉速相同（{1} vs {2} rpm）- 韌體把風扇維持在原處，本次執行無法區分兩表。請在機器更涼時重試。",
+            "{0}: 25 %'te ve 45 %'te aynı hız ({1} vs {2} rpm) - donanım yazılımı fanı olduğu yerde tuttu, bu çalıştırma tabloları ayırt edemez. Daha soğuk bir dizüstünde yeniden deneyin.",
+            "{0}: cùng tốc độ ở 25 % và 45 % ({1} vs {2} vòng/phút) - firmware giữ quạt nguyên chỗ, nên lần chạy này không phân biệt được các bảng. Thử lại khi máy mát hơn.",
+            "{0}: kecepatan sama pada 25 % dan 45 % ({1} vs {2} rpm) - firmware menahan kipas di tempatnya, jadi uji ini tidak bisa membedakan tabel. Coba lagi saat laptop lebih dingin.",
+            "{0}: la stessa velocità al 25 % e al 45 % ({1} vs {2} giri/min) - il firmware ha tenuto la ventola dov'era, quindi questa esecuzione non distingue le tabelle. Riprova con il portatile più freddo."
+        };
+        m["tt_find_undecided"] = new[]
+        {
+            "{0}: the readings fit none of the simple rules (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: odczyty nie pasują do żadnej prostej reguły (25/25 → {1} obr., 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: die Messwerte passen zu keiner einfachen Regel (25/25 → {1} U/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0} : les mesures ne correspondent à aucune règle simple (25/25 → {1} tr/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: las lecturas no encajan en ninguna regla simple (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：读数不符合任何简单规则（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: as leituras não encaixam em nenhuma regra simples (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: показания не подходят ни под одно простое правило (25/25 → {1} об/мин, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：読み取り値はどの単純な規則にも当てはまりません（25/25 → {1} rpm、25/45 → {2}、45/25 → {3}、45/45 → {4}）。",
+            "{0}: 측정값이 어떤 단순 규칙에도 맞지 않습니다(25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}：讀數不符合任何簡單規則（25/25 → {1} rpm，25/45 → {2}，45/25 → {3}，45/45 → {4}）。",
+            "{0}: okumalar basit kuralların hiçbirine uymuyor (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: số đo không khớp quy tắc đơn giản nào (25/25 → {1} vòng/phút, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: pembacaan tidak cocok dengan aturan sederhana mana pun (25/25 → {1} rpm, 25/45 → {2}, 45/25 → {3}, 45/45 → {4}).",
+            "{0}: le letture non rientrano in nessuna regola semplice (25/25 → {1} giri/min, 25/45 → {2}, 45/25 → {3}, 45/45 → {4})."
+        };
+        m["tt_find_zero1_holds"] = new[]
+        {
+            "{0}: 0 % in table 1 changed nothing while table 2 stood at 45 % ({1} rpm) - table 2 keeps the fan turning.",
+            "{0}: 0 % w tablicy 1 niczego nie zmieniło, gdy tablica 2 stała na 45 % ({1} obr.) - tablica 2 utrzymuje wentylator w ruchu.",
+            "{0}: 0 % in Tabelle 1 änderte nichts, während Tabelle 2 auf 45 % stand ({1} U/min) - Tabelle 2 hält den Lüfter in Bewegung.",
+            "{0} : 0 % dans la table 1 n'a rien changé pendant que la table 2 était à 45 % ({1} tr/min) - la table 2 garde le ventilateur en marche.",
+            "{0}: 0 % en la tabla 1 no cambió nada mientras la tabla 2 estaba al 45 % ({1} rpm) - la tabla 2 mantiene el ventilador girando.",
+            "{0}：表 2 保持 45 % 时，表 1 的 0 % 没有影响（{1} rpm）- 表 2 让风扇继续转动。",
+            "{0}: 0 % na tabela 1 não mudou nada com a tabela 2 a 45 % ({1} rpm) - a tabela 2 mantém a ventoinha a girar.",
+            "{0}: 0 % в таблице 1 ничего не изменил, пока таблица 2 стояла на 45 % ({1} об/мин) - таблица 2 держит вентилятор в движении.",
+            "{0}：テーブル 2 が 45 % の間、テーブル 1 の 0 % は影響しませんでした（{1} rpm）- テーブル 2 がファンを回し続けます。",
+            "{0}: 테이블 2가 45 %일 때 테이블 1의 0 %는 영향이 없었습니다({1} rpm) - 테이블 2가 팬을 돌립니다.",
+            "{0}：表 2 保持 45 % 時，表 1 的 0 % 沒有影響（{1} rpm）- 表 2 讓風扇繼續轉動。",
+            "{0}: tablo 2 45 %'teyken tablo 1'deki 0 % hiçbir şeyi değiştirmedi ({1} rpm) - fanı tablo 2 döndürüyor.",
+            "{0}: 0 % ở bảng 1 không thay đổi gì khi bảng 2 ở 45 % ({1} vòng/phút) - bảng 2 giữ quạt quay.",
+            "{0}: 0 % di tabel 1 tidak mengubah apa pun saat tabel 2 di 45 % ({1} rpm) - tabel 2 menjaga kipas berputar.",
+            "{0}: 0 % nella tabella 1 non ha cambiato nulla con la tabella 2 al 45 % ({1} giri/min) - la tabella 2 tiene la ventola in moto."
+        };
+        m["tt_find_zero1_drops"] = new[]
+        {
+            "{0}: 0 % in table 1 lowered the fan from {1} to {2} rpm while table 2 stood at 45 %.",
+            "{0}: 0 % w tablicy 1 obniżyło wentylator z {1} do {2} obr., gdy tablica 2 stała na 45 %.",
+            "{0}: 0 % in Tabelle 1 senkte den Lüfter von {1} auf {2} U/min, während Tabelle 2 auf 45 % stand.",
+            "{0} : 0 % dans la table 1 a fait passer le ventilateur de {1} à {2} tr/min pendant que la table 2 était à 45 %.",
+            "{0}: 0 % en la tabla 1 bajó el ventilador de {1} a {2} rpm mientras la tabla 2 estaba al 45 %.",
+            "{0}：表 2 保持 45 % 时，表 1 的 0 % 使风扇从 {1} 降到 {2} rpm。",
+            "{0}: 0 % na tabela 1 baixou a ventoinha de {1} para {2} rpm com a tabela 2 a 45 %.",
+            "{0}: 0 % в таблице 1 снизил вентилятор с {1} до {2} об/мин, пока таблица 2 стояла на 45 %.",
+            "{0}：テーブル 2 が 45 % の間、テーブル 1 の 0 % でファンが {1} から {2} rpm に下がりました。",
+            "{0}: 테이블 2가 45 %일 때 테이블 1의 0 %로 팬이 {1}에서 {2} rpm으로 낮아졌습니다.",
+            "{0}：表 2 保持 45 % 時，表 1 的 0 % 使風扇從 {1} 降到 {2} rpm。",
+            "{0}: tablo 2 45 %'teyken tablo 1'deki 0 % fanı {1}'den {2} rpm'e düşürdü.",
+            "{0}: 0 % ở bảng 1 hạ quạt từ {1} xuống {2} vòng/phút khi bảng 2 ở 45 %.",
+            "{0}: 0 % di tabel 1 menurunkan kipas dari {1} ke {2} rpm saat tabel 2 di 45 %.",
+            "{0}: 0 % nella tabella 1 ha abbassato la ventola da {1} a {2} giri/min con la tabella 2 al 45 %."
+        };
+        m["tt_find_zero2_holds"] = new[]
+        {
+            "{0}: 0 % in table 2 changed nothing while table 1 stood at 45 % ({1} rpm) - table 1 keeps the fan turning.",
+            "{0}: 0 % w tablicy 2 niczego nie zmieniło, gdy tablica 1 stała na 45 % ({1} obr.) - tablica 1 utrzymuje wentylator w ruchu.",
+            "{0}: 0 % in Tabelle 2 änderte nichts, während Tabelle 1 auf 45 % stand ({1} U/min) - Tabelle 1 hält den Lüfter in Bewegung.",
+            "{0} : 0 % dans la table 2 n'a rien changé pendant que la table 1 était à 45 % ({1} tr/min) - la table 1 garde le ventilateur en marche.",
+            "{0}: 0 % en la tabla 2 no cambió nada mientras la tabla 1 estaba al 45 % ({1} rpm) - la tabla 1 mantiene el ventilador girando.",
+            "{0}：表 1 保持 45 % 时，表 2 的 0 % 没有影响（{1} rpm）- 表 1 让风扇继续转动。",
+            "{0}: 0 % na tabela 2 não mudou nada com a tabela 1 a 45 % ({1} rpm) - a tabela 1 mantém a ventoinha a girar.",
+            "{0}: 0 % в таблице 2 ничего не изменил, пока таблица 1 стояла на 45 % ({1} об/мин) - таблица 1 держит вентилятор в движении.",
+            "{0}：テーブル 1 が 45 % の間、テーブル 2 の 0 % は影響しませんでした（{1} rpm）- テーブル 1 がファンを回し続けます。",
+            "{0}: 테이블 1이 45 %일 때 테이블 2의 0 %는 영향이 없었습니다({1} rpm) - 테이블 1이 팬을 돌립니다.",
+            "{0}：表 1 保持 45 % 時，表 2 的 0 % 沒有影響（{1} rpm）- 表 1 讓風扇繼續轉動。",
+            "{0}: tablo 1 45 %'teyken tablo 2'deki 0 % hiçbir şeyi değiştirmedi ({1} rpm) - fanı tablo 1 döndürüyor.",
+            "{0}: 0 % ở bảng 2 không thay đổi gì khi bảng 1 ở 45 % ({1} vòng/phút) - bảng 1 giữ quạt quay.",
+            "{0}: 0 % di tabel 2 tidak mengubah apa pun saat tabel 1 di 45 % ({1} rpm) - tabel 1 menjaga kipas berputar.",
+            "{0}: 0 % nella tabella 2 non ha cambiato nulla con la tabella 1 al 45 % ({1} giri/min) - la tabella 1 tiene la ventola in moto."
+        };
+        m["tt_find_zero2_drops"] = new[]
+        {
+            "{0}: 0 % in table 2 lowered the fan from {1} to {2} rpm while table 1 stood at 45 %.",
+            "{0}: 0 % w tablicy 2 obniżyło wentylator z {1} do {2} obr., gdy tablica 1 stała na 45 %.",
+            "{0}: 0 % in Tabelle 2 senkte den Lüfter von {1} auf {2} U/min, während Tabelle 1 auf 45 % stand.",
+            "{0} : 0 % dans la table 2 a fait passer le ventilateur de {1} à {2} tr/min pendant que la table 1 était à 45 %.",
+            "{0}: 0 % en la tabla 2 bajó el ventilador de {1} a {2} rpm mientras la tabla 1 estaba al 45 %.",
+            "{0}：表 1 保持 45 % 时，表 2 的 0 % 使风扇从 {1} 降到 {2} rpm。",
+            "{0}: 0 % na tabela 2 baixou a ventoinha de {1} para {2} rpm com a tabela 1 a 45 %.",
+            "{0}: 0 % в таблице 2 снизил вентилятор с {1} до {2} об/мин, пока таблица 1 стояла на 45 %.",
+            "{0}：テーブル 1 が 45 % の間、テーブル 2 の 0 % でファンが {1} から {2} rpm に下がりました。",
+            "{0}: 테이블 1이 45 %일 때 테이블 2의 0 %로 팬이 {1}에서 {2} rpm으로 낮아졌습니다.",
+            "{0}：表 1 保持 45 % 時，表 2 的 0 % 使風扇從 {1} 降到 {2} rpm。",
+            "{0}: tablo 1 45 %'teyken tablo 2'deki 0 % fanı {1}'den {2} rpm'e düşürdü.",
+            "{0}: 0 % ở bảng 2 hạ quạt từ {1} xuống {2} vòng/phút khi bảng 1 ở 45 %.",
+            "{0}: 0 % di tabel 2 menurunkan kipas dari {1} ke {2} rpm saat tabel 1 di 45 %.",
+            "{0}: 0 % nella tabella 2 ha abbassato la ventola da {1} a {2} giri/min con la tabella 1 al 45 %."
+        };
+        m["tt_find_notach"] = new[]
+        {
+            "This model reports no fan tachometer, so the test can show what each table asked for, but not which one the fan obeyed.",
+            "Ten model nie podaje obrotów wentylatora, więc test pokazuje, czego żądała każda tablica, ale nie to, której wentylator posłuchał.",
+            "Dieses Modell meldet keine Lüfterdrehzahl, der Test zeigt also, was jede Tabelle verlangt hat, aber nicht, welcher der Lüfter gefolgt ist.",
+            "Ce modèle ne rapporte pas de tachymètre : le test montre ce que chaque table a demandé, mais pas laquelle le ventilateur a suivie.",
+            "Este modelo no informa de tacómetro, así que la prueba muestra qué pidió cada tabla, pero no a cuál obedeció el ventilador.",
+            "此机型不报告风扇转速，因此测试能显示每张表的要求，但无法显示风扇听从了哪一张。",
+            "Este modelo não reporta tacómetro, por isso o teste mostra o que cada tabela pediu, mas não qual a ventoinha obedeceu.",
+            "Эта модель не сообщает обороты вентилятора, поэтому тест показывает, чего требовала каждая таблица, но не то, какой вентилятор подчинился.",
+            "この機種はファン回転数を報告しないため、テストは各テーブルの要求は示せますが、ファンがどちらに従ったかは示せません。",
+            "이 모델은 팬 회전수를 보고하지 않아 테스트는 각 테이블이 요구한 값은 보여 주지만 팬이 어느 쪽을 따랐는지는 알 수 없습니다.",
+            "此機型不回報風扇轉速，因此測試能顯示每張表的要求，但無法顯示風扇聽從了哪一張。",
+            "Bu model fan devri bildirmiyor; test her tablonun ne istediğini gösterir ama fanın hangisine uyduğunu gösteremez.",
+            "Mẫu máy này không báo vòng tua quạt, nên kiểm tra chỉ cho thấy mỗi bảng yêu cầu gì chứ không biết quạt nghe theo bảng nào.",
+            "Model ini tidak melaporkan takometer kipas, jadi uji bisa menunjukkan apa yang diminta tiap tabel, tapi bukan tabel mana yang diikuti kipas.",
+            "Questo modello non riporta il tachimetro, quindi il test mostra cosa ha chiesto ogni tabella, ma non a quale la ventola ha obbedito."
+        };
+        m["tt_find_mode"] = new[]
+        {
+            "The fan-mode byte read {0} during the test instead of the custom-curve value {1} - something switched the mode while the test ran.",
+            "Bajt trybu wentylatora czytał {0} w trakcie testu zamiast wartości własnej krzywej {1} - coś przełączyło tryb w czasie testu.",
+            "Das Lüftermodus-Byte las während des Tests {0} statt des Eigenkurven-Werts {1} - etwas hat den Modus während des Tests umgeschaltet.",
+            "L'octet du mode ventilateur valait {0} pendant le test au lieu de la valeur courbe personnalisée {1} - quelque chose a changé le mode pendant le test.",
+            "El byte del modo del ventilador leyó {0} durante la prueba en vez del valor de curva personalizada {1} - algo cambió el modo durante la prueba.",
+            "测试期间风扇模式字节读为 {0}，而非自定义曲线值 {1} - 测试运行时有东西切换了模式。",
+            "O byte do modo da ventoinha leu {0} durante o teste em vez do valor de curva personalizada {1} - algo mudou o modo durante o teste.",
+            "Байт режима вентилятора читался как {0} во время теста вместо значения своей кривой {1} - что-то переключило режим во время теста.",
+            "テスト中、ファンモードのバイトはカスタムカーブ値 {1} ではなく {0} でした - テスト中に何かがモードを切り替えました。",
+            "테스트 중 팬 모드 바이트가 사용자 지정 곡선 값 {1} 대신 {0}으로 읽혔습니다 - 테스트 중 무언가가 모드를 바꿨습니다.",
+            "測試期間風扇模式位元組讀為 {0}，而非自訂曲線值 {1} - 測試執行時有東西切換了模式。",
+            "Test sırasında fan modu baytı özel eğri değeri {1} yerine {0} okundu - test çalışırken bir şey modu değiştirdi.",
+            "Byte chế độ quạt đọc được {0} trong khi kiểm tra thay vì giá trị đường cong tùy chỉnh {1} - có gì đó đã đổi chế độ trong lúc chạy.",
+            "Byte mode kipas terbaca {0} selama uji, bukan nilai kurva kustom {1} - sesuatu mengubah mode saat uji berjalan.",
+            "Il byte della modalità ventole ha letto {0} durante il test invece del valore curva personalizzata {1} - qualcosa ha cambiato modalità durante il test."
+        };
+        m["log_tt_start"] = new[]
+        {
+            "Two-table test started",
+            "Start testu dwóch tablic",
+            "Zwei-Tabellen-Test gestartet",
+            "Test des deux tables lancé",
+            "Prueba de dos tablas iniciada",
+            "双表测试开始",
+            "Teste de duas tabelas iniciado",
+            "Тест двух таблиц запущен",
+            "2 テーブルテスト開始",
+            "두 테이블 테스트 시작",
+            "雙表測試開始",
+            "İki tablo testi başladı",
+            "Bắt đầu kiểm tra hai bảng",
+            "Uji dua tabel dimulai",
+            "Test delle due tabelle avviato"
+        };
+        m["log_tt_end"] = new[]
+        {
+            "Two-table test ended, both tables restored",
+            "Koniec testu dwóch tablic, obie tablice przywrócone",
+            "Zwei-Tabellen-Test beendet, beide Tabellen wiederhergestellt",
+            "Test des deux tables terminé, les deux tables restaurées",
+            "Prueba de dos tablas terminada, ambas tablas restauradas",
+            "双表测试结束，两个表已恢复",
+            "Teste de duas tabelas terminado, ambas as tabelas repostas",
+            "Тест двух таблиц завершён, обе таблицы восстановлены",
+            "2 テーブルテスト終了、両テーブル復元",
+            "두 테이블 테스트 종료, 두 테이블 복원",
+            "雙表測試結束，兩個表已還原",
+            "İki tablo testi bitti, her iki tablo geri yüklendi",
+            "Kết thúc kiểm tra hai bảng, đã khôi phục cả hai bảng",
+            "Uji dua tabel selesai, kedua tabel dipulihkan",
+            "Test delle due tabelle terminato, entrambe le tabelle ripristinate"
+        };
         m["fc_deck_now"]    = new[] { "fans now: {0}%", "wentylatory teraz: {0}%", "Lüfter jetzt: {0}%", "ventilateurs maintenant : {0}%", "ventiladores ahora: {0}%", "风扇当前：{0}%", "ventoinhas agora: {0}%", "вентиляторы сейчас: {0}%", "現在のファン：{0}%", "현재 팬: {0}%", "風扇目前：{0}%", "fanlar şu an: %{0}", "quạt lúc này: {0}%", "kipas sekarang: {0}%", "ventole adesso: {0}%" };
         m["fc_deck_help"]   = new[] { "THE DIALS. Each fan's curve is drawn around a circle instead of along an axis: the ANGLE is the temperature (leftmost point = the first node, rightmost = the last), the RADIUS is the fan speed (centre = 0 %, rim = 100 %). Drag a handle outward for more speed, inward for less - the temperature of a node never moves, exactly as in the chart view. The ghost in the middle shows the current temperature and what the curve asks for it.\n\nTHE CROSSFADER. Pick a shape for pole A and another for pole B - a saved preset or one of the four ready shapes. The slider then blends between them: at 30 % every node sits 30 % of the way from A to B. It is one movement instead of dragging six points, and the result is an ordinary curve you can save as a preset. The two poles must differ - choosing the same shape twice would make the slider do nothing, so the app moves the other pole.", "TARCZE. Krzywa każdego wentylatora jest narysowana wokół okręgu zamiast wzdłuż osi: KĄT to temperatura (skrajny lewy punkt = pierwszy węzeł, skrajny prawy = ostatni), PROMIEŃ to prędkość wentylatora (środek = 0 %, obrzeże = 100 %). Przeciągnij uchwyt na zewnątrz, by przyspieszyć, do środka, by zwolnić - temperatura węzła nigdy się nie zmienia, dokładnie jak na wykresie. Duszek w środku pokazuje bieżącą temperaturę i to, czego przy niej żąda krzywa.\n\nCROSSFADER. Wybierz kształt dla bieguna A i inny dla bieguna B - zapisany preset albo jeden z czterech gotowych kształtów. Suwak miesza je płynnie: przy 30 % każdy węzeł leży w 30 % drogi od A do B. To jeden ruch zamiast przeciągania sześciu punktów, a wynik jest zwykłą krzywą, którą możesz zapisać jako preset. Bieguny muszą się różnić - ten sam kształt po obu stronach sprawiłby, że suwak nic nie robi, więc aplikacja przestawia drugi biegun.", "DIE SCHEIBEN. Die Kurve jedes Lüfters wird um einen Kreis gezeichnet statt entlang einer Achse: der WINKEL ist die Temperatur (linkester Punkt = erster Knoten, rechtester = letzter), der RADIUS ist die Lüfterdrehzahl (Mitte = 0 %, Rand = 100 %). Ziehe einen Griff nach außen für mehr Drehzahl, nach innen für weniger - die Temperatur eines Knotens bewegt sich nie, genau wie im Diagramm. Der Geist in der Mitte zeigt die aktuelle Temperatur und was die Kurve dafür verlangt.\n\nDER CROSSFADER. Wähle eine Form für Pol A und eine andere für Pol B - eine gespeicherte Voreinstellung oder eine der vier fertigen Formen. Der Regler blendet dann zwischen ihnen über: bei 30 % liegt jeder Knoten 30 % des Weges von A nach B. Eine Bewegung statt sechs Punkte zu ziehen, und das Ergebnis ist eine normale Kurve, die du als Voreinstellung speichern kannst. Die Pole müssen sich unterscheiden - dieselbe Form auf beiden Seiten ließe den Regler nichts tun, also verschiebt die App den anderen Pol.", "LES CADRANS. La courbe de chaque ventilateur est tracée autour d'un cercle plutôt que le long d'un axe : l'ANGLE est la température (point le plus à gauche = premier nœud, le plus à droite = dernier), le RAYON est la vitesse (centre = 0 %, bord = 100 %). Tirez une poignée vers l'extérieur pour accélérer, vers l'intérieur pour ralentir - la température d'un nœud ne bouge jamais, exactement comme dans le graphique. Le fantôme au centre montre la température actuelle et ce que la courbe demande alors.\n\nLE CROSSFADER. Choisissez une forme pour le pôle A et une autre pour le pôle B - un préréglage enregistré ou l'une des quatre formes prêtes. Le curseur fond alors entre elles : à 30 %, chaque nœud se place à 30 % du chemin de A vers B. Un seul geste au lieu de tirer six points, et le résultat est une courbe ordinaire que vous pouvez enregistrer. Les deux pôles doivent différer - la même forme des deux côtés rendrait le curseur inutile, l'app déplace donc l'autre pôle.", "LOS DIALES. La curva de cada ventilador se dibuja alrededor de un círculo en vez de a lo largo de un eje: el ÁNGULO es la temperatura (punto más a la izquierda = primer nodo, más a la derecha = último), el RADIO es la velocidad (centro = 0 %, borde = 100 %). Arrastra un tirador hacia fuera para más velocidad, hacia dentro para menos - la temperatura de un nodo nunca se mueve, igual que en el gráfico. El fantasma del centro muestra la temperatura actual y lo que la curva pide para ella.\n\nEL CROSSFADER. Elige una forma para el polo A y otra para el polo B - un preajuste guardado o una de las cuatro formas listas. El deslizador mezcla entre ellas: al 30 %, cada nodo queda al 30 % del camino de A a B. Un movimiento en lugar de arrastrar seis puntos, y el resultado es una curva normal que puedes guardar. Los polos deben ser distintos - la misma forma en ambos lados dejaría el deslizador sin efecto, así que la app mueve el otro polo.", "转盘：每个风扇的曲线绕圆绘制，而不是沿轴线：角度代表温度（最左点 = 第一个节点，最右点 = 最后一个），半径代表风扇转速（圆心 = 0%，外缘 = 100%）。把手向外拖动提高转速，向内降低 - 节点的温度永不改变，与图表视图完全一致。中间的幽灵显示当前温度以及曲线在该温度下的要求。\n\n交叉推子：为 A 极和 B 极各选一种形状 - 已保存的预设或四种现成形状之一。滑块在两者之间混合：在 30% 时，每个节点位于从 A 到 B 路径的 30% 处。一次动作代替拖动六个点，结果是一条普通曲线，可保存为预设。两极必须不同 - 两侧相同会让滑块失去作用，因此应用会移动另一极。", "OS DISCOS. A curva de cada ventoinha é desenhada à volta de um círculo em vez de ao longo de um eixo: o ÂNGULO é a temperatura (ponto mais à esquerda = primeiro nó, mais à direita = último), o RAIO é a velocidade (centro = 0 %, bordo = 100 %). Arrasta uma pega para fora para mais velocidade, para dentro para menos - a temperatura de um nó nunca se move, tal como no gráfico. O fantasma no centro mostra a temperatura atual e o que a curva pede para ela.\n\nO CROSSFADER. Escolhe uma forma para o polo A e outra para o polo B - uma predefinição guardada ou uma das quatro formas prontas. O cursor mistura entre elas: a 30 %, cada nó fica a 30 % do caminho de A para B. Um movimento em vez de arrastar seis pontos, e o resultado é uma curva normal que podes guardar. Os polos têm de diferir - a mesma forma dos dois lados deixaria o cursor sem efeito, por isso a app move o outro polo.", "ДИСКИ. Кривая каждого вентилятора нарисована вокруг круга, а не вдоль оси: УГОЛ - это температура (крайняя левая точка = первый узел, крайняя правая = последний), РАДИУС - скорость вентилятора (центр = 0 %, обод = 100 %). Тяните ручку наружу, чтобы ускорить, внутрь - чтобы замедлить; температура узла никогда не двигается, ровно как на графике. Призрак в центре показывает текущую температуру и то, что кривая просит при ней.\n\nКРОССФЕЙДЕР. Выберите форму для полюса A и другую для полюса B - сохранённый пресет или одну из четырёх готовых форм. Ползунок плавно смешивает их: на 30 % каждый узел стоит в 30 % пути от A к B. Одно движение вместо перетаскивания шести точек, а результат - обычная кривая, которую можно сохранить. Полюса должны отличаться - одинаковая форма с обеих сторон обнулила бы ползунок, поэтому приложение сдвигает второй полюс.", "ダイヤル：各ファンのカーブは軸上ではなく円の周りに描かれます。角度が温度（最も左の点＝最初のノード、最も右＝最後）、半径がファン速度（中心＝0 %、外周＝100 %）。ハンドルを外側へドラッグすると速く、内側で遅く - ノードの温度は決して動きません（グラフ表示と同じ）。中央のゴーストは現在の温度と、その温度でカーブが要求する値を示します。\n\nクロスフェーダー：極 A と極 B にそれぞれ形状を選びます（保存済みプリセット、または4つの既製形状）。スライダーが両者をブレンドし、30 % では各ノードが A から B への道のりの 30 % に位置します。6点をドラッグする代わりに一回の操作で済み、結果は普通のカーブなのでプリセットとして保存できます。両極は異なる必要があります - 同じ形状ではスライダーが無意味になるため、アプリがもう一方を移動します。", "다이얼: 각 팬의 곡선이 축이 아니라 원 둘레에 그려집니다. 각도는 온도(가장 왼쪽 = 첫 노드, 가장 오른쪽 = 마지막), 반지름은 팬 속도(중심 = 0 %, 테두리 = 100 %). 핸들을 바깥으로 끌면 빨라지고 안으로 끌면 느려집니다 - 노드의 온도는 절대 움직이지 않습니다(차트와 동일). 가운데 유령은 현재 온도와 그 온도에서 곡선이 요구하는 값을 보여줍니다.\n\n크로스페이더: A극과 B극에 각각 형태를 고릅니다(저장한 프리셋 또는 네 가지 기본 형태). 슬라이더가 둘을 혼합해 30 %에서는 각 노드가 A에서 B로 가는 길의 30 % 지점에 놓입니다. 여섯 점을 끄는 대신 한 번의 동작이며, 결과는 프리셋으로 저장할 수 있는 평범한 곡선입니다. 두 극은 달라야 합니다 - 같은 형태면 슬라이더가 무의미해지므로 앱이 다른 극을 옮깁니다.", "轉盤：每個風扇的曲線繞圓繪製，而不是沿軸線：角度代表溫度（最左點 = 第一個節點，最右點 = 最後一個），半徑代表風扇轉速（圓心 = 0%，外緣 = 100%）。把手向外拖曳提高轉速，向內降低 - 節點的溫度永不改變，與圖表檢視完全一致。中間的幽靈顯示目前溫度以及曲線在該溫度下的要求。\n\n交叉推桿：為 A 極和 B 極各選一種形狀 - 已儲存的預設或四種現成形狀之一。滑桿在兩者之間混合：在 30% 時，每個節點位於從 A 到 B 路徑的 30% 處。一次動作代替拖曳六個點，結果是一條普通曲線，可儲存為預設。兩極必須不同 - 兩側相同會讓滑桿失去作用，因此應用會移動另一極。", "KADRANLAR. Her fanın eğrisi eksen boyunca değil, bir çemberin etrafına çizilir: AÇI sıcaklıktır (en soldaki nokta = ilk düğüm, en sağdaki = son), YARIÇAP fan hızıdır (merkez = %0, kenar = %100). Bir tutamağı dışa doğru sürükleyin, hız artar; içe doğru, azalır - bir düğümün sıcaklığı asla oynamaz, tıpkı grafik görünümünde olduğu gibi. Ortadaki hayalet mevcut sıcaklığı ve eğrinin o sıcaklıkta istediğini gösterir.\n\nCROSSFADER. A kutbu için bir şekil, B kutbu için başka birini seçin - kayıtlı bir ön ayar ya da dört hazır şekilden biri. Kaydırıcı ikisini harmanlar: %30'da her düğüm A'dan B'ye giden yolun %30'unda durur. Altı noktayı sürüklemek yerine tek hareket ve sonuç, ön ayar olarak kaydedebileceğiniz sıradan bir eğridir. İki kutup farklı olmalı - aynı şekil kaydırıcıyı işlevsiz bırakacağından uygulama diğer kutbu değiştirir.", "CÁC ĐĨA XOAY. Đường cong của mỗi quạt được vẽ quanh một vòng tròn thay vì dọc theo trục: GÓC là nhiệt độ (điểm ngoài cùng bên trái = nút đầu, bên phải = nút cuối), BÁN KÍNH là tốc độ quạt (tâm = 0 %, vành = 100 %). Kéo tay cầm ra ngoài để nhanh hơn, vào trong để chậm hơn - nhiệt độ của nút không bao giờ đổi, y như ở biểu đồ. Con ma ở giữa hiển thị nhiệt độ hiện tại và mức mà đường cong yêu cầu tại đó.\n\nCROSSFADER. Chọn một hình cho cực A và một hình khác cho cực B - preset đã lưu hoặc một trong bốn hình sẵn có. Thanh trượt pha trộn giữa chúng: ở 30 %, mỗi nút nằm ở 30 % quãng đường từ A tới B. Một thao tác thay cho việc kéo sáu điểm, và kết quả là một đường cong bình thường có thể lưu thành preset. Hai cực phải khác nhau - cùng một hình sẽ khiến thanh trượt vô nghĩa, nên ứng dụng sẽ đổi cực còn lại.", "DIAL. Kurva tiap kipas digambar mengelilingi lingkaran alih-alih sepanjang sumbu: SUDUT adalah suhu (titik paling kiri = simpul pertama, paling kanan = terakhir), JARI-JARI adalah kecepatan kipas (pusat = 0 %, tepi = 100 %). Seret pegangan ke luar untuk lebih cepat, ke dalam untuk lebih lambat - suhu simpul tidak pernah berpindah, persis seperti pada grafik. Hantu di tengah menampilkan suhu saat ini dan yang diminta kurva pada suhu itu.\n\nCROSSFADER. Pilih satu bentuk untuk kutub A dan satu lagi untuk kutub B - preset tersimpan atau salah satu dari empat bentuk siap pakai. Slider memadukan keduanya: pada 30 %, tiap simpul berada di 30 % jarak dari A ke B. Satu gerakan menggantikan menyeret enam titik, dan hasilnya kurva biasa yang bisa disimpan sebagai preset. Kedua kutub harus berbeda - bentuk yang sama membuat slider tak berguna, jadi aplikasi memindahkan kutub lainnya.", "I QUADRANTI. La curva di ogni ventola è disegnata attorno a un cerchio anziché lungo un asse: l'ANGOLO è la temperatura (punto più a sinistra = primo nodo, più a destra = ultimo), il RAGGIO è la velocità (centro = 0 %, bordo = 100 %). Trascina una maniglia verso l'esterno per più velocità, verso l'interno per meno - la temperatura di un nodo non si sposta mai, esattamente come nel grafico. Il fantasma al centro mostra la temperatura attuale e ciò che la curva chiede a quella temperatura.\n\nIL CROSSFADER. Scegli una forma per il polo A e un'altra per il polo B - un preset salvato o una delle quattro forme pronte. Il cursore le fonde: al 30 %, ogni nodo sta al 30 % del percorso da A a B. Un movimento invece di trascinare sei punti, e il risultato è una curva normale che puoi salvare come preset. I due poli devono essere diversi - la stessa forma su entrambi i lati renderebbe il cursore inutile, quindi l'app sposta l'altro polo." };
         m["fc_fader"]       = new[] { "Crossfader - blend the whole curve between shape A and shape B", "Crossfader - miesza całą krzywą między kształtem A i B", "Crossfader - überblendet die ganze Kurve zwischen Form A und B", "Crossfader - fond toute la courbe entre la forme A et la forme B", "Crossfader - mezcla toda la curva entre la forma A y la B", "交叉推子 - 在形状 A 与 B 之间混合整条曲线", "Crossfader - mistura toda a curva entre a forma A e a B", "Кроссфейдер - смешивает всю кривую между формами A и B", "クロスフェーダー - 形状 A と B の間でカーブ全体をブレンド", "크로스페이더 - 곡선 전체를 A와 B 형태 사이에서 혼합", "交叉推桿 - 在形狀 A 與 B 之間混合整條曲線", "Crossfader - tüm eğriyi A ve B şekli arasında harmanlar", "Crossfader - pha trộn toàn bộ đường cong giữa hình A và B", "Crossfader - memadukan seluruh kurva antara bentuk A dan B", "Crossfader - fonde l'intera curva tra la forma A e la B" };
