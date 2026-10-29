@@ -142,6 +142,14 @@ two-table test first; if your fan follows table 1 only, the switch changes nothi
 - With the switch on, `Ec.WriteFanCurve` copies the Fan 1 temperatures and speeds into the Fan
   2 tables for every normal write. The two-table test writes its own pairs regardless of the
   switch and restores both tables afterwards.
+- **What is written, address by address.** Without the test and the switch, GhostDeck writes
+  the fan tables the way the vendor's software does: on a single-fan entry the Fan 1 tables
+  only. The two-table test writes both temperature tables (`0x6A`-`0x70`, `0x82`-`0x88`, with
+  the board's own values), both speed tables (`0x72`-`0x78`, `0x8A`-`0x90`, flat) and the
+  fan-mode byte `0xD4`, six times, then writes all of them back as read before the run. The
+  switch adds the Fan 2 tables to every normal curve write and writes the saved Fan 2 tables
+  back when it goes off. Both list these addresses on screen before the first write; nothing
+  else is touched, and nothing is written on laptops without a curve entry.
 - Observation without a conclusion: under MSI Center's all-zero curve the fan-mode byte read
   `9D` on the Cyborg 15 (`8D` otherwise).
 - Code: `Core/TwoTableTest.cs`, `Core/Ec.cs` (`WriteFanCurve`, `MirrorToFan2`),

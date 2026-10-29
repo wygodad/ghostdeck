@@ -28,7 +28,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   mode from the controller's own values on its worker, so closing the window cannot leave a flat curve behind; a finished
   run also shows up in the Fan curve page's history picker.
 - **docs/TWO-FAN-TABLES.md** - the whole story in plain language with pictures: the two tables, the measurement, the test
-  and the switch; a matching FAQ entry.
+  and the switch; a matching FAQ entry. The FAQ's "Is there any risk" entry and TECHNICAL §19 now say in so many words
+  which writes go beyond what MSI's own software does (the test and the switch, both opt-in) and what they touch.
+- **"Saved to: …" is a link** in all four Report wizards (profiles, fan curve, power test, two-table test): a click opens
+  the report file in whatever Windows uses for .txt files.
 
 ### Fixed
 - **Report page above 150 % display scale**: the step rows of the Profiles and Power test wizards kept a fixed height, so

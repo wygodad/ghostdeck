@@ -527,29 +527,49 @@ public sealed class ReportPage : ThemedPage
         }
     }
 
+    // The "Saved to: <file>" line of the wizard on screen, in content coordinates, and the file
+    // it opens. Set by PaintSaved, cleared when nothing painted one.
+    private (Rectangle rect, string path)? _savedLink;
+    private bool _savedHover;
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        if (!_landing) return;
         var p = ContentPoint(e.Location);
-        int h = -1;
-        for (int i = 0; i < LandN; i++) if (_landCards[i].Contains(p)) { h = i; break; }
-        if (h != _landHover) { _landHover = h; Cursor = h >= 0 ? Cursors.Hand : Cursors.Default; Invalidate(); }
+        if (_landing)
+        {
+            int h = -1;
+            for (int i = 0; i < LandN; i++) if (_landCards[i].Contains(p)) { h = i; break; }
+            if (h != _landHover) { _landHover = h; Cursor = h >= 0 ? Cursors.Hand : Cursors.Default; Invalidate(); }
+            return;
+        }
+        bool over = _savedLink is { } sl && sl.rect.Contains(p);
+        if (over != _savedHover) { _savedHover = over; Cursor = over ? Cursors.Hand : Cursors.Default; }
     }
 
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
         if (_landHover != -1) { _landHover = -1; Cursor = Cursors.Default; Invalidate(); }
+        if (_savedHover) { _savedHover = false; Cursor = Cursors.Default; }
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
-        if (!_landing || e.Button != MouseButtons.Left) return;
+        if (e.Button != MouseButtons.Left) return;
         var p = ContentPoint(e.Location);
-        for (int i = 0; i < LandN; i++)
-            if (_landCards[i].Contains(p)) { _subTabs.SetActive(i + 1, raise: true); return; }
+        if (_landing)
+        {
+            for (int i = 0; i < LandN; i++)
+                if (_landCards[i].Contains(p)) { _subTabs.SetActive(i + 1, raise: true); return; }
+            return;
+        }
+        // The saved report opens in whatever Windows uses for .txt files (Notepad by default).
+        if (_savedLink is { } sl && sl.rect.Contains(p) && File.Exists(sl.path))
+        {
+            try { Process.Start(new ProcessStartInfo(sl.path) { UseShellExecute = true }); } catch { }
+        }
     }
 
     // The landing rectangles live in content coordinates; mouse events arrive in client ones.
@@ -629,6 +649,7 @@ public sealed class ReportPage : ThemedPage
 
         Ui.DrawText(g, Lang.T("menu_report"), Dpi.Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
 
+        _savedLink = null;   // whichever wizard paints a "Saved to" line below sets it again
         if (_landing) { PaintLanding(g); return; }
         if (_sub == 1) { PaintCurve(g); return; }
         if (_sub == 2) { PaintPower(g); return; }
@@ -1868,10 +1889,14 @@ public sealed class ReportPage : ThemedPage
         int sh = 0;
         if (path != null)
         {
+            // The line is a link: a click opens the report in whatever handles .txt files. Only
+            // one wizard is painted at a time, so one remembered rectangle covers all four.
             string saved = string.Format(Lang.T("rep_saved_to"), path);
             var sf = Dpi.Font("Segoe UI", 9f);
-            sh = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak).Height;
-            Ui.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Muted, TextFormatFlags.WordBreak);
+            var size = TextRenderer.MeasureText(saved, sf, new Size(w, 0), TextFormatFlags.WordBreak);
+            sh = size.Height;
+            Ui.DrawText(g, saved, sf, new Rectangle(x, y, w, sh + 4), Theme.Accent, TextFormatFlags.WordBreak);
+            _savedLink = (new Rectangle(x, y, Math.Min(w, size.Width + 4), sh + 4), path);
             sh += 6;
         }
         // Deliberately NOT tied to the path: a run that lost the clipboard AND the file is the one

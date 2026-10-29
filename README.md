@@ -213,7 +213,7 @@ External monitors and HDR were not tested (the message carries no monitor parame
 | ![Models - Series](docs/images/models_series.png) | ![Models - Community](docs/images/models_community.png) |
 | **Models - Series** - how much of each series owners have tested; a click opens the list | **Models - Community** - everyone who helped, and the timeline of new models and promotions |
 | ![Report start screen](docs/images/report_start.png) | ![GPU clock on Status](docs/images/status_gpu_clock.png) |
-| **Report start screen** - three tiles say what each test answers, what it needs and what it writes | **GPU clock on Status** - core clock against its ceiling, no vendor software; the ? bubble explains the figure |
+| **Report start screen** - four tiles say what each test answers, what it needs and what it writes | **GPU clock on Status** - core clock against its ceiling, no vendor software; the ? bubble explains the figure |
 | ![Fan curve](docs/images/fan_curve.png) | ![Fan curve in action](docs/images/fan_curve_in_action.png) |
 | **Fan curve - Chart** - drag the nodes, with the live operating point, audibility zones, intent tiles, comparison layers and a coupled table | **Fan curve - In action** - your curve with the last hour of real readings over it, grouped where they crowd, plus the fan sweep and what its numbers say |
 | ![Fan curve deck](docs/images/fan_curve_deck.png) | ![Status EC bytes](docs/images/status_ec.png) |

@@ -659,6 +659,26 @@ first run with no stored firmware) records the current firmware and re-enables a
 deliberately a *soft* guard (auto only), not a full lockout; do not widen it to block manual
 switching without discussing the trade-off.
 
+### 19.9 Writes that go beyond what the vendor's software writes
+
+The rule everywhere else in this document is "we write what MSI's own software writes, nothing
+more". Two features, both from 2026-10 and both opt-in, deliberately step outside it, and the
+user-facing documents (FAQ "Is there any risk", TWO-FAN-TABLES.md §5) name them so nobody has to
+read the code to know:
+
+- **The two-table test** (§85) writes flat curves into **both** fan-curve tables, the temperature
+  tables with the board's own values, and the fan-mode byte, six times, then writes everything
+  back as read before the run. On a single-fan entry the second table is one the vendor's
+  one-slider software never writes. The run lists every address first and needs the user's
+  consent (a card on the Fan curve page, a box on the Report sub-tab).
+- **The "write to both fan tables" switch** (§85) adds the Fan 2 tables to every normal curve
+  write while it is on, saves the Fan 2 tables the moment it goes on and writes them back when it
+  goes off. Experimental, off by default, consent card with the before/after/impact/responsibility
+  parts.
+
+Any further feature that writes something the vendor does not must be added to this list and to
+the two user-facing places above in the same change.
+
 ---
 
 ## 20. Gaming overlay and extra hardware metrics
