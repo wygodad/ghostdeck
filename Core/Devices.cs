@@ -1310,6 +1310,10 @@ public static class Devices
         //   drift at a constant 72-75 C (the repeat Balanced at 3083 MHz against 3608 at the
         //   start; cause unknown), so profile differences are unreadable from that run. Silent
         //   held the fan at 28 % for 48 s where Balanced ran 63 %; CPU work 99 % of Balanced.
+        //   A second run (#283, 26.10) read every phase back intact again and stopped in the
+        //   repeat Balanced at the 99 C guard; the CPU sat at 85-99 C throughout (drift +12 %,
+        //   Extreme 89 % of Balanced at 95 C), so power is again unreadable. Silent again ran the
+        //   fan at about half speed (1790 vs 3669 rpm), 9 C cooler, work 94 %.
         //   An earlier owner's capture (#149) showed four unswitched columns - no evidence then.
         new() { Name = "MSI Cyborg 15 AI A1VFK / A1VEK",    FirmwarePrefixes = new[] { "15K2EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
