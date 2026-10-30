@@ -79,9 +79,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
 
 ### Changed
-- **Status → Gaming when no game is running** shows your saved games first: the picker, the results, then the picked game's
-  frametime line and how even its frames were over the whole game (games saved before this version show the line only). The live
-  boxes and chart come back as soon as a game is in front.
+- **Status → Gaming, saved games**: the picked game now shows its frametime line and how even its frames were over the whole
+  game, above its numbers (games saved before this version show the line only). The live part at the top is unchanged.
 - **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
   @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
   the shipped map ([#293](../../issues/293)).

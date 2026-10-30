@@ -1417,7 +1417,7 @@ whether they are there.
   no room.
 - **Status → Gaming** session card: two more rows, "0.1% low" and "Frametime"
   (`median x.x ms · 95% ≤ x.x ms`, `gm_pacing_row`), "-" for older sessions.
-- **Status → Gaming without a game in front**: the live boxes and the live frametime chart are left out (they would only show dashes); the saved games come first - the picker, the session card, then two charts of the picked game: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread (the `FrameHist` columns, log height, red past max(25 ms, 2x median)). Games saved before this version show the line and a note instead of the spread. With a game in front the tab looks as before.
+- **Status → Gaming, saved game**: under the live boxes and the live 60 s chart (unchanged), the picked saved game now shows two charts above its numbers: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread (the `FrameHist` columns, log height, red past max(25 ms, 2x median)). Games saved before this version show the line and a note instead of the spread.
 - **Export:** JSON `medianFrametimeMs`, `p95FrametimeMs`, `p01LowFps` (null for older sessions)
   and `frametimeHistogram1ms`; CSV columns `median_frametime_ms`, `p95_frametime_ms`,
   `p01_low_fps`, `frametime_hist_1ms` (the 51 bins in one cell, separated by `;`). Decimals use a

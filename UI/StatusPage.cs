@@ -311,10 +311,9 @@ public sealed class StatusPage : ThemedPage
             int sess = sel != null
                 ? GTitle.Height + 12 + GmSessRows * GmRowH + 14
                 : GTitle.Height + 12 + 56;
-            // no game in front: saved games first, with their two charts (see RenderGaming)
-            if (FpsMonitor.Current == null)
-                return SecTop + GmHeadH + 10 + sess + (sel != null ? 2 * (24 + GmChartH) : 0) + 40;
-            return SecTop + GmHeadH + 10 + GmBoxH + 24 + GmChartH + 24 + sess + 40;
+            // the picked saved game carries two charts of its own (#6) above its numbers
+            int charts = sel != null ? 2 * (GmChartH + 24) : 0;
+            return SecTop + GmHeadH + 10 + GmBoxH + 24 + GmChartH + 24 + sess + charts + 40;
         }
         if (sub == 3)
         {
@@ -1004,14 +1003,6 @@ public sealed class StatusPage : ThemedPage
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: a game's process name can be any length
         top += headH + 10;
 
-        if (snap == null)
-        {
-            // No game in front: the live boxes and the live chart would only show dashes, so the
-            // saved games come first: the picker, the picked game's two charts (#6), its numbers.
-            DrawLastSession(g, top, avail, withCharts: true);
-            return;
-        }
-
         // live stat boxes: FPS · frametime · 1% low · stutters (rolling 30 s)
         int gap = 14, bw = (avail - gap * 3) / 4, boxH = GmBoxH;
         int valY = Math.Max(26, GmLabF.Height + 2);   // value line under the label
@@ -1034,7 +1025,8 @@ public sealed class StatusPage : ThemedPage
         top += boxH + 24;
 
         top = DrawFrametimeChart(g, top, avail) + 24;
-        DrawLastSession(g, top, avail);
+        // the saved game under the live part: its two charts (#6), then its numbers
+        DrawLastSession(g, top, avail, withCharts: true);
     }
 
     private int DrawFrametimeChart(Graphics g, int top, int avail)
