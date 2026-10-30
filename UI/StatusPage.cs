@@ -312,7 +312,7 @@ public sealed class StatusPage : ThemedPage
                 ? GTitle.Height + 12 + GmSessRows * GmRowH + 14
                 : GTitle.Height + 12 + 56;
             // the picked saved game carries two charts of its own (#6) above its numbers
-            int charts = sel != null ? 2 * (GmChartH + 24) : 0;
+            int charts = sel != null ? GmChartH + 24 + SpreadChartH(width - Pad * 2, sel) + 24 : 0;
             return SecTop + GmHeadH + 10 + GmBoxH + 24 + GmChartH + 24 + sess + charts + 40;
         }
         if (sub == 3)
@@ -703,6 +703,7 @@ public sealed class StatusPage : ThemedPage
 
     private void ChartsClick(Point p)
     {
+        if (_statusSub == 2) { SpreadClick(p); return; }
         if (_statusSub != 0) return;
         foreach (var b in _fanHelpBtns)
             if (!b.IsEmpty && b.Contains(p)) { HelpPopup.Toggle(_canvas, Rectangle.Round(b), Lang.T("st_fan_target_tip"), this); return; }
@@ -988,6 +989,9 @@ public sealed class StatusPage : ThemedPage
     {
         int top = SecTop;
         var snap = FpsMonitor.Current;
+        // the spread chart's click zones exist only while it is drawn (DrawSavedSpread sets them)
+        _spreadCard = _spreadHelp = RectangleF.Empty;
+        _spreadHits = Array.Empty<RectangleF>();
 
         // current game line ("Game: witcher3" or the how-to hint) + a raw ETW diag readout on the
         // right (untranslated by design, like CLI output) so a dead session is visible, not silent
@@ -1237,50 +1241,351 @@ public sealed class StatusPage : ThemedPage
         return top + GmChartH;
     }
 
-    // (#6) The whole game's frame spread from the saved histogram: one column per millisecond
-    // (log height, so a few dozen slow frames stay visible next to a hundred thousand fast ones),
-    // columns past the stutter line in red. Games saved before 1.43 carry no histogram.
+    // (#6) The whole game's frame spread from the saved histogram: one bar per millisecond on a
+    // linear scale of real frame counts, bars from the stutter line on in red. The tallest bar
+    // carries a bubble saying what most frames took; a click on a bar pins a second bubble with
+    // its count until the next click. Games saved before 1.43 carry no histogram.
+    private int _spreadSel = -1;              // the clicked bin, -1 = none
+    private GameSession? _spreadFor;          // the game the selection belongs to
+    // click zones in canvas coordinates, set while drawing (the canvas is scrolled as a child
+    // control, so mouse points and drawing share one coordinate space); Empty = no bar there
+    private RectangleF[] _spreadHits = Array.Empty<RectangleF>();
+    private RectangleF _spreadCard, _spreadHelp;
+
+    private static readonly Font SpBubT = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
+    private static readonly Font SpBubF = Dpi.Font("Segoe UI", 9f);
+    private static readonly Font SpHelpF = Dpi.Font("Segoe UI", 9.5f);
+
+    private static bool SpreadHasHist(GameSession s) => s.HasPacing && s.FrameHist is { Length: > 26 };
+
+    // Card geometry, shared by the drawing and SectionHeight: the header (title + help button,
+    // the legend right of them or on a row of its own when both do not fit), the plot (with a
+    // band above the tallest bar for its bubble) and the foot (two label lines + the caption).
+    private int SpreadRowH() => Math.Max(GTitle.Height + 4, S(22) + 4);
+    private int SpreadHelpW() => S(10) + S(22) + S(6) + TextRenderer.MeasureText(Lang.T("gm_sh_help"), SpHelpF).Width + S(2);
+    private int SpreadSwatch() => Math.Max(S(10), LegF.Height / 2);
+    private int SpreadLegendW() =>
+        2 * (SpreadSwatch() + S(6)) + S(18)
+        + TextRenderer.MeasureText(Lang.T("gm_sh_leg_smooth"), LegF).Width
+        + TextRenderer.MeasureText(Lang.T("gm_sh_leg_stut"), LegF).Width;
+    private bool SpreadLegendBelow(int avail) =>
+        S(16) + TextRenderer.MeasureText(Lang.T("gm_saved_hist"), GTitle).Width + SpreadHelpW() + S(24) + SpreadLegendW() + S(16) > avail;
+    private int SpreadHeadH(int avail) => S(10) + SpreadRowH() + (SpreadLegendBelow(avail) ? S(6) + LegF.Height : 0) + S(12);
+    private int SpreadBubbleH() => S(7) + SpBubT.Height + S(2) + SpBubF.Height + S(7);
+    private int SpreadArrowH() => S(10);
+    private int SpreadBand() => SpreadBubbleH() + SpreadArrowH() + S(6);
+    private int SpreadPlotH() => Math.Max(S(240), SpreadBand() + 5 * AxisH);
+    private int SpreadCaptionH(int avail) =>
+        TextRenderer.MeasureText(Lang.T("gm_sh_axis_x"), AxisF, new Size(avail - S(32), int.MaxValue), TextFormatFlags.WordBreak).Height;
+    private int SpreadFootH(int avail) => S(6) + 2 * AxisH + S(10) + SpreadCaptionH(avail) + S(14);
+    private int SpreadChartH(int avail, GameSession s) =>
+        SpreadHasHist(s) ? SpreadHeadH(avail) + SpreadPlotH() + SpreadFootH(avail) : GmChartH;
+
     private int DrawSavedSpread(Graphics g, int top, int avail, GameSession s)
     {
-        var card = new RectangleF(Pad, top, avail, GmChartH);
+        if (!ReferenceEquals(s, _spreadFor)) { _spreadFor = s; _spreadSel = -1; }   // another game picked
+        int cardH = SpreadChartH(avail, s);
+        var card = new RectangleF(Pad, top, avail, cardH);
         Ui.FillCard(g, card);
-        TextRenderer.DrawText(g, Lang.T("gm_saved_hist"), GTitle, new Rectangle(Pad + 16, top + 10, avail - 40, GTitle.Height + 4),
-            Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
-        int lx = Pad + avail - 16;
-        Legend(g, ref lx, top, Lang.T("gm_stut"), Theme.Red, dot: true);
-        var plot = ChartPlot(top, avail, GmChartH, "");
+        string title = Lang.T("gm_saved_hist");
+        int titleW = TextRenderer.MeasureText(g, title, GTitle).Width;
+        int rowH = SpreadRowH(), rowY = top + S(10);
+        TextRenderer.DrawText(g, title, GTitle, new Rectangle(Pad + S(16), rowY, Math.Min(titleW + S(4), avail - S(32)), rowH),
+            Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
 
-        if (!s.HasPacing || s.FrameHist is not { } h)
+        if (!SpreadHasHist(s))
         {
-            TextRenderer.DrawText(g, Lang.T("gm_saved_hist_none"), GCell, Rectangle.Round(plot), Theme.Muted,
+            TextRenderer.DrawText(g, Lang.T("gm_saved_hist_none"), GCell, Rectangle.Round(ChartPlot(top, avail, GmChartH, "")), Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
             return top + GmChartH;
         }
+        var h = s.FrameHist!;
         int n = h.Length;
-        double lp = Math.Log10(Math.Max(1, h.Max()) + 1);
+        _spreadCard = card;
+
+        // help: the "?" circle with the word next to it, one click zone (opens the help card)
+        int hd = S(22);
+        var dot = new RectangleF(Pad + S(16) + titleW + S(10), rowY + (rowH - hd) / 2f, hd, hd);
+        HelpDot.Render(g, dot);
+        string help = Lang.T("gm_sh_help");
+        int helpW = TextRenderer.MeasureText(g, help, SpHelpF).Width;
+        TextRenderer.DrawText(g, help, SpHelpF, new Rectangle((int)dot.Right + S(6), rowY, helpW + S(2), rowH),
+            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+        _spreadHelp = RectangleF.FromLTRB(dot.Left - S(3), dot.Top - S(3), dot.Right + S(6) + helpW + S(4), dot.Bottom + S(3));
+
+        // legend, right to left: what blue and red mean
+        int legY = SpreadLegendBelow(avail) ? rowY + rowH + S(6) : rowY + (rowH - LegF.Height) / 2;
+        int lx = Pad + avail - S(16), sq = SpreadSwatch();
+        void Leg(string label, Color c)
+        {
+            int w = TextRenderer.MeasureText(g, label, LegF).Width;
+            lx -= w;
+            TextRenderer.DrawText(g, label, LegF, new Rectangle(lx, legY, w + S(2), LegF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top);
+            lx -= S(6) + sq;
+            using var b = new SolidBrush(c);
+            g.FillRectangle(b, lx, legY + (LegF.Height - sq) / 2f, sq, sq);
+            lx -= S(18);
+        }
+        Leg(Lang.T("gm_sh_leg_stut"), Theme.Red);
+        Leg(Lang.T("gm_sh_leg_smooth"), Theme.Accent);
+
+        // linear scale of real counts; the tallest bar ends a bubble's height under the top line
+        int plotH = SpreadPlotH(), band = SpreadBand();
+        int maxV = Math.Max(1, h.Max());
+        double raw = maxV * (double)plotH / Math.Max(1, plotH - band);
+        long step = NiceStep(raw, 5);
+        long ceil = (long)Math.Ceiling(raw / step) * step;
+        int steps = (int)(ceil / step);
+        string Count(long v) => v.ToString("N0", Lang.Culture);
+
+        // left column: the axis caption turned on its side, then the count labels
+        string capY = Lang.T("gm_sh_axis_y");
+        int capLines = g.MeasureString(capY, AxisF).Width > plotH - S(8) ? 2 : 1;
+        int capW = (int)Math.Ceiling(capLines * AxisF.GetHeight(g)) + S(4);
+        int labW = 0;
+        for (int i = 0; i <= steps; i++) labW = Math.Max(labW, TextRenderer.MeasureText(g, Count(step * i), AxisF).Width);
+        float pl = Pad + S(12) + capW + S(6) + labW + S(8);
+        var plot = new RectangleF(pl, top + SpreadHeadH(avail), Pad + avail - S(20) - pl, plotH);
+
+        using (var grid = new Pen(Theme.Border))
+            for (int i = 0; i <= steps; i++)
+            {
+                float gy = plot.Bottom - (float)(step * i / (double)ceil) * plot.Height;
+                g.DrawLine(grid, plot.Left, gy, plot.Right, gy);
+                TextRenderer.DrawText(g, Count(step * i), AxisF, new Rectangle((int)plot.Left - S(8) - labW, (int)gy - AxisH / 2, labW + S(2), AxisH),
+                    Theme.Faint, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            }
+        {
+            var st = g.Save();
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+            g.TranslateTransform(Pad + S(12), plot.Top + plot.Height / 2f);
+            g.RotateTransform(-90);
+            using var cb = new SolidBrush(Theme.Muted);
+            using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            g.DrawString(capY, AxisF, cb, new RectangleF(-plot.Height / 2f, 0, plot.Height, capW), sf);
+            g.Restore(st);
+        }
+
+        // the bars; a bar with frames keeps at least 2 px, so a handful of slow frames still shows
         float stutterAt = Math.Max(25f, 2f * s.MedianMs);
-        float colW = plot.Width / n;
-        using (var axis = new Pen(Theme.Border)) g.DrawLine(axis, plot.Left, plot.Bottom, plot.Right, plot.Bottom);
-        using var fast = new SolidBrush(Theme.Accent);
-        using var slow = new SolidBrush(Theme.Red);
+        bool Stutter(int i) => i >= stutterAt || i == n - 1;   // the last bin holds every frame of 50 ms and slower
+        float colW = plot.Width / n, gap = Math.Max(1f, colW * 0.14f);
+        var bars = new RectangleF[n];
+        var hits = new RectangleF[n];
+        int tallest = -1;
         for (int i = 0; i < n; i++)
         {
             if (h[i] <= 0) continue;
-            float hh = (float)(Math.Log10(h[i] + 1) / lp) * plot.Height;
-            float w = Math.Max(1f, colW - 2f);
-            bool stutter = i >= stutterAt || i == n - 1;   // the last column holds every frame of 50 ms and slower
-            g.FillRectangle(stutter ? slow : fast, plot.Left + i * colW + 1f, plot.Bottom - hh, w, hh);
+            if (tallest < 0 || h[i] > h[tallest]) tallest = i;
+            float hh = Math.Max(S(2), (float)(h[i] / (double)ceil) * plot.Height);
+            bars[i] = new RectangleF(plot.Left + i * colW + gap / 2f, plot.Bottom - hh, Math.Max(1f, colW - gap), hh);
+            // the whole column wide and at least a fingertip tall, so a 2 px bar can be hit too
+            float hitTop = Math.Min(bars[i].Top, plot.Bottom - S(16)) - S(2);
+            hits[i] = RectangleF.FromLTRB(plot.Left + i * colW, hitTop, plot.Left + (i + 1) * colW, plot.Bottom + S(2));
         }
-        XLabel(g, "0 ms", plot, plot.Left + colW / 2, Pad + avail);
-        XLabel(g, "25 ms", plot, plot.Left + 25.5f * colW, Pad + avail);
-        XLabel(g, $"{n - 1}+ ms", plot, plot.Right - colW / 2, Pad + avail);
-        return top + GmChartH;
+        _spreadHits = hits;
+        if (_spreadSel >= n || (_spreadSel >= 0 && h[_spreadSel] <= 0)) _spreadSel = -1;
+        using (var fast = new SolidBrush(Theme.Accent))
+        using (var slow = new SolidBrush(Theme.Red))
+            for (int i = 0; i < n; i++)
+                if (h[i] > 0) g.FillRectangle(Stutter(i) ? slow : fast, bars[i]);
+        using (var axis = new Pen(Theme.BorderStrong)) g.DrawLine(axis, plot.Left, plot.Bottom, plot.Right, plot.Bottom);
+        if (_spreadSel >= 0)
+        {
+            var r = bars[_spreadSel];
+            using var lb = new SolidBrush(Lighter(Stutter(_spreadSel) ? Theme.Red : Theme.Accent));
+            g.FillRectangle(lb, r);
+            float pw = Math.Max(1.5f, S(2) * 0.75f);
+            using var op = new Pen(Theme.Text, pw);
+            g.DrawRectangle(op, r.X - pw / 2f, r.Y - pw / 2f, r.Width + pw, r.Height + pw);
+        }
+
+        // ticks under the plot: the time of one frame, and the frames per second it makes
+        int cardL = Pad + S(6), cardR = Pad + avail - S(6);
+        int ly = (int)plot.Bottom + S(6);
+        using (var tp = new Pen(Theme.BorderStrong))
+        {
+            void XTick(float x, string ms, string fps)
+            {
+                g.DrawLine(tp, x, plot.Bottom, x, plot.Bottom + S(4));
+                int w = Math.Max(TextRenderer.MeasureText(g, ms, AxisF).Width, fps.Length > 0 ? TextRenderer.MeasureText(g, fps, AxisF).Width : 0) + S(6);
+                int x0 = (int)Math.Clamp(x - w / 2f, cardL, cardR - w);
+                TextRenderer.DrawText(g, ms, AxisF, new Rectangle(x0, ly, w, AxisH), Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+                if (fps.Length > 0)
+                    TextRenderer.DrawText(g, fps, AxisF, new Rectangle(x0, ly + AxisH, w, AxisH), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top);
+            }
+            string Fps(int v) => string.Format(Lang.T("gm_sh_fps"), v);
+            XTick(plot.Left, "0 ms", "");
+            XTick(plot.Left + 16 * colW, "16 ms", Fps(60));
+            XTick(plot.Left + 25 * colW, "25 ms", Fps(40));
+            XTick(plot.Left + (n - 0.5f) * colW, $"{n - 1}+ ms", Fps(1000 / (n - 1)));
+        }
+        TextRenderer.DrawText(g, Lang.T("gm_sh_axis_x"), AxisF,
+            new Rectangle(Pad + S(16), ly + 2 * AxisH + S(10), avail - S(32), SpreadCaptionH(avail) + S(4)), Theme.Muted,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak);
+
+        // bubbles: the tallest bar always, the clicked one on top of it. They stay inside the
+        // plot; when the clicked bubble would cover the permanent one, the permanent one waits.
+        if (tallest < 0) return top + cardH;
+        int FpsOf(int i) => (int)Math.Round(1000.0 / (i + 0.5));
+        var bounds = RectangleF.FromLTRB(Pad + S(8), plot.Top, Pad + avail - S(8), plot.Bottom);
+        string tt1 = string.Format(Lang.T("gm_sh_top"), tallest == n - 1 ? $"{n - 1}+ ms" : $"{tallest} ms");
+        string tt2 = tallest == n - 1 ? string.Format(Lang.T("gm_sh_top_last"), n - 1, 1000 / (n - 1))
+            : string.Format(Lang.T(Stutter(tallest) ? "gm_sh_top_stut" : "gm_sh_top_smooth"), tallest, FpsOf(tallest));
+        var topB = BubbleAt(g, bars, tallest, tt1, tt2, bounds, RectangleF.Empty);
+        if (_spreadSel >= 0)
+        {
+            int k = _spreadSel;
+            string st1 = string.Format(Lang.T("gm_sh_sel"), k == n - 1 ? string.Format(Lang.T("gm_sh_last"), n - 1) : $"{k} ms");
+            string st2 = k == n - 1 ? string.Format(Lang.T("gm_sh_sel_last"), FramesText(h[k]), 1000 / (n - 1))
+                : string.Format(Lang.T("gm_sh_sel_line"), FramesText(h[k]), FpsOf(k));
+            var selB = BubbleAt(g, bars, k, st1, st2, bounds, k == tallest ? RectangleF.Empty : topB.box);
+            var clear = topB.box; clear.Inflate(S(4), S(4));
+            if (k != tallest && !clear.IntersectsWith(selB.box)) PaintBubble(g, topB, tt1, tt2, false);
+            PaintBubble(g, selB, st1, st2, true);
+        }
+        else PaintBubble(g, topB, tt1, tt2, false);
+        return top + cardH;
     }
+
+    // A bubble for bar `k` with a short arrow at the bar's top. Tried first above the bar
+    // (centred, reaching right, reaching left), then beside it (right, then left): the first
+    // that covers no taller bar and misses `avoid` wins.
+    private (RectangleF box, PointF tip, PointF b1, PointF b2) BubbleAt(Graphics g, RectangleF[] bars, int k, string t1, string t2,
+        RectangleF bounds, RectangleF avoid)
+    {
+        int padX = S(10), padY = S(7), inner = Math.Max(S(60), (int)bounds.Width - 2 * padX);
+        const TextFormatFlags f = TextFormatFlags.WordBreak | TextFormatFlags.Left | TextFormatFlags.Top;
+        var s1 = TextRenderer.MeasureText(g, t1, SpBubT, new Size(inner, int.MaxValue), f);
+        var s2 = TextRenderer.MeasureText(g, t2, SpBubF, new Size(inner, int.MaxValue), f);
+        float bw = Math.Min(bounds.Width, Math.Max(s1.Width, s2.Width) + 2 * padX);
+        float bh = padY + s1.Height + S(2) + s2.Height + padY;
+        var bar = bars[k];
+        float cx = bar.Left + bar.Width / 2f, aw = S(6), r = S(8), arrow = SpreadArrowH();
+        float ClampX(float x) => Math.Clamp(x, bounds.Left, Math.Max(bounds.Left, bounds.Right - bw));
+        float ClampY(float y) => Math.Clamp(y, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - bh));
+        // above: arrow down from the bubble's bottom edge
+        float upY = ClampY(bar.Top - arrow - bh);
+        (RectangleF box, PointF tip, PointF b1, PointF b2) Above(float x)
+        {
+            var bx = new RectangleF(ClampX(x), upY, bw, bh);
+            float baseX = Math.Clamp(cx, bx.Left + r + aw, bx.Right - r - aw);
+            return (bx, new PointF(cx, bar.Top - S(2)), new PointF(baseX - aw, bx.Bottom - 1.5f), new PointF(baseX + aw, bx.Bottom - 1.5f));
+        }
+        // beside: arrow sideways from the bubble's near edge to the bar's top corner
+        float tipY = Math.Min(bar.Top + S(6), bar.Bottom - 1);
+        float sideY = ClampY(tipY - bh + r + aw + S(4));
+        (RectangleF box, PointF tip, PointF b1, PointF b2) Beside(bool right)
+        {
+            var bx = new RectangleF(right ? bar.Right + arrow : bar.Left - arrow - bw, sideY, bw, bh);
+            float baseY = Math.Clamp(tipY, bx.Top + r + aw, bx.Bottom - r - aw);
+            float ex = right ? bx.Left + 1.5f : bx.Right - 1.5f;
+            return (bx, new PointF(right ? bar.Right + S(2) : bar.Left - S(2), tipY), new PointF(ex, baseY - aw), new PointF(ex, baseY + aw));
+        }
+        var tries = new[] { Above(cx - bw / 2f), Above(cx - r - aw - S(4)), Above(cx + r + aw + S(4) - bw), Beside(true), Beside(false) };
+        bool Fits((RectangleF box, PointF, PointF, PointF) c) =>
+            c.box.Left >= bounds.Left - 0.5f && c.box.Right <= bounds.Right + 0.5f;
+        bool Covers((RectangleF box, PointF, PointF, PointF) c)
+        {
+            for (int j = 0; j < bars.Length; j++)
+                if (j != k && !bars[j].IsEmpty && bars[j].Top < c.box.Bottom && bars[j].Right > c.box.Left && bars[j].Left < c.box.Right) return true;
+            return false;
+        }
+        foreach (var c in tries) if (Fits(c) && !Covers(c) && !c.box.IntersectsWith(avoid)) return c;
+        foreach (var c in tries) if (Fits(c) && !Covers(c)) return c;
+        return tries[0];
+    }
+
+    private void PaintBubble(Graphics g, (RectangleF box, PointF tip, PointF b1, PointF b2) b, string t1, string t2, bool clicked)
+    {
+        int padX = S(10), padY = S(7);
+        using var fill = new SolidBrush(Color.FromArgb(242, Theme.Card));
+        using var edge = new Pen(clicked ? Theme.Text : Theme.BorderStrong, clicked ? 1.5f : 1f);
+        using (var path = Theme.RoundRect(b.box, S(8)))
+        {
+            g.FillPath(fill, path);
+            g.DrawPath(edge, path);
+        }
+        if (!b.box.Contains(b.tip))
+        {
+            g.FillPolygon(fill, new[] { b.b1, b.b2, b.tip });
+            g.DrawLine(edge, b.b1, b.tip);
+            g.DrawLine(edge, b.b2, b.tip);
+        }
+        const TextFormatFlags f = TextFormatFlags.WordBreak | TextFormatFlags.Left | TextFormatFlags.Top;
+        int inner = (int)b.box.Width - 2 * padX;
+        var s1 = TextRenderer.MeasureText(g, t1, SpBubT, new Size(inner, int.MaxValue), f);
+        int x = (int)b.box.X + padX, y = (int)b.box.Y + padY;
+        TextRenderer.DrawText(g, t1, SpBubT, new Rectangle(x, y, inner + S(2), s1.Height), Theme.Text, f);
+        y += s1.Height + S(2);
+        TextRenderer.DrawText(g, t2, SpBubF, new Rectangle(x, y, inner + S(2), (int)b.box.Bottom - y), Theme.Muted, f);
+    }
+
+    private static Color Lighter(Color c) =>
+        Color.FromArgb(c.A, c.R + (255 - c.R) * 2 / 5, c.G + (255 - c.G) * 2 / 5, c.B + (255 - c.B) * 2 / 5);
+
+    // The smallest 1 / 2 / 2.5 / 5 x 10^k step that covers `raw` in at most `maxSteps` steps.
+    private static long NiceStep(double raw, int maxSteps)
+    {
+        for (double e = Math.Pow(10, Math.Floor(Math.Log10(Math.Max(1, raw / maxSteps)))); ; e *= 10)
+            foreach (double m in new[] { 1, 2, 2.5, 5 })
+            {
+                if (m == 2.5 && e < 10) continue;
+                long step = (long)Math.Round(m * e);
+                if (Math.Ceiling(raw / step) <= maxSteps) return step;
+            }
+    }
+
+    // A frame count with its noun in the right form: Polish and Russian have a "few" form (2-4).
+    private static string FramesText(int n)
+    {
+        int m10 = n % 10, m100 = n % 100;
+        bool few = m10 is >= 2 and <= 4 && m100 is < 12 or > 14;
+        string key = Lang.CurrentCode switch
+        {
+            "pl" => n == 1 ? "gm_sh_n1" : few ? "gm_sh_n2" : "gm_sh_n5",
+            "ru" => m10 == 1 && m100 != 11 ? "gm_sh_n1" : few ? "gm_sh_n2" : "gm_sh_n5",
+            _ => n == 1 ? "gm_sh_n1" : "gm_sh_n5",
+        };
+        return string.Format(Lang.T(key), n.ToString("N0", Lang.Culture));
+    }
+
+    // -1 = the help button, 0.. = a bar, -2 = nothing clickable there
+    private int SpreadHit(Point p)
+    {
+        if (_spreadHelp.Contains(p)) return -1;
+        for (int i = 0; i < _spreadHits.Length; i++)
+            if (_spreadHits[i].Contains(p)) return i;
+        return -2;
+    }
+
+    // A click on a bar pins its bubble; the same bar again, or the empty chart, takes it away.
+    // Only the buffer is redrawn: nothing on the page moves.
+    private void SpreadClick(Point p)
+    {
+        int hit = SpreadHit(p);
+        if (hit == -1) { BeginInvoke((Action)ShowSpreadHelp); return; }
+        if (_spreadCard.IsEmpty || !_spreadCard.Contains(p)) return;
+        int next = hit < 0 || hit == _spreadSel ? -1 : hit;
+        if (next == _spreadSel) return;
+        _spreadSel = next;
+        _canvas.Rebuild();
+    }
+
+    private void ShowSpreadHelp()
+    {
+        using var dlg = SpreadHelpCard();
+        dlg.ShowOver(FindForm());
+    }
+
+    internal static GhostCardForm SpreadHelpCard() =>
+        new("//FRAMES", Lang.T("gm_sh_help_title"), Lang.T("gm_sh_help_body"), Lang.T("gm_sh_help_ok"), "", () => { });
 
     private void ChartsMouse(Control owner, Point? p)
     {
-        bool onDot = _statusSub == 0 && p is { } pt
-            && (_gpuHelpBtn.Contains(pt) || _fanHelpBtns[0].Contains(pt) || _fanHelpBtns[1].Contains(pt));
+        bool onDot = p is { } pt && (_statusSub == 0
+            ? _gpuHelpBtn.Contains(pt) || _fanHelpBtns[0].Contains(pt) || _fanHelpBtns[1].Contains(pt)
+            : _statusSub == 2 && SpreadHit(pt) != -2);
         var want = onDot ? Cursors.Hand : Cursors.Default;
         if (owner.Cursor != want) owner.Cursor = want;
     }
