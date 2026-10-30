@@ -1420,20 +1420,35 @@ whether they are there.
 - **Status → Gaming, saved game**: under the live boxes and the live 60 s chart (unchanged), the picked saved game now shows two charts above its numbers: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread, "How even the frames were (whole game)" (`DrawSavedSpread`). Games saved before this version show the line and a note instead of the spread.
 
   The spread chart in Status is built to be read without the popup's context:
-  - **Linear height**, unlike the popup strip: a bar's height is its frame count, the vertical
-    axis is labelled "Frame count" with rounded gridline values (the popup keeps the log strip,
-    where it only has to show that rare long frames exist).
+  - **Two views**, a switch in the header ("Real counts" / "All frames visible"), remembered in
+    `AppSettings.SpreadLogView` (default: real counts). Real counts: a bar's height is its frame
+    count on a linear axis labelled "Number of frames" with rounded gridline values. All frames
+    visible: height = log10(1 + count), gridlines at 0 / 10 / 100 / 1 000 ..., and an amber
+    note under the title that the height is squeezed and the bubbles keep the real numbers (in
+    a real game one or two bars hold almost every frame, so on the linear axis the slow frames
+    are a 2 px line). The note's room is kept in both views, so switching only repaints.
   - **Horizontal axis** in ms with the matching frame rate under it: `0 ms`, `16 ms / 60 fps`,
     `25 ms / 40 fps`, `50+ ms / 20 fps`, plus the caption "how long one frame took (and how many
-    frames per second that is)".
+    frames per second that is)". Axis and bubbles share one conversion (`FpsAtMs`: 1000 / ms at
+    the bin's middle, from 30 fps up rounded to the nearest 5), so the 16 ms bar says 60 in both.
+  - **Stutter rule, one for everything**: `GameSession.StutterFromMs` = twice the whole game's
+    median, at least 25 ms, rounded up to a whole 1 ms bin; the last bin (50 ms and slower)
+    always counts. Bars from that bin on are red here and in the popup strip, and
+    `GameSession.StutterCount` adds them up. `FinalizeDeadLocked` stores that sum as `Stutters`,
+    so the popup, the session table, the JSON/CSV export and the chart give one number; the
+    live per-tick count (moving median of the last seconds) is only used while the game runs.
+    Games saved before the histogram keep their stored count. The legend names the game's own
+    line, "stutter (slower than 30 fps in this game)".
+  - **Stutter bubble** (red edge) at the tallest red bar: "Stutters: 30 frames / slower than 30
+    fps". It gives way to the peak bubble and to a clicked bubble it would overlap.
   - **Peak bubble**, always shown: an arrow to the tallest bar, "Most frames: 7 ms / 7 ms = 133
     fps, smooth" (or "stutter" when the peak itself is past the threshold).
   - **Click a bar** to select it: the bar is highlighted and a bubble shows "Selected bar: 9 ms /
     40 000 frames · about 105 fps". The selection stays until the same bar is clicked again (or
     another bar is clicked); it is per saved game and cleared when another game is picked. The
     hit zones are the bar columns of the drawn chart, so the selection follows scrolling and DPI.
-  - **Legend** "smooth" (cyan) / "stutter (slower than 40 fps)" (red); the colour rule is the
-    same max(25 ms, 2x median) as in the popup, the legend names the 25 ms floor.
+  - **Bubble placement**: inside the plot and right of the count labels, so no bubble covers
+    an axis value.
   - **"?" help**: the round button and the "help" link next to the title open a GhostDeck card
     (`GhostCardForm`, §11 of RENDERING.md) "How to read this chart": one bar = frames that took
     the same time, height = how many, further left = faster (16 ms = 60 fps, 33 ms = 30 fps),
