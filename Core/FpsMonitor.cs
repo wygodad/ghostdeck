@@ -35,6 +35,26 @@ public sealed record GameSession(
     /// <summary>True when the session carries the frame-pacing numbers (older saved sessions do not).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool HasPacing => MedianMs > 0 && FrameHist is { Length: > 1 };
+
+    /// <summary>The first 1 ms bin of <see cref="FrameHist"/> that counts as a stutter: twice the
+    /// whole game's median, at least 25 ms, rounded up to a whole bin; the last bin (50 ms and
+    /// slower) always counts. One rule for the popup strip, the Status chart and the count.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int StutterFromMs => Math.Min((int)Math.Ceiling(Math.Max(25f, 2f * MedianMs)), (FrameHist?.Length ?? 1) - 1);
+
+    /// <summary>Stutters as every view shows them: the frames in the red bins when the game has
+    /// its histogram, otherwise the count saved by an older version.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public long StutterCount
+    {
+        get
+        {
+            if (!HasPacing) return Stutters;
+            long c = 0;
+            for (int i = StutterFromMs; i < FrameHist!.Length; i++) c += FrameHist[i];
+            return c;
+        }
+    }
 }
 
 /// <summary>
@@ -449,14 +469,17 @@ public static class FpsMonitor
             if (!st.IsSession || dur.TotalSeconds < MinSessionSeconds || st.TotalFrames < MinSessionFrames) continue;
             int avg = st.ActiveSeconds > 0 ? (int)(st.TotalFrames / st.ActiveSeconds) : 0;
             var (spark, sparkPeak) = BuildSpark(st.Frames);
-            done.Add(new GameSession(st.Name, st.Start, st.LastFrameAt,
+            var gs = new GameSession(st.Name, st.Start, st.LastFrameAt,
                 avg, st.MinFps == int.MaxValue ? 0 : st.MinFps, st.MaxFps,
                 P1FromHisto(st.Histo, st.HistoCount), st.TotalFrames, st.Stutters,
                 Spark: spark, SparkPeak: sparkPeak,
                 MedianMs: PercentileMsFromHisto(st.Histo, st.HistoCount, 0.50),
                 P95Ms: PercentileMsFromHisto(st.Histo, st.HistoCount, 0.95),
                 P01LowFps: P01FromHisto(st.Histo, st.HistoCount),
-                FrameHist: CompactHisto(st.Histo)));
+                FrameHist: CompactHisto(st.Histo));
+            // the live count follows a moving median; the saved one uses the whole game's, so
+            // the number matches the red bars of the game's frame spread
+            done.Add(gs.HasPacing ? gs with { Stutters = gs.StutterCount } : gs);
         }
         if (drop != null) foreach (int pid in drop) _watch.Remove(pid);
         return done;

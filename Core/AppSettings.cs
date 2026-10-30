@@ -334,6 +334,7 @@ public sealed class AppSettings
     // options. Machine-local UI state like SettingsSubTab (not imported, not cloned).
     public int FanCurveView { get; set; }
     public bool FanCurveZones { get; set; } = true;      // audibility bands behind the plot
+    public bool SpreadLogView { get; set; }              // (#6) Status → Gaming frame spread: "all frames visible" view
     public bool FanCurveTrail { get; set; }              // 3-minute temperature trail on the curve (opt-in)
     public bool FanCurveDotLabels { get; set; }          // "In action": values next to every history dot (opt-in)
     public bool FanCurveDiagOpen { get; set; }           // "In action": the diagnostics panel (sweep, two-table test) expanded

@@ -395,7 +395,7 @@ public sealed class SessionReportForm : Form
         using (var db = new SolidBrush(Blue)) g.FillEllipse(db, cx, fy + 1 * k, 9 * k, 9 * k);
         using var footF = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         string foot = (_s.Profile.Length > 0 ? _s.Profile + "  ·  " : "") +
-                      $"{Lang.T("gm_stut")}: {_s.Stutters:N0}  ·  {Lang.T("gm_frames")}: {_s.Frames:N0}";
+                      $"{Lang.T("gm_stut")}: {_s.StutterCount:N0}  ·  {Lang.T("gm_frames")}: {_s.Frames:N0}";
         g.DrawString(foot, footF, mutedB, cx + 14 * k, yFoot + (hFoot - footF.GetHeight(g)) / 2f);
 
         if (!screenshot)
@@ -487,7 +487,7 @@ public sealed class SessionReportForm : Form
         float slot = (rc.Width - px * 2) / h.Length;
         float barW = Math.Max(1f, slot - Math.Max(1f, 1.2f * k));
         int mx = 1; foreach (int c in h) mx = Math.Max(mx, c);
-        float at = Math.Max(25f, 2f * _s.MedianMs);
+        int at = _s.StutterFromMs;
         float hMax = rc.Height - py * 2;
         using var cyanB = new SolidBrush(Color.FromArgb(220, Cyan));
         using var redB = new SolidBrush(Red);
