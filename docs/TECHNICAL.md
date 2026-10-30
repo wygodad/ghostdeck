@@ -1456,7 +1456,15 @@ whether they are there.
     almost no red). One button, "Got it".
   - Height comes from `SpreadChartH` (font height + DPI), used both for drawing and in
     `SectionHeight`, so the bubbles and the two-line axis labels never clip at 100-200 %.
-  All texts are `Lang.T` keys (`gm_spread_*`) in the 15 languages.
+  All texts are `Lang.T` keys (`gm_sh_*`) in the 15 languages.
+
+![The game-session popup with the frame-pacing line and strip](images/gaming_session_popup_pacing.png)
+
+![Status → Gaming, a saved game's frame spread in the Real counts view: peak bubble, a clicked bar, the stutter bubble](images/gaming_frame_spread.png)
+
+![The same game in the All frames visible view, with the note under the title](images/gaming_frame_spread_all.png)
+
+![The help card behind the "?"](images/gaming_frame_spread_help.png)
 - **Export:** JSON `medianFrametimeMs`, `p95FrametimeMs`, `p01LowFps` (null for older sessions)
   and `frametimeHistogram1ms`; CSV columns `median_frametime_ms`, `p95_frametime_ms`,
   `p01_low_fps`, `frametime_hist_1ms` (the 51 bins in one cell, separated by `;`). Decimals use a
