@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261119,
+  "dataVersion": 20261120,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -137,7 +137,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "skandy121",
+      "credit": "skandy121, Allsoon",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/6",
       "creditIssues": {
         "skandy121": [
@@ -145,6 +145,9 @@
           8,
           92,
           93
+        ],
+        "Allsoon": [
+          307
         ]
       },
       "added": "2026-06-29",

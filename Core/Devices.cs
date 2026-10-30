@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261119;
+    public const int DataVersion = 20261120;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -459,10 +459,12 @@ public static class Devices
         // reads the equal work columns as a bug (FAQ: "Does Silent lower power on every laptop?").
         // Fan curve VERIFIED (issue #8): the owner set a known test curve in MSI Center and the wizard found
         // it at exactly 0x72 (CPU) / 0x8A (GPU) — the shipped ModernCurve addresses — so ModernCurveVerified.
+        // A second owner's capture on 15P2EMS1.110 (issue #307, MSI Center 2.0.74 without Silent) matches the
+        // recipes in Balanced, Extreme and Super Battery; that owner joins the credit.
         new() { Name = "MSI Sword 16 HX B13V / B14V", FirmwarePrefixes = new[] { "15P2EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "skandy121", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/6",
-                CreditIssues = Issues("skandy121:6,8,92,93") },
+                Credit = "skandy121, Allsoon", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/6",
+                CreditIssues = Issues("skandy121:6,8,92,93; Allsoon:307") },
 
         // Raider GE67 HX 12U (1545IMS1) — owner per-scenario snapshot (issue #14) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Owner

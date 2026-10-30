@@ -3,6 +3,11 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **Sword 16 HX B13V / B14V** (`15P2EMS1`, model database 20261120, [#307](../../issues/307), thanks @Allsoon) - another
+  owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
+
 ## [1.43.0] - 2026-10-30
 ### Added
 - **Frame pacing in the game-session report** (roadmap #6): under the frametime line the popup now shows the median
