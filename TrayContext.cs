@@ -131,6 +131,7 @@ public sealed class TrayContext : ApplicationContext
 
         FpsMonitor.StopOrphan();                   // clear an ETW session a crashed instance left behind
         FpsMonitor.SessionEnded += OnGameSession;
+        FpsMonitor.Ticked += OnFpsTick;            // (#3) low-FPS alert
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
@@ -2134,6 +2135,26 @@ public sealed class TrayContext : ApplicationContext
             ChangeLog.Add(ChangeSource.Game, full.Process + "  ·  " + text);
             if (_settings.SessionPopupEnabled) ShowSessionReport(full);
             if (_main is { IsDisposed: false }) _main.RefreshActive();
+        }, null);
+    }
+
+    // (#3) Low-FPS alert: the rules live in LowFpsAlert; this feeds it the monitor's 1 s tick
+    // (worker thread, serialised by the monitor) and shows the toast. The temperatures are the
+    // newest sample of the 3 s hardware poll - no extra EC read, and nothing is written.
+    private readonly LowFpsAlert _lowFps = new();
+
+    private void OnFpsTick(FpsTick t)
+    {
+        int threshold = _settings.LowFpsAlert;
+        if (_lowFps.Feed(t, threshold, DateTime.Now) is not { } fps) return;
+        var hw = HwHistory.Window(TimeSpan.FromSeconds(10)).LastOrDefault();
+        _ui?.Post(_ =>
+        {
+            string text = string.Format(Lang.T("lfa_text"), fps, threshold);
+            if (hw.CpuTemp > 0) text += $" · CPU {hw.CpuTemp} °C";
+            if (hw.GpuTemp > 0) text += $" · GPU {hw.GpuTemp} °C";
+            _osd.ShowProfile(OsdPrefix + Lang.T("lfa_title"), text, Theme.Amber, minSeconds: 4);
+            ChangeLog.Add(ChangeSource.Game, t.Process + "  ·  " + text);
         }, null);
     }
 

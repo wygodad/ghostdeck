@@ -11,6 +11,12 @@ public readonly record struct FpsSnapshot(
     int P1LowFps,        // 1% low over the last ~30 s (99th-percentile frametime)
     int Stutters30s);    // frames > max(25 ms, 2x median) in the last ~30 s
 
+/// <summary>State of the monitor's (sticky) target after one 1 s tick, for per-second consumers
+/// such as the low-FPS alert. Pid 0 = nothing presenting. Foreground = the target is the
+/// foreground window right now; Game = it has been promoted to a game session (presented for
+/// 10 s and is not a browser / shell process).</summary>
+public readonly record struct FpsTick(int Pid, string Process, int Fps, bool Foreground, bool Game);
+
 /// <summary>Summary of one finished game session (FPS side filled by the monitor; the EC side —
 /// temps / RPM / profile from <see cref="HwHistory"/> — is added by the tray before publishing).
 /// Spark/SparkPeak: averaged / peak frametime buckets of the session's closing window, feeding
@@ -51,6 +57,9 @@ public static class FpsMonitor
 
     /// <summary>Raised on a worker thread when a tracked game exits (marshal to the UI yourself).</summary>
     public static event Action<GameSession>? SessionEnded;
+
+    /// <summary>Raised on a worker thread after every 1 s tick while the monitor runs (marshal UI work yourself).</summary>
+    public static event Action<FpsTick>? Ticked;
 
     /// <summary>Snapshot for the foreground game, or null when nothing is presenting. ~1 s fresh.</summary>
     public static FpsSnapshot? Current { get { lock (_lock) return _current; } }
@@ -315,6 +324,7 @@ public static class FpsMonitor
             }
 
             List<GameSession> ended;
+            FpsTick tick = default;
             lock (_lock)
             {
                 if (fgUsable && !_watch.ContainsKey(fgPid))
@@ -401,10 +411,13 @@ public static class FpsMonitor
                 if (_targetPid > 0 && _watch.TryGetValue(_targetPid, out var tgt) && tgt.CurFresh)
                     _current = new FpsSnapshot(_targetPid, tgt.Name, tgt.CurFps, tgt.CurFrameMs,
                         P1LowLocked(tgt.Frames, statCut), Stutters30sLocked(tgt.Frames, statCut));
+                if (_current is { } snap)
+                    tick = new FpsTick(snap.Pid, snap.Process, snap.Fps, fgPid == snap.Pid, _watch[snap.Pid].IsSession);
 
                 ended = FinalizeDeadLocked(all: false);
             }
             foreach (var s in ended) SessionEnded?.Invoke(s);
+            try { Ticked?.Invoke(tick); } catch { }   // a consumer's fault must not stop the monitor
         }
         catch { }
         finally { Interlocked.Exchange(ref _ticking, 0); }

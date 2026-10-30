@@ -235,6 +235,8 @@ public sealed class AppSettings
     public bool SessionPopupEnabled { get; set; } = true;              // pokaz okienko podsumowania po zamknieciu gry
     public int SessionPopupSeconds { get; set; } = 60;                 // czas widocznosci; 0 = az do zamkniecia krzyzykiem
     public int GameSessionKeep { get; set; } = 10;                     // ile ostatnich sesji pamietamy (5-50)
+    // (#3) low-FPS alert: OSD toast when the game in front stays under this many FPS; 0 = off
+    public int LowFpsAlert { get; set; }
 
     // ---- profile restore (EC potrafi sam wskoczyc w Super Battery po wybudzeniu / hibernacji) ----
     public bool RestoreProfileOnResume { get; set; }                   // opt-in: przywroc profil po wznowieniu i przy starcie
@@ -606,6 +608,7 @@ public sealed class AppSettings
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
+        if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickMiddle)) TrayClickMiddle = (int)TrayAction.FanBoost;
         if (!Enum.IsDefined(typeof(GhostDeck.TrayWheelMode), TrayWheelMode)) TrayWheelMode = (int)GhostDeck.TrayWheelMode.Profiles;
@@ -754,6 +757,7 @@ public sealed class AppSettings
         SessionPopupEnabled = src.SessionPopupEnabled;
         SessionPopupSeconds = src.SessionPopupSeconds;
         GameSessionKeep = src.GameSessionKeep;
+        LowFpsAlert = src.LowFpsAlert;
         RestoreProfileOnResume = src.RestoreProfileOnResume;
         StartupProfile = src.StartupProfile;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
@@ -877,6 +881,7 @@ public sealed class AppSettings
             SessionPopupEnabled = SessionPopupEnabled,
             SessionPopupSeconds = SessionPopupSeconds,
             GameSessionKeep = GameSessionKeep,
+            LowFpsAlert = LowFpsAlert,
             RestoreProfileOnResume = RestoreProfileOnResume,
             StartupProfile = StartupProfile,
             RestoreCurveOnResume = RestoreCurveOnResume,
