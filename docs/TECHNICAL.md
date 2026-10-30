@@ -1417,6 +1417,7 @@ whether they are there.
   no room.
 - **Status → Gaming** session card: two more rows, "0.1% low" and "Frametime"
   (`median x.x ms · 95% ≤ x.x ms`, `gm_pacing_row`), "-" for older sessions.
+- **Status → Gaming without a game in front**: the live boxes and the live frametime chart are left out (they would only show dashes); the saved games come first - the picker, the session card, then two charts of the picked game: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread (the `FrameHist` columns, log height, red past max(25 ms, 2x median)). Games saved before this version show the line and a note instead of the spread. With a game in front the tab looks as before.
 - **Export:** JSON `medianFrametimeMs`, `p95FrametimeMs`, `p01LowFps` (null for older sessions)
   and `frametimeHistogram1ms`; CSV columns `median_frametime_ms`, `p95_frametime_ms`,
   `p01_low_fps`, `frametime_hist_1ms` (the 51 bins in one cell, separated by `;`). Decimals use a
@@ -1424,9 +1425,10 @@ whether they are there.
 
 ### 29.2 FPS snapshot shortcut (roadmap #35)
 
-Shortcut action `FpsSnapshot` ("FPS snapshot", Settings → Hotkeys). It ships with **no key**:
-every Ctrl+Alt+F-key already belongs to another action, and Ctrl+Alt+letter is an AltGr letter
-on many keyboard layouts (Polish ś, ą, ...), so the owner records one. Read-only, registered
+Shortcut action `FpsSnapshot` ("FPS snapshot", Settings → Hotkeys). It ships with **Ctrl+Shift+F12**, on:
+every Ctrl+Alt+F-key already belongs to another action, Ctrl+Alt+letter is an AltGr letter on
+many keyboard layouts (Polish ś, ą, ...), and the gaming shortcuts already sit on Ctrl+Shift
+(overlay O / L). Read-only, registered
 also on models where EC writes are off.
 
 One press (`TrayContext.SaveFpsSnapshot`, `Core/FpsSnapshotReport.cs`): the FPS part is copied

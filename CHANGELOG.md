@@ -9,7 +9,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   frametime, the time 95 % of frames stayed under, the 0.1% low and a small histogram of where the frames sat (0 to 50+ ms,
   stutter-range bars in red). Status → Gaming shows the same numbers for a picked session, and the JSON/CSV export carries
   them with the histogram. Sessions saved before this simply show the popup as before.
-- **FPS snapshot hotkey** (roadmap #35): a new action under Settings → Hotkeys (no key by default, pick your own). One press
+- **FPS snapshot hotkey** (roadmap #35): a new action under Settings → Hotkeys (Ctrl+Shift+F12 by default). One press
   saves a small text file to the Desktop with the last 30 seconds of the game in front (FPS now, average, 1% low, median and
   95% frametime, stutters) plus CPU/GPU temperature, fans and the active profile, and an on-screen message names the file.
   If FPS was not being measured, the file still gets the hardware part and says how to turn FPS on.
@@ -79,6 +79,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
 
 ### Changed
+- **Status → Gaming when no game is running** shows your saved games first: the picker, the results, then the picked game's
+  frametime line and how even its frames were over the whole game (games saved before this version show the line only). The live
+  boxes and chart come back as soon as a game is in front.
 - **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
   @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
   the shipped map ([#293](../../issues/293)).

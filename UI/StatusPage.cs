@@ -307,9 +307,13 @@ public sealed class StatusPage : ThemedPage
         }
         if (sub == 2)
         {
-            int sess = SelectedSession() != null
+            var sel = SelectedSession();
+            int sess = sel != null
                 ? GTitle.Height + 12 + GmSessRows * GmRowH + 14
                 : GTitle.Height + 12 + 56;
+            // no game in front: saved games first, with their two charts (see RenderGaming)
+            if (FpsMonitor.Current == null)
+                return SecTop + GmHeadH + 10 + sess + (sel != null ? 2 * (24 + GmChartH) : 0) + 40;
             return SecTop + GmHeadH + 10 + GmBoxH + 24 + GmChartH + 24 + sess + 40;
         }
         if (sub == 3)
@@ -1000,6 +1004,14 @@ public sealed class StatusPage : ThemedPage
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: a game's process name can be any length
         top += headH + 10;
 
+        if (snap == null)
+        {
+            // No game in front: the live boxes and the live chart would only show dashes, so the
+            // saved games come first: the picker, the picked game's two charts (#6), its numbers.
+            DrawLastSession(g, top, avail, withCharts: true);
+            return;
+        }
+
         // live stat boxes: FPS · frametime · 1% low · stutters (rolling 30 s)
         int gap = 14, bw = (avail - gap * 3) / 4, boxH = GmBoxH;
         int valY = Math.Max(26, GmLabF.Height + 2);   // value line under the label
@@ -1118,7 +1130,7 @@ public sealed class StatusPage : ThemedPage
     // Saved game sessions: a picker (newest first, count set in Settings) + the selected session's
     // card: FPS stats + the EC summary (temps / RPM / profile) — the pairing no plain FPS overlay
     // has. "—" on models where the EC history had nothing for that window.
-    private void DrawLastSession(Graphics g, int top, int avail)
+    private int DrawLastSession(Graphics g, int top, int avail, bool withCharts = false)
     {
         TextRenderer.DrawText(g, Lang.T("gm_last"), GTitle, new Rectangle(Pad, top, avail, GTitle.Height + 4),
             Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
@@ -1141,7 +1153,12 @@ public sealed class StatusPage : ThemedPage
             Ui.FillCard(g, empty);
             TextRenderer.DrawText(g, Lang.T("gm_last_none"), GCell, Rectangle.Round(empty), Theme.Muted,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            return;
+            return y + 56;
+        }
+        if (withCharts)
+        {
+            y = DrawSavedLine(g, y, avail, s) + 24;
+            y = DrawSavedSpread(g, y, avail, s) + 24;
         }
 
         var rows = new (string label, string val, bool mono)[]
@@ -1174,6 +1191,98 @@ public sealed class StatusPage : ThemedPage
                 new Rectangle(Pad, ry, avail - 22, GmRowH), Theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
             ry += GmRowH;
         }
+        return (int)card.Bottom;
+    }
+
+    // (#6) A saved game's frametime line: the closing stretch the session kept (GameSession.Spark),
+    // with a dot wherever a bucket's slowest frame passes the stutter line - the popup's picture.
+    private int DrawSavedLine(Graphics g, int top, int avail, GameSession s)
+    {
+        var card = new RectangleF(Pad, top, avail, GmChartH);
+        Ui.FillCard(g, card);
+        TextRenderer.DrawText(g, Lang.T("gm_saved_line"), GTitle, new Rectangle(Pad + 16, top + 10, avail - 40, GTitle.Height + 4),
+            Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
+        int lx = Pad + avail - 16;
+        Legend(g, ref lx, top, Lang.T("gm_stut"), Theme.Red, dot: true);
+        Legend(g, ref lx, top, Lang.T("ov_m_frametime"), Theme.Accent, dot: false);
+
+        var d = s.Spark;
+        var pk = s.SparkPeak is { } pp && d != null && pp.Length == d.Length ? pp : null;
+        float mx = 0;
+        if (d != null) foreach (var v in d) mx = Math.Max(mx, v);
+        if (pk != null) foreach (var v in pk) mx = Math.Max(mx, v);
+        float maxMs = Math.Max(20f, (float)Math.Ceiling(mx * 1.15f / 5f) * 5f);
+        var plot = ChartPlot(top, avail, GmChartH, $"{maxMs:0} ms");
+        using (var grid = new Pen(Theme.Border))
+            for (int i = 0; i <= 4; i++)
+            {
+                float v = maxMs * i / 4f, gy = plot.Bottom - v / maxMs * plot.Height;
+                g.DrawLine(grid, plot.Left, gy, plot.Right, gy);
+                YLabel(g, $"{v:0} ms", plot, gy);
+            }
+        XLabel(g, Lang.T("gm_saved_end"), plot, plot.Right, Pad + avail);
+
+        if (d == null || d.Length < 4)
+        {
+            TextRenderer.DrawText(g, Lang.T("gm_saved_none"), GCell, Rectangle.Round(plot), Theme.Muted,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+            return top + GmChartH;
+        }
+        float Y(float ms) => plot.Bottom - Math.Clamp(ms, 0, maxMs) / maxMs * plot.Height;
+        float X(int i) => plot.Left + plot.Width * i / (d.Length - 1);
+        var pts = new PointF[d.Length];
+        for (int i = 0; i < d.Length; i++) pts[i] = new PointF(X(i), Y(d[i]));
+        using (var pen = new Pen(Theme.Accent, 2f) { LineJoin = LineJoin.Round })
+            g.DrawLines(pen, pts);
+        if (pk != null)
+        {
+            var sorted = d.OrderBy(v => v).ToArray();
+            float stutterAt = Math.Max(25f, 2f * sorted[sorted.Length / 2]);   // same rule as FpsMonitor
+            using var sb = new SolidBrush(Theme.Red);
+            for (int i = 0; i < pk.Length; i++)
+                if (pk[i] > stutterAt) g.FillEllipse(sb, X(i) - 3, Y(pk[i]) - 3, 6, 6);
+        }
+        return top + GmChartH;
+    }
+
+    // (#6) The whole game's frame spread from the saved histogram: one column per millisecond
+    // (log height, so a few dozen slow frames stay visible next to a hundred thousand fast ones),
+    // columns past the stutter line in red. Games saved before 1.43 carry no histogram.
+    private int DrawSavedSpread(Graphics g, int top, int avail, GameSession s)
+    {
+        var card = new RectangleF(Pad, top, avail, GmChartH);
+        Ui.FillCard(g, card);
+        TextRenderer.DrawText(g, Lang.T("gm_saved_hist"), GTitle, new Rectangle(Pad + 16, top + 10, avail - 40, GTitle.Height + 4),
+            Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
+        int lx = Pad + avail - 16;
+        Legend(g, ref lx, top, Lang.T("gm_stut"), Theme.Red, dot: true);
+        var plot = ChartPlot(top, avail, GmChartH, "");
+
+        if (!s.HasPacing || s.FrameHist is not { } h)
+        {
+            TextRenderer.DrawText(g, Lang.T("gm_saved_hist_none"), GCell, Rectangle.Round(plot), Theme.Muted,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+            return top + GmChartH;
+        }
+        int n = h.Length;
+        double lp = Math.Log10(Math.Max(1, h.Max()) + 1);
+        float stutterAt = Math.Max(25f, 2f * s.MedianMs);
+        float colW = plot.Width / n;
+        using (var axis = new Pen(Theme.Border)) g.DrawLine(axis, plot.Left, plot.Bottom, plot.Right, plot.Bottom);
+        using var fast = new SolidBrush(Theme.Accent);
+        using var slow = new SolidBrush(Theme.Red);
+        for (int i = 0; i < n; i++)
+        {
+            if (h[i] <= 0) continue;
+            float hh = (float)(Math.Log10(h[i] + 1) / lp) * plot.Height;
+            float w = Math.Max(1f, colW - 2f);
+            bool stutter = i >= stutterAt || i == n - 1;   // the last column holds every frame of 50 ms and slower
+            g.FillRectangle(stutter ? slow : fast, plot.Left + i * colW + 1f, plot.Bottom - hh, w, hh);
+        }
+        XLabel(g, "0 ms", plot, plot.Left + colW / 2, Pad + avail);
+        XLabel(g, "25 ms", plot, plot.Left + 25.5f * colW, Pad + avail);
+        XLabel(g, $"{n - 1}+ ms", plot, plot.Right - colW / 2, Pad + avail);
+        return top + GmChartH;
     }
 
     private void ChartsMouse(Control owner, Point? p)

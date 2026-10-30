@@ -574,9 +574,11 @@ public sealed class AppSettings
         DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
         DefOff("Mic",      0x7A, "Ctrl+Alt+F11");  // F11 — microphone mute (discussion #231); F10 is the panic reset
         DefOff("Crosshair", 0x7B, "Ctrl+Alt+F12"); // F12 - crosshair on/off (roadmap #118)
-        // (#35) FPS snapshot: no key at all by default - every Ctrl+Alt+F-key is taken above and a
-        // Ctrl+Alt+letter is an AltGr letter on many layouts; the owner records one in Settings
-        if (!Hotkeys.ContainsKey("FpsSnapshot")) Hotkeys["FpsSnapshot"] = new HotkeyDef();
+        // (#35) FPS snapshot: Ctrl+Shift+F12, on - every Ctrl+Alt+F-key is taken above, and the
+        // gaming shortcuts already live on Ctrl+Shift (overlay O / L). The 1.42.99 test build
+        // stored it with no key, which this fills in once (Vk 0 = never recorded).
+        if (!Hotkeys.TryGetValue("FpsSnapshot", out var fsk) || fsk.Vk == 0)
+            Hotkeys["FpsSnapshot"] = new HotkeyDef { Mods = Hk.MOD_CONTROL | Hk.MOD_SHIFT, Vk = 0x7B, Display = "Ctrl+Shift+F12" };   // 0x7B = F12
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
