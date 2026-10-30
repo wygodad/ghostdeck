@@ -72,6 +72,9 @@ public static class FpsMonitor
         get { lock (_lock) return _targetPid != 0 && _watch.TryGetValue(_targetPid, out var t) ? t.Name : ""; }
     }
 
+    /// <summary>True while the ETW session runs (overlay with an FPS metric, or Status → Gaming open).</summary>
+    public static bool Active => _active;
+
     /// <summary>Turn the whole monitor on/off (ETW session + 1 s aggregation timer).</summary>
     public static void SetActive(bool on)
     {
