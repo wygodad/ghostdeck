@@ -5,6 +5,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Frame pacing in the game-session report** (roadmap #6): under the frametime line the popup now shows the median
+  frametime, the time 95 % of frames stayed under, the 0.1% low and a small histogram of where the frames sat (0 to 50+ ms,
+  stutter-range bars in red). Status → Gaming shows the same numbers for a picked session, and the JSON/CSV export carries
+  them with the histogram. Sessions saved before this simply show the popup as before.
+- **FPS snapshot hotkey** (roadmap #35): a new action under Settings → Hotkeys (no key by default, pick your own). One press
+  saves a small text file to the Desktop with the last 30 seconds of the game in front (FPS now, average, 1% low, median and
+  95% frametime, stutters) plus CPU/GPU temperature, fans and the active profile, and an on-screen message names the file.
+  If FPS was not being measured, the file still gets the hardware part and says how to turn FPS on.
+- **Low-FPS alert** (roadmap #3): Settings → Gaming → Overlay, off by default, thresholds 30 / 45 / 60 / 90 / 120 FPS. When
+  the game in front drops below it for 3 seconds after having run above it, a short on-screen message says e.g. "FPS dropped
+  to 41 (your threshold 60) · CPU 97 °C". At most once a minute per game, works while FPS is measured, no extra hardware reads.
 - **GE66 Raider 10SF** (`1541EMS1`, model database 20261118, [#303](../../issues/303), thanks @chopin312) - the backup WMI
   path layout is on record, so GhostDeck offers the path test on this laptop; the owner's Dragon Center capture matches the recipes.
 - **Katana 15 HX B14WGK** (`1587EMS1`, [#304](../../issues/304), [#305](../../issues/305), thanks @suivan1 and @rudnet054) - the
