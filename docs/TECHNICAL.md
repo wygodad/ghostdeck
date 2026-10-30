@@ -1417,7 +1417,31 @@ whether they are there.
   no room.
 - **Status → Gaming** session card: two more rows, "0.1% low" and "Frametime"
   (`median x.x ms · 95% ≤ x.x ms`, `gm_pacing_row`), "-" for older sessions.
-- **Status → Gaming, saved game**: under the live boxes and the live 60 s chart (unchanged), the picked saved game now shows two charts above its numbers: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread (the `FrameHist` columns, log height, red past max(25 ms, 2x median)). Games saved before this version show the line and a note instead of the spread.
+- **Status → Gaming, saved game**: under the live boxes and the live 60 s chart (unchanged), the picked saved game now shows two charts above its numbers: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread, "How even the frames were (whole game)" (`DrawSavedSpread`). Games saved before this version show the line and a note instead of the spread.
+
+  The spread chart in Status is built to be read without the popup's context:
+  - **Linear height**, unlike the popup strip: a bar's height is its frame count, the vertical
+    axis is labelled "Frame count" with rounded gridline values (the popup keeps the log strip,
+    where it only has to show that rare long frames exist).
+  - **Horizontal axis** in ms with the matching frame rate under it: `0 ms`, `16 ms / 60 fps`,
+    `25 ms / 40 fps`, `50+ ms / 20 fps`, plus the caption "how long one frame took (and how many
+    frames per second that is)".
+  - **Peak bubble**, always shown: an arrow to the tallest bar, "Most frames: 7 ms / 7 ms = 133
+    fps, smooth" (or "stutter" when the peak itself is past the threshold).
+  - **Click a bar** to select it: the bar is highlighted and a bubble shows "Selected bar: 9 ms /
+    40 000 frames · about 105 fps". The selection stays until the same bar is clicked again (or
+    another bar is clicked); it is per saved game and cleared when another game is picked. The
+    hit zones are the bar columns of the drawn chart, so the selection follows scrolling and DPI.
+  - **Legend** "smooth" (cyan) / "stutter (slower than 40 fps)" (red); the colour rule is the
+    same max(25 ms, 2x median) as in the popup, the legend names the 25 ms floor.
+  - **"?" help**: the round button and the "help" link next to the title open a GhostDeck card
+    (`GhostCardForm`, §11 of RENDERING.md) "How to read this chart": one bar = frames that took
+    the same time, height = how many, further left = faster (16 ms = 60 fps, 33 ms = 30 fps),
+    blue = smooth, red = visible stutter, and what a good game looks like (one tall blue hill,
+    almost no red). One button, "Got it".
+  - Height comes from `SpreadChartH` (font height + DPI), used both for drawing and in
+    `SectionHeight`, so the bubbles and the two-line axis labels never clip at 100-200 %.
+  All texts are `Lang.T` keys (`gm_spread_*`) in the 15 languages.
 - **Export:** JSON `medianFrametimeMs`, `p95FrametimeMs`, `p01LowFps` (null for older sessions)
   and `frametimeHistogram1ms`; CSV columns `median_frametime_ms`, `p95_frametime_ms`,
   `p01_low_fps`, `frametime_hist_1ms` (the 51 bins in one cell, separated by `;`). Decimals use a
