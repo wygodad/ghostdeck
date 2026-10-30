@@ -228,7 +228,25 @@ public sealed class SessionReportForm : Form
         int yGame = yHdr + hHdr + Ce(6 * k), hGame = Ce(24 * k);
         int yBox = yGame + hGame + Ce(10 * k), hBox = Ce(46 * k);
         int ySpark = yBox + hBox + Ce(10 * k), hSpark = Ce(44 * k);
-        int yFoot = ySpark + hSpark + Ce(10 * k), hFoot = Ce(30 * k);
+        // frame pacing (#6): one stats line + the frametime histogram strip with its axis line;
+        // sessions saved before it have no data and the block takes no room at all
+        using var paceLblF = Dpi.Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var paceValF = Dpi.Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var axisF = Dpi.Font("Consolas", 9f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        bool pace = _s.HasPacing;
+        int yPace = ySpark + hSpark, hPaceLine = 0, hBars = 0, hAxis = 0;
+        if (pace)
+        {
+            using var mb = new Bitmap(1, 1);
+            mb.SetResolution(dpi, dpi);
+            using var mg = Graphics.FromImage(mb);
+            yPace += Ce(10 * k);
+            hPaceLine = Ce(Math.Max(paceLblF.GetHeight(mg), paceValF.GetHeight(mg)));
+            hBars = Ce(36 * k);
+            hAxis = Ce(axisF.GetHeight(mg)) + Ce(2 * k);
+        }
+        int yBars = yPace + hPaceLine + (pace ? Ce(6 * k) : 0);
+        int yFoot = yBars + hBars + hAxis + Ce(10 * k), hFoot = Ce(30 * k);
         int H = yFoot + hFoot + Ce(12 * k);
         int tailW = Ce(24 * k), tailH = Ce(15 * k), tailX = W - Ce(56 * k);
 
@@ -342,6 +360,36 @@ public sealed class SessionReportForm : Form
             g.FillPath(sb2, sp2);
         DrawSpark(g, spRect, k);
 
+        // ---- frame pacing: median / 95th percentile frametime / 0.1% low + histogram ----
+        if (pace)
+        {
+            // three label + value pairs, one per third of the content width, fixed English like the boxes
+            var pairs = new (string label, string value, string unit)[]
+            {
+                ("MEDIAN", _s.MedianMs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture), "ms"),
+                ("95% ≤", _s.P95Ms > 0 ? _s.P95Ms.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "-", _s.P95Ms > 0 ? "ms" : ""),
+                ("0.1% LOW", _s.P01LowFps > 0 ? _s.P01LowFps.ToString() : "-", ""),
+            };
+            float third = cw / 3f;
+            for (int i = 0; i < pairs.Length; i++)
+            {
+                float px0 = cx + i * third;
+                var (label, value, unit) = pairs[i];
+                float lw = g.MeasureString(label, paceLblF, PointF.Empty, StringFormat.GenericTypographic).Width;
+                float lh = paceLblF.GetHeight(g), vh = paceValF.GetHeight(g);
+                g.DrawString(label, paceLblF, mutedB, px0, yPace + (hPaceLine - lh) / 2f + 1 * k);
+                float vx = px0 + lw + 7 * k;
+                g.DrawString(value, paceValF, whiteB, vx, yPace + (hPaceLine - vh) / 2f);
+                if (unit.Length > 0)
+                {
+                    float vw = g.MeasureString(value, paceValF, PointF.Empty, StringFormat.GenericTypographic).Width;
+                    float uh = unitF.GetHeight(g);
+                    g.DrawString(unit, unitF, mutedB, vx + vw + 4 * k, yPace + (hPaceLine - uh) / 2f + 1 * k);
+                }
+            }
+            DrawPacingHist(g, new RectangleF(cx, yBars, cw, hBars), yBars + hBars + Ce(2 * k), axisF, k);
+        }
+
         // ---- footer: profile + counters, action buttons on the right ----
         float fy = yFoot + (hFoot - 12 * k) / 2f;
         using (var db = new SolidBrush(Blue)) g.FillEllipse(db, cx, fy + 1 * k, 9 * k, 9 * k);
@@ -423,6 +471,41 @@ public sealed class SessionReportForm : Form
                 if (peak[i] > at)
                     g.FillEllipse(rb, X(i) - 2.2f * k, Y(peak[i]) - 2.2f * k, 4.4f * k, 4.4f * k);
         }
+    }
+
+    // Frametime histogram strip: one bar per 1 ms bin (0..49 ms, the last bar = 50 ms and
+    // slower). Bar height is logarithmic in the count, so a few dozen long frames stay visible
+    // next to the hundred-thousand-frame bars around the median. Bins at or past the
+    // stutter threshold (max(25 ms, 2x median), the same rule as the stutter counter) are red.
+    private void DrawPacingHist(Graphics g, RectangleF rc, float axisY, Font axisF, float k)
+    {
+        var h = _s.FrameHist!;
+        using (var bg = new SolidBrush(Color.FromArgb(64, 0, 0, 0)))
+        using (var bp = RoundPath(rc, (int)Math.Ceiling(6 * k)))
+            g.FillPath(bg, bp);
+        float px = 6 * k, py = 4 * k;
+        float slot = (rc.Width - px * 2) / h.Length;
+        float barW = Math.Max(1f, slot - Math.Max(1f, 1.2f * k));
+        int mx = 1; foreach (int c in h) mx = Math.Max(mx, c);
+        float at = Math.Max(25f, 2f * _s.MedianMs);
+        float hMax = rc.Height - py * 2;
+        using var cyanB = new SolidBrush(Color.FromArgb(220, Cyan));
+        using var redB = new SolidBrush(Red);
+        for (int i = 0; i < h.Length; i++)
+        {
+            if (h[i] <= 0) continue;
+            float bh = Math.Max(1.5f * k, hMax * (float)(Math.Log(1 + h[i]) / Math.Log(1 + mx)));
+            g.FillRectangle(i >= at ? redB : cyanB, rc.X + px + i * slot, rc.Bottom - py - bh, barW, bh);
+        }
+
+        // axis: 0 at the first bar, 25 under its bin, "50+ ms" closing the strip
+        using var ab = new SolidBrush(Muted);
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        string mid = (h.Length / 2).ToString(inv), end = (h.Length - 1).ToString(inv) + "+ ms";
+        float midW = g.MeasureString(mid, axisF).Width, endW = g.MeasureString(end, axisF).Width;
+        g.DrawString("0", axisF, ab, rc.X + px - 2 * k, axisY);
+        g.DrawString(mid, axisF, ab, rc.X + px + (h.Length / 2) * slot - midW / 2f, axisY);
+        g.DrawString(end, axisF, ab, rc.Right - px - endW + 2 * k, axisY);
     }
 
     private static float Median(float[] a)

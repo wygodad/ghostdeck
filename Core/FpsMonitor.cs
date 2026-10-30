@@ -14,12 +14,22 @@ public readonly record struct FpsSnapshot(
 /// <summary>Summary of one finished game session (FPS side filled by the monitor; the EC side —
 /// temps / RPM / profile from <see cref="HwHistory"/> — is added by the tray before publishing).
 /// Spark/SparkPeak: averaged / peak frametime buckets of the session's closing window, feeding
-/// the sparkline on the report popup and the data export.</summary>
+/// the sparkline on the report popup and the data export.
+/// Frame pacing (#6), all from the whole session's histogram: MedianMs / P95Ms = 50th / 95th
+/// percentile frametime, P01LowFps = "0.1% low" (0 under 1000 frames), FrameHist = frame counts
+/// in 1 ms bins 0..49 ms plus one last bin for 50 ms and slower (51 values). All default to
+/// "none" so a sessions.json written before them still loads; the popup then hides the block.</summary>
 public sealed record GameSession(
     string Process, DateTime Start, DateTime End,
     int AvgFps, int MinFps, int MaxFps, int P1LowFps, long Frames, long Stutters,
     int MaxCpuTemp = 0, int MaxGpuTemp = 0, int AvgCpuRpm = 0, int AvgGpuRpm = 0, string Profile = "",
-    float[]? Spark = null, float[]? SparkPeak = null);
+    float[]? Spark = null, float[]? SparkPeak = null,
+    float MedianMs = 0, float P95Ms = 0, int P01LowFps = 0, int[]? FrameHist = null)
+{
+    /// <summary>True when the session carries the frame-pacing numbers (older saved sessions do not).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool HasPacing => MedianMs > 0 && FrameHist is { Length: > 1 };
+}
 
 /// <summary>
 /// FPS / frametime of any game via a private real-time ETW session — the same user-mode source
@@ -426,7 +436,11 @@ public static class FpsMonitor
             done.Add(new GameSession(st.Name, st.Start, st.LastFrameAt,
                 avg, st.MinFps == int.MaxValue ? 0 : st.MinFps, st.MaxFps,
                 P1FromHisto(st.Histo, st.HistoCount), st.TotalFrames, st.Stutters,
-                Spark: spark, SparkPeak: sparkPeak));
+                Spark: spark, SparkPeak: sparkPeak,
+                MedianMs: PercentileMsFromHisto(st.Histo, st.HistoCount, 0.50),
+                P95Ms: PercentileMsFromHisto(st.Histo, st.HistoCount, 0.95),
+                P01LowFps: P01FromHisto(st.Histo, st.HistoCount),
+                FrameHist: CompactHisto(st.Histo)));
         }
         if (drop != null) foreach (int pid in drop) _watch.Remove(pid);
         return done;
@@ -511,6 +525,53 @@ public static class FpsMonitor
             }
         }
         return 0;
+    }
+
+    // "0.1% low": the same reading as P1FromHisto one decimal further out (99.9th-percentile
+    // frametime, bucket upper edge). Below ~1000 frames that percentile is one or two frames,
+    // so it is left out (0) instead of shown as a number.
+    private static int P01FromHisto(int[] histo, long count)
+    {
+        if (count < 1000) return 0;
+        long need = (long)(count * 0.999);
+        long acc = 0;
+        for (int i = 0; i < histo.Length; i++)
+        {
+            acc += histo[i];
+            if (acc >= need) return (int)Math.Round(1000f / ((i + 1) / 4f));
+        }
+        return 0;
+    }
+
+    // Frametime at quantile q (0.5 = median) in ms, interpolated inside the 0.25 ms bucket the
+    // quantile falls in: the median of a locked 60 FPS reads 16.7, not the bucket edge 16.75.
+    private static float PercentileMsFromHisto(int[] histo, long count, double q)
+    {
+        if (count < 100) return 0;
+        double need = count * q;
+        long acc = 0;
+        for (int i = 0; i < histo.Length; i++)
+        {
+            if (histo[i] == 0) continue;
+            if (acc + histo[i] >= need)
+            {
+                double frac = Math.Clamp((need - acc) / histo[i], 0, 1);
+                return (float)((i + frac) / 4.0);
+            }
+            acc += histo[i];
+        }
+        return 0;
+    }
+
+    // The 0.25 ms session histogram folded into 1 ms bins 0..49 ms + one bin for >= 50 ms:
+    // small enough to keep per saved session, fine enough to show where the frames sit.
+    private const int CompactBins = 50;
+    private static int[] CompactHisto(int[] histo)
+    {
+        var bins = new int[CompactBins + 1];
+        for (int i = 0; i < histo.Length; i++)
+            bins[Math.Min(i / 4, CompactBins)] += histo[i];
+        return bins;
     }
 
     private static int ForegroundPid()

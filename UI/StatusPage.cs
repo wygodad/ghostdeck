@@ -979,7 +979,7 @@ public sealed class StatusPage : ThemedPage
     // "No game detected" hint (y, j, ę) against the stat boxes below it.
     private static int GmHeadH => Math.Max(24, Math.Max(GmHeadF.Height, GmDiagF.Height) + 4);
     private static int GmRowH => Math.Max(40, GCell.Height + 6);   // #172: session rows grow with the text
-    private const int GmSessRows = 9;
+    private const int GmSessRows = 11;
 
     private void RenderGaming(Graphics g, int avail)
     {
@@ -1150,6 +1150,11 @@ public sealed class StatusPage : ThemedPage
             (Lang.T("gm_dur"), FmtTs(s.End - s.Start), false),
             ("FPS", string.Format(Lang.T("gm_fps_row"), s.AvgFps, s.MinFps, s.MaxFps), false),
             ("1% low", s.P1LowFps > 0 ? s.P1LowFps + " FPS" : "-", false),
+            ("0.1% low", s.P01LowFps > 0 ? s.P01LowFps + " FPS" : "-", false),
+            // (#6) frame pacing over the whole session; "-" for a session saved before it existed
+            (Lang.T("ov_m_frametime"), s.HasPacing
+                ? string.Format(Lang.T("gm_pacing_row"), s.MedianMs.ToString("0.0", Lang.Culture), s.P95Ms.ToString("0.0", Lang.Culture))
+                : "-", false),
             (Lang.T("gm_frames"), s.Frames.ToString("N0"), true),
             (Lang.T("gm_stut"), s.Stutters.ToString("N0"), true),
             (Lang.T("gm_temp_max"), s.MaxCpuTemp > 0 ? $"CPU {s.MaxCpuTemp}°  ·  GPU {s.MaxGpuTemp}°" : "-", false),
