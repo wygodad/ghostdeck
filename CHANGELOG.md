@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.43.0] - 2026-10-30
 ### Added
 - **Frame pacing in the game-session report** (roadmap #6): under the frametime line the popup now shows the median
   frametime, the time 95 % of frames stayed under, the 0.1% low and a small histogram of where the frames sat (0 to 50+ ms,
