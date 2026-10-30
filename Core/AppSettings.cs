@@ -235,6 +235,8 @@ public sealed class AppSettings
     public bool SessionPopupEnabled { get; set; } = true;              // pokaz okienko podsumowania po zamknieciu gry
     public int SessionPopupSeconds { get; set; } = 60;                 // czas widocznosci; 0 = az do zamkniecia krzyzykiem
     public int GameSessionKeep { get; set; } = 10;                     // ile ostatnich sesji pamietamy (5-50)
+    // (#3) low-FPS alert: OSD toast when the game in front stays under this many FPS; 0 = off
+    public int LowFpsAlert { get; set; }
 
     // ---- profile restore (EC potrafi sam wskoczyc w Super Battery po wybudzeniu / hibernacji) ----
     public bool RestoreProfileOnResume { get; set; }                   // opt-in: przywroc profil po wznowieniu i przy starcie
@@ -332,6 +334,7 @@ public sealed class AppSettings
     // options. Machine-local UI state like SettingsSubTab (not imported, not cloned).
     public int FanCurveView { get; set; }
     public bool FanCurveZones { get; set; } = true;      // audibility bands behind the plot
+    public bool SpreadLogView { get; set; }              // (#6) Status → Gaming frame spread: "all frames visible" view
     public bool FanCurveTrail { get; set; }              // 3-minute temperature trail on the curve (opt-in)
     public bool FanCurveDotLabels { get; set; }          // "In action": values next to every history dot (opt-in)
     public bool FanCurveDiagOpen { get; set; }           // "In action": the diagnostics panel (sweep, two-table test) expanded
@@ -572,6 +575,11 @@ public sealed class AppSettings
         DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
         DefOff("Mic",      0x7A, "Ctrl+Alt+F11");  // F11 — microphone mute (discussion #231); F10 is the panic reset
         DefOff("Crosshair", 0x7B, "Ctrl+Alt+F12"); // F12 - crosshair on/off (roadmap #118)
+        // (#35) FPS snapshot: Ctrl+Shift+F12, on - every Ctrl+Alt+F-key is taken above, and the
+        // gaming shortcuts already live on Ctrl+Shift (overlay O / L). The 1.42.99 test build
+        // stored it with no key, which this fills in once (Vk 0 = never recorded).
+        if (!Hotkeys.TryGetValue("FpsSnapshot", out var fsk) || fsk.Vk == 0)
+            Hotkeys["FpsSnapshot"] = new HotkeyDef { Mods = Hk.MOD_CONTROL | Hk.MOD_SHIFT, Vk = 0x7B, Display = "Ctrl+Shift+F12" };   // 0x7B = F12
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -603,6 +611,7 @@ public sealed class AppSettings
         if (OsdSeconds is < 1 or > 15) OsdSeconds = 3;
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
+        if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickMiddle)) TrayClickMiddle = (int)TrayAction.FanBoost;
         if (!Enum.IsDefined(typeof(GhostDeck.TrayWheelMode), TrayWheelMode)) TrayWheelMode = (int)GhostDeck.TrayWheelMode.Profiles;
@@ -751,6 +760,7 @@ public sealed class AppSettings
         SessionPopupEnabled = src.SessionPopupEnabled;
         SessionPopupSeconds = src.SessionPopupSeconds;
         GameSessionKeep = src.GameSessionKeep;
+        LowFpsAlert = src.LowFpsAlert;
         RestoreProfileOnResume = src.RestoreProfileOnResume;
         StartupProfile = src.StartupProfile;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
@@ -874,6 +884,7 @@ public sealed class AppSettings
             SessionPopupEnabled = SessionPopupEnabled,
             SessionPopupSeconds = SessionPopupSeconds,
             GameSessionKeep = GameSessionKeep,
+            LowFpsAlert = LowFpsAlert,
             RestoreProfileOnResume = RestoreProfileOnResume,
             StartupProfile = StartupProfile,
             RestoreCurveOnResume = RestoreCurveOnResume,

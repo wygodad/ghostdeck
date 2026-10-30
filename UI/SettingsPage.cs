@@ -19,7 +19,7 @@ public sealed partial class SettingsPage : ThemedPage
         ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
         ("PanicReset", "Panic reset"), ("KbdLight", "Keyboard backlight"), ("Webcam", "Webcam"),
         ("EcView", "EC live view"), ("WinLock", "Windows key lock"), ("Touchpad", "Touchpad"),
-        ("Mic", "Microphone"), ("Crosshair", "Crosshair"),
+        ("Mic", "Microphone"), ("Crosshair", "Crosshair"), ("FpsSnapshot", "FPS snapshot"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -1573,7 +1573,7 @@ public sealed partial class SettingsPage : ThemedPage
             // A shortcut Windows refused (another app owns the combination) is marked right on
             // its row - it used to look identical to one that works (issue #92).
             string mark = TrayContext.HotkeysRefused.Contains(key) ? "  ⚠" : "";
-            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : key == "Mic" ? Lang.T("mic_title") : key == "Crosshair" ? Lang.T("ch_title") : label), row);
+            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : key == "Mic" ? Lang.T("mic_title") : key == "Crosshair" ? Lang.T("ch_title") : key == "FpsSnapshot" ? Lang.T("fps_snap_title") : label), row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);

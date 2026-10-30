@@ -131,6 +131,7 @@ public sealed class TrayContext : ApplicationContext
 
         FpsMonitor.StopOrphan();                   // clear an ETW session a crashed instance left behind
         FpsMonitor.SessionEnded += OnGameSession;
+        FpsMonitor.Ticked += OnFpsTick;            // (#3) low-FPS alert
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         var forced = Environment.GetEnvironmentVariable("MSIPS_FORCE_FIRMWARE");
@@ -2137,6 +2138,26 @@ public sealed class TrayContext : ApplicationContext
         }, null);
     }
 
+    // (#3) Low-FPS alert: the rules live in LowFpsAlert; this feeds it the monitor's 1 s tick
+    // (worker thread, serialised by the monitor) and shows the toast. The temperatures are the
+    // newest sample of the 3 s hardware poll - no extra EC read, and nothing is written.
+    private readonly LowFpsAlert _lowFps = new();
+
+    private void OnFpsTick(FpsTick t)
+    {
+        int threshold = _settings.LowFpsAlert;
+        if (_lowFps.Feed(t, threshold, DateTime.Now) is not { } fps) return;
+        var hw = HwHistory.Window(TimeSpan.FromSeconds(10)).LastOrDefault();
+        _ui?.Post(_ =>
+        {
+            string text = string.Format(Lang.T("lfa_text"), fps, threshold);
+            if (hw.CpuTemp > 0) text += $" · CPU {hw.CpuTemp} °C";
+            if (hw.GpuTemp > 0) text += $" · GPU {hw.GpuTemp} °C";
+            _osd.ShowProfile(OsdPrefix + Lang.T("lfa_title"), text, Theme.Amber, minSeconds: 4);
+            ChangeLog.Add(ChangeSource.Game, t.Process + "  ·  " + text);
+        }, null);
+    }
+
     // ---- profile restore around sleep/hibernation ----
     // Observed on the GE78HX: the EC sometimes comes back from S3/S4 in Super Battery on its own
     // (no MSI software running). The poll's external sync would faithfully ADOPT that, so instead
@@ -2363,6 +2384,7 @@ public sealed class TrayContext : ApplicationContext
         if (Touchpad.Present()) Reg("Touchpad", ToggleTouchpad);   // devnode switch, no EC needed
         Reg("Mic", ToggleMic);                                     // Core Audio mute flag, no EC needed
         Reg("Crosshair", ToggleCrosshair);                         // a window over the screen, no EC needed
+        Reg("FpsSnapshot", SaveFpsSnapshot);                       // (#35) a text file; reads only
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -2418,6 +2440,50 @@ public sealed class TrayContext : ApplicationContext
     {
         if (_simulate || (!Known && !_telemetryOnly && string.IsNullOrEmpty(_firmware))) { ShowState(); return; }
         EcViewForm.ShowSingleton();
+    }
+
+    // (#35) "FPS snapshot" shortcut: the last 30 s of the foreground game plus the hardware
+    // state, written to a text file next to the other reports and named in an OSD toast. The
+    // FPS side is copied on the UI thread (the monitor's own lock), the hardware read is the
+    // overlay's and runs off it; nothing is written to the EC. Without a running FPS monitor the
+    // file still gets the hardware part and says how to turn the measurement on.
+    private int _snapBusy;
+
+    private void SaveFpsSnapshot()
+    {
+        if (Interlocked.Exchange(ref _snapBusy, 1) != 0) return;   // a held key repeats; one file per press
+        var now = DateTime.Now;
+        bool measuring = FpsMonitor.Active;
+        var cur = FpsMonitor.Current;
+        var frames = measuring ? FpsMonitor.RecentFrames(FpsSnapshotReport.WindowSeconds) : new();
+        string target = cur?.Process ?? FpsMonitor.TargetName;
+        string profile = Known ? Profiles.Get(_current).Label : "";
+        string model = Known ? $"{_device!.Name} ({_firmware})" : _firmware ?? "";
+        var ui = _ui;
+        Task.Run(() =>
+        {
+            string? path = null, error = null;
+            bool hasFps = false;
+            try
+            {
+                HwSnapshot? hw = null;
+                try { hw = ReadHwOrTelemetry(); } catch { }   // a refused read still leaves the FPS part
+                var input = new FpsSnapshotReport.Input(now, measuring, cur, target, frames, hw, profile, model, AppVersion());
+                hasFps = FpsSnapshotReport.HasFps(input);
+                path = FpsSnapshotReport.Save(FpsSnapshotReport.Build(input), hasFps ? target : "", now);
+            }
+            catch (Exception ex) { error = ex.Message; }
+            finally { Interlocked.Exchange(ref _snapBusy, 0); }
+            ui?.Post(_ =>
+            {
+                if (path == null) { _osd.ShowProfile(OsdPrefix + Lang.T("err"), error ?? "", Color.Firebrick); return; }
+                string saved = string.Format(Lang.T("fps_snap_saved"), Path.GetFileName(path));
+                string sub = hasFps ? saved : Lang.T(measuring ? "fps_snap_nogame" : "fps_snap_off") + "\n" + saved;
+                _osd.ShowProfile(OsdPrefix + Lang.T("fps_snap_title"), sub,
+                    hasFps ? Color.FromArgb(0x17, 0xC0, 0xEB) : Theme.Amber, minSeconds: hasFps ? 0 : 6);
+                ChangeLog.Add(ChangeSource.Hotkey, Lang.T("fps_snap_title") + "  ·  " + Path.GetFileName(path));   // no user folder in the history
+            }, null);
+        });
     }
 
     // "Panic" hotkey: one press back to a safe stock state — Fan Boost off, Balanced profile.

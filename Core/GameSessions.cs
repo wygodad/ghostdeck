@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -88,24 +89,35 @@ public static class GameSessions
         end = s.End.ToString("yyyy-MM-dd'T'HH:mm:ss"),
         durationSeconds = (int)(s.End - s.Start).TotalSeconds,
         avgFps = s.AvgFps, minFps = s.MinFps, maxFps = s.MaxFps, p1LowFps = s.P1LowFps,
-        frames = s.Frames, stutters = s.Stutters,
+        frames = s.Frames, stutters = s.StutterCount,
         maxCpuTempC = s.MaxCpuTemp, maxGpuTempC = s.MaxGpuTemp,
         avgCpuRpm = s.AvgCpuRpm, avgGpuRpm = s.AvgGpuRpm,
         profile = s.Profile,
         frametimeSparkMs = s.Spark,        // averaged buckets of the session's closing window
         frametimeSparkPeakMs = s.SparkPeak,
+        // frame pacing over the whole session (#6); null in sessions saved before it existed
+        medianFrametimeMs = s.HasPacing ? Math.Round(s.MedianMs, 2) : (double?)null,
+        p95FrametimeMs = s.HasPacing ? Math.Round(s.P95Ms, 2) : (double?)null,
+        p01LowFps = s.HasPacing ? s.P01LowFps : (int?)null,
+        frametimeHistogram1ms = s.FrameHist,   // frames per 1 ms bin from 0 ms; the last bin is 50 ms and slower
     }, new JsonSerializerOptions { WriteIndented = true });
 
     public static string ToCsv(GameSession s)
     {
+        var inv = CultureInfo.InvariantCulture;
         var sb = new StringBuilder();
-        sb.AppendLine("game,start,end,duration_s,avg_fps,min_fps,max_fps,p1_low_fps,frames,stutters,max_cpu_temp_c,max_gpu_temp_c,avg_cpu_rpm,avg_gpu_rpm,profile");
+        sb.AppendLine("game,start,end,duration_s,avg_fps,min_fps,max_fps,p1_low_fps,frames,stutters,max_cpu_temp_c,max_gpu_temp_c,avg_cpu_rpm,avg_gpu_rpm,profile,median_frametime_ms,p95_frametime_ms,p01_low_fps,frametime_hist_1ms");
         sb.Append(s.Process).Append(',').Append(s.Start.ToString("yyyy-MM-dd HH:mm:ss")).Append(',')
           .Append(s.End.ToString("yyyy-MM-dd HH:mm:ss")).Append(',').Append((int)(s.End - s.Start).TotalSeconds).Append(',')
           .Append(s.AvgFps).Append(',').Append(s.MinFps).Append(',').Append(s.MaxFps).Append(',')
-          .Append(s.P1LowFps).Append(',').Append(s.Frames).Append(',').Append(s.Stutters).Append(',')
+          .Append(s.P1LowFps).Append(',').Append(s.Frames).Append(',').Append(s.StutterCount).Append(',')
           .Append(s.MaxCpuTemp).Append(',').Append(s.MaxGpuTemp).Append(',')
-          .Append(s.AvgCpuRpm).Append(',').Append(s.AvgGpuRpm).Append(',').Append(s.Profile).AppendLine();
+          .Append(s.AvgCpuRpm).Append(',').Append(s.AvgGpuRpm).Append(',').Append(s.Profile).Append(',')
+          // empty cells for a session saved before frame pacing; the histogram is one cell, bins split by ';'
+          .Append(s.HasPacing ? s.MedianMs.ToString("0.00", inv) : "").Append(',')
+          .Append(s.HasPacing ? s.P95Ms.ToString("0.00", inv) : "").Append(',')
+          .Append(s.HasPacing ? s.P01LowFps.ToString(inv) : "").Append(',')
+          .Append(s.FrameHist is { } h ? string.Join(';', h) : "").AppendLine();
         return sb.ToString();
     }
 

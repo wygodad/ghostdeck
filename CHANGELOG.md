@@ -5,6 +5,17 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Frame pacing in the game-session report** (roadmap #6): under the frametime line the popup now shows the median
+  frametime, the time 95 % of frames stayed under, the 0.1% low and a small histogram of where the frames sat (0 to 50+ ms,
+  stutter-range bars in red). Status → Gaming shows the same numbers for a picked session, and the JSON/CSV export carries
+  them with the histogram. Sessions saved before this simply show the popup as before.
+- **FPS snapshot hotkey** (roadmap #35): a new action under Settings → Hotkeys (Ctrl+Shift+F12 by default). One press
+  saves a small text file to the Desktop with the last 30 seconds of the game in front (FPS now, average, 1% low, median and
+  95% frametime, stutters) plus CPU/GPU temperature, fans and the active profile, and an on-screen message names the file.
+  If FPS was not being measured, the file still gets the hardware part and says how to turn FPS on.
+- **Low-FPS alert** (roadmap #3): Settings → Gaming → Overlay, off by default, thresholds 30 / 45 / 60 / 90 / 120 FPS. When
+  the game in front drops below it for 3 seconds after having run above it, a short on-screen message says e.g. "FPS dropped
+  to 41 (your threshold 60) · CPU 97 °C". At most once a minute per game, works while FPS is measured, no extra hardware reads.
 - **GE66 Raider 10SF** (`1541EMS1`, model database 20261118, [#303](../../issues/303), thanks @chopin312) - the backup WMI
   path layout is on record, so GhostDeck offers the path test on this laptop; the owner's Dragon Center capture matches the recipes.
 - **Katana 15 HX B14WGK** (`1587EMS1`, [#304](../../issues/304), [#305](../../issues/305), thanks @suivan1 and @rudnet054) - the
@@ -68,6 +79,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   on (16-bit pair, CPU fan only) and the single fan curve verified. The A1VEK name joins the entry.
 
 ### Changed
+- **Status → Gaming, saved games**: the picked game now shows its frametime line and how even its frames were over the whole
+  game, above its numbers (games saved before this version show the line only). The live part at the top is unchanged.
+  The frame chart counts frames on its vertical axis, gives every time in frames per second too (16 ms / 60 fps), keeps a
+  bubble at the tallest bar and one with the number of stutters, shows a clicked bar's exact count until it is clicked
+  again, and has a "?" card that explains it. A switch, **Real counts / All frames visible**, squeezes the height so the
+  rare slow frames show; the bubbles keep the real numbers. The legend names the game's own stutter line (twice a typical
+  frame, at least 25 ms).
+- **Stutters are one number everywhere**: the game-session popup, the session table, the export and the frame chart now
+  count the same frames (those in the red bars). The count kept during the game followed the last few seconds and could
+  differ by a few frames.
 - **Fan-curve report on a one-slider laptop** names the table the curve was found in ("one test curve in the Fan 1 / CPU table
   @ 0x72") instead of naming it after whichever test values were typed into the single slider, and counts that as a match with
   the shipped map ([#293](../../issues/293)).

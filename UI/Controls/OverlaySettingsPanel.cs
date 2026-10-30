@@ -16,13 +16,14 @@ public sealed class OverlaySettingsPanel : Panel
     private readonly ToggleSwitch _enable, _optTop, _optClick, _optAccent, _optBold, _bgToggle, _sessPopup;
     private readonly Slider _opacity, _scale, _bgOpacity;
     private readonly SegControl _layout, _opacityPre, _scalePre, _bgOpacityPre;
-    private readonly ThemedComboBox _position, _sessSecs, _sessKeep;
+    private readonly ThemedComboBox _position, _sessSecs, _sessKeep, _lowFps;
     private readonly Button _bgColor, _restore;
     private static readonly int[] OpacityPresets = { 60, 75, 90, 100 };
     private static readonly int[] ScalePresets = { 90, 100, 120, 140 };
     private static readonly int[] BgOpacityPresets = { 0, 40, 70, 100 };
     private static readonly int[] SessSecsVals = { 20, 30, 40, 50, 60, 0 };   // 0 = until closed
     private static readonly int[] SessKeepVals = { 5, 10, 20, 30, 40, 50 };
+    private static readonly int[] LowFpsVals = { 0, 30, 45, 60, 90, 120 };   // (#3) 0 = off
     private readonly List<(CheckItem item, OverlayMetric metric)> _metrics = new();
     private readonly List<(string text, Rectangle rect, int kind)> _texts = new();
     private readonly List<int> _dividers = new();
@@ -146,6 +147,13 @@ public sealed class OverlaySettingsPanel : Panel
         _sessKeep.SelectedIndexChanged += (_, _) => { s.GameSessionKeep = SessKeepVals[Math.Max(0, _sessKeep.SelectedIndex)]; d.SaveSettings(); d.SettingsChanged(); };
         Controls.Add(_sessKeep);
 
+        // (#3) low-FPS alert threshold; the alert itself runs in the tray off the FPS monitor's tick
+        _lowFps = new ThemedComboBox { Width = 190 };
+        _lowFps.Items.AddRange(LowFpsVals.Select(x => (object)(x == 0 ? Lang.T("gen_off") : x + " FPS")).ToArray());
+        _lowFps.SelectedIndex = Math.Max(0, Array.IndexOf(LowFpsVals, s.LowFpsAlert));
+        _lowFps.SelectedIndexChanged += (_, _) => { s.LowFpsAlert = LowFpsVals[Math.Max(0, _lowFps.SelectedIndex)]; d.SaveSettings(); };
+        Controls.Add(_lowFps);
+
         _restore = new Button { Text = Lang.T("ov_restore"), AutoSize = false };
         Ui.StyleGhost(_restore);
         _restore.Click += (_, _) => { s.RestoreOverlayDefaults(); d.SaveSettings(); d.ApplyOverlaySettings(); RefreshFromSettings(); Relayout(_w); };
@@ -168,6 +176,7 @@ public sealed class OverlaySettingsPanel : Panel
         _sessPopup.Checked = s.SessionPopupEnabled;
         _sessSecs.SelectedIndex = Math.Max(0, Array.IndexOf(SessSecsVals, s.SessionPopupSeconds));
         _sessKeep.SelectedIndex = Math.Max(0, Array.IndexOf(SessKeepVals, s.GameSessionKeep));
+        _lowFps.SelectedIndex = Math.Max(0, Array.IndexOf(LowFpsVals, s.LowFpsAlert));
     }
 
     // Fully DPI-aware: every offset is scaled by the current display scaling, and captions/labels are
@@ -284,6 +293,21 @@ public sealed class OverlaySettingsPanel : Panel
         SessRow(_sessPopup, Lang.T("set_sess_popup"));
         SessRow(_sessSecs, Lang.T("set_sess_secs"));
         SessRow(_sessKeep, Lang.T("set_sess_keep"));
+
+        // ---- low-FPS alert (#3): caption, the threshold row, one help line ----
+        sy += Ceil(2 * k);
+        _dividers.Add(sy); sy += Ceil(16 * k);
+        _texts.Add((Lang.T("lfa_title"), new Rectangle(pad, sy, width - pad * 2, capH), 1));
+        sy += capH + capGap;
+        _lowFps.Width = Math.Max(_sessSecs.Width, _lowFps.PreferredFieldWidth);
+        SessRow(_lowFps, Lang.T("lfa_row"));
+        using (var helpFont = Dpi.Font("Segoe UI", 9f))
+        {
+            int helpH = TextRenderer.MeasureText(Lang.T("lfa_desc"), helpFont, new Size(descW, 0),
+                TextFormatFlags.WordBreak).Height + Ceil(4 * k);
+            _texts.Add((Lang.T("lfa_desc"), new Rectangle(pad, sy - Ceil(4 * k), descW, helpH), 6));
+            sy += helpH + Ceil(4 * k);
+        }
 
         // restore-defaults button, bottom-right
         int by = sy + Ceil(4 * k);

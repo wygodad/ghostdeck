@@ -1391,6 +1391,140 @@ an on/off switch live in Settings -> Notifications (20-60 s or 0 = until closed)
 Status -> Gaming shows a picker + per-session JSON/CSV export; the JSON/CSV serialisation is
 shared with the popup (`GameSessions.ToJson/ToCsv/ExportWithDialog`).
 
+### 29.1 Frame pacing in the session report (roadmap #6)
+
+Average FPS and 1% low say little about how even the frames were. At session end
+`FinalizeDeadLocked` now reads four more values out of the same session-wide 0.25 ms histogram
+(512 buckets, last bucket = 127.75 ms and slower), so they cover the whole session at no extra
+memory:
+
+| Field (`GameSession`) | Meaning | Rule |
+|---|---|---|
+| `MedianMs` | median frametime | 50th percentile, interpolated inside its 0.25 ms bucket (a locked 60 FPS reads about 16.6, not the bucket edge) |
+| `P95Ms` | 95 % of frames were this fast or faster | 95th percentile, interpolated the same way |
+| `P01LowFps` | "0.1% low" | 1000 / 99.9th-percentile frametime, bucket upper edge (same style as the 1% low); 0 under 1000 frames, where that percentile is one or two frames |
+| `FrameHist` | compact histogram | 51 ints: frames per 1 ms bin 0..49 ms, the last bin = 50 ms and slower |
+
+All four are optional trailing record parameters with "none" defaults, so a `sessions.json`
+written before them still deserialises; `GameSession.HasPacing` (not serialised) tells the UI
+whether they are there.
+
+- **Popup:** under the sparkline, one line `MEDIAN x.x ms · 95% ≤ x.x ms · 0.1% LOW n` (fixed
+  English like the stat tiles) and a histogram strip with a `0 / 25 / 50+ ms` axis. Bar height is
+  logarithmic in the count, so a few dozen long frames stay visible beside the bars around the
+  median; bins at or past the stutter threshold max(25 ms, 2x median) are red, the rest cyan. The
+  popup keeps its width and only grows in height; for a session without the data the block takes
+  no room.
+- **Status → Gaming** session card: two more rows, "0.1% low" and "Frametime"
+  (`median x.x ms · 95% ≤ x.x ms`, `gm_pacing_row`), "-" for older sessions.
+- **Status → Gaming, saved game**: under the live boxes and the live 60 s chart (unchanged), the picked saved game now shows two charts above its numbers: its frametime line (the closing stretch kept in `Spark`, stutter dots from `SparkPeak`) and its whole-game frame spread, "How even the frames were (whole game)" (`DrawSavedSpread`). Games saved before this version show the line and a note instead of the spread.
+
+  The spread chart in Status is built to be read without the popup's context:
+  - **Two views**, a switch in the header ("Real counts" / "All frames visible"), remembered in
+    `AppSettings.SpreadLogView` (default: real counts). Real counts: a bar's height is its frame
+    count on a linear axis labelled "Number of frames" with rounded gridline values. All frames
+    visible: height = log10(1 + count), gridlines at 0 / 10 / 100 / 1 000 ..., and an amber
+    note under the title that the height is squeezed and the bubbles keep the real numbers (in
+    a real game one or two bars hold almost every frame, so on the linear axis the slow frames
+    are a 2 px line). The note's room is kept in both views, so switching only repaints.
+  - **Horizontal axis** in ms with the matching frame rate under it: `0 ms`, `16 ms / 60 fps`,
+    `25 ms / 40 fps`, `50+ ms / 20 fps`, plus the caption "how long one frame took (and how many
+    frames per second that is)". Axis and bubbles share one conversion (`FpsAtMs`: 1000 / ms at
+    the bin's middle, from 30 fps up rounded to the nearest 5), so the 16 ms bar says 60 in both.
+  - **Stutter rule, one for everything**: `GameSession.StutterFromMs` = twice the whole game's
+    median, at least 25 ms, rounded up to a whole 1 ms bin; the last bin (50 ms and slower)
+    always counts. Bars from that bin on are red here and in the popup strip, and
+    `GameSession.StutterCount` adds them up. `FinalizeDeadLocked` stores that sum as `Stutters`,
+    so the popup, the session table, the JSON/CSV export and the chart give one number; the
+    live per-tick count (moving median of the last seconds) is only used while the game runs.
+    Games saved before the histogram keep their stored count. The legend names the game's own
+    line, "stutter (slower than 30 fps in this game)".
+  - **Stutter bubble** (red edge) at the tallest red bar: "Stutters: 30 frames / slower than 30
+    fps". It gives way to the peak bubble and to a clicked bubble it would overlap.
+  - **Peak bubble**, always shown: an arrow to the tallest bar, "Most frames: 7 ms / 7 ms = 133
+    fps, smooth" (or "stutter" when the peak itself is past the threshold).
+  - **Click a bar** to select it: the bar is highlighted and a bubble shows "Selected bar: 9 ms /
+    40 000 frames · about 105 fps". The selection stays until the same bar is clicked again (or
+    another bar is clicked); it is per saved game and cleared when another game is picked. The
+    hit zones are the bar columns of the drawn chart, so the selection follows scrolling and DPI.
+  - **Bubble placement**: inside the plot and right of the count labels, so no bubble covers
+    an axis value.
+  - **"?" help**: the round button and the "help" link next to the title open a GhostDeck card
+    (`GhostCardForm`, §11 of RENDERING.md) "How to read this chart": one bar = frames that took
+    the same time, height = how many, further left = faster (16 ms = 60 fps, 33 ms = 30 fps),
+    blue = smooth, red = visible stutter, and what a good game looks like (one tall blue hill,
+    almost no red). One button, "Got it".
+  - Height comes from `SpreadChartH` (font height + DPI), used both for drawing and in
+    `SectionHeight`, so the bubbles and the two-line axis labels never clip at 100-200 %.
+  All texts are `Lang.T` keys (`gm_spread_*`) in the 15 languages.
+- **Export:** JSON `medianFrametimeMs`, `p95FrametimeMs`, `p01LowFps` (null for older sessions)
+  and `frametimeHistogram1ms`; CSV columns `median_frametime_ms`, `p95_frametime_ms`,
+  `p01_low_fps`, `frametime_hist_1ms` (the 51 bins in one cell, separated by `;`). Decimals use a
+  dot regardless of the Windows language.
+
+### 29.2 FPS snapshot shortcut (roadmap #35)
+
+Shortcut action `FpsSnapshot` ("FPS snapshot", Settings → Hotkeys). It ships with **Ctrl+Shift+F12**, on:
+every Ctrl+Alt+F-key already belongs to another action, Ctrl+Alt+letter is an AltGr letter on
+many keyboard layouts (Polish ś, ą, ...), and the gaming shortcuts already sit on Ctrl+Shift
+(overlay O / L). Read-only, registered
+also on models where EC writes are off.
+
+One press (`TrayContext.SaveFpsSnapshot`, `Core/FpsSnapshotReport.cs`): the FPS part is copied
+on the UI thread (`FpsMonitor.Current`, `FpsMonitor.RecentFrames(30)`), the hardware part is the
+overlay's read (`ReadHwOrTelemetry`: EC, or the WMI sensor blocks on telemetry-only machines) and
+runs on a worker. The file goes where the report wizards save theirs: the Desktop, or Documents
+when there is none, named `ghostdeck-fps-snapshot-<game>-<yyyyMMdd-HHmmss>.txt` (`no-game` when
+nothing was measured). Format, UTF-8, labels in fixed English so files from any language read
+the same:
+
+```
+GhostDeck FPS snapshot
+Time:               2026-10-30 21:14:05
+Laptop:             MSI Raider GE78HX 13V (17S1IMS1.114)
+GhostDeck:          1.43.0
+
+Game:               Cyberpunk2077 (PID 1234)
+Window:             last 30 s, 1800 frames
+FPS now:            60
+FPS average:        60
+1% low:             60 FPS
+Median frametime:   16.6 ms
+95% of frames:      <= 16.6 ms
+Stutters:           6 (frames over 33.2 ms)
+
+CPU:                87 °C, 4300 RPM, 62 % fan
+GPU:                74 °C, 4100 RPM, 58 % fan
+Profile:            Extreme
+```
+
+FPS average = 1000 / mean frametime of the window; 1% low = 99th percentile (left out under 100
+frames); stutters use the usual max(25 ms, 2x median). The FPS monitor runs only while the
+overlay shows an FPS metric or Status → Gaming is open (§29). When it is off, the file keeps the
+hardware part and says `FPS: not measured` plus a translated note (`fps_snap_off`) on how to
+turn it on; with the monitor on but no game presenting, `fps_snap_nogame`. An OSD toast names
+the file (amber with the note when there was no FPS), and the History gets one `Hotkey` line
+with the file name only (no user folder).
+
+### 29.3 Low-FPS alert (roadmap #3)
+
+Setting `LowFpsAlert` (FPS threshold, 0 = off, default off), picked under Settings → Gaming →
+Overlay: Off / 30 / 45 / 60 / 90 / 120 FPS. `FpsMonitor` raises `Ticked` (worker thread) after
+each 1 s tick with an `FpsTick` for its target: PID, name, FPS (the same 3 s event-time rate as
+the overlay), whether it is the foreground window and whether it is a promoted game session.
+`Core/LowFpsAlert.cs` holds the rules, `TrayContext.OnFpsTick` shows the toast:
+
+- only while the FPS monitor runs (no extra ETW session is started for the alert);
+- only a promoted game session in the foreground (no browsers, no shell, not while alt-tabbed);
+- the game must have reached the threshold at least once in that session (per PID), so loading
+  screens and 30 FPS menus right after the start stay quiet; a changed threshold applies at once;
+- then three consecutive ticks below the threshold (a gap in the ticks starts the count over);
+- at most one toast per game per 60 s.
+
+The toast reads e.g. `FPS dropped to 41 (your threshold 60) · CPU 97 °C · GPU 81 °C`; the
+temperatures are the newest sample of the 3 s hardware poll (`HwHistory`, not older than 10 s),
+so the alert costs no EC read and writes nothing. It is also logged as a `Game` entry.
+
 ## 30. Profile restore around sleep / startup (v1.23, opt-in)
 
 Observed on the GE78HX: the EC sometimes comes back from S3/hibernation - and occasionally from

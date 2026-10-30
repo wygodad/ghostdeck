@@ -11,15 +11,51 @@ public readonly record struct FpsSnapshot(
     int P1LowFps,        // 1% low over the last ~30 s (99th-percentile frametime)
     int Stutters30s);    // frames > max(25 ms, 2x median) in the last ~30 s
 
+/// <summary>State of the monitor's (sticky) target after one 1 s tick, for per-second consumers
+/// such as the low-FPS alert. Pid 0 = nothing presenting. Foreground = the target is the
+/// foreground window right now; Game = it has been promoted to a game session (presented for
+/// 10 s and is not a browser / shell process).</summary>
+public readonly record struct FpsTick(int Pid, string Process, int Fps, bool Foreground, bool Game);
+
 /// <summary>Summary of one finished game session (FPS side filled by the monitor; the EC side —
 /// temps / RPM / profile from <see cref="HwHistory"/> — is added by the tray before publishing).
 /// Spark/SparkPeak: averaged / peak frametime buckets of the session's closing window, feeding
-/// the sparkline on the report popup and the data export.</summary>
+/// the sparkline on the report popup and the data export.
+/// Frame pacing (#6), all from the whole session's histogram: MedianMs / P95Ms = 50th / 95th
+/// percentile frametime, P01LowFps = "0.1% low" (0 under 1000 frames), FrameHist = frame counts
+/// in 1 ms bins 0..49 ms plus one last bin for 50 ms and slower (51 values). All default to
+/// "none" so a sessions.json written before them still loads; the popup then hides the block.</summary>
 public sealed record GameSession(
     string Process, DateTime Start, DateTime End,
     int AvgFps, int MinFps, int MaxFps, int P1LowFps, long Frames, long Stutters,
     int MaxCpuTemp = 0, int MaxGpuTemp = 0, int AvgCpuRpm = 0, int AvgGpuRpm = 0, string Profile = "",
-    float[]? Spark = null, float[]? SparkPeak = null);
+    float[]? Spark = null, float[]? SparkPeak = null,
+    float MedianMs = 0, float P95Ms = 0, int P01LowFps = 0, int[]? FrameHist = null)
+{
+    /// <summary>True when the session carries the frame-pacing numbers (older saved sessions do not).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool HasPacing => MedianMs > 0 && FrameHist is { Length: > 1 };
+
+    /// <summary>The first 1 ms bin of <see cref="FrameHist"/> that counts as a stutter: twice the
+    /// whole game's median, at least 25 ms, rounded up to a whole bin; the last bin (50 ms and
+    /// slower) always counts. One rule for the popup strip, the Status chart and the count.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int StutterFromMs => Math.Min((int)Math.Ceiling(Math.Max(25f, 2f * MedianMs)), (FrameHist?.Length ?? 1) - 1);
+
+    /// <summary>Stutters as every view shows them: the frames in the red bins when the game has
+    /// its histogram, otherwise the count saved by an older version.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public long StutterCount
+    {
+        get
+        {
+            if (!HasPacing) return Stutters;
+            long c = 0;
+            for (int i = StutterFromMs; i < FrameHist!.Length; i++) c += FrameHist[i];
+            return c;
+        }
+    }
+}
 
 /// <summary>
 /// FPS / frametime of any game via a private real-time ETW session — the same user-mode source
@@ -42,6 +78,9 @@ public static class FpsMonitor
     /// <summary>Raised on a worker thread when a tracked game exits (marshal to the UI yourself).</summary>
     public static event Action<GameSession>? SessionEnded;
 
+    /// <summary>Raised on a worker thread after every 1 s tick while the monitor runs (marshal UI work yourself).</summary>
+    public static event Action<FpsTick>? Ticked;
+
     /// <summary>Snapshot for the foreground game, or null when nothing is presenting. ~1 s fresh.</summary>
     public static FpsSnapshot? Current { get { lock (_lock) return _current; } }
 
@@ -61,6 +100,9 @@ public static class FpsMonitor
     {
         get { lock (_lock) return _targetPid != 0 && _watch.TryGetValue(_targetPid, out var t) ? t.Name : ""; }
     }
+
+    /// <summary>True while the ETW session runs (overlay with an FPS metric, or Status → Gaming open).</summary>
+    public static bool Active => _active;
 
     /// <summary>Turn the whole monitor on/off (ETW session + 1 s aggregation timer).</summary>
     public static void SetActive(bool on)
@@ -302,6 +344,7 @@ public static class FpsMonitor
             }
 
             List<GameSession> ended;
+            FpsTick tick = default;
             lock (_lock)
             {
                 if (fgUsable && !_watch.ContainsKey(fgPid))
@@ -388,10 +431,13 @@ public static class FpsMonitor
                 if (_targetPid > 0 && _watch.TryGetValue(_targetPid, out var tgt) && tgt.CurFresh)
                     _current = new FpsSnapshot(_targetPid, tgt.Name, tgt.CurFps, tgt.CurFrameMs,
                         P1LowLocked(tgt.Frames, statCut), Stutters30sLocked(tgt.Frames, statCut));
+                if (_current is { } snap)
+                    tick = new FpsTick(snap.Pid, snap.Process, snap.Fps, fgPid == snap.Pid, _watch[snap.Pid].IsSession);
 
                 ended = FinalizeDeadLocked(all: false);
             }
             foreach (var s in ended) SessionEnded?.Invoke(s);
+            try { Ticked?.Invoke(tick); } catch { }   // a consumer's fault must not stop the monitor
         }
         catch { }
         finally { Interlocked.Exchange(ref _ticking, 0); }
@@ -423,10 +469,17 @@ public static class FpsMonitor
             if (!st.IsSession || dur.TotalSeconds < MinSessionSeconds || st.TotalFrames < MinSessionFrames) continue;
             int avg = st.ActiveSeconds > 0 ? (int)(st.TotalFrames / st.ActiveSeconds) : 0;
             var (spark, sparkPeak) = BuildSpark(st.Frames);
-            done.Add(new GameSession(st.Name, st.Start, st.LastFrameAt,
+            var gs = new GameSession(st.Name, st.Start, st.LastFrameAt,
                 avg, st.MinFps == int.MaxValue ? 0 : st.MinFps, st.MaxFps,
                 P1FromHisto(st.Histo, st.HistoCount), st.TotalFrames, st.Stutters,
-                Spark: spark, SparkPeak: sparkPeak));
+                Spark: spark, SparkPeak: sparkPeak,
+                MedianMs: PercentileMsFromHisto(st.Histo, st.HistoCount, 0.50),
+                P95Ms: PercentileMsFromHisto(st.Histo, st.HistoCount, 0.95),
+                P01LowFps: P01FromHisto(st.Histo, st.HistoCount),
+                FrameHist: CompactHisto(st.Histo));
+            // the live count follows a moving median; the saved one uses the whole game's, so
+            // the number matches the red bars of the game's frame spread
+            done.Add(gs.HasPacing ? gs with { Stutters = gs.StutterCount } : gs);
         }
         if (drop != null) foreach (int pid in drop) _watch.Remove(pid);
         return done;
@@ -511,6 +564,53 @@ public static class FpsMonitor
             }
         }
         return 0;
+    }
+
+    // "0.1% low": the same reading as P1FromHisto one decimal further out (99.9th-percentile
+    // frametime, bucket upper edge). Below ~1000 frames that percentile is one or two frames,
+    // so it is left out (0) instead of shown as a number.
+    private static int P01FromHisto(int[] histo, long count)
+    {
+        if (count < 1000) return 0;
+        long need = (long)(count * 0.999);
+        long acc = 0;
+        for (int i = 0; i < histo.Length; i++)
+        {
+            acc += histo[i];
+            if (acc >= need) return (int)Math.Round(1000f / ((i + 1) / 4f));
+        }
+        return 0;
+    }
+
+    // Frametime at quantile q (0.5 = median) in ms, interpolated inside the 0.25 ms bucket the
+    // quantile falls in: the median of a locked 60 FPS reads 16.7, not the bucket edge 16.75.
+    private static float PercentileMsFromHisto(int[] histo, long count, double q)
+    {
+        if (count < 100) return 0;
+        double need = count * q;
+        long acc = 0;
+        for (int i = 0; i < histo.Length; i++)
+        {
+            if (histo[i] == 0) continue;
+            if (acc + histo[i] >= need)
+            {
+                double frac = Math.Clamp((need - acc) / histo[i], 0, 1);
+                return (float)((i + frac) / 4.0);
+            }
+            acc += histo[i];
+        }
+        return 0;
+    }
+
+    // The 0.25 ms session histogram folded into 1 ms bins 0..49 ms + one bin for >= 50 ms:
+    // small enough to keep per saved session, fine enough to show where the frames sit.
+    private const int CompactBins = 50;
+    private static int[] CompactHisto(int[] histo)
+    {
+        var bins = new int[CompactBins + 1];
+        for (int i = 0; i < histo.Length; i++)
+            bins[Math.Min(i / 4, CompactBins)] += histo[i];
+        return bins;
     }
 
     private static int ForegroundPid()
