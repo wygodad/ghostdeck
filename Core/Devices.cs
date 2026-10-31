@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261120;
+    public const int DataVersion = 20261121;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -741,11 +741,17 @@ public static class Devices
         // package power averaged 58 W - i.e. the vendor's behaviour instead of the Silent-level
         // cap. The values written here are the vendor's own per-scenario values, Silent included,
         // so Silent keeps the cap MSI Center gives it.
+        //   A second owner (issue #309, GE66 Raider 11UE, firmware .113, MSI Center 2.0.74 with a
+        //   real Silent): shift, fan and super-battery match the recipes in every scenario (0xD4=8D
+        //   in Extreme = his own Advanced curve), but 0xD6 read 03 / 05 / 03 / 05 - 03 in Silent and
+        //   Extreme, 05 in Balanced, the reverse of the .115 capture above. 03 in Silent is seen on
+        //   no other board; whether MSI Center or the EC set it is unknown. Recipes unchanged; the
+        //   owner was asked for a power test. He joins the credit.
         new() { Name = "MSI GE66 Raider, GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified,
                 Recipes = StdRecipesPlus(0xD2, 0xD4, 0xEB, 0xD6, silent: 0x05, balanced: 0x03, extreme: 0x05, superB: 0x05),
-                Credit = "krystian-pytlik", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/52",
-                CreditIssues = Issues("krystian-pytlik:52,53") },
+                Credit = "krystian-pytlik, hjka007", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/52",
+                CreditIssues = Issues("krystian-pytlik:52,53; hjka007:309") },
 
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
         new() { Name = "MSI GS65 Stealth", FirmwarePrefixes = new[] { "16Q4EMS1" }, Tier = Tier.Experimental,

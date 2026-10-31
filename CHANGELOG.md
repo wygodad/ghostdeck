@@ -7,6 +7,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 - **Sword 16 HX B13V / B14V** (`15P2EMS1`, model database 20261120, [#307](../../issues/307), thanks @Allsoon) - another
   owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
+- **GE66 Raider, GP66 Leopard** (`1543EMS1`, model database 20261121, [#309](../../issues/309), thanks @hjka007) - a
+  second owner's capture matches the profile, fan and Super Battery settings in every scenario; added to the model's
+  credit.
 
 ## [1.43.0] - 2026-10-30
 ### Added
