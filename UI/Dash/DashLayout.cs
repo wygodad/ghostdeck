@@ -12,8 +12,16 @@ internal sealed record DashPlaced(int Index, DashItem Item, IDashWidget Widget, 
 /// </summary>
 internal static class DashLayout
 {
-    /// <summary>The items to show: the saved layout, or the default one for a settings object without a layout yet (the preview tool).</summary>
-    public static List<DashItem> ItemsOf(AppSettings s) => s.DashboardVersion < 1 ? DashItem.DefaultLayout() : s.Dashboard;
+    /// <summary>
+    /// The items to show: the saved layout. A settings object without a layout yet (the preview
+    /// tool's bare AppSettings; the application runs EnsureDefaults first) gets the default
+    /// layout written into it, so edits made on the page land in one list.
+    /// </summary>
+    public static List<DashItem> ItemsOf(AppSettings s)
+    {
+        if (s.DashboardVersion < 1) { s.Dashboard = DashItem.DefaultLayout(); s.DashboardVersion = DashItem.FormatVersion; }
+        return s.Dashboard;
+    }
 
     public static List<DashPlaced> Place(IReadOnlyList<DashItem> items, IReadOnlyList<IDashWidget> widgets, int cols)
     {

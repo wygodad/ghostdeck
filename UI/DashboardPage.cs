@@ -22,6 +22,7 @@ public sealed class DashboardPage : ThemedPage
         Controls.Add(_canvas);
 
         _timer.Tick += (_, _) => RefreshAsync();
+        _canvas.ContentChanged += Relayout;   // edit mode, the catalogue and layout edits change the content height
         ClientSizeChanged += (_, _) => Relayout();
         // Hidden page: no tick, and the static buffer is dropped (pages are never disposed, so
         // it would stay allocated for the whole session). OnPaint renders it again on return.
