@@ -6,11 +6,13 @@ namespace GhostDeck;
 /// <summary>
 /// Hosts the one drawn surface (<see cref="DashCanvas"/>) and sizes it to its content, so the
 /// page scrolls the canvas natively like the Status page does. Nothing else lives here: the
-/// widgets, the edit mode and the catalogue are all zones on the canvas.
+/// widgets, the edit mode and the catalogue are all zones on the canvas. The page also owns
+/// the data read: one shared sample per tick, taken off the window thread.
 /// </summary>
 public sealed class DashboardPage : ThemedPage
 {
     private readonly DashCanvas _canvas;
+    private int _refreshing;   // 1 while a background sample is in flight
 
     public DashboardPage(MainDeps d) : base(d)
     {
@@ -35,7 +37,8 @@ public sealed class DashboardPage : ThemedPage
         if (_canvas.Width != w || _canvas.Height != h) _canvas.Size = new Size(w, h);
     }
 
-    public override void OnEnter() => Relayout();
+    public override void OnEnter() { _canvas.Sync(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
+    public override void LiveRefresh() => RefreshAsync();
     public override void OnDisplayChanged() => Relayout();
     public override void OnLanguageChanged() => _canvas.Rebuild();
 
@@ -44,5 +47,26 @@ public sealed class DashboardPage : ThemedPage
         base.ApplyTheme();
         _canvas.BackColor = Theme.Surface;
         _canvas.Rebuild();
+    }
+
+    // The EC/WMI snapshot takes tens of milliseconds; read on a worker and complete the sample
+    // on the window thread (the Status page does the same, see StatusPage.RefreshAsync).
+    private void RefreshAsync()
+    {
+        if (Interlocked.Exchange(ref _refreshing, 1) == 1) return;
+        Task.Run(() =>
+        {
+            var hw = DashSample.ReadSlow(D);
+            try
+            {
+                BeginInvoke(() =>
+                {
+                    _refreshing = 0;
+                    if (IsDisposed) return;
+                    _canvas.SetSample(DashSample.Complete(D, hw));
+                });
+            }
+            catch { _refreshing = 0; }   // page disposed mid-flight
+        });
     }
 }

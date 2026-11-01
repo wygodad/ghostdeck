@@ -72,6 +72,12 @@ public sealed class AppSettings
     // A settings file that already lists IconTabs keeps the user's own choice.
     public List<string> IconTabs { get; set; } = new() { "Models" };
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
+    // Dashboard (1.44): the widgets in their order, each with its size in grid cells; the
+    // position is computed (UI/Dash/DashLayout), never stored. DashboardVersion 0 = a file from
+    // before the Dashboard: EnsureDefaults fills the default layout once. A layout the user
+    // emptied keeps its version, so it stays empty.
+    public List<DashItem> Dashboard { get; set; } = new();
+    public int DashboardVersion { get; set; } = 0;
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
     /// <summary>ghostdeck:// links registered for this user (roadmap #89); off removes the registration.</summary>
@@ -548,6 +554,8 @@ public sealed class AppSettings
     public void EnsureDefaults()
     {
         _initialised = true;   // from here on this instance may be saved (see Save)
+        DashItem.Sanitize(Dashboard);
+        if (DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }
         const uint CA = Hk.MOD_CONTROL | Hk.MOD_ALT;
         void Def(string k, uint vk, string disp)
         {
@@ -711,6 +719,9 @@ public sealed class AppSettings
         IconStyle = src.IconStyle;
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
+        // a file from before the Dashboard brings no layout: the default one, as at first start
+        if (src.DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }
+        else { Dashboard = src.Dashboard.Select(i => i.Clone()).ToList(); DashboardVersion = src.DashboardVersion; DashItem.Sanitize(Dashboard); }
         Autostart = src.Autostart;
         ProtocolLinks = src.ProtocolLinks;
         AutoSwitchEnabled = src.AutoSwitchEnabled;
@@ -852,6 +863,8 @@ public sealed class AppSettings
             IconStyle = IconStyle,
             IconTabs = new List<string>(IconTabs),
             ShowGrid = ShowGrid,
+            Dashboard = Dashboard.Select(i => i.Clone()).ToList(),
+            DashboardVersion = DashboardVersion,
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             LastModelDbCheckUtc = LastModelDbCheckUtc,
             SeenNoticeIds = new List<string>(SeenNoticeIds),

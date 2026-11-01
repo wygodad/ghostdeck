@@ -12,18 +12,28 @@ namespace GhostDeck;
 /// DC is DPI-aware and TextRenderer draws exactly as on screen. The page scrolls this control
 /// natively, so scrolling is a blit and no text has to honour a translate transform.
 ///
-/// Step 1 of the build: the header and the empty grid. The widget layer, the static bitmaps
-/// per widget and the live tick follow in the next steps (DOC/GhostDeck-dashboard-etap1-kroki.md).
+/// Step 2 of the build: the layout from settings.json placed on the grid, every item painted
+/// by its widget (placeholders until step 4). The static bitmaps per widget and the live tick
+/// follow in step 3 (DOC/GhostDeck-dashboard-etap1-kroki.md).
 /// </summary>
 internal sealed class DashCanvas : Control
 {
     private readonly MainDeps _d;
+    private readonly DashContext _ctx;
     private BufferedGraphics? _buf;
     private int _bufW, _bufH;
+
+    // the layout: the items (the settings list itself, so later edits are in place), one
+    // widget per item, and their placement for the current column count
+    private IReadOnlyList<DashItem> _items = Array.Empty<DashItem>();
+    private readonly List<IDashWidget> _widgets = new();
+    private List<DashPlaced> _placed = new();
+    private int _placedCols = -1;
 
     public DashCanvas(MainDeps d)
     {
         _d = d;
+        _ctx = new DashContext(d, this);
         BackColor = Theme.Surface;
         ResizeRedraw = true;
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
@@ -41,7 +51,6 @@ internal sealed class DashCanvas : Control
     private int Pad => S(28);
     private int Gap => S(16);
     private int MinCell => S(120);
-    private const int PlaceholderRows = 2;   // step 1 only: the empty grid shows two rows of cells
 
     public int Columns(int width)
     {
@@ -64,11 +73,56 @@ internal sealed class DashCanvas : Control
         return S(24) + f.Height + S(28);
     }
 
+    /// <summary>Pixel rectangle of a placed item for a given cell size.</summary>
+    private Rectangle PixelRect(Rectangle cells, int cell, int top)
+    {
+        int gap = Gap;
+        return new Rectangle(
+            Pad + cells.X * (cell + gap), top + cells.Y * (cell + gap),
+            cells.Width * cell + (cells.Width - 1) * gap, cells.Height * cell + (cells.Height - 1) * gap);
+    }
+
     /// <summary>Height the page sizes this control to (the page scrolls it when taller than the window).</summary>
     public int ContentHeight(int width)
     {
-        int cell = Cell(width);
-        return GridTop() + PlaceholderRows * cell + (PlaceholderRows - 1) * Gap + Pad;
+        Sync();
+        var placed = Placement(width);
+        int rows = Math.Max(1, DashLayout.Rows(placed)), cell = Cell(width);
+        return GridTop() + rows * cell + (rows - 1) * Gap + Pad;
+    }
+
+    // ---- layout -----------------------------------------------------------------------
+    /// <summary>Re-reads the layout from the settings; widgets are recreated only when the types changed.</summary>
+    public void Sync()
+    {
+        var items = DashLayout.ItemsOf(_d.Settings);
+        bool same = ReferenceEquals(items, _items) && items.Count == _widgets.Count;
+        if (same)
+            for (int i = 0; i < items.Count; i++)
+                if (items[i].Type != _widgets[i].TypeId) { same = false; break; }
+        if (same) return;
+        _items = items;
+        _widgets.Clear();
+        foreach (var it in items) _widgets.Add(DashRegistry.Make(it));
+        _placedCols = -1;
+    }
+
+    private List<DashPlaced> Placement(int width)
+    {
+        int cols = Columns(width);
+        if (cols != _placedCols || _placed.Count != _items.Count)
+        {
+            _placed = DashLayout.Place(_items, _widgets, cols);
+            _placedCols = cols;
+        }
+        return _placed;
+    }
+
+    /// <summary>A new data sample arrived (the page reads it off the window thread).</summary>
+    public void SetSample(DashSample s)
+    {
+        _ctx.Sample = s;
+        if (Visible) Rebuild();
     }
 
     // ---- buffer ---------------------------------------------------------------------
@@ -117,15 +171,13 @@ internal sealed class DashCanvas : Control
         using (var tf = TitleFont())
             TextRenderer.DrawText(g, Lang.T("tab_dashboard"), tf, new Point(Pad, S(24)), Theme.Text);
 
-        int cols = Columns(width), cell = Cell(width), gap = Gap, top = GridTop();
-        using var pen = new Pen(Theme.Border) { DashStyle = DashStyle.Dash };
-        float radius = S(12);
-        for (int row = 0; row < PlaceholderRows; row++)
-            for (int col = 0; col < cols; col++)
-            {
-                var r = new RectangleF(Pad + col * (cell + gap), top + row * (cell + gap), cell, cell);
-                using var path = Theme.RoundRect(r, radius);
-                g.DrawPath(pen, path);
-            }
+        Sync();
+        int cell = Cell(width), top = GridTop();
+        foreach (var p in Placement(width))
+        {
+            var r = PixelRect(p.Cells, cell, top);
+            p.Widget.PaintStatic(g, r, _ctx);
+            p.Widget.PaintLive(g, r, _ctx);
+        }
     }
 }
