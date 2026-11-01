@@ -210,6 +210,7 @@ public sealed class MainForm : Form
     {
         (MainTab.Scenarios, "tab_scenarios", ""),
         (MainTab.Status,    "menu_status",   ""),
+        (MainTab.Dashboard, "tab_dashboard", ""),
         (MainTab.FanCurve,  "tab_fancurve",  ""),
         (MainTab.Settings,  "menu_settings", ""),
         (MainTab.Models,    "tab_models",    "\U0001F4BB"),
@@ -394,7 +395,7 @@ public sealed class MainForm : Form
         if (_warmed) return;
         _warmed = true;
         ForceHandles(this);   // strip, host, banner + the initial Scenarios page
-        foreach (var t in new[] { MainTab.Settings, MainTab.Status, MainTab.FanCurve, MainTab.Models })
+        foreach (var t in new[] { MainTab.Settings, MainTab.Status, MainTab.Dashboard, MainTab.FanCurve, MainTab.Models })
         {
             await Task.Delay(250);   // spread out so the UI thread stays responsive
             if (IsDisposed) return;
@@ -517,6 +518,7 @@ public sealed class MainForm : Form
     {
         MainTab.Scenarios => new ScenariosPage(_d),
         MainTab.Status    => new StatusPage(_d),
+        MainTab.Dashboard => new DashboardPage(_d),
         MainTab.FanCurve  => new FanCurvePage(_d),
         MainTab.Updates   => new UpdatesPage(_d),
         MainTab.Settings  => new SettingsPage(_d),

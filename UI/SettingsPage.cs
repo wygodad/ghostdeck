@@ -1198,8 +1198,8 @@ public sealed partial class SettingsPage : ThemedPage
         }));
         foreach (var (id, nameKey) in new[]
         {
-            ("Scenarios", "tab_scenarios"), ("Status", "menu_status"), ("FanCurve", "tab_fancurve"),
-            ("Settings", "menu_settings"), ("Models", "tab_models"),
+            ("Scenarios", "tab_scenarios"), ("Status", "menu_status"), ("Dashboard", "tab_dashboard"),
+            ("FanCurve", "tab_fancurve"), ("Settings", "menu_settings"), ("Models", "tab_models"),
         })
         {
             string tid = id;

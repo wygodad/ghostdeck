@@ -2864,6 +2864,7 @@ public static class Lang
         m["tab_report"]     = new[] { "Report", "Zgłoś", "Melden", "Signaler", "Reportar", "提交机型", "Reportar", "Сообщить", "報告", "보고", "回報機型", "Bildir", "Báo cáo", "Laporan", "Segnala" };
         // ---- Models tab ----
         m["tab_models"]     = new[] { "Models", "Modele", "Modelle", "Modèles", "Modelos", "机型", "Modelos", "Модели", "モデル", "모델", "機型", "Modeller", "Model", "Model", "Modelli" };
+        m["tab_dashboard"]  = new[] { "Dashboard", "Dashboard", "Dashboard", "Tableau de bord", "Panel", "仪表板", "Painel", "Дашборд", "ダッシュボード", "대시보드", "儀表板", "Pano", "Bảng điều khiển", "Dasbor", "Dashboard" };
         m["mdl_intro"]      = new[] {
             "Every firmware ID the app recognises: {0} tested on real hardware, the rest experimental (opt-in) from the msi-ec / MControlCenter register maps. On an unrecognised firmware the app stays read-only.",
             "Wszystkie identyfikatory firmware rozpoznawane przez aplikację: {0} zweryfikowanych na sprzęcie, reszta eksperymentalna (opcjonalna) z map rejestrów msi-ec / MControlCenter. Nieznany firmware = tryb tylko do odczytu.",

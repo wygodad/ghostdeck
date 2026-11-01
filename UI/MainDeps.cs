@@ -2,7 +2,7 @@ using System.Drawing.Drawing2D;
 
 namespace GhostDeck;
 
-public enum MainTab { Scenarios, Status, FanCurve, Settings, Models, Report, Updates }
+public enum MainTab { Scenarios, Status, Dashboard, FanCurve, Settings, Models, Report, Updates }
 
 /// <summary>Everything the tabbed UI needs from the tray context (data + actions).</summary>
 public sealed class MainDeps
