@@ -276,13 +276,6 @@ public sealed class MainForm : Form
         if (_strip.Height != StripH) _strip.Height = StripH;
         int x = 20 + WordmarkWidth() + 30, y = 6, h = StripH - 7;
         using var f = Dpi.Font("Segoe UI", 11.5f, FontStyle.Bold);
-        foreach (var b in _tabs)
-        {
-            int w = TextRenderer.MeasureText(b.Text, f).Width + S(30) + S(30); // text + icon + padding
-            b.SetBounds(x, y, w, h);
-            x += w + 8;
-        }
-        _tabsRight = x;
         foreach (var gb in _tabIcons.Append(_themeBtn).Append(_reportBtn).Append(_updatesBtn))
             if (gb.Size != IconBtnSize) gb.Size = IconBtnSize;
         _themeBtn.Location = new Point(_strip.Width - _themeBtn.Width - S(18), (StripH - _themeBtn.Height) / 2);
@@ -295,6 +288,27 @@ public sealed class MainForm : Form
             ix -= _tabIcons[i].Width + S(8);
             _tabIcons[i].Location = new Point(ix, (StripH - _tabIcons[i].Height) / 2);
         }
+        // A tab row that does not fit shrinks, it does not overlap: the rightmost tabs give up
+        // their caption and keep their glyph (tooltip = the caption) until the row ends before
+        // the icon buttons, the way a sub-tab strip does (docs/RENDERING.md 5.2). Six tabs in
+        // Polish or German no longer fit a 1200 px window with their captions, and the minimum
+        // window is 900 px. Widen the window and the captions come back on the next layout.
+        int fullW(TabButton b) => TextRenderer.MeasureText(b.Text, f).Width + S(30) + S(30);   // text + icon + padding
+        int compactW = S(30) + S(22);                                                           // icon + padding
+        int limit = ix - S(16);
+        int compactFrom = _tabs.Count;
+        int rowW() { int w = 0; for (int i = 0; i < _tabs.Count; i++) w += (i >= compactFrom ? compactW : fullW(_tabs[i])) + 8; return w; }
+        while (compactFrom > 0 && x + rowW() > limit) compactFrom--;
+        for (int i = 0; i < _tabs.Count; i++)
+        {
+            var b = _tabs[i];
+            bool compact = i >= compactFrom;
+            if (b.Compact != compact) { b.Compact = compact; _tip.SetToolTip(b, compact ? b.Text : null); b.Invalidate(); }
+            int w = compact ? compactW : fullW(b);
+            b.SetBounds(x, y, w, h);
+            x += w + 8;
+        }
+        _tabsRight = x;
         _version.Text = "v" + _d.AppVersion();
         _version.Location = new Point(ix - _version.Width - S(14), (StripH - _version.Height) / 2);
         // a narrow window: the version (and the tier badge left of it) give way to the tabs
@@ -561,6 +575,7 @@ public sealed class MainForm : Form
     private sealed class TabButton : Control
     {
         public bool Active;
+        public bool Compact;           // glyph only: the strip did not have room for the caption (LayoutStrip)
         public string Glyph = "";
         private bool _hover;
         public TabButton() { DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand; }
@@ -580,16 +595,17 @@ public sealed class MainForm : Form
             var col = Active ? Theme.Accent : (_hover ? Theme.Text : Theme.Muted);
             var iconFont = Dpi.Font("Segoe MDL2 Assets", 15f);
             var textFont = Dpi.Font("Segoe UI", 11.5f, Active ? FontStyle.Bold : FontStyle.Regular);
-            int tw = TextRenderer.MeasureText(Text, textFont).Width;
-            int iconW = (int)Math.Ceiling(28 * Dpi.Of(this) / 96f), gap = (int)Math.Ceiling(10 * Dpi.Of(this) / 96f);   // grow with the icon font
+            int tw = Compact ? 0 : TextRenderer.MeasureText(Text, textFont).Width;
+            int iconW = (int)Math.Ceiling(28 * Dpi.Of(this) / 96f), gap = Compact ? 0 : (int)Math.Ceiling(10 * Dpi.Of(this) / 96f);   // grow with the icon font
             int total = iconW + gap + tw;
             int sx = Math.Max(6, (Width - total) / 2);
             // NoClipping: at some DPI scales / font fallbacks the glyph ink is wider than its
             // 28px cell and the default clip cut its edge (discussion #9, "Settings icon cut").
             TextRenderer.DrawText(g, Glyph, iconFont, new Rectangle(sx, 0, iconW, Height), col,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.NoClipping);
-            TextRenderer.DrawText(g, Text, textFont, new Rectangle(sx + iconW + gap, 0, tw + 8, Height), col,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+            if (!Compact)
+                TextRenderer.DrawText(g, Text, textFont, new Rectangle(sx + iconW + gap, 0, tw + 8, Height), col,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
         }
     }
 
