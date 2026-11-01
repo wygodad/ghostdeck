@@ -1,3 +1,5 @@
+using System.Drawing.Drawing2D;
+
 namespace GhostDeck;
 
 /// <summary>A widget type the application knows: identity, allowed sizes, availability on this model, and how to make one.</summary>
@@ -17,24 +19,20 @@ internal static class DashRegistry
     private static Size[] Sz(params (int w, int h)[] s) => s.Select(x => new Size(x.w, x.h)).ToArray();
     private static bool Always(MainDeps d) => true;
 
-    // Step 2 of the build: every type paints as a placeholder card; the real widgets replace
-    // the factories one by one in step 4 (DOC/GhostDeck-dashboard-etap1-kroki.md).
-    private static IDashWidget Placeholder(DashWidgetDef def) => new PlaceholderWidget(def);
-
     public static readonly IReadOnlyList<DashWidgetDef> All = new[]
     {
-        new DashWidgetDef("core.cpuTemp",     "dash_w_cpu_temp",  Sz((1, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.gpuTemp",     "dash_w_gpu_temp",  Sz((1, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.cpuFan",      "dash_w_cpu_fan",   Sz((1, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, Placeholder),
-        new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), Placeholder),
-        new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, Placeholder),
-        new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, Placeholder),
-        new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, Placeholder),
+        new DashWidgetDef("core.cpuTemp",     "dash_w_cpu_temp",  Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.CpuTemp)),
+        new DashWidgetDef("core.gpuTemp",     "dash_w_gpu_temp",  Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.GpuTemp)),
+        new DashWidgetDef("core.cpuFan",      "dash_w_cpu_fan",   Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.CpuFan)),
+        new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.GpuFan)),
+        new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.CpuUsage)),
+        new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, d => new CpuClockWidget(d)),
+        new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, d => new ProfilesWidget(d)),
+        new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), d => new CurveWidget(d)),
+        new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2)), Always, d => new ScenesWidget(d)),
+        new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, d => new TogglesWidget(d)),
+        new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, d => new MemoryWidget(d)),
+        new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, d => new ChargeLimitWidget(d)),
     };
 
     public static DashWidgetDef? Find(string typeId)
@@ -47,21 +45,6 @@ internal static class DashRegistry
     public static IDashWidget Make(DashItem item) => Find(item.Type)?.New() ?? new UnknownWidget(item.Type);
 }
 
-/// <summary>Step 2 stand-in for a built-in widget: the card, the name and the size, so the layout can be seen and measured.</summary>
-internal sealed class PlaceholderWidget : DashWidget
-{
-    public PlaceholderWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
-
-    public override void PaintStatic(Graphics g, Rectangle r, DashContext c)
-    {
-        Frame(g, r);
-        var inner = Inner(r, c);
-        using var nf = c.Font(11f, FontStyle.Bold);
-        TextRenderer.DrawText(g, Lang.T(NameKey), nf, inner, Theme.Text,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
-    }
-}
-
 /// <summary>A layout entry whose type this version does not know: a grey field with the id, kept in place so nothing is lost.</summary>
 internal sealed class UnknownWidget : DashWidget
 {
@@ -71,17 +54,17 @@ internal sealed class UnknownWidget : DashWidget
 
     public override void PaintStatic(Graphics g, Rectangle r, DashContext c)
     {
-        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
         using (var path = Theme.RoundRect(r, c.S(12)))
         {
             using var b = new SolidBrush(Theme.Card);
             g.FillPath(b, path);
-            using var pen = new Pen(Theme.Faint) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
+            using var pen = new Pen(Theme.Faint) { DashStyle = DashStyle.Dash };
             g.DrawPath(pen, path);
         }
         var inner = Inner(r, c);
-        using var nf = c.Font(10.5f, FontStyle.Bold);
-        using var idf = c.Font(9f);
+        var nf = c.Font(10.5f, FontStyle.Bold);
+        var idf = c.Font(9f);
         int nameH = TextRenderer.MeasureText(Lang.T(NameKey), nf, new Size(inner.Width, int.MaxValue), TextFormatFlags.WordBreak).Height;
         int idH = idf.Height;
         int top = inner.Top + Math.Max(0, (inner.Height - nameH - idH - c.S(4)) / 2);

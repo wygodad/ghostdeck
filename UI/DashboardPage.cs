@@ -27,7 +27,7 @@ public sealed class DashboardPage : ThemedPage
         // it would stay allocated for the whole session). OnPaint renders it again on return.
         VisibleChanged += (_, _) =>
         {
-            if (Visible) { Relayout(); _timer.Start(); }
+            if (Visible) { Relayout(); _timer.Start(); RefreshAsync(); }
             else { _timer.Stop(); _canvas.ReleaseBuffer(); }
         };
     }
@@ -58,8 +58,17 @@ public sealed class DashboardPage : ThemedPage
 
     // The EC/WMI snapshot takes tens of milliseconds; read on a worker and complete the sample
     // on the window thread (the Status page does the same, see StatusPage.RefreshAsync).
+    private bool _refreshOnHandle;
+
     private void RefreshAsync()
     {
+        // No window handle yet (shown before the host created it): the completion could not be
+        // posted back. Run the first read once the handle exists instead of dropping it.
+        if (!IsHandleCreated)
+        {
+            if (!_refreshOnHandle) { _refreshOnHandle = true; HandleCreated += (_, _) => RefreshAsync(); }
+            return;
+        }
         if (Interlocked.Exchange(ref _refreshing, 1) == 1) return;
         Task.Run(() =>
         {
@@ -73,7 +82,8 @@ public sealed class DashboardPage : ThemedPage
                     _canvas.SetSample(DashSample.Complete(D, hw));
                 });
             }
-            catch { _refreshing = 0; }   // page disposed mid-flight
+            catch { _refreshing = 0; return; }   // page disposed mid-flight
+            DashSample.WarmCounters();
         });
     }
 

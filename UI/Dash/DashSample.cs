@@ -9,6 +9,8 @@ namespace GhostDeck;
 /// </summary>
 internal sealed record DashSample(
     HwSnapshot Hw,
+    bool TempsKnown,                     // the model is known or telemetry is on: the temperatures mean something
+    bool FansKnown,                      // ... and the EC reads are not lost: the fan targets mean something
     int CpuUsage,
     int CpuClockMhz,
     int RamPercent, double RamTotalGb, double RamUsedGb,
@@ -24,23 +26,34 @@ internal sealed record DashSample(
     DateTime At)
 {
     public static readonly DashSample Empty = new(
-        default, 0, 0, 0, 0, 0, 0, 0, Array.Empty<Perf.DiskInfo>(), -1,
+        default, false, false, 0, 0, 0, 0, 0, 0, 0, Array.Empty<Perf.DiskInfo>(), -1,
         ProfileId.Balanced, false, false, -1, -1, -1, false, 0, DateTime.MinValue);
 
-    public bool HasHw => Hw.CpuTemp > 0 || Hw.GpuTemp > 0;
-
-    /// <summary>Worker thread: the EC snapshot and the counter warm-up. Never throws.</summary>
+    /// <summary>Worker thread: the EC snapshot. Never throws.</summary>
     public static HwSnapshot ReadSlow(MainDeps d)
     {
         HwSnapshot hw = default;
         try { hw = d.Hw(); } catch { }
-        Perf.Warm();   // disks, counters, battery estimate: queried here, the window thread reads the cached answers
         return hw;
     }
+
+    /// <summary>Worker thread, after the sample went out: disks, counters and the battery estimate are
+    /// queried here and the window thread reads the cached answers on the next tick (the first
+    /// query can take hundreds of milliseconds and must not hold the EC values back).</summary>
+    public static void WarmCounters() { try { Perf.Warm(); } catch { } }
 
     /// <summary>Window thread: the cached counters and the switch states around the EC snapshot.</summary>
     public static DashSample Complete(MainDeps d, HwSnapshot hw)
     {
+        bool temps = false, fans = false;
+        try
+        {
+            var st = d.Status();
+            temps = st.Known || st.Telemetry;             // as the Status rings decide it
+            fans = temps && !(st.Known && Ec.ReadsLost);
+        }
+        catch { }
+
         int cpu = 0, clock = 0, ramPct = 0, vramUsed = 0, vramTotal = 0, battery = -1;
         double ramTotal = 0, ramUsed = 0;
         IReadOnlyList<Perf.DiskInfo> disks = Array.Empty<Perf.DiskInfo>();
@@ -62,7 +75,7 @@ internal sealed record DashSample(
         try { touchpad = d.TouchpadState(); } catch { }
         try { winLock = d.WinLockOn(); } catch { }
 
-        return new DashSample(hw, cpu, clock, ramPct, ramTotal, ramUsed, vramUsed, vramTotal, disks, battery,
+        return new DashSample(hw, temps, fans, cpu, clock, ramPct, ramTotal, ramUsed, vramUsed, vramTotal, disks, battery,
             profile, boost, overlay, webcam, mic, touchpad, winLock, d.Settings.ChargeLimit, DateTime.UtcNow);
     }
 }

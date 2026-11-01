@@ -45,7 +45,7 @@ internal sealed class DashCanvas : Control
     public DashCanvas(MainDeps d)
     {
         _d = d;
-        _ctx = new DashContext(d, this);
+        _ctx = new DashContext(d, this) { RequestRebuild = Rebuild };
         BackColor = Theme.Surface;
         ResizeRedraw = true;
         // OptimizedDoubleBuffer: OnPaint composes the static blit and the live layer offscreen
@@ -218,6 +218,29 @@ internal sealed class DashCanvas : Control
         var clip = e.ClipRectangle;
         for (int i = 0; i < _placed.Count; i++)
             if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(e.Graphics, rects[i], _ctx);
+    }
+
+    // ---- clicks -----------------------------------------------------------------------
+    private int HitWidget(Point p)
+    {
+        if (_placed.Count == 0 || _rects.Length != _placed.Count) return -1;
+        for (int i = 0; i < _rects.Length; i++) if (_rects[i].Contains(p)) return i;
+        return -1;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        var want = HitWidget(e.Location) >= 0 ? Cursors.Hand : Cursors.Default;
+        if (Cursor != want) Cursor = want;
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button != MouseButtons.Left) return;
+        int i = HitWidget(e.Location);
+        if (i >= 0) _placed[i].Widget.Click(e.Location, _rects[i], _ctx);
     }
 
     /// <summary>
