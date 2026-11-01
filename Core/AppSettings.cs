@@ -67,7 +67,10 @@ public sealed class AppSettings
     public bool TrayShowOverlay { get; set; } = true;     // the overlay and its lock entries
     public bool TrayShowCrosshair { get; set; } = true;   // the crosshair entry (a submenu once presets exist)
     public int IconStyle { get; set; } = 2;    // 0=logo, 1=ghost dark tile, 2=ghost light tile (default on new installs), 3=classic gauge, 4=ghost light cyan
-    public List<string> IconTabs { get; set; } = new();   // MainTab names shown as strip icons instead of tabs
+    // MainTab names shown as strip icons instead of tabs. Models starts as an icon: it is a
+    // reference page, not a daily one, and the tab row has to leave room for Dashboard (v1.44).
+    // A settings file that already lists IconTabs keeps the user's own choice.
+    public List<string> IconTabs { get; set; } = new() { "Models" };
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
