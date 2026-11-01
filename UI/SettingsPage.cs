@@ -1136,6 +1136,32 @@ public sealed partial class SettingsPage : ThemedPage
         DbVersionText();
         _gLeft[SubSystem].Add(upd);
 
+        // (1.44) anonymous weekly statistics: the switch and the report exactly as it would go out
+        var stats = new CardSection(Lang.T("set_grp_stats"), "");
+        stats.AddRow(null, new Label
+        {
+            Text = Lang.T("set_stats_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+            Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
+        });
+        stats.AddRow(Lang.T("set_stats_share"), Toggle(D.Settings.StatsEnabled, v =>
+        {
+            D.Settings.StatsEnabled = v;
+            D.Settings.StatsAsked = true;
+            D.SaveSettings();
+            if (v) D.StatsChanged?.Invoke();
+        }));
+        var statsShow = new Button { Text = Lang.T("set_stats_show"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(statsShow);
+        statsShow.Click += (_, _) =>
+        {
+            string text;
+            try { text = Stats.Pretty(Stats.BuildReport(D.Settings, D.Firmware(), D.AppVersion(), D.Current(), DateTime.Now)); }
+            catch (Exception ex) { text = ex.GetType().Name; }
+            new StatsReportCard(text).Show();
+        };
+        stats.AddRow(null, statsShow);
+        _gLeft[SubSystem].Add(stats);
+
         // Tray context-menu visibility toggles (discussion #9); all default on.
         var tray = new CardSection(Lang.T("set_grp_tray"), "");
         // (#23) Mouse actions on the tray icon itself: left / middle click and the scroll wheel.

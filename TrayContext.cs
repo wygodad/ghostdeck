@@ -229,6 +229,8 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.CrosshairEnabled) SetCrosshair(true, osd: false);   // its mouse hook posts to _ui too
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
+        MaybeSendStats();        // (1.44) one anonymous report per week + the signed summary once a day, when switched on
+        MaybeAskStats();         // (1.44) the consent card, once, a while after start
 
         // Pre-create the main window HIDDEN shortly after startup: the form, its pages and all
         // their native handles are built off-screen, so the first open (and every tab) shows
@@ -1358,6 +1360,8 @@ public sealed class TrayContext : ApplicationContext
                 if (applyCurve) ApplyAssignedCurve(id);
             }
             if (id != _current && count) _switches++;
+            // anonymous statistics (1.44): the switch and the time the old profile ran; nothing when off
+            if (count) Stats.CountSwitch(_settings, _current, id, _profileSince); else Stats.AddUsage(_settings, _current, _profileSince);
             _current = id;
             _profileSince = DateTime.Now;
             // remember the deliberate choice (external syncs don't land here) for the
@@ -1370,6 +1374,7 @@ public sealed class TrayContext : ApplicationContext
         catch (Exception ex)
         {
             ChangeLog.Add(source, Profiles.Get(id).Label, Lang.T("log_err") + ": " + ex.Message);
+            Stats.CountError(_settings, "profileApply");
             _opError = ex.Message;
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
@@ -1416,6 +1421,7 @@ public sealed class TrayContext : ApplicationContext
     private void SetApex(bool on)
     {
         if (_device?.FourthMode == null) return;
+        if (on) Stats.CountUse(_settings, "apex");
         string? fw = _device.MatchedPrefix(_firmware);
         if (fw == null) return;
         if (on && !_settings.ApexConfirmed)
@@ -1683,6 +1689,7 @@ public sealed class TrayContext : ApplicationContext
     private void ApplyScene(SceneDef s, ChangeSource source)
     {
         if (!Writable) { ShowState(); return; }
+        Stats.CountUse(_settings, "scenes");
         using var _ec = EcBusy();
         // Every step runs on its own: one that fails (a refused write, a display that will not
         // switch) is recorded by name and the next steps still run, so the scene applies what it
@@ -1872,6 +1879,7 @@ public sealed class TrayContext : ApplicationContext
     private void SetCoolerBoostState(bool next, bool auto = false, bool osd = true)
     {
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
+        if (next && !auto) Stats.CountUse(_settings, "fanBoost");
         if (Ec.OnBackupPath)   // the Fan Boost register has no slot there
         {
             _opError = Lang.T("backup_na");
@@ -2600,6 +2608,7 @@ public sealed class TrayContext : ApplicationContext
         },
         CoolerBoost = () => _coolerBoost,
         SetCoolerBoost = on => SetCoolerBoostState(on),
+        StatsChanged = MaybeSendStats,
         KbdLevel = KbdLevel,                                        // (#26) -1 = no support on this model
         SetKbdLevel = l => SetKbdLight(l, ChangeSource.Panel),
         WebcamState = () => !_webcamSupported || !Writable ? -1 : _webcamOn ? 1 : 0,   // (#27)
@@ -2686,6 +2695,82 @@ public sealed class TrayContext : ApplicationContext
     }
 
     // ---------------- update check ----------------
+    // ---------------- anonymous statistics (1.44) ----------------
+    // One report per ISO week once the user switched it on, the signed weekly summary once a day.
+    // Both run on a worker; nothing here blocks the tray. A week the app was never started in is
+    // simply missing on the server, it is not sent later.
+    private CancellationTokenSource? _statsCts;
+
+    private void MaybeSendStats()
+    {
+        if (!_settings.StatsEnabled) return;
+        string week = Stats.CurrentWeek();
+        bool sendDue = _settings.StatsLastWeek != week;
+        bool fetchDue = DateTime.UtcNow - _settings.StatsLastFetchUtc >= TimeSpan.FromHours(24);
+        if (!sendDue && !fetchDue) return;
+        _statsCts?.Cancel();
+        var cts = _statsCts = new CancellationTokenSource();
+        int powBits = Stats.LoadCached()?.PowBits ?? Stats.DefaultPowBits;
+        byte[]? body = null;
+        if (sendDue)
+        {
+            try { body = Stats.Serialize(Stats.BuildReport(_settings, _firmware, AppVersion(), _current, _profileSince)); }
+            catch { body = null; }
+        }
+        var ui = _ui;
+        Task.Run(async () =>
+        {
+            Stats.SendResult? sent = null;
+            string info = "";
+            if (body != null) (sent, info) = await Stats.SendAsync(body, powBits, cts.Token).ConfigureAwait(false);
+            var (summary, fresh) = fetchDue ? await Stats.FetchSummaryAsync(cts.Token).ConfigureAwait(false) : (null, false);
+            void Apply()
+            {
+                if (cts.IsCancellationRequested) return;
+                if (sent is Stats.SendResult.Sent or Stats.SendResult.Rejected)
+                {
+                    // counted, or refused for its shape (our bug: noted in the log, not retried this week)
+                    _settings.StatsLastWeek = week;
+                    Stats.ResetCounters(_settings);
+                    if (sent == Stats.SendResult.Rejected) { ChangeLog.Add(ChangeSource.Startup, "Stats", "report refused: " + info); Stats.CountError(_settings, "statsRejected"); }
+                }
+                else if (sent == Stats.SendResult.Unreachable) Stats.CountError(_settings, "statsSend");
+                if (fetchDue && summary != null) _settings.StatsLastFetchUtc = DateTime.UtcNow;
+                _settings.Save();
+                if (fresh) Stats.RaiseSummaryChanged();
+            }
+            if (ui != null) ui.Post(_ => Apply(), null); else Apply();
+        });
+    }
+
+    /// <summary>The consent card: once, a while after start, so it does not land on top of the firmware or notice cards.</summary>
+    private void MaybeAskStats()
+    {
+        if (_settings.StatsAsked || _settings.StatsEnabled) return;
+        var t = new System.Windows.Forms.Timer { Interval = 25000 };
+        t.Tick += (_, _) => { t.Stop(); t.Dispose(); if (!_settings.StatsAsked && !_settings.StatsEnabled) ShowStatsConsent(); };
+        t.Start();
+    }
+
+    private void ShowStatsConsent()
+    {
+        var card = new StatsConsentCard(
+            () => { _settings.StatsEnabled = true; _settings.StatsAsked = true; _settings.Save(); MaybeSendStats(); },
+            ShowStatsReport) { Quiet = true };
+        // "No, thanks" and the ✕ both close the card: asked and answered, never nagged again
+        card.FormClosed += (_, _) => { if (!_settings.StatsAsked) { _settings.StatsAsked = true; _settings.Save(); } };
+        card.Show();
+    }
+
+    /// <summary>The report exactly as it would go out now (also reachable from Settings > System).</summary>
+    private void ShowStatsReport()
+    {
+        string text;
+        try { text = Stats.Pretty(Stats.BuildReport(_settings, _firmware, AppVersion(), _current, _profileSince)); }
+        catch (Exception ex) { text = ex.GetType().Name; }
+        new StatsReportCard(text).Show();
+    }
+
     private void MaybeCheckForUpdates()
     {
         if (!_settings.UpdateCheckEnabled) return;

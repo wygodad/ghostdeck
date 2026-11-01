@@ -360,6 +360,21 @@ public sealed class AppSettings
     // Read by MainForm.StartTabOf at every place that opens the window on "the start tab".
     public int StartTab { get; set; }
 
+    // (1.44) Anonymous weekly statistics (Core/Stats.cs). Off until the user says yes on the
+    // consent card; StatsAsked remembers the card was answered either way. The weekly counters
+    // live here so a restart inside the week loses nothing; Stats.ResetCounters clears them once
+    // the week's report went out. WidgetRatings is a state (the user's current stars), not an event.
+    public bool StatsEnabled { get; set; }
+    public bool StatsAsked { get; set; }
+    public string StatsLastWeek { get; set; } = "";                        // ISO week of the last report that went out
+    public DateTime StatsLastFetchUtc { get; set; } = DateTime.MinValue;   // the signed summary is fetched once a day
+    public Dictionary<string, int> WidgetRatings { get; set; } = new();    // "core.cpuTemp" -> 1..5
+    public string StatsCountersWeek { get; set; } = "";                    // the week the counters below belong to
+    public int StatsSwitches { get; set; }                                 // deliberate profile changes this week
+    public Dictionary<string, long> StatsUsage { get; set; } = new();      // profile -> seconds this week
+    public Dictionary<string, int> StatsErrors { get; set; } = new();      // error kind -> count this week
+    public List<string> StatsUsed { get; set; } = new();                   // features used this week ("fanBoost", ...)
+
     // (discussion #9) Separate temperature icons in the tray - one per reading, because a tray
     // icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
     // Warn, above = Hot. Off by default. SSD (discussion #150) = the hottest disk.
@@ -628,6 +643,8 @@ public sealed class AppSettings
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
         if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
         if (StartTab is not (0 or 1)) StartTab = 0;
+        foreach (var k in WidgetRatings.Where(kv => kv.Value < 1 || kv.Value > 5).Select(kv => kv.Key).ToList()) WidgetRatings.Remove(k);
+        if (StatsSwitches < 0) StatsSwitches = 0;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickMiddle)) TrayClickMiddle = (int)TrayAction.FanBoost;
         if (!Enum.IsDefined(typeof(GhostDeck.TrayWheelMode), TrayWheelMode)) TrayWheelMode = (int)GhostDeck.TrayWheelMode.Profiles;
@@ -807,6 +824,9 @@ public sealed class AppSettings
         ScenHidden = new List<string>(src.ScenHidden);
         SettingsAlwaysStart = src.SettingsAlwaysStart;
         StartTab = src.StartTab;
+        // statistics: the choice and the ratings travel with the file; the week's counters belong to the machine they were counted on
+        StatsEnabled = src.StatsEnabled; StatsAsked = src.StatsAsked;
+        WidgetRatings = new Dictionary<string, int>(src.WidgetRatings);
         TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu; TempTraySsd = src.TempTraySsd;
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
         TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
@@ -871,6 +891,9 @@ public sealed class AppSettings
             ShowGrid = ShowGrid,
             Dashboard = Dashboard.Select(i => i.Clone()).ToList(),
             DashboardVersion = DashboardVersion,
+            StatsEnabled = StatsEnabled, StatsAsked = StatsAsked, StatsLastWeek = StatsLastWeek, StatsLastFetchUtc = StatsLastFetchUtc,
+            WidgetRatings = new Dictionary<string, int>(WidgetRatings), StatsCountersWeek = StatsCountersWeek, StatsSwitches = StatsSwitches,
+            StatsUsage = new Dictionary<string, long>(StatsUsage), StatsErrors = new Dictionary<string, int>(StatsErrors), StatsUsed = new List<string>(StatsUsed),
             LastUpdateCheckUtc = LastUpdateCheckUtc,
             LastModelDbCheckUtc = LastModelDbCheckUtc,
             SeenNoticeIds = new List<string>(SeenNoticeIds),
