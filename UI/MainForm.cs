@@ -64,7 +64,7 @@ public sealed class MainForm : Form
         FormClosed += (_, _) => { Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnSysDisplayChanged; _dispDebounce.Dispose(); };
 
         ApplyThemeChrome();
-        ShowTab(MainTab.Scenarios);
+        ShowTab(StartTabOf(_d.Settings));
         Shown += (_, _) => EnsureWarm();
 
         // Closing the window would dispose every page and repeat the whole first-show cost on
@@ -355,6 +355,12 @@ public sealed class MainForm : Form
         ShowTab(MainTab.FanCurve);
         if (_pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fp) fp.ShowDiagnostics();
     }
+
+    /// <summary>
+    /// The tab the window opens on when nothing asks for a specific one: the first show, the
+    /// tray panel entry and a second launch of the exe (Settings → General → Start tab, 1.44).
+    /// </summary>
+    public static MainTab StartTabOf(AppSettings s) => s.StartTab == 1 ? MainTab.Dashboard : MainTab.Scenarios;
 
     public void ShowTab(MainTab tab, bool fromStrip = false)
     {

@@ -250,7 +250,7 @@ public sealed class TrayContext : ApplicationContext
         new Thread(() =>
         {
             while (showSignal.WaitOne())
-                _ui?.Post(_ => OpenMain(MainTab.Scenarios), null);
+                _ui?.Post(_ => OpenMain(GhostDeck.MainForm.StartTabOf(_settings)), null);
         }) { IsBackground = true }.Start();
 
         StartCliServer();
@@ -1033,7 +1033,7 @@ public sealed class TrayContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
 
         var panel = new ToolStripMenuItem(Lang.T("menu_panel"));
-        panel.Click += (_, _) => OpenMain(MainTab.Scenarios);
+        panel.Click += (_, _) => OpenMain(GhostDeck.MainForm.StartTabOf(_settings));
         menu.Items.Add(panel);
 
         if (_settings.TrayShowStatus)
@@ -1215,6 +1215,7 @@ public sealed class TrayContext : ApplicationContext
             case TrayAction.OpenFanCurve: OpenMain(MainTab.FanCurve); break;
             case TrayAction.OpenSettings: OpenMain(MainTab.Settings); break;
             case TrayAction.OpenModels: OpenMain(MainTab.Models); break;
+            case TrayAction.OpenDashboard: OpenMain(MainTab.Dashboard); break;
             case TrayAction.OpenChangeLog: OpenLog(); break;
         }
     }

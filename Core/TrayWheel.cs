@@ -19,6 +19,7 @@ public enum TrayAction
     OpenModels = 10,
     OpenChangeLog = 11,
     Crosshair = 12,       // crosshair on/off (roadmap #118)
+    OpenDashboard = 13,   // (1.44) the Dashboard tab
 }
 
 // (#23) What the scroll wheel over the tray icon does.

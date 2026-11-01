@@ -1143,7 +1143,7 @@ public sealed partial class SettingsPage : ThemedPage
         {
             TrayAction.None, TrayAction.CycleProfile, TrayAction.FanBoost, TrayAction.Overlay, TrayAction.Crosshair,
             TrayAction.ShowState, TrayAction.PanicReset, TrayAction.OpenScenarios, TrayAction.OpenStatus,
-            TrayAction.OpenFanCurve, TrayAction.OpenSettings, TrayAction.OpenModels, TrayAction.OpenChangeLog,
+            TrayAction.OpenDashboard, TrayAction.OpenFanCurve, TrayAction.OpenSettings, TrayAction.OpenModels, TrayAction.OpenChangeLog,
         };
         string ActName(TrayAction a) => a switch
         {
@@ -1156,6 +1156,7 @@ public sealed partial class SettingsPage : ThemedPage
             TrayAction.PanicReset => Lang.T("hk_panic"),
             TrayAction.OpenScenarios => string.Format(Lang.T("act_open"), Lang.T("tab_scenarios")),
             TrayAction.OpenStatus => string.Format(Lang.T("act_open"), Lang.T("menu_status")),
+            TrayAction.OpenDashboard => string.Format(Lang.T("act_open"), Lang.T("tab_dashboard")),
             TrayAction.OpenFanCurve => string.Format(Lang.T("act_open"), Lang.T("fc_title")),
             TrayAction.OpenSettings => string.Format(Lang.T("act_open"), Lang.T("menu_settings")),
             TrayAction.OpenModels => string.Format(Lang.T("act_open"), Lang.T("tab_models")),
@@ -1269,6 +1270,11 @@ public sealed partial class SettingsPage : ThemedPage
         navCard.AddRow(null, navInfo);
         navCard.AddRow(Lang.T("set_always_start"), Toggle(D.Settings.SettingsAlwaysStart,
             v => { D.Settings.SettingsAlwaysStart = v; D.SaveSettings(); }));
+        // (1.44) Which tab the window opens on: Scenarios as always, or the Dashboard. Read
+        // through MainForm.StartTabOf by the first show, the tray panel entry and a second launch.
+        var startTab = new SegControl(new[] { Lang.T("tab_scenarios"), Lang.T("tab_dashboard") }, D.Settings.StartTab == 1 ? 1 : 0) { Size = new Size(220, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
+        startTab.SelectedChanged += i => { D.Settings.StartTab = i; D.SaveSettings(); };
+        navCard.AddRow(Lang.T("set_start_tab"), startTab);
         _gRight[SubGeneral].Add(navCard);
 
         // Settings backup: export = a copy of settings.json, import = adopt the preferences from

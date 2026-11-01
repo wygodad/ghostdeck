@@ -356,6 +356,10 @@ public sealed class AppSettings
     // wherever it was left. Default false = the behaviour so far.
     public bool SettingsAlwaysStart { get; set; }
 
+    // (1.44) Which main tab the window opens on: 0 = Scenarios (as always), 1 = Dashboard.
+    // Read by MainForm.StartTabOf at every place that opens the window on "the start tab".
+    public int StartTab { get; set; }
+
     // (discussion #9) Separate temperature icons in the tray - one per reading, because a tray
     // icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
     // Warn, above = Hot. Off by default. SSD (discussion #150) = the hottest disk.
@@ -623,6 +627,7 @@ public sealed class AppSettings
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
         if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
+        if (StartTab is not (0 or 1)) StartTab = 0;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickMiddle)) TrayClickMiddle = (int)TrayAction.FanBoost;
         if (!Enum.IsDefined(typeof(GhostDeck.TrayWheelMode), TrayWheelMode)) TrayWheelMode = (int)GhostDeck.TrayWheelMode.Profiles;
@@ -801,6 +806,7 @@ public sealed class AppSettings
         foreach (var s in src.Scenes) Scenes.Add(s.Clone());   // (#21)
         ScenHidden = new List<string>(src.ScenHidden);
         SettingsAlwaysStart = src.SettingsAlwaysStart;
+        StartTab = src.StartTab;
         TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu; TempTraySsd = src.TempTraySsd;
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
         TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
@@ -928,6 +934,7 @@ public sealed class AppSettings
         c.ProfileOrder = new List<string>(ProfileOrder);
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
+        c.StartTab = StartTab;
         c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu; c.TempTraySsd = TempTraySsd;
         c.TempTrayWarn = TempTrayWarn; c.TempTrayHot = TempTrayHot;
         c.TempTrayColorOk = TempTrayColorOk; c.TempTrayColorWarn = TempTrayColorWarn;
