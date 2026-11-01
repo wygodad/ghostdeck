@@ -7,28 +7,40 @@ namespace GhostDeck;
 /// (the Settings page has 392, measured in v1.37), so the whole tab paints into this single
 /// control and the widgets are rectangles with click zones (the WinPowerBody pattern).
 ///
-/// Rendering follows the Status canvas: the content is rendered once into a persistent
-/// <see cref="BufferedGraphics"/> allocated from this control's own Graphics, so the offscreen
-/// DC is DPI-aware and TextRenderer draws exactly as on screen. The page scrolls this control
-/// natively, so scrolling is a blit and no text has to honour a translate transform.
-///
-/// Step 2 of the build: the layout from settings.json placed on the grid, every item painted
-/// by its widget (placeholders until step 4). The static bitmaps per widget and the live tick
-/// follow in step 3 (DOC/GhostDeck-dashboard-etap1-kroki.md).
+/// Two layers:
+/// <list type="bullet">
+/// <item>the <b>static layer</b> (background, title, every widget's <see cref="IDashWidget.PaintStatic"/>:
+/// dials, scales, titles) lives in one persistent <see cref="BufferedGraphics"/> allocated from
+/// this control's own Graphics, so its DC is DPI-aware and TextRenderer draws exactly as on
+/// screen (docs/RENDERING.md §2 and §4: a plain Bitmap would render text at 96 DPI). It is
+/// rendered again only when the size, the scale, the theme, the language, the grid setting or
+/// the layout change;</item>
+/// <item>the <b>live layer</b> (<see cref="IDashWidget.PaintLive"/>: needles, numbers, operating
+/// points) is painted in OnPaint over the blitted static buffer, for the widgets inside the
+/// paint clip only. A tick asks every widget <see cref="IDashWidget.LiveChanged"/> and
+/// invalidates just the rectangles that answered yes; nothing moved = nothing painted.</item>
+/// </list>
+/// The page scrolls this control natively, so scrolling is a blit and no text has to honour a
+/// translate transform. Step 3 of the build (DOC/GhostDeck-dashboard-etap1-kroki.md).
 /// </summary>
 internal sealed class DashCanvas : Control
 {
     private readonly MainDeps _d;
     private readonly DashContext _ctx;
-    private BufferedGraphics? _buf;
-    private int _bufW, _bufH;
+
+    // the static layer and the key it was rendered for
+    private BufferedGraphics? _static;
+    private int _sW, _sH, _sDpi;
+    private bool _sDark, _sGrid, _staticDirty = true;
+    private string _sLang = "";
 
     // the layout: the items (the settings list itself, so later edits are in place), one
-    // widget per item, and their placement for the current column count
+    // widget per item, their placement for the current column count and the pixel rectangles
     private IReadOnlyList<DashItem> _items = Array.Empty<DashItem>();
     private readonly List<IDashWidget> _widgets = new();
     private List<DashPlaced> _placed = new();
-    private int _placedCols = -1;
+    private Rectangle[] _rects = Array.Empty<Rectangle>();
+    private int _placedCols = -1, _rectsCell = -1, _rectsTop = -1;
 
     public DashCanvas(MainDeps d)
     {
@@ -36,6 +48,8 @@ internal sealed class DashCanvas : Control
         _ctx = new DashContext(d, this);
         BackColor = Theme.Surface;
         ResizeRedraw = true;
+        // OptimizedDoubleBuffer: OnPaint composes the static blit and the live layer offscreen
+        // and presents once, so a tick never shows the static layer without its needles.
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
     }
 
@@ -73,15 +87,6 @@ internal sealed class DashCanvas : Control
         return S(24) + f.Height + S(28);
     }
 
-    /// <summary>Pixel rectangle of a placed item for a given cell size.</summary>
-    private Rectangle PixelRect(Rectangle cells, int cell, int top)
-    {
-        int gap = Gap;
-        return new Rectangle(
-            Pad + cells.X * (cell + gap), top + cells.Y * (cell + gap),
-            cells.Width * cell + (cells.Width - 1) * gap, cells.Height * cell + (cells.Height - 1) * gap);
-    }
-
     /// <summary>Height the page sizes this control to (the page scrolls it when taller than the window).</summary>
     public int ContentHeight(int width)
     {
@@ -105,6 +110,7 @@ internal sealed class DashCanvas : Control
         _widgets.Clear();
         foreach (var it in items) _widgets.Add(DashRegistry.Make(it));
         _placedCols = -1;
+        _staticDirty = true;
     }
 
     private List<DashPlaced> Placement(int width)
@@ -114,70 +120,128 @@ internal sealed class DashCanvas : Control
         {
             _placed = DashLayout.Place(_items, _widgets, cols);
             _placedCols = cols;
+            _rectsCell = -1;
+            _staticDirty = true;
         }
         return _placed;
     }
 
-    /// <summary>A new data sample arrived (the page reads it off the window thread).</summary>
+    /// <summary>Pixel rectangles of the placed widgets for this control's current width (cached per cell size).</summary>
+    private Rectangle[] Rects()
+    {
+        var placed = Placement(Width);
+        int cell = Cell(Width), top = GridTop(), gap = Gap, pad = Pad;
+        if (_rects.Length == placed.Count && _rectsCell == cell && _rectsTop == top) return _rects;
+        var rects = new Rectangle[placed.Count];
+        for (int i = 0; i < placed.Count; i++)
+        {
+            var c = placed[i].Cells;
+            rects[i] = new Rectangle(pad + c.X * (cell + gap), top + c.Y * (cell + gap),
+                                     c.Width * cell + (c.Width - 1) * gap, c.Height * cell + (c.Height - 1) * gap);
+        }
+        _rects = rects; _rectsCell = cell; _rectsTop = top;
+        _staticDirty = true;
+        return rects;
+    }
+
+    // ---- ticks ------------------------------------------------------------------------
+    /// <summary>Widgets repainted by the last tick and the area they covered (the preview tool's bench reads them).</summary>
+    internal int LastLiveRepaints { get; private set; }
+    internal Rectangle LastLiveRegion { get; private set; }
+
+    /// <summary>
+    /// A new data sample (read off the window thread by the page). Every widget says whether
+    /// its live layer changed; only those rectangles are invalidated. The static layer is not
+    /// touched unless its key changed (theme, language, grid setting, scale).
+    /// </summary>
     public void SetSample(DashSample s)
     {
         _ctx.Sample = s;
-        if (Visible) Rebuild();
+        if (!Visible || Width <= 0) return;
+        if (StaticKeyChanged()) { _staticDirty = true; Invalidate(); LastLiveRepaints = _widgets.Count; LastLiveRegion = ClientRectangle; return; }
+        var rects = Rects();
+        int n = 0;
+        var region = Rectangle.Empty;
+        for (int i = 0; i < _placed.Count; i++)
+        {
+            if (!_placed[i].Widget.LiveChanged(_ctx)) continue;
+            Invalidate(rects[i]);
+            region = n == 0 ? rects[i] : Rectangle.Union(region, rects[i]);
+            n++;
+        }
+        LastLiveRepaints = n;
+        LastLiveRegion = region;
     }
 
-    // ---- buffer ---------------------------------------------------------------------
-    public void Rebuild() { RenderToBuffer(); Invalidate(); }
+    private bool StaticKeyChanged() =>
+        _static == null || _sW != Width || _sH != Height || _sDpi != Dpi.Of(this) || _sDark != Theme.Dark
+        || _sGrid != _d.Settings.ShowGrid || _sLang != Lang.CurrentCode;
 
-    private void RenderToBuffer()
+    // ---- static layer -----------------------------------------------------------------
+    /// <summary>Marks the static layer stale and repaints (theme, language, layout edits).</summary>
+    public void Rebuild() { _staticDirty = true; Invalidate(); }
+
+    private void EnsureStatic()
     {
         if (Width <= 0 || Height <= 0) return;
+        if (!_staticDirty && !StaticKeyChanged()) return;
         using var cg = CreateGraphics();   // DPI-aware DC of this control
-        if (_buf == null || _bufW != Width || _bufH != Height)
+        if (_static == null || _sW != Width || _sH != Height)
         {
-            _buf?.Dispose();
+            _static?.Dispose();
             var ctx = BufferedGraphicsManager.Current;
             ctx.MaximumBuffer = new Size(Width + 1, Height + 1);
-            _buf = ctx.Allocate(cg, new Rectangle(0, 0, Width, Height));
-            _bufW = Width; _bufH = Height;
+            _static = ctx.Allocate(cg, new Rectangle(0, 0, Width, Height));
         }
-        var g = _buf!.Graphics;
+        var g = _static!.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Theme.Surface);
         if (_d.Settings.ShowGrid) Ui.DrawGrid(g, new Rectangle(0, 0, Width, Height));
-        Render(g, Width);
+        using (var tf = TitleFont())
+            TextRenderer.DrawText(g, Lang.T("tab_dashboard"), tf, new Point(Pad, S(24)), Theme.Text);
+        Sync();
+        var rects = Rects();
+        for (int i = 0; i < _placed.Count; i++) _placed[i].Widget.PaintStatic(g, rects[i], _ctx);
+        _sW = Width; _sH = Height; _sDpi = Dpi.Of(this); _sDark = Theme.Dark; _sGrid = _d.Settings.ShowGrid; _sLang = Lang.CurrentCode;
+        _staticDirty = false;
     }
 
-    protected override void OnPaintBackground(PaintEventArgs e) { }   // the buffer covers the whole surface
+    protected override void OnPaintBackground(PaintEventArgs e) { }   // the static layer covers the whole surface
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        if (_buf == null || _bufW != Width || _bufH != Height) RenderToBuffer();
-        _buf?.Render(e.Graphics);
+        EnsureStatic();
+        if (_static == null) return;
+        _static.Render(e.Graphics);   // the whole buffer; the target's clip limits what reaches the screen
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        var rects = Rects();
+        var clip = e.ClipRectangle;
+        for (int i = 0; i < _placed.Count; i++)
+            if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(e.Graphics, rects[i], _ctx);
     }
 
-    /// <summary>Free the offscreen buffer (the page is hidden); OnPaint rebuilds it on demand.</summary>
+    /// <summary>
+    /// Preview tool only: one paint pass into an offscreen buffer of the given clip. The tool's
+    /// window sits off screen, so it never receives WM_PAINT and Update() measures nothing; this
+    /// runs the same OnPaint (static blit + live layer, and the static render when it is stale).
+    /// </summary>
+    internal void BenchPaint(Rectangle clip)
+    {
+        if (clip.Width <= 0 || clip.Height <= 0) return;
+        using var cg = CreateGraphics();
+        using var buf = BufferedGraphicsManager.Current.Allocate(cg, clip);
+        buf.Graphics.SetClip(clip);
+        OnPaint(new PaintEventArgs(buf.Graphics, clip));
+    }
+
+    /// <summary>Free the static buffer (the page is hidden); OnPaint renders it again on demand.</summary>
     internal void ReleaseBuffer()
     {
-        _buf?.Dispose();
-        _buf = null;
-        _bufW = _bufH = 0;
+        _static?.Dispose();
+        _static = null;
+        _sW = _sH = 0;
+        _staticDirty = true;
     }
 
-    protected override void Dispose(bool disposing) { if (disposing) _buf?.Dispose(); base.Dispose(disposing); }
-
-    // ---- painting -------------------------------------------------------------------
-    private void Render(Graphics g, int width)
-    {
-        using (var tf = TitleFont())
-            TextRenderer.DrawText(g, Lang.T("tab_dashboard"), tf, new Point(Pad, S(24)), Theme.Text);
-
-        Sync();
-        int cell = Cell(width), top = GridTop();
-        foreach (var p in Placement(width))
-        {
-            var r = PixelRect(p.Cells, cell, top);
-            p.Widget.PaintStatic(g, r, _ctx);
-            p.Widget.PaintLive(g, r, _ctx);
-        }
-    }
+    protected override void Dispose(bool disposing) { if (disposing) _static?.Dispose(); base.Dispose(disposing); }
 }

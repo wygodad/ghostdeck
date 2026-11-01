@@ -6,12 +6,14 @@ namespace GhostDeck;
 /// <summary>
 /// Hosts the one drawn surface (<see cref="DashCanvas"/>) and sizes it to its content, so the
 /// page scrolls the canvas natively like the Status page does. Nothing else lives here: the
-/// widgets, the edit mode and the catalogue are all zones on the canvas. The page also owns
-/// the data read: one shared sample per tick, taken off the window thread.
+/// widgets, the edit mode and the catalogue are all zones on the canvas. The page owns the
+/// tick: one shared sample every 1.5 s (the Status interval; one EC read per tick, and the two
+/// pages are never visible at once), read off the window thread, and no tick while hidden.
 /// </summary>
 public sealed class DashboardPage : ThemedPage
 {
     private readonly DashCanvas _canvas;
+    private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1500 };
     private int _refreshing;   // 1 while a background sample is in flight
 
     public DashboardPage(MainDeps d) : base(d)
@@ -19,10 +21,15 @@ public sealed class DashboardPage : ThemedPage
         _canvas = new DashCanvas(d) { Location = Point.Empty };
         Controls.Add(_canvas);
 
+        _timer.Tick += (_, _) => RefreshAsync();
         ClientSizeChanged += (_, _) => Relayout();
-        // Hidden page: drop the offscreen buffer (pages are never disposed, so it would stay
-        // allocated for the whole session). OnPaint re-renders when the buffer is null.
-        VisibleChanged += (_, _) => { if (Visible) Relayout(); else _canvas.ReleaseBuffer(); };
+        // Hidden page: no tick, and the static buffer is dropped (pages are never disposed, so
+        // it would stay allocated for the whole session). OnPaint renders it again on return.
+        VisibleChanged += (_, _) =>
+        {
+            if (Visible) { Relayout(); _timer.Start(); }
+            else { _timer.Stop(); _canvas.ReleaseBuffer(); }
+        };
     }
 
     // Wrapped so the scroll extent is recomputed after the canvas is resized
@@ -37,7 +44,7 @@ public sealed class DashboardPage : ThemedPage
         if (_canvas.Width != w || _canvas.Height != h) _canvas.Size = new Size(w, h);
     }
 
-    public override void OnEnter() { _canvas.Sync(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
+    public override void OnEnter() { _canvas.Sync(); Relayout(); RefreshAsync(); }
     public override void LiveRefresh() => RefreshAsync();
     public override void OnDisplayChanged() => Relayout();
     public override void OnLanguageChanged() => _canvas.Rebuild();
@@ -68,5 +75,11 @@ public sealed class DashboardPage : ThemedPage
             }
             catch { _refreshing = 0; }   // page disposed mid-flight
         });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _timer.Dispose();
+        base.Dispose(disposing);
     }
 }
