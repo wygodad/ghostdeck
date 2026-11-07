@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261124;
+    public const int DataVersion = 20261125;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -542,11 +542,17 @@ public static class Devices
         // confirms MSI Center has always shown one fan slider (cross-checked with YAMDCC, it is
         // the CPU fan), so the wizard's "not located" was just the missing Fan 2. The GPU table
         // at 0x8A holds the family-standard layout; writing it appears to be a no-op here.
+        //   Second owner (issues #320-#322, xXSonicSoundsXx, .108, MSI Center 2.0.75 without a
+        //   Silent tile): the capture matches Balanced / Extreme / Super Battery 1:1 (its "Silent"
+        //   column is the Super Battery state), the curve wizard found the test curve at 0x72 again
+        //   (one slider, no Fan 2 values), and the power test read every recipe back intact with
+        //   1 % drift; its work column is not usable (Silent got 73 % of the CPU against 87 %), but
+        //   Silent ran the fan at ~2800 against ~3600 rpm in Balanced.
         new() { Name = "MSI Thin GF63 12VE", FirmwarePrefixes = new[] { "16R8IMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified with { SingleFan = true },
                 Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "fwbvng", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/21",
-                CreditIssues = Issues("fwbvng:21,22") },
+                Credit = "fwbvng, xXSonicSoundsXx", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/21",
+                CreditIssues = Issues("fwbvng:21,22; xXSonicSoundsXx:320,321,322") },
 
         // Titan 18 HX Dragon Edition (1824EMS1) — owner per-scenario dump (issue #23) matches
         // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).

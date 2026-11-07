@@ -24,6 +24,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Katana 17 B12UCXK / B12VGK / B12VEK** (`17L5EMS2`, model database 20261124, [#319](../../issues/319), thanks
   @bel5656) - the first capture from this board in which the scenarios came through matches the recipes 1:1, real
   Silent included; added to the model's credit.
+- **Thin GF63 12VE** (`16R8IMS1`, model database 20261125, [#320](../../issues/320), [#321](../../issues/321),
+  [#322](../../issues/322), thanks @xXSonicSoundsXx) - a second owner's capture, curve check and power test confirm the
+  tested entry again; added to the model's credit.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
