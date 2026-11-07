@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261125;
+    public const int DataVersion = 20261126;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1620,8 +1620,16 @@ public static class Devices
         // RPM: CPU tach live as a single-byte divisor at 0xC9 (D0-D5 = ~2250 rpm) with 0xCB at
         // 00 in every column (GPU fan parked at idle, the GF63 pattern) - CPU address ships,
         // owner asked to cross-check against HWiNFO64.
+        //   Second owner (issues #325 + #326, SHAFIJAN, Katana GF76 11UD, .108, MSI Center 2.0.75
+        //   with a real Silent tile): the per-scenario capture matches StdRecipes 1:1 again (Fan
+        //   Boost was on in his Extreme column, 0x98=82), and the curve wizard found both test
+        //   curves byte for byte at the shipped 0x72 / 0x8A - curve VERIFIED. Both owners credited
+        //   for correct reports; the tier still waits for a power test. RPM unchanged: his 0xCB was
+        //   live too, but every reading sat where the single-byte and 16-bit formats coincide.
         new() { Name = "MSI Katana GF76 11UC / 11UD",       FirmwarePrefixes = new[] { "17L2EMS1" }, Tier = Tier.Experimental,
-                CpuRpmAddr = 0xC9, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                CpuRpmAddr = 0xC9, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "VictorNIK-ghost, SHAFIJAN", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/165",
+                CreditIssues = Issues("VictorNIK-ghost:165; SHAFIJAN:325,326") },
         // Crosshair 17 B12UGZ / Katana GF76 12UE (17L3EMS1) - the twin lines share the
         // MS-17L3 board (the reporter's machine in issue #217 is a Katana GF76 12UE-655XRU,
         // caught in the "Actual model" field; board id confirmed via MS-17L3 service parts).

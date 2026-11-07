@@ -27,6 +27,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Thin GF63 12VE** (`16R8IMS1`, model database 20261125, [#320](../../issues/320), [#321](../../issues/321),
   [#322](../../issues/322), thanks @xXSonicSoundsXx) - a second owner's capture, curve check and power test confirm the
   tested entry again; added to the model's credit.
+- **Katana GF76 11UC / 11UD: fan curve verified** (`17L2EMS1`, model database 20261126, [#325](../../issues/325),
+  [#326](../../issues/326), thanks @SHAFIJAN and @VictorNIK-ghost) - a second owner's capture matches the recipes
+  1:1 with the real Silent, and his curve check found both test curves at the expected addresses. Both owners join
+  the credit.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a

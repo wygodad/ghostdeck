@@ -89,7 +89,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Katana GF66 | `1582EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Katana GF66 12UDO | `1584IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Katana GF76 | `17L1EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Katana GF76 11UC / 11UD | `17L2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &#10003; 0xC9 |
+| MSI Katana GF76 11UC / 11UD | `17L2EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC9 |
 | MSI Katana GF76 12UC | `17L4EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Modern 14 B11M | `14D2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Modern 14 B11MOU | `14D3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
