@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261123;
+    public const int DataVersion = 20261124;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1107,10 +1107,16 @@ public static class Devices
         //   2970 rpm at rest; the Extreme and Super Battery columns were captured with Fan Boost
         //   on, 0x98=82, hence ~6000 rpm there). Kbd backlight 0xD3 reads 83 / 80 in the
         //   vendor's Super Battery (the 1583 pattern) - observation only.
-        new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental,
+        //   Raider GE66 12UGS on the same firmware (issue #318, Lukanlos, .112, MSI Center 2.0.48):
+        //   his per-scenario capture matches StdRecipes 1:1 again, real Silent 0x1D included, hence
+        //   the second name. Observation, not written: in his capture 0xD6 reads 02 / 03 / 02 / 05
+        //   (Silent / Balanced / Extreme / Super Battery), where the #249 capture had 05 in every
+        //   column - the byte the older 1543EMS1 board needs for Balanced. One capture is not
+        //   enough to start writing it.
+        new() { Name = "MSI Vector GP66 12UGS, Raider GE66 12UGS", FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "TheOriginalBabu", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/250",
-                CreditIssues = Issues("TheOriginalBabu:249,250,252") },
+                Credit = "TheOriginalBabu, Lukanlos", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/250",
+                CreditIssues = Issues("TheOriginalBabu:249,250,252; Lukanlos:318") },
         new() { Name = "MSI Modern 15 A11M",                FirmwarePrefixes = new[] { "1552EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11SEK",            FirmwarePrefixes = new[] { "1562EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11UEK",            FirmwarePrefixes = new[] { "1563EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -1632,10 +1638,15 @@ public static class Devices
         // catalogues list B12VGK/B12VFK/B12VEK together), hence the third name. RPM stays off on purpose: the sibling
         // 17L5EMS1 reports fan speed as 16-bit wide-tach pairs, and one dump with
         // low-byte-only values cannot rule that out here - a dump with a live 0xC8 would.
+        //   First capture with the scenarios coming through (issue #319, bel5656 again, .115,
+        //   MSI Center 2.0.48): four distinct columns matching StdRecipes 1:1 - shift C1/C1/C4/C2,
+        //   fan 1D/0D/0D/0D with the real Silent, 0xEB=0F only in Super Battery. The recipes are
+        //   confirmed by the vendor's own writes; the tier waits for the power test. No full dump
+        //   came with it, so the RPM question above stays open.
         new() { Name = "MSI Katana 17 B12UCXK / B12VGK / B12VEK", FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "Dkrimz, bel5656", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
-                CreditIssues = Issues("Dkrimz:124,125,126; bel5656:277") },
+                CreditIssues = Issues("Dkrimz:124,125,126; bel5656:277,319") },
         // Katana 17 HX B14WGK (17L7EMS1) - fan curve VERIFIED (issue #266, kaszaslevi04, firmware
         // .106, MSI Center 2.0.48): the test curve sits byte for byte at the shipped 0x72/0x8A. His
         // scenario capture (issue #265) matches StdRecipes 1:1 with a real Silent (0xD4=1D), zero

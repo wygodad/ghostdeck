@@ -18,6 +18,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   [#48](../../issues/48), thanks @FabioBros28 and @SavAlexander) - the first passed run on this model: every profile read
   back as written, Super Battery at 75 % of Extreme's work, and the controller followed the raised curve table, so the
   fan-curve editor is now available on the backup path. @SavAlexander's diagnostic package gave the model's block layout.
+- **Raider GE66 12UGS** (`1544EMS1`, model database 20261124, [#318](../../issues/318), thanks @Lukanlos) - shares its
+  firmware with the Vector GP66 12UGS; the owner's capture matches the recipes in all four scenarios, real Silent
+  included, so the entry carries both names and his name joins the credit.
+- **Katana 17 B12UCXK / B12VGK / B12VEK** (`17L5EMS2`, model database 20261124, [#319](../../issues/319), thanks
+  @bel5656) - the first capture from this board in which the scenarios came through matches the recipes 1:1, real
+  Silent included; added to the model's credit.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
