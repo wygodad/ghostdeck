@@ -40,6 +40,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Keyboard backlight on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99) - on the GF65 Thin 10UE
   the backlight level (off / low / mid / high) now works through the data blocks too, from the box its owner found with
   the Fn backlight key (model database 20261128). Like the profiles, it unlocks once the path test has passed.
+- **Katana 17 B12UCXK / B12VGK / B12VEK** (`17L5EMS2`, model database 20261130, [#332](../../issues/332),
+  [#333](../../issues/333), thanks @Kamiliukass) - another owner's capture matches the recipes in Balanced, Extreme and
+  Super Battery, and the curve check found the test curve at the shipped addresses again; added to the model's credit.
+- **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261130, [#299](../../discussions/299), thanks
+  @maestory) - a fan sweep showed the curve stopping at about 5000 rpm at 100 % (150 % adds nothing) while Fan Boost
+  reaches about 7000 rpm; noted in the FAQ and added to the model's credit.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a

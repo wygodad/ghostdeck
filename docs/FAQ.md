@@ -228,6 +228,14 @@ The ring's scale goes up to 150 %, the same scale MSI's own fan settings use, an
 
 So: for "how fast is my fan spinning", read the rpm. For "how hard does the curve want it to spin at this temperature", read the ring. Up to v1.37 the rings were labelled "CPU fan" / "GPU fan", which suggested a speed; the value itself has not changed. Details and the data behind this: [TECHNICAL.md §76](TECHNICAL.md#76-the-fan-rings-show-the-curve-target-not-the-fan-speed-v138).
 
+## Is Fan Boost faster than a curve at 100 % or 150 %?
+
+It can be, and on some laptops by a lot. The fan curve and Fan Boost are two different things. The curve is a table the controller follows ("at this temperature, this percentage"); the editor goes up to 150 %, the same scale MSI's own fan settings use. Fan Boost is a separate switch that runs the fans at the controller's own maximum and ignores the curve while it is on.
+
+How far the curve's top reaches depends on the board. On the GE78HX the fans do spin faster past 100 %. On the Crosshair A16 HX an owner's measurement ([discussion #299](https://github.com/wygodad/ghostdeck/discussions/299)) showed the curve stopping at about 5000 rpm at 100 %, with 150 % adding nothing, while Fan Boost took the same fans to about 7000 rpm. So for full speed, use Fan Boost on the Scenarios tab.
+
+To see where your own laptop stops: Fan curve tab → **In action** → **Curve in action - fan sweep** → **Show diagnostics** → **Run the sweep**. It holds the fans at 30, 45, 60, 80, 100 and 150 % for a few seconds each, records the real rpm and puts your curve back afterwards. Details: [TECHNICAL.md §17.3](TECHNICAL.md#173-the-fan-curve-tables).
+
 ## Why does my laptop boot with a different profile than the one I picked? Do settings survive a reboot?
 
 They are not supposed to survive, and that is by design, not a fault. Profiles, fan curves and Fan Boost live in the Embedded Controller's working memory, which is **volatile**: every shutdown or reboot clears it, and the firmware starts the machine with its own defaults, exactly as if no tool had ever run. GhostDeck deliberately flashes nothing permanent - that is what keeps every change fully reversible.

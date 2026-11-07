@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261129,
+  "dataVersion": 20261130,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -95,7 +95,8 @@
         ],
         "maestory": [
           297,
-          298
+          298,
+          299
         ]
       },
       "added": "2026-06-28",
@@ -5159,7 +5160,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "Dkrimz, bel5656",
+      "credit": "Dkrimz, bel5656, Kamiliukass",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/125",
       "creditIssues": {
         "Dkrimz": [
@@ -5170,6 +5171,10 @@
         "bel5656": [
           277,
           319
+        ],
+        "Kamiliukass": [
+          332,
+          333
         ]
       },
       "added": "2026-06-29",

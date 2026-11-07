@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261129;
+    public const int DataVersion = 20261130;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -449,10 +449,14 @@ public static class Devices
         // at 0x72/0x8A again; clean power test (0 % drift, bytes read back in every phase): Silent
         // and Balanced both held 2495 MHz with no spread (work 100), Silent on slower fans (2400 vs
         // 3655 rpm, 70 vs 74 C); Extreme 5037 MHz, work 202.
+        //   Fan sweep (discussion #299, maestory, .106, app 1.43.0): the curve tops out at 100 % -
+        //   30/45/60/80/100/150 % gave 2786/2700/3408/4320/4979/4944 rpm (CPU) and
+        //   2826/2721/3658/4830/4962/4979 (GPU), so 150 % adds nothing over 100 %; Fan Boost
+        //   reaches ~7000 rpm and ignores the curve while on. MaxFanPct left at 150 (no harm).
         new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "cesarcamps, maestory", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
-                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298") },
+                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298,299") },
 
         // Sword 16 HX B13V / B14V (15P2EMS1) — owner per-scenario dump (issue #6) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Real-hardware
@@ -1694,10 +1698,16 @@ public static class Devices
         //   fan 1D/0D/0D/0D with the real Silent, 0xEB=0F only in Super Battery. The recipes are
         //   confirmed by the vendor's own writes; the tier waits for the power test. No full dump
         //   came with it, so the RPM question above stays open.
+        //   Fourth owner (Kamiliukass, B12VGK, .115, MSI Center 2.0.75, issues #332/#333): Balanced
+        //   C1/0D and Extreme C4 match (0xD4=8D there with the Advanced curve on); the "Silent" tile
+        //   wrote the Super Battery state C2/0D/EB=0F; a fourth column (0x34=01, C1/0D) matches no
+        //   scenario. The curve check found the test curve at 0x72/0x8A again. Its full dump read
+        //   0xC8:0xC9 / 0xCA:0xCB = 00:84 / 00:95 (~3620 / ~3210 rpm, the coinciding zone), so RPM
+        //   stays off.
         new() { Name = "MSI Katana 17 B12UCXK / B12VGK / B12VEK", FirmwarePrefixes = new[] { "17L5EMS2" }, Tier = Tier.Experimental,
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Dkrimz, bel5656", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
-                CreditIssues = Issues("Dkrimz:124,125,126; bel5656:277,319") },
+                Credit = "Dkrimz, bel5656, Kamiliukass", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/125",
+                CreditIssues = Issues("Dkrimz:124,125,126; bel5656:277,319; Kamiliukass:332,333") },
         // Katana 17 HX B14WGK (17L7EMS1) - fan curve VERIFIED (issue #266, kaszaslevi04, firmware
         // .106, MSI Center 2.0.48): the test curve sits byte for byte at the shipped 0x72/0x8A. His
         // scenario capture (issue #265) matches StdRecipes 1:1 with a real Silent (0xD4=1D), zero
