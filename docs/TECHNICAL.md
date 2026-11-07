@@ -4405,6 +4405,22 @@ re-reads it, `ReloadSweepHistory`), the report to the clipboard and to
 `two-table-test.yml` (label `two-table-test`) with model, firmware and the verdict line prefilled;
 the paste field is left empty on purpose, like the other three forms.
 
+**Two-fan boards and stopped fans** (issues #310, #317, 2026-11). The question the test answers
+exists only where one fan meets two tables; on an entry without `SingleFan` each fan follows its
+own table and the entry already encodes that. `TwoTableTest.AddsNothing(dev)` marks those entries:
+both start buttons (Report sub-tab and Fan curve diagnostics) look and work as on any other
+model, and a click opens a `GhostCardForm` (`tt_twofan`) with **Run anyway** / **Cancel** before
+the usual consent. On the
+Report tab a "Run anyway" holds while the window is open, so ticking the consent box afterwards
+does not ask again. In the verdict a reading of 0 rpm is a stopped fan, not a missing reading:
+on 15M1IMS2 both fans switch off at 25 % (25/25 → 0 / 0 rpm), and treating that as "no reading"
+turned a clean "each fan follows its own table" into "fits none of the simple rules". A pair now
+counts as low when it reads like 25/25 or below it (a fan still spinning down when the 25/25
+window closed reads above the stopped value of a later low pair, #317: 2070 then 0); only a
+missing pair or a fan that does not turn at 45/45 leaves the fan undecided.
+
+![The two-fan card before the two-table test](images/two_table_twofan_card.png)
+
 The fan-curve report (Report → Fan curve) names the **table** a single found curve sits in - "one
 test curve (the Fan 2 values) in the Fan 1 / CPU table @ 0x72", a match with the shipped map -
 rather than naming it after the test values typed into the one slider, which on a single-fan

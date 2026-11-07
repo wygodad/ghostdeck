@@ -11,6 +11,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   second owner's capture matches the profile, fan and Super Battery settings in every scenario; added to the model's
   credit.
 
+### Changed
+- **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
+  question only single-fan laptops have, so on a model with two fans the start button opens a card first, saying the test
+  will not give new values there, with Cancel and Run anyway. Report tab and Fan curve page alike.
+
+### Fixed
+- **Two-table test verdict with a stopped fan** ([#310](../../issues/310), [#317](../../issues/317)): fans that switch
+  off at 25 % read 0 rpm, and the verdict took that for a missing reading and said the readings "fit none of the simple
+  rules". A stopped fan now counts as a low reading, so such a run reads "follows table 1 only" / "follows table 2 only".
+
 ## [1.43.0] - 2026-10-30
 ### Added
 - **Frame pacing in the game-session report** (roadmap #6): under the frametime line the popup now shows the median

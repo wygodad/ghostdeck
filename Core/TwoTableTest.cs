@@ -52,6 +52,15 @@ public static class TwoTableTest
 
     public enum Verdict { Undecided, Higher, Table1, Table2, Flat }
 
+    /// <summary>
+    /// True when the model database lists two fans. The question the test answers - which
+    /// table one fan follows - exists only on single-fan boards; with two fans each one follows
+    /// its own table, which the entry already encodes, so a run cannot add anything. The test
+    /// stays reachable there (the start opens a card that says so, "Run anyway"), because owners
+    /// of two-fan boards ran it from the Report tab and filed the result (#310, #317).
+    /// </summary>
+    public static bool AddsNothing(DeviceProfile dev) => dev.FanCurve is { SingleFan: false };
+
     /// <summary>Why the test must not start now, as a language key; null when it may.</summary>
     public static string? Blocked(DeviceProfile dev, HwSnapshot hw)
     {
@@ -129,13 +138,19 @@ public static class TwoTableTest
     /// way round. "Flat": 45/45 is not clearly above 25/25, so the run cannot tell the tables
     /// apart (a warm machine holding its fan, or a fan that cannot go that low). Anything else
     /// is undecided and the numbers are shown as they are.
+    /// A reading of 0 rpm is a fan that stopped, not a missing reading: many boards switch the
+    /// fan off below a duty threshold, so 25 % reads 0 there (issues #310 and #317). A pair
+    /// counts as low when it reads like 25/25 or below it - a fan still spinning down when
+    /// the 25/25 window closed reads a little above the stopped value of a later low pair.
+    /// Only a missing pair (-1) or a fan that did not turn at 45/45 leaves the fan undecided.
     /// </summary>
     public static Verdict VerdictFor(Result r, int fan)
     {
         int a = Rpm(r, fan, 25, 25), b = Rpm(r, fan, 25, 45), c = Rpm(r, fan, 45, 25), d = Rpm(r, fan, 45, 45);
-        if (a <= 0 || b <= 0 || c <= 0 || d <= 0) return Verdict.Undecided;
+        if (a < 0 || b < 0 || c < 0 || d <= 0) return Verdict.Undecided;
         if (!Above(d, a)) return Verdict.Flat;
-        bool bHigh = Near(b, d), bLow = Near(b, a), cHigh = Near(c, d), cLow = Near(c, a);
+        bool bHigh = Near(b, d), bLow = Near(b, a) || (b < a && Above(d, b)),
+             cHigh = Near(c, d), cLow = Near(c, a) || (c < a && Above(d, c));
         if (bHigh && cHigh) return Verdict.Higher;
         if (bLow && cHigh) return Verdict.Table1;
         if (bHigh && cLow) return Verdict.Table2;

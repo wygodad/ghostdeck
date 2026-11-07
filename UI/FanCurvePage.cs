@@ -1749,9 +1749,16 @@ public sealed class FanCurvePage : ThemedPage
             no.ShowOver(FindForm());
             return;
         }
+        bool go = false;
+        if (TwoTableTest.AddsNothing(dev))
+        {
+            using (var warn = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), Lang.T("tt_twofan"), Lang.T("tt_twofan_go"), Lang.T("gen_cancel"), () => go = true))
+                warn.ShowOver(FindForm());
+            if (!go) return;
+            go = false;
+        }
         // same order as the sweep: every question first, the profile change only after a Yes
         bool wasSilent = D.Current() == ProfileId.Silent;
-        bool go = false;
         if (wasSilent)
         {
             using (var ask = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), Lang.T("fc_sweep_silent"), Lang.T("tt_go"), Lang.T("gen_cancel"), () => go = true))

@@ -82,8 +82,8 @@ and the verdict already filled in.
 
 **How to read it:** if 25/45 and 45/25 both spin like 45/45, the fan follows the higher of the
 two tables. If 25/45 spins like 25/25, it follows table 1 only. The zero pairs say what a 0 %
-in one table does while the other holds the fan. On a two-fan laptop the same run confirms
-which table drives which fan.
+in one table does while the other holds the fan. Many fans switch off at low duty, so a pair can
+read 0 rpm: that is a stopped fan and counts as a low reading, not as a missing one.
 
 **Safeguards:** mains power only; the test refuses to start above 85 °C CPU or 75 °C GPU (a
 hot laptop holds its fans up by itself, and then the pairs read alike; a gaming laptop idling
@@ -94,8 +94,14 @@ table 1 only.
 
 **What it is usually for:** a single-fan laptop whose fan will not slow down below a certain
 speed - run the test before touching the switch below, so the decision rests on your own
-board's numbers. On a two-fan laptop it is a quick confirmation that each table drives the
-fan it is named after.
+board's numbers.
+
+**On a two-fan laptop** each fan follows its own table, and the model database already says
+so, so the run cannot add anything. The test stays available there, but its start button first
+opens a card that says the test is meant for single-fan laptops and will not give new values on
+this one, with **Cancel** and **Run anyway**.
+
+![The card the two-table test shows on a two-fan laptop before the run](images/two_table_twofan_card.png)
 
 ## 4. The "write to both fan tables" switch
 

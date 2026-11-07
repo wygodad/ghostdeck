@@ -94,6 +94,7 @@ public sealed class ReportPage : ThemedPage
     private CancellationTokenSource? _ttCts;
     private Task<TwoTableTest.Result?>? _ttTask;      // the EC restore runs on the worker; app exit waits for it
     private bool _ttRunning;
+    private bool _ttTwoFanOk;   // "Run anyway" on the two-fan card, kept while the window stays open
     private TwoTableTest.Result? _ttResult;
     private string? _ttSavedPath;
     private string? _ttMsg;                           // blocked reason / missing consent / EC failure
@@ -1583,6 +1584,16 @@ public sealed class ReportPage : ThemedPage
 
         var dev = Dev;
         if (TtBlocked(dev) is { } blocked) { _ttMsg = blocked; Invalidate(); return; }
+        // Two fans: say first that the run adds nothing here; "Run anyway" is remembered while
+        // the window stays open, so ticking the consent box afterwards does not ask again.
+        if (dev != null && TwoTableTest.AddsNothing(dev) && !_ttTwoFanOk)
+        {
+            bool go = false;
+            using (var warn = new GhostCardForm("//REPORT", Lang.T("tt_title"), Lang.T("tt_twofan"), Lang.T("tt_twofan_go"), Lang.T("gen_cancel"), () => go = true))
+                warn.ShowOver(FindForm());
+            if (!go) return;
+            _ttTwoFanOk = true;
+        }
         if (!_ttConsent.Checked) { _ttMsg = Lang.T("pt_need_consent"); Invalidate(); return; }
 
         _ttRunning = true;

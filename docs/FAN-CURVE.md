@@ -222,9 +222,13 @@ within 8 % or 100 rpm): B and C both like D → *follows the higher of the two t
 and C like D → *table 1 only*; the other way round → *table 2 only*; D not clearly above A (less
 than 15 % or 150 rpm apart) → *flat*, the run cannot tell the tables apart (a warm machine holding
 its fan, or a fan that cannot go that low); anything else → *undecided*, the numbers are shown as
-they are. E against B and F against C each give a *zero* line: unchanged, or lowered from x to y.
-On a two-fan board the same verdicts come out per fan, which also confirms the table → fan
-assignment.
+they are. A reading of 0 rpm is a stopped fan (many fans switch off at low duty) and counts as
+low: B or C "like A" also covers a reading below A, so a fan still spinning down at 25/25 and
+stopped at a later low pair is read correctly. Only a missing pair or D = 0 leaves the fan
+undecided. E against B and F against C each give a *zero* line: unchanged, or lowered from x to y.
+On a two-fan board the same verdicts come out per fan, but the entry already holds that answer,
+so there the start button first opens a card (**Run anyway** / **Cancel**)
+saying the test adds nothing (`TwoTableTest.AddsNothing`, issues #310 / #317).
 
 Safeguards beyond the sweep's: **mains only** (on battery the firmware limits the fans itself),
 **refuses to start** above 85 °C CPU or 75 °C GPU (a gaming laptop idles at 70-85 °C, so the gate

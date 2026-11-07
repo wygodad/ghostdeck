@@ -1910,6 +1910,43 @@ public static class Lang
             "Laptop terlalu hangat untuk uji ini (CPU di atas 85 °C atau GPU di atas 75 °C): mesin yang hangat menahan kipasnya sendiri. Biarkan idle beberapa menit lalu coba lagi.",
             "Il portatile è troppo caldo per questo test (CPU sopra 85 °C o GPU sopra 75 °C): una macchina calda tiene su le ventole da sola. Lascialo a riposo qualche minuto e riprova."
         };
+        // Two-table test on a two-fan entry (TwoTableTest.AddsNothing): the card before the run, #310/#317
+        m["tt_twofan"] = new[]
+        {
+            "This test is for laptops with a single fan: it shows which of the two fan-curve tables that fan follows. The model database lists two fans for your laptop, and each one follows its own table, which GhostDeck already knows. The test will not give any new values here.",
+            "Ten test jest dla laptopów z jednym wentylatorem: pokazuje, której z dwóch tabel krzywej słucha ten wentylator. Według bazy modeli Twój laptop ma dwa wentylatory i każdy słucha swojej tabeli, co GhostDeck już wie. Test nie da tu żadnych nowych wartości.",
+            "Dieser Test ist für Laptops mit nur einem Lüfter: Er zeigt, welcher der beiden Lüfterkurven-Tabellen dieser Lüfter folgt. Laut Modelldatenbank hat dein Laptop zwei Lüfter, und jeder folgt seiner eigenen Tabelle, was GhostDeck bereits weiß. Der Test liefert hier keine neuen Werte.",
+            "Ce test est destiné aux portables à un seul ventilateur : il montre laquelle des deux tables de courbe ce ventilateur suit. D'après la base de modèles, votre portable a deux ventilateurs et chacun suit sa propre table, ce que GhostDeck sait déjà. Le test ne donnera ici aucune nouvelle valeur.",
+            "Esta prueba es para portátiles con un solo ventilador: muestra cuál de las dos tablas de curva sigue ese ventilador. Según la base de modelos, tu portátil tiene dos ventiladores y cada uno sigue su propia tabla, algo que GhostDeck ya sabe. La prueba no dará aquí ningún valor nuevo.",
+            "此测试适用于只有一个风扇的笔记本：它显示该风扇遵循两张风扇曲线表中的哪一张。根据机型数据库，你的笔记本有两个风扇，各自遵循自己的表，GhostDeck 已经知道这一点。此测试在这里不会得到任何新数据。",
+            "Este teste é para portáteis com uma só ventoinha: mostra qual das duas tabelas de curva essa ventoinha segue. Segundo a base de modelos, o teu portátil tem duas ventoinhas e cada uma segue a sua própria tabela, o que o GhostDeck já sabe. Aqui o teste não dará nenhum valor novo.",
+            "Этот тест для ноутбуков с одним вентилятором: он показывает, какой из двух таблиц кривой следует этот вентилятор. По базе моделей у вашего ноутбука два вентилятора, и каждый следует своей таблице, это GhostDeck уже знает. Здесь тест не даст никаких новых значений.",
+            "このテストはファンが 1 基のノート PC 向けです。そのファンが 2 つのファンカーブ表のどちらに従うかを調べます。機種データベースによると、この PC にはファンが 2 基あり、それぞれが自分の表に従います。GhostDeck はそれをすでに把握しています。ここではテストから新しい値は得られません。",
+            "이 테스트는 팬이 하나인 노트북용입니다. 그 팬이 두 개의 팬 커브 표 중 어느 쪽을 따르는지 보여 줍니다. 모델 데이터베이스에 따르면 이 노트북은 팬이 두 개이고 각 팬이 자기 표를 따르며, GhostDeck은 이미 이를 알고 있습니다. 여기서는 테스트로 새로운 값을 얻을 수 없습니다.",
+            "此測試適用於只有一個風扇的筆電：它顯示該風扇遵循兩張風扇曲線表中的哪一張。根據機型資料庫，你的筆電有兩個風扇，各自遵循自己的表，GhostDeck 已經知道這一點。此測試在這裡不會得到任何新數據。",
+            "Bu test tek fanlı dizüstüler içindir: o fanın iki fan eğrisi tablosundan hangisini izlediğini gösterir. Model veritabanına göre dizüstünüzde iki fan var ve her biri kendi tablosunu izliyor; GhostDeck bunu zaten biliyor. Test burada yeni bir değer vermez.",
+            "Kiểm tra này dành cho laptop chỉ có một quạt: nó cho biết quạt đó theo bảng nào trong hai bảng đường cong quạt. Theo cơ sở dữ liệu model, laptop của bạn có hai quạt và mỗi quạt theo bảng riêng của nó, điều GhostDeck đã biết. Kiểm tra sẽ không cho giá trị mới nào ở đây.",
+            "Uji ini untuk laptop dengan satu kipas: uji ini menunjukkan tabel kurva kipas mana dari dua tabel yang diikuti kipas itu. Menurut basis data model, laptop Anda punya dua kipas dan masing-masing mengikuti tabelnya sendiri, hal yang sudah diketahui GhostDeck. Uji ini tidak akan memberi nilai baru di sini.",
+            "Questo test è per i portatili con una sola ventola: mostra quale delle due tabelle della curva segue quella ventola. Secondo il database dei modelli il tuo portatile ha due ventole e ognuna segue la propria tabella, cosa che GhostDeck sa già. Qui il test non darà nessun valore nuovo."
+        };
+        m["tt_twofan_go"] = new[]
+        {
+            "Run anyway",
+            "Uruchom mimo to",
+            "Trotzdem starten",
+            "Lancer quand même",
+            "Ejecutar de todos modos",
+            "仍然运行",
+            "Executar mesmo assim",
+            "Всё равно запустить",
+            "それでも実行",
+            "그래도 실행",
+            "仍然執行",
+            "Yine de çalıştır",
+            "Vẫn chạy",
+            "Tetap jalankan",
+            "Avvia comunque"
+        };
         m["tt_abort_hot"] = new[]
         {
             "Test stopped: the CPU reached 92 °C - both tables and your fan mode are back.",
