@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261121;
+    public const int DataVersion = 20261122;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1916,10 +1916,21 @@ public static class Devices
         // Dragon Center 2.0.158): the firmware refuses MSI_ACPI, and the owner's block report shows
         // the Dragon Center-era layout (System 21 / CPU 19 / VGA 18 / AP 8 instances). Switching
         // Dragon Center scenarios moved System[7] C1/C1/C4/C2 and System[9] 1D/0D/0D/0D - this
-        // entry's recipes 1:1. Layout added so the path test can run; no curve on this path yet.
+        // entry's recipes 1:1. Layout added so the path test can run.
+        //   Path test PASSED on 1 Nov 2026 (issue #303, app 1.42.0, Dragon Center services
+        //   running): every profile read back as written right after the write and after the
+        //   hold, the original state confirmed afterwards, Super Battery 41 % of Extreme's work
+        //   (926 vs 2188 MHz). Tested once the owner confirms the two checks the test cannot make.
         new() { Name = "MSI GE66 Raider 10SF", FirmwarePrefixes = new[] { "1541EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
                 BlockPath = DragonEraBlocks,   // block report in issue #303
+                // Fan curve VERIFIED by the same path test: with every speed slot of the CPU table
+                // raised to 80 (table 0 50 57 64 71 78 85 | 0 40 48 56 64 72 80) and the fan mode at
+                // 0x8D, the fan went 2394 -> 4192 RPM while the CPU cooled, in the comfort shift
+                // mode already (4748 in turbo). On the backup path the table is addressed by block
+                // slot (BlockCurveSpec), so the EC addresses here only name the pairs the editor
+                // shows - as on the GF65 Thin 10UE.
+                FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
                 Credit = "chopin312", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/303",
                 CreditIssues = Issues("chopin312:303") },
         new() { Name = "MSI GP66 Leopard 10UG / 10UE / 10UH", FirmwarePrefixes = new[] { "1542EMS1" }, Tier = Tier.Experimental,

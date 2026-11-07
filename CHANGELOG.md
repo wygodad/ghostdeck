@@ -10,6 +10,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **GE66 Raider, GP66 Leopard** (`1543EMS1`, model database 20261121, [#309](../../issues/309), thanks @hjka007) - a
   second owner's capture matches the profile, fan and Super Battery settings in every scenario; added to the model's
   credit.
+- **GE66 Raider 10SF: backup path test passed, fan curve on** (`1541EMS1`, model database 20261122,
+  [#303](../../issues/303), thanks @chopin312) - every profile read back as written, Super Battery at 41 % of Extreme's
+  work, and the fan followed the raised curve table, so the fan-curve editor is now available for this model on the
+  backup path.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
