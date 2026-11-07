@@ -164,6 +164,9 @@ public static class Ec
     /// <summary>True while EC reads go through the data blocks instead of the MSI_ACPI methods.</summary>
     public static bool OnBackupPath => _backup != null;
 
+    /// <summary>True when the active backup path serves this EC register (it has a slot there).</summary>
+    public static bool BackupHasRegister(byte addr) => _backup is { } b && b.Slots.ContainsKey(addr);
+
     /// <summary>Outcome of the backup-path check, kept for the diagnostic package.</summary>
     public sealed record BackupProbe(bool Active, string Firmware, DeviceProfile? Device, string Bios, string Detail);
     public static BackupProbe? LastBackupProbe { get; private set; }
@@ -183,6 +186,16 @@ public static class Ec
         };
         // A model with a curve on record may also put the fan into Advanced mode.
         if (dev.FanCurve is { } fc) allowed[spec.FanMode].Add(fc.AdvancedModeValue);
+        // Keyboard backlight (#230): only where the layout records the slot AND the model's
+        // backlight register is the EC address that MSI_System slot stands for (0xEB + index),
+        // with the four values the register takes (0x80 | level 0-3).
+        if (spec.KbdBacklight is { } kb && dev.FirmwarePrefixes.Length > 0
+            && Devices.KbdBacklightFor(dev.FirmwarePrefixes[0]) is var kbdAddr && kbdAddr != 0
+            && kb.Class == "MSI_System" && kbdAddr == 0xEB + kb.Index)
+        {
+            slots[kbdAddr] = kb;
+            allowed[kb] = new HashSet<byte> { 0x80, 0x81, 0x82, 0x83 };
+        }
         return new BackupState(dev, spec, slots, allowed);
     }
 

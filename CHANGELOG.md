@@ -37,6 +37,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   (160 recognised).
 - **GF65 Thin 10UE** (`16W2EMS1`, model database 20261127, [#331](../../issues/331), thanks @OpenFlameDmitry) - a
   second owner's Dragon Center capture; added to the model's credit.
+- **Keyboard backlight on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99) - on the GF65 Thin 10UE
+  the backlight level (off / low / mid / high) now works through the data blocks too, from the box its owner found with
+  the Fn backlight key (model database 20261128). Like the profiles, it unlocks once the path test has passed.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
@@ -47,6 +50,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Two-table test verdict with a stopped fan** ([#310](../../issues/310), [#317](../../issues/317)): fans that switch
   off at 25 % read 0 rpm, and the verdict took that for a missing reading and said the readings "fit none of the simple
   rules". A stopped fan now counts as a low reading, so such a run reads "follows table 1 only" / "follows table 2 only".
+- **Per-model extras on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99): the firmware string there
+  carries the BIOS version (`16W2EMS1 (BIOS E16W2IMS.105)`), and the dot inside it cut the model prefix short, so the
+  keyboard-backlight, webcam and Fn/Win lookups never found the model. The prefix is now read correctly.
 
 ## [1.43.0] - 2026-10-30
 ### Added

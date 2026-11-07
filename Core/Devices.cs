@@ -61,7 +61,12 @@ public sealed record BlockPathSpec(
     BlockRef? GpuTemp = null,
     BlockRef? CpuDuty = null, BlockRef? GpuDuty = null,
     BlockRef? CpuRpm = null, BlockRef? GpuRpm = null,
-    BlockCurveSpec? CpuCurve = null, BlockCurveSpec? GpuCurve = null);
+    BlockCurveSpec? CpuCurve = null, BlockCurveSpec? GpuCurve = null,
+    // Keyboard-backlight slot, on record per model once its owner has shown it moving with
+    // the backlight key (issue #230: MSI_System[8] = 0x80 | level on the GF65 Thin 10UE). The
+    // path enables it only when the model's keyboard-backlight register is the EC address
+    // that slot stands for (MSI_System[n] = 0xEB + n), so the two maps cannot disagree.
+    BlockRef? KbdBacklight = null);
 
 /// <summary>
 /// Where one fan's curve table sits inside a data block: <see cref="Count"/> temperature
@@ -164,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261127;
+    public const int DataVersion = 20261128;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -369,8 +374,14 @@ public static class Devices
         return map;
     }
 
+    // The EC prefix of a firmware string. On the backup WMI path the string carries the BIOS
+    // version it was derived from - "16W2EMS1 (BIOS E16W2IMS.105)" - so the part after the
+    // first space goes before the dot is looked for (issue #230).
     private static string FwPrefix(string firmware)
     {
+        if (string.IsNullOrEmpty(firmware)) return "";
+        int sp = firmware.IndexOf(' ');
+        if (sp > 0) firmware = firmware[..sp];
         int dot = firmware.IndexOf('.');
         return dot > 0 ? firmware[..dot] : firmware;
     }
@@ -779,7 +790,13 @@ public static class Devices
         //   method interface stays refused on this board; the entry is tested on the backup path.
         new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Tested,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
-                BlockPath = DragonEraBlocks,   // block dump in the diagnostic package of issue #117
+                // Keyboard backlight on the backup path: the owner logged MSI_System[8] stepping
+                // 0x83 -> 0x82 -> 0x81 -> 0x80 and back with the Fn backlight key (issue #230,
+                // 31 Oct 2026, 200 ms polling) - the 0xF3 register this prefix carries in the
+                // keyboard-backlight map (slot 8 = 0xEB + 8). Writable after the path test, like
+                // the profiles; the other Dragon Center-era entries keep the shared layout until
+                // their own owners show the same slot.
+                BlockPath = DragonEraBlocks with { KbdBacklight = new("MSI_System", 8) },   // block dump in the diagnostic package of issue #117
                 // Fan curve VERIFIED by the owner's path test (issue #230, 8 Oct 2026): with every
                 // speed slot of the CPU table raised to 85 and the fan mode at 0x8D, the fan went
                 // 2261 -> 4733 RPM while the CPU cooled, in the comfort shift mode already. On the

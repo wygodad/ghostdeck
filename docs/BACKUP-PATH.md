@@ -32,7 +32,7 @@ Today that is the **GF65 Thin 10UE** (a tested model since 18 October 2026, the 
 
 Temperatures, fan duty and fan RPM work right away. **Profile switching starts locked.** It unlocks after the **path test** (next section) has passed on your machine. Until then the profile tiles, hotkeys and the tray menu are there but refuse to switch, and the status badge says so.
 
-On this path a few things are not available, because they would need boxes nobody has mapped yet: **Fan Boost, the charge limit, the keyboard backlight and the webcam switch**. The fan-curve editor is available where the model's entry has a verified curve, today the GF65 Thin 10UE, the GE66 Raider 10SF and the Delta 15 A5EFK.
+On this path a few things are not available, because they would need boxes nobody has mapped yet: **Fan Boost, the charge limit and the webcam switch**. The **keyboard backlight** works where the model's entry has its box on record, today the GF65 Thin 10UE (its owner found it, #230); like the profiles, it unlocks once the path test has passed. The fan-curve editor is available where the model's entry has a verified curve, today the GF65 Thin 10UE, the GE66 Raider 10SF and the Delta 15 A5EFK.
 
 ### 2b. Your model is not on record, but the blocks look familiar: monitoring only
 
@@ -156,7 +156,7 @@ The optional fan-curve check raises every speed slot of the CPU fan's table to t
 
 ### 5.7 For developers
 
-- The layout travels in the model database as an optional `blockPath` object per model (slots as `"MSI_System[7]"`, curve tables as class / tempFirst / speedFirst / count); older clients ignore the key.
+- The layout travels in the model database as an optional `blockPath` object per model (slots as `"MSI_System[7]"`, curve tables as class / tempFirst / speedFirst / count, and an optional `kbdBacklight` slot); older clients ignore the key.
 - `msi-wmi-blocks.txt` in the diagnostic package lists eight blocks in full with timings, the value property's type and `write` qualifier, and the block routine names found in the firmware table.
 - `MSIPS_BLOCKS_FILE=<msi-wmi-blocks.txt>` with `MSIPS_BLOCKS_BIOS=<version>` replays a saved dump instead of querying WMI; writes land in the in-memory copy, `MSIPS_BLOCKS_STUCK=1` makes the copy ignore them. Every stage of the test, including a firmware that ignores writes, has been run this way against the dumps of all three machines.
 - Source: `Core/EcBlocks.cs` (transport, fingerprint, dump), `Core/Ec.cs` (path detection, the gate), `Core/BackupPathTest.cs` (the test), `Forms/BackupTestForm.cs` (the cards), `UI/ReportPage.cs` (block capture in the report wizard).
