@@ -372,7 +372,10 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   ~1797 / ~1615 rpm), `15K2EMS1` (CPU pair only - single fan, #283 - the power test's pre-run
   idle dump read `01:1D` = ~1680 rpm; the GPU pair read `00:00` in every dump, graphics load
   included), `15M2IMS1` (#288 - the power test's pre-run idle dump read the GPU pair as
-  `01:0A` = ~1797 rpm; every loaded dump sat in the coinciding zone), `17S1IMS1` / `17S2IMS2` (the
+  `01:0A` = ~1797 rpm; every loaded dump sat in the coinciding zone), `1824EMS1` (discussion
+  #330 - at a flat 25 % curve the single-byte read showed 7709 / 7966 rpm, the low bytes
+  `0x3E` / `0x3C` of the pairs `01:3E` / `01:3C` = ~1503 / ~1513 rpm, in line with HWiNFO64;
+  the issue #23 capture had sat in the coinciding zone at ~1900-1970 rpm), `17S1IMS1` / `17S2IMS2` (the
   reference GE78HX itself, 2026-10-29 - a flat 25 % curve took both fans below the zone for the
   first time: `0xCA:0xCB` = `01:4D` / `01:40` = 1435 / 1493 rpm, HWiNFO64's exact figures, while
   the single-byte read showed "6207" and "7468"; the CPU fan at 1435 rpm read `0x4D` in `0xC9`,

@@ -53,6 +53,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Per-model extras on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99): the firmware string there
   carries the BIOS version (`16W2EMS1 (BIOS E16W2IMS.105)`), and the dot inside it cut the model prefix short, so the
   keyboard-backlight, webcam and Fn/Win lookups never found the model. The prefix is now read correctly.
+- **Fan speed on the Titan 18 HX Dragon Edition at low fan duty** (`1824EMS1`, model database 20261129,
+  [#330](../../discussions/330), thanks @stream-posts-spec): this board reports fan speed in two bytes and the database
+  read only one, so at a 25 % curve Status showed impossible values such as 7709 / 7966 rpm instead of about 1500. Fan
+  speed is now read from both bytes (`0xC8:0xC9` / `0xCA:0xCB`).
 
 ## [1.43.0] - 2026-10-30
 ### Added

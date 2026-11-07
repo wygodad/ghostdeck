@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261128;
+    public const int DataVersion = 20261129;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -568,11 +568,14 @@ public static class Devices
         // Titan 18 HX Dragon Edition (1824EMS1) — owner per-scenario dump (issue #23) matches
         // StdRecipes 1:1 (shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery).
         // Fan curve VERIFIED (issue #24): the wizard found the test curve at exactly 0x72 / 0x8A.
-        // Fan RPM at 0xC9/0xCB — both plausible in the capture (FB/F3 ≈ 1900-1970 RPM).
+        // Fan RPM as 16-bit pairs 0xC8:0xC9 / 0xCA:0xCB (discussion #330): at a flat 25 % curve the
+        // single-byte read showed 7709 / 7966 rpm, i.e. the low bytes 0x3E / 0x3C of the pairs
+        // 0x013E / 0x013C = ~1500 / ~1510 rpm, in line with HWiNFO64. The earlier capture
+        // (FB/F3 = ~1900-1970 RPM) sat in the zone where both formats read the same.
         new() { Name = "MSI Titan 18 HX Dragon Edition", FirmwarePrefixes = new[] { "1824EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "Mung-Bean-Monkey", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/23",
-                CreditIssues = Issues("Mung-Bean-Monkey:23,24") },
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Mung-Bean-Monkey, stream-posts-spec", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/23",
+                CreditIssues = Issues("Mung-Bean-Monkey:23,24; stream-posts-spec:330") },
 
         // Bravo 15 B7ED (158PIMS1) — owner per-scenario dump (issue #25) confirms shift/fan 1:1
         // (0xD2 C1/C1/C4/C2, 0xD4 1D/0D/0D/0D). Like the Crosshair (the other tested AMD board),
