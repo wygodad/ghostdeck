@@ -31,6 +31,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   [#326](../../issues/326), thanks @SHAFIJAN and @VictorNIK-ghost) - a second owner's capture matches the recipes
   1:1 with the real Silent, and his curve check found both test curves at the expected addresses. Both owners join
   the credit.
+- **Monster Tulpar T7 V25.1** (`17K3EF81`, model database 20261127, [#327](../../issues/327), thanks @mrhozudogru) - a
+  Monster-branded laptop on the MSI MS-17K3 board (the GE76 Raider / GP76 Leopard board) with its own EC firmware
+  line; the owner's capture matches the standard recipes 1:1, so it joins the database as an experimental model
+  (160 recognised).
+- **GF65 Thin 10UE** (`16W2EMS1`, model database 20261127, [#331](../../issues/331), thanks @OpenFlameDmitry) - a
+  second owner's Dragon Center capture; added to the model's credit.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a

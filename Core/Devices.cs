@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261126;
+    public const int DataVersion = 20261127;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -786,8 +786,13 @@ public static class Devices
                 // backup path the table is addressed by block slot (BlockCurveSpec), so the EC
                 // addresses here only name the pairs the editor shows.
                 FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
-                Credit = "scorvus99", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/230",
-                CreditIssues = Issues("scorvus99:117,230") },
+                //   Second owner (issue #331, OpenFlameDmitry, BIOS version not given, Dragon Center):
+                //   his block capture moved System[7] C1/C1/C4/C2 like the recipes, but System[9] read
+                //   1C/0C/0C/0C where the first owner's Dragon Center wrote 1D/0D/0D/0D. Observation
+                //   only - the recipes keep 1D/0D (path-tested on the first machine); his own path
+                //   test will show how they behave on his. System[8] 83 -> 80 in Super Battery again.
+                Credit = "scorvus99, OpenFlameDmitry", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/230",
+                CreditIssues = Issues("scorvus99:117,230; OpenFlameDmitry:331") },
 
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====
         // G2 modern-HX siblings of the tested 17S1IMS1 board (same 0xD2/0xD4 layout).
@@ -1592,6 +1597,18 @@ public static class Devices
                 FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "ezn24", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/200",
                 CreditIssues = Issues("ezn24:200,219") },
+        // Monster Tulpar T7 V25.1 (17K3EF81) - a Monster-branded laptop on the MSI MS-17K3 board
+        // (the board code 17K3 is the GE76 Raider / GP76 Leopard's, 17K3EMS1 above) with Monster's
+        // own EC firmware line, hence a separate prefix. The owner's per-scenario capture (issue
+        // #327, firmware .107, Monster's "Feature Manager" 1.0.2111) matches StdRecipes 1:1 with a
+        // real Silent: shift C1/C1/C4/C2, fan 1D/0D/0D/0D, 0xEB=0F only in Super Battery (0x34
+        // constant 01 - ignored). His hardware checks were made with Monster's software, since
+        // GhostDeck did not recognise the prefix yet, so the entry starts Experimental, without the
+        // sibling's verified curve and RPM until this firmware shows them.
+        new() { Name = "Monster Tulpar T7 V25.1 (MSI MS-17K3 board)", FirmwarePrefixes = new[] { "17K3EF81" }, Tier = Tier.Experimental,
+                FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "mrhozudogru", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/327",
+                CreditIssues = Issues("mrhozudogru:327") },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Alpha 17 C7VF / C7VG (17KKIMS1) - owner-verified (issues #152/#153, MSI Center 2.0.48,
