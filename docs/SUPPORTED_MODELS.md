@@ -148,7 +148,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Bravo 15 B5ED | `158MEMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI Bravo 17 A4DDR / A4DDK | `17FKEMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI Creator 15 A10SD | `16V2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &#10003; | &mdash; |
-| MSI Delta 15 A5EFK | `15CKEMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
+| MSI Delta 15 A5EFK | `15CKEMS1` | G1 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &mdash; | &mdash; |
 | MSI GE66 Raider 10SF | `1541EMS1` | G1 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &mdash; | &mdash; |
 | MSI GE76 Raider 10UG | `17K2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GF63 8RC-249 | `16R1EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |

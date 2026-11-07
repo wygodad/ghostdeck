@@ -14,6 +14,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   [#303](../../issues/303), thanks @chopin312) - every profile read back as written, Super Battery at 41 % of Extreme's
   work, and the fan followed the raised curve table, so the fan-curve editor is now available for this model on the
   backup path.
+- **Delta 15 A5EFK: backup path test passed, fan curve on** (`15CKEMS1`, model database 20261123,
+  [#48](../../issues/48), thanks @FabioBros28 and @SavAlexander) - the first passed run on this model: every profile read
+  back as written, Super Battery at 75 % of Extreme's work, and the controller followed the raised curve table, so the
+  fan-curve editor is now available on the backup path. @SavAlexander's diagnostic package gave the model's block layout.
 
 ### Changed
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a

@@ -164,7 +164,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261122;
+    public const int DataVersion = 20261123;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1945,9 +1945,26 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Bravo 15 B5ED", FirmwarePrefixes = new[] { "158MEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+        // Delta 15 A5EFK (15CKEMS1) - backup WMI path; layout from SavAlexander's diagnostic package
+        // (issue #48). Path test PASSED on 31 Oct 2026 (FabioBros28, issue #48 / discussion #241,
+        // app 1.43.0, BIOS E15CKAMS.110, MSI Center services running): every profile read back as
+        // written right after the write and after the hold, the original state confirmed, Super
+        // Battery 75 % of Extreme's work (3147 vs 4140 MHz). The recipes are msi-ec's; no MSI
+        // Center capture of this board has switched scenarios yet (issue #314: four identical
+        // columns). Tested once the owner confirms the two checks the test cannot make.
         new() { Name = "MSI Delta 15 A5EFK", FirmwarePrefixes = new[] { "15CKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
-                BlockPath = DragonEraBlocks },   // block dump in the diagnostic package of issue #48
+                BlockPath = DragonEraBlocks,   // block dump in the diagnostic package of issue #48
+                // Fan curve VERIFIED by the same path test: with every speed slot of the CPU table
+                // raised to 80 (table 0 55 60 70 78 85 90 | 0 45 60 70 75 80 80) and the fan mode at
+                // 0x8D, the controller's own duty readback said 80 at 61 C in the comfort shift
+                // mode, where its table asks for 60, and 80 at 56-60 C in turbo (table: 45); the
+                // rpm rose 3366 -> 4192 and 4748. That fits the owner's measurement in #48 (the
+                // table is followed outside the two power-saving shift modes). Addressed by block
+                // slot as on the GF65 Thin 10UE.
+                FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
+                Credit = "FabioBros28, SavAlexander", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/48",
+                CreditIssues = Issues("FabioBros28:48; SavAlexander:48") },
         new() { Name = "MSI Modern 15 B7M", FirmwarePrefixes = new[] { "15HKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GS65 Stealth Thin 8RE / 8RF", FirmwarePrefixes = new[] { "16Q2EMS1" }, Tier = Tier.Experimental,
