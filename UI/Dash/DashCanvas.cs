@@ -50,7 +50,7 @@ internal sealed partial class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View }
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -428,6 +428,7 @@ internal sealed partial class DashCanvas : Control
             PaintMore(g, _rects[_hot.Index], _hot.Kind == Zone.More);
             return;
         }
+        if (_hot.Kind == Zone.Map) { PaintMapHover(g); return; }
         if (_hot.Kind == Zone.Star)
         {
             // the stars up to the one under the cursor fill in the accent, over the card background
@@ -471,20 +472,23 @@ internal sealed partial class DashCanvas : Control
         int head = _ctx.Font(11f, FontStyle.Bold).Height + S(10) + Math.Max(_ctx.Font(8.5f, FontStyle.Bold).Height, Summary != null ? SortPillH : 0) + S(8);
         int w = PanelW - S(16) * 2, rows = 0;
         var present = new HashSet<string>(_items.Select(i => i.Type));
-        foreach (var def in DashRegistry.All)
+        foreach (var def in Listed)
             rows += CatalogRowH(CatDescH(CatDesc(def, def.Available(_d), present.Contains(def.TypeId)), w));
         return S(16) * 2 + head + rows;
     }
 
     private Rectangle PanelRect() => new(Width - Pad - PanelW, GridTop(), PanelW, CatalogHeight(Width));
 
+    /// <summary>The widget types the catalogue lists on this machine (a type can hide itself, e.g. the Community tile while statistics are off).</summary>
+    private IEnumerable<DashWidgetDef> Listed => DashRegistry.All.Where(d => d.Listed?.Invoke(_d) ?? true);
+
     /// <summary>Catalogue order: by share of dashboards (Popular) or by name (A-Z) while a summary is in; the registry order otherwise.</summary>
     private List<DashWidgetDef> CatalogOrder(Stats.Summary? sum)
     {
-        if (sum == null) return DashRegistry.All.ToList();
+        if (sum == null) return Listed.ToList();
         if (_sortPopular)
-            return DashRegistry.All.Select((d, i) => (d, i)).OrderByDescending(t => sum.ShareOf(t.d.TypeId) ?? -1).ThenBy(t => t.i).Select(t => t.d).ToList();
-        return DashRegistry.All.OrderBy(d => Lang.T(d.NameKey), StringComparer.Create(Lang.Culture, true)).ToList();
+            return Listed.Select((d, i) => (d, i)).OrderByDescending(t => sum.ShareOf(t.d.TypeId) ?? -1).ThenBy(t => t.i).Select(t => t.d).ToList();
+        return Listed.OrderBy(d => Lang.T(d.NameKey), StringComparer.Create(Lang.Culture, true)).ToList();
     }
 
     /// <summary>Five stars from the left of <paramref name="row"/>, the first <paramref name="filled"/> in <paramref name="fill"/>.</summary>
@@ -793,12 +797,15 @@ internal sealed partial class DashCanvas : Control
             }
             return;
         }
+        _mouse = e.Location;
         var h = HitZone(e.Location);
+        if (h.Kind == Zone.Map && _hot.Kind == Zone.Map) Invalidate(Rectangle.Inflate(_mapRect, S(220), S(60)));   // the label follows the cursor
         SetHot(h);
         var want = h.Kind switch
         {
             Zone.None => Cursors.Default,
             Zone.Widget => _edit ? Cursors.SizeAll : Cursors.Hand,
+            Zone.Map => Cursors.Default,
             _ => Cursors.Hand,
         };
         if (Cursor != want) Cursor = want;
@@ -830,6 +837,8 @@ internal sealed partial class DashCanvas : Control
             case Zone.More: ShowTileMenu(h.Index, new Point(MoreRect(_rects[h.Index]).Left, MoreRect(_rects[h.Index]).Bottom + S(4))); return;
             case Zone.Info: if (h.Type != null) OpenInfo(h.Type); return;
             case Zone.View: SwitchView((View)h.Index); return;
+            case Zone.StatsOn: TurnStatsOn(); return;
+            case Zone.StatsInfo: ShowStatsInfo(); return;
             case Zone.Widget:
                 if (_edit) _pressIndex = h.Index;
                 else _placed[h.Index].Widget.Click(e.Location, _rects[h.Index], _ctx);

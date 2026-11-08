@@ -302,6 +302,10 @@ public static class Stats
         public List<string> Top = new();
         public string? Rising;
         public List<(string week, int active)> History = new();
+        // (7e) breakdowns as counts, largest first; only values with min_count installs or more
+        public List<(string code, int count)> Countries = new();
+        public List<(string code, int count)> Langs = new();
+        public List<(string prefix, int count)> Models = new();
 
         public double? ShareOf(string type) => Widgets.TryGetValue(type, out var w) ? w.Share : null;
     }
@@ -345,6 +349,15 @@ public static class Stats
                 }
             if (p["top"] is JsonArray top) foreach (var t in top) if ((string?)t is { } ts) s.Top.Add(ts);
             if (p["history"] is JsonArray hist) foreach (var h in hist) s.History.Add(((string?)h?["week"] ?? "", (int?)h?["active"] ?? 0));
+            static void Counts(JsonNode? node, List<(string, int)> into)
+            {
+                if (node is not JsonObject o) return;
+                foreach (var kv in o) if ((int?)kv.Value is { } n && n > 0 && kv.Key.Length is > 0 and <= 24) into.Add((kv.Key, n));
+                into.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+            }
+            Counts(p["countries"], s.Countries);
+            Counts(p["langs"], s.Langs);
+            Counts(p["models"], s.Models);
             return s;
         }
         catch { return null; }

@@ -29,6 +29,7 @@
     <EmbeddedResource Include="app.ico" LogicalName="GhostDeck.app.ico" />
     <!-- Models tab history dates (tools/model-history.py), see Core/ModelHistory.cs -->
     <EmbeddedResource Include="data\model-history.json" LogicalName="GhostDeck.model-history.json" />
+    <EmbeddedResource Include="data\worldmap.txt" LogicalName="GhostDeck.worldmap.txt" />
   </ItemGroup>
 
 </Project>

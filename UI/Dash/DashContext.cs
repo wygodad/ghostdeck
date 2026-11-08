@@ -49,4 +49,7 @@ internal sealed class DashContext
 
     /// <summary>Opens another main tab (a ring opens Status, the curve opens the fan-curve editor).</summary>
     public void OpenTab(MainTab tab) => (Owner.FindForm() as MainForm)?.ShowTab(tab);
+
+    /// <summary>Shows the Statystyki view of the canvas (the Community tile's click).</summary>
+    public void ShowStats() => (Owner as DashCanvas)?.SwitchView(DashCanvas.View.Stats);
 }

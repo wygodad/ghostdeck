@@ -5,6 +5,9 @@ namespace GhostDeck;
 /// <summary>A widget type the application knows: identity, allowed sizes, availability on this model, and how to make one.</summary>
 internal sealed record DashWidgetDef(string TypeId, string NameKey, Size[] Sizes, Func<MainDeps, bool> Available, Func<DashWidgetDef, IDashWidget> Create)
 {
+    /// <summary>When set and false, the catalogue does not list the type at all (it still paints when already placed).</summary>
+    public Func<MainDeps, bool>? Listed { get; init; }
+
     public IDashWidget New() => Create(this);
 }
 
@@ -33,6 +36,8 @@ internal static class DashRegistry
         new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, d => new TogglesWidget(d)),
         new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, d => new MemoryWidget(d)),
         new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, d => new ChargeLimitWidget(d)),
+        // (1.44) the community numbers; listed only while statistics are on (the view is the return for sharing)
+        new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, d => new CommunityWidget(d)) { Listed = d => d.Settings.StatsEnabled },
     };
 
     public static DashWidgetDef? Find(string typeId)

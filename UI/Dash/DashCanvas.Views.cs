@@ -98,7 +98,7 @@ internal sealed partial class DashCanvas
 
     private int CatalogViewHeight(int width)
     {
-        int cols = CatCols(width), rows = (DashRegistry.All.Count + cols - 1) / cols;
+        int cols = CatCols(width), rows = (Listed.Count() + cols - 1) / cols;
         return rows * CatCardH() + (rows - 1) * Gap;
     }
 
@@ -224,13 +224,5 @@ internal sealed partial class DashCanvas
             // the whole card opens the widget card (added last: the stars and the button win where they overlap)
             _zones.Add((card, new Hot(Zone.Info, -1, def.TypeId)));
         }
-    }
-
-    // ---- Statystyki (filled in by step 7f) -------------------------------------------------
-    private int StatsViewHeight(int width) => S(240);
-
-    private void PaintStatsView(Graphics g)
-    {
-        DashPaint.Note(g, new Rectangle(Pad, GridTop(), Width - Pad * 2, S(200)), _ctx, Lang.T("dash_no_data"));
     }
 }
