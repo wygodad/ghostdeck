@@ -3193,6 +3193,13 @@ The three points that belong in this document rather than that one:
 - **Model DB implication: none.** No new per-model fields; the sweep uses the existing curve spec
   and tachometer addresses.
 
+**Findings wording, 2026-11 (discussion #299).** "Rising with every step" now needs every step to
+read more than 2 % above the one before; a run with a flat step gets the same "follows its command"
+line without that claim. A new neutral line, "no gain above N % (about X rpm)", appears when the top
+step adds nothing over the one before it - on the Crosshair A16 HX the curve stops at 100 % (§17.3),
+which the sweep now states in so many words. The findings column grows the panel by its measured
+height instead of dropping its last lines. Rules and thresholds: FAN-CURVE.md §8.
+
 ## 66. Text on a scrolling page (v1.34)
 
 `TextRenderer.DrawText` draws every label in this app, and by default it honours **neither**

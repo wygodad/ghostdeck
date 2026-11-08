@@ -48,6 +48,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   reaches about 7000 rpm; noted in the FAQ and added to the model's credit.
 
 ### Changed
+- **Fan sweep findings** ([#299](../../discussions/299), thanks @maestory): "rising with every step" now appears only
+  when every step really rose; a run with a flat step says the fan follows its command without that claim. A new line
+  says when the top step adds nothing, for example "Fan 1 (CPU): no gain above 100 % (about 4960 rpm)", and the panel
+  grows to fit all the lines instead of leaving the last ones out. All 15 languages.
 - **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
   question only single-fan laptops have, so on a model with two fans the start button opens a card first, saying the test
   will not give new values there, with Cancel and Run anyway. Report tab and Fan curve page alike.

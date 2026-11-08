@@ -1638,7 +1638,19 @@ public sealed class FanCurvePage : ThemedPage
     // What the diagnostics panel needs: one row when collapsed, a side-by-side layout on a wide
     // window, a stacked one when narrow. It is never squeezed - if the two blocks do not fit in
     // the window, the view scrolls (see PlayNeededH).
-    private int SweepPanelH => !_sweepOpen ? S(64) : (Width >= S(1000) + Pad * 2 ? S(380) : S(700));
+    private int SweepPanelH => !_sweepOpen ? S(64) : (Width >= S(1000) + Pad * 2 ? S(380) : S(700)) + _sweepFindExtra;
+
+    // Extra panel height the sweep findings asked for at the last paint (0 = the base fits).
+    // A change re-lays the view once, after this paint; the value is measured against the base
+    // height, so it settles on the first pass instead of feeding back on itself.
+    private int _sweepFindExtra;
+    private void SetSweepFindExtra(int extra)
+    {
+        extra = Math.Max(0, extra);
+        if (extra == _sweepFindExtra) return;
+        _sweepFindExtra = extra;
+        if (IsHandleCreated) BeginInvoke(() => { LayoutButtons(); Invalidate(); });
+    }
 
     // Height the In-action view wants: a usable chart + the readings row + the panel.
     private int PlayMinChartH => S(300);
@@ -1839,7 +1851,7 @@ public sealed class FanCurvePage : ThemedPage
         });
 
     private static bool IsFanScopedFinding(string key) =>
-        key is "fc_find_follows" or "fc_find_drop" or "fc_find_floor" or "fc_find_notach";
+        key is "fc_find_follows" or "fc_find_follows_flat" or "fc_find_plateau" or "fc_find_drop" or "fc_find_floor" or "fc_find_notach";
 
     private void StartSweep()
     {
@@ -2212,6 +2224,7 @@ public sealed class FanCurvePage : ThemedPage
         else if (_shown == 2 && _ttResult is { Steps.Count: > 0 } tr)
         {
             _reactHelp.Visible = false;
+            SetSweepFindExtra(0);
             DrawTwoTableResult(g, tr, pnl, top, bottom, subF, bF);
         }
         else if (_sweepResult is { Steps.Count: > 0 } r)
@@ -2246,11 +2259,17 @@ public sealed class FanCurvePage : ThemedPage
             fy += bF.Height + S(4);
             var findingKeys = FanSweep.Findings(r).Select(f => f.key).ToList();
             var findingTexts = FindingLines(r).ToList();
+            // The panel grows by what the findings need beyond its base height (measured, so a
+            // long translation or a large scale never cuts the last lines off); narrow layouts
+            // also keep room for the mini chart under them.
+            int linesH = findingTexts.Sum(t => TextRenderer.MeasureText(g, "•  " + t, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height + S(3));
+            int baseBottom = bottom - _sweepFindExtra;
+            SetSweepFindExtra(fy + linesH + (wide ? 0 : S(22) + S(140) + S(40)) - baseBottom);
             for (int fi2 = 0; fi2 < findingTexts.Count; fi2++)
             {
                 string key = findingKeys[fi2];
                 string line = "•  " + findingTexts[fi2];
-                var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak);
+                var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
                 if (fy + need.Height > bottom) break;
                 var col = key.Contains("drop") || key.Contains("gap") ? Theme.Amber : Theme.Muted;
                 TextRenderer.DrawText(g, line, subF, new Rectangle(fr.X, fy, fr.Width, need.Height), col, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
@@ -2292,6 +2311,7 @@ public sealed class FanCurvePage : ThemedPage
         else
         {
             _reactHelp.Visible = false;
+            SetSweepFindExtra(0);
             TextRenderer.DrawText(g, _sweepStatus.Length > 0 ? _sweepStatus : Lang.T("fc_sweep_idle"), subF, new Rectangle(pnl.X + S(20), top, pnl.Width - S(40), subF.Height * 2), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
         }
     }
@@ -2343,7 +2363,7 @@ public sealed class FanCurvePage : ThemedPage
         for (int i = 0; i < texts.Count; i++)
         {
             string line = "•  " + texts[i];
-            var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak);
+            var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
             if (fy + need.Height > bottom) break;
             // the verdict lines in the text colour, the rest muted; a mode byte that moved is a warning
             var col = keys[i] is "tt_find_higher" or "tt_find_table1" or "tt_find_table2" ? Theme.Text

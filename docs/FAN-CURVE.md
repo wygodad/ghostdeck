@@ -144,7 +144,10 @@ button, the results table, the findings of §8, a mini chart and the history pic
 
 The panel is never squeezed: on a wide window the table, findings and mini chart sit side by side;
 below a threshold they stack and the panel grows, and if the result no longer fits the window, the
-view scrolls (§10).
+view scrolls (§10). The panel also grows by whatever the findings need beyond its base height: the
+lines are measured while painting (same flags as the drawing, so the measure and the wrap agree)
+and a change re-lays the view once, so a long translation or a large display scale never drops the
+last lines.
 
 ### 6.1 Grouped reading labels (1.43)
 
@@ -261,7 +264,9 @@ the duty readback):
 
 | Line | Condition | Colour |
 |---|---|---|
-| **follows the command** | no step is below 95 % of the previous one; quotes the first and last value | neutral |
+| **follows the command, rising with every step** | every step read more than 2 % above the one before; quotes the first and last value | neutral |
+| **follows the command** | no step is below 95 % of the previous one, but at least one did not rise by more than 2 % (a flat step); quotes the first and last value, without the "every step" claim | neutral |
+| **no gain above N %** | the top step (e.g. 150 %) read no more than 2 % above the step before it (e.g. 100 %), and not below 95 % of it either; quotes that step's % and the average of the two readings, rounded to 10 rpm (tachometer boards only) | neutral |
 | **did not follow** | at least one step fell below 95 % of the previous one; names the % steps where it happened | amber |
 | **floor** | the lowest step already spins above 75 % of the top step; quotes that value (tachometer boards only) | neutral |
 | **no tachometer reading** | fewer than two steps produced a value on a board that has a tachometer address | neutral |
@@ -281,7 +286,11 @@ Finally, if none of the amber lines (drop, gap, slow) fired, one line says the r
 out of the ordinary. A clean run should say so, not say nothing.
 
 **Why the thresholds are what they are.** 95 % tolerates measurement noise on a 3-sample average
-while still catching a fan that stops climbing. 75 % marks a fan whose lowest commanded step is
+while still catching a fan that stops climbing. 2 % is the other side of the same noise: a fan
+holding its speed reads a little up or down from step to step (4979 → 4944 rpm at 100 → 150 % in
+discussion #299), so only a step more than 2 % up counts as a rise. Before 2026-11 the "rising with
+every step" line was given whenever no step fell below 95 %, which also covered flat steps; the
+#299 run (30 → 45 % flat, 100 → 150 % flat) showed it claiming more than the numbers said. 75 % marks a fan whose lowest commanded step is
 already near its top - a floor imposed by the firmware, not by our command, which is worth knowing
 before anyone concludes the curve is being ignored. 35 % between two fans is far beyond what
 different fan sizes and duty curves explain on the models we have data for. 4 s is roughly four

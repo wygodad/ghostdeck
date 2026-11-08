@@ -234,7 +234,7 @@ It can be, and on some laptops by a lot. The fan curve and Fan Boost are two dif
 
 How far the curve's top reaches depends on the board. On the GE78HX the fans do spin faster past 100 %. On the Crosshair A16 HX an owner's measurement ([discussion #299](https://github.com/wygodad/ghostdeck/discussions/299)) showed the curve stopping at about 5000 rpm at 100 %, with 150 % adding nothing, while Fan Boost took the same fans to about 7000 rpm. So for full speed, use Fan Boost on the Scenarios tab.
 
-To see where your own laptop stops: Fan curve tab → **In action** → **Curve in action - fan sweep** → **Show diagnostics** → **Run the sweep**. It holds the fans at 30, 45, 60, 80, 100 and 150 % for a few seconds each, records the real rpm and puts your curve back afterwards. Details: [TECHNICAL.md §17.3](TECHNICAL.md#173-the-fan-curve-tables).
+To see where your own laptop stops: Fan curve tab → **In action** → **Curve in action - fan sweep** → **Show diagnostics** → **Run the sweep**. It holds the fans at 30, 45, 60, 80, 100 and 150 % for a few seconds each, records the real rpm and puts your curve back afterwards. If the top step adds nothing, the result says so in one line, for example "Fan 1 (CPU): no gain above 100 % (about 4960 rpm)". Details: [TECHNICAL.md §17.3](TECHNICAL.md#173-the-fan-curve-tables).
 
 ## Why does my laptop boot with a different profile than the one I picked? Do settings survive a reboot?
 
