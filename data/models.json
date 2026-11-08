@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261121,
+  "dataVersion": 20261203,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -95,7 +95,8 @@
         ],
         "maestory": [
           297,
-          298
+          298,
+          299
         ]
       },
       "added": "2026-06-28",
@@ -362,12 +363,17 @@
         "verified": true,
         "singleFan": true
       },
-      "credit": "fwbvng",
+      "credit": "fwbvng, xXSonicSoundsXx",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/21",
       "creditIssues": {
         "fwbvng": [
           21,
           22
+        ],
+        "xXSonicSoundsXx": [
+          320,
+          321,
+          322
         ]
       },
       "added": "2026-06-29",
@@ -401,8 +407,8 @@
         "1824EMS1"
       ],
       "tier": "Tested",
-      "cpuRpmAddr": "0xC9",
-      "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -413,12 +419,15 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "Mung-Bean-Monkey",
+      "credit": "Mung-Bean-Monkey, stream-posts-spec",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/23",
       "creditIssues": {
         "Mung-Bean-Monkey": [
           23,
           24
+        ],
+        "stream-posts-spec": [
+          330
         ]
       },
       "added": "2026-06-29",
@@ -1172,14 +1181,18 @@
           "tempFirst": 4,
           "speedFirst": 11,
           "count": 7
-        }
+        },
+        "kbdBacklight": "MSI_System[8]"
       },
-      "credit": "scorvus99",
+      "credit": "scorvus99, OpenFlameDmitry",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
       "creditIssues": {
         "scorvus99": [
           117,
           230
+        ],
+        "OpenFlameDmitry": [
+          331
         ]
       },
       "added": "2026-06-26",
@@ -1488,7 +1501,7 @@
         "name": "MSI Center Extreme",
         "shiftValue": "0xC5"
       },
-      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0",
+      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0, raikohsan, pumpkin-bot",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
       "creditIssues": {
         "xulu19861102-hub": [
@@ -1524,6 +1537,14 @@
         ],
         "denizkat0": [
           306
+        ],
+        "raikohsan": [
+          334
+        ],
+        "pumpkin-bot": [
+          335,
+          336,
+          337
         ]
       },
       "added": "2026-06-29",
@@ -2495,7 +2516,7 @@
       }
     },
     {
-      "name": "MSI Vector GP66 12UGS",
+      "name": "MSI Vector GP66 12UGS, Raider GE66 12UGS",
       "prefixes": [
         "1544EMS1"
       ],
@@ -2512,13 +2533,16 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "TheOriginalBabu",
+      "credit": "TheOriginalBabu, Lukanlos",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/250",
       "creditIssues": {
         "TheOriginalBabu": [
           249,
           250,
           252
+        ],
+        "Lukanlos": [
+          318
         ]
       },
       "added": "2026-06-29",
@@ -4233,11 +4257,11 @@
       }
     },
     {
-      "name": "MSI Cyborg 15 C13WEO",
+      "name": "MSI Cyborg 15 C13WEO / C2WF",
       "prefixes": [
         "15T1EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
@@ -4253,7 +4277,21 @@
         "name": "Apex",
         "shiftValue": "0xC5"
       },
+      "credit": "Achillesfeel, SlikeynesIn480p",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/340",
+      "creditIssues": {
+        "Achillesfeel": [
+          173,
+          174,
+          175,
+          251
+        ],
+        "SlikeynesIn480p": [
+          340
+        ]
+      },
       "added": "2026-09-14",
+      "tested": "2026-11-08",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4861,6 +4899,53 @@
       }
     },
     {
+      "name": "Monster Tulpar T7 V25.1 (MSI MS-17K3 board)",
+      "prefixes": [
+        "17K3EF81"
+      ],
+      "tier": "Experimental",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "mrhozudogru",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/327",
+      "creditIssues": {
+        "mrhozudogru": [
+          327
+        ]
+      },
+      "added": "2026-11-08",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
       "name": "MSI Raider GE77 HX 12UGS",
       "prefixes": [
         "17K5IMS1"
@@ -4963,8 +5048,19 @@
         "gpuTempBase": "0x81",
         "gpuSpeedBase": "0x8A",
         "points": 6,
-        "verified": false,
+        "verified": true,
         "singleFan": false
+      },
+      "credit": "VictorNIK-ghost, SHAFIJAN",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/165",
+      "creditIssues": {
+        "VictorNIK-ghost": [
+          165
+        ],
+        "SHAFIJAN": [
+          325,
+          326
+        ]
       },
       "added": "2026-06-29",
       "recipes": {
@@ -5086,7 +5182,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "Dkrimz, bel5656",
+      "credit": "Dkrimz, bel5656, Kamiliukass",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/125",
       "creditIssues": {
         "Dkrimz": [
@@ -5095,7 +5191,12 @@
           126
         ],
         "bel5656": [
-          277
+          277,
+          319
+        ],
+        "Kamiliukass": [
+          332,
+          333
         ]
       },
       "added": "2026-06-29",
@@ -6138,6 +6239,16 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
       "blockPath": {
         "shiftMode": "MSI_System[7]",
         "fanMode": "MSI_System[9]",
@@ -6370,6 +6481,16 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
       "blockPath": {
         "shiftMode": "MSI_System[7]",
         "fanMode": "MSI_System[9]",
@@ -6391,6 +6512,16 @@
           "speedFirst": 11,
           "count": 7
         }
+      },
+      "credit": "FabioBros28, SavAlexander",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/48",
+      "creditIssues": {
+        "FabioBros28": [
+          48
+        ],
+        "SavAlexander": [
+          48
+        ]
       },
       "added": "2026-06-29",
       "recipes": {
@@ -6794,7 +6925,7 @@
       }
     },
     {
-      "name": "MSI GF65 Thin 10SCSXR / 10SD / 10SE",
+      "name": "MSI GF65 Thin 10SCSXR / 10SD / 10SDR / 10SE",
       "prefixes": [
         "16W1EMS2"
       ],
@@ -6802,6 +6933,35 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "blockPath": {
+        "shiftMode": "MSI_System[7]",
+        "fanMode": "MSI_System[9]",
+        "cpuTemp": "MSI_CPU[1]",
+        "gpuTemp": "MSI_VGA[1]",
+        "cpuDuty": "MSI_CPU[2]",
+        "gpuDuty": "MSI_VGA[2]",
+        "cpuRpm": "MSI_AP[2]",
+        "gpuRpm": "MSI_AP[4]",
+        "cpuCurve": {
+          "class": "MSI_CPU",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        },
+        "gpuCurve": {
+          "class": "MSI_VGA",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        }
+      },
+      "credit": "thangktv2",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/339",
+      "creditIssues": {
+        "thangktv2": [
+          339
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [

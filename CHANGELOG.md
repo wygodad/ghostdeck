@@ -38,10 +38,84 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **GE66 Raider, GP66 Leopard** (`1543EMS1`, model database 20261121, [#309](../../issues/309), thanks @hjka007) - a
   second owner's capture matches the profile, fan and Super Battery settings in every scenario; added to the model's
   credit.
+- **GE66 Raider 10SF: backup path test passed, fan curve on** (`1541EMS1`, model database 20261122,
+  [#303](../../issues/303), thanks @chopin312) - every profile read back as written, Super Battery at 41 % of Extreme's
+  work, and the fan followed the raised curve table, so the fan-curve editor is now available for this model on the
+  backup path.
+- **Delta 15 A5EFK: backup path test passed, fan curve on** (`15CKEMS1`, model database 20261123,
+  [#48](../../issues/48), thanks @FabioBros28 and @SavAlexander) - the first passed run on this model: every profile read
+  back as written, Super Battery at 75 % of Extreme's work, and the controller followed the raised curve table, so the
+  fan-curve editor is now available on the backup path. @SavAlexander's diagnostic package gave the model's block layout.
+- **Raider GE66 12UGS** (`1544EMS1`, model database 20261124, [#318](../../issues/318), thanks @Lukanlos) - shares its
+  firmware with the Vector GP66 12UGS; the owner's capture matches the recipes in all four scenarios, real Silent
+  included, so the entry carries both names and his name joins the credit.
+- **Katana 17 B12UCXK / B12VGK / B12VEK** (`17L5EMS2`, model database 20261124, [#319](../../issues/319), thanks
+  @bel5656) - the first capture from this board in which the scenarios came through matches the recipes 1:1, real
+  Silent included; added to the model's credit.
+- **Thin GF63 12VE** (`16R8IMS1`, model database 20261125, [#320](../../issues/320), [#321](../../issues/321),
+  [#322](../../issues/322), thanks @xXSonicSoundsXx) - a second owner's capture, curve check and power test confirm the
+  tested entry again; added to the model's credit.
+- **Katana GF76 11UC / 11UD: fan curve verified** (`17L2EMS1`, model database 20261126, [#325](../../issues/325),
+  [#326](../../issues/326), thanks @SHAFIJAN and @VictorNIK-ghost) - a second owner's capture matches the recipes
+  1:1 with the real Silent, and his curve check found both test curves at the expected addresses. Both owners join
+  the credit.
+- **Monster Tulpar T7 V25.1** (`17K3EF81`, model database 20261127, [#327](../../issues/327), thanks @mrhozudogru) - a
+  Monster-branded laptop on the MSI MS-17K3 board (the GE76 Raider / GP76 Leopard board) with its own EC firmware
+  line; the owner's capture matches the standard recipes 1:1, so it joins the database as an experimental model
+  (160 recognised).
+- **GF65 Thin 10UE** (`16W2EMS1`, model database 20261127, [#331](../../issues/331), thanks @OpenFlameDmitry) - a
+  second owner's Dragon Center capture; added to the model's credit.
+- **Keyboard backlight on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99) - on the GF65 Thin 10UE
+  the backlight level (off / low / mid / high) now works through the data blocks too, from the box its owner found with
+  the Fn backlight key (model database 20261128). Like the profiles, it unlocks once the path test has passed.
+- **Katana 17 B12UCXK / B12VGK / B12VEK** (`17L5EMS2`, model database 20261130, [#332](../../issues/332),
+  [#333](../../issues/333), thanks @Kamiliukass) - another owner's capture matches the recipes in Balanced, Extreme and
+  Super Battery, and the curve check found the test curve at the shipped addresses again; added to the model's credit.
+- **Vector 16 HX AI, Raider 16 HX AI A2XWHG / A2XWIG** (`15M3EMS1`, model database 20261201,
+  [#334](../../issues/334), [#335](../../issues/335), [#336](../../issues/336), [#337](../../issues/337), thanks
+  @raikohsan and @pumpkin-bot) - two more owners: two clean power tests, a capture matching the recipes in all four
+  scenarios with the real Silent, and the test curve at the shipped addresses again; both join the model's credit.
+- **GF65 Thin 10SD / 10SDR / 10SE on the backup WMI path** (`16W1EMS2`, model database 20261202, [#339](../../issues/339), thanks
+  @thangktv2) - the owner's block report gave the layout. The board code `16W1` has two EC lines, so the app now tells them
+  apart by the laptop's own model name as Windows reports it; profile switching unlocks after the path test, as on the
+  other models of this generation.
+- **Cyborg 15 C13WEO / C2WF: tested** (`15T1EMS1`, model database 20261203, [#340](../../issues/340), [#251](../../issues/251),
+  thanks @SlikeynesIn480p and @Achillesfeel) - a second owner's capture matches the recipes and all three hardware checks
+  are confirmed (58 tested). Both owners join the credit.
+- **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261130, [#299](../../discussions/299), thanks
+  @maestory) - a fan sweep showed the curve stopping at about 5000 rpm at 100 % (150 % adds nothing) while Fan Boost
+  reaches about 7000 rpm; noted in the FAQ and added to the model's credit.
+
 ### Changed
+- **Fan sweep findings** ([#299](../../discussions/299), thanks @maestory): "rising with every step" now appears only
+  when every step really rose; a run with a flat step says the fan follows its command without that claim. A new line
+  says when the top step adds nothing, for example "Fan 1 (CPU): no gain above 100 % (about 4960 rpm)", and the panel
+  grows to fit all the lines instead of leaving the last ones out. All 15 languages. The small chart next to the
+  findings now has its legend above the plot, so the lines no longer run through the labels at large display scales.
+- **Two-table test on two-fan laptops** ([#310](../../issues/310), [#317](../../issues/317)): the test answers a
+  question only single-fan laptops have, so on a model with two fans the start button opens a card first, saying the test
+  will not give new values there, with Cancel and Run anyway. Report tab and Fan curve page alike.
 - Settings → System, the tray icon's **left and middle button** lists show all their actions at once (eight rows hid the
   rest behind a scroll); the *Open:* entries follow the tab order, the Dashboard first. A long list still fits the screen:
   the rows are capped to the room below or above the field and the rest scrolls.
+
+### Fixed
+- **Two-table test verdict with a stopped fan** ([#310](../../issues/310), [#317](../../issues/317)): fans that switch
+  off at 25 % read 0 rpm, and the verdict took that for a missing reading and said the readings "fit none of the simple
+  rules". A stopped fan now counts as a low reading, so such a run reads "follows table 1 only" / "follows table 2 only".
+- **Firmware number on older laptops** ([#339](../../issues/339)): on laptops without the MSI_ACPI interface reports and issue
+  forms said the firmware was unknown. GhostDeck now reads the number from the MSI_Software data block, uses it to pick
+  the right model when a board has two firmware lines, and fills it into reports and forms. Measured on a GS75 Stealth
+  8SE; if a laptop's block holds no number, the BIOS version and the model name decide as before.
+  On a laptop the app does not recognise, the issue forms now start with the model name Windows reports instead of an
+  empty field.
+- **Per-model extras on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99): the firmware string there
+  carries the BIOS version (`16W2EMS1 (BIOS E16W2IMS.105)`), and the dot inside it cut the model prefix short, so the
+  keyboard-backlight, webcam and Fn/Win lookups never found the model. The prefix is now read correctly.
+- **Fan speed on the Titan 18 HX Dragon Edition at low fan duty** (`1824EMS1`, model database 20261129,
+  [#330](../../discussions/330), thanks @stream-posts-spec): this board reports fan speed in two bytes and the database
+  read only one, so at a 25 % curve Status showed impossible values such as 7709 / 7966 rpm instead of about 1500. Fan
+  speed is now read from both bytes (`0xC8:0xC9` / `0xCA:0xCB`).
 
 ## [1.43.0] - 2026-10-30
 ### Added

@@ -1638,7 +1638,19 @@ public sealed class FanCurvePage : ThemedPage
     // What the diagnostics panel needs: one row when collapsed, a side-by-side layout on a wide
     // window, a stacked one when narrow. It is never squeezed - if the two blocks do not fit in
     // the window, the view scrolls (see PlayNeededH).
-    private int SweepPanelH => !_sweepOpen ? S(64) : (Width >= S(1000) + Pad * 2 ? S(380) : S(700));
+    private int SweepPanelH => !_sweepOpen ? S(64) : (Width >= S(1000) + Pad * 2 ? S(380) : S(700)) + _sweepFindExtra;
+
+    // Extra panel height the sweep findings asked for at the last paint (0 = the base fits).
+    // A change re-lays the view once, after this paint; the value is measured against the base
+    // height, so it settles on the first pass instead of feeding back on itself.
+    private int _sweepFindExtra;
+    private void SetSweepFindExtra(int extra)
+    {
+        extra = Math.Max(0, extra);
+        if (extra == _sweepFindExtra) return;
+        _sweepFindExtra = extra;
+        if (IsHandleCreated) BeginInvoke(() => { LayoutButtons(); Invalidate(); });
+    }
 
     // Height the In-action view wants: a usable chart + the readings row + the panel.
     private int PlayMinChartH => S(300);
@@ -1749,9 +1761,16 @@ public sealed class FanCurvePage : ThemedPage
             no.ShowOver(FindForm());
             return;
         }
+        bool go = false;
+        if (TwoTableTest.AddsNothing(dev))
+        {
+            using (var warn = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), Lang.T("tt_twofan"), Lang.T("tt_twofan_go"), Lang.T("gen_cancel"), () => go = true))
+                warn.ShowOver(FindForm());
+            if (!go) return;
+            go = false;
+        }
         // same order as the sweep: every question first, the profile change only after a Yes
         bool wasSilent = D.Current() == ProfileId.Silent;
-        bool go = false;
         if (wasSilent)
         {
             using (var ask = new GhostCardForm("//FAN CURVE", Lang.T("tt_title"), Lang.T("fc_sweep_silent"), Lang.T("tt_go"), Lang.T("gen_cancel"), () => go = true))
@@ -1832,7 +1851,7 @@ public sealed class FanCurvePage : ThemedPage
         });
 
     private static bool IsFanScopedFinding(string key) =>
-        key is "fc_find_follows" or "fc_find_drop" or "fc_find_floor" or "fc_find_notach";
+        key is "fc_find_follows" or "fc_find_follows_flat" or "fc_find_plateau" or "fc_find_drop" or "fc_find_floor" or "fc_find_notach";
 
     private void StartSweep()
     {
@@ -2205,6 +2224,7 @@ public sealed class FanCurvePage : ThemedPage
         else if (_shown == 2 && _ttResult is { Steps.Count: > 0 } tr)
         {
             _reactHelp.Visible = false;
+            SetSweepFindExtra(0);
             DrawTwoTableResult(g, tr, pnl, top, bottom, subF, bF);
         }
         else if (_sweepResult is { Steps.Count: > 0 } r)
@@ -2239,11 +2259,17 @@ public sealed class FanCurvePage : ThemedPage
             fy += bF.Height + S(4);
             var findingKeys = FanSweep.Findings(r).Select(f => f.key).ToList();
             var findingTexts = FindingLines(r).ToList();
+            // The panel grows by what the findings need beyond its base height (measured, so a
+            // long translation or a large scale never cuts the last lines off); narrow layouts
+            // also keep room for the mini chart under them.
+            int linesH = findingTexts.Sum(t => TextRenderer.MeasureText(g, "•  " + t, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height + S(3));
+            int baseBottom = bottom - _sweepFindExtra;
+            SetSweepFindExtra(fy + linesH + (wide ? 0 : S(22) + S(140) + S(40)) - baseBottom);
             for (int fi2 = 0; fi2 < findingTexts.Count; fi2++)
             {
                 string key = findingKeys[fi2];
                 string line = "•  " + findingTexts[fi2];
-                var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak);
+                var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
                 if (fy + need.Height > bottom) break;
                 var col = key.Contains("drop") || key.Contains("gap") ? Theme.Amber : Theme.Muted;
                 TextRenderer.DrawText(g, line, subF, new Rectangle(fr.X, fy, fr.Width, need.Height), col, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
@@ -2253,30 +2279,35 @@ public sealed class FanCurvePage : ThemedPage
             var mc = wide
                 ? new Rectangle(fr.Right + S(30), top + S(4), Math.Max(S(160), pnl.Right - fr.Right - S(60)), Math.Max(30, bottom - top - S(16)))
                 : new Rectangle(pnl.X + S(40), fy + S(22), pnl.Width - S(80), Math.Max(0, bottom - fy - S(40)));
-            if (mc.Height >= 30)
+            // The legend sits ABOVE the plot, not inside it: inside, the top steps of a fast fan
+            // ran through the labels whenever the chart was narrow (250 %, long translations).
+            int legendH = fans * (axisF.Height + S(2)) + S(6);
+            if (mc.Height - legendH >= 30)
             {
+                int lgx = mc.Left + S(4), lgy = mc.Top;
+                for (int f = 0; f < fans; f++)
+                {
+                    using var lb = new SolidBrush(cols[f]);
+                    g.FillRectangle(lb, lgx, lgy + (axisF.Height - S(3)) / 2, S(12), S(3));
+                    string nm = Lang.T(f == 0 ? (Single ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu") + (r.HasTach ? " (rpm)" : " (%)");
+                    TextRenderer.DrawText(g, nm, axisF, new Rectangle(lgx + S(16), lgy, Math.Max(S(40), mc.Right - lgx - S(16)), axisF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+                    lgy += axisF.Height + S(2);
+                }
+                var pc = new Rectangle(mc.Left, mc.Top + legendH, mc.Width, mc.Height - legendH);
                 using var axp = new Pen(Theme.Border);
-                g.DrawLine(axp, mc.Left, mc.Bottom, mc.Right, mc.Bottom); g.DrawLine(axp, mc.Left, mc.Top, mc.Left, mc.Bottom);
+                g.DrawLine(axp, pc.Left, pc.Bottom, pc.Right, pc.Bottom); g.DrawLine(axp, pc.Left, pc.Top, pc.Left, pc.Bottom);
                 int maxV = r.HasTach ? Math.Max(1000, r.Steps.Max(x => Math.Max(x.CpuRpm, x.GpuRpm))) : 100;
                 for (int f = 0; f < fans; f++)
                 {
-                    var pts = r.Steps.Select(x => new PointF(mc.Left + x.DutyPct / (float)MaxPct * mc.Width,
-                        mc.Bottom - (r.HasTach ? (f == 0 ? x.CpuRpm : x.GpuRpm) : (f == 0 ? x.CpuDuty : x.GpuDuty)) / (float)maxV * mc.Height)).ToArray();
+                    var pts = r.Steps.Select(x => new PointF(pc.Left + x.DutyPct / (float)MaxPct * pc.Width,
+                        pc.Bottom - (r.HasTach ? (f == 0 ? x.CpuRpm : x.GpuRpm) : (f == 0 ? x.CpuDuty : x.GpuDuty)) / (float)maxV * pc.Height)).ToArray();
                     if (pts.Length < 2) continue;
                     using var lp = new Pen(cols[f], Sf(2f)) { LineJoin = LineJoin.Round };
                     g.DrawLines(lp, pts);
                     foreach (var p in pts) { using var db = new SolidBrush(cols[f]); g.FillEllipse(db, p.X - Sf(3), p.Y - Sf(3), Sf(6), Sf(6)); }
                 }
-                int lgx = mc.Left + S(4), lgy = mc.Top;
-                for (int f = 0; f < fans; f++)
-                {
-                    using var lb = new SolidBrush(cols[f]);
-                    g.FillRectangle(lb, lgx, lgy + S(5), S(12), S(3));
-                    string nm = Lang.T(f == 0 ? (Single ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu") + (r.HasTach ? " (rpm)" : " (%)");
-                    TextRenderer.DrawText(g, nm, axisF, new Rectangle(lgx + S(16), lgy, S(200), axisF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding);
-                    lgy += axisF.Height + S(2);
-                }
-                TextRenderer.DrawText(g, "set %", axisF, new Rectangle(mc.Right - S(50), mc.Bottom + S(2), S(50), axisF.Height), Theme.Faint, TextFormatFlags.Right | TextFormatFlags.NoPadding);
+                int setW = TextRenderer.MeasureText(g, "set %", axisF, Size.Empty, TextFormatFlags.NoPadding).Width;
+                TextRenderer.DrawText(g, "set %", axisF, new Rectangle(pc.Right - setW, pc.Bottom + S(2), setW, axisF.Height), Theme.Faint, TextFormatFlags.Right | TextFormatFlags.NoPadding);
             }
             int stX = (_sweepCopy.Visible ? _sweepCopy.Right : _ttHelp.Right) + S(16);
             int stW = Math.Max(S(40), (_sweepHistory.Visible ? _sweepHistory.Left - S(12) : pnl.Right - S(16)) - stX);
@@ -2285,6 +2316,7 @@ public sealed class FanCurvePage : ThemedPage
         else
         {
             _reactHelp.Visible = false;
+            SetSweepFindExtra(0);
             TextRenderer.DrawText(g, _sweepStatus.Length > 0 ? _sweepStatus : Lang.T("fc_sweep_idle"), subF, new Rectangle(pnl.X + S(20), top, pnl.Width - S(40), subF.Height * 2), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
         }
     }
@@ -2336,7 +2368,7 @@ public sealed class FanCurvePage : ThemedPage
         for (int i = 0; i < texts.Count; i++)
         {
             string line = "•  " + texts[i];
-            var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak);
+            var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
             if (fy + need.Height > bottom) break;
             // the verdict lines in the text colour, the rest muted; a mode byte that moved is a warning
             var col = keys[i] is "tt_find_higher" or "tt_find_table1" or "tt_find_table2" ? Theme.Text

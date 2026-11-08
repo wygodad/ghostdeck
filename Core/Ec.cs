@@ -164,9 +164,15 @@ public static class Ec
     /// <summary>True while EC reads go through the data blocks instead of the MSI_ACPI methods.</summary>
     public static bool OnBackupPath => _backup != null;
 
+    /// <summary>True when the active backup path serves this EC register (it has a slot there).</summary>
+    public static bool BackupHasRegister(byte addr) => _backup is { } b && b.Slots.ContainsKey(addr);
+
     /// <summary>Outcome of the backup-path check, kept for the diagnostic package.</summary>
     public sealed record BackupProbe(bool Active, string Firmware, DeviceProfile? Device, string Bios, string Detail);
     public static BackupProbe? LastBackupProbe { get; private set; }
+
+    /// <summary>The EC version read from the MSI_Software block by the last probe ("17G1EMS1.102"), else "".</summary>
+    public static string BackupEcVersion { get; private set; } = "";
 
     private static BackupState BuildBackup(DeviceProfile dev, BlockPathSpec spec)
     {
@@ -183,6 +189,16 @@ public static class Ec
         };
         // A model with a curve on record may also put the fan into Advanced mode.
         if (dev.FanCurve is { } fc) allowed[spec.FanMode].Add(fc.AdvancedModeValue);
+        // Keyboard backlight (#230): only where the layout records the slot AND the model's
+        // backlight register is the EC address that MSI_System slot stands for (0xEB + index),
+        // with the four values the register takes (0x80 | level 0-3).
+        if (spec.KbdBacklight is { } kb && dev.FirmwarePrefixes.Length > 0
+            && Devices.KbdBacklightFor(dev.FirmwarePrefixes[0]) is var kbdAddr && kbdAddr != 0
+            && kb.Class == "MSI_System" && kbdAddr == 0xEB + kb.Index)
+        {
+            slots[kbdAddr] = kb;
+            allowed[kb] = new HashSet<byte> { 0x80, 0x81, 0x82, 0x83 };
+        }
         return new BackupState(dev, spec, slots, allowed);
     }
 
@@ -195,11 +211,14 @@ public static class Ec
     /// Called once the method interface has answered "not supported": can this machine be
     /// read through its data blocks instead? Three things must hold. The BIOS version names a
     /// board code that maps to exactly ONE EC firmware line in the database (the EC version
-    /// itself cannot be read here, so an ambiguous board stays unidentified); that model has a
+    /// is read from the MSI_Software block when it is there; without it a board with two lines
+    /// is told apart by the laptop's own model name, and stays unidentified if that names
+    /// neither); that model has a
     /// block layout on record; and the live values in those slots look like what the layout
     /// says they are - a shift-mode byte in the 0xC0 range, a fan-mode byte ending in 0xD, a
     /// plausible CPU temperature. On success the path is switched over and the firmware string
-    /// is the EC prefix with the BIOS version it was derived from.
+    /// is the EC prefix with the BIOS version: that exact string is what the passed path test
+    /// and the firmware guard are stored under, so the EC version stays in BackupEcVersion.
     /// </summary>
     public static BackupProbe TryBackupPath()
     {
@@ -214,10 +233,22 @@ public static class Ec
         if (bios.Length == 0) return Done(false, "", null, bios, "BIOS version could not be read");
         if (EcBlocks.BoardFromBios(bios) is not { } board)
             return Done(false, "", null, bios, "BIOS version has an unrecognised shape");
+        string ec = EcBlocks.ReadEcVersion();
+        BackupEcVersion = ec.StartsWith(board, StringComparison.OrdinalIgnoreCase) ? ec : "";
+        string ecNote = BackupEcVersion.Length > 0 ? $" (EC version {BackupEcVersion})" : "";
         var hits = Devices.PrefixesForBoard(board);
-        if (hits.Count == 0) return Done(false, "", null, bios, $"no model with board code {board} in the database");
+        if (hits.Count == 0) return Done(false, "", null, bios, $"no model with board code {board} in the database{ecNote}");
+        // The block's EC version settles which line this is. If it names none of the lines on
+        // record the board code decides as before, so nobody on this path loses their model.
+        if (BackupEcVersion.Length > 0)
+        {
+            var exact = hits.Where(h => BackupEcVersion.StartsWith(h.Prefix, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (exact.Count == 1) hits = exact;
+        }
+        if (hits.Count > 1 && Devices.PickByProductName(hits, Smbios.ProductName()) is { } named)
+            hits = new() { named };   // the laptop's own model name says which of the two lines it is
         if (hits.Count > 1)
-            return Done(false, "", null, bios, $"board code {board} maps to several EC lines ({string.Join(", ", hits.Select(h => h.Prefix))})");
+            return Done(false, "", null, bios, $"board code {board} maps to several EC lines ({string.Join(", ", hits.Select(h => h.Prefix))}) and the model name \"{Smbios.ProductName()}\" names none of them");
         var (dev, prefix) = hits[0];
         if (Devices.BlockPathOf(dev) is not { } spec)
             return Done(false, "", null, bios, $"{prefix}: no backup-path layout on record for this model");
@@ -240,7 +271,7 @@ public static class Ec
             _backup = BuildBackup(dev, spec);
             _firmwareCache = fw;
         }
-        return Done(true, fw, dev, bios, $"{prefix}: active");
+        return Done(true, fw, dev, bios, $"{prefix}: active{ecNote}");
     }
 
     /// <summary>

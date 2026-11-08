@@ -91,6 +91,10 @@ public static class FanSweep
         return res;
     }
 
+    // A step "rose" when it read more than 2 % above the one before: the 3-sample average wobbles
+    // by about that much on a fan holding its speed (discussion #299: 4979 -> 4944 rpm at 100 -> 150 %).
+    private static bool Rises(double before, double after) => after > before * 1.02;
+
     /// <summary>What the numbers say, as (language key, format args) pairs the UI localises.</summary>
     public static List<(string key, object[] args)> Findings(Result r)
     {
@@ -104,11 +108,20 @@ public static class FanSweep
         {
             var pts = r.Steps.Select(s => (d: s.DutyPct, v: r.HasTach ? (fan == 0 ? s.CpuRpm : s.GpuRpm) : (fan == 0 ? s.CpuDuty : s.GpuDuty))).Where(p => p.v > 0).ToList();
             if (pts.Count < 2) { if (r.HasTach) f.Add(("fc_find_notach", new object[] { fan + 1 })); continue; }
-            int drops = 0; string dropAt = "";
+            int drops = 0, flats = 0; string dropAt = "";
             for (int i = 1; i < pts.Count; i++)
+            {
                 if (pts[i].v < pts[i - 1].v * 0.95) { drops++; dropAt += (dropAt.Length > 0 ? ", " : "") + pts[i].d + "%"; }
-            if (drops == 0) f.Add(("fc_find_follows", new object[] { fan + 1, pts[0].v, pts[^1].v }));
+                else if (!Rises(pts[i - 1].v, pts[i].v)) flats++;
+            }
+            // "rising with every step" only when every step really rose; a run with a flat step
+            // (within the 95 % tolerance, but not up) gets the same line without that claim
+            if (drops == 0) f.Add((flats == 0 ? "fc_find_follows" : "fc_find_follows_flat", new object[] { fan + 1, pts[0].v, pts[^1].v }));
             else f.Add(("fc_find_drop", new object[] { fan + 1, dropAt }));
+            // neutral fact: the top step gave nothing over the one before it (on some boards the
+            // curve stops at 100 % and 150 % adds nothing, discussion #299)
+            if (r.HasTach && pts[^1].d > pts[^2].d && pts[^1].v >= pts[^2].v * 0.95 && !Rises(pts[^2].v, pts[^1].v))
+                f.Add(("fc_find_plateau", new object[] { fan + 1, pts[^2].d, (int)Math.Round((pts[^2].v + pts[^1].v) / 20.0) * 10 }));
             // neutral fact: the lowest step already spins close to the top step
             if (r.HasTach && pts[0].v > pts[^1].v * 0.75)
                 f.Add(("fc_find_floor", new object[] { fan + 1, pts[0].v }));

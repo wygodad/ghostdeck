@@ -616,13 +616,15 @@ public sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>
-    /// Per-firmware extras (keyboard backlight, webcam switch, Fn/Win swap). Their registers
-    /// have no slot on the backup WMI path, so there they are simply absent.
+    /// Per-firmware extras (keyboard backlight, webcam switch, Fn/Win swap). On the backup WMI
+    /// path only what the model's layout gives a slot is there: today the keyboard backlight
+    /// where it is on record (#230); the webcam switch and Fn/Win swap have no slot.
     /// </summary>
     private void ResolveExtras()
     {
         bool extras = Known && !Ec.OnBackupPath;
-        _kbdAddr = extras ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
+        byte kbd = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
+        _kbdAddr = kbd != 0 && (!Ec.OnBackupPath || Ec.BackupHasRegister(kbd)) ? kbd : (byte)0;   // (#26, #230)
         _webcamSupported = extras && Devices.WebcamSupported(_firmware);    // (#27)
         _fnSwap = extras ? Devices.FnWinSwapFor(_firmware) : null;
     }

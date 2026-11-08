@@ -35,9 +35,8 @@ public sealed class EcPathException : InvalidOperationException
 /// </summary>
 public static class EcBlocks
 {
-    // Blocks read by the diagnostic dump. MSI_Software is left out on purpose: the firmware
-    // flags it as an "expensive" collection, which makes Windows call a firmware enable
-    // routine before every read - not something a read-only survey should trigger.
+    // Blocks read by the diagnostic dump. MSI_Software is not among them: it holds text rather
+    // than readings, and has its own read below (ReadEcVersion, MSI_Software dump section).
     private static readonly string[] DumpClasses =
     {
         "MSI_CPU", "MSI_VGA", "MSI_System", "MSI_AP", "MSI_Power",
@@ -104,6 +103,47 @@ public static class EcBlocks
         ReadClass(r.Class).TryGetValue(r.Index, out int v)
             ? v
             : throw new EcPathException($"{r} is not served by this firmware");
+
+    /// <summary>
+    /// The EC firmware version from the MSI_Software block ("17G1EMS1.102"), or "" when the
+    /// block is absent or holds no version. One character per slot, in the layout the EC keeps
+    /// at 0xA0 on newer boards: version, date, time (measured on a GS75 Stealth 8SE, slots
+    /// 6-33 = "17G1EMS1.102" "01252019" "09:14:25"). The firmware flags this block "expensive",
+    /// so Windows calls its enable routine before the read; on that machine the other blocks
+    /// carry the same flag and the read showed no side effect.
+    /// </summary>
+    public static string ReadEcVersion()
+    {
+        try { return ParseEcVersion(Replaying ? ReplayClass("MSI_Software") : QuerySoftware()); }
+        catch { return ""; }
+    }
+
+    private static Dictionary<int, int> QuerySoftware()
+    {
+        var values = new Dictionary<int, int>();
+        using var searcher = new ManagementObjectSearcher(@"root\wmi", "SELECT * FROM MSI_Software");
+        searcher.Options.Timeout = TimeSpan.FromSeconds(10);
+        foreach (ManagementObject o in searcher.Get())
+            using (o)
+            {
+                if (IndexOf(o["InstanceName"]?.ToString()) is not { } idx) continue;
+                foreach (PropertyData p in o.Properties)
+                {
+                    if (p.Name is "InstanceName" or "Active" || p.Value == null || p.IsArray) continue;
+                    values[idx] = Convert.ToInt32(p.Value);
+                    break;
+                }
+            }
+        return values;
+    }
+
+    /// <summary>Finds the version in the block's characters: eight letters or digits, a dot, three more.</summary>
+    public static string ParseEcVersion(IReadOnlyDictionary<int, int> slots)
+    {
+        var text = new string(slots.OrderBy(kv => kv.Key).Select(kv => kv.Value is >= 32 and <= 126 ? (char)kv.Value : '.').ToArray());
+        var m = Regex.Match(text, @"(?<![0-9A-Z])[0-9A-Z]{8}\.[0-9A-Z]{3}");
+        return m.Success ? m.Value : "";
+    }
 
     /// <summary>Drop cached block values (after sleep/resume the first sample must be fresh).</summary>
     public static void DropCache() { lock (_lock) _cache.Clear(); }
@@ -280,7 +320,17 @@ public static class EcBlocks
             }
             sb.AppendLine();
         }
-        sb.AppendLine("MSI_Software: not read (the firmware flags it as an expensive collection).");
+        sb.AppendLine("MSI_Software:");
+        try
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var soft = Replaying ? ReplayClass("MSI_Software") : QuerySoftware();
+            sw.Stop();
+            sb.AppendLine($"  ({soft.Count} instances, {sw.ElapsedMilliseconds} ms, flagged expensive by the firmware)");
+            foreach (var kv in soft.OrderBy(k => k.Key)) sb.AppendLine($"  MSI_Software_{kv.Key} -> Software = {kv.Value}");
+            sb.AppendLine("  EC version found: " + (ParseEcVersion(soft) is { Length: > 0 } ver ? ver : "(none)"));
+        }
+        catch (Exception ex) { sb.AppendLine($"  ERROR: {ex.GetType().Name}: {ex.Message.Trim()}"); }
         sb.AppendLine();
         sb.AppendLine("Single-instance fetch by path (MSI_System index 7): " + SingleInstanceProbe("MSI_System", 7));
         sb.AppendLine("Firmware block routines (DSDT): " + FirmwareRoutines());

@@ -179,6 +179,7 @@ public static class ModelDb
             }
             Curve("cpuCurve", bp.CpuCurve);
             Curve("gpuCurve", bp.GpuCurve);
+            if (bp.KbdBacklight != null) w.WriteString("kbdBacklight", bp.KbdBacklight.ToString());
             w.WriteEndObject();
         }
         if (d.Credit.Length > 0) w.WriteString("credit", d.Credit);
@@ -295,7 +296,7 @@ public static class ModelDb
                 ParseSlot(bp.GetProperty("fanMode").GetString()),
                 ParseSlot(bp.GetProperty("cpuTemp").GetString()),
                 Slot("gpuTemp"), Slot("cpuDuty"), Slot("gpuDuty"), Slot("cpuRpm"), Slot("gpuRpm"),
-                Curve("cpuCurve"), Curve("gpuCurve"));
+                Curve("cpuCurve"), Curve("gpuCurve"), Slot("kbdBacklight"));
         }
         return new DeviceProfile
         {
