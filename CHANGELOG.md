@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.44.0] - 2026-11-08
 ### Added
 - **Dashboard tab** (roadmap, the dashboard plan): your own screen built from widgets on a grid - profile tiles, CPU and
   GPU temperature rings, CPU and GPU fan rings, CPU usage and clock, the fan curve with its live operating point, scenes,
