@@ -13,6 +13,91 @@ internal sealed partial class DashCanvas
     private Rectangle _mapRect;   // where the dots are, for the hover label
     private Point _mouse;
 
+    // ---- the entrance: bars grow and the install count counts up over half a second ----
+    // The static layer leaves the bars and the four values out while this runs; the live layer
+    // draws them at the eased progress and the static layer takes over once it is done. Only the
+    // chart and the tiles are invalidated per frame, nothing else repaints.
+    private float _statsAnim = 1f;
+    private DateTime _statsAnimStart;
+    private System.Windows.Forms.Timer? _statsTimer;
+    private Rectangle _chartBody;
+    private IReadOnlyList<(string week, int active)> _chartHist = Array.Empty<(string, int)>();
+    private readonly List<(Rectangle value, CommunityStats.Tile tile)> _tileLive = new();
+    private const int EntranceMs = 520;
+
+    private void StartStatsEntrance()
+    {
+        _statsTimer ??= NewStatsTimer();
+        _statsAnim = 0f;
+        _statsAnimStart = DateTime.UtcNow;
+        _statsTimer.Start();
+    }
+
+    private System.Windows.Forms.Timer NewStatsTimer()
+    {
+        var t = new System.Windows.Forms.Timer { Interval = 16 };
+        t.Tick += (_, _) =>
+        {
+            float x = (float)((DateTime.UtcNow - _statsAnimStart).TotalMilliseconds / EntranceMs);
+            if (x >= 1f || _view != View.Stats || IsDisposed)
+            {
+                _statsAnim = 1f;
+                t.Stop();
+                if (!IsDisposed) Rebuild();   // the static layer takes the finished picture
+                return;
+            }
+            _statsAnim = 1f - (1f - x) * (1f - x) * (1f - x);   // ease out
+            var dirty = _chartBody;
+            foreach (var (r, _) in _tileLive) dirty = dirty.IsEmpty ? r : Rectangle.Union(dirty, r);
+            if (!dirty.IsEmpty) Invalidate(Rectangle.Inflate(dirty, S(4), S(4)));
+        };
+        return t;
+    }
+
+    private bool StatsAnimating => _view == View.Stats && _statsAnim < 1f;
+
+    /// <summary>The live part of the Statystyki view: the entrance frames, then the hover highlight of a bar.</summary>
+    private void PaintStatsLive(Graphics g)
+    {
+        if (_chartHist.Count == 0) return;
+        if (StatsAnimating)
+        {
+            float t = _statsAnim;
+            CommunityStats.Bars(g, _chartBody, _chartHist, _ctx, labels: true, grow: t);
+            var vf = _ctx.Font(18f, FontStyle.Bold);
+            for (int i = 0; i < _tileLive.Count; i++)
+            {
+                var (r, tile) = _tileLive[i];
+                string value = i == 0 && Summary is { } sum ? ((int)Math.Round(sum.ActiveWeek * t)).ToString("N0", Lang.Culture)
+                             : t >= 0.35f ? tile.Value : "";
+                if (value.Length > 0)
+                    TextRenderer.DrawText(g, value, vf, r, tile.Accent ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordEllipsis);   // dpi-ok: same rectangle as the static tile
+            }
+            return;
+        }
+        if (_hot.Kind != Zone.Bar || _hot.Index < 0 || _hot.Index >= _chartHist.Count) return;
+        // the hovered bar in white, its week and count in a small label above it
+        CommunityStats.Bars(g, _chartBody, _chartHist, _ctx, labels: true, lit: _hot.Index);
+        var rects = CommunityStats.BarRects(_chartBody, _chartHist, _ctx, labels: true);
+        var bar = rects[_hot.Index];
+        var (week, active) = _chartHist[_hot.Index];
+        string text = (week.Length >= 8 ? "W" + week[^2..] : week) + " · " + active.ToString("N0", Lang.Culture);
+        var f = _ctx.Font(9f, FontStyle.Bold);
+        var sz = TextRenderer.MeasureText(text, f, Size.Empty, TextFormatFlags.NoPadding);
+        var box = new Rectangle((int)(bar.X + bar.Width / 2) - sz.Width / 2 - S(8), (int)bar.Y - sz.Height - S(16), sz.Width + S(16), sz.Height + S(8));
+        if (box.Left < _chartBody.Left) box.X = _chartBody.Left;
+        if (box.Right > _chartBody.Right) box.X = _chartBody.Right - box.Width;
+        if (box.Top < _chartBody.Top) box.Y = (int)bar.Y + S(8);
+        using (var path = Theme.RoundRect(box, Sf(6)))
+        {
+            using var b = new SolidBrush(Theme.Surface);
+            g.FillPath(b, path);
+            using var pen = new Pen(Theme.Accent);
+            g.DrawPath(pen, path);
+        }
+        TextRenderer.DrawText(g, text, f, box, Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+    }
+
     private sealed record StatsLayout(Rectangle[] Tiles, Rectangle Chart, Rectangle Map, Rectangle Countries, Rectangle Langs, Rectangle Models, int Bottom);
 
     private StatsLayout LayoutStats(int width)
@@ -99,11 +184,13 @@ internal sealed partial class DashCanvas
         }
         var lay = LayoutStats(Width);
 
-        // ---- four headline tiles ----
+        // ---- four headline tiles (the values come from the live layer while the entrance runs) ----
+        bool entering = StatsAnimating;
         var tiles = CommunityStats.Tiles(sum, _d);
         var lf = _ctx.Font(8f, FontStyle.Bold);
         var vf = _ctx.Font(18f, FontStyle.Bold);
         var sf = _ctx.Font(9f);
+        _tileLive.Clear();
         for (int i = 0; i < 4; i++)
         {
             var r = lay.Tiles[i];
@@ -111,17 +198,24 @@ internal sealed partial class DashCanvas
             var inner = Rectangle.Inflate(r, -S(16), -S(14));
             TextRenderer.DrawText(g, Lang.Upper(tiles[i].Label), lf, new Rectangle(inner.Left, inner.Top, inner.Width, lf.Height), Theme.Faint,
                 TextFormatFlags.Left | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, tiles[i].Value, vf, new Rectangle(inner.Left, inner.Top + lf.Height + S(4), inner.Width, vf.Height), tiles[i].Accent ?? Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordEllipsis);   // dpi-ok: a long widget name in a narrow tile keeps the tile's shape
+            var vr = new Rectangle(inner.Left, inner.Top + lf.Height + S(4), inner.Width, vf.Height);
+            _tileLive.Add((vr, tiles[i]));
+            if (!entering)
+                TextRenderer.DrawText(g, tiles[i].Value, vf, vr, tiles[i].Accent ?? Theme.Text,
+                    TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordEllipsis);   // dpi-ok: a long widget name in a narrow tile keeps the tile's shape
             if (tiles[i].Sub.Length > 0)
                 TextRenderer.DrawText(g, tiles[i].Sub, sf, new Rectangle(inner.Left, inner.Top + lf.Height + S(4) + vf.Height + S(2), inner.Width, sf.Height), Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.NoPadding);
         }
 
-        // ---- the 26-week bars ----
+        // ---- the 26-week bars (grown by the live layer on entrance; a hover lights one) ----
         {
-            var body = StatsCard(g, lay.Chart, string.Format(Lang.T("dash_st_history"), string.Format(Lang.T("dash_st_week_fmt"), sum.Week)));
-            CommunityStats.Bars(g, body, sum.History, _ctx, labels: true);
+            _chartBody = StatsCard(g, lay.Chart, string.Format(Lang.T("dash_st_history"), string.Format(Lang.T("dash_st_week_fmt"), sum.Week)));
+            _chartHist = sum.History;
+            if (!entering) CommunityStats.Bars(g, _chartBody, sum.History, _ctx, labels: true);
+            var rects = CommunityStats.BarRects(_chartBody, sum.History, _ctx, labels: true);
+            for (int i = 0; i < rects.Count; i++)
+                _zones.Add((new Rectangle((int)rects[i].X - S(1), _chartBody.Top, (int)rects[i].Width + S(3), _chartBody.Height), new Hot(Zone.Bar, i, null)));
         }
 
         // ---- the map and the countries ----

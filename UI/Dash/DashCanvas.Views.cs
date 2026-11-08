@@ -21,6 +21,7 @@ internal sealed partial class DashCanvas
         if (v != View.Dashboard && _edit) EditMode = false;
         _view = v;
         _hot = new Hot(Zone.None, -1, null);
+        if (v == View.Stats && Summary != null) StartStatsEntrance();   // before the static render, which leaves the animated parts out
         Replace();
         ContentChanged?.Invoke();
     }

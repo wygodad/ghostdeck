@@ -20,6 +20,10 @@ internal sealed class CurveWidget : DashWidget
     private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
     private bool _loading, _loaded;
     private string _painted = "";
+    // where the temperatures have been over the last three minutes (one entry per tick), for the
+    // amber trail along the curve, as the fan-curve page's "curve in action" draws it
+    private readonly List<(DateTime at, int cpu, int gpu)> _trail = new();
+    private static readonly TimeSpan TrailSpan = TimeSpan.FromMinutes(3);
 
     public CurveWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
 
@@ -130,6 +134,13 @@ internal sealed class CurveWidget : DashWidget
         var cols = new[] { Theme.Accent, Theme.Violet };
         var s = c.Sample;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        // the trail ring: one entry per new sample, three minutes deep
+        if (s.TempsKnown && s.At != DateTime.MinValue && (_trail.Count == 0 || _trail[^1].at != s.At))
+        {
+            _trail.Add((s.At, s.Hw.CpuTemp, s.Hw.GpuTemp));
+            var cut = s.At - TrailSpan;
+            _trail.RemoveAll(e => e.at < cut);
+        }
         // live line next to the title: CPU temperature and fan target
         if (s.TempsKnown && s.Hw.CpuTemp > 0)
         {
@@ -140,20 +151,56 @@ internal sealed class CurveWidget : DashWidget
             TextRenderer.DrawText(g, live, f, new Rectangle(inner.Left + titleW + c.S(10), inner.Top, Math.Max(10, inner.Width - titleW - c.S(10)), titleH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
+        var bubbles = new List<Rectangle>();   // placed bubbles, so the GPU's never covers the CPU's
         for (int fan = 0; fan < fans; fan++)
         {
             int[] temps = fan == 0 ? ct : gt, sp = fan == 0 ? cs : gs;
             int t = fan == 0 ? s.Hw.CpuTemp : s.Hw.GpuTemp;
             if (!s.TempsKnown || t <= 0 || temps.Length < 2 || sp.Length != temps.Length) continue;
-            var dot = new PointF(plot.Left + CurveModel.OrdinalX(temps, t) * plot.Width / (temps.Length - 1),
-                                 plot.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, sp, t), 0, max) / (float)max * plot.Height);
+            PointF OnCurve(int temp) => new(plot.Left + CurveModel.OrdinalX(temps, temp) * plot.Width / (temps.Length - 1),
+                                            plot.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, sp, temp), 0, max) / (float)max * plot.Height);
+            // the amber trail: where this fan's temperature has been, older = fainter and smaller
+            int cnt = _trail.Count;
+            for (int i = 0; i < cnt - 1; i++)
+            {
+                int qt = fan == 0 ? _trail[i].cpu : _trail[i].gpu;
+                if (qt <= 0) continue;
+                float age = i / (float)Math.Max(1, cnt - 1);   // 0 = oldest, 1 = newest
+                float rr = c.Sf(1.6f + 1.4f * age);
+                var q = OnCurve(qt);
+                using var tb = new SolidBrush(Color.FromArgb(40 + (int)(150 * age), Theme.Amber));
+                g.FillEllipse(tb, q.X - rr, q.Y - rr, rr * 2, rr * 2);
+            }
+            var dot = OnCurve(t);
             using (var halo = new SolidBrush(Color.FromArgb(70, cols[fan]))) g.FillEllipse(halo, dot.X - c.Sf(11), dot.Y - c.Sf(11), c.Sf(22), c.Sf(22));
             using (var b = new SolidBrush(cols[fan])) g.FillEllipse(b, dot.X - c.Sf(5.5f), dot.Y - c.Sf(5.5f), c.Sf(11), c.Sf(11));
             g.FillEllipse(Brushes.White, dot.X - c.Sf(2), dot.Y - c.Sf(2), c.Sf(4), c.Sf(4));
+            // the bubble: "72°C · fan 61%" beside the dot, inside the plot, below the dot when there is no room above
+            int duty = fan == 0 ? s.Hw.CpuFan : s.Hw.GpuFan;
+            var lf = c.Font(8.5f, FontStyle.Bold);
+            string label = $"{t}°C · {Lang.T("fc_live_fan")} {duty}%";
+            var sz = TextRenderer.MeasureText(label, lf, Size.Empty, TextFormatFlags.NoPadding);
+            int lw = sz.Width + c.S(12), lh = sz.Height + c.S(6);
+            int lx = (int)dot.X + c.S(12);
+            if (lx + lw > plot.Right) lx = (int)dot.X - lw - c.S(12);
+            if (lx < plot.Left) lx = plot.Left;
+            int ly = (int)dot.Y - lh - c.S(9);
+            if (ly < plot.Top) ly = (int)dot.Y + c.S(11);
+            var box = new Rectangle(lx, ly, lw, lh);
+            foreach (var other in bubbles) if (box.IntersectsWith(other)) box.Y = other.Bottom + c.S(4);
+            bubbles.Add(box);
+            using (var path = Theme.RoundRect(box, c.Sf(5)))
+            {
+                using var bb = new SolidBrush(Color.FromArgb(Theme.Dark ? 220 : 240, Theme.Card));
+                g.FillPath(bb, path);
+                using var bp = new Pen(Color.FromArgb(170, cols[fan]));
+                g.DrawPath(bp, path);
+            }
+            TextRenderer.DrawText(g, label, lf, box, Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
     }
 
-    private static string Signature(DashSample s) => $"{s.TempsKnown}|{s.Hw.CpuTemp}|{s.Hw.GpuTemp}|{s.Hw.CpuFan}";
+    private static string Signature(DashSample s) => $"{s.TempsKnown}|{s.Hw.CpuTemp}|{s.Hw.GpuTemp}|{s.Hw.CpuFan}|{s.Hw.GpuFan}|{s.At.Ticks}";   // every tick: the trail grows
 
     public override bool LiveChanged(DashContext c) => Signature(c.Sample) != _painted;
 

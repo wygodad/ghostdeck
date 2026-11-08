@@ -60,36 +60,64 @@ internal static class CommunityStats
         return prefix;
     }
 
-    /// <summary>Bars of the active-install history (the last bar in the accent), with the top value at the left.</summary>
-    public static void Bars(Graphics g, Rectangle r, IReadOnlyList<(string week, int active)> history, DashContext c, bool labels)
+    /// <summary>The bar rectangles of <see cref="Bars"/> for a given area (hit testing and the hover highlight).</summary>
+    public static List<RectangleF> BarRects(Rectangle r, IReadOnlyList<(string week, int active)> history, DashContext c, bool labels, float grow = 1f)
     {
-        if (history.Count == 0 || r.Width <= 0 || r.Height <= 0) return;
+        var rects = new List<RectangleF>(history.Count);
+        if (history.Count == 0 || r.Width <= 0 || r.Height <= 0) return rects;
         var f = c.Font(8f);
-        int labelH = labels ? f.Height + c.S(4) : 0;
-        var plot = new Rectangle(r.Left, r.Top, r.Width, r.Height - labelH);
+        int labelH = labels ? f.Height + c.S(4) : 0, valueH = labels ? f.Height + c.S(4) : 0;   // room above the tallest bar for its value
+        var plot = new Rectangle(r.Left, r.Top + valueH, r.Width, r.Height - labelH - valueH);
         int max = Math.Max(1, history.Max(h => h.active));
         int n = history.Count, gap = c.S(3);
         float bw = (plot.Width - gap * (n - 1)) / (float)n;
-        using var track = new SolidBrush(Theme.Border);
-        using var fill = new SolidBrush(Color.FromArgb(150, Theme.Accent));
-        using var last = new SolidBrush(Theme.Accent);
         for (int i = 0; i < n; i++)
         {
             float x = plot.Left + i * (bw + gap);
-            float h = Math.Max(c.S(2), plot.Height * history[i].active / (float)max);
-            var bar = new RectangleF(x, plot.Bottom - h, Math.Max(1f, bw), h);
-            using var path = Theme.RoundRect(bar, Math.Min(bw / 2f, c.Sf(3)));
-            g.FillPath(i == n - 1 ? last : fill, path);
+            float h = Math.Max(c.S(2), plot.Height * history[i].active / (float)max * grow);
+            rects.Add(new RectangleF(x, plot.Bottom - h, Math.Max(1f, bw), h));
+        }
+        return rects;
+    }
+
+    /// <summary>
+    /// Bars of the active-install history: the last bar in the accent with its value above it,
+    /// week labels under every few bars. <paramref name="grow"/> below 1 draws the bars that much
+    /// shorter (the entrance of the Statystyki view); <paramref name="lit"/> is the hovered bar.
+    /// </summary>
+    public static void Bars(Graphics g, Rectangle r, IReadOnlyList<(string week, int active)> history, DashContext c, bool labels, float grow = 1f, int lit = -1)
+    {
+        var rects = BarRects(r, history, c, labels, grow);
+        if (rects.Count == 0) return;
+        var f = c.Font(8f);
+        var vf = c.Font(8.5f, FontStyle.Bold);
+        int n = history.Count;
+        int plotBottom = (int)Math.Round(rects[0].Bottom);
+        using var fill = new SolidBrush(Color.FromArgb(150, Theme.Accent));
+        using var last = new SolidBrush(Theme.Accent);
+        using var hot = new SolidBrush(Color.White);
+        for (int i = 0; i < n; i++)
+        {
+            var bar = rects[i];
+            using var path = Theme.RoundRect(bar, Math.Min(bar.Width / 2f, c.Sf(3)));
+            g.FillPath(i == lit ? hot : i == n - 1 ? last : fill, path);
             if (labels && (i == 0 || i == n - 1 || (n > 8 && i % Math.Max(1, n / 6) == 0 && i < n - 2)))
             {
                 string w = history[i].week.Length >= 8 ? "W" + history[i].week[^2..] : history[i].week;
-                var tr = new Rectangle((int)x - c.S(12), plot.Bottom + c.S(4), (int)bw + c.S(24), f.Height);
+                var tr = new Rectangle((int)bar.X - c.S(12), plotBottom + c.S(4), (int)bar.Width + c.S(24), f.Height);
                 TextRenderer.DrawText(g, w, f, tr, Theme.Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoClipping);
             }
         }
-        if (labels)
-            TextRenderer.DrawText(g, max.ToString("N0", Lang.Culture), f, new Rectangle(plot.Left, plot.Top, plot.Width, f.Height), Theme.Faint,
-                TextFormatFlags.Right | TextFormatFlags.NoPadding);
+        if (labels && grow >= 1f)
+        {
+            // the current week's value above its bar, never on it
+            var lb = rects[n - 1];
+            string v = history[n - 1].active.ToString("N0", Lang.Culture);
+            int vw = TextRenderer.MeasureText(v, vf, Size.Empty, TextFormatFlags.NoPadding).Width + c.S(8);
+            int vx = Math.Min((int)(lb.X + lb.Width / 2) - vw / 2, r.Right - vw);
+            TextRenderer.DrawText(g, v, vf, new Rectangle(vx, (int)lb.Y - vf.Height - c.S(2), vw, vf.Height), Theme.Accent,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoClipping);
+        }
     }
 
     /// <summary>A ranked list: name, a bar against the largest, the count at the right. Returns the rows drawn.</summary>
@@ -135,38 +163,44 @@ internal sealed class CommunityWidget : DashWidget
         if (!c.D.Settings.StatsEnabled) { DashPaint.Note(g, body, c, Lang.T("dash_st_off_short")); return; }
         var sum = Stats.Current;
         if (sum == null) { DashPaint.Note(g, body, c, Lang.T("dash_st_waiting")); return; }
-        bool tall = r.Height >= r.Width * 0.45f;   // 4x2 (two rows of cells under a title) against 4x1
-        int tilesH = tall ? (body.Height - c.S(8)) / 2 : body.Height;
+        // four columns: label (up to two lines), value, one sub line; the block takes only the
+        // height it needs, and whatever is left under it goes to the bars (4x2) or stays as air (4x1)
         var tiles = CommunityStats.Tiles(sum, c.D);
         int colW = body.Width / tiles.Length, colGap = c.S(12);
         var lf = c.Font(8f, FontStyle.Bold);
-        var numF = c.PxFont(Math.Min(tilesH * 0.34f, c.Sf(26)), FontStyle.Bold);
+        var numF = c.Font(17f, FontStyle.Bold);
         var nameF = c.Font(11.5f, FontStyle.Bold);
         var sf = c.Font(8.5f);
         const TextFormatFlags wrap = TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak;
-        // the labels line up: every column leaves room for the tallest label (two lines at most)
-        int labelH = 0;
-        foreach (var t in tiles)
-            labelH = Math.Max(labelH, Math.Min(lf.Height * 2, TextRenderer.MeasureText(Lang.Upper(t.Label), lf, new Size(colW - colGap, int.MaxValue), wrap).Height));
+        int labelH = 0, valueH = 0;
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            int w = colW - colGap;
+            labelH = Math.Max(labelH, Math.Min(lf.Height * 2, TextRenderer.MeasureText(Lang.Upper(tiles[i].Label), lf, new Size(w, int.MaxValue), wrap).Height));
+            valueH = Math.Max(valueH, i >= 2 ? Math.Min(nameF.Height * 2, TextRenderer.MeasureText(tiles[i].Value, nameF, new Size(w, int.MaxValue), wrap).Height) : numF.Height);
+        }
+        int subH = tiles.Any(t => t.Sub.Length > 0) ? sf.Height * 2 : 0;
+        int blockH = labelH + c.S(4) + valueH + c.S(2) + subH;
+        bool tall = r.Height >= r.Width * 0.45f;   // 4x2 against 4x1
+        int top = tall ? body.Top : body.Top + Math.Max(0, (body.Height - blockH) / 2);
         for (int i = 0; i < tiles.Length; i++)
         {
             var t = tiles[i];
-            var col = new Rectangle(body.Left + i * colW, body.Top, colW - colGap, tilesH);
+            var col = new Rectangle(body.Left + i * colW, top, colW - colGap, blockH);
             bool isName = i >= 2;   // the most placed and the rising widget: names, not numbers
-            var vf = isName ? nameF : numF;
-            int y = col.Top + c.S(2);
+            int y = col.Top;
             TextRenderer.DrawText(g, Lang.Upper(t.Label), lf, new Rectangle(col.Left, y, col.Width, labelH), Theme.Faint, wrap);
             y += labelH + c.S(4);
-            int vh = isName ? Math.Min(vf.Height * 2, TextRenderer.MeasureText(t.Value, vf, new Size(col.Width, int.MaxValue), wrap).Height) : vf.Height;
-            TextRenderer.DrawText(g, t.Value, vf, new Rectangle(col.Left, y, col.Width, vh), t.Accent ?? Theme.Text, isName ? wrap : TextFormatFlags.Left | TextFormatFlags.NoPadding);
-            y += vh + c.S(2);
-            if (t.Sub.Length > 0 && y + sf.Height <= col.Bottom)
-                TextRenderer.DrawText(g, t.Sub, sf, new Rectangle(col.Left, y, col.Width, Math.Min(sf.Height * 2, col.Bottom - y)), Theme.Muted, wrap);
+            TextRenderer.DrawText(g, t.Value, isName ? nameF : numF, new Rectangle(col.Left, y, col.Width, valueH), t.Accent ?? Theme.Text,
+                isName ? wrap : TextFormatFlags.Left | TextFormatFlags.NoPadding);
+            y += valueH + c.S(2);
+            if (t.Sub.Length > 0) TextRenderer.DrawText(g, t.Sub, sf, new Rectangle(col.Left, y, col.Width, subH), Theme.Muted, wrap);
         }
         if (tall)
         {
-            var chart = new Rectangle(body.Left, body.Top + tilesH + c.S(8), body.Width, body.Height - tilesH - c.S(8));
-            CommunityStats.Bars(g, chart, sum.History, c, labels: chart.Height >= c.S(60));
+            int chartTop = body.Top + blockH + c.S(14);
+            var chart = new Rectangle(body.Left, chartTop, body.Width, body.Bottom - chartTop);
+            if (chart.Height >= c.S(40)) CommunityStats.Bars(g, chart, sum.History, c, labels: chart.Height >= c.S(60));
         }
     }
 

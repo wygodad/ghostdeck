@@ -50,7 +50,7 @@ internal sealed partial class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo }
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -289,6 +289,7 @@ internal sealed partial class DashCanvas : Control
                 if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(e.Graphics, rects[i], _ctx);
             if (_edit) PaintEditChrome(e.Graphics, rects, clip);
         }
+        else if (_view == View.Stats) PaintStatsLive(e.Graphics);
         PaintHot(e.Graphics);
     }
 
@@ -303,7 +304,7 @@ internal sealed partial class DashCanvas : Control
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _static?.Dispose(); }
+        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _statsTimer?.Dispose(); _static?.Dispose(); }
         base.Dispose(disposing);
     }
 
@@ -794,6 +795,7 @@ internal sealed partial class DashCanvas : Control
             if (z.Kind == Zone.None) continue;
             if (z.Kind is Zone.Remove or Zone.Size or Zone.Widget or Zone.More) { if (z.Index >= 0 && z.Index < _rects.Length) Invalidate(_rects[z.Index]); }
             else if (z.Kind == Zone.Star) { if (z.Type != null && _starRows.TryGetValue(z.Type, out var row)) Invalidate(Rectangle.Inflate(row, 2, 2)); }   // the whole row lights up to the star
+            else if (z.Kind == Zone.Bar) Invalidate(Rectangle.Inflate(_chartBody, S(4), S(4)));   // the lit bar and its label
             else foreach (var (r, zone) in _zones) if (zone == z) Invalidate(Rectangle.Inflate(r, 2, 2));
         }
     }
@@ -821,7 +823,7 @@ internal sealed partial class DashCanvas : Control
         {
             Zone.None => Cursors.Default,
             Zone.Widget => _edit ? Cursors.SizeAll : Cursors.Hand,
-            Zone.Map => Cursors.Default,
+            Zone.Map or Zone.Bar => Cursors.Default,
             _ => Cursors.Hand,
         };
         if (Cursor != want) Cursor = want;
