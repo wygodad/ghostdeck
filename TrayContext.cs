@@ -229,7 +229,9 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.CrosshairEnabled) SetCrosshair(true, osd: false);   // its mouse hook posts to _ui too
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
-        MaybeSendStats();        // (1.44) one anonymous report per week + the signed summary once a day, when switched on
+        MaybeSendStats();        // (1.44) one anonymous report per week + the signed summary every few hours, when switched on
+        _statsTimer.Tick += (_, _) => MaybeSendStats();   // hourly: a laptop that never restarts still reports and sees new summaries
+        _statsTimer.Start();
         MaybeAskStats();         // (1.44) the consent card, once, a while after start
 
         // Pre-create the main window HIDDEN shortly after startup: the form, its pages and all
@@ -2615,6 +2617,7 @@ public sealed class TrayContext : ApplicationContext
         CoolerBoost = () => _coolerBoost,
         SetCoolerBoost = on => SetCoolerBoostState(on),
         StatsChanged = MaybeSendStats,
+        StatsRefresh = () => MaybeSendStats(TimeSpan.FromHours(1)),   // the Statistics view opened
         KbdLevel = KbdLevel,                                        // (#26) -1 = no support on this model
         SetKbdLevel = l => SetKbdLight(l, ChangeSource.Panel),
         WebcamState = () => !_webcamSupported || !Writable ? -1 : _webcamOn ? 1 : 0,   // (#27)
@@ -2702,20 +2705,28 @@ public sealed class TrayContext : ApplicationContext
 
     // ---------------- update check ----------------
     // ---------------- anonymous statistics (1.44) ----------------
-    // One report per ISO week once the user switched it on, the signed weekly summary once a day.
-    // Both run on a worker; nothing here blocks the tray. A week the app was never started in is
-    // simply missing on the server, it is not sent later.
+    // One report per ISO week once the user switched it on, the signed weekly summary every six
+    // hours (an hour when the Statistics view asks; while the server has no file yet, every check
+    // retries, because a failed fetch does not move the clock). Checked at start, at consent, from
+    // the view and once an hour, so a laptop that sleeps instead of restarting still reports every
+    // week. Both run on a worker; nothing here blocks the tray. A week the app was never running
+    // in is simply missing on the server, it is not sent later.
+    private static readonly TimeSpan StatsFetchEvery = TimeSpan.FromHours(6);
+    private readonly System.Windows.Forms.Timer _statsTimer = new() { Interval = 60 * 60 * 1000 };
     private CancellationTokenSource? _statsCts;
+    private Task? _statsTask;
 
-    private void MaybeSendStats()
+    private void MaybeSendStats() => MaybeSendStats(StatsFetchEvery);
+
+    private void MaybeSendStats(TimeSpan fetchAfter)
     {
         if (!_settings.StatsEnabled) return;
+        if (_statsTask is { IsCompleted: false }) return;   // one run at a time; the next check picks up what is still due
         string week = Stats.CurrentWeek();
         bool sendDue = _settings.StatsLastWeek != week;
-        bool fetchDue = DateTime.UtcNow - _settings.StatsLastFetchUtc >= TimeSpan.FromHours(24);
+        bool fetchDue = DateTime.UtcNow - _settings.StatsLastFetchUtc >= fetchAfter;
         if (!sendDue && !fetchDue) return;
-        _statsCts?.Cancel();
-        var cts = _statsCts = new CancellationTokenSource();
+        var cts = _statsCts ??= new CancellationTokenSource();
         int powBits = Stats.Current?.PowBits ?? Stats.DefaultPowBits;
         byte[]? body = null;
         if (sendDue)
@@ -2724,7 +2735,7 @@ public sealed class TrayContext : ApplicationContext
             catch { body = null; }
         }
         var ui = _ui;
-        Task.Run(async () =>
+        _statsTask = Task.Run(async () =>
         {
             Stats.SendResult? sent = null;
             string info = "";

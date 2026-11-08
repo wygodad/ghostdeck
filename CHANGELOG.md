@@ -24,7 +24,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   profile switches and the share of time per profile, CPU and GPU model; **no identifier, no address, no names, no file or
   game names**. The report carries a proof of work (about half a second, once a week) and a random salt; the server drops
   repeats and holds back weeks that jump suspiciously. The results come back as a **signed summary** (ECDSA, a key of its
-  own) that the app verifies before showing anything and keeps the last good copy of.
+  own) that the app verifies before showing anything and keeps the last good copy of; it is refreshed every six hours and
+  when you open the Statistics view. The first report goes out right after the consent, the next ones once a week, checked
+  hourly, so a laptop that sleeps instead of restarting still reports.
 - **What the community uses**: with the statistics on, the catalogue sorts **Popular / A-Z**, marks the three most placed
   widgets POPULAR and shows each one's average rating, votes and "in X % of dashboards"; the **Statistics view** shows
   active installs with the change, widgets typical vs yours, the most placed and the fastest rising, 26 weeks of installs,

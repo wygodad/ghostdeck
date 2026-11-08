@@ -4527,7 +4527,13 @@ raised without a release. There is no secret in the app: the proof of work, the 
 and a server-side guard against sudden floods are the protection, and a report that lies about
 its content is simply one more report in the counts.
 
-**The summary.** The app fetches `stats.signed.json` once a day: `{v, alg, payload, sig}` where
+**When it runs.** The tray checks at start, at consent, when the Statistics view opens and once an
+hour whether this week's report is still due and whether the summary is older than six hours (an
+hour from the view). A failed fetch does not move the clock, so while the server has no file yet
+(the days after a release) every check retries. The hourly check is what keeps a laptop that sleeps
+instead of restarting reporting every week; a week GhostDeck was never running in is simply missing.
+
+**The summary.** The app fetches `stats.signed.json`: `{v, alg, payload, sig}` where
 the payload is the summary as base64 JSON and the signature is ECDSA P-256 over the payload bytes,
 DER encoded, verified with the statistics public key compiled into the app
 (`docs/stats-public-key.pem`, a different key from the model database's). A file that does not

@@ -16,7 +16,8 @@ namespace GhostDeck;
 /// <summary>
 /// Anonymous weekly usage statistics (plan §8.3, DOC/GhostDeck-statystyki-ochrona.md). Off until
 /// the user switches it on. When on: one report per ISO week, posted with a small proof of work;
-/// the signed weekly summary (<c>stats.signed.json</c>) is fetched once a day, verified with the
+/// the signed weekly summary (<c>stats.signed.json</c>) is fetched every six hours, hourly while
+/// the server has none yet and when the Statistics view opens, verified with the
 /// public key below and kept as a file in the settings folder. Nothing in a report identifies a
 /// person or a computer: no identifier, no names, no paths, no serial numbers, no exact times.
 /// </summary>
