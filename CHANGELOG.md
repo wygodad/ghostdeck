@@ -47,6 +47,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   [#334](../../issues/334), [#335](../../issues/335), [#336](../../issues/336), [#337](../../issues/337), thanks
   @raikohsan and @pumpkin-bot) - two more owners: two clean power tests, a capture matching the recipes in all four
   scenarios with the real Silent, and the test curve at the shipped addresses again; both join the model's credit.
+- **GF65 Thin 10SD / 10SDR / 10SE on the backup WMI path** (`16W1EMS2`, model database 20261202, [#339](../../issues/339), thanks
+  @thangktv2) - the owner's block report gave the layout. The board code `16W1` has two EC lines, so the app now tells them
+  apart by the laptop's own model name as Windows reports it; profile switching unlocks after the path test, as on the
+  other models of this generation.
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261130, [#299](../../discussions/299), thanks
   @maestory) - a fan sweep showed the curve stopping at about 5000 rpm at 100 % (150 % adds nothing) while Fan Boost
   reaches about 7000 rpm; noted in the FAQ and added to the model's credit.

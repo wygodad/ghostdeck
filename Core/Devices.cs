@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261201;
+    public const int DataVersion = 20261202;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -2077,8 +2077,16 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GF65 Thin 9SE / 9SD", FirmwarePrefixes = new[] { "16W1EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
-        new() { Name = "MSI GF65 Thin 10SCSXR / 10SD / 10SE", FirmwarePrefixes = new[] { "16W1EMS2" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+        // GF65 Thin 10SDR (issue #339, thangktv2, BIOS E16W1IMS.50C, EC 16W1EMS2.103 as the owner
+        // gave it): no MSI_ACPI methods, block report with the scenarios coming through:
+        // MSI_System[7] C1/C1/C4/C2 and [9] 1D/0D/0D/0D = the recipes, in the Dragon Center-era
+        // slots. The board code 16W1 has two EC lines, so the app tells them apart by the SMBIOS
+        // model name (Devices.PickByProductName).
+        new() { Name = "MSI GF65 Thin 10SCSXR / 10SD / 10SDR / 10SE", FirmwarePrefixes = new[] { "16W1EMS2" }, Tier = Tier.Experimental,
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block report in issue #339
+                Credit = "thangktv2", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/339",
+                CreditIssues = Issues("thangktv2:339") },
         new() { Name = "MSI Bravo 15 A4DDR", FirmwarePrefixes = new[] { "16WKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Bravo 17 A4DDR / A4DDK", FirmwarePrefixes = new[] { "17FKEMS1" }, Tier = Tier.Experimental,
@@ -2108,6 +2116,24 @@ public static class Devices
     /// exactly one hit: a board code can carry two EC lines (16W1EMS1 / 16W1EMS2), and the
     /// BIOS string cannot tell those apart.
     /// </summary>
+    /// <summary>
+    /// Names the EC line of a board code that carries two of them, from the laptop's own model
+    /// name (SMBIOS, e.g. "GF65 Thin 10SDR"): the entry whose name lists that exact variant and
+    /// every other word of the model name. No match, or more than one, returns null and the
+    /// board stays unidentified - this never picks a line by guesswork.
+    /// </summary>
+    public static (DeviceProfile Dev, string Prefix)? PickByProductName(IEnumerable<(DeviceProfile Dev, string Prefix)> hits, string product)
+    {
+        var words = product.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0) return null;
+        var found = hits.Where(h =>
+        {
+            var name = new HashSet<string>(h.Dev.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
+            return words.All(name.Contains);
+        }).ToList();
+        return found.Count == 1 ? found[0] : null;
+    }
+
     public static List<(DeviceProfile Dev, string Prefix)> PrefixesForBoard(string board)
     {
         var hits = new List<(DeviceProfile, string)>();

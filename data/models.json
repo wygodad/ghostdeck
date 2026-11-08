@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261201,
+  "dataVersion": 20261202,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -6911,7 +6911,7 @@
       }
     },
     {
-      "name": "MSI GF65 Thin 10SCSXR / 10SD / 10SE",
+      "name": "MSI GF65 Thin 10SCSXR / 10SD / 10SDR / 10SE",
       "prefixes": [
         "16W1EMS2"
       ],
@@ -6919,6 +6919,35 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "blockPath": {
+        "shiftMode": "MSI_System[7]",
+        "fanMode": "MSI_System[9]",
+        "cpuTemp": "MSI_CPU[1]",
+        "gpuTemp": "MSI_VGA[1]",
+        "cpuDuty": "MSI_CPU[2]",
+        "gpuDuty": "MSI_VGA[2]",
+        "cpuRpm": "MSI_AP[2]",
+        "gpuRpm": "MSI_AP[4]",
+        "cpuCurve": {
+          "class": "MSI_CPU",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        },
+        "gpuCurve": {
+          "class": "MSI_VGA",
+          "tempFirst": 4,
+          "speedFirst": 11,
+          "count": 7
+        }
+      },
+      "credit": "thangktv2",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/339",
+      "creditIssues": {
+        "thangktv2": [
+          339
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [

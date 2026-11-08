@@ -208,7 +208,8 @@ public static class Ec
     /// Called once the method interface has answered "not supported": can this machine be
     /// read through its data blocks instead? Three things must hold. The BIOS version names a
     /// board code that maps to exactly ONE EC firmware line in the database (the EC version
-    /// itself cannot be read here, so an ambiguous board stays unidentified); that model has a
+    /// itself cannot be read here; a board with two lines is told apart by the laptop's own
+    /// model name, and stays unidentified if that names neither); that model has a
     /// block layout on record; and the live values in those slots look like what the layout
     /// says they are - a shift-mode byte in the 0xC0 range, a fan-mode byte ending in 0xD, a
     /// plausible CPU temperature. On success the path is switched over and the firmware string
@@ -229,8 +230,10 @@ public static class Ec
             return Done(false, "", null, bios, "BIOS version has an unrecognised shape");
         var hits = Devices.PrefixesForBoard(board);
         if (hits.Count == 0) return Done(false, "", null, bios, $"no model with board code {board} in the database");
+        if (hits.Count > 1 && Devices.PickByProductName(hits, Smbios.ProductName()) is { } named)
+            hits = new() { named };   // the laptop's own model name says which of the two lines it is
         if (hits.Count > 1)
-            return Done(false, "", null, bios, $"board code {board} maps to several EC lines ({string.Join(", ", hits.Select(h => h.Prefix))})");
+            return Done(false, "", null, bios, $"board code {board} maps to several EC lines ({string.Join(", ", hits.Select(h => h.Prefix))}) and the model name \"{Smbios.ProductName()}\" names none of them");
         var (dev, prefix) = hits[0];
         if (Devices.BlockPathOf(dev) is not { } spec)
             return Done(false, "", null, bios, $"{prefix}: no backup-path layout on record for this model");
