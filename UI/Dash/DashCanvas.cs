@@ -620,19 +620,35 @@ internal sealed partial class DashCanvas : Control
     }
 
     /// <summary>The ⋯ of a tile: details and rating, the next size, remove, edit the layout.</summary>
-    private void ShowTileMenu(int index, Point at)
+    private void ShowTileMenu(int index, Point at) { if (TileMenuItems(index) is { } items) DashMenuPopup.Open(this, at, items); }
+
+    /// <summary>Preview tool only: the tile menu of widget <paramref name="index"/> as a bitmap, second row lit.</summary>
+    internal Bitmap? TileMenuPreview(int index) => TileMenuItems(index) is { } items ? DashMenuPopup.Render(this, items, 2) : null;
+
+    private List<DashMenuPopup.Item>? TileMenuItems(int index)
     {
-        if (index < 0 || index >= _items.Count) return;
+        if (index < 0 || index >= _items.Count) return null;
         var it = _items[index];
-        var menu = new ContextMenuStrip();
-        var info = new ToolStripMenuItem(Lang.T("dash_menu_info")); info.Click += (_, _) => OpenInfo(it.Type);
-        var size = new ToolStripMenuItem(string.Format(Lang.T("dash_menu_size_fmt"), $"{it.W}×{it.H} ▸")); size.Click += (_, _) => CycleSize(index);
-        var remove = new ToolStripMenuItem(Lang.T("dash_menu_remove")); remove.Click += (_, _) => RemoveAt(index);
-        var edit = new ToolStripMenuItem(Lang.T("dash_edit")); edit.Click += (_, _) => EditMode = true;
-        menu.Items.AddRange(new ToolStripItem[] { info, new ToolStripSeparator(), size, remove, new ToolStripSeparator(), edit });
-        menu.Closed += (_, _) => menu.Dispose();
-        menu.Show(this, at);
+        string type = it.Type;
+        // the size row names the size the click would give ("2×2 → 4×1"); a type with one size gets no row
+        var sizes = _widgets[index].Sizes;
+        int cur = -1;
+        for (int i = 0; i < sizes.Count; i++) if (sizes[i].Width == it.W && sizes[i].Height == it.H) { cur = i; break; }
+        var next = sizes.Count > 1 ? sizes[(cur + 1) % sizes.Count] : (Size?)null;
+        var items = new List<DashMenuPopup.Item>
+        {
+            new(Lang.T("dash_menu_info"), () => OpenInfo(type)),
+            DashMenuPopup.Item.Line,
+        };
+        if (next is { } n) items.Add(new(string.Format(Lang.T("dash_menu_size_fmt"), $"{it.W}×{it.H} → {n.Width}×{n.Height}"), () => CycleSize(IndexOf(type))));
+        items.Add(new(Lang.T("dash_menu_remove"), () => RemoveAt(IndexOf(type)), Accent: Theme.Red));
+        items.Add(DashMenuPopup.Item.Line);
+        items.Add(new(Lang.T("dash_edit"), () => EditMode = true));
+        return items;
     }
+
+    /// <summary>The index of a placed type now (the list may have changed while a menu was open).</summary>
+    private int IndexOf(string type) => _items.FindIndex(i => i.Type == type);
 
     // ---- actions ----------------------------------------------------------------------------
     internal bool EditMode

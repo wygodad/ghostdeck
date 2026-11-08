@@ -1,3 +1,6 @@
+# GhostDeck dot map: 2 degree grid of land cells tagged with ISO 3166-1 alpha-2 codes.
+# Derived from Natural Earth 1:110m Admin 0 countries (naturalearthdata.com), public domain:
+# no copyright, no attribution required. Built by DOC/tools/worldmap-dots.py; do not edit by hand.
 84 -180 2 180 71
 
                                                                                           CACACACACACACACACACACACACA    GLGLGL  GLGLGLGLGLGLGLGLGLGLGLGLGL  GL

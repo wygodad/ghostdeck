@@ -383,8 +383,39 @@ public static class Stats
     /// </summary>
     public static Summary? Current
     {
-        get { if (!_currentLoaded) { _current = LoadCached(); _currentLoaded = true; } return _current; }
+        get
+        {
+            if (DemoMode) return _demo ??= Demo();
+            if (!_currentLoaded) { _current = LoadCached(); _currentLoaded = true; }
+            return _current;
+        }
         set { _current = value; _currentLoaded = true; }
+    }
+
+    /// <summary>--stats-demo: every reader of <see cref="Current"/> sees <see cref="Demo"/> instead of the server's file.</summary>
+    public static bool DemoMode { get; set; }
+    private static Summary? _demo;
+
+    /// <summary>
+    /// A made-up summary of a busy week (412 installs, 20 countries, 8 languages, 8 board
+    /// families, 26 weeks of history), for the preview tool and for looking at the views in the
+    /// app before the server has a week worth showing. Every number here is invented.
+    /// </summary>
+    public static Summary Demo()
+    {
+        var sum = new Summary { Week = "2026-W45", Generated = DateTime.UtcNow, ActiveWeek = 412, ActivePrevWeek = 377, TypicalWidgets = 8, Rising = "core.memory" };
+        void W(string t, double share, double? rating, int votes, double? trend = null) => sum.Widgets[t] = new WidgetStat { Share = share, Rating = rating, Votes = votes, Trend = trend };
+        W("core.cpuTemp", 0.96, 4.7, 61); W("core.profiles", 0.93, 4.4, 48); W("core.curve", 0.88, 4.8, 57); W("core.gpuTemp", 0.85, 4.5, 39);
+        W("core.cpuFan", 0.62, 4.1, 22); W("core.gpuFan", 0.58, 4.0, 19); W("core.memory", 0.47, 3.9, 14, 0.06); W("core.toggles", 0.41, 4.2, 11, 0.02);
+        W("core.scenes", 0.33, null, 0); W("core.cpuUsage", 0.29, 3.6, 7); W("core.cpuClock", 0.18, null, 0); W("core.chargeLimit", 0.12, 4.9, 5);
+        W("core.community", 0.21, 4.3, 9, 0.04);
+        sum.Top.AddRange(new[] { "core.cpuTemp", "core.profiles", "core.curve", "core.gpuTemp", "core.cpuFan", "core.gpuFan", "core.memory", "core.toggles", "core.scenes", "core.cpuUsage" });
+        int[] hist = { 118, 131, 127, 149, 162, 170, 168, 185, 199, 204, 221, 236, 230, 251, 262, 270, 288, 301, 297, 322, 340, 351, 366, 377, 377, 412 };
+        for (int i = 0; i < hist.Length; i++) sum.History.Add(($"2026-W{20 + i:00}", hist[i]));
+        sum.Countries.AddRange(new[] { ("PL", 141), ("DE", 63), ("US", 48), ("GB", 21), ("FR", 17), ("TR", 15), ("BR", 12), ("IT", 11), ("ES", 9), ("NL", 8), ("CA", 7), ("AU", 6), ("JP", 5), ("KR", 5), ("VN", 4), ("ID", 4), ("CZ", 4), ("SE", 3), ("UA", 3), ("MX", 3) });
+        sum.Langs.AddRange(new[] { ("en", 171), ("pl", 139), ("de", 58), ("tr", 14), ("fr", 12), ("es", 9), ("pt", 5), ("it", 4) });
+        sum.Models.AddRange(new[] { ("17S1", 96), ("16V4", 71), ("15M2", 44), ("17L1", 31), ("16R6", 29), ("15K1", 22), ("17K3", 11), ("16U7", 8) });
+        return sum;
     }
 
     /// <summary>The last verified summary kept on disk, or null. Verified again on every load.</summary>

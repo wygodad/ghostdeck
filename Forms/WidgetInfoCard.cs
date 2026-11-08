@@ -101,7 +101,7 @@ internal sealed class WidgetInfoCard : GhostCardForm
         string cap = Lang.T("dash_your_rating");
         float capH = H(cap, capF, width);
         Text(cap, capF, Muted, x, y, width, capH);
-        y += Ce(capH) + Ce(6 * k);
+        y += Ce(capH) + Ce(10 * k);
         int own = DashRatings.Own(_d, _def.TypeId);
         int hot = HotZone;   // 0..4 while the cursor is on a star
         int filled = hot >= 0 ? hot + 1 : own;
@@ -112,11 +112,13 @@ internal sealed class WidgetInfoCard : GhostCardForm
             for (int i = 0; i < 5; i++) { var r = DashRatings.StarRect(at, ss, i + 1); _stars[i] = new Rectangle(r.X + paintAt!.Value.origin.X, r.Y + paintAt.Value.origin.Y, r.Width, r.Height); }
             if (own > 0)
             {
+                // "4 / 5" centred on the stars' middle line (the shapes are centred in their cells)
                 string yours = own.ToString(Lang.Culture) + " / 5";
-                Text(yours, lineF, Ink, x + ss * 5 + Ce(12 * k), y + Ce(2 * k), width - ss * 5, lineF.GetHeight(g));   // the glyphs sit high in their box
+                float th = lineF.GetHeight(g);
+                Text(yours, lineF, Ink, x + ss * 5 + Ce(14 * k), y + (ss - th) / 2f, width - ss * 5, th);
             }
         }
-        y += ss + Ce(14 * k);
+        y += ss + Ce(16 * k);
 
         // ---- the community line ----
         var sum = _d.Settings.StatsEnabled ? Stats.Current : null;

@@ -27,7 +27,9 @@ public sealed class WorldMap
             using var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("GhostDeck.worldmap.txt");
             if (s == null) return new WorldMap(0, 0, new string?[0, 0]);
             using var rd = new StreamReader(s);
-            var head = (rd.ReadLine() ?? "").Split(' ');
+            string? first;
+            while ((first = rd.ReadLine()) != null && first.StartsWith('#')) { }   // the source and licence lines
+            var head = (first ?? "").Split(' ');
             int cols = int.Parse(head[3], CultureInfo.InvariantCulture), rows = int.Parse(head[4], CultureInfo.InvariantCulture);
             var cells = new string?[rows, cols];
             for (int r = 0; r < rows; r++)

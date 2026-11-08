@@ -13,7 +13,11 @@ internal static class Program
 
         // Any argument = CLI mode: forwarded to the running instance over the pipe, or executed
         // one-shot against the EC. The tray app itself never starts with arguments.
-        if (args.Length > 0) return Cli.Run(args);
+        // --stats-demo (1.44): the Statystyki view, the catalogue badges and the Community tile on a
+        // built-in sample summary, to look at them before the server has a week worth showing
+        Stats.DemoMode = args.Contains("--stats-demo");
+        var cliArgs = args.Where(a => a != "--stats-demo").ToArray();   // args itself stays whole for the elevated relaunch below
+        if (cliArgs.Length > 0) return Cli.Run(cliArgs);
 
         // Tray start. A running instance only has to show its window - any process may ask it,
         // elevated or not. Otherwise the tray needs the EC, so an unelevated launch (double-click,
