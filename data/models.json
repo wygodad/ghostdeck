@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261130,
+  "dataVersion": 20261201,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -1501,7 +1501,7 @@
         "name": "MSI Center Extreme",
         "shiftValue": "0xC5"
       },
-      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0",
+      "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0, raikohsan, pumpkin-bot",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
       "creditIssues": {
         "xulu19861102-hub": [
@@ -1537,6 +1537,14 @@
         ],
         "denizkat0": [
           306
+        ],
+        "raikohsan": [
+          334
+        ],
+        "pumpkin-bot": [
+          335,
+          336,
+          337
         ]
       },
       "added": "2026-06-29",

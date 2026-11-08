@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261130;
+    public const int DataVersion = 20261201;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -985,11 +985,18 @@ public static class Devices
         //   Silent 99% of Balanced's work at 63 vs 71 C on 3064/3557 vs 4279/4908 rpm; Extreme and
         //   C5 both 97% with the CPU held flat near 5.67 GHz. C5 accepted and cleanly reverted;
         //   writing it also moved 0xD9 09->19 (reverted with it). No recipe change.
+        //   Two more owners, 8 Nov 2026, app 1.43.0, .113: raikohsan (issue #334, RTX 5080, 3% drift,
+        //   clean read-backs) - Silent 85% of Balanced's work (4676 vs 5487 MHz) on 3560/3558 vs
+        //   4659/4905 rpm, Extreme and C5 both 104%; pumpkin-bot (issues #335-#337, RTX 5070 Ti,
+        //   MSI Center 2.0.48 with the real Silent) - snapshot 1:1 in all four scenarios, test
+        //   curve at 0x72/0x8A again, power test 1% drift: Silent 108% of the work on 3550 vs
+        //   4669 rpm and a cooler GPU (69 vs 75 C), Extreme and C5 level with Balanced (100%).
+        //   No recipe change.
         new() { Name = "MSI Vector 16 HX AI, Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
-                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254; nicosergia08-cyber:272; denizkat0:306") },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn, nicosergia08-cyber, denizkat0, raikohsan, pumpkin-bot", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74",
+                CreditIssues = Issues("xulu19861102-hub:65,70,71,74,75,78; mithril01:113,114; H0tSTUff:136,137,144; girfli:207; STRIEH:213,214,215; onrchnn:254; nicosergia08-cyber:272; denizkat0:306; raikohsan:334; pumpkin-bot:335,336,337") },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,

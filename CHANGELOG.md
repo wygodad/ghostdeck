@@ -43,6 +43,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Katana 17 B12UCXK / B12VGK / B12VEK** (`17L5EMS2`, model database 20261130, [#332](../../issues/332),
   [#333](../../issues/333), thanks @Kamiliukass) - another owner's capture matches the recipes in Balanced, Extreme and
   Super Battery, and the curve check found the test curve at the shipped addresses again; added to the model's credit.
+- **Vector 16 HX AI, Raider 16 HX AI A2XWHG / A2XWIG** (`15M3EMS1`, model database 20261201,
+  [#334](../../issues/334), [#335](../../issues/335), [#336](../../issues/336), [#337](../../issues/337), thanks
+  @raikohsan and @pumpkin-bot) - two more owners: two clean power tests, a capture matching the recipes in all four
+  scenarios with the real Silent, and the test curve at the shipped addresses again; both join the model's credit.
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261130, [#299](../../discussions/299), thanks
   @maestory) - a fan sweep showed the curve stopping at about 5000 rpm at 100 % (150 % adds nothing) while Fan Boost
   reaches about 7000 rpm; noted in the FAQ and added to the model's credit.
