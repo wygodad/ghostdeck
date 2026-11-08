@@ -4429,3 +4429,126 @@ The two-table test is also the fourth card on the Report start screen (`UI/Repor
 curve page's In action view with the diagnostics open (`MainForm.ShowFanCurveDiagnostics`,
 `FanCurvePage.ShowDiagnostics`). The user-facing write-up with pictures is
 `docs/TWO-FAN-TABLES.md`.
+
+## 86. The Dashboard: one drawn surface, widgets and the layout file (v1.44)
+
+The Dashboard tab is the user's own screen: a grid of widgets (profiles, temperature and fan rings,
+CPU usage and clock, the fan curve, scenes, quick toggles, memory and disks, the charge limit, and
+the Community tile) that the user places, resizes and reorders. It follows the rule from §73 and
+§74: the whole tab is **one control** (`UI/Dash/DashCanvas.cs`), everything on it is painted, and
+clicks are resolved against a list of zones. There are no child controls, so a layout of twelve
+widgets costs one window, not a few hundred.
+
+**The widget contract** is `IDashWidget` (`UI/Dash/IDashWidget.cs`): a stable `TypeId`
+(`core.cpuTemp`, stored in settings.json and sent in the statistics report, so it never changes
+once shipped), a name key, the allowed sizes in grid cells (the first is the default), two paint
+methods and a click. `PaintStatic` draws what does not change between ticks (the card, a dial's
+track, titles, the curve); `PaintLive` draws what does (the lit ticks, a number, the operating
+point). `LiveChanged` lets a widget say whether its live part moved since the last paint, so a tick
+repaints only the widgets that need it. The built-in types are listed in `DashRegistry`; a type the
+running version does not know (a newer version's widget, an add-on without its licence) paints as a
+grey card with its id and stays in the layout, so an update never loses a user's arrangement. A
+type can also hide itself from the catalogue (`Listed`): the Community tile is listed only while the
+statistics are on.
+
+**The layout file** is the `Dashboard` list in settings.json, one entry per widget: `Type`, `W`
+and `H` in cells, in display order, plus `DashboardVersion` (0 means a file from before the tab;
+the default layout is written in its place). Positions are never stored: `DashLayout.Place` lays
+the items out first-fit, row by row, for the column count of the moment, so the same file reads
+correctly on a narrow window and a wide one. The column count comes from the width (cells of at
+least 150 px, two to six columns) unless the user chose a density in edit mode: `DashColumns` 4,
+5, 6 or 8 applies while a cell keeps 110 px, and a narrower window still gives fewer columns. With
+the catalogue panel open the grid gives up the panel's width.
+
+**Edit mode** (the header button) frames every widget: drag by the card to reorder (the list is
+reordered in place and saved on drop), the size pill cycles through the type's sizes, the cross
+removes, the panel on the right adds, *Restore default* asks first, and the *Columns* row picks
+the density. Outside edit mode a tile shows a ⋯ while the cursor is on it, with a small menu:
+details and rating, the next size, remove, edit the layout. The header also switches between
+three views: **Dashboard**, **Catalogue** (every widget as a card with its picture, description,
+stars and an Add button; sorted Popular or A-Z when a summary is in) and **Statistics** (§87).
+
+**The widget card** (`Forms/WidgetInfoCard.cs`) is what the ⋯, the Catalogue and the panel open:
+the widget itself painted by the same code as on the Dashboard with the current sample, the
+description, five stars for the user's own rating and three small tiles from the weekly summary
+(average with the votes, the share of dashboards). Ratings live in `WidgetRatings` in
+settings.json, one to five per type; they go out with the next report (§87), and the same star
+again clears a rating. With the statistics off a star opens a card that explains where the rating
+goes and offers to turn them on.
+
+**The tick** belongs to the page (`UI/DashboardPage.cs`): one shared sample every 1.5 s (the
+Status interval; one EC read per tick, the two pages are never visible at once), read on a worker
+and completed on the window thread; no tick while the page is hidden, and the static buffer is
+freed then. How the two layers are painted and measured is in RENDERING.md §13. The **start tab**
+is a setting (Settings → General): Scenarios as before, or the Dashboard.
+
+The preview tool draws the tab without hardware (`DOC/tools/render-harness`, modes `page
+Dashboard`, `-14` for the edit bench, `DASHLAYOUT=`, `DASHDEMO=1`, `STATS=1`), and
+`tools/dpi-check.py` holds it to the scaling rules of §84.
+
+## 87. Anonymous weekly statistics (v1.44)
+
+The app can send **one small anonymous report a week** and in return shows what the community
+uses: popular widgets and their ratings in the catalogue, a Statistics view with a world map, and
+the Community tile. Everything here is **off until the user turns it on**, and the whole report is
+visible before the decision.
+
+**Consent.** A card comes up once, about 25 seconds after a start, with what is sent, what is
+never sent, what comes back, and two equal buttons; a third opens the report exactly as it would go
+out. Closing the card counts as an answer, it is never shown again. The switch and two buttons
+(*What we collect*, *Show what will be sent*) are in Settings → System; the Statistics view offers
+the same switch when it is off. No name, e-mail address or anything a fork would want to copy is
+in the consent text.
+
+**What the report holds** (`Core/Stats.cs`, `BuildReport`): the app version (three numbers), the
+language, the board family (the first four characters of the firmware id, the same key the model
+database uses), the Windows version and build, the screen scale, whether the app runs on the EC
+interface or the backup WMI path, the start tab, which features are on (a fixed list of flags:
+overlay, crosshair, hotkeys, automation, charge limit, custom curve, temperature alerts, refresh
+switch, power-mode sync, True Color, session popup, restore on resume, tray wheel, protocol links,
+scenes, Fan Boost used, Apex used), how many scenes, the widgets on the Dashboard with their sizes,
+the widget ratings, error counters by kind, the BIOS version string, the screen resolution and
+count, how many profile switches and the share of time per profile this week, autostart, the GPU
+and CPU model names, and a random `salt`. **What it never holds:** any identifier or address,
+names, logins, file, program or game names, or a location finer than the country. The country is
+read by the server from the connection at the moment of sending and the address is not kept.
+
+**When.** Once per ISO week, at the first start of a new week (`StatsLastWeek`), on a worker.
+A 204 means counted (or a repeat of the same body, which the server drops); a 400 means the server
+refused the shape of the report, which is a bug here: it is noted in the change log and not
+retried that week. An unreachable server is retried at the next start. The weekly counters are
+cleared after a sent or refused report.
+
+**Transport and cost.** `POST https://stats.ghostdeck.dev/report.php`, JSON up to 4 KB, and the
+header `X-GhostDeck-Pow` with a nonce such that `SHA-256(body + "\n" + nonce)` starts with at
+least `powBits` zero bits (20 today, about half a second on a laptop, done once a week; checking
+it costs the server one hash). The difficulty is announced in the signed summary, so it can be
+raised without a release. There is no secret in the app: the proof of work, the duplicate check
+and a server-side guard against sudden floods are the protection, and a report that lies about
+its content is simply one more report in the counts.
+
+**The summary.** The app fetches `stats.signed.json` once a day: `{v, alg, payload, sig}` where
+the payload is the summary as base64 JSON and the signature is ECDSA P-256 over the payload bytes,
+DER encoded, verified with the statistics public key compiled into the app
+(`docs/stats-public-key.pem`, a different key from the model database's). A file that does not
+verify never replaces the last good one, which lives as `stats.signed.json` in the settings
+folder; the file is verified again on every load. The payload carries, for the latest published
+week: active installs this week and the week before, the typical number of widgets, per widget
+its share of dashboards, the change against the previous week, the average rating with the number
+of votes (only from three votes) and the share per size, the ten most placed, the fastest rising,
+26 weeks of active installs, and counts per country, language and board family (only values with
+at least three installs, so a country with one user never points at that user).
+
+**Where it shows.** The catalogue panel and the Catalogue view: the sort pills, a POPULAR badge on
+the three most placed, the stars with the average and the votes, "in X % of dashboards". The
+widget card: three tiles. The Statistics view: four headline tiles, the 26-week bars, the dot map
+of the world (§86's canvas, `Core/WorldMap.cs`; the map data is a 2 degree grid of land cells
+derived once from Natural Earth 1:110m, public domain, embedded as `data/worldmap.txt`), the
+countries, languages and laptop models (the board family named through the model database). The
+Community tile: the four headline numbers, and on 4x2 the bars. All of it only while the switch is
+on; with it off the catalogue looks as before and the stars still offer to turn the statistics on.
+`GhostDeck.exe --stats-demo` shows these views on a built-in sample summary, also in a running
+instance, for a look before the server has a week worth showing.
+
+The server (a small PHP service and the owner's panel) lives in two private repositories; its
+public contract is this section: the report fields, the proof of work, and the signed summary.

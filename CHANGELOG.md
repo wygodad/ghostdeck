@@ -5,6 +5,32 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Dashboard tab** (roadmap, the dashboard plan): your own screen built from widgets on a grid - profile tiles, CPU and
+  GPU temperature rings, CPU and GPU fan rings, CPU usage and clock, the fan curve with its live operating point, scenes,
+  quick toggles, memory and disks, the charge limit. **Edit layout** frames the widgets: drag to reorder, a pill cycles the
+  size, a cross removes, a panel adds, *Restore default* puts the shipped layout back, and a *Columns* row picks the grid
+  density (Auto, 4, 5, 6 or 8). Outside edit mode a ⋯ on every tile opens details and rating, the next size, remove and
+  edit. The layout lives in settings.json as order and sizes only, so it reflows on any window width; a widget this
+  version does not know stays in the layout as a grey card. The tab is one painted surface: no child windows, a 1.5 s
+  tick that repaints only the widgets whose value moved. Settings → General picks the **start tab** (Scenarios or the
+  Dashboard).
+- **Catalogue and widget card**: the header switches between **Dashboard**, **Catalogue** (every widget as a card with its
+  picture, description and an Add button) and **Statistics**. The **widget card** shows the widget itself painted live, the
+  description, five stars for your rating and the community's numbers; it opens from a tile's ⋯, a Catalogue card or the
+  panel. Ratings are kept in settings.json and go out with the weekly report (below); the same star again clears one.
+- **Anonymous weekly statistics (opt-in)**: a consent card once after a start, the switch and *What we collect* / *Show
+  what will be sent* (readable tiles and the raw JSON, coloured) in Settings → System. One report a week: app version,
+  language, board family, Windows version, screen scale, features in use, the widgets on the Dashboard and their ratings,
+  profile switches and the share of time per profile, CPU and GPU model; **no identifier, no address, no names, no file or
+  game names**. The report carries a proof of work (about half a second, once a week) and a random salt; the server drops
+  repeats and holds back weeks that jump suspiciously. The results come back as a **signed summary** (ECDSA, a key of its
+  own) that the app verifies before showing anything and keeps the last good copy of.
+- **What the community uses**: with the statistics on, the catalogue sorts **Popular / A-Z**, marks the three most placed
+  widgets POPULAR and shows each one's average rating, votes and "in X % of dashboards"; the **Statistics view** shows
+  active installs with the change, widgets typical vs yours, the most placed and the fastest rising, 26 weeks of installs,
+  a **dot map of the world** with the countries list (countries with only a few installs left out), languages and laptop
+  models, with a short entrance and hover details; the **Community tile** (4x1, 4x2) puts the four numbers and the bars
+  on the Dashboard and opens the view. `--stats-demo` shows all of it on a built-in sample, also in a running instance.
 - **Sword 16 HX B13V / B14V** (`15P2EMS1`, model database 20261120, [#307](../../issues/307), thanks @Allsoon) - another
   owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
 - **GE66 Raider, GP66 Leopard** (`1543EMS1`, model database 20261121, [#309](../../issues/309), thanks @hjka007) - a

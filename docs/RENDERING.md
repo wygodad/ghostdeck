@@ -676,3 +676,47 @@ line or on the line above it, or `// dpi-ok-file: <reason>` at the top of a file
 Comments are never checked, and the long-dash rule has no exceptions. The check is a guard, not a
 proof: a fixed size passed through a variable is not caught, so the preview at 192 stays part of
 the review.
+
+## 13. The Dashboard canvas: a static layer, a live layer and one tick (v1.44)
+
+The Dashboard tab (TECHNICAL.md §86) is one control, `DashCanvas`, painted in two layers.
+
+**The static layer** is a `BufferedGraphics` the size of the control, rendered again only when its
+key changes: the size, the DPI, the theme, the background-grid setting, the language, the layout,
+edit mode, the view, and (with the catalogue open) whether the statistics are on and which
+summary is in. It holds the background, the header, every widget's `PaintStatic` (the card, a
+dial's track, the curve, titles), the catalogue panel or the whole Catalogue and Statistics
+views. While it renders, every clickable rectangle is recorded in a list of zones; the mouse is
+resolved against that list, so there is no second geometry to keep in step.
+
+**The live layer** is painted in `OnPaint` after the static buffer is blitted: `PaintLive` of
+every widget whose rectangle meets the clip, the edit-mode frames and pills, the hover feedback
+and the ⋯ of the tile under the cursor. A tick (the page's 1.5 s timer, one sample read on a
+worker) asks every widget `LiveChanged`; only the rectangles that answer yes are invalidated, so
+an idle machine repaints nothing and a ring whose value moved repaints its own card. The control
+runs with `OptimizedDoubleBuffer`, so the blit and the live layer are composed off screen and
+presented once; a tick never shows the dials without their needles. When the page is hidden the
+timer stops and the static buffer is freed.
+
+**The entrance of the Statistics view** uses the same split. For half a second after the view
+opens the static layer leaves out the bars, the four headline values, the ranked lists' bars and
+the counted countries on the map; a 16 ms timer draws them on the live layer at an eased progress
+(bars grow, the install count counts up, the lists' bars lengthen, the countries light up), and
+when it reaches one the static layer is rendered once with the finished picture and the timer
+stops. Each frame invalidates only the union of the cards that move. Hovering a bar, a list row,
+a tile or the map paints its highlight and label on the live layer too; nothing in the static
+buffer is touched.
+
+**Popups with clickable rows** on the canvas (the tile menu, `UI/Controls/DashMenuPopup.cs`) are
+built like the themed drop-down list (§5): a borderless window that never takes focus
+(`WS_EX_NOACTIVATE`, `MA_NOACTIVATE`), a rounded region and a system shadow, closed by a message
+filter on a press anywhere else or Escape, and its row action runs after the window is gone,
+posted to the owner's queue. A `ToolStripDropDown` is for passive bubbles only (the help popup):
+its own filter closes it on the press inside a hosted control, so a row in it never sees the click.
+
+**Measuring.** The preview tool draws the tab at any DPI without hardware and has two benches:
+`page Dashboard 0 dark -13` times a static render, a tick with a fresh sample and a full repaint
+(16 passes, median), and `-14` drives the edit mode with simulated mouse messages (size, remove,
+drag, the panel, the columns row, the views) and saves each state as a PNG. `DASHDEMO=1` gives the
+widgets live-looking values and a sample curve, `STATS=1` a sample weekly summary, `DASHLAYOUT=`
+a layout of your own.

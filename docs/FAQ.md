@@ -338,3 +338,33 @@ versions does not verify what it downloads.
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
 
 A side effect of running with administrator rights (see the UAC question above). GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.
+
+## What does GhostDeck send, and why? (anonymous statistics)
+
+Nothing, unless you turn it on. Since 1.44.0 the app can send **one small anonymous report a
+week**, and in return it shows what other people use: which widgets are popular and how they are
+rated (in the Dashboard's catalogue), a Statistics view with a world map of where GhostDeck runs,
+and a Community tile. A card asks once, about half a minute after a start; closing it is a "no"
+and it never comes back. The switch is in **Settings → System**, next to two buttons: *What we
+collect* (the same card again) and *Show what will be sent* (the report exactly as it would go
+out now, also as the raw JSON).
+
+The report holds the app version, the language, the board family, the Windows version, the
+screen scale, which features you use, which widgets are on your Dashboard and how you rate them,
+how often you switch profiles and the share of time in each, and your CPU and GPU model. It
+holds **no identifier, no address, no names, no file or game names**, and no location finer
+than the country, which the server reads from the connection at the moment of sending without
+keeping the address. There is nothing in the report to tell two laptops of the same model apart,
+and nothing to tie two weeks of the same laptop together.
+
+The results come back as a signed file; the app checks the signature before it shows anything,
+so nobody can feed it made-up numbers. Countries with only a few installs are left out of the
+map on purpose. The whole mechanism, field by field: [TECHNICAL.md §87](TECHNICAL.md#87-anonymous-weekly-statistics-v144).
+
+## How do I rate a widget, and does rating need the statistics?
+
+On the Dashboard, hover a tile and click the ⋯ in its corner, then *Details and rating*: a card
+shows the widget, its description, five stars for your rating and how others rate it. The same
+card opens from a card in the Catalogue view or from a row of the panel in edit mode. Ratings
+travel with the weekly report, so with the statistics off a star opens a card that offers to turn
+them on first. Clicking the same star again clears your rating.
