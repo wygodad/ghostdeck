@@ -2765,10 +2765,11 @@ public sealed class TrayContext : ApplicationContext
     /// <summary>The report exactly as it would go out now (also reachable from Settings > System).</summary>
     private void ShowStatsReport()
     {
-        string text;
-        try { text = Stats.Pretty(Stats.BuildReport(_settings, _firmware, AppVersion(), _current, _profileSince)); }
-        catch (Exception ex) { text = ex.GetType().Name; }
-        new StatsReportCard(text).Show();
+        System.Text.Json.Nodes.JsonObject? report = null;
+        string? error = null;
+        try { report = Stats.BuildReport(_settings, _firmware, AppVersion(), _current, _profileSince); }
+        catch (Exception ex) { error = ex.GetType().Name; }
+        new StatsReportCard(report, error).Show();
     }
 
     private void MaybeCheckForUpdates()

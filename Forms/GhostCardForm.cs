@@ -364,6 +364,8 @@ public class GhostCardForm : Form
     protected virtual float ButtonFontPx => 13f;
     /// <summary>Card width in logical pixels.</summary>
     protected virtual int CardWidth => 500;
+    /// <summary>Extra logical pixels of air on both sides of everything inside the card (a roomier reading card); 0 = the usual margins.</summary>
+    protected virtual int SideInset => 0;
     /// <summary>Height in device pixels of the content block under the body text; 0 = none.</summary>
     protected virtual int MeasureContent(Graphics g, float k, int width) => 0;
     /// <summary>
@@ -466,8 +468,8 @@ public class GhostCardForm : Form
         int W = Ce(CardWidth * k);
         int railW = Ce(5 * k);
         int r = Ce(12 * k);
-        int cx = railW + Ce(15 * k);
-        int cw = W - cx - Ce(18 * k);
+        int cx = railW + Ce((15 + SideInset) * k);
+        int cw = W - cx - Ce((18 + SideInset) * k);
 
         using var wordF = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var scanF = Dpi.Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);

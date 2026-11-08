@@ -1152,14 +1152,24 @@ public sealed partial class SettingsPage : ThemedPage
         }));
         var statsShow = new Button { Text = Lang.T("set_stats_show"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(statsShow);
-        statsShow.Click += (_, _) =>
+        void ShowReport()
         {
-            string text;
-            try { text = Stats.Pretty(Stats.BuildReport(D.Settings, D.Firmware(), D.AppVersion(), D.Current(), DateTime.Now)); }
-            catch (Exception ex) { text = ex.GetType().Name; }
-            new StatsReportCard(text).Show();
-        };
-        stats.AddRow(null, statsShow);
+            System.Text.Json.Nodes.JsonObject? report = null;
+            string? error = null;
+            try { report = Stats.BuildReport(D.Settings, D.Firmware(), D.AppVersion(), D.Current(), DateTime.Now); }
+            catch (Exception ex) { error = ex.GetType().Name; }
+            new StatsReportCard(report, error).Show();
+        }
+        statsShow.Click += (_, _) => ShowReport();
+        // the consent card's explanation again, read-only (OK + sample report): what is and is not collected
+        var statsInfo = new Button { Text = Lang.T("set_stats_info"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
+        Ui.StyleGhost(statsInfo);
+        statsInfo.ForeColor = Theme.Red;                    // the brand pink, outlined like the card buttons
+        statsInfo.FlatAppearance.BorderColor = Theme.Red;
+        statsInfo.Click += (_, _) => new StatsConsentCard(() => { }, ShowReport, infoOnly: true).Show();
+        var statsRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = new Padding(0), WrapContents = false };
+        statsRow.Controls.Add(statsInfo); statsRow.Controls.Add(statsShow);
+        stats.AddRow(null, statsRow);
         _gLeft[SubSystem].Add(stats);
 
         // Tray context-menu visibility toggles (discussion #9); all default on.
