@@ -144,7 +144,7 @@ internal sealed partial class DashCanvas
             var body = StatsCard(g, lay.Langs, Lang.T("dash_st_langs"));
             CommunityStats.Ranked(g, body, sum.Langs.Select(l => (WorldMap.LanguageName(l.code), l.count)).ToList(), _ctx, Theme.Violet);
             var mb = StatsCard(g, lay.Models, Lang.T("dash_st_models"));
-            CommunityStats.Ranked(g, mb, sum.Models.Select(m => (m.prefix, m.count)).ToList(), _ctx, Theme.Green);
+            CommunityStats.Ranked(g, mb, sum.Models.Select(m => (CommunityStats.ModelName(m.prefix), m.count)).ToList(), _ctx, Theme.Green, nameShare: 0.62f);
         }
     }
 

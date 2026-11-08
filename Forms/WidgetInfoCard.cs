@@ -120,22 +120,48 @@ internal sealed class WidgetInfoCard : GhostCardForm
         }
         y += ss + Ce(16 * k);
 
-        // ---- the community line ----
+        // ---- the community: three small tiles (average with a star, votes, share of dashboards) ----
         var sum = _d.Settings.StatsEnabled ? Stats.Current : null;
         var st = sum != null && sum.Widgets.TryGetValue(_def.TypeId, out var w) ? w : null;
-        string line;
-        Color lineC;
-        if (st != null)
+        if (st == null)
         {
-            string votes = st.Rating is { } av && st.Votes > 0 ? string.Format(Lang.T("dash_avg_fmt"), av.ToString("0.0", Lang.Culture), st.Votes.ToString(Lang.Culture)) : "";
-            string share = string.Format(Lang.T("dash_share_fmt"), (int)Math.Round(st.Share * 100));
-            line = votes.Length > 0 ? votes + " · " + share : share;
-            lineC = Ink;
+            string line = Lang.T("dash_no_data");
+            float lh = H(line, lineF, width);
+            Text(line, lineF, Muted, x, y, width, lh);
+            return y + Ce(lh) - y0;
         }
-        else { line = Lang.T("dash_no_data"); lineC = Muted; }
-        float lh = H(line, lineF, width);
-        Text(line, lineF, lineC, x, y, width, lh);
-        y += Ce(lh);
+        using var valF = Dpi.Font("Segoe UI Semibold", 18f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+        bool hasVotes = st.Rating is { } && st.Votes > 0;
+        var tiles = new List<(string value, string cap, bool star)>();
+        if (hasVotes)
+        {
+            tiles.Add((st.Rating!.Value.ToString("0.0", Lang.Culture), Lang.T("dash_card_avg"), true));
+            tiles.Add((st.Votes.ToString("N0", Lang.Culture), Lang.T("dash_card_votes"), false));
+        }
+        tiles.Add((((int)Math.Round(st.Share * 100)).ToString(Lang.Culture) + " %", Lang.T("dash_card_share"), false));
+        int gap = Ce(12 * k), tp = Ce(14 * k);
+        int tw = (width - gap * (tiles.Count - 1)) / tiles.Count;
+        int starPx = Ce(20 * k);
+        int tileH = tp + Ce(valF.GetHeight(g)) + Ce(3 * k) + Ce(capF.GetHeight(g)) + tp;
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            var (value, caption, star) = tiles[i];
+            var r = new Rectangle(x + i * (tw + gap), y, tw, tileH);
+            if (!paint) continue;
+            using (var path = RoundPath(r, Ce(8 * k)))
+            using (var bg = new SolidBrush(FieldBg))
+                g.FillPath(bg, path);
+            float vx = r.X + tp;
+            if (star)
+            {
+                // the star shape of the rating rows, in the accent, on the value's middle line
+                DashRatings.PaintStars(g, new Point((int)vx, r.Y + tp + (Ce(valF.GetHeight(g)) - starPx) / 2), starPx, 1, Cyan, Color.Transparent, singleStar: true);
+                vx += starPx + Ce(6 * k);
+            }
+            Text(value, valF, White, vx, r.Y + tp, r.Right - (int)vx - tp, valF.GetHeight(g));
+            Text(caption, capF, Muted, r.X + tp, r.Y + tp + Ce(valF.GetHeight(g)) + Ce(3 * k), tw - tp * 2, capF.GetHeight(g));
+        }
+        y += tileH;
         return y - y0;
     }
 

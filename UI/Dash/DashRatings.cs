@@ -43,14 +43,15 @@ internal static class DashRatings
     /// <paramref name="filled"/> in <paramref name="fill"/>. Drawn as shapes, not glyphs: a font's
     /// star sits high in its line box and never lines up with text next to it.
     /// </summary>
-    public static void PaintStars(Graphics g, Point at, int size, int filled, Color fill, Color empty, Color? clearWith = null)
+    public static void PaintStars(Graphics g, Point at, int size, int filled, Color fill, Color empty, Color? clearWith = null, bool singleStar = false)
     {
-        if (clearWith is { } bg) { using var b = new SolidBrush(bg); g.FillRectangle(b, new Rectangle(at.X, at.Y, size * 5, size)); }
+        int count = singleStar ? 1 : 5;
+        if (clearWith is { } bg) { using var b = new SolidBrush(bg); g.FillRectangle(b, new Rectangle(at.X, at.Y, size * count, size)); }
         var old = g.SmoothingMode;
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         using var fb = new SolidBrush(fill);
         using var eb = new SolidBrush(empty);
-        for (int k = 1; k <= 5; k++)
+        for (int k = 1; k <= count; k++)
         {
             float cx = at.X + (k - 1) * size + size / 2f, cy = at.Y + size / 2f;
             g.FillPolygon(k <= filled ? fb : eb, Star(cx, cy, size * 0.46f));

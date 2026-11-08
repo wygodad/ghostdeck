@@ -41,6 +41,25 @@ internal static class CommunityStats
     /// <summary>The widget's name for a type id; the id itself for a type this version does not know.</summary>
     public static string Name(string type) => type.Length == 0 ? "" : DashRegistry.Find(type) is { } def ? Lang.T(def.NameKey) : type;
 
+    /// <summary>
+    /// The laptop name for a board prefix from the report ("17S1" -> "Raider GE78HX 13V / Vector 17 HX
+    /// A14V"), from the model database the app already carries; people remember the laptop, not the
+    /// board. The prefix itself when no entry matches (a board this version does not know yet).
+    /// </summary>
+    public static string ModelName(string prefix)
+    {
+        if (prefix.Length == 0) return "";
+        foreach (var p in Devices.All)
+            foreach (var fw in p.FirmwarePrefixes)
+                if (fw.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    string n = p.Name;
+                    if (n.StartsWith("MSI ", StringComparison.OrdinalIgnoreCase)) n = n[4..];
+                    return n;
+                }
+        return prefix;
+    }
+
     /// <summary>Bars of the active-install history (the last bar in the accent), with the top value at the left.</summary>
     public static void Bars(Graphics g, Rectangle r, IReadOnlyList<(string week, int active)> history, DashContext c, bool labels)
     {
@@ -74,14 +93,15 @@ internal static class CommunityStats
     }
 
     /// <summary>A ranked list: name, a bar against the largest, the count at the right. Returns the rows drawn.</summary>
-    public static int Ranked(Graphics g, Rectangle r, IReadOnlyList<(string name, int count)> rows, DashContext c, Color color)
+    public static int Ranked(Graphics g, Rectangle r, IReadOnlyList<(string name, int count)> rows, DashContext c, Color color, float nameShare = 0f)
     {
         if (rows.Count == 0) { DashPaint.Note(g, r, c, Lang.T("dash_no_data")); return 0; }
         var f = c.Font(9.5f);
         var nf = c.Font(9.5f, FontStyle.Bold);
         int rowH = f.Height + c.S(14), max = Math.Max(1, rows.Max(x => x.count));
         int countW = TextRenderer.MeasureText(max.ToString("N0", Lang.Culture), nf, Size.Empty, TextFormatFlags.NoPadding).Width + c.S(8);
-        int nameW = Math.Min(r.Width / 2, c.S(150));
+        // the name column: a fixed share of the width when asked (long laptop names), else up to 150 px
+        int nameW = nameShare > 0 ? (int)(r.Width * nameShare) : Math.Min(r.Width / 2, c.S(150));
         int drawn = 0;
         for (int i = 0; i < rows.Count && (i + 1) * rowH <= r.Height; i++, drawn++)
         {
