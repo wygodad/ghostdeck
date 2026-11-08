@@ -51,6 +51,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   @thangktv2) - the owner's block report gave the layout. The board code `16W1` has two EC lines, so the app now tells them
   apart by the laptop's own model name as Windows reports it; profile switching unlocks after the path test, as on the
   other models of this generation.
+- **Cyborg 15 C13WEO / C2WF: tested** (`15T1EMS1`, model database 20261203, [#340](../../issues/340), [#251](../../issues/251),
+  thanks @SlikeynesIn480p and @Achillesfeel) - a second owner's capture matches the recipes and all three hardware checks
+  are confirmed (58 tested). Both owners join the credit.
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261130, [#299](../../discussions/299), thanks
   @maestory) - a fan sweep showed the curve stopping at about 5000 rpm at 100 % (150 % adds nothing) while Fan Boost
   reaches about 7000 rpm; noted in the FAQ and added to the model's credit.

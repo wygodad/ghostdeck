@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261202;
+    public const int DataVersion = 20261203;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1503,12 +1503,17 @@ public static class Devices
         //   Switching CONFIRMED (issue #251, no MSI Center installed): the owner's second
         //   capture is the app's own writes read back - every column matches its recipe and
         //   he ticked "switching stable"; the wide-tach pair read 01:07 (~1817 rpm) again.
-        //   Still missing for Tested: whether Silent is quieter / Extreme faster (checks or a
-        //   power test).
-        new() { Name = "MSI Cyborg 15 C13WEO",              FirmwarePrefixes = new[] { "15T1EMS1" }, Tier = Tier.Experimental,
+        //   Promoted to Tested on a second owner's report (issue #340, a Cyborg 15 C2WF, firmware
+        //   .110, MSI Center 2.0.75): all three hardware checks ticked (Silent quieter, Extreme
+        //   stronger, switching stable; the owner's checks, no power test yet). Capture: Balanced C1,
+        //   Super Battery C2 + 0xEB=0F, the "Silent" tile writes the Super Battery set, Extreme
+        //   reads C5 (the board's fourth mode) - the Extreme recipe stays on C4.
+        new() { Name = "MSI Cyborg 15 C13WEO / C2WF",       FirmwarePrefixes = new[] { "15T1EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8,
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
-                FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+                FanCurve = ModernCurveVerified with { SingleFan = true }, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Achillesfeel, SlikeynesIn480p", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/340",
+                CreditIssues = Issues("Achillesfeel:173,174,175,251; SlikeynesIn480p:340") },
 
         // Pulse A16 AI+ C3HWFKG (15PKIMS1) - NEW prefix, absent from msi-ec; added from an
         // owner's read-only per-scenario report (issue #228, Ryzen AI 7 350 + RTX 5060; retail
