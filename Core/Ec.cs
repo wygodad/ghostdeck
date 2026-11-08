@@ -171,6 +171,9 @@ public static class Ec
     public sealed record BackupProbe(bool Active, string Firmware, DeviceProfile? Device, string Bios, string Detail);
     public static BackupProbe? LastBackupProbe { get; private set; }
 
+    /// <summary>The EC version read from the MSI_Software block by the last probe ("17G1EMS1.102"), else "".</summary>
+    public static string BackupEcVersion { get; private set; } = "";
+
     private static BackupState BuildBackup(DeviceProfile dev, BlockPathSpec spec)
     {
         var slots = new Dictionary<byte, BlockRef> { [dev.ShiftMode] = spec.ShiftMode, [dev.FanMode] = spec.FanMode, [dev.CpuTemp] = spec.CpuTemp };
@@ -208,12 +211,14 @@ public static class Ec
     /// Called once the method interface has answered "not supported": can this machine be
     /// read through its data blocks instead? Three things must hold. The BIOS version names a
     /// board code that maps to exactly ONE EC firmware line in the database (the EC version
-    /// itself cannot be read here; a board with two lines is told apart by the laptop's own
-    /// model name, and stays unidentified if that names neither); that model has a
+    /// is read from the MSI_Software block when it is there; without it a board with two lines
+    /// is told apart by the laptop's own model name, and stays unidentified if that names
+    /// neither); that model has a
     /// block layout on record; and the live values in those slots look like what the layout
     /// says they are - a shift-mode byte in the 0xC0 range, a fan-mode byte ending in 0xD, a
     /// plausible CPU temperature. On success the path is switched over and the firmware string
-    /// is the EC prefix with the BIOS version it was derived from.
+    /// is the EC prefix with the BIOS version: that exact string is what the passed path test
+    /// and the firmware guard are stored under, so the EC version stays in BackupEcVersion.
     /// </summary>
     public static BackupProbe TryBackupPath()
     {
@@ -228,8 +233,18 @@ public static class Ec
         if (bios.Length == 0) return Done(false, "", null, bios, "BIOS version could not be read");
         if (EcBlocks.BoardFromBios(bios) is not { } board)
             return Done(false, "", null, bios, "BIOS version has an unrecognised shape");
+        string ec = EcBlocks.ReadEcVersion();
+        BackupEcVersion = ec.StartsWith(board, StringComparison.OrdinalIgnoreCase) ? ec : "";
+        string ecNote = BackupEcVersion.Length > 0 ? $" (EC version {BackupEcVersion})" : "";
         var hits = Devices.PrefixesForBoard(board);
-        if (hits.Count == 0) return Done(false, "", null, bios, $"no model with board code {board} in the database");
+        if (hits.Count == 0) return Done(false, "", null, bios, $"no model with board code {board} in the database{ecNote}");
+        // The block's EC version settles which line this is. If it names none of the lines on
+        // record the board code decides as before, so nobody on this path loses their model.
+        if (BackupEcVersion.Length > 0)
+        {
+            var exact = hits.Where(h => BackupEcVersion.StartsWith(h.Prefix, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (exact.Count == 1) hits = exact;
+        }
         if (hits.Count > 1 && Devices.PickByProductName(hits, Smbios.ProductName()) is { } named)
             hits = new() { named };   // the laptop's own model name says which of the two lines it is
         if (hits.Count > 1)
@@ -256,7 +271,7 @@ public static class Ec
             _backup = BuildBackup(dev, spec);
             _firmwareCache = fw;
         }
-        return Done(true, fw, dev, bios, $"{prefix}: active");
+        return Done(true, fw, dev, bios, $"{prefix}: active{ecNote}");
     }
 
     /// <summary>

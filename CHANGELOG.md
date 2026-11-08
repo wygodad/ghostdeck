@@ -69,6 +69,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Two-table test verdict with a stopped fan** ([#310](../../issues/310), [#317](../../issues/317)): fans that switch
   off at 25 % read 0 rpm, and the verdict took that for a missing reading and said the readings "fit none of the simple
   rules". A stopped fan now counts as a low reading, so such a run reads "follows table 1 only" / "follows table 2 only".
+- **Firmware number on older laptops** ([#339](../../issues/339)): on laptops without the MSI_ACPI interface reports and issue
+  forms said the firmware was unknown. GhostDeck now reads the number from the MSI_Software data block, uses it to pick
+  the right model when a board has two firmware lines, and fills it into reports and forms. Measured on a GS75 Stealth
+  8SE; if a laptop's block holds no number, the BIOS version and the model name decide as before.
+  On a laptop the app does not recognise, the issue forms now start with the model name Windows reports instead of an
+  empty field.
 - **Per-model extras on the backup WMI path** ([#230](../../issues/230), thanks @scorvus99): the firmware string there
   carries the BIOS version (`16W2EMS1 (BIOS E16W2IMS.105)`), and the dot inside it cut the model prefix short, so the
   keyboard-backlight, webcam and Fn/Win lookups never found the model. The prefix is now read correctly.

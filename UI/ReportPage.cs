@@ -891,7 +891,7 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildCurveIssueUrl()
     {
-        string title = $"[Curve] {ModelName()} ({D.Firmware()})";
+        string title = $"[Curve] {FormModel()} ({ReportFirmware()})";
         string suffix = _curveMatch ? " (matches shipped map)" : " (differs from shipped map)";
         int one = OneCurveInFan1Table(Devices.Detect(D.Firmware())?.FanCurve);
         string found =
@@ -904,8 +904,8 @@ public sealed class ReportPage : ThemedPage
         // clipboard / saved to file, and any reload of a prefilled URL would wipe what the user pasted.
         return RepoUrl + "/issues/new?template=curve-support.yml&labels=curve-support"
             + "&title=" + Uri.EscapeDataString(title)
-            + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware())
+            + "&model=" + Uri.EscapeDataString(FormModel())
+            + "&firmware=" + Uri.EscapeDataString(ReportFirmware())
             + "&found=" + Uri.EscapeDataString(found);
     }
 
@@ -1024,6 +1024,9 @@ public sealed class ReportPage : ThemedPage
 
     // ---- report building (read-only) ----
     private string ModelName() { var s = D.Status(); return s.Known ? s.Device : ""; }
+    // What issue forms name as the laptop: the database entry, or on a laptop the app does not
+    // recognise, the model name Windows reports (the reports keep saying it was not detected).
+    private string FormModel() => ModelName() is { Length: > 0 } known ? known : Smbios.ProductName();
 
     private string BuildReport()
     {
@@ -1080,13 +1083,17 @@ public sealed class ReportPage : ThemedPage
     private static readonly string[] BlockSnapshotSlots =
         { "MSI_System[7]", "MSI_System[8]", "MSI_System[9]", "MSI_System[10]", "MSI_CPU[1]", "MSI_CPU[2]", "MSI_AP[2]", "MSI_AP[4]" };
 
+    // What reports and issue forms name as the firmware: the exact EC version where the
+    // MSI_Software block gave one (backup path), else what the app runs on.
+    private string ReportFirmware() => Ec.BackupEcVersion.Length > 0 ? Ec.BackupEcVersion : D.Firmware();
+
     private string BuildBlockReport()
     {
         var sb = new StringBuilder();
         sb.AppendLine("=== GhostDeck - model support report (WMI data blocks) ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, nothing written)");
         sb.AppendLine($"App version: {D.AppVersion()}");
-        sb.AppendLine($"Firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}   BIOS: {EcBlocks.BiosVersion()}");
+        sb.AppendLine($"Firmware: {(string.IsNullOrEmpty(ReportFirmware()) ? "(unknown)" : ReportFirmware())}   BIOS: {EcBlocks.BiosVersion()}");
         sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
         sb.AppendLine("This machine's firmware does not answer on the MSI_ACPI methods; the values below are the device's WMI data blocks, slot by slot (class[index]).");
         sb.AppendLine();
@@ -1172,13 +1179,13 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildIssueUrl()
     {
-        string title = $"[Model] {ModelName()} ({D.Firmware()})";
+        string title = $"[Model] {FormModel()} ({ReportFirmware()})";
         // NB: the paste field (id "fulldump") is deliberately NOT prefilled — the full report is on the
         // clipboard / saved to file, and any reload of a prefilled URL would wipe what the user pasted.
         string Base() => RepoUrl + "/issues/new?template=model-support.yml&labels=model-support"
             + "&title=" + Uri.EscapeDataString(title)
-            + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware());
+            + "&model=" + Uri.EscapeDataString(FormModel())
+            + "&firmware=" + Uri.EscapeDataString(ReportFirmware());
         string url = Base() + "&snapshot=" + Uri.EscapeDataString(BuildSnapshot());
         return url.Length > 7000 ? Base() : url;
     }
@@ -1401,13 +1408,13 @@ public sealed class ReportPage : ThemedPage
     private string BuildPowerIssueUrl()
     {
         var r = _ptResult;
-        string title = $"[Power] {ModelName()} ({D.Firmware()})";
+        string title = $"[Power] {FormModel()} ({ReportFirmware()})";
         // Like the other two wizards: the paste field is deliberately NOT prefilled, because the
         // full report is on the clipboard and reloading a prefilled URL would wipe what was pasted.
         return RepoUrl + "/issues/new?template=power-test.yml&labels=power-test"
             + "&title=" + Uri.EscapeDataString(title)
-            + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware())
+            + "&model=" + Uri.EscapeDataString(FormModel())
+            + "&firmware=" + Uri.EscapeDataString(ReportFirmware())
             + "&verdict=" + Uri.EscapeDataString(r == null ? "" : PowerTest.Summary(r));
     }
 
@@ -1711,7 +1718,7 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildTtIssueUrl()
     {
-        string title = $"[Two tables] {ModelName()} ({D.Firmware()})";
+        string title = $"[Two tables] {FormModel()} ({ReportFirmware()})";
         string verdict = "";
         if (_ttResult is { } r)
         {
@@ -1723,8 +1730,8 @@ public sealed class ReportPage : ThemedPage
         // clipboard and in a file, and reloading a prefilled URL would wipe what was pasted.
         return RepoUrl + "/issues/new?template=two-table-test.yml&labels=two-table-test"
             + "&title=" + Uri.EscapeDataString(title)
-            + "&model=" + Uri.EscapeDataString(ModelName())
-            + "&firmware=" + Uri.EscapeDataString(D.Firmware())
+            + "&model=" + Uri.EscapeDataString(FormModel())
+            + "&firmware=" + Uri.EscapeDataString(ReportFirmware())
             + "&verdict=" + Uri.EscapeDataString(verdict);
     }
 
