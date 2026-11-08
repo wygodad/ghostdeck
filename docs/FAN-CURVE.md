@@ -147,7 +147,9 @@ below a threshold they stack and the panel grows, and if the result no longer fi
 view scrolls (§10). The panel also grows by whatever the findings need beyond its base height: the
 lines are measured while painting (same flags as the drawing, so the measure and the wrap agree)
 and a change re-lays the view once, so a long translation or a large display scale never drops the
-last lines.
+last lines. The mini chart keeps its legend above the plot rather than inside it: a fan that reaches
+its top early draws its last steps across the top-left corner, which at 250 % or in a long language
+ran straight through the labels.
 
 ### 6.1 Grouped reading labels (1.43)
 

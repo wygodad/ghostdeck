@@ -2279,30 +2279,35 @@ public sealed class FanCurvePage : ThemedPage
             var mc = wide
                 ? new Rectangle(fr.Right + S(30), top + S(4), Math.Max(S(160), pnl.Right - fr.Right - S(60)), Math.Max(30, bottom - top - S(16)))
                 : new Rectangle(pnl.X + S(40), fy + S(22), pnl.Width - S(80), Math.Max(0, bottom - fy - S(40)));
-            if (mc.Height >= 30)
+            // The legend sits ABOVE the plot, not inside it: inside, the top steps of a fast fan
+            // ran through the labels whenever the chart was narrow (250 %, long translations).
+            int legendH = fans * (axisF.Height + S(2)) + S(6);
+            if (mc.Height - legendH >= 30)
             {
+                int lgx = mc.Left + S(4), lgy = mc.Top;
+                for (int f = 0; f < fans; f++)
+                {
+                    using var lb = new SolidBrush(cols[f]);
+                    g.FillRectangle(lb, lgx, lgy + (axisF.Height - S(3)) / 2, S(12), S(3));
+                    string nm = Lang.T(f == 0 ? (Single ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu") + (r.HasTach ? " (rpm)" : " (%)");
+                    TextRenderer.DrawText(g, nm, axisF, new Rectangle(lgx + S(16), lgy, Math.Max(S(40), mc.Right - lgx - S(16)), axisF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+                    lgy += axisF.Height + S(2);
+                }
+                var pc = new Rectangle(mc.Left, mc.Top + legendH, mc.Width, mc.Height - legendH);
                 using var axp = new Pen(Theme.Border);
-                g.DrawLine(axp, mc.Left, mc.Bottom, mc.Right, mc.Bottom); g.DrawLine(axp, mc.Left, mc.Top, mc.Left, mc.Bottom);
+                g.DrawLine(axp, pc.Left, pc.Bottom, pc.Right, pc.Bottom); g.DrawLine(axp, pc.Left, pc.Top, pc.Left, pc.Bottom);
                 int maxV = r.HasTach ? Math.Max(1000, r.Steps.Max(x => Math.Max(x.CpuRpm, x.GpuRpm))) : 100;
                 for (int f = 0; f < fans; f++)
                 {
-                    var pts = r.Steps.Select(x => new PointF(mc.Left + x.DutyPct / (float)MaxPct * mc.Width,
-                        mc.Bottom - (r.HasTach ? (f == 0 ? x.CpuRpm : x.GpuRpm) : (f == 0 ? x.CpuDuty : x.GpuDuty)) / (float)maxV * mc.Height)).ToArray();
+                    var pts = r.Steps.Select(x => new PointF(pc.Left + x.DutyPct / (float)MaxPct * pc.Width,
+                        pc.Bottom - (r.HasTach ? (f == 0 ? x.CpuRpm : x.GpuRpm) : (f == 0 ? x.CpuDuty : x.GpuDuty)) / (float)maxV * pc.Height)).ToArray();
                     if (pts.Length < 2) continue;
                     using var lp = new Pen(cols[f], Sf(2f)) { LineJoin = LineJoin.Round };
                     g.DrawLines(lp, pts);
                     foreach (var p in pts) { using var db = new SolidBrush(cols[f]); g.FillEllipse(db, p.X - Sf(3), p.Y - Sf(3), Sf(6), Sf(6)); }
                 }
-                int lgx = mc.Left + S(4), lgy = mc.Top;
-                for (int f = 0; f < fans; f++)
-                {
-                    using var lb = new SolidBrush(cols[f]);
-                    g.FillRectangle(lb, lgx, lgy + S(5), S(12), S(3));
-                    string nm = Lang.T(f == 0 ? (Single ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu") + (r.HasTach ? " (rpm)" : " (%)");
-                    TextRenderer.DrawText(g, nm, axisF, new Rectangle(lgx + S(16), lgy, S(200), axisF.Height), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding);
-                    lgy += axisF.Height + S(2);
-                }
-                TextRenderer.DrawText(g, "set %", axisF, new Rectangle(mc.Right - S(50), mc.Bottom + S(2), S(50), axisF.Height), Theme.Faint, TextFormatFlags.Right | TextFormatFlags.NoPadding);
+                int setW = TextRenderer.MeasureText(g, "set %", axisF, Size.Empty, TextFormatFlags.NoPadding).Width;
+                TextRenderer.DrawText(g, "set %", axisF, new Rectangle(pc.Right - setW, pc.Bottom + S(2), setW, axisF.Height), Theme.Faint, TextFormatFlags.Right | TextFormatFlags.NoPadding);
             }
             int stX = (_sweepCopy.Visible ? _sweepCopy.Right : _ttHelp.Right) + S(16);
             int stW = Math.Max(S(40), (_sweepHistory.Visible ? _sweepHistory.Left - S(12) : pnl.Right - S(16)) - stX);
