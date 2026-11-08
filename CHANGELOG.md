@@ -12,8 +12,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   density (Auto, 4, 5, 6 or 8). Outside edit mode a ⋯ on every tile opens details and rating, the next size, remove and
   edit. The layout lives in settings.json as order and sizes only, so it reflows on any window width; a widget this
   version does not know stays in the layout as a grey card. The tab is one painted surface: no child windows, a 1.5 s
-  tick that repaints only the widgets whose value moved. Settings → General picks the **start tab** (Scenarios or the
-  Dashboard).
+  tick that repaints only the widgets whose value moved. The Dashboard is the first tab and the one GhostDeck opens on; Settings →
+  General brings Scenarios back as the **start tab**.
 - **Catalogue and widget card**: the header switches between **Dashboard**, **Catalogue** (every widget as a card with its
   picture, description and an Add button) and **Statistics**. The **widget card** shows the widget itself painted live, the
   description, five stars for your rating and the community's numbers; it opens from a tile's ⋯, a Catalogue card or the
@@ -36,6 +36,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **GE66 Raider, GP66 Leopard** (`1543EMS1`, model database 20261121, [#309](../../issues/309), thanks @hjka007) - a
   second owner's capture matches the profile, fan and Super Battery settings in every scenario; added to the model's
   credit.
+### Changed
+- Settings → System, the tray icon's **left and middle button** lists show all their actions at once (eight rows hid the
+  rest behind a scroll); the *Open:* entries follow the tab order, the Dashboard first. A long list still fits the screen:
+  the rows are capped to the room below or above the field and the rest scrolls.
 
 ## [1.43.0] - 2026-10-30
 ### Added

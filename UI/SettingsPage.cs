@@ -1178,9 +1178,9 @@ public sealed partial class SettingsPage : ThemedPage
         TrayAction[] actOrder =
         {
             TrayAction.None, TrayAction.CycleProfile, TrayAction.FanBoost, TrayAction.Overlay, TrayAction.Crosshair,
-            TrayAction.ShowState, TrayAction.PanicReset, TrayAction.OpenScenarios, TrayAction.OpenStatus,
-            TrayAction.OpenDashboard, TrayAction.OpenFanCurve, TrayAction.OpenSettings, TrayAction.OpenModels, TrayAction.OpenChangeLog,
-        };
+            TrayAction.ShowState, TrayAction.PanicReset, TrayAction.OpenDashboard, TrayAction.OpenScenarios, TrayAction.OpenStatus,
+            TrayAction.OpenFanCurve, TrayAction.OpenSettings, TrayAction.OpenModels, TrayAction.OpenChangeLog,
+        };   // the "Open:" entries follow the tab order, the Dashboard first since 1.44
         string ActName(TrayAction a) => a switch
         {
             TrayAction.None => Lang.T("act_none"),
@@ -1203,6 +1203,7 @@ public sealed partial class SettingsPage : ThemedPage
         ThemedComboBox ActCombo(int cur, Action<int> set)
         {
             var c = Combo(actNames, Math.Max(0, Array.IndexOf(actOrder, (TrayAction)cur)));
+            c.MaxDropDownItems = actNames.Length;   // all 14 actions at once; 8 rows hid "Open: Dashboard" behind a scroll
             c.SelectedIndexChanged += (_, _) => { set((int)actOrder[Math.Max(0, c.SelectedIndex)]); D.SaveSettings(); D.SettingsChanged(); };
             return c;
         }
@@ -1235,9 +1236,9 @@ public sealed partial class SettingsPage : ThemedPage
         }));
         foreach (var (id, nameKey) in new[]
         {
-            ("Scenarios", "tab_scenarios"), ("Status", "menu_status"), ("Dashboard", "tab_dashboard"),
+            ("Dashboard", "tab_dashboard"), ("Scenarios", "tab_scenarios"), ("Status", "menu_status"),
             ("FanCurve", "tab_fancurve"), ("Settings", "menu_settings"), ("Models", "tab_models"),
-        })
+        })   // the tab order of the strip (the Dashboard first since 1.44)
         {
             string tid = id;
             uiSec.AddRow(string.Format(Lang.T("set_tab_as_icon"), Lang.T(nameKey)),
@@ -1308,8 +1309,8 @@ public sealed partial class SettingsPage : ThemedPage
             v => { D.Settings.SettingsAlwaysStart = v; D.SaveSettings(); }));
         // (1.44) Which tab the window opens on: Scenarios as always, or the Dashboard. Read
         // through MainForm.StartTabOf by the first show, the tray panel entry and a second launch.
-        var startTab = new SegControl(new[] { Lang.T("tab_scenarios"), Lang.T("tab_dashboard") }, D.Settings.StartTab == 1 ? 1 : 0) { Size = new Size(220, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
-        startTab.SelectedChanged += i => { D.Settings.StartTab = i; D.SaveSettings(); };
+        var startTab = new SegControl(new[] { Lang.T("tab_dashboard"), Lang.T("tab_scenarios") }, D.Settings.StartTab == 1 ? 0 : 1) { Size = new Size(220, 34) };   // dpi-ok: SegControl's MinimumSize grows it to its labels
+        startTab.SelectedChanged += i => { D.Settings.StartTab = i == 0 ? 1 : 0; D.SaveSettings(); };
         navCard.AddRow(Lang.T("set_start_tab"), startTab);
         _gRight[SubGeneral].Add(navCard);
 

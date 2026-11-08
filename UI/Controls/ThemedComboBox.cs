@@ -434,6 +434,11 @@ public sealed class ThemedComboBox : Control
         {
             _rows = Math.Clamp(Count, 1, Math.Max(1, _field.MaxDropDownItems));
             var area = Screen.FromControl(_field).WorkingArea;
+            // A long list (the tray actions show all their rows) still fits the screen: cap the
+            // rows to the larger of the space below and above the field, and the rest scrolls.
+            var fieldAt = _field.PointToScreen(Point.Empty);
+            int room = Math.Max(area.Bottom - (fieldAt.Y + _field.Height), fieldAt.Y - area.Top) - 2;
+            _rows = Math.Clamp(Math.Min(_rows, room / Math.Max(1, RowH)), 1, Math.Max(1, Count));
             // #172: the list is never narrower than its longest item needs (within the screen)
             int w = Math.Min(area.Width, Math.Max(Math.Max(_field.Width, _field.DropDownWidth),
                                                   _field.PreferredFieldWidth + (Scrolls ? BarW : 0)));

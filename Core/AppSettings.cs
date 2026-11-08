@@ -361,7 +361,7 @@ public sealed class AppSettings
 
     // (1.44) Which main tab the window opens on: 0 = Scenarios (as always), 1 = Dashboard.
     // Read by MainForm.StartTabOf at every place that opens the window on "the start tab".
-    public int StartTab { get; set; }
+    public int StartTab { get; set; } = 1;   // 1 = Dashboard (the default since 1.44), 0 = Scenarios
 
     // (1.44) Anonymous weekly statistics (Core/Stats.cs). Off until the user says yes on the
     // consent card; StatsAsked remembers the card was answered either way. The weekly counters
@@ -645,7 +645,7 @@ public sealed class AppSettings
         if (SessionPopupSeconds is < 0 or > 600) SessionPopupSeconds = 60;   // 0 = until closed
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
         if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
-        if (StartTab is not (0 or 1)) StartTab = 0;
+        if (StartTab is not (0 or 1)) StartTab = 1;
         if (DashColumns is not (0 or 4 or 5 or 6 or 8)) DashColumns = 0;
         foreach (var k in WidgetRatings.Where(kv => kv.Value < 1 || kv.Value > 5).Select(kv => kv.Key).ToList()) WidgetRatings.Remove(k);
         if (StatsSwitches < 0) StatsSwitches = 0;

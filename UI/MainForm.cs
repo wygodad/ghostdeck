@@ -21,7 +21,7 @@ public sealed class MainForm : Form
     private readonly GlyphButton _updatesBtn = new();
     private readonly ToolTip _tip = new();
     private readonly Label _version = new();
-    private MainTab _active = MainTab.Scenarios;
+    private MainTab _active = MainTab.Dashboard;
     private readonly System.Windows.Forms.Timer _dispDebounce = new() { Interval = 600 };
 
     public MainForm(MainDeps d)
@@ -208,9 +208,9 @@ public sealed class MainForm : Form
     // (Settings → Interface), as an icon-only button on the right, past the version number.
     private static readonly (MainTab tab, string langKey, string glyph)[] TabDefs =
     {
+        (MainTab.Dashboard, "tab_dashboard", ""),
         (MainTab.Scenarios, "tab_scenarios", ""),
         (MainTab.Status,    "menu_status",   ""),
-        (MainTab.Dashboard, "tab_dashboard", ""),
         (MainTab.FanCurve,  "tab_fancurve",  ""),
         (MainTab.Settings,  "menu_settings", ""),
         (MainTab.Models,    "tab_models",    "\U0001F4BB"),

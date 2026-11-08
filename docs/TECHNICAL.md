@@ -4479,8 +4479,8 @@ goes and offers to turn them on.
 **The tick** belongs to the page (`UI/DashboardPage.cs`): one shared sample every 1.5 s (the
 Status interval; one EC read per tick, the two pages are never visible at once), read on a worker
 and completed on the window thread; no tick while the page is hidden, and the static buffer is
-freed then. How the two layers are painted and measured is in RENDERING.md §13. The **start tab**
-is a setting (Settings → General): Scenarios as before, or the Dashboard.
+freed then. How the two layers are painted and measured is in RENDERING.md §13. The Dashboard is the
+first tab and the **start tab**; Settings → General makes Scenarios the start tab as before.
 
 The preview tool draws the tab without hardware (`DOC/tools/render-harness`, modes `page
 Dashboard`, `-14` for the edit bench, `DASHLAYOUT=`, `DASHDEMO=1`, `STATS=1`), and
