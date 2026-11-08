@@ -50,7 +50,7 @@ internal sealed class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star }
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -412,6 +412,11 @@ internal sealed class DashCanvas : Control
     /// <summary>Hover feedback for the header and catalogue buttons (the widgets' own buttons paint theirs in PaintEditChrome).</summary>
     private void PaintHot(Graphics g)
     {
+        if (!_edit && _hot.Kind is Zone.Widget or Zone.More && _hot.Index >= 0 && _hot.Index < _rects.Length)
+        {
+            PaintMore(g, _rects[_hot.Index], _hot.Kind == Zone.More);
+            return;
+        }
         if (_hot.Kind == Zone.Star)
         {
             // the stars up to the one under the cursor fill in the accent, over the card background
@@ -419,7 +424,7 @@ internal sealed class DashCanvas : Control
                 PaintStars(g, row, _hot.Index, Theme.Accent, Theme.Faint, clear: true);
             return;
         }
-        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd or Zone.Sort)) return;
+        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd or Zone.Sort or Zone.Info)) return;
         foreach (var (r, zone) in _zones)
             if (zone == _hot)
             {
@@ -472,18 +477,8 @@ internal sealed class DashCanvas : Control
     }
 
     /// <summary>Five stars from the left of <paramref name="row"/>, the first <paramref name="filled"/> in <paramref name="fill"/>.</summary>
-    private void PaintStars(Graphics g, Rectangle row, int filled, Color fill, Color empty, bool clear)
-    {
-        int s = StarSize;
-        using var starF = Dpi.Font("Segoe UI Symbol", s * 0.86f, FontStyle.Regular, GraphicsUnit.Pixel);
-        if (clear) { using var b = new SolidBrush(Theme.Card); g.FillRectangle(b, row); }
-        for (int k = 1; k <= 5; k++)
-        {
-            var r = new Rectangle(row.Left + (k - 1) * s, row.Top, s, s);
-            TextRenderer.DrawText(g, "★", starF, r, k <= filled ? fill : empty,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoClipping);
-        }
-    }
+    private void PaintStars(Graphics g, Rectangle row, int filled, Color fill, Color empty, bool clear) =>
+        DashRatings.PaintStars(g, row.Location, StarSize, filled, fill, empty, clear ? Theme.Card : null);
 
     private void PaintCatalog(Graphics g)
     {
@@ -600,6 +595,8 @@ internal sealed class DashCanvas : Control
                 TextRenderer.DrawText(g, btn, btnF, br, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
                 _zones.Add((br, new Hot(Zone.CatalogAdd, -1, def.TypeId)));
             }
+            // the rest of the row opens the widget card (added last: the stars and the button win where they overlap)
+            _zones.Add((new Rectangle(row.Left, row.Top, row.Width, row.Height - S(2)), new Hot(Zone.Info, -1, def.TypeId)));
             y += rowH;
             if (n < order.Count - 1)
                 using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, x, y - 1, x + w, y - 1);
@@ -610,27 +607,37 @@ internal sealed class DashCanvas : Control
     /// A star clicked in the catalogue. With statistics off a card explains that ratings travel
     /// with the weekly report and offers to turn them on; the same star again clears the rating.
     /// </summary>
-    private void Rate(string type, int stars)
+    private void Rate(string type, int stars) => DashRatings.Rate(_d, type, stars, FindForm(), Rebuild);
+
+    /// <summary>The widget card for a type: the placed instance when it is on the Dashboard (its picture shows the live values), a fresh one otherwise.</summary>
+    internal GhostCardForm InfoCardFor(string type)
     {
-        var s = _d.Settings;
-        if (!s.StatsEnabled)
-        {
-            var dlg = new GhostCardForm("//STATS", Lang.T("dash_rate_title"), Lang.T("dash_rate_body"), Lang.T("dash_rate_on"), Lang.T("gen_cancel"), () =>
-            {
-                s.StatsEnabled = true;
-                s.StatsAsked = true;
-                s.WidgetRatings[type] = stars;
-                try { _d.SaveSettings(); } catch { }
-                _d.StatsChanged?.Invoke();
-                Rebuild();
-            });
-            dlg.ShowOver(FindForm());
-            return;
-        }
-        if (s.WidgetRatings.TryGetValue(type, out int cur) && cur == stars) s.WidgetRatings.Remove(type);
-        else s.WidgetRatings[type] = stars;
-        try { _d.SaveSettings(); } catch { }
-        Rebuild();
+        var def = DashRegistry.Find(type) ?? throw new ArgumentException(type);
+        int k = _widgets.FindIndex(w => w.TypeId == type);
+        var widget = k >= 0 ? _widgets[k] : def.New();
+        bool canAdd = k < 0 && def.Available(_d);
+        return new WidgetInfoCard(_d, def, widget, _ctx, Rebuild, canAdd ? () => AddType(type) : null);
+    }
+
+    private void OpenInfo(string type)
+    {
+        if (DashRegistry.Find(type) == null) return;
+        InfoCardFor(type).ShowOver(FindForm());
+    }
+
+    /// <summary>The ⋯ of a tile: details and rating, the next size, remove, edit the layout.</summary>
+    private void ShowTileMenu(int index, Point at)
+    {
+        if (index < 0 || index >= _items.Count) return;
+        var it = _items[index];
+        var menu = new ContextMenuStrip();
+        var info = new ToolStripMenuItem(Lang.T("dash_menu_info")); info.Click += (_, _) => OpenInfo(it.Type);
+        var size = new ToolStripMenuItem(string.Format(Lang.T("dash_menu_size_fmt"), $"{it.W}×{it.H} ▸")); size.Click += (_, _) => CycleSize(index);
+        var remove = new ToolStripMenuItem(Lang.T("dash_menu_remove")); remove.Click += (_, _) => RemoveAt(index);
+        var edit = new ToolStripMenuItem(Lang.T("dash_edit")); edit.Click += (_, _) => EditMode = true;
+        menu.Items.AddRange(new ToolStripItem[] { info, new ToolStripSeparator(), size, remove, new ToolStripSeparator(), edit });
+        menu.Closed += (_, _) => menu.Dispose();
+        menu.Show(this, at);
     }
 
     // ---- actions ----------------------------------------------------------------------------
@@ -733,8 +740,31 @@ internal sealed class DashCanvas : Control
                 if (SizeRect(_rects[i], i).Contains(p)) return new Hot(Zone.Size, i, null);
                 return new Hot(Zone.Widget, i, null);
             }
-        if (!_edit) { int k = HitWidget(p); if (k >= 0) return new Hot(Zone.Widget, k, null); }
+        if (!_edit)
+        {
+            int k = HitWidget(p);
+            if (k >= 0) return MoreRect(_rects[k]).Contains(p) ? new Hot(Zone.More, k, null) : new Hot(Zone.Widget, k, null);
+        }
         return new Hot(Zone.None, -1, null);
+    }
+
+    // ---- the ⋯ of a tile (outside edit mode, shown while the cursor is on the tile) ----
+    private int MoreBtn => S(26);
+    private Rectangle MoreRect(Rectangle r) => new(r.Right - MoreBtn - S(8), r.Top + S(8), MoreBtn, MoreBtn);
+
+    private void PaintMore(Graphics g, Rectangle tile, bool hot)
+    {
+        var r = MoreRect(tile);
+        using (var path = Theme.RoundRect(r, Sf(6)))
+        {
+            using var b = new SolidBrush(hot ? Theme.AccentSoft : Color.FromArgb(230, Theme.Surface));
+            g.FillPath(b, path);
+            using var pen = new Pen(hot ? Theme.Accent : Theme.BorderStrong);
+            g.DrawPath(pen, path);
+        }
+        using var dot = new SolidBrush(hot ? Theme.Accent : Theme.Muted);
+        float d = Math.Max(2f, 2.4f * Sf(1)), cy = r.Top + r.Height / 2f - d / 2f, cx = r.Left + r.Width / 2f;
+        foreach (float off in new[] { -1.9f, 0f, 1.9f }) g.FillEllipse(dot, cx + off * d - d / 2f, cy, d, d);
     }
 
     private int HitWidget(Point p)
@@ -751,7 +781,7 @@ internal sealed class DashCanvas : Control
         foreach (var z in new[] { old, h })
         {
             if (z.Kind == Zone.None) continue;
-            if (z.Kind is Zone.Remove or Zone.Size or Zone.Widget) { if (z.Index >= 0 && z.Index < _rects.Length) Invalidate(_rects[z.Index]); }
+            if (z.Kind is Zone.Remove or Zone.Size or Zone.Widget or Zone.More) { if (z.Index >= 0 && z.Index < _rects.Length) Invalidate(_rects[z.Index]); }
             else if (z.Kind == Zone.Star) { if (z.Type != null && _starRows.TryGetValue(z.Type, out var row)) Invalidate(Rectangle.Inflate(row, 2, 2)); }   // the whole row lights up to the star
             else foreach (var (r, zone) in _zones) if (zone == z) Invalidate(Rectangle.Inflate(r, 2, 2));
         }
@@ -806,6 +836,8 @@ internal sealed class DashCanvas : Control
             case Zone.CatalogAdd: if (h.Type != null) AddType(h.Type); return;
             case Zone.Sort: _sortPopular = h.Index == 0; Rebuild(); return;
             case Zone.Star: if (h.Type != null) Rate(h.Type, h.Index); return;
+            case Zone.More: ShowTileMenu(h.Index, new Point(MoreRect(_rects[h.Index]).Left, MoreRect(_rects[h.Index]).Bottom + S(4))); return;
+            case Zone.Info: if (h.Type != null) OpenInfo(h.Type); return;
             case Zone.Widget:
                 if (_edit) _pressIndex = h.Index;
                 else _placed[h.Index].Widget.Click(e.Location, _rects[h.Index], _ctx);
