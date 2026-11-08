@@ -26,7 +26,7 @@ namespace GhostDeck;
 /// live; the catalogue panel on the right adds widgets; "Restore default" asks first. Every
 /// change is saved at once. The page scrolls this control natively.
 /// </summary>
-internal sealed class DashCanvas : Control
+internal sealed partial class DashCanvas : Control
 {
     private readonly MainDeps _d;
     private readonly DashContext _ctx;
@@ -50,7 +50,7 @@ internal sealed class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info }
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -115,13 +115,15 @@ internal sealed class DashCanvas : Control
     private int GridTop()
     {
         using var f = TitleFont();
-        return S(24) + Math.Max(f.Height, ButtonH) + S(28);
+        return S(24) + Math.Max(Math.Max(f.Height, ButtonH), SwitchH) + S(28);
     }
 
     /// <summary>Height the page sizes this control to (the page scrolls it when taller than the window).</summary>
     public int ContentHeight(int width)
     {
         Sync();
+        if (_view == View.Catalog) return GridTop() + CatalogViewHeight(width) + Pad;
+        if (_view == View.Stats) return GridTop() + StatsViewHeight(width) + Pad;
         var placed = Placement(width);
         int rows = Math.Max(1, DashLayout.Rows(placed)), cell = Cell(width);
         int grid = GridTop() + rows * cell + (rows - 1) * Gap + Pad;
@@ -209,7 +211,7 @@ internal sealed class DashCanvas : Control
     public void SetSample(DashSample s)
     {
         _ctx.Sample = s;
-        if (!Visible || Width <= 0) return;
+        if (!Visible || Width <= 0 || _view != View.Dashboard) return;
         if (StaticKeyChanged()) { _staticDirty = true; Invalidate(); LastLiveRepaints = _widgets.Count; LastLiveRegion = ClientRectangle; return; }
         var rects = Rects();
         int n = 0;
@@ -254,13 +256,18 @@ internal sealed class DashCanvas : Control
         var rects = Rects();
         _zones.Clear();
         PaintHeader(g);
-        for (int i = 0; i < _placed.Count; i++) _placed[i].Widget.PaintStatic(g, rects[i], _ctx);
-        if (_placed.Count == 0)
+        if (_view == View.Catalog) PaintCatalogView(g);
+        else if (_view == View.Stats) PaintStatsView(g);
+        else
         {
-            int gw = GridWidth(Width);
-            DashPaint.Note(g, new Rectangle(Pad, GridTop(), gw - Pad * 2, Math.Max(S(40), Cell(Width))), _ctx, Lang.T("dash_empty"));
+            for (int i = 0; i < _placed.Count; i++) _placed[i].Widget.PaintStatic(g, rects[i], _ctx);
+            if (_placed.Count == 0)
+            {
+                int gw = GridWidth(Width);
+                DashPaint.Note(g, new Rectangle(Pad, GridTop(), gw - Pad * 2, Math.Max(S(40), Cell(Width))), _ctx, Lang.T("dash_empty"));
+            }
+            if (_catalog) PaintCatalog(g);
         }
-        if (_catalog) PaintCatalog(g);
         _sW = Width; _sH = Height; _sDpi = Dpi.Of(this); _sDark = Theme.Dark; _sGrid = _d.Settings.ShowGrid; _sLang = Lang.CurrentCode;
         _sStats = _d.Settings.StatsEnabled; _sSummary = Stats.Current;
         _staticDirty = false;
@@ -274,11 +281,14 @@ internal sealed class DashCanvas : Control
         if (_static == null) return;
         _static.Render(e.Graphics);   // the whole buffer; the target's clip limits what reaches the screen
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        var rects = Rects();
-        var clip = e.ClipRectangle;
-        for (int i = 0; i < _placed.Count; i++)
-            if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(e.Graphics, rects[i], _ctx);
-        if (_edit) PaintEditChrome(e.Graphics, rects, clip);
+        if (_view == View.Dashboard)
+        {
+            var rects = Rects();
+            var clip = e.ClipRectangle;
+            for (int i = 0; i < _placed.Count; i++)
+                if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(e.Graphics, rects[i], _ctx);
+            if (_edit) PaintEditChrome(e.Graphics, rects, clip);
+        }
         PaintHot(e.Graphics);
     }
 
@@ -301,11 +311,12 @@ internal sealed class DashCanvas : Control
     private void PaintHeader(Graphics g)
     {
         using var tf = TitleFont();
-        int bandH = Math.Max(tf.Height, ButtonH), top = S(24);
-        TextRenderer.DrawText(g, Lang.T("tab_dashboard"), tf, new Rectangle(Pad, top, Width / 2, bandH), Theme.Text,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        int bandH = Math.Max(Math.Max(tf.Height, ButtonH), SwitchH), top = S(24);
+        PaintViewSwitch(g, Pad, top, bandH);
         int x = GridWidth(Width) - Pad;
-        if (_edit)
+        if (_view == View.Catalog) { if (Summary != null) PaintSortPills(g, x, top, bandH); }
+        else if (_view == View.Stats) { }
+        else if (_edit)
         {
             x = HeaderButton(g, x, top, bandH, "", Lang.T("dash_done"), new Hot(Zone.Done, -1, null), primary: true);
             x = HeaderButton(g, x - S(8), top, bandH, "", Lang.T("dash_reset"), new Hot(Zone.Reset, -1, null), primary: false);
@@ -495,28 +506,7 @@ internal sealed class DashCanvas : Control
         var secF = _ctx.Font(8.5f, FontStyle.Bold);
         int lineH = Math.Max(secF.Height, sum != null ? SortPillH : 0);
         TextRenderer.DrawText(g, Lang.Upper(Lang.T("dash_catalog_std")), secF, new Rectangle(x, y + (lineH - secF.Height) / 2, w, secF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding);
-        if (sum != null)
-        {
-            string[] labels = { Lang.T("dash_sort_popular"), Lang.T("dash_sort_az") };
-            int right = x + w;
-            for (int i = 1; i >= 0; i--)
-            {
-                int pw = TextRenderer.MeasureText(labels[i], CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22);
-                var pr = new Rectangle(right - pw, y + (lineH - SortPillH) / 2, pw, SortPillH);
-                bool on = (i == 0) == _sortPopular;
-                using (var path = Theme.RoundRect(pr, SortPillH / 2f))   // already device pixels: a full pill, no second scaling
-                {
-                    using var b = new SolidBrush(on ? Theme.AccentSoft : Theme.Surface);
-                    g.FillPath(b, path);
-                    using var pen = new Pen(on ? Theme.Accent : Theme.Border);
-                    g.DrawPath(pen, path);
-                }
-                TextRenderer.DrawText(g, labels[i], CatSmallF, pr, on ? Theme.Accent : Theme.Muted,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-                _zones.Add((pr, new Hot(Zone.Sort, i, null)));
-                right = pr.Left - S(8);
-            }
-        }
+        if (sum != null) PaintSortPills(g, x + w, y, lineH);
         y += lineH + S(8);
 
         var nameF = CatNameF;
@@ -732,6 +722,7 @@ internal sealed class DashCanvas : Control
     private Hot HitZone(Point p)
     {
         foreach (var (r, zone) in _zones) if (r.Contains(p)) return zone;
+        if (_view != View.Dashboard) return new Hot(Zone.None, -1, null);
         if (_edit && _rects.Length == _placed.Count)
             for (int i = 0; i < _rects.Length; i++)
             {
@@ -838,6 +829,7 @@ internal sealed class DashCanvas : Control
             case Zone.Star: if (h.Type != null) Rate(h.Type, h.Index); return;
             case Zone.More: ShowTileMenu(h.Index, new Point(MoreRect(_rects[h.Index]).Left, MoreRect(_rects[h.Index]).Bottom + S(4))); return;
             case Zone.Info: if (h.Type != null) OpenInfo(h.Type); return;
+            case Zone.View: SwitchView((View)h.Index); return;
             case Zone.Widget:
                 if (_edit) _pressIndex = h.Index;
                 else _placed[h.Index].Widget.Click(e.Location, _rects[h.Index], _ctx);
@@ -896,6 +888,7 @@ internal sealed class DashCanvas : Control
             "reset" => new Hot(Zone.Reset, -1, null),
             "catalog" => new Hot(Zone.CatalogAdd, -1, arg),
             "sort" => new Hot(Zone.Sort, int.TryParse(arg, out int si) ? si : 0, null),
+            "view" => new Hot(Zone.View, int.TryParse(arg, out int vi) ? vi : 0, null),
             "star" => arg.LastIndexOf(':') is var c and > 0 && int.TryParse(arg[(c + 1)..], out int sn) ? new Hot(Zone.Star, sn, arg[..c]) : new Hot(Zone.None, -1, null),   // star:typeId:n
             _ => new Hot(Zone.None, -1, null),
         };
