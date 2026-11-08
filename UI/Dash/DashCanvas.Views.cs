@@ -30,6 +30,29 @@ internal sealed partial class DashCanvas
     private Font SwitchFont() => _ctx.Font(11f, FontStyle.Bold);
     private int SwitchH => Math.Max(S(38), SwitchFont().Height + S(16));
 
+    /// <summary>Width of the header switch group (the three labels, their padding, the inset).</summary>
+    private int SwitchW()
+    {
+        var f = SwitchFont();
+        int w = S(3) * 2;
+        foreach (var key in new[] { "tab_dashboard", "dash_view_catalog", "dash_view_stats" })
+            w += TextRenderer.MeasureText(Lang.T(key), f, Size.Empty, TextFormatFlags.NoPadding).Width + S(18) * 2;
+        return w;
+    }
+
+    /// <summary>Width of the right-hand header buttons in the current state (HeaderButton's geometry: glyph slot, paddings, gaps).</summary>
+    private int HeaderButtonsW()
+    {
+        var f = ButtonFont();
+        int One(string key) => S(12) + S(16) + S(8) + TextRenderer.MeasureText(Lang.T(key), f, Size.Empty, TextFormatFlags.NoPadding).Width + S(14);
+        if (_view == View.Catalog) return Summary == null ? 0 : TextRenderer.MeasureText(Lang.T("dash_sort_popular") + Lang.T("dash_sort_az"), CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22) * 2 + S(8);
+        if (_view == View.Stats) return 0;
+        return _edit ? One("dash_done") + One("dash_reset") + One("dash_add") + S(8) * 2 : One("dash_edit");
+    }
+
+    /// <summary>True when the buttons would run into the switch: they take a second header row instead (250 % in a long language).</summary>
+    private bool HeaderWraps => Pad + SwitchW() + S(16) + HeaderButtonsW() > GridWidth(Width) - Pad;
+
     /// <summary>Dashboard | Katalog | Statystyki at the left of the header; returns the group's right edge.</summary>
     private int PaintViewSwitch(Graphics g, int left, int top, int bandH)
     {

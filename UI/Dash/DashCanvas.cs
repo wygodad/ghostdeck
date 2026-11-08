@@ -120,7 +120,7 @@ internal sealed partial class DashCanvas : Control
     private int GridTop()
     {
         using var f = TitleFont();
-        return S(24) + Math.Max(Math.Max(f.Height, ButtonH), SwitchH) + S(28) + (_edit ? ColsRowH + S(10) : 0);   // edit mode adds the columns row
+        return S(24) + Math.Max(Math.Max(f.Height, ButtonH), SwitchH) + S(28) + (HeaderWraps ? ButtonH + S(10) : 0) + (_edit ? ColsRowH + S(10) : 0);   // a second row for the buttons when they do not fit beside the switch; edit mode adds the columns row
     }
 
     /// <summary>Height the page sizes this control to (the page scrolls it when taller than the window).</summary>
@@ -319,17 +319,19 @@ internal sealed partial class DashCanvas : Control
         using var tf = TitleFont();
         int bandH = Math.Max(Math.Max(tf.Height, ButtonH), SwitchH), top = S(24);
         PaintViewSwitch(g, Pad, top, bandH);
+        // at 250 % in a long language the three edit buttons do not fit beside the switch: second row, right-aligned
+        int by = HeaderWraps ? top + bandH + S(10) : top, bandB = HeaderWraps ? ButtonH : bandH;
         int x = GridWidth(Width) - Pad;
-        if (_view == View.Catalog) { if (Summary != null) PaintSortPills(g, x, top, bandH); }
+        if (_view == View.Catalog) { if (Summary != null) PaintSortPills(g, x, by, bandB); }
         else if (_view == View.Stats) { }
         else if (_edit)
         {
-            x = HeaderButton(g, x, top, bandH, "", Lang.T("dash_done"), new Hot(Zone.Done, -1, null), primary: true);
-            x = HeaderButton(g, x - S(8), top, bandH, "", Lang.T("dash_reset"), new Hot(Zone.Reset, -1, null), primary: false);
-            HeaderButton(g, x - S(8), top, bandH, "", Lang.T("dash_add"), new Hot(Zone.Add, -1, null), primary: false, active: _catalog);
+            x = HeaderButton(g, x, by, bandB, "", Lang.T("dash_done"), new Hot(Zone.Done, -1, null), primary: true);
+            x = HeaderButton(g, x - S(8), by, bandB, "", Lang.T("dash_reset"), new Hot(Zone.Reset, -1, null), primary: false);
+            HeaderButton(g, x - S(8), by, bandB, "", Lang.T("dash_add"), new Hot(Zone.Add, -1, null), primary: false, active: _catalog);
         }
-        else HeaderButton(g, x, top, bandH, "", Lang.T("dash_edit"), new Hot(Zone.Edit, -1, null), primary: false);
-        if (_edit && _view == View.Dashboard) PaintColsRow(g, top + bandH + S(12));
+        else HeaderButton(g, x, by, bandB, "", Lang.T("dash_edit"), new Hot(Zone.Edit, -1, null), primary: false);
+        if (_edit && _view == View.Dashboard) PaintColsRow(g, by + bandB + S(12));
     }
 
     /// <summary>A header button right-aligned at <paramref name="right"/>; returns its left edge.</summary>
