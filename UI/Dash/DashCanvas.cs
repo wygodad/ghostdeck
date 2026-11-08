@@ -34,8 +34,9 @@ internal sealed class DashCanvas : Control
     // the static layer and the key it was rendered for
     private BufferedGraphics? _static;
     private int _sW, _sH, _sDpi;
-    private bool _sDark, _sGrid, _staticDirty = true;
+    private bool _sDark, _sGrid, _sStats, _staticDirty = true;
     private string _sLang = "";
+    private object? _sSummary;   // the summary the static layer was painted with (reference)
 
     // the layout: the items (the settings list itself, so edits are in place), one widget per
     // item, their placement for the current column count and the pixel rectangles
@@ -47,7 +48,9 @@ internal sealed class DashCanvas : Control
 
     // edit mode
     private bool _edit, _catalog;
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget }
+    private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
+    private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -66,6 +69,13 @@ internal sealed class DashCanvas : Control
         // OptimizedDoubleBuffer: OnPaint composes the static blit and the live layer offscreen
         // and presents once, so a tick never shows the static layer without its needles.
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        Stats.SummaryChanged += OnSummaryChanged;   // a fresh weekly summary: the catalogue's badges and order change
+    }
+
+    private void OnSummaryChanged()
+    {
+        if (IsDisposed) return;
+        if (InvokeRequired) BeginInvoke(Rebuild); else Rebuild();
     }
 
     private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
@@ -217,7 +227,8 @@ internal sealed class DashCanvas : Control
 
     private bool StaticKeyChanged() =>
         _static == null || _sW != Width || _sH != Height || _sDpi != Dpi.Of(this) || _sDark != Theme.Dark
-        || _sGrid != _d.Settings.ShowGrid || _sLang != Lang.CurrentCode;
+        || _sGrid != _d.Settings.ShowGrid || _sLang != Lang.CurrentCode
+        || (_catalog && (_sStats != _d.Settings.StatsEnabled || !ReferenceEquals(_sSummary, Stats.Current)));
 
     // ---- static layer -----------------------------------------------------------------
     /// <summary>Marks the static layer stale and repaints (theme, language, layout edits).</summary>
@@ -251,6 +262,7 @@ internal sealed class DashCanvas : Control
         }
         if (_catalog) PaintCatalog(g);
         _sW = Width; _sH = Height; _sDpi = Dpi.Of(this); _sDark = Theme.Dark; _sGrid = _d.Settings.ShowGrid; _sLang = Lang.CurrentCode;
+        _sStats = _d.Settings.StatsEnabled; _sSummary = Stats.Current;
         _staticDirty = false;
     }
 
@@ -279,7 +291,11 @@ internal sealed class DashCanvas : Control
         _staticDirty = true;
     }
 
-    protected override void Dispose(bool disposing) { if (disposing) _static?.Dispose(); base.Dispose(disposing); }
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _static?.Dispose(); }
+        base.Dispose(disposing);
+    }
 
     // ---- header -------------------------------------------------------------------------
     private void PaintHeader(Graphics g)
@@ -396,7 +412,14 @@ internal sealed class DashCanvas : Control
     /// <summary>Hover feedback for the header and catalogue buttons (the widgets' own buttons paint theirs in PaintEditChrome).</summary>
     private void PaintHot(Graphics g)
     {
-        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd)) return;
+        if (_hot.Kind == Zone.Star)
+        {
+            // the stars up to the one under the cursor fill in the accent, over the card background
+            if (_hot.Type != null && _starRows.TryGetValue(_hot.Type, out var row))
+                PaintStars(g, row, _hot.Index, Theme.Accent, Theme.Faint, clear: true);
+            return;
+        }
+        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd or Zone.Sort)) return;
         foreach (var (r, zone) in _zones)
             if (zone == _hot)
             {
@@ -408,45 +431,165 @@ internal sealed class DashCanvas : Control
     }
 
     // ---- catalogue ------------------------------------------------------------------------
-    private int CatalogRowH => Math.Max(S(56), _ctx.Font(10f, FontStyle.Bold).Height + _ctx.Font(8.5f).Height * 2 + S(14));
+    /// <summary>The verified weekly summary, only while statistics are on (the badges are the return for sharing).</summary>
+    private Stats.Summary? Summary => _d.Settings.StatsEnabled ? Stats.Current : null;
+
+    private Font CatNameF => _ctx.Font(10f, FontStyle.Bold);
+    private Font CatDescF => _ctx.Font(8.5f);
+    private Font CatSmallF => _ctx.Font(8f, FontStyle.Bold);
+    private int StarSize => Math.Max(S(15), CatDescF.Height);
+    private int SortPillH => Math.Max(S(20), CatSmallF.Height + S(6));
+
+    /// <summary>The description under a catalogue name: one or two lines, as the text wraps in this language and width.</summary>
+    private string CatDesc(DashWidgetDef def, bool available, bool onBoard) =>
+        !available ? Lang.T("dash_unavailable") : onBoard ? Lang.T("dash_added") : Lang.T(def.NameKey + "_d");
+
+    private int CatDescH(string desc, int w) =>
+        Math.Min(CatDescF.Height * 2, TextRenderer.MeasureText(desc, CatDescF, new Size(w, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
+
+    /// <summary>Name line, the description, the stars line.</summary>
+    private int CatalogRowH(int descH) => S(6) + CatNameF.Height + S(2) + descH + S(6) + StarSize + S(7);
 
     private int CatalogHeight(int width)
     {
-        int head = _ctx.Font(11f, FontStyle.Bold).Height + S(10) + _ctx.Font(8.5f, FontStyle.Bold).Height + S(8);
-        return S(16) * 2 + head + DashRegistry.All.Count * CatalogRowH;
+        int head = _ctx.Font(11f, FontStyle.Bold).Height + S(10) + Math.Max(_ctx.Font(8.5f, FontStyle.Bold).Height, Summary != null ? SortPillH : 0) + S(8);
+        int w = PanelW - S(16) * 2, rows = 0;
+        var present = new HashSet<string>(_items.Select(i => i.Type));
+        foreach (var def in DashRegistry.All)
+            rows += CatalogRowH(CatDescH(CatDesc(def, def.Available(_d), present.Contains(def.TypeId)), w));
+        return S(16) * 2 + head + rows;
     }
 
     private Rectangle PanelRect() => new(Width - Pad - PanelW, GridTop(), PanelW, CatalogHeight(Width));
+
+    /// <summary>Catalogue order: by share of dashboards (Popular) or by name (A-Z) while a summary is in; the registry order otherwise.</summary>
+    private List<DashWidgetDef> CatalogOrder(Stats.Summary? sum)
+    {
+        if (sum == null) return DashRegistry.All.ToList();
+        if (_sortPopular)
+            return DashRegistry.All.Select((d, i) => (d, i)).OrderByDescending(t => sum.ShareOf(t.d.TypeId) ?? -1).ThenBy(t => t.i).Select(t => t.d).ToList();
+        return DashRegistry.All.OrderBy(d => Lang.T(d.NameKey), StringComparer.Create(Lang.Culture, true)).ToList();
+    }
+
+    /// <summary>Five stars from the left of <paramref name="row"/>, the first <paramref name="filled"/> in <paramref name="fill"/>.</summary>
+    private void PaintStars(Graphics g, Rectangle row, int filled, Color fill, Color empty, bool clear)
+    {
+        int s = StarSize;
+        using var starF = Dpi.Font("Segoe UI Symbol", s * 0.86f, FontStyle.Regular, GraphicsUnit.Pixel);
+        if (clear) { using var b = new SolidBrush(Theme.Card); g.FillRectangle(b, row); }
+        for (int k = 1; k <= 5; k++)
+        {
+            var r = new Rectangle(row.Left + (k - 1) * s, row.Top, s, s);
+            TextRenderer.DrawText(g, "★", starF, r, k <= filled ? fill : empty,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoClipping);
+        }
+    }
 
     private void PaintCatalog(Graphics g)
     {
         var panel = PanelRect();
         Ui.FillCard(g, panel);
+        _starRows.Clear();
+        var sum = Summary;
         int pad = S(16), x = panel.Left + pad, w = panel.Width - pad * 2, y = panel.Top + pad;
         var tf = _ctx.Font(11f, FontStyle.Bold);
         TextRenderer.DrawText(g, Lang.T("dash_add"), tf, new Rectangle(x, y, w, tf.Height), Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding);
         y += tf.Height + S(10);
+
+        // section line: STANDARD on the left; with a summary the two sort pills on the right
         var secF = _ctx.Font(8.5f, FontStyle.Bold);
-        TextRenderer.DrawText(g, Lang.Upper(Lang.T("dash_catalog_std")), secF, new Rectangle(x, y, w, secF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding);
-        y += secF.Height + S(8);
-        var nameF = _ctx.Font(10f, FontStyle.Bold);
-        var descF = _ctx.Font(8.5f);
-        var btnF = _ctx.Font(9f, FontStyle.Bold);
-        int rowH = CatalogRowH;
-        var present = new HashSet<string>(_items.Select(i => i.Type));
-        foreach (var def in DashRegistry.All)
+        int lineH = Math.Max(secF.Height, sum != null ? SortPillH : 0);
+        TextRenderer.DrawText(g, Lang.Upper(Lang.T("dash_catalog_std")), secF, new Rectangle(x, y + (lineH - secF.Height) / 2, w, secF.Height), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        if (sum != null)
         {
-            var row = new Rectangle(x, y, w, rowH);
+            string[] labels = { Lang.T("dash_sort_popular"), Lang.T("dash_sort_az") };
+            int right = x + w;
+            for (int i = 1; i >= 0; i--)
+            {
+                int pw = TextRenderer.MeasureText(labels[i], CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22);
+                var pr = new Rectangle(right - pw, y + (lineH - SortPillH) / 2, pw, SortPillH);
+                bool on = (i == 0) == _sortPopular;
+                using (var path = Theme.RoundRect(pr, SortPillH / 2f))   // already device pixels: a full pill, no second scaling
+                {
+                    using var b = new SolidBrush(on ? Theme.AccentSoft : Theme.Surface);
+                    g.FillPath(b, path);
+                    using var pen = new Pen(on ? Theme.Accent : Theme.Border);
+                    g.DrawPath(pen, path);
+                }
+                TextRenderer.DrawText(g, labels[i], CatSmallF, pr, on ? Theme.Accent : Theme.Muted,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                _zones.Add((pr, new Hot(Zone.Sort, i, null)));
+                right = pr.Left - S(8);
+            }
+        }
+        y += lineH + S(8);
+
+        var nameF = CatNameF;
+        var descF = CatDescF;
+        var btnF = _ctx.Font(9f, FontStyle.Bold);
+        var present = new HashSet<string>(_items.Select(i => i.Type));
+        var ratings = _d.Settings.WidgetRatings;
+        var order = CatalogOrder(sum);
+        var popular = sum == null ? new HashSet<string>() : new HashSet<string>(sum.Top.Take(3));   // the badge: the three most placed
+        string badge = Lang.Upper(Lang.T("dash_sort_popular"));
+        for (int n = 0; n < order.Count; n++)
+        {
+            var def = order[n];
             bool available = def.Available(_d), onBoard = present.Contains(def.TypeId);
+            string desc = CatDesc(def, available, onBoard);
+            int descH = CatDescH(desc, w), rowH = CatalogRowH(descH);
+            var row = new Rectangle(x, y, w, rowH);
+            var st = sum != null && sum.Widgets.TryGetValue(def.TypeId, out var ws) ? ws : null;
+
+            // name line: the name, the POPULAR badge, the Add button at the right
             string btn = Lang.T("dash_add_short");
             int bw = TextRenderer.MeasureText(btn, btnF, Size.Empty, TextFormatFlags.NoPadding).Width + S(20), bh = Math.Max(S(26), btnF.Height + S(8));
-            var br = new Rectangle(row.Right - bw, row.Top + (rowH - bh) / 2, bw, bh);
+            int nameTop = row.Top + S(6);
+            var br = new Rectangle(row.Right - bw, nameTop + (nameF.Height - bh) / 2, bw, bh);
             int textW = w - bw - S(10);
-            TextRenderer.DrawText(g, Lang.T(def.NameKey), nameF, new Rectangle(x, row.Top + S(6), textW, nameF.Height), available ? Theme.Text : Theme.Muted,
+            string name = Lang.T(def.NameKey);
+            int nameW = Math.Min(textW, TextRenderer.MeasureText(name, nameF, Size.Empty, TextFormatFlags.NoPadding).Width);
+            TextRenderer.DrawText(g, name, nameF, new Rectangle(x, nameTop, textW, nameF.Height), available ? Theme.Text : Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.NoPadding);
-            string desc = !available ? Lang.T("dash_unavailable") : onBoard ? Lang.T("dash_added") : Lang.T(def.NameKey + "_d");
-            TextRenderer.DrawText(g, desc, descF, new Rectangle(x, row.Top + S(6) + nameF.Height + S(2), textW, descF.Height * 2), onBoard && available ? Theme.Accent : Theme.Muted,
+            if (popular.Contains(def.TypeId))
+            {
+                int bwd = TextRenderer.MeasureText(badge, CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(10), bht = CatSmallF.Height + S(4);
+                if (x + nameW + S(8) + bwd <= x + textW)   // only when it fits beside the name
+                {
+                    var bdg = new Rectangle(x + nameW + S(8), nameTop + (nameF.Height - bht) / 2, bwd, bht);
+                    using var path = Theme.RoundRect(bdg, bht / 2f);
+                    using var b = new SolidBrush(Theme.AccentSoft);
+                    g.FillPath(b, path);
+                    TextRenderer.DrawText(g, badge, CatSmallF, bdg, Theme.Accent, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                }
+            }
+
+            // description: up to two lines across the whole width (the button sits on the name line)
+            int descTop = nameTop + nameF.Height + S(2);
+            TextRenderer.DrawText(g, desc, descF, new Rectangle(x, descTop, w, descH), onBoard && available ? Theme.Accent : Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+
+            // stars line: your rating (accent) or the average (muted), then "4.6 (23) · in 92 % of dashboards"
+            int starsTop = descTop + descH + S(6);
+            var starRow = new Rectangle(x, starsTop, StarSize * 5, StarSize);
+            _starRows[def.TypeId] = starRow;
+            int own = ratings.TryGetValue(def.TypeId, out int r0) ? r0 : 0;
+            int avg = st?.Rating is { } a ? (int)Math.Round(a) : 0;
+            PaintStars(g, starRow, own > 0 ? own : avg, own > 0 ? Theme.Accent : Theme.Muted, Theme.Faint, clear: false);
+            for (int k = 1; k <= 5; k++) _zones.Add((new Rectangle(starRow.Left + (k - 1) * StarSize, starRow.Top, StarSize, StarSize), new Hot(Zone.Star, k, def.TypeId)));
+            if (st != null)
+            {
+                string votes = st.Rating is { } av && st.Votes > 0 ? av.ToString("0.0", Lang.Culture) + " (" + st.Votes.ToString(Lang.Culture) + ")" : "";
+                string share = string.Format(Lang.T("dash_share_fmt"), (int)Math.Round(st.Share * 100));
+                int tx = starRow.Right + S(6), tw = row.Right - tx;
+                // the longest form that fits: both, the share alone, the bare percentage (the stars already show the average)
+                string tail = votes.Length > 0 ? votes + " · " + share : share;
+                if (TextRenderer.MeasureText(tail, descF, Size.Empty, TextFormatFlags.NoPadding).Width > tw) tail = share;
+                if (TextRenderer.MeasureText(tail, descF, Size.Empty, TextFormatFlags.NoPadding).Width > tw) tail = (int)Math.Round(st.Share * 100) + " %";
+                TextRenderer.DrawText(g, tail, descF, new Rectangle(tx, starsTop + (StarSize - descF.Height) / 2, tw, descF.Height), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.NoPadding);
+            }
+
             if (available && !onBoard)
             {
                 using (var path = Theme.RoundRect(br, Sf(6)))
@@ -458,9 +601,36 @@ internal sealed class DashCanvas : Control
                 _zones.Add((br, new Hot(Zone.CatalogAdd, -1, def.TypeId)));
             }
             y += rowH;
-            if (def != DashRegistry.All[^1])
+            if (n < order.Count - 1)
                 using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, x, y - 1, x + w, y - 1);
         }
+    }
+
+    /// <summary>
+    /// A star clicked in the catalogue. With statistics off a card explains that ratings travel
+    /// with the weekly report and offers to turn them on; the same star again clears the rating.
+    /// </summary>
+    private void Rate(string type, int stars)
+    {
+        var s = _d.Settings;
+        if (!s.StatsEnabled)
+        {
+            var dlg = new GhostCardForm("//STATS", Lang.T("dash_rate_title"), Lang.T("dash_rate_body"), Lang.T("dash_rate_on"), Lang.T("gen_cancel"), () =>
+            {
+                s.StatsEnabled = true;
+                s.StatsAsked = true;
+                s.WidgetRatings[type] = stars;
+                try { _d.SaveSettings(); } catch { }
+                _d.StatsChanged?.Invoke();
+                Rebuild();
+            });
+            dlg.ShowOver(FindForm());
+            return;
+        }
+        if (s.WidgetRatings.TryGetValue(type, out int cur) && cur == stars) s.WidgetRatings.Remove(type);
+        else s.WidgetRatings[type] = stars;
+        try { _d.SaveSettings(); } catch { }
+        Rebuild();
     }
 
     // ---- actions ----------------------------------------------------------------------------
@@ -582,6 +752,7 @@ internal sealed class DashCanvas : Control
         {
             if (z.Kind == Zone.None) continue;
             if (z.Kind is Zone.Remove or Zone.Size or Zone.Widget) { if (z.Index >= 0 && z.Index < _rects.Length) Invalidate(_rects[z.Index]); }
+            else if (z.Kind == Zone.Star) { if (z.Type != null && _starRows.TryGetValue(z.Type, out var row)) Invalidate(Rectangle.Inflate(row, 2, 2)); }   // the whole row lights up to the star
             else foreach (var (r, zone) in _zones) if (zone == z) Invalidate(Rectangle.Inflate(r, 2, 2));
         }
     }
@@ -633,6 +804,8 @@ internal sealed class DashCanvas : Control
             case Zone.Remove: RemoveAt(h.Index); return;
             case Zone.Size: CycleSize(h.Index); return;
             case Zone.CatalogAdd: if (h.Type != null) AddType(h.Type); return;
+            case Zone.Sort: _sortPopular = h.Index == 0; Rebuild(); return;
+            case Zone.Star: if (h.Type != null) Rate(h.Type, h.Index); return;
             case Zone.Widget:
                 if (_edit) _pressIndex = h.Index;
                 else _placed[h.Index].Widget.Click(e.Location, _rects[h.Index], _ctx);
@@ -690,6 +863,8 @@ internal sealed class DashCanvas : Control
             "add" => new Hot(Zone.Add, -1, null),
             "reset" => new Hot(Zone.Reset, -1, null),
             "catalog" => new Hot(Zone.CatalogAdd, -1, arg),
+            "sort" => new Hot(Zone.Sort, int.TryParse(arg, out int si) ? si : 0, null),
+            "star" => arg.LastIndexOf(':') is var c and > 0 && int.TryParse(arg[(c + 1)..], out int sn) ? new Hot(Zone.Star, sn, arg[..c]) : new Hot(Zone.None, -1, null),   // star:typeId:n
             _ => new Hot(Zone.None, -1, null),
         };
         if (want.Kind != Zone.None) { foreach (var (r, zone) in _zones) if (zone == want) return r; return Rectangle.Empty; }

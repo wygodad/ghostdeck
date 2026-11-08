@@ -361,6 +361,19 @@ public static class Stats
         catch { return false; }
     }
 
+    private static Summary? _current;
+    private static bool _currentLoaded;
+
+    /// <summary>
+    /// The summary in effect: the verified file read once, replaced by a fresh download
+    /// (<see cref="SummaryChanged"/> follows). The preview tool sets it to a sample of its own.
+    /// </summary>
+    public static Summary? Current
+    {
+        get { if (!_currentLoaded) { _current = LoadCached(); _currentLoaded = true; } return _current; }
+        set { _current = value; _currentLoaded = true; }
+    }
+
     /// <summary>The last verified summary kept on disk, or null. Verified again on every load.</summary>
     public static Summary? LoadCached()
     {

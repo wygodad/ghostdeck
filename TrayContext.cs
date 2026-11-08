@@ -2710,7 +2710,7 @@ public sealed class TrayContext : ApplicationContext
         if (!sendDue && !fetchDue) return;
         _statsCts?.Cancel();
         var cts = _statsCts = new CancellationTokenSource();
-        int powBits = Stats.LoadCached()?.PowBits ?? Stats.DefaultPowBits;
+        int powBits = Stats.Current?.PowBits ?? Stats.DefaultPowBits;
         byte[]? body = null;
         if (sendDue)
         {
@@ -2737,7 +2737,7 @@ public sealed class TrayContext : ApplicationContext
                 else if (sent == Stats.SendResult.Unreachable) Stats.CountError(_settings, "statsSend");
                 if (fetchDue && summary != null) _settings.StatsLastFetchUtc = DateTime.UtcNow;
                 _settings.Save();
-                if (fresh) Stats.RaiseSummaryChanged();
+                if (fresh) { Stats.Current = summary; Stats.RaiseSummaryChanged(); }   // the catalogue's badges follow
             }
             if (ui != null) ui.Post(_ => Apply(), null); else Apply();
         });
