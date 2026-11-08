@@ -19,6 +19,7 @@ internal sealed class DashMenuPopup : Form, IMessageFilter
     }
 
     private const int WS_EX_NOACTIVATE = 0x08000000, WS_EX_TOOLWINDOW = 0x00000080, CS_DROPSHADOW = 0x00020000;
+    private const int WM_MOUSEACTIVATE = 0x0021, MA_NOACTIVATE = 3;
     private const int WM_KEYDOWN = 0x0100, WM_LBUTTONDOWN = 0x0201, WM_RBUTTONDOWN = 0x0204, WM_MBUTTONDOWN = 0x0207, WM_XBUTTONDOWN = 0x020B;
     private const int WM_NCLBUTTONDOWN = 0x00A1, WM_NCRBUTTONDOWN = 0x00A4, WM_NCMBUTTONDOWN = 0x00A7, VK_ESCAPE = 0x1B;
 
@@ -93,7 +94,18 @@ internal sealed class DashMenuPopup : Form, IMessageFilter
         menu.Show(owner);
     }
 
-    private void OwnerChanged(object? s, EventArgs e) => Dismiss();
+    private void OwnerChanged(object? s, EventArgs e)
+    {
+        if (ReferenceEquals(Form.ActiveForm, this)) return;   // the owner lost focus to this very menu: not a reason to close
+        Dismiss();
+    }
+
+    /// <summary>A press on the menu must not activate it (the owner would see Deactivate and the menu would close under the click).</summary>
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_MOUSEACTIVATE) { m.Result = (IntPtr)MA_NOACTIVATE; return; }
+        base.WndProc(ref m);
+    }
 
     private void Dismiss()
     {
@@ -215,12 +227,20 @@ internal sealed class DashMenuPopup : Form, IMessageFilter
         if (_hot != -1) { _hot = -1; Invalidate(); }
     }
 
+    private int _pressRow = -1;
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button == MouseButtons.Left) _pressRow = HitRow(e.Location);
+    }
+
     protected override void OnMouseUp(MouseEventArgs e)
     {
         base.OnMouseUp(e);
         if (e.Button != MouseButtons.Left) return;
         int h = HitRow(e.Location);
-        if (h < 0 || _items[h].Run is not { } run) return;
+        if (h < 0 || h != _pressRow || _items[h].Run is not { } run) return;   // press and release on the same row
         var anchor = _anchor;
         Dismiss();
         if (anchor is { IsDisposed: false }) anchor.BeginInvoke(run); else run();   // after this window is gone, on the owner's queue

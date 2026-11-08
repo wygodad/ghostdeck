@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd, Crosshair, TrueColor }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd, Crosshair, TrueColor, StatsDemo }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -101,6 +101,7 @@ public static class Cli
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
           GhostDeck.exe --status                print the current state as JSON
           GhostDeck.exe --diag [path.zip]       save the diagnostic zip (read-only, runs locally)
+          GhostDeck.exe --stats-demo            show the Dashboard's community views on sample numbers
           GhostDeck.exe ghostdeck://<command>/<arg>[/<arg2>]   the same commands as a link,
                                                 e.g. ghostdeck://scene/Gaming or ghostdeck://profile/silent
         With the app running the command is handed to it, no administrator prompt. Without it, the
@@ -124,6 +125,7 @@ public static class Cli
                 // Enum.TryParse accepts any number ("--profile 999"); only the named profiles are commands
                 return Enum.TryParse<ProfileId>(Arg1(), true, out var id) && Enum.IsDefined(id) ? new CliCommand(CliKind.Profile, id.ToString()) : null;
             case "--cycle": return new CliCommand(CliKind.Cycle);
+            case "--stats-demo": return new CliCommand(CliKind.StatsDemo);   // (1.44) the Dashboard's community views on sample numbers
             case "--fanboost":
             {
                 string fb = Arg1().ToLowerInvariant();

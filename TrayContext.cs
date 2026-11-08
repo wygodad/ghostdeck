@@ -388,6 +388,12 @@ public sealed class TrayContext : ApplicationContext
                         game = fs is { } f3 ? f3.Process : null,
                     });
                 }
+                case CliKind.StatsDemo:
+                    // (1.44) the Dashboard's community views on the built-in sample summary, in this running instance
+                    Stats.DemoMode = true;
+                    Stats.RaiseSummaryChanged();
+                    OpenMain(MainTab.Dashboard);
+                    return "0|stats demo on";
                 case CliKind.Overlay:
                     SetOverlay(cmd.Arg == "on", osd: false);
                     return CliDone("overlay: " + cmd.Arg);
