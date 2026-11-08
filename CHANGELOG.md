@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Fixed
+- **Statistics view with the statistics off**: the *Turn statistics on* and *What we collect* buttons kept an empty slot
+  for an icon, so their captions sat off-centre to the right. They now carry icons (the statistics chart and the info
+  sign), like the other buttons of the tab.
+
 ## [1.44.0] - 2026-11-08
 ### Added
 - **Dashboard tab** (roadmap, the dashboard plan): your own screen built from widgets on a grid - profile tiles, CPU and

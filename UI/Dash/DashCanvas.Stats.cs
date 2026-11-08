@@ -197,11 +197,11 @@ internal sealed partial class DashCanvas
             int chrome = S(12) + S(16) + S(8) + S(14);   // PaintButton's glyph slot and paddings
             int w1 = TextRenderer.MeasureText(Lang.T("dash_st_on_btn"), bf, Size.Empty, TextFormatFlags.NoPadding).Width + chrome;
             var b1 = new Rectangle(body.Left, by, w1, bh);
-            PaintButton(g, b1, "", Lang.T("dash_st_on_btn"), primary: true, active: false, hot: false);
+            PaintButton(g, b1, "", Lang.T("dash_st_on_btn"), primary: true, active: false, hot: false);   // the chart glyph of the Settings statistics card
             _zones.Add((b1, new Hot(Zone.StatsOn, -1, null)));
             int w2 = TextRenderer.MeasureText(Lang.T("set_stats_info"), bf, Size.Empty, TextFormatFlags.NoPadding).Width + chrome;
             var b2 = new Rectangle(b1.Right + S(10), by, w2, bh);
-            PaintButton(g, b2, "", Lang.T("set_stats_info"), primary: false, active: false, hot: false);
+            PaintButton(g, b2, "", Lang.T("set_stats_info"), primary: false, active: false, hot: false);   // MDL2 Info
             _zones.Add((b2, new Hot(Zone.StatsInfo, -1, null)));
             return;
         }
