@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261203;
+    public const int DataVersion = 20261204;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -453,10 +453,12 @@ public static class Devices
         //   30/45/60/80/100/150 % gave 2786/2700/3408/4320/4979/4944 rpm (CPU) and
         //   2826/2721/3658/4830/4962/4979 (GPU), so 150 % adds nothing over 100 %; Fan Boost
         //   reaches ~7000 rpm and ignores the curve while on. MaxFanPct left at 150 (no harm).
+        //   Third owner (dennyblr1-hash, issue #341, .106, MSI Center 2.0.75): capture matches in
+        //   Balanced, Extreme and Super Battery; the "Silent" tile writes the Super Battery set.
         new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "cesarcamps, maestory", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
-                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298,299") },
+                Credit = "cesarcamps, maestory, dennyblr1-hash", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
+                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298,299; dennyblr1-hash:341") },
 
         // Sword 16 HX B13V / B14V (15P2EMS1) — owner per-scenario dump (issue #6) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Real-hardware

@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261204, [#341](../../issues/341), thanks @dennyblr1-hash) -
+  another owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
+
 ### Fixed
 - **Statistics view with the statistics off**: the *Turn statistics on* and *What we collect* buttons kept an empty slot
   for an icon, so their captions sat off-centre to the right. They now carry icons (the statistics chart and the info
