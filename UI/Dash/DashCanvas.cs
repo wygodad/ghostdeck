@@ -50,7 +50,7 @@ internal sealed partial class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar }
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar, Cols, Row, Tile }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -98,7 +98,12 @@ internal sealed partial class DashCanvas : Control
     public int Columns(int width)
     {
         int avail = GridWidth(width) - Pad * 2;
-        return Math.Clamp((avail + Gap) / (MinCell + Gap), MinColumns, MaxColumns);
+        int auto = Math.Clamp((avail + Gap) / (MinCell + Gap), MinColumns, MaxColumns);
+        int want = _d.Settings.DashColumns;
+        if (want <= 0) return auto;
+        // a chosen density (edit mode): as asked while a cell keeps at least 110 px; a narrower window gives fewer
+        int fit = Math.Max(MinColumns, (avail + Gap) / (S(110) + Gap));
+        return Math.Clamp(Math.Min(want, fit), MinColumns, 8);
     }
 
     public int Cell(int width)
@@ -115,7 +120,7 @@ internal sealed partial class DashCanvas : Control
     private int GridTop()
     {
         using var f = TitleFont();
-        return S(24) + Math.Max(Math.Max(f.Height, ButtonH), SwitchH) + S(28);
+        return S(24) + Math.Max(Math.Max(f.Height, ButtonH), SwitchH) + S(28) + (_edit ? ColsRowH + S(10) : 0);   // edit mode adds the columns row
     }
 
     /// <summary>Height the page sizes this control to (the page scrolls it when taller than the window).</summary>
@@ -324,6 +329,7 @@ internal sealed partial class DashCanvas : Control
             HeaderButton(g, x - S(8), top, bandH, "", Lang.T("dash_add"), new Hot(Zone.Add, -1, null), primary: false, active: _catalog);
         }
         else HeaderButton(g, x, top, bandH, "", Lang.T("dash_edit"), new Hot(Zone.Edit, -1, null), primary: false);
+        if (_edit && _view == View.Dashboard) PaintColsRow(g, top + bandH + S(12));
     }
 
     /// <summary>A header button right-aligned at <paramref name="right"/>; returns its left edge.</summary>
@@ -437,7 +443,7 @@ internal sealed partial class DashCanvas : Control
                 PaintStars(g, row, _hot.Index, Theme.Accent, Theme.Faint, clear: true);
             return;
         }
-        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd or Zone.Sort or Zone.Info)) return;
+        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd or Zone.Sort or Zone.Info or Zone.Cols or Zone.Tile)) return;
         foreach (var (r, zone) in _zones)
             if (zone == _hot)
             {
@@ -796,6 +802,7 @@ internal sealed partial class DashCanvas : Control
             if (z.Kind is Zone.Remove or Zone.Size or Zone.Widget or Zone.More) { if (z.Index >= 0 && z.Index < _rects.Length) Invalidate(_rects[z.Index]); }
             else if (z.Kind == Zone.Star) { if (z.Type != null && _starRows.TryGetValue(z.Type, out var row)) Invalidate(Rectangle.Inflate(row, 2, 2)); }   // the whole row lights up to the star
             else if (z.Kind == Zone.Bar) Invalidate(Rectangle.Inflate(_chartBody, S(4), S(4)));   // the lit bar and its label
+            else if (z.Kind == Zone.Row) { int li = z.Index / 1000; if (li >= 0 && li < _listBodies.Count) Invalidate(Rectangle.Inflate(_listBodies[li].body, S(10), S(4))); }
             else foreach (var (r, zone) in _zones) if (zone == z) Invalidate(Rectangle.Inflate(r, 2, 2));
         }
     }
@@ -823,7 +830,7 @@ internal sealed partial class DashCanvas : Control
         {
             Zone.None => Cursors.Default,
             Zone.Widget => _edit ? Cursors.SizeAll : Cursors.Hand,
-            Zone.Map or Zone.Bar => Cursors.Default,
+            Zone.Map or Zone.Bar or Zone.Row or Zone.Tile => Cursors.Default,
             _ => Cursors.Hand,
         };
         if (Cursor != want) Cursor = want;
@@ -857,6 +864,7 @@ internal sealed partial class DashCanvas : Control
             case Zone.View: SwitchView((View)h.Index); return;
             case Zone.StatsOn: TurnStatsOn(); return;
             case Zone.StatsInfo: ShowStatsInfo(); return;
+            case Zone.Cols: SetColumns(h.Index); return;
             case Zone.Widget:
                 if (_edit) _pressIndex = h.Index;
                 else _placed[h.Index].Widget.Click(e.Location, _rects[h.Index], _ctx);
@@ -916,6 +924,7 @@ internal sealed partial class DashCanvas : Control
             "catalog" => new Hot(Zone.CatalogAdd, -1, arg),
             "sort" => new Hot(Zone.Sort, int.TryParse(arg, out int si) ? si : 0, null),
             "view" => new Hot(Zone.View, int.TryParse(arg, out int vi) ? vi : 0, null),
+            "cols" => new Hot(Zone.Cols, int.TryParse(arg, out int ci) ? ci : 0, null),
             "star" => arg.LastIndexOf(':') is var c and > 0 && int.TryParse(arg[(c + 1)..], out int sn) ? new Hot(Zone.Star, sn, arg[..c]) : new Hot(Zone.None, -1, null),   // star:typeId:n
             _ => new Hot(Zone.None, -1, null),
         };

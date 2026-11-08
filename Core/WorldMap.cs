@@ -59,11 +59,13 @@ public sealed class WorldMap
     /// brighter with the count (logarithmic, so one big country does not black out the rest);
     /// <paramref name="highlight"/> is drawn white.
     /// </summary>
-    public void Paint(Graphics g, Rectangle r, IReadOnlyDictionary<string, int> counts, Color land, Color accent, string? highlight)
+    public void Paint(Graphics g, Rectangle r, IReadOnlyDictionary<string, int> counts, Color land, Color accent, string? highlight, float lit = 1f, bool landDots = true)
     {
         var (cell, ox, oy) = Fit(r);
         if (cell <= 0) return;
-        float dLand = cell * 0.58f, dHot = cell * 0.8f;
+        // lit 0..1 fades and grows the counted countries' dots in (the Statystyki entrance);
+        // landDots false paints only those, over a map whose land is already there
+        float dLand = cell * 0.58f, dHot = dLand + (cell * 0.8f - dLand) * lit;
         double maxLog = counts.Count > 0 ? Math.Log(1 + counts.Values.Max()) : 1;
         using var landB = new SolidBrush(land);
         using var white = new SolidBrush(Color.White);
@@ -74,13 +76,13 @@ public sealed class WorldMap
                 if (code == null) continue;
                 float cx = ox + c * cell + cell / 2f, cy = oy + row * cell + cell / 2f;
                 if (code == highlight) { g.FillEllipse(white, cx - dHot / 2, cy - dHot / 2, dHot, dHot); continue; }
-                if (counts.TryGetValue(code, out int n) && n > 0)
+                if (counts.TryGetValue(code, out int n) && n > 0 && lit > 0f)
                 {
                     float t = (float)(Math.Log(1 + n) / maxLog);
-                    using var b = new SolidBrush(Color.FromArgb((int)(120 + 135 * t), accent));
+                    using var b = new SolidBrush(Color.FromArgb((int)((120 + 135 * t) * lit), accent));
                     g.FillEllipse(b, cx - dHot / 2, cy - dHot / 2, dHot, dHot);
                 }
-                else g.FillEllipse(landB, cx - dLand / 2, cy - dLand / 2, dLand, dLand);
+                else if (landDots) g.FillEllipse(landB, cx - dLand / 2, cy - dLand / 2, dLand, dLand);
             }
     }
 

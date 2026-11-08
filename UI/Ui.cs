@@ -106,6 +106,57 @@ internal static class Ui
     // Pixel-centre a single glyph inside a rect by its measured ink box. Layout-rect centring
     // (StringFormat/TextRenderer VerticalCenter) leaves glyphs looking off because it centres the
     // font line box, not the glyph; measuring with GenericTypographic and offsetting fixes it.
+    private static readonly Dictionary<(string glyph, string family, float size), (PointF shift, bool ok)> InkShift = new();
+
+    /// <summary>
+    /// Like <see cref="CenterGlyph"/>, but centred on the glyph's INK, not its layout box: symbol
+    /// fonts leave uneven side bearings and a baseline gap, so a layout-centred ❄ or ▦ sits a
+    /// pixel or three low and left in a small square. The ink box is measured once per glyph and
+    /// font (a tiny offscreen render) and the shift is cached.
+    /// </summary>
+    public static void CenterGlyphInk(Graphics g, string glyph, Font font, Color color, RectangleF rect)
+    {
+        var key = (glyph, font.FontFamily.Name, font.Size);
+        if (!InkShift.TryGetValue(key, out var ink))
+        {
+            ink = (PointF.Empty, false);
+            try
+            {
+                int side = (int)Math.Ceiling(font.Size * 3) + 8;
+                using var bmp = new Bitmap(side, side, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                using (var mg = Graphics.FromImage(bmp))
+                {
+                    mg.Clear(Color.Transparent);
+                    CenterGlyph(mg, glyph, font, Color.White, new RectangleF(0, 0, side, side));
+                }
+                int minX = side, minY = side, maxX = -1, maxY = -1;
+                var data = bmp.LockBits(new Rectangle(0, 0, side, side), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                try
+                {
+                    unsafe
+                    {
+                        for (int y = 0; y < side; y++)
+                        {
+                            byte* row = (byte*)data.Scan0 + y * data.Stride;
+                            for (int x = 0; x < side; x++)
+                                if (row[x * 4 + 3] > 40) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+                        }
+                    }
+                }
+                finally { bmp.UnlockBits(data); }
+                if (maxX >= minX)
+                {
+                    // where the ink's centre landed against the square's centre: draw shifted by the opposite
+                    float cx = (minX + maxX + 1) / 2f, cy = (minY + maxY + 1) / 2f;
+                    ink = (new PointF(side / 2f - cx, side / 2f - cy), true);
+                }
+            }
+            catch { }
+            InkShift[key] = ink;
+        }
+        CenterGlyph(g, glyph, font, color, ink.ok ? new RectangleF(rect.X + ink.shift.X, rect.Y + ink.shift.Y, rect.Width, rect.Height) : rect);
+    }
+
     public static void CenterGlyph(Graphics g, string glyph, Font font, Color color, RectangleF rect)
     {
         var oldHint = g.TextRenderingHint;

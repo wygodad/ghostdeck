@@ -65,17 +65,19 @@ internal sealed class TogglesWidget : DashWidget
             using (var ip = Theme.RoundRect(new RectangleF(ib.X + 0.5f, ib.Y + 0.5f, box - 1, box - 1), c.Sf(6)))
             using (var pen = new Pen(iconColor, c.Sf(1.4f)))
                 g.DrawPath(pen, ip);
-            Ui.CenterGlyph(g, item.Glyph, gf, iconColor, ib);
+            Ui.CenterGlyphInk(g, item.Glyph, gf, iconColor, ib);   // on the ink, so ❄ and ▦ sit in the middle of the box
             var sw = new Rectangle(cell.Right - swW - pad, cell.Top + (cell.Height - swH) / 2, swW, swH);
             DashPaint.Switch(g, sw, on, enabled);
             int tx = (int)ib.Right + boxGap;
             var tr = new Rectangle(tx, cell.Top, Math.Max(10, sw.Left - tx - c.S(8)), cell.Height);
-            // a single word wider than the column ("Mikrofon" in a 2x1 cell) takes the smaller font instead of a cut
+            // a single word wider than the column ("Mikrofon" in a 2x1 cell) takes the smaller font instead of a
+            // cut; a cell too narrow even for that (a dense eight-column grid) keeps the icon and the switch only
             string label = Lang.T(item.LabelKey);
             var lf = f;
             if (label.Split(' ').Any(w => TextRenderer.MeasureText(w, f, Size.Empty, TextFormatFlags.NoPadding).Width > tr.Width)) lf = c.Font(8.5f, FontStyle.Bold);
-            TextRenderer.DrawText(g, label, lf, tr, enabled ? Theme.Text : Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            if (tr.Width >= c.S(40))
+                TextRenderer.DrawText(g, label, lf, tr, enabled ? Theme.Text : Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
             _cells.Add((cell, item));
         }
         _painted = Signature(c);

@@ -120,13 +120,20 @@ internal static class CommunityStats
         }
     }
 
-    /// <summary>A ranked list: name, a bar against the largest, the count at the right. Returns the rows drawn.</summary>
-    public static int Ranked(Graphics g, Rectangle r, IReadOnlyList<(string name, int count)> rows, DashContext c, Color color, float nameShare = 0f)
+    /// <summary>Row height of <see cref="Ranked"/>; the rows that fit are the first (height / RowH).</summary>
+    public static int RankedRowH(DashContext c) => c.Font(9.5f).Height + c.S(14);
+
+    /// <summary>
+    /// A ranked list: name, a bar against the largest, the count at the right. <paramref name="grow"/>
+    /// below 1 draws the bars that much shorter (the entrance); <paramref name="lit"/> is the hovered
+    /// row, drawn on a tinted band with its name in the accent. Returns the rows drawn.
+    /// </summary>
+    public static int Ranked(Graphics g, Rectangle r, IReadOnlyList<(string name, int count)> rows, DashContext c, Color color, float nameShare = 0f, float grow = 1f, int lit = -1)
     {
         if (rows.Count == 0) { DashPaint.Note(g, r, c, Lang.T("dash_no_data")); return 0; }
         var f = c.Font(9.5f);
         var nf = c.Font(9.5f, FontStyle.Bold);
-        int rowH = f.Height + c.S(14), max = Math.Max(1, rows.Max(x => x.count));
+        int rowH = RankedRowH(c), max = Math.Max(1, rows.Max(x => x.count));
         int countW = TextRenderer.MeasureText(max.ToString("N0", Lang.Culture), nf, Size.Empty, TextFormatFlags.NoPadding).Width + c.S(8);
         // the name column: a fixed share of the width when asked (long laptop names), else up to 150 px
         int nameW = nameShare > 0 ? (int)(r.Width * nameShare) : Math.Min(r.Width / 2, c.S(150));
@@ -134,11 +141,18 @@ internal static class CommunityStats
         for (int i = 0; i < rows.Count && (i + 1) * rowH <= r.Height; i++, drawn++)
         {
             int y = r.Top + i * rowH;
-            TextRenderer.DrawText(g, rows[i].name, f, new Rectangle(r.Left, y, nameW, rowH), Theme.Text,
+            bool hot = i == lit;
+            if (hot)
+            {
+                using var path = Theme.RoundRect(new Rectangle(r.Left - c.S(8), y, r.Width + c.S(16), rowH), c.Sf(6));
+                using var b = new SolidBrush(Theme.AccentSoft);
+                g.FillPath(b, path);
+            }
+            TextRenderer.DrawText(g, rows[i].name, f, new Rectangle(r.Left, y, nameW, rowH), hot ? Theme.Accent : Theme.Text,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.WordEllipsis);   // dpi-ok: a long country name keeps its bar and count in view
             var bar = new RectangleF(r.Left + nameW + c.S(10), y + (rowH - c.S(8)) / 2f, r.Width - nameW - c.S(10) - countW, c.S(8));
-            if (bar.Width > 0) DashPaint.Bar(g, bar, rows[i].count / (float)max, color);
-            TextRenderer.DrawText(g, rows[i].count.ToString("N0", Lang.Culture), nf, new Rectangle(r.Right - countW, y, countW, rowH), Theme.Text,
+            if (bar.Width > 0) DashPaint.Bar(g, bar, rows[i].count / (float)max * grow, hot ? Color.White : color);
+            TextRenderer.DrawText(g, rows[i].count.ToString("N0", Lang.Culture), nf, new Rectangle(r.Right - countW, y, countW, rowH), hot ? Theme.Accent : Theme.Text,
                 TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
         return drawn;

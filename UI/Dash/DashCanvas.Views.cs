@@ -88,6 +88,48 @@ internal sealed partial class DashCanvas
         return right + S(8);
     }
 
+    // ---- edit mode: how many columns the grid has ------------------------------------------
+    private static readonly int[] ColsChoices = { 0, 4, 5, 6, 8 };
+    private int ColsRowH => Math.Max(S(26), CatSmallF.Height + S(10));
+
+    /// <summary>"Columns: Auto 4 5 6 8" under the header while editing; the chosen pill is tinted.</summary>
+    private void PaintColsRow(Graphics g, int y)
+    {
+        var lf = _ctx.Font(9f, FontStyle.Bold);
+        int x = Pad;
+        string label = Lang.Upper(Lang.T("dash_cols"));
+        int lw = TextRenderer.MeasureText(label, lf, Size.Empty, TextFormatFlags.NoPadding).Width;
+        TextRenderer.DrawText(g, label, lf, new Rectangle(x, y, lw, ColsRowH), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        x += lw + S(12);
+        int cur = _d.Settings.DashColumns;
+        foreach (int v in ColsChoices)
+        {
+            string text = v == 0 ? Lang.T("dash_cols_auto") : v.ToString(Lang.Culture);
+            int pw = TextRenderer.MeasureText(text, CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22);
+            var pr = new Rectangle(x, y, pw, ColsRowH);
+            bool on = v == cur;
+            using (var path = Theme.RoundRect(pr, ColsRowH / 2f))
+            {
+                using var b = new SolidBrush(on ? Theme.AccentSoft : Theme.Surface);
+                g.FillPath(b, path);
+                using var pen = new Pen(on ? Theme.Accent : Theme.Border);
+                g.DrawPath(pen, path);
+            }
+            TextRenderer.DrawText(g, text, CatSmallF, pr, on ? Theme.Accent : Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            _zones.Add((pr, new Hot(Zone.Cols, v, null)));
+            x += pw + S(6);
+        }
+    }
+
+    private void SetColumns(int v)
+    {
+        if (Array.IndexOf(ColsChoices, v) < 0 || _d.Settings.DashColumns == v) return;
+        _d.Settings.DashColumns = v;
+        try { _d.SaveSettings(); } catch { }
+        Replace();
+        ContentChanged?.Invoke();
+    }
+
     // ---- Katalog: every widget as a card --------------------------------------------------
     private int CatCols(int width) => Math.Clamp((width - Pad * 2 + Gap) / (S(320) + Gap), 1, 4);
     private int CatCardW(int width) { int c = CatCols(width); return (width - Pad * 2 - Gap * (c - 1)) / c; }

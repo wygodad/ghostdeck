@@ -72,6 +72,9 @@ public sealed class AppSettings
     // A settings file that already lists IconTabs keeps the user's own choice.
     public List<string> IconTabs { get; set; } = new() { "Models" };
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
+    // (1.44) Dashboard columns chosen in edit mode: 0 = as many as the width allows at 150 px
+    // cells (auto), else 4, 5, 6 or 8 (a denser grid, cells down to 110 px when the window allows)
+    public int DashColumns { get; set; }
     // Dashboard (1.44): the widgets in their order, each with its size in grid cells; the
     // position is computed (UI/Dash/DashLayout), never stored. DashboardVersion 0 = a file from
     // before the Dashboard: EnsureDefaults fills the default layout once. A layout the user
@@ -643,6 +646,7 @@ public sealed class AppSettings
         if (GameSessionKeep is < 5 or > 50) GameSessionKeep = 10;
         if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
         if (StartTab is not (0 or 1)) StartTab = 0;
+        if (DashColumns is not (0 or 4 or 5 or 6 or 8)) DashColumns = 0;
         foreach (var k in WidgetRatings.Where(kv => kv.Value < 1 || kv.Value > 5).Select(kv => kv.Key).ToList()) WidgetRatings.Remove(k);
         if (StatsSwitches < 0) StatsSwitches = 0;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
@@ -741,6 +745,7 @@ public sealed class AppSettings
         IconStyle = src.IconStyle;
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
+        DashColumns = src.DashColumns;
         // a file from before the Dashboard brings no layout: the default one, as at first start
         if (src.DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }
         else { Dashboard = src.Dashboard.Select(i => i.Clone()).ToList(); DashboardVersion = src.DashboardVersion; DashItem.Sanitize(Dashboard); }
@@ -889,6 +894,7 @@ public sealed class AppSettings
             IconStyle = IconStyle,
             IconTabs = new List<string>(IconTabs),
             ShowGrid = ShowGrid,
+            DashColumns = DashColumns,
             Dashboard = Dashboard.Select(i => i.Clone()).ToList(),
             DashboardVersion = DashboardVersion,
             StatsEnabled = StatsEnabled, StatsAsked = StatsAsked, StatsLastWeek = StatsLastWeek, StatsLastFetchUtc = StatsLastFetchUtc,

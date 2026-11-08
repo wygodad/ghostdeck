@@ -23,7 +23,31 @@ internal sealed partial class DashCanvas
     private Rectangle _chartBody;
     private IReadOnlyList<(string week, int active)> _chartHist = Array.Empty<(string, int)>();
     private readonly List<(Rectangle value, CommunityStats.Tile tile)> _tileLive = new();
+    private readonly List<(Rectangle body, List<(string name, int count)> rows, Color color, float nameShare)> _listBodies = new();
+    private Dictionary<string, int> _mapCounts = new();
     private const int EntranceMs = 520;
+
+    /// <summary>Everything the entrance repaints per frame: the chart, the tiles, the lists and the map.</summary>
+    private Rectangle StatsDirty()
+    {
+        var d = _chartBody;
+        void Add(Rectangle r) { if (r.IsEmpty) return; d = d.IsEmpty ? r : Rectangle.Union(d, r); }
+        foreach (var (r, _) in _tileLive) Add(r);
+        foreach (var l in _listBodies) Add(l.body);
+        Add(_mapRect);
+        return d;
+    }
+
+    /// <summary>A ranked list on the static layer (skipped while the entrance runs), remembered for the live layer and the row hover.</summary>
+    private void RankedList(Graphics g, Rectangle body, List<(string name, int count)> rows, Color color, float nameShare, bool entering)
+    {
+        int li = _listBodies.Count;
+        _listBodies.Add((body, rows, color, nameShare));
+        if (!entering) CommunityStats.Ranked(g, body, rows, _ctx, color, nameShare);
+        int rowH = CommunityStats.RankedRowH(_ctx), fit = Math.Min(rows.Count, body.Height / Math.Max(1, rowH));
+        for (int i = 0; i < fit; i++)
+            _zones.Add((new Rectangle(body.Left - S(8), body.Top + i * rowH, body.Width + S(16), rowH), new Hot(Zone.Row, li * 1000 + i, null)));
+    }
 
     private void StartStatsEntrance()
     {
@@ -47,9 +71,8 @@ internal sealed partial class DashCanvas
                 return;
             }
             _statsAnim = 1f - (1f - x) * (1f - x) * (1f - x);   // ease out
-            var dirty = _chartBody;
-            foreach (var (r, _) in _tileLive) dirty = dirty.IsEmpty ? r : Rectangle.Union(dirty, r);
-            if (!dirty.IsEmpty) Invalidate(Rectangle.Inflate(dirty, S(4), S(4)));
+            var dirty = StatsDirty();
+            if (!dirty.IsEmpty) Invalidate(Rectangle.Inflate(dirty, S(10), S(4)));
         };
         return t;
     }
@@ -64,6 +87,8 @@ internal sealed partial class DashCanvas
         {
             float t = _statsAnim;
             CommunityStats.Bars(g, _chartBody, _chartHist, _ctx, labels: true, grow: t);
+            foreach (var l in _listBodies) CommunityStats.Ranked(g, l.body, l.rows, _ctx, l.color, l.nameShare, grow: t);
+            if (!_mapRect.IsEmpty) WorldMap.Instance.Paint(g, _mapRect, _mapCounts, Theme.BorderStrong, Theme.Accent, null, lit: t, landDots: false);
             var vf = _ctx.Font(18f, FontStyle.Bold);
             for (int i = 0; i < _tileLive.Count; i++)
             {
@@ -73,6 +98,12 @@ internal sealed partial class DashCanvas
                 if (value.Length > 0)
                     TextRenderer.DrawText(g, value, vf, r, tile.Accent ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordEllipsis);   // dpi-ok: same rectangle as the static tile
             }
+            return;
+        }
+        if (_hot.Kind == Zone.Row)
+        {
+            int li = _hot.Index / 1000, row = _hot.Index % 1000;
+            if (li >= 0 && li < _listBodies.Count) { var l = _listBodies[li]; CommunityStats.Ranked(g, l.body, l.rows, _ctx, l.color, l.nameShare, lit: row); }
             return;
         }
         if (_hot.Kind != Zone.Bar || _hot.Index < 0 || _hot.Index >= _chartHist.Count) return;
@@ -191,10 +222,12 @@ internal sealed partial class DashCanvas
         var vf = _ctx.Font(18f, FontStyle.Bold);
         var sf = _ctx.Font(9f);
         _tileLive.Clear();
+        _listBodies.Clear();
         for (int i = 0; i < 4; i++)
         {
             var r = lay.Tiles[i];
             Ui.FillCard(g, r);
+            _zones.Add((r, new Hot(Zone.Tile, i, null)));   // a hover outlines the tile
             var inner = Rectangle.Inflate(r, -S(16), -S(14));
             TextRenderer.DrawText(g, Lang.Upper(tiles[i].Label), lf, new Rectangle(inner.Left, inner.Top, inner.Width, lf.Height), Theme.Faint,
                 TextFormatFlags.Left | TextFormatFlags.NoPadding);
@@ -224,21 +257,21 @@ internal sealed partial class DashCanvas
             var nf = _ctx.Font(8.5f);
             int noteH = nf.Height + S(6);
             _mapRect = new Rectangle(body.Left, body.Top, body.Width, body.Height - noteH);
-            var counts = sum.Countries.ToDictionary(c => c.code, c => c.count);
-            WorldMap.Instance.Paint(g, _mapRect, counts, Theme.BorderStrong, Theme.Accent, null);
+            _mapCounts = sum.Countries.ToDictionary(c => c.code, c => c.count);
+            WorldMap.Instance.Paint(g, _mapRect, _mapCounts, Theme.BorderStrong, Theme.Accent, null, lit: entering ? 0f : 1f);
             TextRenderer.DrawText(g, Lang.T("dash_st_map_note"), nf, new Rectangle(body.Left, body.Bottom - nf.Height, body.Width, nf.Height), Theme.Faint,
                 TextFormatFlags.Left | TextFormatFlags.NoPadding);
             _zones.Add((_mapRect, new Hot(Zone.Map, -1, null)));
             var list = StatsCard(g, lay.Countries, Lang.T("dash_st_countries"));
-            CommunityStats.Ranked(g, list, sum.Countries.Select(c => (WorldMap.CountryName(c.code), c.count)).ToList(), _ctx, Theme.Accent);
+            RankedList(g, list, sum.Countries.Select(c => (WorldMap.CountryName(c.code), c.count)).ToList(), Theme.Accent, 0f, entering);
         }
 
         // ---- languages and board families ----
         {
             var body = StatsCard(g, lay.Langs, Lang.T("dash_st_langs"));
-            CommunityStats.Ranked(g, body, sum.Langs.Select(l => (WorldMap.LanguageName(l.code), l.count)).ToList(), _ctx, Theme.Violet);
+            RankedList(g, body, sum.Langs.Select(l => (WorldMap.LanguageName(l.code), l.count)).ToList(), Theme.Violet, 0f, entering);
             var mb = StatsCard(g, lay.Models, Lang.T("dash_st_models"));
-            CommunityStats.Ranked(g, mb, sum.Models.Select(m => (CommunityStats.ModelName(m.prefix), m.count)).ToList(), _ctx, Theme.Green, nameShare: 0.62f);
+            RankedList(g, mb, sum.Models.Select(m => (CommunityStats.ModelName(m.prefix), m.count)).ToList(), Theme.Green, 0.62f, entering);
         }
     }
 
