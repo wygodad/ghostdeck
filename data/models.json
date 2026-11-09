@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261204,
+  "dataVersion": 20261205,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -1275,7 +1275,7 @@
       }
     },
     {
-      "name": "MSI Vector A16 HX A8WIG",
+      "name": "MSI Vector A16 HX A8WIG / A8WHG",
       "prefixes": [
         "15MMIMS1"
       ],
@@ -1292,7 +1292,7 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "Matt99-sys, harunomar54",
+      "credit": "Matt99-sys, harunomar54, CollKamm",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/130",
       "creditIssues": {
         "Matt99-sys": [
@@ -1303,6 +1303,9 @@
         ],
         "harunomar54": [
           273
+        ],
+        "CollKamm": [
+          342
         ]
       },
       "added": "2026-08-23",
@@ -2086,7 +2089,7 @@
       }
     },
     {
-      "name": "MSI Stealth 14 Studio A13VF",
+      "name": "MSI Stealth 14 Studio A13VF / A13VE",
       "prefixes": [
         "14K1EMS1"
       ],
@@ -2103,13 +2106,17 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "kltk",
+      "credit": "kltk, kalenwilson87-lab",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/109",
       "creditIssues": {
         "kltk": [
           107,
           108,
           109
+        ],
+        "kalenwilson87-lab": [
+          242,
+          343
         ]
       },
       "added": "2026-06-29",

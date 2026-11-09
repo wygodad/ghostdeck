@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261204;
+    public const int DataVersion = 20261205;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -848,15 +848,20 @@ public static class Devices
         // of Balanced's work at 58 vs 72 C and 3023 vs 3950 rpm - a real Silent cap; Extreme
         // adds 8% with the fans opened to ~6125 rpm; every phase read its bytes back intact and
         // the run drifted 4%. His first two runs (#133/#134) were disturbed mid-measurement
-        // (repeat phase read back an eco shift) and were not scored. Board quirk to watch: the
-        // fan DUTY bytes read implausible constants under load (103/112, once 150) while both
-        // tachometers stay live and plausible - RPM is the readout to trust here.
+        // (repeat phase read back an eco shift) and were not scored. Fan DUTY readback under
+        // heavy load: 0x71/0x89 sit at the stock values of the extra slot past each speed table
+        // (0x78 = 0x67 = 103, 0x90 = 0x70 = 112, both in the #342 dumps; once 150 in the first owner's runs), and
+        // Extreme raises the rpm without moving them - RPM is the readout to trust here.
         // Second independent curve confirmation (issue #273, harunomar54, firmware .103, MSI Center
         // 2.0.74): the test curve sits byte for byte at 0x72/0x8A again.
-        new() { Name = "MSI Vector A16 HX A8WIG",           FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Tested,
+        // Second clean power test (issue #342, CollKamm, an A8WHG on firmware .103, app 1.44.0):
+        // Silent 75% of Balanced's work at 65 vs 88 C and ~2430 vs ~3900 rpm, Extreme +4% at
+        // ~5800 rpm, every phase read its bytes back intact, 3% drift. Same board and firmware
+        // prefix as the A8WIG, so the A8WHG name joins the entry.
+        new() { Name = "MSI Vector A16 HX A8WIG / A8WHG",   FirmwarePrefixes = new[] { "15MMIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "Matt99-sys, harunomar54", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130",
-                CreditIssues = Issues("Matt99-sys:130,133,134,135; harunomar54:273") },
+                Credit = "Matt99-sys, harunomar54, CollKamm", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/130",
+                CreditIssues = Issues("Matt99-sys:130,133,134,135; harunomar54:273; CollKamm:342") },
         // Raider GE68 HX 14VIG board (15M1IMS2), also sold as Vector 16 HX A13V - the owner's
         // report (issue #104, taken on MSI Center 2.0.48, the last lineup with the real Silent
         // scenario) matches StdRecipes on the three main profiles: shift 0xD2 C1/C1/C4, fan
@@ -1088,10 +1093,16 @@ public static class Devices
         // single-byte divisors, alive in every capture (B3/AE/B2/B5 and B2/B4/B2/B3, ~2600-2750
         // rpm). 0xD6 flips to 03 in Extreme on its own (EC-driven at 0xD2=C4, nothing writes it) -
         // fourth board showing the D6/power-level link tracked since #52.
-        new() { Name = "MSI Stealth 14 Studio A13VF",       FirmwarePrefixes = new[] { "14K1EMS1" }, Tier = Tier.Tested,
+        // Second owner's capture (issue #343, kalenwilson87-lab, an A13VE on firmware .108, MSI
+        // Center 2.0.75): shift C1/C1/C4/C2, fan 1D/0D/8D/8D, 0xEB=0F only in Super Battery -
+        // the recipes on every mode byte; 0xD4=8D in Extreme and Super Battery is MSI Center's
+        // Advanced fan mode where the recipes write the automatic 0D. His first capture (#242)
+        // held the Super Battery shift in all four columns. Same board and firmware prefix as the
+        // A13VF, so the A13VE name joins the entry.
+        new() { Name = "MSI Stealth 14 Studio A13VF / A13VE", FirmwarePrefixes = new[] { "14K1EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "kltk", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/109",
-                CreditIssues = Issues("kltk:107,108,109") },
+                Credit = "kltk, kalenwilson87-lab", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/109",
+                CreditIssues = Issues("kltk:107,108,109; kalenwilson87-lab:242,343") },
         new() { Name = "MSI Stealth 14 AI Studio A1VGG / A1VFG", FirmwarePrefixes = new[] { "14K2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Modern 14 H D13M",              FirmwarePrefixes = new[] { "14L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 AI Evo C1MG",       FirmwarePrefixes = new[] { "14N1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },

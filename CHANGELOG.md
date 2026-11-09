@@ -10,6 +10,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   numbers at hand were generated and when you last asked.
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261204, [#341](../../issues/341), thanks @dennyblr1-hash) -
   another owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
+- **Vector A16 HX A8WIG / A8WHG** (`15MMIMS1`, model database 20261205, [#342](../../issues/342), thanks @CollKamm) -
+  a second clean power test agrees with the first: Silent 75 % of Balanced's work at 65 vs 88 °C, Extreme +4 %. The
+  A8WHG name joins the entry (same board and firmware) and the owner joins the model's credit.
+- **Stealth 14 Studio A13VF / A13VE** (`14K1EMS1`, model database 20261205, [#343](../../issues/343), thanks
+  @kalenwilson87-lab) - another owner's capture matches the recipes in all four scenarios; the A13VE name joins the entry
+  (same board and firmware) and the owner joins the model's credit.
 
 ### Fixed
 - **Fan sweep findings: a fan that ignores the command** ([#329](../../issues/329), thanks @SorgZZ): when the controller
