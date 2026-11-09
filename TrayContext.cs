@@ -2619,7 +2619,8 @@ public sealed class TrayContext : ApplicationContext
         CoolerBoost = () => _coolerBoost,
         SetCoolerBoost = on => SetCoolerBoostState(on),
         StatsChanged = MaybeSendStats,
-        StatsRefresh = () => MaybeSendStats(TimeSpan.FromHours(1)),   // the Statistics view opened
+        StatsRefresh = () => MaybeSendStats(TimeSpan.FromMinutes(10)),    // the Statistics view opened (ten minutes = the file's cache time at the edge)
+        StatsRefreshNow = () => MaybeSendStats(TimeSpan.FromSeconds(20)), // the view's Refresh button
         KbdLevel = KbdLevel,                                        // (#26) -1 = no support on this model
         SetKbdLevel = l => SetKbdLight(l, ChangeSource.Panel),
         WebcamState = () => !_webcamSupported || !Writable ? -1 : _webcamOn ? 1 : 0,   // (#27)

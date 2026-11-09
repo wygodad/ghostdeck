@@ -32,7 +32,8 @@ public sealed class MainDeps
     public required Action PollModelDb { get; init; }
     public required Action SettingsChanged { get; init; }     // tray rebuilds menu / hotkeys
     public Action? StatsChanged { get; init; }                 // (1.44) statistics switched on in Settings: the tray sends/fetches if due
-    public Action? StatsRefresh { get; init; }                 // (1.44) the Statistics view opened: fetch the summary when it is an hour old or missing
+    public Action? StatsRefresh { get; init; }                 // (1.44) the Statistics view opened: fetch the summary when it is ten minutes old or missing
+    public Action? StatsRefreshNow { get; init; }              // the view's Refresh button: fetch now (a click within 20 s of the last fetch does nothing)
     public required Action ReloadPages { get; init; }         // after an import or restore: every page of the window is built again from the settings
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100

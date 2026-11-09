@@ -50,7 +50,7 @@ internal sealed partial class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar, Cols, Row, Tile }
+    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar, Cols, Row, Tile, StatsRefresh }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -323,7 +323,24 @@ internal sealed partial class DashCanvas : Control
         int by = HeaderWraps ? top + bandH + S(10) : top, bandB = HeaderWraps ? ButtonH : bandH;
         int x = GridWidth(Width) - Pad;
         if (_view == View.Catalog) { if (Summary != null) PaintSortPills(g, x, by, bandB); }
-        else if (_view == View.Stats) { }
+        else if (_view == View.Stats)
+        {
+            // Refresh fetches the signed summary now (the view itself asks only when the copy is ten
+            // minutes old); beside it, when the copy at hand was generated and when it was last asked for
+            if (StatsRefreshShown)
+            {
+                x = HeaderButton(g, x, by, bandB, "", Lang.T("dash_st_refresh"), new Hot(Zone.StatsRefresh, -1, null), primary: false);
+                string stamp = StatsStamp();
+                if (stamp.Length > 0)
+                {
+                    var sf = _ctx.Font(9f);
+                    int sw = TextRenderer.MeasureText(stamp, sf, Size.Empty, TextFormatFlags.NoPadding).Width;
+                    int left = x - S(12) - sw;
+                    if (HeaderWraps || left > Pad + SwitchW() + S(16))
+                        TextRenderer.DrawText(g, stamp, sf, new Rectangle(left, by, sw + S(2), bandB), Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                }
+            }
+        }
         else if (_edit)
         {
             x = HeaderButton(g, x, by, bandB, "", Lang.T("dash_done"), new Hot(Zone.Done, -1, null), primary: true);
@@ -865,6 +882,7 @@ internal sealed partial class DashCanvas : Control
             case Zone.Info: if (h.Type != null) OpenInfo(h.Type); return;
             case Zone.View: SwitchView((View)h.Index); return;
             case Zone.StatsOn: TurnStatsOn(); return;
+            case Zone.StatsRefresh: _statsAskedAt = DateTime.Now; _d.StatsRefreshNow?.Invoke(); Rebuild(); return;   // SummaryChanged repaints when a newer file arrives
             case Zone.StatsInfo: ShowStatsInfo(); return;
             case Zone.Cols: SetColumns(h.Index); return;
             case Zone.Widget:

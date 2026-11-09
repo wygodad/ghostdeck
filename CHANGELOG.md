@@ -5,6 +5,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **Statistics view: a Refresh button and fresher numbers.** The view now asks for the signed summary when its copy is ten
+  minutes old (it was an hour), and a **Refresh** button in the header asks at once. Next to it the view says when the
+  numbers at hand were generated and when you last asked.
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261204, [#341](../../issues/341), thanks @dennyblr1-hash) -
   another owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
 

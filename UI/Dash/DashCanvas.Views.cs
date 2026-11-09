@@ -47,8 +47,21 @@ internal sealed partial class DashCanvas
         var f = ButtonFont();
         int One(string key) => S(12) + S(16) + S(8) + TextRenderer.MeasureText(Lang.T(key), f, Size.Empty, TextFormatFlags.NoPadding).Width + S(14);
         if (_view == View.Catalog) return Summary == null ? 0 : TextRenderer.MeasureText(Lang.T("dash_sort_popular") + Lang.T("dash_sort_az"), CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22) * 2 + S(8);
-        if (_view == View.Stats) return 0;
+        if (_view == View.Stats) return StatsRefreshShown ? One("dash_st_refresh") : 0;
         return _edit ? One("dash_done") + One("dash_reset") + One("dash_add") + S(8) * 2 : One("dash_edit");
+    }
+
+    /// <summary>The Statistics view's Refresh button shows once statistics are on (or a summary is at hand, as in the demo).</summary>
+    private bool StatsRefreshShown => _d.Settings.StatsEnabled || Summary != null;
+    private DateTime? _statsAskedAt;   // the last click on Refresh in this window
+
+    /// <summary>"Data from 9.11 10:42 · asked 11:05:03": when the summary at hand was generated (local time) and when Refresh was last clicked.</summary>
+    private string StatsStamp()
+    {
+        string s = Summary is { } sum && sum.Generated > DateTime.MinValue
+            ? string.Format(Lang.T("dash_st_stamp_fmt"), sum.Generated.ToLocalTime().ToString("d.MM HH:mm")) : "";
+        if (_statsAskedAt is { } at) s += (s.Length > 0 ? "  ·  " : "") + string.Format(Lang.T("dash_st_asked_fmt"), at.ToString("HH:mm:ss"));
+        return s;
     }
 
     /// <summary>True when the buttons would run into the switch: they take a second header row instead (250 % in a long language).</summary>

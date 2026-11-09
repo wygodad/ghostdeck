@@ -4558,8 +4558,10 @@ and a server-side guard against sudden floods are the protection, and a report t
 its content is simply one more report in the counts.
 
 **When it runs.** The tray checks at start, at consent, when the Statistics view opens and once an
-hour whether this week's report is still due and whether the summary is older than six hours (an
-hour from the view). A failed fetch does not move the clock, so while the server has no file yet
+hour whether this week's report is still due and whether the summary is older than six hours (ten
+minutes from the view, the time the file may sit in the edge cache; the view's **Refresh** button
+asks at once, at most every 20 seconds, and shows when the copy at hand was generated and when it
+was last asked for). A failed fetch does not move the clock, so while the server has no file yet
 (the days after a release) every check retries. The hourly check is what keeps a laptop that sleeps
 instead of restarting reporting every week; a week GhostDeck was never running in is simply missing.
 
