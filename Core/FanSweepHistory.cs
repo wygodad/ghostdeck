@@ -52,7 +52,7 @@ public static class FanSweepHistory
         /// <summary>Back to the runtime result, so the same painter and report code can consume it.</summary>
         public FanSweep.Result ToResult()
         {
-            var r = new FanSweep.Result { HasTach = HasTach, Started = When, Aborted = Aborted, Duration = TimeSpan.FromSeconds(Seconds) };
+            var r = new FanSweep.Result { HasTach = HasTach, SingleFan = SingleFan, Started = When, Aborted = Aborted, Duration = TimeSpan.FromSeconds(Seconds) };
             foreach (var s in Steps)
                 r.Steps.Add(new FanSweep.StepResult(s.Set, s.CpuDuty, s.GpuDuty, s.CpuRpm, s.GpuRpm, s.CpuTemp, s.GpuTemp, s.Settle));
             return r;
@@ -67,7 +67,7 @@ public static class FanSweepHistory
             return r;
         }
 
-        /// <summary>Two-table test only: whether the entry was Fan 1 alone in the editor.</summary>
+        /// <summary>Whether the entry was Fan 1 alone in the editor (two-table test, and fan sweeps stored after the field was added; older sweep entries read false).</summary>
         public bool SingleFan { get; set; }
 
         /// <summary>
@@ -103,6 +103,7 @@ public static class FanSweepHistory
             Firmware = firmware,
             AppVersion = appVersion,
             HasTach = r.HasTach,
+            SingleFan = r.SingleFan,
             Aborted = r.Aborted,
             Seconds = r.Duration.TotalSeconds,
             Findings = findings.ToList(),

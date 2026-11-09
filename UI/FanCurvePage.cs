@@ -1851,7 +1851,7 @@ public sealed class FanCurvePage : ThemedPage
         });
 
     private static bool IsFanScopedFinding(string key) =>
-        key is "fc_find_follows" or "fc_find_follows_flat" or "fc_find_plateau" or "fc_find_drop" or "fc_find_floor" or "fc_find_notach";
+        key is "fc_find_follows" or "fc_find_follows_flat" or "fc_find_plateau" or "fc_find_drop" or "fc_find_floor" or "fc_find_notach" or "fc_find_ignored";
 
     private void StartSweep()
     {
@@ -2271,7 +2271,7 @@ public sealed class FanCurvePage : ThemedPage
                 string line = "•  " + findingTexts[fi2];
                 var need = TextRenderer.MeasureText(g, line, subF, new Size(fr.Width, 1000), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
                 if (fy + need.Height > bottom) break;
-                var col = key.Contains("drop") || key.Contains("gap") ? Theme.Amber : Theme.Muted;
+                var col = key.Contains("drop") || key.Contains("gap") || key.Contains("ignored") ? Theme.Amber : Theme.Muted;
                 TextRenderer.DrawText(g, line, subF, new Rectangle(fr.X, fy, fr.Width, need.Height), col, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
                 fy += need.Height + S(3);
             }

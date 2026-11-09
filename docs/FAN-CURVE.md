@@ -266,6 +266,7 @@ the duty readback):
 
 | Line | Condition | Colour |
 |---|---|---|
+| **did not follow the command** | checked first: the controller's own duty readback stayed within 2 points at every step while the command rose by 30 points or more, and the speed did too (top step within 5 % of the lowest; on boards without a tachometer the readback is the speed). Quotes the held % and the commanded range. When it fires, none of the lines below are given for that fan. Not checked for Fan 2 on a single-fan entry, whose tables the sweep does not write | amber |
 | **follows the command, rising with every step** | every step read more than 2 % above the one before; quotes the first and last value | neutral |
 | **follows the command** | no step is below 95 % of the previous one, but at least one did not rise by more than 2 % (a flat step); quotes the first and last value, without the "every step" claim | neutral |
 | **no gain above N %** | the top step (e.g. 150 %) read no more than 2 % above the step before it (e.g. 100 %), and not below 95 % of it either; quotes that step's % and the average of the two readings, rounded to 10 rpm (tachometer boards only) | neutral |
@@ -284,7 +285,7 @@ profile left the fans, and spinning up from far away legitimately takes longer.
 Then one context line with the CPU temperature range during the test - context, not judgement,
 because a sweep at 45 °C and a sweep at 85 °C are not the same experiment.
 
-Finally, if none of the amber lines (drop, gap, slow) fired, one line says the run showed nothing
+Finally, if none of the amber lines (did not follow the command, drop, gap, slow) fired, one line says the run showed nothing
 out of the ordinary. A clean run should say so, not say nothing.
 
 **Why the thresholds are what they are.** 95 % tolerates measurement noise on a 3-sample average
@@ -297,6 +298,15 @@ already near its top - a floor imposed by the firmware, not by our command, whic
 before anyone concludes the curve is being ignored. 35 % between two fans is far beyond what
 different fan sizes and duty curves explain on the models we have data for. 4 s is roughly four
 times the ~1 s in which fans normally reach a new level.
+
+**Why "did not follow the command" needs both the readback and the speed.** Every other line
+compares the steps with each other, so a fan the controller holds in place reads as a fan that
+follows: on a Stealth 18 HX AI A2XW (#329) the controller kept 38 % at every step from 30 to 150 %
+at 62-63 °C, the speed wandered 2309-2336 rpm, and the summary said "rising with every step" and
+"nothing out of the ordinary". The readback alone is not enough either: on a GE78HX the CPU
+readback sat at 100 % for a whole run while the fan climbed from 3613 to 4453 rpm. So the line
+needs both to stay put. 2 points absorb the readback's rounding; 5 % is wider than the 2 % step
+noise because it spans the whole run, and still far below the climb of a fan that follows.
 
 ## 9. The report
 

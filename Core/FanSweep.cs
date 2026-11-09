@@ -33,6 +33,8 @@ public static class FanSweep
     {
         public List<StepResult> Steps { get; } = new();
         public bool HasTach { get; init; }
+        /// <summary>The run drove Fan 1's tables only (single-fan entry); Fan 2's readback was never commanded.</summary>
+        public bool SingleFan { get; init; }
         public bool Aborted { get; set; }
         public string? Error { get; set; }
         public DateTime Started { get; init; } = DateTime.Now;
@@ -47,7 +49,7 @@ public static class FanSweep
     public static Result Run(DeviceProfile dev, int[] steps, Action<int, int, string> progress, CancellationToken ct)
     {
         var fc = dev.FanCurve ?? throw new InvalidOperationException("no fan-curve tables on this model");
-        var res = new Result { HasTach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0 };
+        var res = new Result { HasTach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0, SingleFan = fc.SingleFan };
         var t0 = DateTime.Now;
         try
         {
@@ -108,6 +110,24 @@ public static class FanSweep
         {
             var pts = r.Steps.Select(s => (d: s.DutyPct, v: r.HasTach ? (fan == 0 ? s.CpuRpm : s.GpuRpm) : (fan == 0 ? s.CpuDuty : s.GpuDuty))).Where(p => p.v > 0).ToList();
             if (pts.Count < 2) { if (r.HasTach) f.Add(("fc_find_notach", new object[] { fan + 1 })); continue; }
+            // The controller's own readback stayed put while the command moved, and the speed did
+            // not move either: the fan did not follow the command (issue #329: 38 % at every step
+            // from 30 to 150 %, 2309-2336 rpm). Checked first, because every line below compares
+            // the steps with each other and would read a held fan as one that follows. The speed
+            // has to stay put too: a readback can sit at one value while the fan still climbs
+            // (100 % at every step, 3613 -> 4453 rpm, on a GE78HX).
+            if (!(fan == 1 && r.SingleFan))
+            {
+                var duty = r.Steps.Select(s => fan == 0 ? s.CpuDuty : s.GpuDuty).ToList();
+                int span = r.Steps[^1].DutyPct - r.Steps[0].DutyPct;
+                bool dutyHeld = span >= 30 && duty.Max() > 0 && duty.Max() - duty.Min() <= 2;
+                bool speedHeld = pts.Max(p => p.v) <= pts.Min(p => p.v) * 1.05;
+                if (dutyHeld && speedHeld)
+                {
+                    f.Add(("fc_find_ignored", new object[] { fan + 1, (int)Math.Round(duty.Average()), r.Steps[0].DutyPct, r.Steps[^1].DutyPct }));
+                    continue;
+                }
+            }
             int drops = 0, flats = 0; string dropAt = "";
             for (int i = 1; i < pts.Count; i++)
             {
@@ -143,7 +163,7 @@ public static class FanSweep
         // context, not judgement
         int tMin = r.Steps.Min(s => s.CpuTemp), tMax = r.Steps.Max(s => s.CpuTemp);
         f.Add(("fc_find_temps", new object[] { tMin, tMax }));
-        bool anyFlag = f.Any(x => x.Item1 is "fc_find_drop" or "fc_find_gap" or "fc_find_slow");
+        bool anyFlag = f.Any(x => x.Item1 is "fc_find_ignored" or "fc_find_drop" or "fc_find_gap" or "fc_find_slow");
         if (!anyFlag) f.Add(("fc_find_clean", Array.Empty<object>()));
         return f;
     }

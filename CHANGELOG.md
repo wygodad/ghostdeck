@@ -12,6 +12,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   another owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
 
 ### Fixed
+- **Fan sweep findings: a fan that ignores the command** ([#329](../../issues/329), thanks @SorgZZ): when the controller
+  held a fan at one value through every step, the summary could still say the fan follows its command, rising with every
+  step, and that nothing was out of the ordinary. It now says in amber that the controller kept the fan at that value
+  while the command went from the first step to the last, and no longer calls the run clean.
 - **Statistics view with the statistics off**: the *Turn statistics on* and *What we collect* buttons kept an empty slot
   for an icon, so their captions sat off-centre to the right. They now carry icons (the statistics chart and the info
   sign), like the other buttons of the tab.

@@ -3200,6 +3200,16 @@ step adds nothing over the one before it - on the Crosshair A16 HX the curve sto
 which the sweep now states in so many words. The findings column grows the panel by its measured
 height instead of dropping its last lines. Rules and thresholds: FAN-CURVE.md §8.
 
+**A held fan (2026-11, issue #329).** The findings compared the steps with each other only, so a
+fan whose controller ignored the command entirely was reported as following it ("rising with every
+step", "nothing out of the ordinary") whenever its speed wobbled upwards: a Stealth 18 HX AI A2XW
+held 38 % at every step from 30 to 150 % at 62-63 °C. `FanSweep.Findings` now checks each fan first
+for a duty readback that stayed within 2 points while the command moved by 30 or more, with the
+speed within 5 % over the run; that gives the amber `fc_find_ignored` line instead of the
+comparison lines, and the run is no longer called clean. `Result.SingleFan` (stored in
+`fan-sweeps.json` as the entry's `SingleFan`) keeps Fan 2 of a single-fan entry out of the check,
+since the sweep writes Fan 1's tables only there.
+
 ## 66. Text on a scrolling page (v1.34)
 
 `TextRenderer.DrawText` draws every label in this app, and by default it honours **neither**
