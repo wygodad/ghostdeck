@@ -369,6 +369,25 @@ public class GhostCardForm : Form
     /// <summary>Height in device pixels of the content block under the body text; 0 = none.</summary>
     protected virtual int MeasureContent(Graphics g, float k, int width) => 0;
     /// <summary>
+    /// Device pixels the content block may take before the card outgrows the working area of its
+    /// screen. A card has no scroll bar, so one with a tall content block packs it tighter when
+    /// it would not fit. Known while <see cref="MeasureContent"/> runs.
+    /// </summary>
+    protected int ContentRoom { get; private set; } = int.MaxValue;
+    /// <summary>The preview tool: a working-area height (device pixels) to plan for instead of the screen's; 0 = the screen's.</summary>
+    internal static int WorkAreaHeightForTest { get; set; }
+
+    private int WorkAreaHeight()
+    {
+        if (WorkAreaHeightForTest > 0) return WorkAreaHeightForTest;
+        try
+        {
+            bool overHost = HostWindow is { IsDisposed: false, Visible: true } && HostWindow.WindowState != FormWindowState.Minimized;
+            return (overHost ? Screen.FromControl(HostWindow!) : Screen.FromControl(this)).WorkingArea.Height;
+        }
+        catch { return int.MaxValue; }
+    }
+    /// <summary>
     /// Paints the content block into <paramref name="area"/>. Add <paramref name="origin"/> to a
     /// painted rectangle to get the window coordinates <see cref="ContentHit"/> is asked about.
     /// </summary>
@@ -487,6 +506,9 @@ public class GhostCardForm : Form
             probe.TextRenderingHint = TextRenderingHint.AntiAlias;
             hTitle = Ce(titleF.GetHeight(probe));
             hBody = Ce(probe.MeasureString(_body, bodyF, cw).Height);
+            // everything of the card but the content block, with the gap above it and the shadow margins
+            long rest = yTitle + hTitle + Ce(8 * k) + hBody + Ce(14 * k) + Ce(14 * k) + hBtn + Ce(14 * k) + pad * 2;
+            ContentRoom = (int)Math.Clamp(WorkAreaHeight() - rest, 0, int.MaxValue);
             hContent = MeasureContent(probe, k, cw);
         }
         int yBody = yTitle + hTitle + Ce(8 * k);

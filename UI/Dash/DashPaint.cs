@@ -94,21 +94,32 @@ internal static class DashPaint
 
     // ---- the palette a widget's colour setting offers (1.45) ----
     // Stored by id, never as a colour code, so a picked colour follows the light and the dark theme.
-    public static readonly string[] PaletteIds = { "cyan", "blue", "violet", "green", "amber", "pink" };
+    // In the order of the colour wheel, warm first (the colours a warning usually wants), the
+    // theme's own text colour last.
+    public static readonly string[] PaletteIds = { "red", "orange", "amber", "yellow", "lime", "green", "teal", "cyan", "blue", "violet", "pink", "mono" };
 
-    /// <summary>The values a colour setting may hold: "auto" (the widget's own colours), then the palette.</summary>
+    /// <summary>The values a colour setting may hold: "auto" (what the widget paints by itself), then the palette.</summary>
     public static readonly string[] PaletteChoices = new[] { "auto" }.Concat(PaletteIds).ToArray();
 
     public static Color PaletteColor(string id) => id switch
     {
+        "red"    => Theme.Dark ? Color.FromArgb(0xFF, 0x52, 0x47) : Color.FromArgb(0xD9, 0x30, 0x25),
+        "orange" => Theme.Dark ? Color.FromArgb(0xFF, 0x8A, 0x3D) : Color.FromArgb(0xD9, 0x64, 0x0F),
+        "amber"  => Theme.Amber,
+        "yellow" => Theme.Dark ? Color.FromArgb(0xFF, 0xE0, 0x4D) : Color.FromArgb(0xA8, 0x8A, 0x00),
+        "lime"   => Theme.Dark ? Color.FromArgb(0xB4, 0xF0, 0x5A) : Color.FromArgb(0x5E, 0x9E, 0x0C),
+        "green"  => Theme.Green,
+        "teal"   => Theme.Dark ? Color.FromArgb(0x2E, 0xD3, 0xB7) : Color.FromArgb(0x0E, 0x93, 0x84),
         "cyan"   => Theme.Dark ? Color.FromArgb(0x3D, 0xE3, 0xFF) : Color.FromArgb(0x0E, 0x9C, 0xC0),
         "blue"   => Color.FromArgb(0x3C, 0x7D, 0xFF),
         "violet" => Theme.Violet,
-        "green"  => Theme.Green,
-        "amber"  => Theme.Amber,
         "pink"   => Theme.Red,
+        "mono"   => Theme.Text,
         _        => Theme.Accent,
     };
+
+    /// <summary>A colour setting's value as a colour: the palette colour, or <paramref name="own"/> for "auto".</summary>
+    public static Color Pick(string id, Color own) => id == "auto" ? own : PaletteColor(id);
 
     /// <summary>Value above the centre, unit below, sized from the ring (fonts in pixels, like IconPainter.Ring).</summary>
     public static void RingValue(Graphics g, RectangleF box, string value, string unit, DashContext c)

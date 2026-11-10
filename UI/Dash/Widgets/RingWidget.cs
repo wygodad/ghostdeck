@@ -5,26 +5,38 @@ namespace GhostDeck;
 /// Status ring in a card. Static layer: the card, the dim track and the label. Live layer: the
 /// lit part, the value and, for the fans, the RPM line. A click opens the Status tab.
 ///
-/// Settings (1.45): the colour (automatic or one of the palette), the dial style (segments or
-/// a continuous arc), the label, a warning threshold from which the dial is red (temperatures,
-/// usage), the scale (temperatures) and the RPM line (fans). With nothing set the widget paints
-/// exactly as in 1.44.
+/// Settings (1.45): the dial's colour, its style (segments or a continuous arc), the label and
+/// its colour, the warnings (temperatures: two thresholds, usage: one; each turns the dial to a
+/// colour of its own, and "No warnings" switches them off), the scale (temperatures), the RPM
+/// line and its colour (fans). With nothing set a temperature and a fan paint exactly as in
+/// 1.44; the usage dial is the same until the load reaches its warning threshold.
 /// </summary>
 internal sealed class RingWidget : DashWidget
 {
     public enum Kind { CpuTemp, GpuTemp, CpuFan, GpuFan, CpuUsage }
 
-    private const string KColor = "color", KDial = "dial", KLabel = "label", KWarn = "warn", KMin = "min", KMax = "max", KRpm = "rpm";
+    private const string KColor = "color", KDial = "dial", KLabel = "label", KLabelColor = "labelc",
+                         KNoWarn = "nowarn", KMin = "min", KMax = "max", KRpm = "rpm", KRpmColor = "rpmc";
     private static readonly string[] Dials = { "seg", "arc" };
-    // temperatures: the threshold 40-120 °C (85 unless set, 0 = off), the scale's ends, and the least span between them
-    private const int WarnTempMin = 40, WarnTempMax = 120, WarnTempDef = 85;
+
+    /// <summary>One warning: from <see cref="Def"/> (unless set) the dial takes this level's colour, amber or red unless picked.</summary>
+    private readonly record struct Level(string Key, string ColorKey, int Def, string LabelKey, bool Amber)
+    {
+        public Color Own => Amber ? Theme.Amber : Theme.Red;
+    }
+
+    // temperatures: amber from 70 and red from 85, as the Status rings; usage: red from 90
+    private static readonly Level[] TempLevels = { new("warn1", "warn1c", 70, "dash_opt_warn1", true), new("warn2", "warn2c", 85, "dash_opt_warn2", false) };
+    private static readonly Level[] UsageLevels = { new("warn1", "warn1c", 90, "dash_opt_warn", false) };
+    private const int WarnTempMin = 40, WarnTempMax = 120, WarnUseMin = 10, WarnUseMax = 100;
+    // the scale's ends and the least span between them
     private const int ScaleMinLo = 0, ScaleMinHi = 80, ScaleMaxLo = 50, ScaleMaxHi = 130, ScaleSpan = 20;
-    private const int WarnUseMin = 10, WarnUseMax = 100;
 
     private readonly Kind _kind;
-    private readonly string _color, _label;
+    private readonly string _color, _label, _labelColor, _rpmColor;
     private readonly bool _arc, _rpmLine;
-    private readonly int _warn, _min, _max;
+    private readonly int _min, _max;
+    private readonly (int At, string Color, Level Level)[] _warn;   // the highest threshold first; empty = no warnings
     private string _painted = "";
 
     public RingWidget(DashWidgetDef def, DashOptions opt, Kind kind) : base(def, opt)
@@ -33,20 +45,30 @@ internal sealed class RingWidget : DashWidget
         _color = opt.Choice(KColor, "auto", DashPaint.PaletteChoices);
         _arc = opt.Choice(KDial, "seg", Dials) == "arc";
         _label = opt.Text(KLabel);
+        _labelColor = opt.Choice(KLabelColor, "auto", DashPaint.PaletteChoices);
         _rpmLine = opt.Flag(KRpm, true);
-        _warn = IsTemp ? Threshold(opt, WarnTempDef, WarnTempMin, WarnTempMax) : _kind == Kind.CpuUsage ? Threshold(opt, 0, WarnUseMin, WarnUseMax) : 0;
+        _rpmColor = opt.Choice(KRpmColor, "auto", DashPaint.PaletteChoices);
         (_min, _max) = IsTemp ? Scale(opt) : (0, IsFan ? 150 : 100);
+        _warn = opt.Flag(KNoWarn, false)
+            ? Array.Empty<(int, string, Level)>()
+            : Levels.Select(l => (opt.Int(l.Key, l.Def, WarnMin, WarnMax), opt.Choice(l.ColorKey, "auto", DashPaint.PaletteChoices), l))
+                    .OrderByDescending(w => w.Item1).ToArray();
     }
 
     private bool IsFan => _kind is Kind.CpuFan or Kind.GpuFan;
     private bool IsTemp => _kind is Kind.CpuTemp or Kind.GpuTemp;
+    private Level[] Levels => IsTemp ? TempLevels : _kind == Kind.CpuUsage ? UsageLevels : Array.Empty<Level>();
+    private int WarnMin => IsTemp ? WarnTempMin : WarnUseMin;
+    private int WarnMax => IsTemp ? WarnTempMax : WarnUseMax;
 
-    /// <summary>The warning threshold: 0 = off, else within its range.</summary>
-    private static int Threshold(DashOptions o, int def, int min, int max)
+    /// <summary>The dial's colour when no warning applies and none is picked.</summary>
+    private Color Own => _kind switch
     {
-        int v = o.Int(KWarn, def, 0, max);
-        return v == 0 ? 0 : Math.Max(min, v);
-    }
+        Kind.CpuFan => Theme.Accent,
+        Kind.GpuFan => Theme.Violet,
+        Kind.CpuUsage => DashPaint.CpuUseColor,
+        _ => Theme.Green,
+    };
 
     /// <summary>The scale's ends; a span too short to read falls back to 0-100.</summary>
     private static (int min, int max) Scale(DashOptions o)
@@ -55,19 +77,12 @@ internal sealed class RingWidget : DashWidget
         return max - min >= ScaleSpan ? (min, max) : (0, 100);
     }
 
-    /// <summary>The dial's colour for a value: red from the warning threshold, else the picked colour, else the kind's own.</summary>
+    /// <summary>The dial's colour for a value: the colour of the highest warning reached, else the dial's colour.</summary>
     private Color ColorFor(int value)
     {
-        if (_warn > 0 && value >= _warn) return Theme.Red;
-        if (_color != "auto") return DashPaint.PaletteColor(_color);
-        return _kind switch
-        {
-            // green, amber from 15 degrees under the threshold, red from the threshold: 70 and 85 unless set
-            Kind.CpuTemp or Kind.GpuTemp => value <= 0 ? Theme.Muted : _warn > 0 && value >= _warn - 15 ? Theme.Amber : Theme.Green,
-            Kind.CpuFan => Theme.Accent,
-            Kind.GpuFan => Theme.Violet,
-            _ => DashPaint.CpuUseColor,
-        };
+        foreach (var w in _warn)
+            if (value >= w.At) return DashPaint.Pick(w.Color, w.Level.Own);
+        return DashPaint.Pick(_color, Own);
     }
 
     /// <summary>Value, colour and whether the reading means anything, decided as the Status rings decide it.</summary>
@@ -104,7 +119,7 @@ internal sealed class RingWidget : DashWidget
         Frame(g, r);
         var (box, label, _) = Layout(r, c);
         if (_arc) DashPaint.RingTrackArc(g, box); else DashPaint.RingTrack(g, box);
-        TextRenderer.DrawText(g, Label, c.Font(10f), label, Theme.Muted,
+        TextRenderer.DrawText(g, Label, c.Font(10f), label, DashPaint.Pick(_labelColor, Theme.Muted),
             TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
     }
 
@@ -119,7 +134,7 @@ internal sealed class RingWidget : DashWidget
         }
         DashPaint.RingValue(g, box, known ? value.ToString() : "-", unit, c);
         if (IsFan && _rpmLine && known)
-            TextRenderer.DrawText(g, rpm > 0 ? $"{rpm} RPM" : "- RPM", c.Font(9.5f, FontStyle.Bold), sub, color,
+            TextRenderer.DrawText(g, rpm > 0 ? $"{rpm} RPM" : "- RPM", c.Font(9.5f, FontStyle.Bold), sub, DashPaint.Pick(_rpmColor, color),
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
         _painted = Signature(c.Sample);
     }
@@ -136,27 +151,33 @@ internal sealed class RingWidget : DashWidget
 
     public override IReadOnlyList<DashOptionDef> OptionDefs(DashContext c)
     {
-        var auto = _kind switch
-        {
-            Kind.CpuTemp or Kind.GpuTemp => new[] { Theme.Green, Theme.Amber, Theme.Red },
-            Kind.CpuFan => new[] { Theme.Accent },
-            Kind.GpuFan => new[] { Theme.Violet },
-            _ => new[] { DashPaint.CpuUseColor },
-        };
         var list = new List<DashOptionDef>
         {
-            new(KColor, DashOptKind.Color, Lang.T("dash_opt_color")) { Default = "auto", AutoColors = auto, AutoHint = Lang.T(IsTemp ? "dash_opt_auto_temp" : "dash_opt_auto") },
+            new(KColor, DashOptKind.Color, Lang.T("dash_opt_dial_color")) { Default = "auto", Auto = _ => Own },
             new(KDial, DashOptKind.Choice, Lang.T("dash_opt_dial"))
             {
                 Default = "seg",
                 Items = new[] { ("seg", Lang.T("dash_opt_dial_seg")), ("arc", Lang.T("dash_opt_dial_arc")) },
             },
-            new(KLabel, DashOptKind.Text, Lang.T("dash_opt_label")) { Placeholder = Lang.T(NameKey) },
+            new(KLabel, DashOptKind.Text, Lang.T("dash_opt_label")) { Placeholder = Lang.T(NameKey), ColorKey = KLabelColor, Auto = _ => Theme.Muted },
         };
+        if (Levels.Length > 0)
+        {
+            // the switch first: the thresholds under it dim when it is on, and nothing above it moves
+            list.Add(new(KNoWarn, DashOptKind.Toggle, Lang.T("dash_opt_nowarn")));
+            foreach (var l in Levels)
+            {
+                var level = l;
+                list.Add(new(l.Key, DashOptKind.Number, Lang.T(l.LabelKey))
+                {
+                    Min = WarnMin, Max = WarnMax, DefaultInt = l.Def, Unit = IsTemp ? "°C" : "%",
+                    ColorKey = l.ColorKey, Auto = _ => level.Own,
+                    EnabledWhen = o => !o.Flag(KNoWarn, false),
+                });
+            }
+        }
         if (IsTemp)
         {
-            list.Add(new(KWarn, DashOptKind.Number, Lang.T("dash_opt_warn"))
-                { Min = WarnTempMin, Max = WarnTempMax, DefaultInt = WarnTempDef, EmptyValue = 0, Unit = "°C", Hint = Lang.T("dash_opt_warn_hint") });
             list.Add(new(KMin, DashOptKind.Number, Lang.T("dash_opt_scale_from")) { Min = ScaleMinLo, Max = ScaleMinHi, DefaultInt = 0, Unit = "°C" });
             list.Add(new(KMax, DashOptKind.Number, Lang.T("dash_opt_scale_to"))
             {
@@ -164,11 +185,13 @@ internal sealed class RingWidget : DashWidget
                 Rule = o => o.Int(KMax, 100, ScaleMaxLo, ScaleMaxHi) - o.Int(KMin, 0, ScaleMinLo, ScaleMinHi) >= ScaleSpan,
             });
         }
-        else if (_kind == Kind.CpuUsage)
-            list.Add(new(KWarn, DashOptKind.Number, Lang.T("dash_opt_warn"))
-                { Min = WarnUseMin, Max = WarnUseMax, DefaultInt = 0, EmptyValue = 0, Unit = "%", Hint = Lang.T("dash_opt_warn_hint") });
-        else
-            list.Add(new(KRpm, DashOptKind.Toggle, Lang.T("dash_opt_rpm")) { DefaultOn = true });
+        if (IsFan)
+            // the speed line is in the dial's colour unless it has one of its own
+            list.Add(new(KRpm, DashOptKind.Toggle, Lang.T("dash_opt_rpm"))
+            {
+                DefaultOn = true, ColorKey = KRpmColor,
+                Auto = o => DashPaint.Pick(o.Choice(KColor, "auto", DashPaint.PaletteChoices), Own),
+            });
         return list;
     }
 }
