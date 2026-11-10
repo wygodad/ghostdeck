@@ -13,7 +13,7 @@ internal sealed class ProfilesWidget : DashWidget
     private readonly List<(Rectangle r, ProfileId id)> _tiles = new();
     private Rectangle _apexSwitch;
 
-    public ProfilesWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public ProfilesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     public override void PaintStatic(Graphics g, Rectangle r, DashContext c) => Frame(g, r);
 

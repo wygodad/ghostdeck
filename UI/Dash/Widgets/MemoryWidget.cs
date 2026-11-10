@@ -9,7 +9,7 @@ internal sealed class MemoryWidget : DashWidget
 {
     private string _painted = "";
 
-    public MemoryWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public MemoryWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     private sealed record Row(string Name, string Value, float Frac, Color Color, bool HasBar);
 

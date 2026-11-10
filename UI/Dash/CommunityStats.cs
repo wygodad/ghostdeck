@@ -166,7 +166,7 @@ internal static class CommunityStats
 /// </summary>
 internal sealed class CommunityWidget : DashWidget
 {
-    public CommunityWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public CommunityWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     public override void PaintStatic(Graphics g, Rectangle r, DashContext c)
     {

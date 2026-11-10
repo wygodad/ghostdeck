@@ -42,6 +42,7 @@ internal sealed partial class DashCanvas : Control
     // item, their placement for the current column count and the pixel rectangles
     private List<DashItem> _items = new();
     private readonly List<IDashWidget> _widgets = new();
+    private Dictionary<DashItem, IDashWidget> _byItem = new(ReferenceEqualityComparer.Instance);   // the instance of every layout item
     private List<DashPlaced> _placed = new();
     private Rectangle[] _rects = Array.Empty<Rectangle>();
     private int _placedCols = -1, _rectsCell = -1, _rectsTop = -1, _rectsGridW = -1;
@@ -138,9 +139,10 @@ internal sealed partial class DashCanvas : Control
 
     // ---- layout -----------------------------------------------------------------------
     /// <summary>
-    /// Re-reads the layout from the settings. Widget instances are kept across reorders,
-    /// removals and additions (matched by type), so a curve widget keeps its tables and a ring
-    /// keeps what it last painted; only new types get new instances.
+    /// Re-reads the layout from the settings. A widget instance belongs to its layout item (the
+    /// object, not the type: two items of one type are two widgets with their own settings) and
+    /// is kept across reorders, removals and additions, so a curve widget keeps its tables and a
+    /// ring keeps what it last painted; only new items get new instances.
     /// </summary>
     public void Sync()
     {
@@ -148,16 +150,17 @@ internal sealed partial class DashCanvas : Control
         bool same = ReferenceEquals(items, _items) && items.Count == _widgets.Count;
         if (same)
             for (int i = 0; i < items.Count; i++)
-                if (items[i].Type != _widgets[i].TypeId) { same = false; break; }
+                if (!_byItem.TryGetValue(items[i], out var w) || !ReferenceEquals(w, _widgets[i])) { same = false; break; }
         if (same) return;
-        var pool = new List<IDashWidget>(_widgets);
         _widgets.Clear();
+        var kept = new Dictionary<DashItem, IDashWidget>(ReferenceEqualityComparer.Instance);
         foreach (var it in items)
         {
-            int k = pool.FindIndex(w => w.TypeId == it.Type);
-            if (k >= 0) { _widgets.Add(pool[k]); pool.RemoveAt(k); }
-            else _widgets.Add(DashRegistry.Make(it));
+            if (!_byItem.TryGetValue(it, out var w) || w.TypeId != it.Type) w = DashRegistry.Make(it);
+            kept[it] = w;
+            _widgets.Add(w);
         }
+        _byItem = kept;
         _items = items;
         _placedCols = -1;
         _staticDirty = true;

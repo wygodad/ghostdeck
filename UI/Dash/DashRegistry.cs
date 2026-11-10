@@ -3,12 +3,13 @@ using System.Drawing.Drawing2D;
 namespace GhostDeck;
 
 /// <summary>A widget type the application knows: identity, allowed sizes, availability on this model, and how to make one.</summary>
-internal sealed record DashWidgetDef(string TypeId, string NameKey, Size[] Sizes, Func<MainDeps, bool> Available, Func<DashWidgetDef, IDashWidget> Create)
+internal sealed record DashWidgetDef(string TypeId, string NameKey, Size[] Sizes, Func<MainDeps, bool> Available, Func<DashWidgetDef, DashOptions, IDashWidget> Create)
 {
     /// <summary>When set and false, the catalogue does not list the type at all (it still paints when already placed).</summary>
     public Func<MainDeps, bool>? Listed { get; init; }
 
-    public IDashWidget New() => Create(this);
+    /// <summary>A new instance with the given settings (none = the defaults). Settings are fixed for the life of the instance: changed settings mean a new instance.</summary>
+    public IDashWidget New(DashOptions? opt = null) => Create(this, opt ?? new DashOptions());
 }
 
 /// <summary>
@@ -24,20 +25,20 @@ internal static class DashRegistry
 
     public static readonly IReadOnlyList<DashWidgetDef> All = new[]
     {
-        new DashWidgetDef("core.cpuTemp",     "dash_w_cpu_temp",  Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.CpuTemp)),
-        new DashWidgetDef("core.gpuTemp",     "dash_w_gpu_temp",  Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.GpuTemp)),
-        new DashWidgetDef("core.cpuFan",      "dash_w_cpu_fan",   Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.CpuFan)),
-        new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.GpuFan)),
-        new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, d => new RingWidget(d, RingWidget.Kind.CpuUsage)),
-        new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, d => new CpuClockWidget(d)),
-        new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, d => new ProfilesWidget(d)),
-        new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), d => new CurveWidget(d)),
-        new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2)), Always, d => new ScenesWidget(d)),
-        new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, d => new TogglesWidget(d)),
-        new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, d => new MemoryWidget(d)),
-        new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, d => new ChargeLimitWidget(d)),
+        new DashWidgetDef("core.cpuTemp",     "dash_w_cpu_temp",  Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuTemp)),
+        new DashWidgetDef("core.gpuTemp",     "dash_w_gpu_temp",  Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuTemp)),
+        new DashWidgetDef("core.cpuFan",      "dash_w_cpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuFan)),
+        new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuFan)),
+        new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuUsage)),
+        new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, (d, o) => new CpuClockWidget(d, o)),
+        new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, (d, o) => new ProfilesWidget(d, o)),
+        new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), (d, o) => new CurveWidget(d, o)),
+        new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2)), Always, (d, o) => new ScenesWidget(d, o)),
+        new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, (d, o) => new TogglesWidget(d, o)),
+        new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, (d, o) => new MemoryWidget(d, o)),
+        new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, (d, o) => new ChargeLimitWidget(d, o)),
         // (1.44) the community numbers; listed only while statistics are on (the view is the return for sharing)
-        new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, d => new CommunityWidget(d)) { Listed = d => d.Settings.StatsEnabled },
+        new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, (d, o) => new CommunityWidget(d, o)) { Listed = d => d.Settings.StatsEnabled },
     };
 
     public static DashWidgetDef? Find(string typeId)
@@ -47,7 +48,7 @@ internal static class DashRegistry
     }
 
     /// <summary>The widget for a layout item: the registered type, or the grey unknown card.</summary>
-    public static IDashWidget Make(DashItem item) => Find(item.Type)?.New() ?? new UnknownWidget(item.Type);
+    public static IDashWidget Make(DashItem item) => Find(item.Type)?.New(DashOptions.Of(item)) ?? new UnknownWidget(item.Type);
 }
 
 /// <summary>A layout entry whose type this version does not know: a grey field with the id, kept in place so nothing is lost.</summary>

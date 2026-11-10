@@ -24,7 +24,7 @@ internal sealed class TogglesWidget : DashWidget
     private string _painted = "";
     private readonly List<(Rectangle r, Item item)> _cells = new();
 
-    public TogglesWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public TogglesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     public override void PaintStatic(Graphics g, Rectangle r, DashContext c) => Frame(g, r);
 

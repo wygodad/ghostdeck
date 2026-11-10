@@ -12,7 +12,7 @@ internal sealed class RingWidget : DashWidget
     private readonly Kind _kind;
     private string _painted = "";
 
-    public RingWidget(DashWidgetDef def, Kind kind) : base(def.TypeId, def.NameKey, def.Sizes) { _kind = kind; }
+    public RingWidget(DashWidgetDef def, DashOptions opt, Kind kind) : base(def, opt) { _kind = kind; }
 
     private bool IsFan => _kind is Kind.CpuFan or Kind.GpuFan;
 

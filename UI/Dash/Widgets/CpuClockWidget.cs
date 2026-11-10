@@ -5,7 +5,7 @@ internal sealed class CpuClockWidget : DashWidget
 {
     private int _painted = int.MinValue;
 
-    public CpuClockWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public CpuClockWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     private (Rectangle value, Rectangle unit, Rectangle label) Layout(Rectangle r, DashContext c)
     {

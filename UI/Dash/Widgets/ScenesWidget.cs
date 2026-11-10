@@ -10,7 +10,7 @@ internal sealed class ScenesWidget : DashWidget
     private string _painted = "";
     private readonly List<(Rectangle r, SceneDef scene)> _rows = new();
 
-    public ScenesWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public ScenesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     public override void PaintStatic(Graphics g, Rectangle r, DashContext c)
     {

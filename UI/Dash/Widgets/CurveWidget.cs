@@ -25,7 +25,7 @@ internal sealed class CurveWidget : DashWidget
     private readonly List<(DateTime at, int cpu, int gpu)> _trail = new();
     private static readonly TimeSpan TrailSpan = TimeSpan.FromMinutes(3);
 
-    public CurveWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public CurveWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     private DeviceProfile? Device(DashContext c)
     {

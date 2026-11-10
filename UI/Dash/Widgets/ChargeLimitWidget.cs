@@ -10,7 +10,7 @@ internal sealed class ChargeLimitWidget : DashWidget
     private int _painted = int.MinValue;
     private readonly List<(Rectangle r, int value)> _zones = new();
 
-    public ChargeLimitWidget(DashWidgetDef def) : base(def.TypeId, def.NameKey, def.Sizes) { }
+    public ChargeLimitWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
 
     private static (string label, int value)[] Segments(DashSample s)
     {

@@ -30,10 +30,15 @@ internal interface IDashWidget
 /// <summary>Common ground for the built-in widgets: the identity from the registry entry and the card frame.</summary>
 internal abstract class DashWidget : IDashWidget
 {
-    protected DashWidget(string typeId, string nameKey, IReadOnlyList<Size> sizes)
+    protected DashWidget(string typeId, string nameKey, IReadOnlyList<Size> sizes, DashOptions? opt = null)
     {
-        TypeId = typeId; NameKey = nameKey; Sizes = sizes;
+        TypeId = typeId; NameKey = nameKey; Sizes = sizes; Opt = opt ?? new DashOptions();
     }
+
+    protected DashWidget(DashWidgetDef def, DashOptions opt) : this(def.TypeId, def.NameKey, def.Sizes, opt) { }
+
+    /// <summary>This instance's settings, from its layout item; fixed for the life of the instance.</summary>
+    protected DashOptions Opt { get; }
 
     public string TypeId { get; }
     public string NameKey { get; }
