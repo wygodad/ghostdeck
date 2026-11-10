@@ -309,7 +309,7 @@ internal sealed partial class DashCanvas : Control
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _statsTimer?.Dispose(); _static?.Dispose(); }
+        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _statsTimer?.Dispose(); _spotTimer?.Dispose(); _static?.Dispose(); }
         base.Dispose(disposing);
     }
 
@@ -824,6 +824,7 @@ internal sealed partial class DashCanvas : Control
             else if (z.Kind == Zone.Row) { int li = z.Index / 1000; if (li >= 0 && li < _listBodies.Count) Invalidate(Rectangle.Inflate(_listBodies[li].body, S(10), S(4))); }
             else foreach (var (r, zone) in _zones) if (zone == z) Invalidate(Rectangle.Inflate(r, 2, 2));
         }
+        if (_view == View.Stats && (IsSpotZone(old) || IsSpotZone(h))) { _mapHit = null; InvalidateSpot(); }   // the spotlight moves between the pointer's country and the walk's
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
@@ -843,7 +844,7 @@ internal sealed partial class DashCanvas : Control
         }
         _mouse = e.Location;
         var h = HitZone(e.Location);
-        if (h.Kind == Zone.Map && _hot.Kind == Zone.Map) Invalidate(Rectangle.Inflate(_mapRect, S(220), S(60)));   // the label follows the cursor
+        if (h.Kind == Zone.Map && _hot.Kind == Zone.Map) { Invalidate(Rectangle.Inflate(_mapRect, S(220), S(60))); MapPointerMoved(); }   // the label follows the cursor
         SetHot(h);
         var want = h.Kind switch
         {
@@ -945,6 +946,7 @@ internal sealed partial class DashCanvas : Control
             "sort" => new Hot(Zone.Sort, int.TryParse(arg, out int si) ? si : 0, null),
             "view" => new Hot(Zone.View, int.TryParse(arg, out int vi) ? vi : 0, null),
             "cols" => new Hot(Zone.Cols, int.TryParse(arg, out int ci) ? ci : 0, null),
+            "row" => new Hot(Zone.Row, int.TryParse(arg, out int ri) ? ri : 0, null),   // row:<list * 1000 + row> of the Statystyki lists
             "star" => arg.LastIndexOf(':') is var c and > 0 && int.TryParse(arg[(c + 1)..], out int sn) ? new Hot(Zone.Star, sn, arg[..c]) : new Hot(Zone.None, -1, null),   // star:typeId:n
             _ => new Hot(Zone.None, -1, null),
         };

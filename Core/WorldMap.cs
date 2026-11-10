@@ -96,6 +96,45 @@ public sealed class WorldMap
         return _cells[row, c];
     }
 
+    private readonly Dictionary<string, (int row, int col, int top)?> _anchors = new();
+
+    /// <summary>
+    /// Where a country's label goes: the centre of the dot nearest the middle of all its dots,
+    /// the centre of the topmost dot straight above that one, and the dot spacing. Null when the
+    /// grid has no dot for the country.
+    /// </summary>
+    public (PointF at, PointF top, float cell)? Anchor(Rectangle r, string code)
+    {
+        var (cell, ox, oy) = Fit(r);
+        if (cell <= 0) return null;
+        if (!_anchors.TryGetValue(code, out var a))
+        {
+            long sr = 0, sc = 0; int n = 0;
+            for (int row = 0; row < Rows; row++)
+                for (int c = 0; c < Cols; c++)
+                    if (_cells[row, c] == code) { sr += row; sc += c; n++; }
+            if (n > 0)
+            {
+                double mr = sr / (double)n, mc = sc / (double)n, best = double.MaxValue;
+                int br = 0, bc = 0;
+                for (int row = 0; row < Rows; row++)
+                    for (int c = 0; c < Cols; c++)
+                    {
+                        if (_cells[row, c] != code) continue;
+                        double d = (row - mr) * (row - mr) + (c - mc) * (c - mc);
+                        if (d < best) { best = d; br = row; bc = c; }
+                    }
+                int top = br;
+                while (top > 0 && _cells[top - 1, bc] == code) top--;
+                a = (br, bc, top);
+            }
+            _anchors[code] = a;
+        }
+        if (a is not { } p) return null;
+        float x = ox + p.col * cell + cell / 2f;
+        return (new PointF(x, oy + p.row * cell + cell / 2f), new PointF(x, oy + p.top * cell + cell / 2f), cell);
+    }
+
     /// <summary>The country's name in the app's language (the runtime's region data), or the code when unknown.</summary>
     public static string CountryName(string code)
     {

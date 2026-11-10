@@ -21,6 +21,7 @@ internal sealed partial class DashCanvas
         if (v != View.Dashboard && _edit) EditMode = false;
         _view = v;
         _hot = new Hot(Zone.None, -1, null);
+        _spotStep = -1;   // the countries walk starts from the largest each time the view opens
         if (v == View.Stats) _d.StatsRefresh?.Invoke();   // a summary an hour old or still missing is fetched now; SummaryChanged repaints
         if (v == View.Stats && Summary != null) StartStatsEntrance();   // before the static render, which leaves the animated parts out
         Replace();

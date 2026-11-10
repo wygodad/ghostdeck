@@ -8,6 +8,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Statistics view: a Refresh button and fresher numbers.** The view now asks for the signed summary when its copy is ten
   minutes old (it was an hour), and a **Refresh** button in the header asks at once. Next to it the view says when the
   numbers at hand were generated and when you last asked.
+- **Statistics view: the map and the countries list point at each other.** Pointing at a country in the list turns it
+  white on the map and puts its name and count above it; pointing at a country on the map lights its row in the list.
+  With the pointer elsewhere the view walks the list by itself, from the largest country down and round again, one
+  country every seven seconds.
 - **Crosshair A16 HX (D7W/D8W)** (`15PLIMS1`, model database 20261204, [#341](../../issues/341), thanks @dennyblr1-hash) -
   another owner's capture matches the recipes in Balanced, Extreme and Super Battery; added to the model's credit.
 - **Vector A16 HX A8WIG / A8WHG** (`15MMIMS1`, model database 20261205, [#342](../../issues/342), thanks @CollKamm) -

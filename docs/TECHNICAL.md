@@ -4598,5 +4598,16 @@ on; with it off the catalogue looks as before and the stars still offer to turn 
 `GhostDeck.exe --stats-demo` shows these views on a built-in sample summary, also in a running
 instance, for a look before the server has a week worth showing.
 
+**The country spotlight (Statistics view).** One country at a time is drawn white on the map and
+lit in the countries list, with a label "name · count". The pointer chooses it: a row of the list
+(the label then stands above the country, at the topmost dot over the dot nearest the middle of
+the country's dots, `WorldMap.Anchor`), or the map itself (the label follows the pointer, as
+before, and the row lights). With the pointer on neither, the spotlight walks the rows the list
+shows, largest first and round again, a step every seven seconds (`SpotMs`), starting when the
+entrance has finished. It is live-layer work only: a step invalidates the map and the countries
+list and nothing else (about 1.3 ms at 100 %, 4.8 ms at 250 %, measured in the preview tool), the
+timer stops when the canvas is not visible or another view is open, and a minimised window skips
+the step.
+
 The server (a small PHP service and the owner's panel) lives in two private repositories; its
 public contract is this section: the report fields, the proof of work, and the signed summary.

@@ -27,6 +27,116 @@ internal sealed partial class DashCanvas
     private Dictionary<string, int> _mapCounts = new();
     private const int EntranceMs = 520;
 
+    // ---- the country spotlight: one country white on the map and lit in the list, with its label ----
+    // The pointer picks it (a row of the countries list, or the map itself); with the pointer
+    // elsewhere the spotlight walks the list from the largest, one step every seven seconds, while
+    // the view is on screen. Only the map and the countries list repaint on a step.
+    private int _countryList = -1;                                  // which ranked list holds the countries
+    private List<(string code, int count)> _countries = new();
+    private System.Windows.Forms.Timer? _spotTimer;
+    private int _spotStep = -1;                                     // the walk's position; -1 until the view has shown
+    private int _spotRows;                                          // rows of the countries list on screen: the walk stays within them, so map and list always agree
+    private string? _mapHit;                                        // the country last under the pointer
+    private const int SpotMs = 7000;
+    private static readonly Dictionary<string, int> NoCounts = new();
+
+    private bool IsSpotZone(Hot z) => z.Kind == Zone.Map || (z.Kind == Zone.Row && z.Index / 1000 == _countryList);
+
+    /// <summary>The country in the spotlight, its row in the countries list (-1 when not listed) and whether the pointer on the map chose it.</summary>
+    private (string? code, int row, bool onMap) Spot()
+    {
+        if (_countries.Count == 0) return (null, -1, false);
+        if (_hot.Kind == Zone.Map)
+        {
+            var code = WorldMap.Instance.Hit(_mapRect, _mouse);
+            return (code, code == null ? -1 : _countries.FindIndex(c => c.code == code), true);
+        }
+        if (_hot.Kind == Zone.Row && _hot.Index / 1000 == _countryList)
+        {
+            int row = _hot.Index % 1000;
+            return row < _countries.Count ? (_countries[row].code, row, false) : (null, -1, false);
+        }
+        if (_spotStep < 0) return (null, -1, false);
+        int step = _spotStep % Math.Clamp(_spotRows, 1, _countries.Count);
+        return (_countries[step].code, step, false);
+    }
+
+    private void InvalidateSpot()
+    {
+        if (!_mapRect.IsEmpty) Invalidate(Rectangle.Inflate(_mapRect, S(8), S(8)));
+        if (_countryList >= 0 && _countryList < _listBodies.Count) Invalidate(Rectangle.Inflate(_listBodies[_countryList].body, S(10), S(4)));
+    }
+
+    /// <summary>The pointer moved over the map: when it reached another country, the list's lit row follows.</summary>
+    private void MapPointerMoved()
+    {
+        var code = WorldMap.Instance.Hit(_mapRect, _mouse);
+        if (code == _mapHit) return;
+        _mapHit = code;
+        if (_countryList >= 0 && _countryList < _listBodies.Count) Invalidate(Rectangle.Inflate(_listBodies[_countryList].body, S(10), S(4)));
+    }
+
+    /// <summary>Starts the walk (the largest country first, for a whole step) or lets a running one go on.</summary>
+    private void StartSpotCycle()
+    {
+        if (_countries.Count == 0) return;
+        _spotTimer ??= NewSpotTimer();
+        if (_spotStep < 0) { _spotStep = 0; _spotTimer.Stop(); }
+        if (!_spotTimer.Enabled) _spotTimer.Start();
+    }
+
+    private System.Windows.Forms.Timer NewSpotTimer()
+    {
+        var t = new System.Windows.Forms.Timer { Interval = SpotMs };
+        t.Tick += (_, _) =>
+        {
+            // off screen nothing runs: OnVisibleChanged or the next render of the view starts it again
+            if (IsDisposed || _view != View.Stats || !Visible || _countries.Count == 0) { t.Stop(); return; }
+            if (StatsAnimating || IsSpotZone(_hot) || FindForm()?.WindowState == FormWindowState.Minimized) return;   // the pointer chooses: the walk waits
+            _spotStep = (_spotStep + 1) % Math.Clamp(_spotRows, 1, _countries.Count);
+            InvalidateSpot();
+        };
+        return t;
+    }
+
+    protected override void OnVisibleChanged(EventArgs e)
+    {
+        base.OnVisibleChanged(e);
+        if (Visible && _view == View.Stats && _spotStep >= 0) StartSpotCycle();
+    }
+
+    /// <summary>A small label: rounded box on the surface colour, accent border and text when <paramref name="accent"/>.</summary>
+    private void LabelBox(Graphics g, Rectangle r, string text, Font f, bool accent)
+    {
+        using (var path = Theme.RoundRect(r, Sf(6)))
+        {
+            using var b = new SolidBrush(Theme.Surface);
+            g.FillPath(b, path);
+            using var pen = new Pen(accent ? Theme.Accent : Theme.BorderStrong);
+            g.DrawPath(pen, path);
+        }
+        TextRenderer.DrawText(g, text, f, r, accent ? Theme.Accent : Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+    }
+
+    /// <summary>The spotlight's label when the pointer is not on the map: name and count above the country, a short line down to it.</summary>
+    private void PaintSpotLabel(Graphics g, string code, int n)
+    {
+        if (WorldMap.Instance.Anchor(_mapRect, code) is not { } a) return;
+        string text = WorldMap.CountryName(code) + " · " + n.ToString("N0", Lang.Culture);
+        var f = _ctx.Font(9f, FontStyle.Bold);
+        var sz = TextRenderer.MeasureText(text, f, Size.Empty, TextFormatFlags.NoPadding);
+        int w = sz.Width + S(16), h = sz.Height + S(8), stem = S(7);
+        float dot = a.cell * 0.4f;
+        var r = new Rectangle((int)a.top.X - w / 2, (int)(a.top.Y - dot) - stem - h, w, h);
+        bool below = r.Top < _mapRect.Top;
+        if (below) r.Y = (int)(a.at.Y + dot) + stem;
+        float x = a.top.X, y0 = below ? a.at.Y + dot : a.top.Y - dot, y1 = below ? r.Top : r.Bottom;
+        if (r.Left < _mapRect.Left) r.X = _mapRect.Left;
+        if (r.Right > _mapRect.Right) r.X = _mapRect.Right - r.Width;
+        using (var pen = new Pen(Theme.Accent, Sf(1.5f))) g.DrawLine(pen, x, y0, x, y1);
+        LabelBox(g, r, text, f, accent: true);
+    }
+
     /// <summary>Everything the entrance repaints per frame: the chart, the tiles, the lists and the map.</summary>
     private Rectangle StatsDirty()
     {
@@ -99,6 +209,18 @@ internal sealed partial class DashCanvas
                     TextRenderer.DrawText(g, value, vf, r, tile.Accent ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.WordEllipsis);   // dpi-ok: same rectangle as the static tile
             }
             return;
+        }
+        var (spot, spotRow, onMap) = Spot();
+        if (spot != null && spotRow >= 0)
+        {
+            // the country in white over the map; its row lit unless the row hover below does that; its label unless the pointer's own follows it
+            WorldMap.Instance.Paint(g, _mapRect, NoCounts, Theme.BorderStrong, Theme.Accent, spot, landDots: false);
+            if (_hot.Kind != Zone.Row && _countryList >= 0 && _countryList < _listBodies.Count)
+            {
+                var l = _listBodies[_countryList];
+                CommunityStats.Ranked(g, l.body, l.rows, _ctx, l.color, l.nameShare, lit: spotRow);
+            }
+            if (!onMap) PaintSpotLabel(g, spot, _countries[spotRow].count);
         }
         if (_hot.Kind == Zone.Row)
         {
@@ -183,6 +305,8 @@ internal sealed partial class DashCanvas
     private void PaintStatsView(Graphics g)
     {
         int w = Width - Pad * 2;
+        _countryList = -1;
+        _countries = new();
         if (!_d.Settings.StatsEnabled)
         {
             // the explanation and the switch: the same words as the consent card's gain line
@@ -263,7 +387,11 @@ internal sealed partial class DashCanvas
                 TextFormatFlags.Left | TextFormatFlags.NoPadding);
             _zones.Add((_mapRect, new Hot(Zone.Map, -1, null)));
             var list = StatsCard(g, lay.Countries, Lang.T("dash_st_countries"));
+            _countryList = _listBodies.Count;
+            _countries = sum.Countries;
+            _spotRows = list.Height / Math.Max(1, CommunityStats.RankedRowH(_ctx));
             RankedList(g, list, sum.Countries.Select(c => (WorldMap.CountryName(c.code), c.count)).ToList(), Theme.Accent, 0f, entering);
+            if (!entering) StartSpotCycle();   // after the entrance, so the first country keeps its whole step
         }
 
         // ---- languages and board families ----
@@ -288,14 +416,7 @@ internal sealed partial class DashCanvas
         var r = new Rectangle(_mouse.X + S(14), _mouse.Y - sz.Height - S(14), sz.Width + S(16), sz.Height + S(8));
         if (r.Right > _mapRect.Right) r.X = _mouse.X - r.Width - S(6);
         if (r.Top < _mapRect.Top) r.Y = _mouse.Y + S(14);
-        using (var path = Theme.RoundRect(r, Sf(6)))
-        {
-            using var b = new SolidBrush(Theme.Surface);
-            g.FillPath(b, path);
-            using var pen = new Pen(n > 0 ? Theme.Accent : Theme.BorderStrong);
-            g.DrawPath(pen, path);
-        }
-        TextRenderer.DrawText(g, text, f, r, n > 0 ? Theme.Accent : Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        LabelBox(g, r, text, f, accent: n > 0);
     }
 
     private void TurnStatsOn()
