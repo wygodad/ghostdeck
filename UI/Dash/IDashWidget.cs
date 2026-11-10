@@ -25,6 +25,13 @@ internal interface IDashWidget
     void PaintLive(Graphics g, Rectangle r, DashContext c);
     bool LiveChanged(DashContext c);
     void Click(Point p, Rectangle r, DashContext c);
+
+    /// <summary>
+    /// What the user can set on this widget (1.45), in the order the settings card shows it;
+    /// empty = nothing to set, and the tile's menu offers no settings. The context is there
+    /// because a list can depend on the machine (which switches this laptop has).
+    /// </summary>
+    IReadOnlyList<DashOptionDef> OptionDefs(DashContext c);
 }
 
 /// <summary>Common ground for the built-in widgets: the identity from the registry entry and the card frame.</summary>
@@ -48,6 +55,7 @@ internal abstract class DashWidget : IDashWidget
     public virtual void PaintLive(Graphics g, Rectangle r, DashContext c) { }
     public virtual bool LiveChanged(DashContext c) => false;
     public virtual void Click(Point p, Rectangle r, DashContext c) { }
+    public virtual IReadOnlyList<DashOptionDef> OptionDefs(DashContext c) => Array.Empty<DashOptionDef>();
 
     /// <summary>The card every widget sits on (same look as the cards on the other tabs).</summary>
     protected static void Frame(Graphics g, Rectangle r) => Ui.FillCard(g, r);

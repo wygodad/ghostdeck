@@ -46,15 +46,7 @@ internal sealed class WidgetInfoCard : GhostCardForm
         int w = size.Width * cell + (size.Width - 1) * gap, h = size.Height * cell + (size.Height - 1) * gap;
         if (_preview != null && _preview.Width == w && _preview.Height == h) return _preview;
         _preview?.Dispose();
-        var bmp = new Bitmap(Math.Max(1, w), Math.Max(1, h));
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.Clear(Color.Transparent);
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            var r = new Rectangle(0, 0, w, h);
-            try { _widget.PaintStatic(g, r, _ctx); _widget.PaintLive(g, r, _ctx); } catch { }
-        }
-        return _preview = bmp;
+        return _preview = DashPaint.Snapshot(_ctx.Owner, w, h, FieldBg, (g, r) => { _widget.PaintStatic(g, r, _ctx); _widget.PaintLive(g, r, _ctx); });
     }
 
     protected override int MeasureContent(Graphics g, float k, int width) => Flow(g, k, width, null);

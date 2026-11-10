@@ -48,6 +48,68 @@ internal static class DashPaint
         }
     }
 
+    /// <summary>The continuous dial's track: one closed ring in the border colour (static layer).</summary>
+    public static void RingTrackArc(Graphics g, RectangleF box)
+    {
+        var r = RingRect(box, out float thick);
+        using var p = new Pen(Theme.Border, thick);
+        g.DrawEllipse(p, r);
+    }
+
+    /// <summary>The continuous dial's lit part for a fraction 0..1, with the same fade toward white as the ticks (live layer).</summary>
+    public static void RingLitArc(Graphics g, RectangleF box, float fraction, Color color)
+    {
+        float sweep = Math.Clamp(fraction, 0, 1) * 360f;
+        if (sweep < 1f) return;
+        var r = RingRect(box, out float thick);
+        const float step = 6f;
+        for (float a = 0; a < sweep; a += step)
+        {
+            float len = Math.Min(step, sweep - a);
+            using var p = new Pen(Mix(color, Color.White, 0.55f * a / 360f), thick);
+            g.DrawArc(p, r, -90 + a, len + (a + len < sweep ? 0.6f : 0f));   // a hair of overlap, so no seam shows between the steps
+        }
+    }
+
+    /// <summary>
+    /// A widget painted into a bitmap, for a card that shows its picture. The painting goes through
+    /// a GDI buffer, as on the canvas: a widget's text is GDI text, and GDI text drawn straight onto
+    /// a GDI+ bitmap blends against black whatever is under it, which leaves dark fringes around
+    /// every letter (plain to see in the light theme).
+    /// </summary>
+    public static Bitmap Snapshot(Control owner, int w, int h, Color back, Action<Graphics, Rectangle> paint)
+    {
+        var bmp = new Bitmap(Math.Max(1, w), Math.Max(1, h), System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+        var r = new Rectangle(0, 0, bmp.Width, bmp.Height);
+        using var og = owner.CreateGraphics();
+        using var ctx = new BufferedGraphicsContext();   // its own context: the canvas's buffer size stays as it is
+        using var buf = ctx.Allocate(og, r);
+        buf.Graphics.Clear(back);
+        buf.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        try { paint(buf.Graphics, r); } catch { }
+        using var bg = Graphics.FromImage(bmp);
+        buf.Render(bg);
+        return bmp;
+    }
+
+    // ---- the palette a widget's colour setting offers (1.45) ----
+    // Stored by id, never as a colour code, so a picked colour follows the light and the dark theme.
+    public static readonly string[] PaletteIds = { "cyan", "blue", "violet", "green", "amber", "pink" };
+
+    /// <summary>The values a colour setting may hold: "auto" (the widget's own colours), then the palette.</summary>
+    public static readonly string[] PaletteChoices = new[] { "auto" }.Concat(PaletteIds).ToArray();
+
+    public static Color PaletteColor(string id) => id switch
+    {
+        "cyan"   => Theme.Dark ? Color.FromArgb(0x3D, 0xE3, 0xFF) : Color.FromArgb(0x0E, 0x9C, 0xC0),
+        "blue"   => Color.FromArgb(0x3C, 0x7D, 0xFF),
+        "violet" => Theme.Violet,
+        "green"  => Theme.Green,
+        "amber"  => Theme.Amber,
+        "pink"   => Theme.Red,
+        _        => Theme.Accent,
+    };
+
     /// <summary>Value above the centre, unit below, sized from the ring (fonts in pixels, like IconPainter.Ring).</summary>
     public static void RingValue(Graphics g, RectangleF box, string value, string unit, DashContext c)
     {

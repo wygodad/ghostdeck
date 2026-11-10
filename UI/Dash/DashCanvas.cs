@@ -652,7 +652,31 @@ internal sealed partial class DashCanvas : Control
     private void ShowTileMenu(int index, Point at) { if (TileMenuItems(index) is { } items) DashMenuPopup.Open(this, at, items); }
 
     /// <summary>Preview tool only: the tile menu of widget <paramref name="index"/> as a bitmap, second row lit.</summary>
-    internal Bitmap? TileMenuPreview(int index) => TileMenuItems(index) is { } items ? DashMenuPopup.Render(this, items, 2) : null;
+    internal Bitmap? TileMenuPreview(int index) => TileMenuItems(index) is { } items ? DashMenuPopup.Render(this, items, 1) : null;
+
+    /// <summary>The settings card of a placed widget (1.45), or null when the item is gone or the widget has nothing to set.</summary>
+    internal GhostCardForm? SettingsCardFor(DashItem it)
+    {
+        int index = _items.FindIndex(i => ReferenceEquals(i, it));   // the layout may have changed while a menu was open
+        if (index < 0 || DashRegistry.Find(it.Type) is not { } def) return null;
+        var defs = _widgets[index].OptionDefs(_ctx);
+        return defs.Count == 0 ? null : new WidgetSettingsCard(def, it, defs, _ctx, opt => ApplyOptions(it, opt));
+    }
+
+    private void OpenSettings(DashItem it) => SettingsCardFor(it)?.ShowOver(FindForm());
+
+    /// <summary>
+    /// Save on the settings card: the settings go into the layout item, the item gets a new
+    /// widget instance (an instance keeps its settings for life) and the Dashboard repaints once.
+    /// </summary>
+    internal void ApplyOptions(DashItem it, DashOptions opt)
+    {
+        if (!_items.Any(i => ReferenceEquals(i, it)) || opt.SameAs(DashOptions.Of(it))) return;
+        it.Opt = opt.ToMap();
+        _byItem.Remove(it);
+        Sync();
+        Save();
+    }
 
     private List<DashMenuPopup.Item>? TileMenuItems(int index)
     {
@@ -664,11 +688,9 @@ internal sealed partial class DashCanvas : Control
         int cur = -1;
         for (int i = 0; i < sizes.Count; i++) if (sizes[i].Width == it.W && sizes[i].Height == it.H) { cur = i; break; }
         var next = sizes.Count > 1 ? sizes[(cur + 1) % sizes.Count] : (Size?)null;
-        var items = new List<DashMenuPopup.Item>
-        {
-            new(Lang.T("dash_menu_info"), () => OpenInfo(type)),
-            DashMenuPopup.Item.Line,
-        };
+        var items = new List<DashMenuPopup.Item> { new(Lang.T("dash_menu_info"), () => OpenInfo(type)) };
+        if (_widgets[index].OptionDefs(_ctx).Count > 0) items.Add(new(Lang.T("dash_menu_settings"), () => OpenSettings(it)));
+        items.Add(DashMenuPopup.Item.Line);
         if (next is { } n) items.Add(new(string.Format(Lang.T("dash_menu_size_fmt"), $"{it.W}×{it.H} → {n.Width}×{n.Height}"), () => CycleSize(IndexOf(type))));
         items.Add(new(Lang.T("dash_menu_remove"), () => RemoveAt(IndexOf(type)), Accent: Theme.Red));
         items.Add(DashMenuPopup.Item.Line);
