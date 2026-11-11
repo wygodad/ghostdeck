@@ -677,10 +677,81 @@ internal sealed partial class DashCanvas : Control
     private int StarSize => Math.Max(S(15), CatDescF.Height);
     private int SortPillH => Math.Max(S(20), CatSmallF.Height + S(6));
 
-    /// <summary>The description under a catalogue name: one or two lines, as the text wraps in this language and width.</summary>
-    /// <summary>Unavailable, or how many of the type stand on the Dashboard (a type may stand any number of times), or what the widget is.</summary>
+    /// <summary>The line under a catalogue name: "not available", or what the widget is. A type that stands on the Dashboard has a badge there instead (<see cref="PaintPlaced"/>).</summary>
     private string CatDesc(DashWidgetDef def, bool available, int onBoard) =>
         !available ? Lang.T("dash_unavailable") : onBoard > 0 ? string.Format(Lang.T("dash_added_n"), onBoard) : Lang.T(def.NameKey + "_d");
+
+    // The catalogue lists the types that are not on the Dashboard first, under a caption of their
+    // own, and the ones already there after them: what is still to add is found at a glance. The
+    // two groups are settled when the catalogue opens (or is sorted) and stay as they are while it
+    // is open: a row that jumped to the other group on "Add" would put another type under the
+    // cursor, and a second click would add that one. The badge and the button of a row follow at once.
+    private HashSet<string>? _catPlaced;
+    private HashSet<string> CatPlaced => _catPlaced ??= new HashSet<string>(_items.Select(i => i.Type));
+    private void CatRegroup() => _catPlaced = null;
+
+    private int CatBadgeH => CatSmallF.Height + S(6);
+    private int CatCaptionH => _ctx.Font(8.5f, FontStyle.Bold).Height + S(14);
+
+    /// <summary>The caption of a catalogue group: "NOT ADDED YET · 4" in the accent, "ON THE DASHBOARD · 9" muted, a line to the right of it.</summary>
+    private void PaintCatCaption(Graphics g, Rectangle r, bool fresh, int count)
+    {
+        var f = _ctx.Font(8.5f, FontStyle.Bold);
+        string text = Lang.Upper(Lang.T(fresh ? "dash_cat_new" : "dash_cat_placed")) + " · " + count.ToString(Lang.Culture);
+        int tw = TextRenderer.MeasureText(text, f, Size.Empty, TextFormatFlags.NoPadding).Width;
+        int ty = r.Bottom - S(6) - f.Height;
+        TextRenderer.DrawText(g, text, f, new Rectangle(r.Left, ty, Math.Min(tw + S(2), r.Width), f.Height), fresh ? Theme.Accent : Theme.Muted, TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        if (r.Left + tw + S(10) < r.Right)
+        {
+            using var pen = new Pen(Theme.Border);
+            g.DrawLine(pen, r.Left + tw + S(10), ty + f.Height / 2, r.Right, ty + f.Height / 2);
+        }
+    }
+
+    /// <summary>The badge of a type that stands on the Dashboard: a tick and "On the Dashboard: 2" in a filled pill. Returns its width.</summary>
+    private int PaintPlaced(Graphics g, int x, int y, int count, int maxW)
+    {
+        string text = string.Format(Lang.T("dash_added_n"), count);
+        int h = CatBadgeH, tick = S(10);
+        int w = Math.Min(maxW, S(8) + tick + S(5) + TextRenderer.MeasureText(text, CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(9));
+        var r = new Rectangle(x, y, w, h);
+        var old = g.SmoothingMode;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var path = Theme.RoundRect(r, h / 2f))
+        {
+            using var b = new SolidBrush(Theme.AccentSoft);
+            g.FillPath(b, path);
+        }
+        float tx = r.Left + S(8), ty = r.Top + (h - tick) / 2f;
+        using (var pen = new Pen(Theme.Accent, Math.Max(1.4f, Sf(1.6f))) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawLines(pen, new[] { new PointF(tx, ty + tick * 0.55f), new PointF(tx + tick * 0.36f, ty + tick * 0.88f), new PointF(tx + tick, ty + tick * 0.14f) });
+        g.SmoothingMode = old;
+        TextRenderer.DrawText(g, text, CatSmallF, new Rectangle(r.Left + S(8) + tick + S(5), r.Top, r.Right - S(6) - (r.Left + S(8) + tick + S(5)), h), Theme.Accent,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        return w;
+    }
+
+    /// <summary>The Add button of a catalogue entry: filled for a type that is not on the Dashboard yet, an outline for one more of a type that is.</summary>
+    private void PaintAdd(Graphics g, Rectangle br, string text, Font f, bool another)
+    {
+        var old = g.SmoothingMode;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var path = Theme.RoundRect(br, Sf(6)))
+        {
+            if (another)
+            {
+                using var pen = new Pen(Theme.Accent, 1f);
+                g.DrawPath(pen, path);
+            }
+            else
+            {
+                using var b = new SolidBrush(Theme.AccentFill);
+                g.FillPath(b, path);
+            }
+        }
+        g.SmoothingMode = old;
+        TextRenderer.DrawText(g, text, f, br, another ? Theme.Accent : Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+    }
 
     /// <summary>How many widgets of every type the layout holds.</summary>
     private Dictionary<string, int> PlacedCounts()
@@ -693,17 +764,25 @@ internal sealed partial class DashCanvas : Control
     private int CatDescH(string desc, int w) =>
         Math.Min(CatDescF.Height * 2, TextRenderer.MeasureText(desc, CatDescF, new Size(w, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
 
-    /// <summary>Name line, the description, the stars line.</summary>
-    private int CatalogRowH(int descH) => S(6) + CatNameF.Height + S(2) + descH + S(6) + StarSize + S(7);
+    /// <summary>The height of the line under a name in the side panel: the badge of a placed type, else the description's one or two lines.</summary>
+    private int CatUnderH(DashWidgetDef def, bool available, int onBoard, int w) =>
+        available && onBoard > 0 ? CatBadgeH : CatDescH(CatDesc(def, available, onBoard), w);
+
+    /// <summary>Name line, the line under it, the stars line; with air above and below, so the frame of a row under the cursor stands clear of the texts.</summary>
+    private int CatalogRowH(int descH) => S(9) + CatNameF.Height + S(4) + descH + S(6) + StarSize + S(10);
 
     private int CatalogHeight(int width)
     {
         int head = _ctx.Font(11f, FontStyle.Bold).Height + S(10) + Math.Max(_ctx.Font(8.5f, FontStyle.Bold).Height, Summary != null ? SortPillH : 0) + S(8);
         int w = PanelW - S(16) * 2, rows = 0;
         var placed = PlacedCounts();
+        bool anyFresh = false, anyPlaced = false;
         foreach (var def in Listed)
-            rows += CatalogRowH(CatDescH(CatDesc(def, def.Available(_d), placed.GetValueOrDefault(def.TypeId)), w));
-        return S(16) * 2 + head + rows;
+        {
+            rows += CatalogRowH(CatUnderH(def, def.Available(_d), placed.GetValueOrDefault(def.TypeId), w));
+            if (CatPlaced.Contains(def.TypeId)) anyPlaced = true; else anyFresh = true;
+        }
+        return S(16) * 2 + head + rows + ((anyFresh ? 1 : 0) + (anyPlaced ? 1 : 0)) * CatCaptionH;
     }
 
     private Rectangle PanelRect() => new(Width - Pad - PanelW, GridTop(), PanelW, CatalogHeight(Width));
@@ -714,10 +793,13 @@ internal sealed partial class DashCanvas : Control
     /// <summary>Catalogue order: by share of dashboards (Popular) or by name (A-Z) while a summary is in; the registry order otherwise.</summary>
     private List<DashWidgetDef> CatalogOrder(Stats.Summary? sum)
     {
-        if (sum == null) return Listed.ToList();
-        if (_sortPopular)
-            return Listed.Select((d, i) => (d, i)).OrderByDescending(t => sum.ShareOf(t.d.TypeId) ?? -1).ThenBy(t => t.i).Select(t => t.d).ToList();
-        return Listed.OrderBy(d => Lang.T(d.NameKey), StringComparer.Create(Lang.Culture, true)).ToList();
+        List<DashWidgetDef> sorted;
+        if (sum == null) sorted = Listed.ToList();
+        else if (_sortPopular)
+            sorted = Listed.Select((d, i) => (d, i)).OrderByDescending(t => sum.ShareOf(t.d.TypeId) ?? -1).ThenBy(t => t.i).Select(t => t.d).ToList();
+        else sorted = Listed.OrderBy(d => Lang.T(d.NameKey), StringComparer.Create(Lang.Culture, true)).ToList();
+        // the types that are not on the Dashboard first, each group in the order above (the sort keeps equal keys in place)
+        return sorted.OrderBy(d => CatPlaced.Contains(d.TypeId) ? 1 : 0).ToList();
     }
 
     /// <summary>Five stars from the left of <paramref name="row"/>, the first <paramref name="filled"/> in <paramref name="fill"/>.</summary>
@@ -750,19 +832,27 @@ internal sealed partial class DashCanvas : Control
         var order = CatalogOrder(sum);
         var popular = sum == null ? new HashSet<string>() : new HashSet<string>(sum.Top.Take(3));   // the badge: the three most placed
         string badge = Lang.Upper(Lang.T("dash_sort_popular"));
+        int freshCount = order.Count(d => !CatPlaced.Contains(d.TypeId));
         for (int n = 0; n < order.Count; n++)
         {
             var def = order[n];
+            // the caption of a group stands over its first row
+            if (n == 0 || n == freshCount)
+            {
+                bool fresh = n < freshCount;
+                PaintCatCaption(g, new Rectangle(x, y, w, CatCaptionH), fresh, fresh ? freshCount : order.Count - freshCount);
+                y += CatCaptionH;
+            }
             bool available = def.Available(_d), onBoard = placed.ContainsKey(def.TypeId);
             string desc = CatDesc(def, available, placed.GetValueOrDefault(def.TypeId));
-            int descH = CatDescH(desc, w), rowH = CatalogRowH(descH);
+            int descH = CatUnderH(def, available, placed.GetValueOrDefault(def.TypeId), w), rowH = CatalogRowH(descH);
             var row = new Rectangle(x, y, w, rowH);
             var st = sum != null && sum.Widgets.TryGetValue(def.TypeId, out var ws) ? ws : null;
 
             // name line: the name, the POPULAR badge, the Add button at the right
             string btn = Lang.T("dash_add_short");
             int bw = TextRenderer.MeasureText(btn, btnF, Size.Empty, TextFormatFlags.NoPadding).Width + S(20), bh = Math.Max(S(26), btnF.Height + S(8));
-            int nameTop = row.Top + S(6);
+            int nameTop = row.Top + S(9);
             var br = new Rectangle(row.Right - bw, nameTop + (nameF.Height - bh) / 2, bw, bh);
             int textW = w - bw - S(10);
             string name = Lang.T(def.NameKey);
@@ -782,10 +872,13 @@ internal sealed partial class DashCanvas : Control
                 }
             }
 
-            // description: up to two lines across the whole width (the button sits on the name line)
-            int descTop = nameTop + nameF.Height + S(2);
-            TextRenderer.DrawText(g, desc, descF, new Rectangle(x, descTop, w, descH), onBoard && available ? Theme.Accent : Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            // under the name: the badge of a type that is on the Dashboard, else the description, up
+            // to two lines across the whole width (the button sits on the name line)
+            int descTop = nameTop + nameF.Height + S(4);
+            if (onBoard && available) PaintPlaced(g, x, descTop, placed.GetValueOrDefault(def.TypeId), w);
+            else
+                TextRenderer.DrawText(g, desc, descF, new Rectangle(x, descTop, w, descH), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
 
             // stars line: your rating (accent) or the average (muted), then "4.6 (23) · in 92 % of dashboards"
             int starsTop = descTop + descH + S(6);
@@ -810,18 +903,15 @@ internal sealed partial class DashCanvas : Control
 
             if (available)   // also for a type already there: Add puts another one on the Dashboard
             {
-                using (var path = Theme.RoundRect(br, Sf(6)))
-                {
-                    using var b = new SolidBrush(Theme.AccentFill);
-                    g.FillPath(b, path);
-                }
-                TextRenderer.DrawText(g, btn, btnF, br, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                PaintAdd(g, br, btn, btnF, another: onBoard);
                 _zones.Add((br, new Hot(Zone.CatalogAdd, -1, def.TypeId)));
             }
-            // the rest of the row opens the widget card (added last: the stars and the button win where they overlap)
-            _zones.Add((new Rectangle(row.Left, row.Top, row.Width, row.Height - S(2)), new Hot(Zone.Info, -1, def.TypeId)));
+            // the rest of the row opens the widget card (added last: the stars and the button win where
+            // they overlap). The zone, and with it the frame under the cursor, reaches half-way into
+            // the panel's padding on both sides: the frame stands clear of the texts and the button.
+            _zones.Add((new Rectangle(row.Left - S(8), row.Top + S(2), row.Width + S(16), row.Height - S(5)), new Hot(Zone.Info, -1, def.TypeId)));
             y += rowH;
-            if (n < order.Count - 1)
+            if (n < order.Count - 1 && n != freshCount - 1)   // no line under the last row of a group: the next caption has its own
                 using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, x, y - 1, x + w, y - 1);
         }
     }
@@ -967,7 +1057,7 @@ internal sealed partial class DashCanvas : Control
     internal bool CatalogOpen
     {
         get => _catalog;
-        set { if (_catalog == value) return; _catalog = value; Replace(); ContentChanged?.Invoke(); }
+        set { if (_catalog == value) return; _catalog = value; CatRegroup(); Replace(); ContentChanged?.Invoke(); }
     }
 
     /// <summary>The content height changed (edit mode, catalogue, layout edits): the page resizes the canvas.</summary>
@@ -1270,7 +1360,7 @@ internal sealed partial class DashCanvas : Control
             case Zone.Remove: RemoveAt(h.Index); return;
             case Zone.Size: CycleSize(h.Index); return;
             case Zone.CatalogAdd: if (h.Type != null) AddType(h.Type); return;
-            case Zone.Sort: _sortPopular = h.Index == 0; Rebuild(); return;
+            case Zone.Sort: _sortPopular = h.Index == 0; CatRegroup(); Rebuild(); return;
             case Zone.Star: if (h.Type != null) Rate(h.Type, h.Index); return;
             case Zone.More: ShowTileMenu(h.Index, new Point(MoreRect(_rects[h.Index]).Left, MoreRect(_rects[h.Index]).Bottom + S(4))); return;
             case Zone.Info: if (h.Type != null) OpenInfo(h.Type); return;

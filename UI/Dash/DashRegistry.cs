@@ -38,6 +38,10 @@ internal static class DashRegistry
         new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, (d, o) => new TogglesWidget(d, o)),
         new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, (d, o) => new MemoryWidget(d, o)),
         new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, (d, o) => new ChargeLimitWidget(d, o)),
+        // (1.45) the charts of the Status tab's History view: the last minutes from the history the app keeps in memory anyway
+        new DashWidgetDef("core.histTemps",   "dash_w_hist_temps", Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Temps)),
+        new DashWidgetDef("core.histFans",    "dash_w_hist_fans",  Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.FanTarget)),
+        new DashWidgetDef("core.histRpm",     "dash_w_hist_rpm",   Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Rpm)),
         // (1.44) the community numbers; listed only while statistics are on (the view is the return for sharing)
         new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, (d, o) => new CommunityWidget(d, o)) { Listed = d => d.Settings.StatsEnabled },
     };

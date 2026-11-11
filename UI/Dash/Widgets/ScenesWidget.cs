@@ -42,9 +42,9 @@ internal sealed class ScenesWidget : DashWidget
     /// height is a pixel or two less at some scales, and a box of that height cuts the second
     /// line's descenders.
     /// </summary>
-    private static int TwoLinesH(Font f) => Math.Max(f.Height * 2, TextRenderer.MeasureText("Ag\nAg", f, Size.Empty, TextFormatFlags.NoPadding).Height);
+    internal static int TwoLinesH(Font f) => Math.Max(f.Height * 2, TextRenderer.MeasureText("Ag\nAg", f, Size.Empty, TextFormatFlags.NoPadding).Height);
 
-    private static string Fit(string name, Font f, int width, int lines)
+    internal static string Fit(string name, Font f, int width, int lines)
     {
         int W(string s) => TextRenderer.MeasureText(s, f, Size.Empty, TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
         if (W(name) <= width) return name;

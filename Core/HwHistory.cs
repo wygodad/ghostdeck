@@ -24,8 +24,14 @@ public static class HwHistory
     /// <summary>True once any sample carried an FPS reading (needs the FPS monitor + a game).</summary>
     public static bool HasFps { get; private set; }
 
+    private static long _version;
+
+    /// <summary>Goes up with every sample: who draws the history (the Dashboard's history widgets) repaints when it changed, without copying the buffer to find out.</summary>
+    public static long Version => Interlocked.Read(ref _version);
+
     public static void Add(HwSample s)
     {
+        Interlocked.Increment(ref _version);
         lock (_lock)
         {
             _buf[_head] = s;

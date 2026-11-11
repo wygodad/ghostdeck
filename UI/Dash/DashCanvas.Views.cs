@@ -20,6 +20,7 @@ internal sealed partial class DashCanvas
         if (v == _view) return;
         if (v != View.Dashboard && _edit) EditMode = false;
         _view = v;
+        CatRegroup();
         _hot = new Hot(Zone.None, -1, null);
         _spotStep = -1;   // the countries walk starts from the largest each time the view opens
         if (v == View.Stats) _d.StatsRefresh?.Invoke();   // a summary an hour old or still missing is fetched now; SummaryChanged repaints
@@ -204,10 +205,31 @@ internal sealed partial class DashCanvas
     /// <summary>Uniform card height: the picture box, the name, two description lines, the stars line with the button.</summary>
     private int CatCardH() => S(16) + CatPreviewH + S(12) + CatNameF.Height + S(2) + CatDescF.Height * 2 + S(10) + Math.Max(StarSize, CatBtnH) + S(16);
 
-    private int CatalogViewHeight(int width)
+    private int CatalogViewHeight(int width) => CatalogViewPlan(width, CatalogOrder(Summary)).height;
+
+    /// <summary>
+    /// Where the catalogue view's cards and group captions stand: the types that are not on the
+    /// Dashboard first, under their caption, then the ones already there under theirs; each group
+    /// starts a row of its own. One plan for the height and for the painting.
+    /// </summary>
+    private (List<(DashWidgetDef def, Rectangle card)> cards, List<(bool fresh, int count, Rectangle r)> caps, int height) CatalogViewPlan(int width, List<DashWidgetDef> order)
     {
-        int cols = CatCols(width), rows = (Listed.Count() + cols - 1) / cols;
-        return rows * CatCardH() + (rows - 1) * Gap;
+        int cols = CatCols(width), cw = CatCardW(width), ch = CatCardH();
+        var cards = new List<(DashWidgetDef, Rectangle)>();
+        var caps = new List<(bool, int, Rectangle)>();
+        int y = GridTop();
+        foreach (bool fresh in new[] { true, false })
+        {
+            var group = order.Where(d => CatPlaced.Contains(d.TypeId) != fresh).ToList();
+            if (group.Count == 0) continue;
+            caps.Add((fresh, group.Count, new Rectangle(Pad, y, width - Pad * 2, CatCaptionH)));
+            y += CatCaptionH;
+            for (int i = 0; i < group.Count; i++)
+                cards.Add((group[i], new Rectangle(Pad + (i % cols) * (cw + Gap), y + (i / cols) * (ch + Gap), cw, ch)));
+            int rows = (group.Count + cols - 1) / cols;
+            y += rows * ch + (rows - 1) * Gap + Gap;
+        }
+        return (cards, caps, Math.Max(0, y - Gap - GridTop()));
     }
 
     /// <summary>
@@ -233,7 +255,7 @@ internal sealed partial class DashCanvas
     {
         var sum = Summary;
         int cols = CatCols(Width), cw = CatCardW(Width), ch = CatCardH(), pad = S(16);
-        var order = CatalogOrder(sum);
+        var plan = CatalogViewPlan(Width, CatalogOrder(sum));
         var placed = PlacedCounts();
         var popular = sum == null ? new HashSet<string>() : new HashSet<string>(sum.Top.Take(3));
         string badge = Lang.Upper(Lang.T("dash_sort_popular"));
@@ -242,10 +264,9 @@ internal sealed partial class DashCanvas
         var btnF = _ctx.Font(9f, FontStyle.Bold);
         var ratings = _d.Settings.WidgetRatings;
         _starRows.Clear();
-        for (int n = 0; n < order.Count; n++)
+        foreach (var (fresh, count, capRect) in plan.caps) PaintCatCaption(g, capRect, fresh, count);
+        foreach (var (def, card) in plan.cards)
         {
-            var def = order[n];
-            var card = new Rectangle(Pad + (n % cols) * (cw + Gap), GridTop() + (n / cols) * (ch + Gap), cw, ch);
             Ui.FillCard(g, card);
             int x = card.Left + pad, w = cw - pad * 2, y = card.Top + pad;
 
@@ -289,10 +310,12 @@ internal sealed partial class DashCanvas
             }
             y += nameF.Height + S(2);
 
-            // description, two lines
+            // under the name: the badge of a type that is on the Dashboard, else the description, two lines
             string desc = CatDesc(def, available, placed.GetValueOrDefault(def.TypeId));
-            TextRenderer.DrawText(g, desc, descF, new Rectangle(x, y, w, descF.Height * 2), onBoard && available ? Theme.Accent : Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            if (onBoard && available) PaintPlaced(g, x, y + Math.Max(0, (descF.Height * 2 - CatBadgeH) / 2), placed.GetValueOrDefault(def.TypeId), w);
+            else
+                TextRenderer.DrawText(g, desc, descF, new Rectangle(x, y, w, descF.Height * 2), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
             y += descF.Height * 2 + S(10);
 
             // the stars line with the community text; the Add button at the right
@@ -320,12 +343,7 @@ internal sealed partial class DashCanvas
             }
             if (showBtn)
             {
-                using (var path = Theme.RoundRect(br, Sf(6)))
-                {
-                    using var b = new SolidBrush(Theme.AccentFill);
-                    g.FillPath(b, path);
-                }
-                TextRenderer.DrawText(g, btn, btnF, br, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                PaintAdd(g, br, btn, btnF, another: onBoard);
                 _zones.Add((br, new Hot(Zone.CatalogAdd, -1, def.TypeId)));
             }
             // the whole card opens the widget card (added last: the stars and the button win where they overlap)
