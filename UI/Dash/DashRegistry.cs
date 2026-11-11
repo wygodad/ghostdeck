@@ -33,7 +33,8 @@ internal static class DashRegistry
         new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, (d, o) => new CpuClockWidget(d, o)),
         new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, (d, o) => new ProfilesWidget(d, o)),
         new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), (d, o) => new CurveWidget(d, o)),
-        new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2)), Always, (d, o) => new ScenesWidget(d, o)),
+        // (1.45) 1x1: one button that runs the first of the widget's scenes
+        new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2), (1, 1)), Always, (d, o) => new ScenesWidget(d, o)),
         new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, (d, o) => new TogglesWidget(d, o)),
         new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, (d, o) => new MemoryWidget(d, o)),
         new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, (d, o) => new ChargeLimitWidget(d, o)),

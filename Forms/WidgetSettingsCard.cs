@@ -9,8 +9,10 @@ namespace GhostDeck;
 /// from the list of settings the widget declares (<see cref="DashOptionDef"/>), so a widget type
 /// needs no card of its own. The picture is the widget itself, painted by the same code as on
 /// the Dashboard with the settings being edited, so every change shows at once; the Dashboard
-/// gets them on Save, in one repaint. Colour and one-of-a-few settings sit beside the picture,
-/// texts, numbers and switches in two columns under it. A colour that belongs to a field (the
+/// gets them on Save, in one repaint. Colours, one-of-a-few settings and "which to show" lists
+/// sit beside the picture (under it for a widget with none of them, or a wide one), texts,
+/// numbers and switches in two columns under it. The picture has the size the widget will take
+/// with the settings being edited: fewer profiles to show can mean a smaller widget. A colour that belongs to a field (the
 /// label's colour, the colour of a warning) is a small colour button at the end of that field;
 /// it opens the same palette in a drop-down (<see cref="CardPopupPalette"/>).
 ///
@@ -26,7 +28,7 @@ namespace GhostDeck;
 /// </summary>
 internal sealed class WidgetSettingsCard : GhostCardForm
 {
-    private enum ZoneKind { Swatch, Cell, Select, Toggle, Field, Chip }
+    private enum ZoneKind { Swatch, Cell, Select, Toggle, Field, Chip, Check }
     private readonly record struct Zone(Rectangle R, ZoneKind Kind, int Def, int Idx);
 
     private static readonly Color Dim = Color.FromArgb(0x5E, 0x66, 0x75);   // a switched-off field's texts
@@ -44,6 +46,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private readonly HashSet<string> _badText = new();                    // number fields whose text is not a number in range
     private Bitmap? _preview;
     private bool _previewStale = true;
+    private IDashWidget? _widget;                                         // the widget with the settings being edited
     private bool _loading;                                                // the card is filling the boxes itself
     private bool _tight;                                                  // the screen is too low for the roomy layout
 
@@ -150,6 +153,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private void Changed()
     {
         _previewStale = true;
+        _widget = null;
         SyncBoxes();
         Rerender();
     }
@@ -177,10 +181,17 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             else _badText.Add(o.Key);
         }
         _previewStale = true;
+        _widget = null;
         Rerender();
     }
 
     // ---------------- the picture ----------------
+
+    /// <summary>The widget with the settings being edited; a new one after every change (an instance keeps its settings for life).</summary>
+    private IDashWidget Widget() => _widget ??= _def.New(_work.Clone());
+
+    /// <summary>The cells the widget will take once saved: its size now when the settings still allow it, else the nearest allowed.</summary>
+    private (int w, int h) Cells() => DashItem.Fit(Widget().Sizes, _item.W, _item.H);
 
     /// <summary>The widget painted with the settings being edited and the current data sample, at the size the card gives it.</summary>
     private Bitmap Preview(Size size)
@@ -188,7 +199,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         int w = size.Width, h = size.Height;
         if (!_previewStale && _preview != null && _preview.Width == w && _preview.Height == h) return _preview;
         _preview?.Dispose();
-        var widget = _def.New(_work.Clone());
+        var widget = Widget();
         _previewStale = false;
         return _preview = DashPaint.Snapshot(_ctx.Owner, w, h, FieldBg, (g, r) => { widget.PaintStatic(g, r, _ctx); widget.PaintLive(g, r, _ctx); });
     }
@@ -216,7 +227,11 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         g.TextRenderingHint = hint;
     }
 
-    private static bool Wide(DashOptionDef o) => o.Kind is DashOptKind.Color or DashOptKind.Choice;
+    private static bool Wide(DashOptionDef o) => o.Kind is DashOptKind.Color or DashOptKind.Choice or DashOptKind.Checks;
+
+    /// <summary>Whether a box of a "which to show" list is ticked: nothing stored = all are.</summary>
+    private bool Ticked(DashOptionDef o, int j) =>
+        _work.List(o.Key) is not { } sel || sel.Contains(DashOptions.Clean(o.Items[j].Id, DashOptions.MaxText));
 
     /// <summary>One pass for both measuring and painting, so the two can never disagree. Returns the height used.</summary>
     private int Flow(Graphics g, float k, int width, (Point at, Point origin)? paintAt)
@@ -252,20 +267,28 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             if (paint) g.DrawString(s, LabelFont, on ? whiteB : dimB, new RectangleF(lx, ly, w, h + 2 * k), fmt);
         }
 
-        // ---- the picture: beside the first settings when the widget is narrow, across the card when it is wide ----
-        bool side = _item.W <= 2;
+        // ---- the picture: beside the first settings when the widget is narrow and has such settings, across the card otherwise ----
+        var (cellsW, cellsH) = Cells();
+        bool side = cellsW <= 2 && _defs.Any(Wide);
         int pad = Ce((tight ? 10 : 14) * k), cellGap = _ctx.S(16);
-        int cell = side ? Ce((_item.W == 1 && _item.H == 1 ? (tight ? 136 : 150) : (tight ? 92 : 104)) * k)
-                        : Math.Min(Ce((tight ? 100 : 120) * k), (width - pad * 2 - cellGap * (_item.W - 1)) / Math.Max(1, _item.W));
-        var pv = new Size(_item.W * cell + (_item.W - 1) * cellGap, _item.H * cell + (_item.H - 1) * cellGap);
+        int cell = side ? Ce((cellsW == 1 && cellsH == 1 ? (tight ? 136 : 150) : (tight ? 92 : 104)) * k)
+                        : Math.Min(Ce((tight ? 100 : 120) * k), (width - pad * 2 - cellGap * (cellsW - 1)) / Math.Max(1, cellsW));
+        var pv = new Size(cellsW * cell + (cellsW - 1) * cellGap, cellsH * cell + (cellsH - 1) * cellGap);
         var field = side ? new Rectangle(x, y0, pv.Width + pad * 2, pv.Height + pad * 2) : new Rectangle(x, y0, width, pv.Height + pad * 2);
         if (paint)
         {
             using var path = RoundPath(field, Ce(10 * k));
             using var bg = new SolidBrush(FieldBg);
             g.FillPath(bg, path);
-            // the widget is painted only here: measuring needs its size, not its picture
-            g.DrawImage(Preview(pv), new Rectangle(field.X + (field.Width - pv.Width) / 2, field.Y + pad, pv.Width, pv.Height));
+            // The widget is painted only here: measuring needs its size, not its picture. It is
+            // painted at the size it has on the Dashboard and scaled into its place, so its
+            // texts break as they do there.
+            int real = Math.Max(Ce(150 * k), _ctx.CellPx());
+            var shot = Preview(new Size(cellsW * real + (cellsW - 1) * cellGap, cellsH * real + (cellsH - 1) * cellGap));
+            var old = g.InterpolationMode;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.DrawImage(shot, new Rectangle(field.X + (field.Width - pv.Width) / 2, field.Y + pad, pv.Width, pv.Height));
+            g.InterpolationMode = old;
         }
 
         // ---- colour and one-of-a-few ----
@@ -291,6 +314,27 @@ internal sealed class WidgetSettingsCard : GhostCardForm
                     for (int j = 0; j < plan.Items.Length; j++) _zones.Add(new Zone(Win(plan.Items[j]), ZoneKind.Swatch, i, j));
                 }
                 cy += plan.Height;
+            }
+            else if (o.Kind == DashOptKind.Checks)
+            {
+                // a box to tick for every element, as many on a line as fit
+                int chipH = Ce(32 * k), chipGap2 = Ce(8 * k), box = Ce(16 * k), padX = Ce(10 * k);
+                int px = cx, py = cy;
+                for (int j = 0; j < o.Items.Count; j++)
+                {
+                    // measured the way it is drawn, so a name is cut only when it is wider than the whole column
+                    int tw = Ce(g.MeasureString(o.Items[j].Caption, CellFont, 100000, LeftText).Width);
+                    int wChip = Math.Min(cw, padX + box + Ce(8 * k) + tw + padX);
+                    if (px > cx && px + wChip > cx + cw) { px = cx; py += chipH + chipGap2; }
+                    var rc = new Rectangle(px, py, wChip, chipH);
+                    if (paint)
+                    {
+                        PaintCheck(g, rc, o.Items[j].Caption, Ticked(o, j), HotZone == _zones.Count, k, box, padX);
+                        _zones.Add(new Zone(Win(rc), ZoneKind.Check, i, j));
+                    }
+                    px += wChip + chipGap2;
+                }
+                cy = py + chipH;
             }
             else
             {
@@ -419,6 +463,31 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         return y - gapField - y0;
     }
 
+    /// <summary>One element of a "which to show" list: a tick box and its name in a rounded cell.</summary>
+    private void PaintCheck(Graphics g, Rectangle rc, string text, bool on, bool hot, float k, int box, int padX)
+    {
+        PaintTrack(g, rc, on, hot);
+        var br = new RectangleF(rc.X + padX, rc.Y + (rc.Height - box) / 2f, box, box);
+        using (var bp = RoundPath(br, (int)Math.Ceiling(4 * k)))
+        {
+            if (on) { using var fb = new SolidBrush(Fill); g.FillPath(fb, bp); }
+            else { using var ep = new Pen(Color.FromArgb(hot ? 200 : 130, Muted), Math.Max(1f, 1.2f * k)); g.DrawPath(ep, bp); }
+        }
+        if (on)
+        {
+            using var tick = new Pen(Color.White, Math.Max(1.5f, 1.8f * k)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+            g.DrawLines(tick, new[]
+            {
+                new PointF(br.X + br.Width * 0.24f, br.Y + br.Height * 0.52f),
+                new PointF(br.X + br.Width * 0.43f, br.Y + br.Height * 0.70f),
+                new PointF(br.X + br.Width * 0.77f, br.Y + br.Height * 0.32f),
+            });
+        }
+        float tx = br.Right + 8 * k;
+        using var tb = new SolidBrush(on || hot ? White : Muted);
+        g.DrawString(text, CellFont, tb, new RectangleF(tx, rc.Y, Math.Max(1, rc.Right - padX / 2f - tx), rc.Height), LeftText);
+    }
+
     private static int IndexOf(DashOptionDef o, string id)
     {
         for (int i = 0; i < o.Items.Count; i++) if (o.Items[i].Id == id) return i;
@@ -461,7 +530,21 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             case ZoneKind.Toggle:
             {
                 bool on = !_work.Flag(o.Key, o.DefaultOn);
+                // the last switch of its group that is on stays on
+                if (!on && o.KeepOne.Length > 0 && !_defs.Any(d => d != o && d.Kind == DashOptKind.Toggle && d.KeepOne == o.KeepOne && _work.Flag(d.Key, d.DefaultOn))) break;
                 if (on == o.DefaultOn) _work.Remove(o.Key); else _work.Set(o.Key, on);
+                Changed();
+                break;
+            }
+            case ZoneKind.Check:
+            {
+                // the ticked ids after this click, in the list's order; at least one stays ticked,
+                // and "all of them" is the default, which is not stored
+                var ticked = new List<string>();
+                for (int j = 0; j < o.Items.Count; j++)
+                    if (Ticked(o, j) != (j == z.Idx)) ticked.Add(o.Items[j].Id);
+                if (ticked.Count == 0) break;
+                if (ticked.Count == o.Items.Count) _work.Remove(o.Key); else _work.Set(o.Key, ticked);
                 Changed();
                 break;
             }

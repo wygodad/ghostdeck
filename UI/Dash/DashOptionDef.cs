@@ -13,6 +13,8 @@ internal enum DashOptKind
     Number,
     /// <summary>Yes or no.</summary>
     Toggle,
+    /// <summary>Which of a few to show: a box to tick for each, always at least one ticked. Stored as the list of ticked ids; nothing stored = all.</summary>
+    Checks,
 }
 
 /// <summary>
@@ -25,7 +27,7 @@ internal enum DashOptKind
 /// </summary>
 internal sealed record DashOptionDef(string Key, DashOptKind Kind, string Label)
 {
-    /// <summary>Choice: the stored ids with their captions.</summary>
+    /// <summary>Choice and Checks: the stored ids with their captions.</summary>
     public IReadOnlyList<(string Id, string Caption)> Items { get; init; } = Array.Empty<(string, string)>();
 
     /// <summary>Choice and Color: the id in use when nothing is stored.</summary>
@@ -69,6 +71,12 @@ internal sealed record DashOptionDef(string Key, DashOptKind Kind, string Label)
 
     /// <summary>Toggle: the state when nothing is stored.</summary>
     public bool DefaultOn { get; init; }
+
+    /// <summary>
+    /// Toggle: switches naming the same group cannot all be off (the two lines of the fan curve);
+    /// the last one on does not switch off. "" = no such rule.
+    /// </summary>
+    public string KeepOne { get; init; } = "";
 
     /// <summary>A small grey line under the field.</summary>
     public string Hint { get; init; } = "";

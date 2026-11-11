@@ -64,7 +64,7 @@ internal sealed partial class DashCanvas : Control
     public DashCanvas(MainDeps d)
     {
         _d = d;
-        _ctx = new DashContext(d, this) { RequestRebuild = Rebuild };
+        _ctx = new DashContext(d, this) { RequestRebuild = Rebuild, CellPx = () => Width > 0 ? Cell(Width) : 0 };
         BackColor = Theme.Surface;
         ResizeRedraw = true;
         // OptimizedDoubleBuffer: OnPaint composes the static blit and the live layer offscreen
@@ -156,7 +156,15 @@ internal sealed partial class DashCanvas : Control
         var kept = new Dictionary<DashItem, IDashWidget>(ReferenceEqualityComparer.Instance);
         foreach (var it in items)
         {
-            if (!_byItem.TryGetValue(it, out var w) || w.TypeId != it.Type) w = DashRegistry.Make(it);
+            if (!_byItem.TryGetValue(it, out var w) || w.TypeId != it.Type)
+            {
+                w = DashRegistry.Make(it);
+                // A widget stands in a size it allows. A layout that says otherwise (a file edited
+                // by hand, settings changed outside the card) would have it paint over its
+                // neighbours, so it takes the nearest size it allows. A type this version does
+                // not know keeps its size untouched.
+                if (w is not UnknownWidget) (it.W, it.H) = DashItem.Fit(w.Sizes, it.W, it.H);
+            }
             kept[it] = w;
             _widgets.Add(w);
         }
@@ -693,7 +701,7 @@ internal sealed partial class DashCanvas : Control
         if (!_items.Any(i => ReferenceEquals(i, it)) || opt.SameAs(DashOptions.Of(it))) return;
         it.Opt = opt.ToMap();
         _byItem.Remove(it);
-        Sync();
+        Sync();   // a new instance, and with it the size: kept when the new settings still allow it, else the nearest allowed (one profile instead of four)
         Save();
     }
 

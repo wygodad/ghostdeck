@@ -151,10 +151,14 @@ internal static class DashPaint
         }
     }
 
-    /// <summary>The ToggleSwitch look: accent track with a white knob when on, strong border with a muted knob when off.</summary>
-    public static void Switch(Graphics g, Rectangle r, bool on, bool enabled = true)
+    /// <summary>
+    /// The ToggleSwitch look: accent track with a white knob when on, strong border with a muted
+    /// knob when off. <paramref name="onTrack"/> = another colour for the track when on (a widget's
+    /// own colour setting); null = the app's.
+    /// </summary>
+    public static void Switch(Graphics g, Rectangle r, bool on, bool enabled = true, Color? onTrack = null)
     {
-        var track = !enabled ? Theme.Border : on ? Theme.AccentFill : Theme.BorderStrong;
+        var track = !enabled ? Theme.Border : on ? onTrack ?? Theme.AccentFill : Theme.BorderStrong;
         var knob = enabled ? Color.White : Theme.Muted;
         using (var path = Theme.RoundRect(r, r.Height / 2f)) using (var b = new SolidBrush(track)) g.FillPath(b, path);
         float pad = 4 * r.Height / 28f, d = r.Height - 2 * pad, kx = on ? r.Right - d - pad : r.X + pad;

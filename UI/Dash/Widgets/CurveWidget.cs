@@ -11,6 +11,9 @@ namespace GhostDeck;
 /// draw from the one read (1.45). The chart is the static layer, the dots and the live line next
 /// to the title are the live layer. A click opens the editor. On a model without curve tables
 /// the card says so.
+///
+/// Settings (1.45): the title and its colour, which of the two lines to draw (never neither)
+/// and the colour of each. A single-fan model has one line and one colour to set.
 /// </summary>
 internal sealed class CurveWidget : DashWidget
 {
@@ -43,6 +46,19 @@ internal sealed class CurveWidget : DashWidget
 
     private int MaxPct => _dev?.FanCurve?.MaxFanPct ?? 150;
     private bool SingleFan => _dev?.FanCurve?.SingleFan ?? false;
+
+    private const string KCpu = "cpu", KGpu = "gpu", KCpuColor = "cpuc", KGpuColor = "gpuc";
+
+    /// <summary>The colours of the CPU and the GPU line: accent and violet unless picked.</summary>
+    private Color[] LineColors() => new[] { Tint(KCpuColor, Theme.Accent), Tint(KGpuColor, Theme.Violet) };
+
+    /// <summary>Which of the two lines to draw: both unless one is switched off; a single-fan model has the first alone.</summary>
+    private bool[] Lines()
+    {
+        if (SingleFan) return new[] { true, false };
+        bool cpu = Opt.Flag(KCpu, true), gpu = Opt.Flag(KGpu, true);
+        return cpu || gpu ? new[] { cpu, gpu } : new[] { true, true };
+    }
 
     private Tables EnsureCurve(DashContext c)
     {
@@ -78,7 +94,7 @@ internal sealed class CurveWidget : DashWidget
     {
         Frame(g, r);
         var inner = Inner(r, c);
-        DashPaint.Title(g, inner, c, Lang.T(NameKey));
+        DashPaint.Title(g, inner, c, Caption, Tint("labelc", Theme.Text));
         var dev = Device(c);
         int titleH = c.Font(11f, FontStyle.Bold).Height;
         var body = new Rectangle(inner.Left, inner.Top + titleH, inner.Width, inner.Height - titleH);
@@ -105,12 +121,12 @@ internal sealed class CurveWidget : DashWidget
             TextRenderer.DrawText(g, ct[i] + "°", axisF, new Rectangle((int)x - c.S(20), plot.Bottom + c.S(4), c.S(40), axisF.Height), Theme.Faint,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
         }
-        int fans = SingleFan ? 1 : 2;
-        var cols = new[] { Theme.Accent, Theme.Violet };
-        for (int fan = 0; fan < fans; fan++)
+        var cols = LineColors();
+        var show = Lines();
+        for (int fan = 0; fan < 2; fan++)
         {
             int[] sp = fan == 0 ? cs : gs;
-            if (sp.Length < 2) continue;
+            if (!show[fan] || sp.Length < 2) continue;
             var pts = new PointF[sp.Length];
             for (int i = 0; i < sp.Length; i++)
                 pts[i] = new PointF(plot.Left + i * plot.Width / (float)(sp.Length - 1), plot.Bottom - Math.Clamp(sp[i], 0, max) / (float)max * plot.Height);
@@ -122,8 +138,9 @@ internal sealed class CurveWidget : DashWidget
         }
         // legend
         int lx = legend.Left, ly = legend.Top + c.S(3);
-        for (int fan = 0; fan < fans; fan++)
+        for (int fan = 0; fan < 2; fan++)
         {
+            if (!show[fan]) continue;
             string label = Lang.T(fan == 0 ? (SingleFan ? "fc_fan_single" : "fc_fan_cpu") : "fc_fan_gpu");
             using (var b = new SolidBrush(cols[fan])) g.FillRectangle(b, lx, ly + axisF.Height / 2 - c.S(1), c.S(14), c.S(3));
             lx += c.S(18);
@@ -140,8 +157,9 @@ internal sealed class CurveWidget : DashWidget
         var (ct, cs, gt, gs) = tables.Curve.Value;
         var inner = Inner(r, c);
         var plot = Plot(inner, c, out _);
-        int max = MaxPct, fans = SingleFan ? 1 : 2;
-        var cols = new[] { Theme.Accent, Theme.Violet };
+        int max = MaxPct;
+        var cols = LineColors();
+        var show = Lines();
         var s = c.Sample;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         // the trail ring: one entry per new sample, three minutes deep
@@ -151,22 +169,23 @@ internal sealed class CurveWidget : DashWidget
             var cut = s.At - TrailSpan;
             _trail.RemoveAll(e => e.at < cut);
         }
-        // live line next to the title: CPU temperature and fan target
-        if (s.TempsKnown && s.Hw.CpuTemp > 0)
+        // live line next to the title: the temperature and fan target of the CPU, or of the GPU when its line is the only one drawn
+        int liveTemp = show[0] ? s.Hw.CpuTemp : s.Hw.GpuTemp, liveFan = show[0] ? s.Hw.CpuFan : s.Hw.GpuFan;
+        if (s.TempsKnown && liveTemp > 0)
         {
             var f = c.Font(9f);
-            string live = $"{s.Hw.CpuTemp} °C · {Lang.T("fc_live_fan")} {s.Hw.CpuFan} %";
-            int titleW = TextRenderer.MeasureText(Lang.T(NameKey), c.Font(11f, FontStyle.Bold), Size.Empty, TextFormatFlags.NoPadding).Width;
+            string live = $"{liveTemp} °C · {Lang.T("fc_live_fan")} {liveFan} %";
+            int titleW = TextRenderer.MeasureText(Caption, c.Font(11f, FontStyle.Bold), Size.Empty, TextFormatFlags.NoPadding).Width;
             int titleH = c.Font(11f, FontStyle.Bold).Height;
             TextRenderer.DrawText(g, live, f, new Rectangle(inner.Left + titleW + c.S(10), inner.Top, Math.Max(10, inner.Width - titleW - c.S(10)), titleH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
         var bubbles = new List<Rectangle>();   // placed bubbles, so the GPU's never covers the CPU's
-        for (int fan = 0; fan < fans; fan++)
+        for (int fan = 0; fan < 2; fan++)
         {
             int[] temps = fan == 0 ? ct : gt, sp = fan == 0 ? cs : gs;
             int t = fan == 0 ? s.Hw.CpuTemp : s.Hw.GpuTemp;
-            if (!s.TempsKnown || t <= 0 || temps.Length < 2 || sp.Length != temps.Length) continue;
+            if (!show[fan] || !s.TempsKnown || t <= 0 || temps.Length < 2 || sp.Length != temps.Length) continue;
             PointF OnCurve(int temp) => new(plot.Left + CurveModel.OrdinalX(temps, temp) * plot.Width / (temps.Length - 1),
                                             plot.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, sp, temp), 0, max) / (float)max * plot.Height);
             // the amber trail: where this fan's temperature has been, older = fainter and smaller
@@ -215,4 +234,20 @@ internal sealed class CurveWidget : DashWidget
     public override bool LiveChanged(DashContext c) => Signature(c.Sample) != _painted;
 
     public override void Click(Point p, Rectangle r, DashContext c) => c.OpenTab(MainTab.FanCurve);
+
+    public override IReadOnlyList<DashOptionDef> OptionDefs(DashContext c)
+    {
+        Device(c);
+        var list = new List<DashOptionDef>();
+        if (SingleFan)
+            list.Add(new(KCpuColor, DashOptKind.Color, Lang.T("dash_opt_line_color")) { Default = "auto", Auto = _ => Theme.Accent });
+        list.Add(LabelDef(Theme.Text));
+        if (!SingleFan)
+        {
+            // a switch per line with the line's colour beside it; the last one on stays on
+            list.Add(new(KCpu, DashOptKind.Toggle, Lang.T("fc_fan_cpu")) { DefaultOn = true, KeepOne = "lines", Row = "lines", ColorKey = KCpuColor, Auto = _ => Theme.Accent });
+            list.Add(new(KGpu, DashOptKind.Toggle, Lang.T("fc_fan_gpu")) { DefaultOn = true, KeepOne = "lines", Row = "lines", ColorKey = KGpuColor, Auto = _ => Theme.Violet });
+        }
+        return list;
+    }
 }

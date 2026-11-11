@@ -18,7 +18,11 @@ internal interface IDashWidget
     /// <summary>Lang.T key of the name shown in the catalogue and as the widget title.</summary>
     string NameKey { get; }
 
-    /// <summary>Allowed sizes in grid cells (Width = columns, Height = rows); the first is the default.</summary>
+    /// <summary>
+    /// Allowed sizes in grid cells (Width = columns, Height = rows); the first is the default.
+    /// They may depend on the widget's settings (1.45): Profiles showing one profile fits a single
+    /// cell, with four it needs four.
+    /// </summary>
     IReadOnlyList<Size> Sizes { get; }
 
     void PaintStatic(Graphics g, Rectangle r, DashContext c);
@@ -49,7 +53,32 @@ internal abstract class DashWidget : IDashWidget
 
     public string TypeId { get; }
     public string NameKey { get; }
-    public IReadOnlyList<Size> Sizes { get; }
+    /// <summary>The registry's sizes, unless the widget's constructor sets its own for its settings.</summary>
+    public IReadOnlyList<Size> Sizes { get; protected init; }
+
+    protected static Size[] Sz(params (int w, int h)[] s) => s.Select(x => new Size(x.w, x.h)).ToArray();
+
+    /// <summary>The colour of a colour setting: "auto" (<paramref name="own"/>) or one of the palette.</summary>
+    protected Color Tint(string key, Color own) => DashPaint.Pick(Opt.Choice(key, "auto", DashPaint.PaletteChoices), own);
+
+    /// <summary>The widget's title: the label the user gave it, or its name in the app's language.</summary>
+    protected string Caption => Opt.Text("label") is { Length: > 0 } t ? t : Lang.T(NameKey);
+
+    /// <summary>The "Label" field with its colour button, the same in every widget that has a title.</summary>
+    protected DashOptionDef LabelDef(Color own) =>
+        new("label", DashOptKind.Text, Lang.T("dash_opt_label")) { Placeholder = Lang.T(NameKey), ColorKey = "labelc", Auto = _ => own };
+
+    /// <summary>
+    /// What a "which to show" setting leaves of <paramref name="all"/>, in the order of
+    /// <paramref name="all"/>: everything when nothing is stored, else the stored ids that still
+    /// exist (a deleted scene, an unplugged disk simply drop out).
+    /// </summary>
+    protected IReadOnlyList<T> Picked<T>(string key, IReadOnlyList<T> all, Func<T, string> id)
+    {
+        var sel = Opt.List(key);
+        if (sel == null) return all;
+        return all.Where(x => sel.Contains(DashOptions.Clean(id(x), DashOptions.MaxText))).ToList();
+    }
 
     public abstract void PaintStatic(Graphics g, Rectangle r, DashContext c);
     public virtual void PaintLive(Graphics g, Rectangle r, DashContext c) { }

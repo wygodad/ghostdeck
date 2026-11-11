@@ -25,6 +25,13 @@ internal sealed class DashContext
     /// <summary>Asks the canvas to render the static layer again (a widget finished loading data it paints there).</summary>
     public Action RequestRebuild { get; internal set; } = () => { };
 
+    /// <summary>
+    /// The side of one grid cell on the Dashboard now, in pixels (0 before the first layout). A
+    /// card that shows a widget's picture paints it at this size and scales the picture, so the
+    /// picture is the widget as it stands on the Dashboard, not a narrower one with other breaks.
+    /// </summary>
+    public Func<int> CellPx { get; internal set; } = () => 0;
+
     public float K => Dpi.Of(Owner) / 96f;
     public int S(int v) => (int)Math.Ceiling(v * K);
     public float Sf(float v) => v * K;

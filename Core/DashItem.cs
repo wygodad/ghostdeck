@@ -67,6 +67,23 @@ public sealed class DashItem
         new("core.gpuFan",   1, 1),
     };
 
+    /// <summary>
+    /// The size a widget takes when its allowed sizes changed under it (its settings did): the
+    /// one it has when that is still allowed, else the nearest allowed one, the earlier in the
+    /// list on a tie.
+    /// </summary>
+    public static (int w, int h) Fit(IReadOnlyList<System.Drawing.Size> sizes, int w, int h)
+    {
+        if (sizes.Count == 0) return (w, h);
+        int best = 0, bestD = int.MaxValue;
+        for (int i = 0; i < sizes.Count; i++)
+        {
+            int d = Math.Abs(sizes[i].Width - w) + Math.Abs(sizes[i].Height - h);
+            if (d < bestD) { best = i; bestD = d; }
+        }
+        return (sizes[best].Width, sizes[best].Height);
+    }
+
     /// <summary>Drops empty entries and clamps sizes; a hand-edited or damaged file never breaks the page.</summary>
     public static void Sanitize(List<DashItem> items)
     {

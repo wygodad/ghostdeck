@@ -6,6 +6,10 @@ namespace GhostDeck;
 /// Profiles: the Scenarios tiles in a row (4x1) or a 2 x 2 grid (2x2): icon, name, "ACTIVE"
 /// pill or "SELECT". On a board with a fourth mode the Extreme tile carries the APEX switch,
 /// as on Scenarios. The tiles are live (the active one follows the sample), the card is static.
+///
+/// Settings (1.45): which profiles the widget shows. With copies of the widget that makes small
+/// ones, say one with Silent alone and one with Balanced alone. The sizes follow the count: one
+/// profile fits a single cell, two fit two, three and four keep the sizes of 1.44.
 /// </summary>
 internal sealed class ProfilesWidget : DashWidget
 {
@@ -13,31 +17,42 @@ internal sealed class ProfilesWidget : DashWidget
     private readonly List<(Rectangle r, ProfileId id)> _tiles = new();
     private Rectangle _apexSwitch;
 
-    public ProfilesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
+    private const string KShow = "show";
+
+    public ProfilesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt)
+    {
+        int n = Ids().Count;
+        Sizes = n <= 1 ? Sz((1, 1), (2, 1)) : n == 2 ? Sz((2, 1), (2, 2)) : def.Sizes;
+    }
+
+    /// <summary>The profiles to show, in the order the user set for profiles; all of them unless some were picked.</summary>
+    private IReadOnlyList<ProfileId> Ids() => Picked(KShow, Profiles.Shown, id => id.ToString());
 
     public override void PaintStatic(Graphics g, Rectangle r, DashContext c) => Frame(g, r);
 
     public override void PaintLive(Graphics g, Rectangle r, DashContext c)
     {
-        var inner = Inner(r, c);
-        var ids = Profiles.Shown;
+        var ids = Ids();
+        _tiles.Clear();
+        _apexSwitch = Rectangle.Empty;
+        _painted = Signature(c);
+        if (ids.Count == 0) { DashPaint.Note(g, Inner(r, c), c, Lang.T("dash_sel_none")); return; }
+        // a lone tile gets more of the card: it is the whole widget
+        var inner = ids.Count == 1 ? Rectangle.Inflate(r, -c.S(8), -c.S(8)) : Inner(r, c);
         int gap = c.S(10);
-        bool grid = r.Height > r.Width * 0.75f;   // the 2x2 variant
-        int cols = grid ? 2 : ids.Length, rows = grid ? (ids.Length + 1) / 2 : 1;
+        bool grid = r.Height > r.Width * 0.75f;   // the square variants
+        int cols = grid ? Math.Min(2, ids.Count) : ids.Count, rows = (ids.Count + cols - 1) / cols;
         int tileW = (inner.Width - gap * (cols - 1)) / Math.Max(1, cols);
         int tileH = (inner.Height - gap * (rows - 1)) / Math.Max(1, rows);
         bool writable = c.Writable;
         bool apexAvail = c.D.ApexAvailable();
         bool apexOn = apexAvail && c.D.ApexOn();
-        _tiles.Clear();
-        _apexSwitch = Rectangle.Empty;
-        for (int i = 0; i < ids.Length; i++)
+        for (int i = 0; i < ids.Count; i++)
         {
             var tile = new Rectangle(inner.Left + (i % cols) * (tileW + gap), inner.Top + (i / cols) * (tileH + gap), tileW, tileH);
             PaintTile(g, tile, ids[i], writable && c.Sample.Profile == ids[i], apexAvail && ids[i] == ProfileId.Extreme, apexOn, c);
             _tiles.Add((tile, ids[i]));
         }
-        _painted = Signature(c);
     }
 
     private void PaintTile(Graphics g, Rectangle t, ProfileId id, bool active, bool apexRow, bool apexOn, DashContext c)
@@ -97,8 +112,13 @@ internal sealed class ProfilesWidget : DashWidget
     private string Signature(DashContext c)
     {
         bool apexAvail = c.D.ApexAvailable();
-        return $"{c.Sample.Profile}|{c.Writable}|{apexAvail}|{(apexAvail && c.D.ApexOn())}|{string.Join(",", Profiles.Shown)}";
+        return $"{c.Sample.Profile}|{c.Writable}|{apexAvail}|{(apexAvail && c.D.ApexOn())}|{string.Join(",", Ids())}";
     }
+
+    public override IReadOnlyList<DashOptionDef> OptionDefs(DashContext c) => new[]
+    {
+        new DashOptionDef(KShow, DashOptKind.Checks, Lang.T("dash_opt_show")) { Items = Profiles.Shown.Select(id => (id.ToString(), Profiles.Get(id).Label)).ToArray() },
+    };
 
     public override bool LiveChanged(DashContext c) => Signature(c) != _painted;
 
