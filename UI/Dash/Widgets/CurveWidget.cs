@@ -6,19 +6,27 @@ namespace GhostDeck;
 /// Fan curve: the model's curve tables as the fan-curve page draws them in its playground
 /// (index-spaced temperatures on X, speed on Y, CPU in accent, GPU in violet) with the live
 /// operating point of each fan from the shared sample. The tables are read once on a worker
-/// (dozens of WMI calls, like Status and the editor do it); the chart is the static layer, the
-/// dots and the live line next to the title are the live layer. A click opens the editor.
-/// On a model without curve tables the card says so.
+/// (dozens of WMI calls, like Status and the editor do it) and belong to the page, not to the
+/// widget: every copy on the Dashboard, the catalogue's picture and the settings card's preview
+/// draw from the one read (1.45). The chart is the static layer, the dots and the live line next
+/// to the title are the live layer. A click opens the editor. On a model without curve tables
+/// the card says so.
 /// </summary>
 internal sealed class CurveWidget : DashWidget
 {
     /// <summary>Preview tool only: a curve to draw when there is no hardware to read one from.</summary>
     internal static (int[] ct, int[] cs, int[] gt, int[] gs)? PreviewCurve { get; set; }
 
+    /// <summary>The curve tables of one Dashboard page: read once, whoever asks first, and gone with the page.</summary>
+    private sealed class Tables
+    {
+        public (int[] ct, int[] cs, int[] gt, int[] gs)? Curve;
+        public bool Loading, Loaded;
+    }
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DashContext, Tables> Shared = new();
+
     private DeviceProfile? _dev;
     private bool _devResolved;
-    private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
-    private bool _loading, _loaded;
     private string _painted = "";
     // where the temperatures have been over the last three minutes (one entry per tick), for the
     // amber trail along the curve, as the fan-curve page's "curve in action" draws it
@@ -36,21 +44,23 @@ internal sealed class CurveWidget : DashWidget
     private int MaxPct => _dev?.FanCurve?.MaxFanPct ?? 150;
     private bool SingleFan => _dev?.FanCurve?.SingleFan ?? false;
 
-    private void EnsureCurve(DashContext c)
+    private Tables EnsureCurve(DashContext c)
     {
-        if (PreviewCurve != null) { _curve = PreviewCurve; _loaded = true; return; }
-        if (_loaded || _loading) return;
+        var t = Shared.GetOrCreateValue(c);
+        if (PreviewCurve != null) { t.Curve = PreviewCurve; t.Loaded = true; return t; }
+        if (t.Loaded || t.Loading) return t;
         var dev = Device(c);
-        if (dev?.FanCurve == null) { _loaded = true; return; }
-        _loading = true;
+        if (dev?.FanCurve == null) { t.Loaded = true; return t; }
+        t.Loading = true;
         var owner = c.Owner; var rebuild = c.RequestRebuild;
         Task.Run(() =>
         {
             (int[], int[], int[], int[])? cv = null;
             try { cv = Ec.ReadFanCurve(dev); } catch { }
-            try { owner.BeginInvoke(() => { _curve = cv; _loaded = true; _loading = false; rebuild(); }); }
-            catch { _loading = false; }
+            try { owner.BeginInvoke(() => { t.Curve = cv; t.Loaded = true; t.Loading = false; rebuild(); }); }
+            catch { t.Loading = false; }
         });
+        return t;
     }
 
     private Rectangle Plot(Rectangle inner, DashContext c, out Rectangle legend)
@@ -73,10 +83,10 @@ internal sealed class CurveWidget : DashWidget
         int titleH = c.Font(11f, FontStyle.Bold).Height;
         var body = new Rectangle(inner.Left, inner.Top + titleH, inner.Width, inner.Height - titleH);
         if (dev?.FanCurve == null && PreviewCurve == null) { DashPaint.Note(g, body, c, Lang.T("dash_unavailable")); return; }
-        EnsureCurve(c);
-        if (_curve == null) { if (_loaded) DashPaint.Note(g, body, c, "-"); return; }
+        var tables = EnsureCurve(c);
+        if (tables.Curve == null) { if (tables.Loaded) DashPaint.Note(g, body, c, "-"); return; }
 
-        var (ct, cs, gt, gs) = _curve.Value;
+        var (ct, cs, gt, gs) = tables.Curve.Value;
         var plot = Plot(inner, c, out var legend);
         var axisF = c.Font(8.5f);
         int max = MaxPct, n = ct.Length;
@@ -126,8 +136,8 @@ internal sealed class CurveWidget : DashWidget
     public override void PaintLive(Graphics g, Rectangle r, DashContext c)
     {
         _painted = Signature(c.Sample);
-        if (_curve == null) return;
-        var (ct, cs, gt, gs) = _curve.Value;
+        if (!Shared.TryGetValue(c, out var tables) || tables.Curve == null) return;
+        var (ct, cs, gt, gs) = tables.Curve.Value;
         var inner = Inner(r, c);
         var plot = Plot(inner, c, out _);
         int max = MaxPct, fans = SingleFan ? 1 : 2;

@@ -144,10 +144,16 @@ public static class Stats
             ["apex"] = s.StatsUsed.Contains("apex") ? 1 : 0,
         };
 
+        // A type is listed once, however many copies stand on the Dashboard (1.45): the first copy
+        // and its size. The list answers "who has this widget", and it is cut at 40 types.
         var widgets = new JsonArray();
-        foreach (var it in s.Dashboard.Take(40))
-            if (Regex.IsMatch(it.Type, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}$"))
+        var listed = new HashSet<string>();
+        foreach (var it in s.Dashboard)
+        {
+            if (widgets.Count >= 40) break;
+            if (Regex.IsMatch(it.Type, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}$") && listed.Add(it.Type))
                 widgets.Add(new JsonObject { ["t"] = it.Type, ["s"] = $"{Math.Clamp(it.W, 1, 6)}x{Math.Clamp(it.H, 1, 4)}" });
+        }
 
         var ratings = new JsonObject();
         foreach (var kv in s.WidgetRatings.Take(40))

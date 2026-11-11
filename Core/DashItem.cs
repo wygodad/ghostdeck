@@ -39,6 +39,14 @@ public sealed class DashItem
 
     public const int MaxW = 6, MaxH = 4;
 
+    /// <summary>
+    /// The most widgets one Dashboard holds. A type may stand any number of times (1.45), so this
+    /// is no limit on copies; it is the far end that keeps a damaged file from freezing the tab
+    /// (the static layer costs about 1.4 ms a widget: 60 widgets 85 ms, 200 under a third of a
+    /// second, thousands would be seconds).
+    /// </summary>
+    public const int MaxItems = 200;
+
     /// <summary>Version of the layout format; 0 in a settings file from before the Dashboard (1.44).</summary>
     public const int FormatVersion = 1;
 
@@ -63,6 +71,7 @@ public sealed class DashItem
     public static void Sanitize(List<DashItem> items)
     {
         items.RemoveAll(i => i == null || string.IsNullOrWhiteSpace(i.Type));
+        if (items.Count > MaxItems) items.RemoveRange(MaxItems, items.Count - MaxItems);
         foreach (var i in items)
         {
             i.Type = i.Type.Trim();

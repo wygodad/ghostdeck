@@ -487,8 +487,17 @@ internal sealed partial class DashCanvas : Control
     private int SortPillH => Math.Max(S(20), CatSmallF.Height + S(6));
 
     /// <summary>The description under a catalogue name: one or two lines, as the text wraps in this language and width.</summary>
-    private string CatDesc(DashWidgetDef def, bool available, bool onBoard) =>
-        !available ? Lang.T("dash_unavailable") : onBoard ? Lang.T("dash_added") : Lang.T(def.NameKey + "_d");
+    /// <summary>Unavailable, or how many of the type stand on the Dashboard (a type may stand any number of times), or what the widget is.</summary>
+    private string CatDesc(DashWidgetDef def, bool available, int onBoard) =>
+        !available ? Lang.T("dash_unavailable") : onBoard > 0 ? string.Format(Lang.T("dash_added_n"), onBoard) : Lang.T(def.NameKey + "_d");
+
+    /// <summary>How many widgets of every type the layout holds.</summary>
+    private Dictionary<string, int> PlacedCounts()
+    {
+        var n = new Dictionary<string, int>();
+        foreach (var it in _items) n[it.Type] = n.TryGetValue(it.Type, out int c) ? c + 1 : 1;
+        return n;
+    }
 
     private int CatDescH(string desc, int w) =>
         Math.Min(CatDescF.Height * 2, TextRenderer.MeasureText(desc, CatDescF, new Size(w, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
@@ -500,9 +509,9 @@ internal sealed partial class DashCanvas : Control
     {
         int head = _ctx.Font(11f, FontStyle.Bold).Height + S(10) + Math.Max(_ctx.Font(8.5f, FontStyle.Bold).Height, Summary != null ? SortPillH : 0) + S(8);
         int w = PanelW - S(16) * 2, rows = 0;
-        var present = new HashSet<string>(_items.Select(i => i.Type));
+        var placed = PlacedCounts();
         foreach (var def in Listed)
-            rows += CatalogRowH(CatDescH(CatDesc(def, def.Available(_d), present.Contains(def.TypeId)), w));
+            rows += CatalogRowH(CatDescH(CatDesc(def, def.Available(_d), placed.GetValueOrDefault(def.TypeId)), w));
         return S(16) * 2 + head + rows;
     }
 
@@ -545,7 +554,7 @@ internal sealed partial class DashCanvas : Control
         var nameF = CatNameF;
         var descF = CatDescF;
         var btnF = _ctx.Font(9f, FontStyle.Bold);
-        var present = new HashSet<string>(_items.Select(i => i.Type));
+        var placed = PlacedCounts();
         var ratings = _d.Settings.WidgetRatings;
         var order = CatalogOrder(sum);
         var popular = sum == null ? new HashSet<string>() : new HashSet<string>(sum.Top.Take(3));   // the badge: the three most placed
@@ -553,8 +562,8 @@ internal sealed partial class DashCanvas : Control
         for (int n = 0; n < order.Count; n++)
         {
             var def = order[n];
-            bool available = def.Available(_d), onBoard = present.Contains(def.TypeId);
-            string desc = CatDesc(def, available, onBoard);
+            bool available = def.Available(_d), onBoard = placed.ContainsKey(def.TypeId);
+            string desc = CatDesc(def, available, placed.GetValueOrDefault(def.TypeId));
             int descH = CatDescH(desc, w), rowH = CatalogRowH(descH);
             var row = new Rectangle(x, y, w, rowH);
             var st = sum != null && sum.Widgets.TryGetValue(def.TypeId, out var ws) ? ws : null;
@@ -608,7 +617,7 @@ internal sealed partial class DashCanvas : Control
                     TextFormatFlags.Left | TextFormatFlags.NoPadding);
             }
 
-            if (available && !onBoard)
+            if (available)   // also for a type already there: Add puts another one on the Dashboard
             {
                 using (var path = Theme.RoundRect(br, Sf(6)))
                 {
@@ -632,21 +641,31 @@ internal sealed partial class DashCanvas : Control
     /// </summary>
     private void Rate(string type, int stars) => DashRatings.Rate(_d, type, stars, FindForm(), Rebuild);
 
-    /// <summary>The widget card for a type: the placed instance when it is on the Dashboard (its picture shows the live values), a fresh one otherwise.</summary>
-    internal GhostCardForm InfoCardFor(string type)
+    /// <summary>
+    /// The widget card for a type. From a tile's menu (<paramref name="of"/>) its picture is that
+    /// tile, with its settings. From the catalogue it is the widget as it comes, and the card
+    /// offers to add one (another one, when the type already stands on the Dashboard).
+    /// </summary>
+    internal GhostCardForm InfoCardFor(string type, DashItem? of = null)
     {
         var def = DashRegistry.Find(type) ?? throw new ArgumentException(type);
-        int k = _widgets.FindIndex(w => w.TypeId == type);
-        var widget = k >= 0 ? _widgets[k] : def.New();
+        int k = of == null ? -1 : _items.FindIndex(i => ReferenceEquals(i, of));
+        var widget = k >= 0 ? _widgets[k] : Stock(def);
         bool canAdd = k < 0 && def.Available(_d);
         return new WidgetInfoCard(_d, def, widget, _ctx, Rebuild, canAdd ? () => AddType(type) : null);
     }
 
-    private void OpenInfo(string type)
+    private void OpenInfo(string type, DashItem? of = null)
     {
         if (DashRegistry.Find(type) == null) return;
-        InfoCardFor(type).ShowOver(FindForm());
+        InfoCardFor(type, of).ShowOver(FindForm());
     }
+
+    // One widget of every type with nothing set, for the catalogue's pictures and the widget
+    // card: a placed one may look like anything since widgets have settings (1.45). Kept, so a
+    // widget that loads something once (the fan curve's tables) does not load it on every paint.
+    private readonly Dictionary<string, IDashWidget> _stock = new();
+    private IDashWidget Stock(DashWidgetDef def) => _stock.TryGetValue(def.TypeId, out var w) ? w : _stock[def.TypeId] = def.New();
 
     /// <summary>The ⋯ of a tile: details and rating, the next size, remove, edit the layout.</summary>
     private void ShowTileMenu(int index, Point at) { if (TileMenuItems(index) is { } items) DashMenuPopup.Open(this, at, items); }
@@ -688,18 +707,32 @@ internal sealed partial class DashCanvas : Control
         int cur = -1;
         for (int i = 0; i < sizes.Count; i++) if (sizes[i].Width == it.W && sizes[i].Height == it.H) { cur = i; break; }
         var next = sizes.Count > 1 ? sizes[(cur + 1) % sizes.Count] : (Size?)null;
-        var items = new List<DashMenuPopup.Item> { new(Lang.T("dash_menu_info"), () => OpenInfo(type)) };
+        var items = new List<DashMenuPopup.Item> { new(Lang.T("dash_menu_info"), () => OpenInfo(type, it)) };
         if (_widgets[index].OptionDefs(_ctx).Count > 0) items.Add(new(Lang.T("dash_menu_settings"), () => OpenSettings(it)));
         items.Add(DashMenuPopup.Item.Line);
-        if (next is { } n) items.Add(new(string.Format(Lang.T("dash_menu_size_fmt"), $"{it.W}×{it.H} → {n.Width}×{n.Height}"), () => CycleSize(IndexOf(type))));
-        items.Add(new(Lang.T("dash_menu_remove"), () => RemoveAt(IndexOf(type)), Accent: Theme.Red));
+        if (next is { } n) items.Add(new(string.Format(Lang.T("dash_menu_size_fmt"), $"{it.W}×{it.H} → {n.Width}×{n.Height}"), () => CycleSize(IndexOf(it))));
+        if (DashRegistry.Find(type) != null) items.Add(new(Lang.T("dash_menu_duplicate"), () => Duplicate(it)));
+        items.Add(new(Lang.T("dash_menu_remove"), () => RemoveAt(IndexOf(it)), Accent: Theme.Red));
         items.Add(DashMenuPopup.Item.Line);
         items.Add(new(Lang.T("dash_edit"), () => EditMode = true));
         return items;
     }
 
-    /// <summary>The index of a placed type now (the list may have changed while a menu was open).</summary>
-    private int IndexOf(string type) => _items.FindIndex(i => i.Type == type);
+    /// <summary>
+    /// Where a layout item stands now, -1 = gone (the layout may have changed while a menu was
+    /// open). By the item itself, never by its type: a type may stand on the Dashboard many times.
+    /// </summary>
+    private int IndexOf(DashItem it) => _items.FindIndex(i => ReferenceEquals(i, it));
+
+    /// <summary>A copy of a widget, with its size and its settings, right after the original; from there it goes its own way.</summary>
+    internal void Duplicate(DashItem it)
+    {
+        int index = IndexOf(it);
+        if (index < 0 || _items.Count >= DashItem.MaxItems) return;
+        _items.Insert(index + 1, it.Clone());
+        Sync();
+        Save();
+    }
 
     // ---- actions ----------------------------------------------------------------------------
     internal bool EditMode
@@ -756,7 +789,7 @@ internal sealed partial class DashCanvas : Control
     internal void AddType(string typeId)
     {
         var def = DashRegistry.Find(typeId);
-        if (def == null || _items.Any(i => i.Type == typeId)) return;
+        if (def == null || _items.Count >= DashItem.MaxItems) return;
         var size = def.Sizes.Length > 0 ? def.Sizes[0] : new Size(1, 1);
         _items.Add(new DashItem(typeId, size.Width, size.Height));
         Sync();

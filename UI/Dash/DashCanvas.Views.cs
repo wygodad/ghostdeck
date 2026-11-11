@@ -184,13 +184,12 @@ internal sealed partial class DashCanvas
     }
 
     /// <summary>
-    /// The widget's picture at its natural cell size (the placed instance when it is on the
-    /// board, so the live values show; a fresh one otherwise), to be drawn scaled down.
+    /// The widget's picture at its natural cell size, to be drawn scaled down: the widget as it
+    /// comes, with the current values (a placed one may have settings of its own).
     /// </summary>
     private Bitmap RenderPreview(DashWidgetDef def)
     {
-        int k = _widgets.FindIndex(w => w.TypeId == def.TypeId);
-        var w = k >= 0 ? _widgets[k] : def.New();
+        var w = Stock(def);
         var size = def.Sizes.Length > 0 ? def.Sizes[0] : new Size(1, 1);
         int cell = S(150), gap = Gap;
         int pw = size.Width * cell + (size.Width - 1) * gap, ph = size.Height * cell + (size.Height - 1) * gap;
@@ -208,7 +207,7 @@ internal sealed partial class DashCanvas
         var sum = Summary;
         int cols = CatCols(Width), cw = CatCardW(Width), ch = CatCardH(), pad = S(16);
         var order = CatalogOrder(sum);
-        var present = new HashSet<string>(_items.Select(i => i.Type));
+        var placed = PlacedCounts();
         var popular = sum == null ? new HashSet<string>() : new HashSet<string>(sum.Top.Take(3));
         string badge = Lang.Upper(Lang.T("dash_sort_popular"));
         var nameF = CatNameF;
@@ -241,7 +240,7 @@ internal sealed partial class DashCanvas
             }
             y = box.Bottom + S(12);
 
-            bool available = def.Available(_d), onBoard = present.Contains(def.TypeId);
+            bool available = def.Available(_d), onBoard = placed.ContainsKey(def.TypeId);
             var st = sum != null && sum.Widgets.TryGetValue(def.TypeId, out var ws) ? ws : null;
 
             // name and the POPULAR badge
@@ -264,7 +263,7 @@ internal sealed partial class DashCanvas
             y += nameF.Height + S(2);
 
             // description, two lines
-            string desc = CatDesc(def, available, onBoard);
+            string desc = CatDesc(def, available, placed.GetValueOrDefault(def.TypeId));
             TextRenderer.DrawText(g, desc, descF, new Rectangle(x, y, w, descF.Height * 2), onBoard && available ? Theme.Accent : Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
             y += descF.Height * 2 + S(10);
@@ -274,7 +273,7 @@ internal sealed partial class DashCanvas
             string btn = Lang.T("dash_add_short");
             int bw = TextRenderer.MeasureText(btn, btnF, Size.Empty, TextFormatFlags.NoPadding).Width + S(20);
             var br = new Rectangle(card.Right - pad - bw, y + (lineH - CatBtnH) / 2, bw, CatBtnH);
-            bool showBtn = available && !onBoard;
+            bool showBtn = available;   // also for a type already there: Add puts another one on the Dashboard
             var starRow = new Rectangle(x, y + (lineH - StarSize) / 2, StarSize * 5, StarSize);
             _starRows[def.TypeId] = starRow;
             int own = ratings.TryGetValue(def.TypeId, out int r0) ? r0 : 0;
