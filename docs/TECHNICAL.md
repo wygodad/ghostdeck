@@ -4546,7 +4546,10 @@ database uses), the Windows version and build, the screen scale, whether the app
 interface or the backup WMI path, the start tab, which features are on (a fixed list of flags:
 overlay, crosshair, hotkeys, automation, charge limit, custom curve, temperature alerts, refresh
 switch, power-mode sync, True Color, session popup, restore on resume, tray wheel, protocol links,
-scenes, Fan Boost used, Apex used), how many scenes, the widgets on the Dashboard with their sizes,
+scenes, Fan Boost used, Apex used), how many scenes, the widgets on the Dashboard with their sizes
+(a widget type once, however many copies of it stand there since 1.45: the first copy and its
+size; the server leaves a repeated type out as a second guard, so a widget's share never passes
+100 % of dashboards; a widget's settings, labels and picked elements are not sent),
 the widget ratings, error counters by kind, the BIOS version string, the screen resolution and
 count, how many profile switches and the share of time per profile this week, autostart, the GPU
 and CPU model names, and a random `salt`. **What it never holds:** any identifier or address,
