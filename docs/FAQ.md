@@ -347,6 +347,49 @@ versions does not verify what it downloads.
 
 A side effect of running with administrator rights (see the UAC question above). GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.
 
+## Can I change how a Dashboard widget looks, or put the same widget there twice?
+
+Yes to both, since 1.45. Hover a tile, click the ⋯ in its corner and pick *Settings…*: a card
+shows the widget and follows every change before you save. What you can set depends on the
+widget: colours from a palette of twelve, your own label, a segmented or a continuous dial, the
+scale and the warning thresholds of a ring, which lines a chart draws, which profiles, switches,
+scenes or disks a widget shows, and a choice of looks for Scenes and for the Charge limit.
+*Defaults* puts the widget back as it comes.
+
+The same ⋯ menu has *Duplicate*, and the catalogue adds another one of a widget that is already
+there. Every copy has its own settings and size, so one widget can be a tile with only Silent in
+it and another a tile with only Balanced. There is no limit on copies that you will meet in
+practice.
+
+![Widget settings](images/dashboard_widget_settings.png)
+
+## Can I save my Dashboard layout, or share it? Is a layout file safe to open?
+
+*Edit layout* → *Layouts…* keeps the Dashboard of the moment under a name, loads one back, and
+writes a layout to a `.json` file or reads one. A widget's settings card does the same for the
+style of that one widget. After a load, *Undo the load* brings back the layout you had.
+
+A file holds data only: widget types, sizes and settings, your own labels among them. There is
+no code in it, no path and nothing about your computer. GhostDeck reads a file whole before it
+changes anything, and a file that fails any check (too large, a value of the wrong kind, a text
+with hidden characters, more widgets than a Dashboard holds) changes nothing at all. Scenes picked
+on another computer do not exist on yours, so such a widget shows all your scenes. The format is
+described in [DASHBOARD-FILES.md](DASHBOARD-FILES.md).
+
+## What are the history widgets? Do they make GhostDeck read the hardware more often?
+
+*Temperature history*, *Fan target history* and *Fan speed history* are the charts of Status →
+History as Dashboard widgets: the last 5, 15, 30 or 60 minutes, a line for the CPU and one for
+the GPU. Move the cursor over a chart for the moment and the values.
+
+They add no read. GhostDeck already keeps the last sixty minutes of these readings in memory
+while it runs (one sample every three seconds, for the History view), and the widgets draw from
+that. The history is never written to disk and starts empty at every launch, so a chart fills
+up as time passes. A gap in a line is a reading that was not there: a graphics card that slept, or
+the laptop itself.
+
+![History widgets](images/dashboard_history.png)
+
 ## What does GhostDeck send, and why? (anonymous statistics)
 
 Nothing, unless you turn it on. Since 1.44.0 the app can send **one small anonymous report a

@@ -677,11 +677,18 @@ Comments are never checked, and the long-dash rule has no exceptions. The check 
 proof: a fixed size passed through a variable is not caught, so the preview at 192 stays part of
 the review.
 
-## 13. The Dashboard canvas: a static layer, a live layer and one tick (v1.44)
+## 13. The Dashboard canvas: a static layer, a live layer and one tick (v1.44, the buffers of v1.45)
 
 The Dashboard tab (TECHNICAL.md §86) is one control, `DashCanvas`, painted in two layers.
 
-**The static layer** is a `BufferedGraphics` the size of the control, rendered again only when its
+**The static layer** is a `BufferedGraphics` for a **band** of the canvas since 1.45: what is on
+screen and half of that again above and below, at most twice the visible height (in 1.44 it was
+the size of the whole control, and the control is as tall as its content, so the picture grew with
+the layout: two hundred 2x2 widgets were about 300 MB). Scrolling out of the band renders the next
+one, with only the widgets that stand in it; a layout no taller than a screen and a half has one
+band and never renders on scroll. GDI+ drawing is moved into the band with a transform and GDI
+text with the viewport origin, so a widget paints at its canvas coordinates wherever the band is.
+The layer is rendered again only when its
 key changes: the size, the DPI, the theme, the background-grid setting, the language, the layout,
 edit mode, the view, and (with the catalogue open) whether the statistics are on and which
 summary is in. It holds the background, the header, every widget's `PaintStatic` (the card, a
@@ -693,10 +700,18 @@ resolved against that list, so there is no second geometry to keep in step.
 every widget whose rectangle meets the clip, the edit-mode frames and pills, the hover feedback
 and the ⋯ of the tile under the cursor. A tick (the page's 1.5 s timer, one sample read on a
 worker) asks every widget `LiveChanged`; only the rectangles that answer yes are invalidated, so
-an idle machine repaints nothing and a ring whose value moved repaints its own card. The control
-runs with `OptimizedDoubleBuffer`, so the blit and the live layer are composed off screen and
-presented once; a tick never shows the dials without their needles. When the page is hidden the
-timer stops and the static buffer is freed.
+an idle machine repaints nothing and a ring whose value moved repaints its own card. The blit and
+the live layer are composed off screen and presented once, so a tick never shows the dials without
+their needles. Since 1.45 the canvas does that in a frame of its own, as wide as the canvas and
+as tall as the visible part, and copies it to the screen in one blit (a paint taller than the
+frame goes in slices): WinForms' `OptimizedDoubleBuffer` is off, because it allocates a buffer
+for the whole control at every paint, which on a tall canvas is the very picture the band avoids.
+The frame takes 4.4 MB at 100 % and 14.3 MB at 200 % whatever the height of the layout. When the
+page is hidden the timer stops and both buffers are freed.
+
+**The reading at the cursor (1.45).** A widget that says `FollowsPointer` (the history charts) is
+invalidated as the cursor moves in it and paints what it shows there in `PaintPointer`, after the
+live layer and before the tile's ⋯; never in edit mode.
 
 **The entrance of the Statistics view** uses the same split. For half a second after the view
 opens the static layer leaves out the bars, the four headline values, the ranked lists' bars and
@@ -717,6 +732,9 @@ its own filter closes it on the press inside a hosted control, so a row in it ne
 **Measuring.** The preview tool draws the tab at any DPI without hardware and has two benches:
 `page Dashboard 0 dark -13` times a static render, a tick with a fresh sample and a full repaint
 (16 passes, median), and `-14` drives the edit mode with simulated mouse messages (size, remove,
-drag, the panel, the columns row, the views) and saves each state as a PNG. `DASHDEMO=1` gives the
+drag, the panel, the columns row, the views) and saves each state as a PNG. Since 1.45: `-15`
+draws every widget's settings card, `-16` runs layouts, files, bounds and the cards on low screens
+against the real canvas, `-17` paints the same strips of a tall canvas from different band
+positions and through the screen path and compares them pixel for pixel. `DASHDEMO=1` gives the
 widgets live-looking values and a sample curve, `STATS=1` a sample weekly summary, `DASHLAYOUT=`
 a layout of your own.

@@ -4470,11 +4470,11 @@ curve page's In action view with the diagnostics open (`MainForm.ShowFanCurveDia
 `FanCurvePage.ShowDiagnostics`). The user-facing write-up with pictures is
 `docs/TWO-FAN-TABLES.md`.
 
-## 86. The Dashboard: one drawn surface, widgets and the layout file (v1.44)
+## 86. The Dashboard: one drawn surface, widgets and the layout file (v1.44; 1.45 adds §88)
 
 The Dashboard tab is the user's own screen: a grid of widgets (profiles, temperature and fan rings,
-CPU usage and clock, the fan curve, scenes, quick toggles, memory and disks, the charge limit, and
-the Community tile) that the user places, resizes and reorders. It follows the rule from §73 and
+CPU usage and clock, the fan curve, scenes, quick toggles, memory and disks, the charge limit, three
+history charts since 1.45, and the Community tile) that the user places, resizes and reorders. It follows the rule from §73 and
 §74: the whole tab is **one control** (`UI/Dash/DashCanvas.cs`), everything on it is painted, and
 clicks are resolved against a list of zones. There are no child controls, so a layout of twelve
 widgets costs one window, not a few hundred.
@@ -4492,19 +4492,21 @@ type can also hide itself from the catalogue (`Listed`): the Community tile is l
 statistics are on.
 
 **The layout file** is the `Dashboard` list in settings.json, one entry per widget: `Type`, `W`
-and `H` in cells, in display order, plus `DashboardVersion` (0 means a file from before the tab;
+and `H` in cells (and since 1.45 the widget's own settings, `Opt`, §88), in display order, plus `DashboardVersion` (0 means a file from before the tab;
 the default layout is written in its place). Positions are never stored: `DashLayout.Place` lays
 the items out first-fit, row by row, for the column count of the moment, so the same file reads
 correctly on a narrow window and a wide one. The column count comes from the width (cells of at
-least 150 px, two to six columns) unless the user chose a density in edit mode: `DashColumns` 4,
-5, 6 or 8 applies while a cell keeps 110 px, and a narrower window still gives fewer columns. With
+least 150 px, two to six columns) unless a density is set in edit mode: `DashColumns` 4,
+5, 6 or 8 applies while a cell keeps 110 px, and a narrower window still gives fewer columns (a
+new installation of 1.45 starts at 8, an existing one keeps its choice, §88). With
 the catalogue panel open the grid gives up the panel's width.
 
 **Edit mode** (the header button) frames every widget: drag by the card to reorder (the list is
 reordered in place and saved on drop), the size pill cycles through the type's sizes, the cross
 removes, the panel on the right adds, *Restore default* asks first, and the *Columns* row picks
-the density. Outside edit mode a tile shows a ⋯ while the cursor is on it, with a small menu:
-details and rating, the next size, remove, edit the layout. The header also switches between
+the density (1.45 adds *Layouts…* and the refresh interval, §88). Outside edit mode a tile shows a
+⋯ while the cursor is on it, with a small menu: details and rating, the next size, remove, edit
+the layout, and since 1.45 the widget's settings and a duplicate. The header also switches between
 three views: **Dashboard**, **Catalogue** (every widget as a card with its picture, description,
 stars and an Add button; sorted Popular or A-Z when a summary is in) and **Statistics** (§87).
 
@@ -4517,14 +4519,15 @@ again clears a rating. With the statistics off a star opens a card that explains
 goes and offers to turn them on.
 
 **The tick** belongs to the page (`UI/DashboardPage.cs`): one shared sample every 1.5 s (the
-Status interval; one EC read per tick, the two pages are never visible at once), read on a worker
+Status interval; 3 or 5 s can be chosen since 1.45; one EC read per tick, the two pages are never
+visible at once), read on a worker
 and completed on the window thread; no tick while the page is hidden, and the static buffer is
 freed then. How the two layers are painted and measured is in RENDERING.md §13. The Dashboard is the
 first tab and the **start tab**; Settings → General makes Scenarios the start tab as before.
 
 The preview tool draws the tab without hardware (`DOC/tools/render-harness`, modes `page
-Dashboard`, `-14` for the edit bench, `DASHLAYOUT=`, `DASHDEMO=1`, `STATS=1`), and
-`tools/dpi-check.py` holds it to the scaling rules of §84.
+Dashboard`, `-14` for the edit bench, `-15` to `-17` since 1.45, `DASHLAYOUT=`, `DASHOPT<n>=`,
+`DASHDEMO=1`, `STATS=1`), and `tools/dpi-check.py` holds it to the scaling rules of §84.
 
 ## 87. Anonymous weekly statistics (v1.44)
 
@@ -4614,3 +4617,126 @@ the step.
 
 The server (a small PHP service and the owner's panel) lives in two private repositories; its
 public contract is this section: the report fields, the proof of work, and the signed summary.
+
+## 88. The Dashboard in 1.45: widget settings, copies, layouts and files, history widgets
+
+1.45 builds on §86 without changing its rules: one control, everything painted, a widget never
+reads hardware and writes only through the actions of `MainDeps`. What is new stands on one
+change: **a widget's settings belong to its place in the layout, not to its type.**
+
+**Settings in the layout.** A layout item (`Core/DashItem.cs`) has an optional map `Opt` next to
+`Type`, `W` and `H`: a key and a short text, a whole number, yes/no or a list of short texts. An
+item without the map looks exactly as in 1.44, and a value equal to its default is not stored.
+`Core/DashOptions.cs` is the only reader and it never trusts a value: a value of the wrong kind
+reads as the default, a number is clamped to its range, a text goes through one rule
+(`DashOptions.Clean`: no control characters, no halves of surrogate pairs, no characters that
+change the direction of text or carry no text at all, composed to NFC, cut at 64 UTF-16 units).
+The same rule runs where a text is typed, stored, written to a file and read back, so what is
+stored can always be written and read the same. A key this version does not know is carried
+along untouched. One widget keeps at most 24 settings and 2048 characters, a list at most 64
+entries; settings read from `settings.json` are cleaned value by value (`DashOptions.Sanitized`:
+what cannot be read or does not fit goes, the rest stays). Version 1.44 does not know `Opt` and
+carries it in the item's extension data, so going back to the older exe keeps the settings.
+
+**The settings card.** A widget declares what can be set on it as a list of `DashOptionDef`
+(`UI/Dash/DashOptionDef.cs`): a colour (the default or one of a palette of twelve, stored by name,
+so it follows the light and the dark theme), one of a few, a text, a number with a range, a
+switch, a list to tick, and a colour that belongs to another field (a label's colour, a
+threshold's colour) as a small button with the same palette in a drop-down. `Forms/WidgetSettingsCard.cs`
+draws the card from that list, so a widget type needs no card of its own. The picture on the card
+is the widget itself, painted by the same code as on the Dashboard with the settings being
+edited; the Dashboard gets them on Save, in one repaint (a widget instance keeps its settings
+for life, so changed settings are a new instance). *Defaults* removes the card's settings. An
+empty text or number field means the default, shown in grey. The card never stores something
+other than it shows: a pick of a list that does not fit what one widget keeps (by the number of
+entries or by the room of its settings) stays in the card, which says so and neither saves nor
+exports until it fits (`Storable`, `SettleOver`). A list with more lines than the screen has
+room for goes on pages; a card still taller than the working area is drawn smaller
+(`GhostCardForm`, down to 0.55 of its scale) and is kept inside the screen when its size changes.
+
+| Widget | Settings (keys in `Opt`) | Sizes |
+|---|---|---|
+| CPU / GPU temperature | `color`, `dial` (`seg`, `arc`), `label`, `labelc`, two thresholds `warn1` / `warn2` with `warn1c` / `warn2c` (70 °C amber, 85 °C red unless set), `nowarn`, the scale `min` / `max` | 1x1, 2x2 |
+| CPU / GPU fan | `color`, `dial`, `label`, `labelc`, the RPM line `rpm` and `rpmc` | 1x1, 2x2 |
+| CPU usage | `color`, `dial`, `label`, `labelc`, one threshold `warn1` / `warn1c` (90 % red unless set), `nowarn` | 1x1, 2x2 |
+| CPU clock | `unit` (`mhz`, `ghz`), `color`, `label`, `labelc` | 1x1, 2x1 |
+| Profiles | `show` (which profiles) | one profile 1x1, 2x1; two 2x1, 2x2; more 4x1, 2x2 |
+| Quick toggles | `show`, `color` | 2x1, 4x1; one switch 1x1, 2x1 |
+| Scenes | `show` (scene ids), `view` (`list`, `tiles`, `buttons`), `label`, `labelc` | 2x1, 2x2, 1x1; tiles and buttons also 4x1 |
+| Memory and disks | `show`, `color` | 2x1, 2x2; one row 1x1, 2x1 |
+| Fan curve | `cpu`, `gpu`, `cpuc`, `gpuc`, `trail`, `trailc`, `label`, `labelc` | 2x2, 4x2 |
+| Charge limit | `view` (`seg`, `bat`, `small`), `color`, `barc`, `limc`, `label`, `labelc` | 2x1; `small` 1x1 |
+| Temperature / fan target / fan speed history | `range` (`5`, `15`, `30`, `60` minutes), `cpu`, `gpu`, `cpuc`, `gpuc`, `label`, `labelc` | 4x2, 2x2 |
+| Community | none | 4x1, 4x2 |
+
+**Sizes follow settings.** The sizes a widget allows can depend on its settings (Profiles with
+one profile fits a cell, with four it needs four). When settings change so that the current size
+is no longer allowed, the widget takes the nearest allowed one (`DashItem.Fit`), also when a
+layout is read.
+
+**Copies.** A type may stand any number of times. The canvas makes one instance per layout item,
+so copies share no state; the tile menu has *Duplicate* (the same settings and size, right after
+the original) and the catalogue adds one more of a type that is already there. The fan curve's
+tables are read once per page for all its copies. The weekly report names a type once (§87).
+
+**Bounds.** They guard against a damaged or hostile file, they are not limits a user meets: at
+most 200 widgets, and at most 480 grid cells covered by all widgets together, counted on the
+sizes the widgets really take (`DashRegistry.FittedCells`). A layout from a file over either
+bound is refused; a hand-edited `settings.json` is trimmed from the end; adding, duplicating,
+enlarging and a change of settings that needs a larger size are refused on a full Dashboard.
+
+**Layouts and files.** *Layouts…* in edit mode (`Forms/DashLayoutsCard.cs`) keeps the layout of
+the moment under a name (`DashboardSaved` in settings.json, up to twelve), loads one, deletes
+one, writes the layout to a file and reads one; the layout a load replaced stays for one *Undo*.
+A widget's settings card writes that widget's style to a file and loads one into the card, for a
+widget of the same type. Both use one format (`Core/DashFile.cs`), described for users and for
+anyone who writes such files in [DASHBOARD-FILES.md](DASHBOARD-FILES.md): data only, read whole
+or not at all, every item rebuilt from checked values, nothing in it a path, a command or code.
+A file is written through a temporary file next to the target and a swap. Export names are the
+same in every language (`ghostdeck-dashboard_2026-11-11_14-05-09.json`,
+`ghostdeck-widget-cpu-temp_...json`).
+
+**History widgets.** `UI/Dash/Widgets/HistoryWidget.cs` is one class in three kinds
+(`core.histTemps`, `core.histFans`, `core.histRpm`): the charts of Status → History as widgets.
+They draw from `HwHistory`, the in-memory ring the tray poll fills every three seconds for as
+long as the app runs (sixty minutes, never on disk), so a widget reads no hardware and adds no
+read to any tick. `HwHistory.Version` goes up under the buffer's lock together with the sample,
+and a widget takes the samples and their version from one look (`Window(span, out version)`),
+so it repaints exactly when there is a sample it has not drawn. A reading that is missing (a
+sleeping graphics card), a pause in the samples and time running back are gaps in the line; a
+sample later than now is left out. With the cursor over the plot the widget shows the nearest
+sample: a dashed line, a dot on each line and a bubble with the time and the values. That is a
+part of the widget contract new in 1.45: `IDashWidget.FollowsPointer` and `PaintPointer`; the
+canvas repaints such a widget as the cursor moves in it and calls `PaintPointer` after the live
+layer, never in edit mode.
+
+**The catalogue's two groups.** The side panel and the Catalogue view list the types that are not
+on the Dashboard first, under a caption with their number, then the ones already there (a badge
+with a tick and the number of copies, an outlined Add button). The groups are settled when the
+catalogue opens, when the sort changes and when a whole layout is replaced, and they do not
+change on Add: a row that jumped to the other group would put another type under the cursor.
+
+**Memory and painting.** In 1.44 the static layer was a picture of the whole canvas, and the
+canvas is as tall as its content. Since 1.45 the canvas keeps pictures sized by the window, not
+by the layout: the static layer for a band around the visible part, and one frame it composes
+every paint in (RENDERING.md §13). A mouse message carries 16 bits of position, so on a canvas
+taller than 32 767 px the position is restored from the message and the place of the visible part
+(`DashCanvas.Unwrap`).
+
+**Refresh and columns.** `DashRefreshMs` is 1500, 3000 or 5000 (edit mode), the interval of the
+page's tick. `DashColumns` is 8 on a new installation; a settings file that states the field
+keeps what it says (0 = automatic), and a full copy of the settings that does not state it (from
+before 1.44) leaves the choice alone when imported (`DashColumnsStated`).
+
+**A settings file that cannot be written.** `AppSettings.Save` raises `SaveFailed` with the
+system's reason once per run of failures, counted from the moment a listener heard it: the app
+saves while it starts, before it can show a card, and such a failure is kept and announced when
+the tray asks (`TellPendingSaveFailure`). The tray shows a card; an announcement that arrives
+after a save worked is dropped (`SaveFailing`), and nothing is shown once the app is closing.
+
+**How it is tested.** Outside the app: `DOC/tools/dashfile-test` (the file reader and the
+settings against hostile and broken input, 592 checks and 300 000 randomly damaged files, none of
+which may throw or break a limit). On the real canvas, in the preview tool: `-15` (every settings
+card), `-16` (layouts, files, bounds, cards on low screens, the history widgets, the catalogue),
+`-17` (the band, the frame and the mouse on a tall canvas); the default layout is compared pixel
+for pixel with 1.44.

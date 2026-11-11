@@ -4,7 +4,57 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Dashboard: every widget has its own settings.** *Settings…* in a tile's ⋯ menu opens a card with the widget's
+  picture, which follows every change at once; the Dashboard changes on Save. Rings: the dial's colour (twelve colours
+  or the default), a segmented or a continuous dial, a label and its colour, the scale of the temperature rings, the
+  thresholds at which a temperature or the CPU usage changes colour and the colour of each, the RPM line of the fan
+  rings. CPU clock: MHz or GHz. Fan curve: which lines, their colours, the trail of the last minutes and its colour.
+  Memory and disks: which rows, the colour of the bars. Every widget with a title can carry your own label. *Defaults*
+  puts a widget back as it comes ([TECHNICAL.md §88](docs/TECHNICAL.md)).
+- **Dashboard: the same widget as many times as you like.** *Duplicate* in the ⋯ menu, or *Add* in the catalogue for a
+  type that is already there; every copy has its own settings and size. Two CPU temperatures, one as a small dial and
+  one large in another colour, are two tiles like any other.
+- **Dashboard: widgets that show only what you pick.** Profiles, Quick toggles, Scenes and Memory and disks have a
+  *Show* list. A widget with one profile or one switch fits a single cell, so a Silent button, a Balanced button and a
+  Fan Boost switch can each be a tile of their own.
+- **Dashboard: three looks for Scenes and for the Charge limit.** Scenes: the list, tiles (a large icon, the name, the
+  profile as a coloured line) or compact buttons, and a wide 4x1 size. Charge limit: the segments, a battery bar with
+  the charge of the moment and a mark at the limit, or a single cell that steps to the next value on a click.
+- **Dashboard: three history widgets.** *Temperature history*, *Fan target history* and *Fan speed history* are the
+  charts of Status → History as widgets: the last 5, 15, 30 or 60 minutes, a line for the CPU and one for the GPU, each
+  with its colour, in a wide (4x2) or a square (2x2) size. The cursor over a chart shows the moment and the values, as
+  on the Status tab. They draw from the history GhostDeck already keeps in memory, so they add no hardware read; the
+  history starts empty at every launch and is never written to disk.
+- **Dashboard: layouts with names, and files to share.** *Layouts…* in edit mode keeps the layout of the moment under
+  a name (up to twelve), loads one from the list, writes the layout to a file and reads one; *Undo the load* brings back
+  the layout a load replaced. A widget's settings card writes that widget's style to a file and loads one. A file holds data only (widget
+  types, sizes, settings); it is checked whole before anything changes, and a file that fails any check changes nothing
+  ([DASHBOARD-FILES.md](docs/DASHBOARD-FILES.md)).
+- **Dashboard: how often it refreshes.** 1.5, 3 or 5 seconds, in edit mode. Slower means fewer reads of the controller
+  while the tab is open (40, 20 or 12 a minute).
+
 ### Changed
+- **Dashboard catalogue: what is not on the Dashboard comes first.** The *Add widget* panel and the Catalogue view
+  list the widgets you have not added yet under their own caption, then the ones already there. A widget on the
+  Dashboard carries a badge with a tick and the number of copies, and its *Add* button is an outline; the filled
+  buttons are the ones still to add. The frame of a row under the cursor stands clear of its texts.
+- **Dashboard: 8 columns on a new installation.** The *Columns* switch in edit mode starts at 8. An existing
+  installation keeps what it has, Auto included.
+- **Dashboard: the CPU usage ring turns red from 90 %.** Like the temperature rings change colour as they heat up. The
+  threshold and its colour are in the widget's settings, and *No warnings* switches it off.
+- **Dashboard: long scene names.** A name too long for one line takes a second, whole line in every look of the Scenes
+  widget; one that needs more than two ends with three dots. In the list the second line used to be cut by the row
+  below.
+- **Dashboard: memory does not grow with the layout.** The tab keeps pictures only of the part the window shows, so a
+  Dashboard of two hundred widgets costs the same memory as one that fits the screen.
+- **A settings file that cannot be written is said.** When Windows refuses to write `settings.json` (a full disk, a
+  locked file), a card says so with the system's reason, once until a save works again. Before, a change made in that
+  state worked until the app closed and was gone at the next start, with a line in the log as the only trace.
+- **A card taller than the screen is drawn smaller.** On a low screen at a large scale a card with many fields no
+  longer reaches under the taskbar; long lists inside a card go on pages.
+- **Statistics: a widget type counts once.** With copies allowed, the weekly report names each widget type once,
+  whatever the number of copies, and carries none of a widget's settings ([TECHNICAL.md §87](docs/TECHNICAL.md)).
 - **Statistics view: a Refresh button and fresher numbers.** The view now asks for the signed summary when its copy is ten
   minutes old (it was an hour), and a **Refresh** button in the header asks at once. Next to it the view says when the
   numbers at hand were generated and when you last asked.
