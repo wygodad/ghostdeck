@@ -23,7 +23,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **GF63 Thin 9SC on the backup WMI path** (`16R3EMS1`, model database 20261206, [#344](../../issues/344), thanks
   @Heroofdarkness7788) - the owner's block report gave the layout. The fan mode moved as in the recipes, the performance
   mode stayed the same in all four scenarios; profile switching unlocks after the path test, as on the other models of
-  this generation.
+  this generation. The owner's path test passed: every profile read back as written, Super Battery 42 % of Extreme's work.
 - **GF63 Thin 10U / 10SC / 10UC on the backup WMI path** (`16R5EMS1`, model database 20261207,
   [#345](../../issues/345)) - the owner's block report gave the layout; profile switching unlocks after the path test.
 

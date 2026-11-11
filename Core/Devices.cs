@@ -2075,6 +2075,11 @@ public static class Devices
         // MSI_System[9] 1D/0D/0D/0D = the recipes, while MSI_System[7] stayed C4 in all four
         // columns, so the shift recipe is not confirmed by the capture. Layout added so the path
         // test can run; it checks the shift byte on this board. One fan (MSI_AP[4] always 00).
+        //   Path test PASSED on 11 Nov 2026 (issue #344, app 1.44.0, BIOS E16R3IMS.108): every
+        //   profile read back as written (shift C1/C1/C4/C2, fan 1D/0D/0D/0D), the original state
+        //   confirmed, Super Battery 42 % of Extreme's work (1196 vs 2901 MHz). Curve step
+        //   inconclusive: duty already 85 (the table's top value) at 95 C before the raise, so no
+        //   FanCurve. Tested once the owner confirms the two checks the test cannot make.
         new() { Name = "MSI GF63 Thin 9SC", FirmwarePrefixes = new[] { "16R3EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
                 BlockPath = DragonEraBlocks,   // block report in issue #344
