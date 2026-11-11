@@ -4713,8 +4713,12 @@ layer, never in edit mode.
 **The catalogue's two groups.** The side panel and the Catalogue view list the types that are not
 on the Dashboard first, under a caption with their number, then the ones already there (a badge
 with a tick and the number of copies, an outlined Add button). The groups are settled when the
-catalogue opens, when the sort changes and when a whole layout is replaced, and they do not
-change on Add: a row that jumped to the other group would put another type under the cursor.
+catalogue opens, when the sort changes, when a whole layout is replaced and when the last copy of
+a type is removed, and they do not change on Add: a row that jumped to the other group would put
+another type under the cursor. What the catalogue lists can change under it (the statistics are
+turned on from a rating and the Community tile joins, a summary arrives with the sort pills, the
+language changes), so the canvas measures the height it needs on every rebuild and tells the page
+when that differs from the height it has (`DashCanvas.TellHeight`); no caller has to remember to.
 
 **Memory and painting.** In 1.44 the static layer was a picture of the whole canvas, and the
 canvas is as tall as its content. Since 1.45 the canvas keeps pictures sized by the window, not

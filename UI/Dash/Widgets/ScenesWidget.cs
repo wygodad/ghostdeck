@@ -73,23 +73,33 @@ internal sealed class ScenesWidget : DashWidget
         // two lines the way the system breaks them: nothing to do unless a third line or a word wider than the line is in the way
         var natural = TextRenderer.MeasureText(name, f, new Size(width, int.MaxValue), Wrap);
         if (natural.Height <= TwoLinesH(f) && natural.Width <= width) return name;
-        // the first line: whole words while they fit; a first word wider than the line is broken where it fits
+        // the first line: whole words while they fit; a first word wider than the line is broken where it fits.
+        // A space is a place to break only when it stands alone: one that carries an accent after it (a
+        // combining mark makes the two one character to the reader) stays with its mark.
+        var starts = new HashSet<int>(System.Globalization.StringInfo.ParseCombiningCharacters(name));
+        bool Alone(int i) => name[i] == ' ' && starts.Contains(i) && (i + 1 >= name.Length || starts.Contains(i + 1));
         int brk = -1;
         for (int i = 0; i < name.Length; i++)
         {
-            if (name[i] != ' ') continue;
+            if (!Alone(i)) continue;
             if (W(name[..i]) > width) break;
             brk = i;
         }
+        // the spaces a break leaves at the head of the second line go, but never a space with a mark on it
+        string Lead(string s)
+        {
+            while (s.Length > 0 && s[0] == ' ' && System.Globalization.StringInfo.GetNextTextElementLength(s) == 1) s = s[1..];
+            return s;
+        }
         string first, rest;
-        if (brk > 0) { first = name[..brk]; rest = name[(brk + 1)..].TrimStart(); }
+        if (brk > 0) { first = name[..brk]; rest = Lead(name[(brk + 1)..]); }
         else
         {
             // not even one word fits the line: as many whole characters as do; when not even one does
             // (a line a few pixels wide), the first whole character, never half of one
             int n = Head(name, "");
             if (n <= 0) n = Math.Max(1, System.Globalization.StringInfo.GetNextTextElementLength(name));
-            first = name[..n]; rest = name[n..].TrimStart();
+            first = name[..n]; rest = Lead(name[n..]);
         }
         return rest.Length == 0 ? first : first + "\n" + Cut(rest);
     }

@@ -265,7 +265,29 @@ internal sealed partial class DashCanvas : Control
 
     // ---- static layer -----------------------------------------------------------------
     /// <summary>Marks the static layer stale and repaints (theme, language, layout edits).</summary>
-    public void Rebuild() { _staticDirty = true; Invalidate(); }
+    public void Rebuild() { _staticDirty = true; Invalidate(); TellHeight(); }
+
+    // What is rendered again may need another height than the canvas has: the statistics were
+    // turned on from a rating and the Community tile joined the catalogue, a summary arrived and
+    // the sort pills came with it, the language changed and a description wraps. Whoever asks for
+    // a rebuild need not know: the canvas measures what it needs and tells the page when that
+    // differs from the height the page gave it (the page makes the canvas as tall as its content, and
+    // never lower than the page itself), so a row can never end up under the reach of the scroll bar.
+    // Nothing is remembered between calls: the test is against the canvas as it stands, so a height
+    // some other path announced in between cannot make this one keep quiet.
+    private bool _tellingHeight;
+
+    private void TellHeight()
+    {
+        if (_tellingHeight || IsDisposed || !IsHandleCreated || Width <= 0) return;
+        _tellingHeight = true;
+        try
+        {
+            int need = Math.Max(Parent?.ClientSize.Height ?? 0, ContentHeight(Width));
+            if (need != Height) ContentChanged?.Invoke();
+        }
+        finally { _tellingHeight = false; }
+    }
 
     // The static layer is a buffer for a BAND of the canvas, not for all of it (1.45). The canvas
     // is as tall as its content and the page scrolls it, so a buffer for the whole canvas grew
@@ -1093,7 +1115,11 @@ internal sealed partial class DashCanvas : Control
     internal void RemoveAt(int index)
     {
         if (index < 0 || index >= _items.Count) return;
+        string type = _items[index].Type;
         _items.RemoveAt(index);
+        // the last one of its type went: in an open catalogue the type belongs with the ones still to
+        // add again (the cursor is on a tile, not on the catalogue's Add buttons, so no row is clicked by mistake)
+        if (!_items.Any(i => i.Type == type)) CatRegroup();
         Sync();
         Save();
     }
