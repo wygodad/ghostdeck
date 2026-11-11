@@ -49,6 +49,21 @@ public static class BackupPathTest
     private const int CurveRiseRpm = 500;
     private const byte FanAuto = 0x0D, FanSilent = 0x1D, FanAdvanced = 0x8D;
 
+    // TEST BUILD for issue #48 (Delta 15 A5EFK only). The owner wants Balanced-level power with
+    // a fan that follows the custom curve. On this board the controller ignores the curve table
+    // in the shift modes 0xC1 (comfort, Balanced) and 0xC2 (eco), and follows it in every other
+    // value from 0xC0 to 0xC8 (a previous owner's sweep, DOC/delta15-blockmode §5.1). 0xC0 is
+    // "sport" on other boards of this generation (msi-ec); what it does to the power limits of
+    // this board was never measured. The probe measures exactly that: the work of an all-core
+    // load in 0xC0 next to Balanced and Extreme, and the fan with the raised table in 0xC0 next
+    // to comfort and turbo. It adds to the report only; the verdict of the test is unchanged.
+    private const byte ShiftSport = 0xC0;
+    public const int SportLoads = 3;
+
+    /// <summary>True on the one board the 0xC0 probe of this test build is meant for.</summary>
+    public static bool SportProbeFor(DeviceProfile dev) =>
+        dev.FirmwarePrefixes.Any(p => p.Equals("15CKEMS1", StringComparison.OrdinalIgnoreCase));
+
     public enum Verdict { Passed, NoEffect, WriteNotKept, RestoreUnconfirmed, Cancelled, Refused, Failed }
     public enum CurveVerdict { NotRun, Skipped, EveryProfile, ExtremeOnly, NoReaction }
 
@@ -83,7 +98,8 @@ public static class BackupPathTest
         string Survey, int ShiftOrig, int FanOrig,
         ProfileCheck[] Profiles, LoadRun[] Loads, CurveResult Curve,
         bool Wrote, bool Restored, string[] VendorProcesses, string[] Log,
-        string WinPower = "")   // Windows plan, turbo boost and power mode at the start (#230)
+        string WinPower = "",   // Windows plan, turbo boost and power mode at the start (#230)
+        LoadRun[]? SportRuns = null)   // 0xC0 probe of the #48 test build, null when not run
     {
         public bool Passed => Verdict == Verdict.Passed;
     }
@@ -97,6 +113,9 @@ public static class BackupPathTest
     {
         var started = DateTime.Now;
         var clock = Stopwatch.StartNew();
+        bool sport = SportProbeFor(dev);
+        if (sport) withCurve = true;   // the probe's fan part runs inside the curve step
+        var sportRuns = new List<LoadRun>();
         var log = new List<string>();
         void Log(string s) => log.Add($"[{clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture),6} s] {s}");
         var noCurve = new CurveResult(CurveVerdict.NotRun, "", Array.Empty<int>(), Array.Empty<int>(), 0, Array.Empty<CurvePhase>());
@@ -110,7 +129,8 @@ public static class BackupPathTest
 
         Result End(Verdict v, string detail, bool wrote, bool restored) => new(
             started, appVersion, firmware, dev.Name, v, detail, survey, shift0, fan0,
-            profiles.ToArray(), loads.ToArray(), curve, wrote, restored, vendor, log.ToArray(), winPower);
+            profiles.ToArray(), loads.ToArray(), curve, wrote, restored, vendor, log.ToArray(), winPower,
+            sport && sportRuns.Count > 0 ? sportRuns.ToArray() : null);
 
         if (Ec.BackupSpec is not { } spec) return End(Verdict.Refused, "the backup path is not active", false, true);
         if (SystemInformation.PowerStatus.PowerLineStatus != PowerLineStatus.Online)
@@ -203,6 +223,7 @@ public static class BackupPathTest
                     (ProfileId.Extreme, "Extreme", true), (ProfileId.SuperBattery, "Super Battery", true),
                     (ProfileId.Extreme, "Extreme (repeat)", true),
                 };
+                int steps = plan.Length + (sport ? SportLoads : 0);
                 for (int i = 0; i < plan.Length; i++)
                 {
                     var (id, name, load) = plan[i];
@@ -213,7 +234,7 @@ public static class BackupPathTest
                     Wait(300, ct);
                     int sGot = EcBlocks.ReadFresh(spec.ShiftMode), fGot = EcBlocks.ReadFresh(spec.FanMode);
                     Log($"{name}: wrote shift 0x{sWant:X2} / fan 0x{fWant:X2} -> read 0x{sGot:X2} / 0x{fGot:X2}");
-                    double f0 = i / (double)plan.Length, f1 = (i + 1) / (double)plan.Length;
+                    double f0 = i / (double)steps, f1 = (i + 1) / (double)steps;
                     if (load) loads.Add(Loaded(dev, name, pr, f0, f1, ct));
                     else Hold(dev, name, HoldSeconds, pr, Step.Profiles, f0, f1, ct);
                     int sAfter = EcBlocks.ReadFresh(spec.ShiftMode), fAfter = EcBlocks.ReadFresh(spec.FanMode);
@@ -240,12 +261,38 @@ public static class BackupPathTest
                     detail = $"Super Battery delivered {Pct(sb.WorkPerSec, extreme)} % of the work of the slower Extreme run";
                 }
 
+                // ---------------- 3b. 0xC0 probe, #48 test build ----------------
+                // Sport, Balanced, Sport again, each with the firmware's automatic fan, so a machine
+                // that warms up or cools down does not decide the comparison. Measurement only.
+                if (sport && bad == null)
+                {
+                    Ec.BackupAllow(spec.ShiftMode, ShiftSport);
+                    (string Name, bool Sport)[] probe = { ("Sport 0xC0", true), ("Balanced 0xC1", false), ("Sport 0xC0 (repeat)", true) };
+                    for (int j = 0; j < probe.Length; j++)
+                    {
+                        var (name, isSport) = probe[j];
+                        Ec.Apply(dev.Recipes[ProfileId.Balanced]);
+                        Wait(300, ct);
+                        if (isSport && Put(spec.ShiftMode, ShiftSport) != ShiftSport)
+                        {
+                            Log($"{name}: {spec.ShiftMode} did not keep 0xC0, probe stopped");
+                            break;
+                        }
+                        int s0 = EcBlocks.ReadFresh(spec.ShiftMode), fs0 = EcBlocks.ReadFresh(spec.FanMode);
+                        Log($"{name}: shift 0x{s0:X2} / fan 0x{fs0:X2} before the load");
+                        int k = plan.Length + j;
+                        sportRuns.Add(Loaded(dev, name, pr, k / (double)steps, (k + 1) / (double)steps, ct));
+                        int s1 = EcBlocks.ReadFresh(spec.ShiftMode), fs1 = EcBlocks.ReadFresh(spec.FanMode);
+                        Log($"{name}: shift 0x{s1:X2} / fan 0x{fs1:X2} after the load{(s1 != s0 || fs1 != fs0 ? "   CHANGED" : "")}");
+                    }
+                }
+
                 // ---------------- 4. curve (optional) ----------------
                 // The verdict above stands whatever happens here: this step is an extra measurement.
                 if (withCurve && curveSkip.Length == 0 && bad == null && spec.CpuCurve is { } cc)
                 {
                     curveWrote = true;
-                    try { curve = RunCurve(dev, spec, cc, curveTemps, curveSpeeds, pr, Put, Log, ct); }
+                    try { curve = RunCurve(dev, spec, cc, curveTemps, curveSpeeds, pr, Put, Log, ct, sport); }
                     catch (OperationCanceledException)
                     {
                         curve = noCurve with { Verdict = CurveVerdict.Skipped, Note = "cancelled by the user" };
@@ -344,11 +391,12 @@ public static class BackupPathTest
     }
 
     private static CurveResult RunCurve(DeviceProfile dev, BlockPathSpec spec, BlockCurveSpec cc, int[] temps, int[] speeds,
-                                        IProgress<Progress> pr, Func<BlockRef, byte, int> put, Action<string> log, CancellationToken ct)
+                                        IProgress<Progress> pr, Func<BlockRef, byte, int> put, Action<string> log, CancellationToken ct,
+                                        bool sport = false)
     {
         byte target = (byte)speeds.Max();
         var phases = new List<CurvePhase>();
-        int total = CurveBaseSeconds + CurvePhaseSeconds * 2, at = 0;
+        int total = CurveBaseSeconds + CurvePhaseSeconds * (sport ? 3 : 2), at = 0;
 
         CurvePhase Watch(string name, int seconds)
         {
@@ -380,14 +428,24 @@ public static class BackupPathTest
         if (put(spec.FanMode, FanAdvanced) != FanAdvanced) throw new EcPathException($"{spec.FanMode} did not keep the Advanced value");
         phases.Add(Watch("table raised, Advanced fan, comfort shift mode", CurvePhaseSeconds));
 
+        // #48 test build: the same raised table in 0xC0, between comfort and turbo.
+        if (sport)
+        {
+            Ec.BackupAllow(spec.ShiftMode, ShiftSport);
+            if (put(spec.ShiftMode, ShiftSport) != ShiftSport) throw new EcPathException($"{spec.ShiftMode} did not keep 0xC0");
+            phases.Add(Watch("table raised, Advanced fan, sport shift mode 0xC0", CurvePhaseSeconds));
+        }
+
         if (put(spec.ShiftMode, dev.ShiftTurboValue) != dev.ShiftTurboValue) throw new EcPathException($"{spec.ShiftMode} did not keep the turbo value");
         phases.Add(Watch("table raised, Advanced fan, turbo shift mode", CurvePhaseSeconds));
 
-        int baseRpm = phases[0].EndRpm, comfort = phases[1].EndRpm, turbo = phases[2].EndRpm;
+        int baseRpm = phases[0].EndRpm, comfort = phases[1].EndRpm, turbo = phases[^1].EndRpm;
         var verdict = comfort - baseRpm >= CurveRiseRpm ? CurveVerdict.EveryProfile
                     : turbo - comfort >= CurveRiseRpm ? CurveVerdict.ExtremeOnly
                     : CurveVerdict.NoReaction;
-        string note = $"fan {baseRpm} -> {comfort} -> {turbo} RPM (baseline -> comfort shift -> turbo shift)";
+        string note = sport
+            ? $"fan {baseRpm} -> {comfort} -> {phases[2].EndRpm} -> {turbo} RPM (baseline -> comfort shift -> sport shift 0xC0 -> turbo shift)"
+            : $"fan {baseRpm} -> {comfort} -> {turbo} RPM (baseline -> comfort shift -> turbo shift)";
         return new CurveResult(verdict, note, temps, speeds, target, phases.ToArray());
     }
 
@@ -529,6 +587,15 @@ public static class BackupPathTest
             foreach (var l in r.Loads)
                 sb.AppendLine($"{l.Name,-18} work {Pct(l.WorkPerSec, top),3} %   {l.AvgMhz} MHz   {l.EndTemp} °C at the end   fan {l.EndRpm} RPM");
             sb.AppendLine("Work is completed iterations per second, as a share of the fastest run.");
+            sb.AppendLine();
+        }
+        if (r.SportRuns is { Length: > 0 } sr)
+        {
+            double slowEx = r.Loads.Where(l => l.Name.StartsWith("Extreme")).Select(l => l.WorkPerSec).DefaultIfEmpty(0).Min();
+            sb.AppendLine("--- Sport shift mode 0xC0 (test build for issue #48), automatic fan ---");
+            foreach (var l in sr)
+                sb.AppendLine($"{l.Name,-20} work {Pct(l.WorkPerSec, slowEx),3} % of the slower Extreme run   {l.AvgMhz} MHz   {l.EndTemp} °C at the end   fan {l.EndRpm} RPM");
+            sb.AppendLine("The fan with the raised table in 0xC0 is in the fan curve check below, between the comfort and turbo phases.");
             sb.AppendLine();
         }
         sb.AppendLine("--- Fan curve check ---");

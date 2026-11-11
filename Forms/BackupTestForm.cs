@@ -12,12 +12,15 @@ public sealed class BackupTestIntroForm : GhostCardForm
 {
     private readonly Action<bool> _start;
     private bool _curve;
+    private readonly bool _curveLocked;   // #48 test build: the 0xC0 probe needs the curve step
     private Rectangle _row;   // window coordinates of the switch row
 
-    public BackupTestIntroForm(Action<bool> start)
+    public BackupTestIntroForm(Action<bool> start, bool curveLocked = false)
         : base("//PATH-TEST", Lang.T("bpt_title"), Lang.T("bpt_intro"), Lang.T("bpt_start"), Lang.T("fw_dlg_later"), () => { })
     {
         _start = start;
+        _curveLocked = curveLocked;
+        _curve = curveLocked;
     }
 
     protected override int CardWidth => 580;
@@ -53,6 +56,7 @@ public sealed class BackupTestIntroForm : GhostCardForm
 
     protected override void ContentClick(int zone)
     {
+        if (_curveLocked) return;
         _curve = !_curve;
         Rerender();
     }

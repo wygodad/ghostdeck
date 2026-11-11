@@ -669,7 +669,7 @@ public sealed class TrayContext : ApplicationContext
         if (_bptCard is { IsDisposed: false }) { _bptCard.Activate(); return; }
         if (_bptTask is { IsCompleted: false }) return;
         GhostCardForm card = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online
-            ? new BackupTestIntroForm(RunBackupTest)
+            ? new BackupTestIntroForm(RunBackupTest, BackupPathTest.SportProbeFor(_device!))
             : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), Lang.T("pt_block_battery"), Lang.T("set_close"), "", () => { });
         _bptCard = card;
         card.Show();
@@ -679,6 +679,7 @@ public sealed class TrayContext : ApplicationContext
     private async void RunBackupTest(bool withCurve)
     {
         var dev = _device!;
+        if (BackupPathTest.SportProbeFor(dev)) withCurve = true;   // #48 test build: the 0xC0 probe needs the curve step
         _bptCts = new CancellationTokenSource();
         var cts = _bptCts;
         var run = new BackupTestRunForm(withCurve, () => { try { cts.Cancel(); } catch { } });
