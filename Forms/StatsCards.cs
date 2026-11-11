@@ -238,7 +238,12 @@ public sealed class StatsReportCard : GhostCardForm
             foreach (var it in a)
             {
                 if (it is System.Text.Json.Nodes.JsonObject w && w["t"] != null)
-                    list.Add((ValueText(w["t"]), ValueText(w["s"]), false));
+                {
+                    // the size, then the colour and the dial where the report names them (1.46)
+                    string v = ValueText(w["s"]);
+                    foreach (var key in new[] { "c", "d" }) if (w[key] != null) v += " · " + ValueText(w[key]);
+                    list.Add((ValueText(w["t"]), v, false));
+                }
                 else list.Add((ValueText(it), "", false));
             }
         return list;

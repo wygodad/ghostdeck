@@ -149,13 +149,24 @@ public static class Stats
         // types this version knows are listed: a layout file can carry any id of the right shape
         // (it shows as a grey field), and such an id must not travel on in a report, nor take a
         // real widget's place among the 40.
+        // (1.46) Two things about the look of that first copy go with it, where the widget has such
+        // a setting: "c", its main colour (an id of the palette, or "auto"), and "d", its dial
+        // ("seg" or "arc"). Both are read through Choice, so only an id of those two fixed lists
+        // can leave: never a label, a threshold or anything else a widget's settings hold.
         var widgets = new JsonArray();
         var listed = new HashSet<string>();
         foreach (var it in s.Dashboard)
         {
             if (widgets.Count >= 40) break;
-            if (DashItem.TypeOk(it.Type) && DashRegistry.Find(it.Type) != null && listed.Add(it.Type))
-                widgets.Add(new JsonObject { ["t"] = it.Type, ["s"] = $"{Math.Clamp(it.W, 1, 6)}x{Math.Clamp(it.H, 1, 4)}" });
+            if (!DashItem.TypeOk(it.Type) || DashRegistry.Find(it.Type) is not { } def || !listed.Add(it.Type)) continue;
+            var w = new JsonObject { ["t"] = it.Type, ["s"] = $"{Math.Clamp(it.W, 1, 6)}x{Math.Clamp(it.H, 1, 4)}" };
+            if (def.StyleColorKey != "" || def.StyleDial)
+            {
+                var opt = DashOptions.Of(it);
+                if (def.StyleColorKey != "") w["c"] = opt.Choice(def.StyleColorKey, "auto", DashPaint.PaletteChoices);
+                if (def.StyleDial) w["d"] = opt.Choice("dial", RingWidget.Dials[0], RingWidget.Dials);
+            }
+            widgets.Add(w);
         }
 
         var ratings = new JsonObject();

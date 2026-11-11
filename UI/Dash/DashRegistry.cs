@@ -8,6 +8,16 @@ internal sealed record DashWidgetDef(string TypeId, string NameKey, Size[] Sizes
     /// <summary>When set and false, the catalogue does not list the type at all (it still paints when already placed).</summary>
     public Func<MainDeps, bool>? Listed { get; init; }
 
+    /// <summary>
+    /// (1.46) The setting that holds the widget's main colour, "" when it has none. The weekly
+    /// statistics report says which palette colour the first copy of a type uses (or "auto"), so
+    /// the key named here is one whose value is always an id of <see cref="DashPaint.PaletteChoices"/>.
+    /// </summary>
+    public string StyleColorKey { get; init; } = "";
+
+    /// <summary>(1.46) True for a widget with a dial setting (segmented or continuous); the report names the dial of the first copy.</summary>
+    public bool StyleDial { get; init; }
+
     /// <summary>A new instance with the given settings (none = the defaults). Settings are fixed for the life of the instance: changed settings mean a new instance.</summary>
     public IDashWidget New(DashOptions? opt = null) => Create(this, opt ?? new DashOptions());
 }
@@ -25,23 +35,23 @@ internal static class DashRegistry
 
     public static readonly IReadOnlyList<DashWidgetDef> All = new[]
     {
-        new DashWidgetDef("core.cpuTemp",     "dash_w_cpu_temp",  Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuTemp)),
-        new DashWidgetDef("core.gpuTemp",     "dash_w_gpu_temp",  Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuTemp)),
-        new DashWidgetDef("core.cpuFan",      "dash_w_cpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuFan)),
-        new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuFan)),
-        new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuUsage)),
-        new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, (d, o) => new CpuClockWidget(d, o)),
+        new DashWidgetDef("core.cpuTemp",     "dash_w_cpu_temp",  Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuTemp)) { StyleColorKey = "color", StyleDial = true },
+        new DashWidgetDef("core.gpuTemp",     "dash_w_gpu_temp",  Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuTemp)) { StyleColorKey = "color", StyleDial = true },
+        new DashWidgetDef("core.cpuFan",      "dash_w_cpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuFan)) { StyleColorKey = "color", StyleDial = true },
+        new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuFan)) { StyleColorKey = "color", StyleDial = true },
+        new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuUsage)) { StyleColorKey = "color", StyleDial = true },
+        new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, (d, o) => new CpuClockWidget(d, o)) { StyleColorKey = "color" },
         new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, (d, o) => new ProfilesWidget(d, o)),
-        new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), (d, o) => new CurveWidget(d, o)),
+        new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), (d, o) => new CurveWidget(d, o)) { StyleColorKey = "cpuc" },
         // (1.45) 1x1: one button that runs the first of the widget's scenes
         new DashWidgetDef("core.scenes",      "dash_w_scenes",    Sz((2, 1), (2, 2), (1, 1)), Always, (d, o) => new ScenesWidget(d, o)),
-        new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, (d, o) => new TogglesWidget(d, o)),
-        new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, (d, o) => new MemoryWidget(d, o)),
-        new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, (d, o) => new ChargeLimitWidget(d, o)),
+        new DashWidgetDef("core.toggles",     "dash_w_toggles",   Sz((2, 1), (4, 1)), Always, (d, o) => new TogglesWidget(d, o)) { StyleColorKey = "color" },
+        new DashWidgetDef("core.memory",      "dash_w_memory",    Sz((2, 1), (2, 2)), Always, (d, o) => new MemoryWidget(d, o)) { StyleColorKey = "color" },
+        new DashWidgetDef("core.chargeLimit", "dash_w_charge",    Sz((2, 1)),         Always, (d, o) => new ChargeLimitWidget(d, o)) { StyleColorKey = "color" },
         // (1.45) the charts of the Status tab's History view: the last minutes from the history the app keeps in memory anyway
-        new DashWidgetDef("core.histTemps",   "dash_w_hist_temps", Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Temps)),
-        new DashWidgetDef("core.histFans",    "dash_w_hist_fans",  Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.FanTarget)),
-        new DashWidgetDef("core.histRpm",     "dash_w_hist_rpm",   Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Rpm)),
+        new DashWidgetDef("core.histTemps",   "dash_w_hist_temps", Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Temps)) { StyleColorKey = "cpuc" },
+        new DashWidgetDef("core.histFans",    "dash_w_hist_fans",  Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.FanTarget)) { StyleColorKey = "cpuc" },
+        new DashWidgetDef("core.histRpm",     "dash_w_hist_rpm",   Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Rpm)) { StyleColorKey = "cpuc" },
         // (1.44) the community numbers; listed only while statistics are on (the view is the return for sharing)
         new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, (d, o) => new CommunityWidget(d, o)) { Listed = d => d.Settings.StatsEnabled },
     };

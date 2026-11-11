@@ -402,7 +402,9 @@ collect* (the same card again) and *Show what will be sent* (the report exactly 
 out now, also as the raw JSON).
 
 The report holds the app version, the language, the board family, the Windows version, the
-screen scale, which features you use, which widgets are on your Dashboard and how you rate them,
+screen scale, which features you use, which widgets are on your Dashboard (since 1.46 with the
+colour and the dial style picked for each, as one of the palette's names, nothing else of a
+widget's settings) and how you rate them,
 how often you switch profiles and the share of time in each, and your CPU and GPU model. It
 holds **no identifier, no address, no names, no file or game names**, and no location finer
 than the country, which the server reads from the connection at the moment of sending without

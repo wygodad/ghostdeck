@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **Statistics: which colours and dial styles people pick.** With the anonymous statistics on, the weekly report now
+  says two more things about each widget type on the Dashboard: the main colour of its first copy (one of the twelve
+  palette colours, or the default) and, for a ring, whether its dial is segmented or continuous. Nothing else of a
+  widget's settings is sent: no label, scale, threshold, or picked profile, switch, scene or disk. The consent card
+  names the two fields, and *Show what will be sent* shows them beside each widget's size
+  ([TECHNICAL.md §87](docs/TECHNICAL.md)).
+
 ## [1.45.0] - 2026-11-11
 ### Added
 - **Dashboard: widgets have their own settings** (all but the Community tile). *Settings…* in a tile's ⋯ menu opens a card with the widget's

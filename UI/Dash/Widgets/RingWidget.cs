@@ -17,7 +17,7 @@ internal sealed class RingWidget : DashWidget
 
     private const string KColor = "color", KDial = "dial", KLabel = "label", KLabelColor = "labelc",
                          KNoWarn = "nowarn", KMin = "min", KMax = "max", KRpm = "rpm", KRpmColor = "rpmc";
-    private static readonly string[] Dials = { "seg", "arc" };
+    internal static readonly string[] Dials = { "seg", "arc" };   // also the ids the statistics report may name (Stats.BuildReport)
 
     /// <summary>One warning: from <see cref="Def"/> (unless set) the dial takes this level's colour, amber or red unless picked.</summary>
     private readonly record struct Level(string Key, string ColorKey, int Def, string LabelKey, bool Amber)

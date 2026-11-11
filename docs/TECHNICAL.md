@@ -4550,14 +4550,27 @@ interface or the backup WMI path, the start tab, which features are on (a fixed 
 overlay, crosshair, hotkeys, automation, charge limit, custom curve, temperature alerts, refresh
 switch, power-mode sync, True Color, session popup, restore on resume, tray wheel, protocol links,
 scenes, Fan Boost used, Apex used), how many scenes, the widgets on the Dashboard with their sizes
-(a widget type once, however many copies of it stand there since 1.45: the first copy and its
-size; the server leaves a repeated type out as a second guard, so a widget's share never passes
-100 % of dashboards; a widget's settings, labels and picked elements are not sent),
+(a widget type once, however many copies of it stand there since 1.45: the first copy, its size
+and, since 1.46, its colour and dial as described below; the server leaves a repeated type out as
+a second guard, so a widget's share never passes 100 % of dashboards),
 the widget ratings, error counters by kind, the BIOS version string, the screen resolution and
 count, how many profile switches and the share of time per profile this week, autostart, the GPU
 and CPU model names, and a random `salt`. **What it never holds:** any identifier or address,
 names, logins, file, program or game names, or a location finer than the country. The country is
 read by the server from the connection at the moment of sending and the address is not kept.
+
+**A widget's look in the report (1.46).** Where a widget has such a setting, its entry carries
+two more fields about the first copy: `c`, the id of its main colour (one of the twelve palette
+colours, or `auto` for the colour the widget paints by itself; for the fan curve and the history
+charts it is the colour of the CPU line), and `d`, the id of a ring's dial (`seg` or `arc`).
+Which setting is the main colour and whether there is a dial is declared per type
+(`DashWidgetDef.StyleColorKey`, `StyleDial`); Profiles, Scenes and the Community tile have
+neither. Both values are read through `DashOptions.Choice` against the app's own lists, so a
+value that is not one of those ids goes out as the default, and the server accepts a widget entry
+with the fields `t`, `s`, `c`, `d` only, each of a fixed shape. Nothing else of a widget's
+settings is sent: no label, scale, threshold, unit, range, second colour, and no picked profile,
+switch, scene or disk. The sums answer which colours and which dial people choose, per widget;
+they are kept on the server and are not part of the published summary.
 
 **When.** Once per ISO week, at the first start of a new week (`StatsLastWeek`), on a worker.
 A 204 means counted (or a repeat of the same body, which the server drops); a 400 means the server
