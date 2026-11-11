@@ -500,6 +500,12 @@ public sealed class AppSettings
     public static event Action<string>? SaveFailed;
 
     /// <summary>
+    /// Whether the settings file still is not written since the failure that was announced. The
+    /// announcement travels to the window thread; a save that worked in the meantime makes it stale.
+    /// </summary>
+    public static bool SaveFailing { get { lock (_saveLock) return _saveSaid; } }
+
+    /// <summary>
     /// Raises <see cref="SaveFailed"/> for a failure that happened before anyone listened, if the
     /// file still has not been written since. The app calls it once its window thread can show a card.
     /// </summary>

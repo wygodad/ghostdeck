@@ -136,8 +136,9 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     /// <summary>A field that cannot be saved (not a number in range, a rule between fields): the caret goes into it. False when every field is fine.</summary>
     private bool StopAtBadField()
     {
-        // a list with more ticked than a widget stores: what the card shows is not what would be saved
-        if (_over.Count > 0) { SayOver(); return true; }
+        // a list with more ticked than a widget stores, or settings that do not fit what one widget
+        // keeps and would lose one of them on the way: what the card shows is not what would be saved
+        if (_over.Count > 0 || !Storable(_work)) { SayOver(); return true; }
         foreach (var o in _defs)
         {
             if (!Bad(o)) continue;
@@ -149,11 +150,29 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     }
 
     /// <summary>The settings as they would be stored: within what one widget keeps, the widget's own keys kept before any it does not declare.</summary>
-    private DashOptions Stored()
+    private DashOptions Stored() => Fitted(_work);
+
+    private HashSet<string> OwnKeys() => _defs.SelectMany(d => new[] { d.Key, d.ColorKey }).Where(k => k.Length > 0).ToHashSet();
+
+    private DashOptions Fitted(DashOptions work)
     {
-        var fit = _work.Clone();
-        fit.FitTo(DashItem.MaxOptKeys, DashItem.MaxOptChars, _defs.SelectMany(d => new[] { d.Key, d.ColorKey }).Where(k => k.Length > 0).ToHashSet());
+        var fit = work.Clone();
+        fit.FitTo(DashItem.MaxOptKeys, DashItem.MaxOptChars, OwnKeys());
         return fit;
+    }
+
+    /// <summary>
+    /// Whether these settings are stored as the card shows them. One widget keeps a bounded
+    /// number of characters, and what is over goes setting by setting: a long pick of scenes
+    /// with long ids would vanish whole and the widget would show every scene again. Such
+    /// settings are never saved or exported; the card keeps them and says what to do.
+    /// </summary>
+    private bool Storable(DashOptions work)
+    {
+        var fit = Fitted(work);
+        foreach (string key in OwnKeys())
+            if (work.Has(key) && !fit.Has(key)) return false;
+        return true;
     }
 
     protected override bool Acknowledge()
@@ -297,7 +316,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private void SayOver()
     {
         _statusOver = true;
-        Say(string.Format(Lang.T("dash_set_list_max"), DashOptions.MaxList), true);
+        Say(Lang.T("dash_set_list_over"), true);
     }
 
     /// <summary>One pass for both measuring and painting, so the two can never disagree. Returns the height used.</summary>
@@ -708,16 +727,19 @@ internal sealed class WidgetSettingsCard : GhostCardForm
                 for (int j = 0; j < o.Items.Count; j++)
                     if (Ticked(o, j) != (j == z.Idx)) ticked.Add(o.Items[j].Id);
                 if (ticked.Count == 0) break;
-                if (ticked.Count < o.Items.Count && ticked.Count > DashOptions.MaxList)
+                var next = _work.Clone();
+                if (ticked.Count == o.Items.Count) next.Remove(o.Key); else next.Set(o.Key, ticked);
+                if (ticked.Count < o.Items.Count && (ticked.Count > DashOptions.MaxList || !Storable(next)))
                 {
-                    // more than a widget stores: the pick stays in the card, and the card says what to do
+                    // more than a widget stores (by count, or by the room its settings have): the
+                    // pick stays in the card, and the card says what to do
                     _over[o.Key] = new HashSet<string>(ticked);
                     SayOver();
                     break;
                 }
                 _over.Remove(o.Key);
                 if (_statusOver && _over.Count == 0) { _status = ""; _statusOver = false; }
-                if (ticked.Count == o.Items.Count) _work.Remove(o.Key); else _work.Set(o.Key, ticked);
+                _work = next;
                 Changed();
                 break;
             }
@@ -739,7 +761,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private void Say(string text, bool bad)
     {
         _status = text; _statusBad = bad;
-        if (text != string.Format(Lang.T("dash_set_list_max"), DashOptions.MaxList)) _statusOver = false;
+        if (text != Lang.T("dash_set_list_over")) _statusOver = false;
         Changed();
     }
 

@@ -20,6 +20,64 @@ internal sealed class ScenesWidget : DashWidget
     private const string KShow = "show", KView = "view";
     private static readonly string[] Views = { "list", "tiles", "buttons" };
 
+    // A scene's name is the user's own text and may be any length. In every look it takes two
+    // lines at most; a name that needs more ends with three dots, so it never runs into what is
+    // under it. The widget breaks the name itself (Fit): the system's own ellipsis cuts a wrapped
+    // text after its first line. A name that fits its lines is drawn exactly as before.
+    private const TextFormatFlags Wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
+    private const string Dots = "…";
+    private readonly Dictionary<(string name, int width, int font, int lines), string> _fitted = new();
+
+    /// <summary>The name as it is drawn in <paramref name="lines"/> lines (one or two) of this width; kept, a widget paints the same names again and again.</summary>
+    private string Fitted(string name, Font f, int width, int lines)
+    {
+        var key = (name, width, f.Height, lines);
+        if (_fitted.TryGetValue(key, out var done)) return done;
+        if (_fitted.Count > 256) _fitted.Clear();
+        return _fitted[key] = Fit(name, f, Math.Max(1, width), lines);
+    }
+
+    /// <summary>
+    /// The height two lines of the name take as the system draws them. Twice the font's own
+    /// height is a pixel or two less at some scales, and a box of that height cuts the second
+    /// line's descenders.
+    /// </summary>
+    private static int TwoLinesH(Font f) => Math.Max(f.Height * 2, TextRenderer.MeasureText("Ag\nAg", f, Size.Empty, TextFormatFlags.NoPadding).Height);
+
+    private static string Fit(string name, Font f, int width, int lines)
+    {
+        int W(string s) => TextRenderer.MeasureText(s, f, Size.Empty, TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+        if (W(name) <= width) return name;
+        // the longest head of a text that fits with the dots after it; never half of a surrogate pair
+        int Head(string s, string tail)
+        {
+            int lo = 0, hi = s.Length;
+            while (lo < hi)
+            {
+                int mid = (lo + hi + 1) / 2;
+                if (W(s[..mid].TrimEnd() + tail) <= width) lo = mid; else hi = mid - 1;
+            }
+            return lo > 0 && char.IsHighSurrogate(s[lo - 1]) ? lo - 1 : lo;
+        }
+        string Cut(string s) => W(s) <= width ? s : s[..Head(s, Dots)].TrimEnd() + Dots;
+        if (lines <= 1) return Cut(name);
+        // two lines the way the system breaks them: nothing to do unless a third line or a word wider than the line is in the way
+        var natural = TextRenderer.MeasureText(name, f, new Size(width, int.MaxValue), Wrap);
+        if (natural.Height <= TwoLinesH(f) && natural.Width <= width) return name;
+        // the first line: whole words while they fit; a first word wider than the line is broken where it fits
+        int brk = -1;
+        for (int i = 0; i < name.Length; i++)
+        {
+            if (name[i] != ' ') continue;
+            if (W(name[..i]) > width) break;
+            brk = i;
+        }
+        string first, rest;
+        if (brk > 0) { first = name[..brk]; rest = name[(brk + 1)..].TrimStart(); }
+        else { int n = Math.Max(1, Head(name, "")); first = name[..n]; rest = name[n..].TrimStart(); }
+        return rest.Length == 0 ? first : first + "\n" + Cut(rest);
+    }
+
     private readonly string _view;
     private string _painted = "";
     private readonly List<(Rectangle r, SceneDef scene)> _rows = new();
@@ -79,37 +137,46 @@ internal sealed class ScenesWidget : DashWidget
         if (_view == "buttons") { PaintPills(g, area, scenes, nameF, c); return; }
         var chipF = c.Font(8.5f);
         using var glyphF = Dpi.Font("Segoe UI Emoji", 12f);   // scene glyphs are emoji, as on the scene cards
-        int rowH = Math.Max(c.S(34), nameF.Height + c.S(12));
+        int oneH = Math.Max(c.S(34), nameF.Height + c.S(12));
+        int twoH = TwoLinesH(nameF) + c.S(12);   // a row whose name takes two lines
         int btn = Math.Max(c.S(26), nameF.Height + c.S(6));
         int y = area.Top;
         foreach (var s in scenes)
         {
-            if (y + rowH > area.Bottom) break;
-            var row = new Rectangle(area.Left, y, area.Width, rowH);
-            // run button on the right
-            var br = new Rectangle(row.Right - btn, y + (rowH - btn) / 2, btn, btn);
-            RunMark(g, br, c);
-            int right = br.Left - c.S(8);
-            // profile chip left of the button
+            // what stands beside the name: the run button, the profile chip when there is room for one, the glyph
+            int right = area.Right - btn - c.S(8);
+            string? label = null; Color pc = default; int cw = 0;
             if (!string.IsNullOrEmpty(s.Profile) && Enum.TryParse<ProfileId>(s.Profile, out var pid))
             {
-                string label = Profiles.Get(pid).Label;
-                var pc = Theme.Profile(c.D.ColorOf(pid));
-                int cw = DashPaint.Chip(g, label, Point.Empty, pc, chipF, c.S(7), draw: false);
-                int ch = chipF.Height + c.S(7);
-                if (cw < area.Width / 2)
-                {
-                    DashPaint.Chip(g, label, new Point(right - cw, y + (rowH - ch) / 2), pc, chipF, c.S(7));
-                    right -= cw + c.S(8);
-                }
+                label = Profiles.Get(pid).Label;
+                pc = Theme.Profile(c.D.ColorOf(pid));
+                cw = DashPaint.Chip(g, label, Point.Empty, pc, chipF, c.S(7), draw: false);
+                if (cw < area.Width / 2) right -= cw + c.S(8); else label = null;
             }
-            // glyph and name
-            int gx = row.Left, gw = string.IsNullOrEmpty(s.Glyph) ? 0 : c.S(26);
+            int gx = area.Left, gw = string.IsNullOrEmpty(s.Glyph) ? 0 : c.S(26);
+            var name = new Rectangle(gx + gw + (gw > 0 ? c.S(6) : 0), y, Math.Max(10, right - gx - gw - c.S(6)), oneH);
+            // A name too long for one line takes a second one and its row grows for it, so the
+            // second line is whole instead of cut by the next row; never more than two lines.
+            bool two = TextRenderer.MeasureText(g, s.Name, nameF, Size.Empty, TextFormatFlags.NoPadding).Width > name.Width;
+            int rowH = two ? twoH : oneH;
+            if (y + rowH > area.Bottom) break;
+            var row = new Rectangle(area.Left, y, area.Width, rowH);
+            var br = new Rectangle(row.Right - btn, y + (rowH - btn) / 2, btn, btn);
+            RunMark(g, br, c);
+            if (label != null) DashPaint.Chip(g, label, new Point(br.Left - c.S(8) - cw, y + (rowH - (chipF.Height + c.S(7))) / 2), pc, chipF, c.S(7));
             if (gw > 0)
                 TextRenderer.DrawText(g, s.Glyph, glyphF, new Rectangle(gx, y, gw, rowH), Theme.Accent,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, s.Name, nameF, new Rectangle(gx + gw + (gw > 0 ? c.S(6) : 0), y, Math.Max(10, right - gx - gw - c.S(6)), rowH), Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
+            if (two)
+            {
+                string text = Fitted(s.Name, nameF, name.Width, 2);
+                int th = TextRenderer.MeasureText(g, text, nameF, new Size(name.Width, int.MaxValue), Wrap).Height;   // two lines at most (Fit)
+                TextRenderer.DrawText(g, text, nameF, new Rectangle(name.X, y + (rowH - th) / 2, name.Width, th), Theme.Text,
+                    TextFormatFlags.Left | TextFormatFlags.Top | Wrap);
+            }
+            else
+                TextRenderer.DrawText(g, s.Name, nameF, name, Theme.Text,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
             _rows.Add((row, s));
             y += rowH;
         }
@@ -132,15 +199,16 @@ internal sealed class ScenesWidget : DashWidget
     {
         using var glyphF = Dpi.Font("Segoe UI Emoji", 17f);
         int glyphH = string.IsNullOrEmpty(s.Glyph) ? 0 : glyphF.Height;
-        int nameH = Math.Min(nameF.Height * 2, TextRenderer.MeasureText(s.Name, nameF, new Size(inner.Width, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
+        string name = Fitted(s.Name, nameF, inner.Width, 2);
+        int nameH = TextRenderer.MeasureText(name, nameF, new Size(inner.Width, int.MaxValue), Wrap).Height;   // two lines at most (Fit)
         int btn = Math.Max(c.S(26), nameF.Height + c.S(6));
         int g1 = glyphH > 0 ? c.S(6) : 0, g2 = c.S(9);
         int top = inner.Top + Math.Max(0, (inner.Height - (glyphH + g1 + nameH + g2 + btn)) / 2);
         if (glyphH > 0)
             TextRenderer.DrawText(g, s.Glyph, glyphF, new Rectangle(inner.Left, top, inner.Width, glyphH), Theme.Accent,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
-        TextRenderer.DrawText(g, s.Name, nameF, new Rectangle(inner.Left, top + glyphH + g1, inner.Width, nameH), Theme.Text,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+        TextRenderer.DrawText(g, name, nameF, new Rectangle(inner.Left, top + glyphH + g1, inner.Width, nameH), Theme.Text,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | Wrap);
         RunMark(g, new Rectangle(inner.Left + (inner.Width - btn) / 2, top + glyphH + g1 + nameH + g2, btn, btn), c);
         _rows.Add((inner, s));
     }
@@ -197,14 +265,20 @@ internal sealed class ScenesWidget : DashWidget
             }
             var body = new Rectangle(t.Left + c.S(5), t.Top + c.S(6), t.Width - c.S(10), t.Height - c.S(6) - c.S(11));
             int glyphH = string.IsNullOrEmpty(s.Glyph) ? 0 : glyphF.Height, g1 = glyphH > 0 ? c.S(4) : 0;
-            int nameH = Math.Min(nameF.Height * 2, TextRenderer.MeasureText(s.Name, nameF, new Size(body.Width, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
-            if (glyphH + g1 + nameH > body.Height) nameH = nameF.Height;   // a low tile: one line of the name
+            string name = Fitted(s.Name, nameF, body.Width, 2);
+            int nameH = TextRenderer.MeasureText(name, nameF, new Size(body.Width, int.MaxValue), Wrap).Height;   // two lines at most (Fit)
+            if (glyphH + g1 + nameH > body.Height)
+            {
+                // a low tile: one line of the name
+                name = Fitted(s.Name, nameF, body.Width, 1);
+                nameH = TextRenderer.MeasureText(name, nameF, new Size(body.Width, int.MaxValue), Wrap).Height;
+            }
             int top = body.Top + Math.Max(0, (body.Height - (glyphH + g1 + nameH)) / 2);
             if (glyphH > 0)
                 TextRenderer.DrawText(g, s.Glyph, glyphF, new Rectangle(body.Left, top, body.Width, glyphH), Theme.Accent,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, s.Name, nameF, new Rectangle(body.Left, top + glyphH + g1, body.Width, nameH), Theme.Text,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, name, nameF, new Rectangle(body.Left, top + glyphH + g1, body.Width, nameH), Theme.Text,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | Wrap);
             _rows.Add((t, s));
         }
     }
@@ -228,7 +302,7 @@ internal sealed class ScenesWidget : DashWidget
         bool two = false;
         for (int i = 0; i < n && !two; i++)
             two = TextRenderer.MeasureText(scenes[i].Name, nameF, Size.Empty, TextFormatFlags.NoPadding).Width > TextW(scenes[i]);
-        int ph = two ? Math.Max(oneH, nameF.Height * 2 + c.S(8)) : oneH;
+        int ph = two ? Math.Max(oneH, TwoLinesH(nameF) + c.S(8)) : oneH;
         int rows = Math.Max(1, (area.Height + gap) / (ph + gap));
         n = Math.Min(n, cols * rows);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -245,10 +319,11 @@ internal sealed class ScenesWidget : DashWidget
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
                 x += glyphW;
             }
-            int nameH = Math.Min(two ? nameF.Height * 2 : nameF.Height,
-                TextRenderer.MeasureText(s.Name, nameF, new Size(Math.Max(10, TextW(s)), int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
-            TextRenderer.DrawText(g, s.Name, nameF, new Rectangle(x + c.S(2), p.Top + (ph - nameH) / 2, Math.Max(10, TextW(s) - c.S(2)), nameH), Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            int nameW = Math.Max(10, TextW(s) - c.S(2));
+            string name = Fitted(s.Name, nameF, nameW, two ? 2 : 1);
+            int nameH = TextRenderer.MeasureText(name, nameF, new Size(nameW, int.MaxValue), Wrap).Height;   // one line, or two at most (Fit)
+            TextRenderer.DrawText(g, name, nameF, new Rectangle(x + c.S(2), p.Top + (ph - nameH) / 2, nameW, nameH), Theme.Text,
+                TextFormatFlags.Left | TextFormatFlags.Top | Wrap);
             if (ProfileColor(s, c) is { } pc)
             {
                 using var db = new SolidBrush(pc);

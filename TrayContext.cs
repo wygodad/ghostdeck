@@ -352,7 +352,7 @@ public sealed class TrayContext : ApplicationContext
     /// </summary>
     private void TellSettingsNotSaved(string why)
     {
-        if (_closing) return;
+        if (_closing || !AppSettings.SaveFailing) return;   // closing, or the file was written after all before this message arrived
         if (_saveCard is { IsDisposed: false } old) { _saveCard = null; old.Close(); }
         _saveCard = new GhostCardForm("//SETTINGS", Lang.T("set_not_saved_title"), string.Format(Lang.T("set_not_saved_text"), why), Lang.T("gen_ok"), "", () => { });
         _saveCard.Show();
