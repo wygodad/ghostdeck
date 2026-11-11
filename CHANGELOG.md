@@ -24,6 +24,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   @Heroofdarkness7788) - the owner's block report gave the layout. The fan mode moved as in the recipes, the performance
   mode stayed the same in all four scenarios; profile switching unlocks after the path test, as on the other models of
   this generation.
+- **GF63 Thin 10U / 10SC / 10UC on the backup WMI path** (`16R5EMS1`, model database 20261207,
+  [#345](../../issues/345)) - the owner's block report gave the layout; profile switching unlocks after the path test.
 
 ### Fixed
 - **Fan sweep findings: a fan that ignores the command** ([#329](../../issues/329), thanks @SorgZZ): when the controller
