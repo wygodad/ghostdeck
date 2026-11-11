@@ -78,6 +78,8 @@ internal sealed class WidgetSettingsCard : GhostCardForm
 
     protected override int CardWidth => 640;
     protected override int SideInset => 8;
+    // the label is one setting among many: the card opens with nothing being typed into
+    protected override bool FocusFirstFieldOnOpen => false;
     protected override string AuxLabel => Lang.T("set_default");
     protected override Color AuxColor => Ink;
 
@@ -124,7 +126,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             var opt = o;
             var h = AddTextField(_text[o.Key], HorizontalAlignment.Left, () => _rects.TryGetValue(opt.Key, out var r) ? r : Rectangle.Empty);
             h.Box.MaxLength = o.Kind == DashOptKind.Number ? 4 : DashOptions.MaxText;
-            if (GreyOf(o).Length > 0) h.Box.PlaceholderText = GreyOf(o);
+            h.SetCue(GreyOf(o));
             h.Box.TextChanged += (_, _) => { if (!_loading) Typed(opt, h.Box.Text); };
             _hosts[o.Key] = h;
         }
@@ -284,7 +286,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
                 if (paint)
                 {
                     int first = _zones.Count, hot = HotZone - first;
-                    CardPalette.Paint(g, LabelFont, plan, k, AutoOf(o), defText, _work.Choice(o.Key, o.Default, DashPaint.PaletteChoices),
+                    CardPalette.Paint(g, LabelFont, plan, k, o.AutoPie.Count > 1 ? o.AutoPie : new[] { AutoOf(o) }, defText, _work.Choice(o.Key, o.Default, DashPaint.PaletteChoices),
                         hot >= 0 && hot < plan.Items.Length ? hot : -1);
                     for (int j = 0; j < plan.Items.Length; j++) _zones.Add(new Zone(Win(plan.Items[j]), ZoneKind.Swatch, i, j));
                 }
@@ -326,8 +328,26 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         for (int i = 0; i < _defs.Count; i++) if (!Wide(_defs[i])) narrow.Add(i);
         if (narrow.Count == 0) return y - y0;
         y += Ce((tight ? 12 : 20) * k);
-        int colGap = Ce(20 * k), colW = (width - colGap) / 2;
+        int colGap = Ce(20 * k), half = (width - colGap) / 2;
         int chipW = Ce(68 * k), chipGap = Ce(8 * k), tgW = Ce(40 * k), tgH = Ce(22 * k);
+
+        // the lines: fields that name a row stand together on it (up to three), the others pair up
+        var rows = new List<List<int>>();
+        foreach (int i in narrow)
+        {
+            string row = _defs[i].Row;
+            var last = rows.Count > 0 ? rows[^1] : null;
+            bool joins = last != null && _defs[last[0]].Row == row && last.Count < (row.Length > 0 ? 3 : 2);
+            if (joins) last!.Add(i); else rows.Add(new List<int> { i });
+        }
+        // a line of one or two is cut in halves; in a line of three the switch takes less than a field
+        int[] Widths(List<int> row)
+        {
+            if (row.Count < 3) return row.Select(_ => half).ToArray();
+            float[] share = row.Select(i => _defs[i].Kind == DashOptKind.Toggle ? 0.8f : 1f).ToArray();
+            float all = width - colGap * (row.Count - 1), sum = share.Sum();
+            return share.Select(s => (int)(all * s / sum)).ToArray();
+        }
         string HintOf(DashOptionDef o) =>
             o.Kind == DashOptKind.Number && Bad(o) ? (o.Min.ToString(CultureInfo.InvariantCulture) + "-" + o.Max.ToString(CultureInfo.InvariantCulture) + " " + o.Unit).Trim() : o.Hint;
 
@@ -340,22 +360,23 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             if (on) _zones.Add(new Zone(Win(r), ZoneKind.Chip, i, 0));
         }
 
-        for (int n = 0; n < narrow.Count; n += 2)
+        foreach (var row in rows)
         {
-            // one label height for the row, so the controls of both cells stand on one line
+            // one label height for the line, so the controls of all its cells stand level
+            var widths = Widths(row);
             int rowLabel = labelH, rowHint = 0;
-            for (int c = 0; c < 2 && n + c < narrow.Count; c++)
+            for (int c = 0; c < row.Count; c++)
             {
-                var o = _defs[narrow[n + c]];
-                rowLabel = Math.Max(rowLabel, LabelH(o.Label, colW));
-                rowHint = Math.Max(rowHint, HintH(HintOf(o), colW));
+                var o = _defs[row[c]];
+                rowLabel = Math.Max(rowLabel, LabelH(o.Label, widths[c]));
+                rowHint = Math.Max(rowHint, HintH(HintOf(o), widths[c]));
             }
-            int rowY = y + rowLabel + gapLabel;
-            for (int c = 0; c < 2 && n + c < narrow.Count; c++)
+            int rowY = y + rowLabel + gapLabel, fx = x - colGap;
+            for (int c = 0; c < row.Count; c++)
             {
-                int i = narrow[n + c];
+                int i = row[c], colW = widths[c];
                 var o = _defs[i];
-                int fx = x + c * (colW + colGap);
+                fx += (c > 0 ? widths[c - 1] : 0) + colGap;
                 bool on = Live(o), chip = o.ColorKey.Length > 0;
                 PutLabel(o.Label, fx, y, colW, rowLabel, on);
                 if (o.Kind == DashOptKind.Toggle)

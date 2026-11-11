@@ -153,7 +153,12 @@ internal sealed class RingWidget : DashWidget
     {
         var list = new List<DashOptionDef>
         {
-            new(KColor, DashOptKind.Color, Lang.T("dash_opt_dial_color")) { Default = "auto", Auto = _ => Own },
+            new(KColor, DashOptKind.Color, Lang.T("dash_opt_dial_color"))
+            {
+                Default = "auto", Auto = _ => Own,
+                // a temperature dial is three colours by itself, and "Default" says so
+                AutoPie = IsTemp ? new[] { Theme.Green, Theme.Amber, Theme.Red } : Array.Empty<Color>(),
+            },
             new(KDial, DashOptKind.Choice, Lang.T("dash_opt_dial"))
             {
                 Default = "seg",
@@ -163,18 +168,18 @@ internal sealed class RingWidget : DashWidget
         };
         if (Levels.Length > 0)
         {
-            // the switch first: the thresholds under it dim when it is on, and nothing above it moves
-            list.Add(new(KNoWarn, DashOptKind.Toggle, Lang.T("dash_opt_nowarn")));
+            // the thresholds and, on their line, the switch that turns them off (they dim under it)
             foreach (var l in Levels)
             {
                 var level = l;
                 list.Add(new(l.Key, DashOptKind.Number, Lang.T(l.LabelKey))
                 {
                     Min = WarnMin, Max = WarnMax, DefaultInt = l.Def, Unit = IsTemp ? "°C" : "%",
-                    ColorKey = l.ColorKey, Auto = _ => level.Own,
+                    ColorKey = l.ColorKey, Auto = _ => level.Own, Row = "warn",
                     EnabledWhen = o => !o.Flag(KNoWarn, false),
                 });
             }
+            list.Add(new(KNoWarn, DashOptKind.Toggle, Lang.T("dash_opt_nowarn")) { Row = "warn" });
         }
         if (IsTemp)
         {

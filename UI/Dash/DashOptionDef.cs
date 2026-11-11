@@ -39,6 +39,18 @@ internal sealed record DashOptionDef(string Key, DashOptKind Kind, string Label)
     public Func<DashOptions, Color>? Auto { get; init; }
 
     /// <summary>
+    /// Color: the colours the "Default" pill shows when default is not one colour (a temperature
+    /// dial is green, amber and red by itself). Empty = the one from <see cref="Auto"/>.
+    /// </summary>
+    public IReadOnlyList<Color> AutoPie { get; init; } = Array.Empty<Color>();
+
+    /// <summary>
+    /// Text, Number and Toggle: fields naming the same row stand on one line of the card (two
+    /// thresholds and the switch that turns them off). "" = the field pairs up with its neighbour.
+    /// </summary>
+    public string Row { get; init; } = "";
+
+    /// <summary>
     /// Text, Number and Toggle: the key of a colour that belongs to this field (the label's
     /// colour, the colour a threshold turns the dial to). The card shows it as a small colour
     /// button beside the field; "auto" or one of the palette, like a Color. "" = none.

@@ -30,7 +30,32 @@ internal sealed class CardTextHost : Form
         Box.BackColor = back;
         Box.ForeColor = fore;
         Box.TextAlign = align;
+        Box.HandleCreated += (_, _) => SendCue();
         Controls.Add(Box);
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
+
+    private string _cue = "";
+
+    /// <summary>
+    /// Grey text for an empty box: what is used when nothing is typed. It stays while the box has
+    /// the caret (the system cue banner, asked to show on focus too); TextBox.PlaceholderText
+    /// goes away as soon as the box is focused, and a card that opens with the caret in its first
+    /// field would never show it.
+    /// </summary>
+    public void SetCue(string text)
+    {
+        _cue = text ?? "";
+        if (Box.IsHandleCreated) SendCue();
+    }
+
+    private void SendCue()
+    {
+        const int EM_SETCUEBANNER = 0x1501;
+        if (_cue.Length == 0) return;
+        try { SendMessage(Box.Handle, EM_SETCUEBANNER, (IntPtr)1, _cue); } catch { }
     }
 
     protected override CreateParams CreateParams

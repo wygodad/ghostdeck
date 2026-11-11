@@ -138,6 +138,11 @@ public class GhostCardForm : Form
     protected virtual void CreateTextFields() { }
     /// <summary>Select the whole text of the first field when the card opens (a one-field prompt).</summary>
     protected virtual bool SelectAllOnOpen => false;
+    /// <summary>
+    /// Put the caret into the first field when the card opens: right for a card whose point is
+    /// that field (a name), wrong for one where the fields are a few among other settings.
+    /// </summary>
+    protected virtual bool FocusFirstFieldOnOpen => true;
 
     /// <summary>
     /// Adds a real text box riding over the card. <paramref name="area"/> returns the text area
@@ -206,7 +211,7 @@ public class GhostCardForm : Form
         if (_fields.Count == 0) return;
         PlaceFields();
         foreach (var f in _fields) f.Host.Show(this);
-        FocusField(_fields[0].Host, SelectAllOnOpen);
+        if (FocusFirstFieldOnOpen) FocusField(_fields[0].Host, SelectAllOnOpen);
     }
 
     // A modal loop activates the card itself after it becomes visible, so the caret is put
@@ -214,7 +219,19 @@ public class GhostCardForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        if (_fields.Count > 0) FocusField(_fields[0].Host, SelectAllOnOpen);
+        if (_fields.Count > 0 && FocusFirstFieldOnOpen) FocusField(_fields[0].Host, SelectAllOnOpen);
+    }
+
+    // A card that opens without the caret in a field (FocusFirstFieldOnOpen = false) still takes
+    // Tab: it goes to the first field, and from there the fields pass it on among themselves.
+    protected override bool ProcessDialogKey(Keys keyData)
+    {
+        if ((keyData & ~Keys.Shift) == Keys.Tab && _fields.Count > 0 && _focused == null)
+        {
+            FocusField(_fields[0].Host);
+            return true;
+        }
+        return base.ProcessDialogKey(keyData);
     }
 
     protected override void OnMove(EventArgs e)

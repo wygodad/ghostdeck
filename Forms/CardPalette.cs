@@ -22,7 +22,7 @@ internal static class CardPalette
     {
         int Ce(float v) => (int)Math.Ceiling(v);
         int n = DashPaint.PaletteIds.Length;
-        int cell = Ce(30 * k), gap = Ce(8 * k), padX = Ce(11 * k), dot = Ce(14 * k);
+        int cell = Ce(30 * k), gap = Ce(8 * k), padX = Ce(11 * k), dot = Ce(16 * k);
         int textW = Ce(g.MeasureString(defaultText, font, PointF.Empty, StringFormat.GenericTypographic).Width);
         int pillW = Math.Min(width, padX + dot + Ce(7 * k) + textW + padX + Ce(2 * k));
         var items = new Rectangle[n + 1];
@@ -39,8 +39,12 @@ internal static class CardPalette
         return new Plan(items, Math.Max(cell, top + rows * cw - y), cols);
     }
 
-    /// <summary><paramref name="current"/> is "auto" or a palette id; <paramref name="hot"/> the item under the cursor, -1 = none.</summary>
-    public static void Paint(Graphics g, Font font, Plan p, float k, Color auto, string defaultText, string current, int hot)
+    /// <summary>
+    /// <paramref name="auto"/> is what default means: one colour, or several for a widget that
+    /// is several colours by itself (they show as slices). <paramref name="current"/> is "auto"
+    /// or a palette id; <paramref name="hot"/> the item under the cursor, -1 = none.
+    /// </summary>
+    public static void Paint(Graphics g, Font font, Plan p, float k, IReadOnlyList<Color> auto, string defaultText, string current, int hot)
     {
         using var fmt = new StringFormat(StringFormat.GenericTypographic) { FormatFlags = StringFormatFlags.NoWrap, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
         for (int i = 0; i < p.Items.Length; i++)
@@ -62,8 +66,18 @@ internal static class CardPalette
             using var path = Round(pr, pr.Height / 2f);
             using (var fill = new SolidBrush(Color.FromArgb(sel ? 24 : isHot ? 20 : 10, 255, 255, 255))) g.FillPath(fill, path);
             using (var edge = new Pen(sel ? White : Color.FromArgb(isHot ? 110 : 40, White), sel ? Math.Max(1.5f, 2f * k) : 1f)) g.DrawPath(edge, path);
-            float dot = (float)Math.Ceiling(14 * k), dx = pr.X + 10 * k;
-            Disc(g, new RectangleF(dx, pr.Y + (pr.Height - dot) / 2f, dot, dot), auto);
+            float dot = (float)Math.Ceiling(16 * k), dx = pr.X + 9 * k;
+            var dr = new RectangleF(dx, pr.Y + (pr.Height - dot) / 2f, dot, dot);
+            if (auto.Count <= 1) Disc(g, dr, auto.Count == 1 ? auto[0] : Ink);
+            else
+            {
+                float sweep = 360f / auto.Count;
+                for (int s = 0; s < auto.Count; s++)
+                {
+                    using var sb = new SolidBrush(auto[s]);
+                    g.FillPie(sb, dr.X, dr.Y, dr.Width, dr.Height, -90 + s * sweep, sweep + 0.5f);
+                }
+            }
             using var tb = new SolidBrush(sel || isHot ? White : Ink);
             float tx = dx + dot + 7 * k;
             g.DrawString(defaultText, font, tb, new RectangleF(tx, pr.Y, Math.Max(1, pr.Right - 8 * k - tx), pr.Height), fmt);
@@ -202,7 +216,7 @@ internal sealed class CardPopupPalette : Form
         g.TextRenderingHint = TextRenderingHint.AntiAlias;
         g.Clear(Back);
         using (var ep = new Pen(Edge)) g.DrawRectangle(ep, 0, 0, size.Width - 1, size.Height - 1);
-        CardPalette.Paint(g, font, plan, k, auto, autoText, current, hot);
+        CardPalette.Paint(g, font, plan, k, new[] { auto }, autoText, current, hot);
     }
 
     protected override void OnPaint(PaintEventArgs e) => Draw(e.Graphics, ClientSize, _font, _plan, _k, _auto, _autoText, _current, _hot);
