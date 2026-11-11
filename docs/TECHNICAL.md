@@ -4620,13 +4620,15 @@ public contract is this section: the report fields, the proof of work, and the s
 
 ## 88. The Dashboard in 1.45: widget settings, copies, layouts and files, history widgets
 
-1.45 builds on §86 without changing its rules: one control, everything painted, a widget never
-reads hardware and writes only through the actions of `MainDeps`. What is new stands on one
+1.45 builds on §86 without changing its rules: one control, everything painted, a widget reads
+no hardware of its own in a tick (the fan curve still asks for the model's curve tables once per
+page, on a worker, as in 1.44) and writes only through the actions of `MainDeps`. What is new stands on one
 change: **a widget's settings belong to its place in the layout, not to its type.**
 
 **Settings in the layout.** A layout item (`Core/DashItem.cs`) has an optional map `Opt` next to
 `Type`, `W` and `H`: a key and a short text, a whole number, yes/no or a list of short texts. An
-item without the map looks exactly as in 1.44, and a value equal to its default is not stored.
+item without the map has the defaults of the running version (the look of 1.44, but for the CPU
+usage ring, which turns red from 90 % since 1.45), and a value equal to its default is not stored.
 `Core/DashOptions.cs` is the only reader and it never trusts a value: a value of the wrong kind
 reads as the default, a number is clamped to its range, a text goes through one rule
 (`DashOptions.Clean`: no control characters, no halves of surrogate pairs, no characters that
@@ -4674,7 +4676,7 @@ one profile fits a cell, with four it needs four). When settings change so that 
 is no longer allowed, the widget takes the nearest allowed one (`DashItem.Fit`), also when a
 layout is read.
 
-**Copies.** A type may stand any number of times. The canvas makes one instance per layout item,
+**Copies.** A type may stand any number of times within the bounds below. The canvas makes one instance per layout item,
 so copies share no state; the tile menu has *Duplicate* (the same settings and size, right after
 the original) and the catalogue adds one more of a type that is already there. The fan curve's
 tables are read once per page for all its copies. The weekly report names a type once (§87).

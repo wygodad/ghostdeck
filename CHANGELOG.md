@@ -5,14 +5,14 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
-- **Dashboard: every widget has its own settings.** *Settings…* in a tile's ⋯ menu opens a card with the widget's
+- **Dashboard: widgets have their own settings** (all but the Community tile). *Settings…* in a tile's ⋯ menu opens a card with the widget's
   picture, which follows every change at once; the Dashboard changes on Save. Rings: the dial's colour (twelve colours
   or the default), a segmented or a continuous dial, a label and its colour, the scale of the temperature rings, the
   thresholds at which a temperature or the CPU usage changes colour and the colour of each, the RPM line of the fan
   rings. CPU clock: MHz or GHz. Fan curve: which lines, their colours, the trail of the last minutes and its colour.
   Memory and disks: which rows, the colour of the bars. Every widget with a title can carry your own label. *Defaults*
   puts a widget back as it comes ([TECHNICAL.md §88](docs/TECHNICAL.md)).
-- **Dashboard: the same widget as many times as you like.** *Duplicate* in the ⋯ menu, or *Add* in the catalogue for a
+- **Dashboard: the same widget several times** (a Dashboard holds up to 200 widgets). *Duplicate* in the ⋯ menu, or *Add* in the catalogue for a
   type that is already there; every copy has its own settings and size. Two CPU temperatures, one as a small dial and
   one large in another colour, are two tiles like any other.
 - **Dashboard: widgets that show only what you pick.** Profiles, Quick toggles, Scenes and Memory and disks have a

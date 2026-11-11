@@ -358,8 +358,8 @@ scenes or disks a widget shows, and a choice of looks for Scenes and for the Cha
 
 The same ⋯ menu has *Duplicate*, and the catalogue adds another one of a widget that is already
 there. Every copy has its own settings and size, so one widget can be a tile with only Silent in
-it and another a tile with only Balanced. There is no limit on copies that you will meet in
-practice.
+it and another a tile with only Balanced. A Dashboard holds up to 200 widgets in all, copies
+included. The Community tile is the one widget with nothing to set.
 
 ![Widget settings](images/dashboard_widget_settings.png)
 
@@ -372,8 +372,9 @@ style of that one widget. After a load, *Undo the load* brings back the layout y
 A file holds data only: widget types, sizes and settings, your own labels among them. There is
 no code in it, no path and nothing about your computer. GhostDeck reads a file whole before it
 changes anything, and a file that fails any check (too large, a value of the wrong kind, a text
-with hidden characters, more widgets than a Dashboard holds) changes nothing at all. Scenes picked
-on another computer do not exist on yours, so such a widget shows all your scenes. The format is
+with hidden characters, more widgets than a Dashboard holds) changes nothing at all. A pick of
+scenes made on another computer names scenes of that computer: when none of them is on yours the
+widget shows all your scenes, and when some are it shows those. The format is
 described in [DASHBOARD-FILES.md](DASHBOARD-FILES.md).
 
 ## What are the history widgets? Do they make GhostDeck read the hardware more often?
