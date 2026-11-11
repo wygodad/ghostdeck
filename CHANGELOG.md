@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.45.0] - 2026-11-11
 ### Added
 - **Dashboard: widgets have their own settings** (all but the Community tile). *Settings…* in a tile's ⋯ menu opens a card with the widget's
   picture, which follows every change at once; the Dashboard changes on Save. Rings: the dial's colour (twelve colours
