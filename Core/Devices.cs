@@ -169,7 +169,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261205;
+    public const int DataVersion = 20261207;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -2070,8 +2070,21 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GF63 8RC-249", FirmwarePrefixes = new[] { "16R1EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+        // GF63 Thin 9SC (issue #344, Heroofdarkness7788, EC 16R3EMS1.104, MSI Center 2.0.49):
+        // block report in the Dragon Center-era slots. Switching MSI Center scenarios moved
+        // MSI_System[9] 1D/0D/0D/0D = the recipes, while MSI_System[7] stayed C4 in all four
+        // columns, so the shift recipe is not confirmed by the capture. Layout added so the path
+        // test can run; it checks the shift byte on this board. One fan (MSI_AP[4] always 00).
+        //   Path test PASSED on 11 Nov 2026 (issue #344, app 1.44.0, BIOS E16R3IMS.108): every
+        //   profile read back as written (shift C1/C1/C4/C2, fan 1D/0D/0D/0D), the original state
+        //   confirmed, Super Battery 42 % of Extreme's work (1196 vs 2901 MHz). Curve step
+        //   inconclusive: duty already 85 (the table's top value) at 95 C before the raise, so no
+        //   FanCurve. Tested once the owner confirms the two checks the test cannot make.
         new() { Name = "MSI GF63 Thin 9SC", FirmwarePrefixes = new[] { "16R3EMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block report in issue #344
+                Credit = "Heroofdarkness7788", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/344",
+                CreditIssues = Issues("Heroofdarkness7788:344") },
         new() { Name = "MSI GF63 Thin 10SCX / 10SCS", FirmwarePrefixes = new[] { "16R4EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GF63 Thin 9SCSR", FirmwarePrefixes = new[] { "16R4EMS2" }, Tier = Tier.Experimental,
@@ -2083,8 +2096,14 @@ public static class Devices
         // behavioural confirmation of the whole G1 register set so far. Tier stays Experimental
         // and no credit yet: promotion was publicly tied to a power-test run that has not
         // arrived, and we hold no dump from this generation at all.
+        // GF63 Thin 10SC (issue #345, cameronmrobbins-design, EC 16R5EMS1.102, BIOS E16R5IMS.104,
+        // Dragon Center 2): firmware without MSI_ACPI, block report in the Dragon Center-era
+        // layout (System 21 / CPU 19 / VGA 18 / AP 8 instances). All four columns were identical
+        // (shift C4, fan 0D), so the capture confirms no recipe; the layout is added so the path
+        // test can run.
         new() { Name = "MSI GF63 Thin 10U / 10SC / 10UC", FirmwarePrefixes = new[] { "16R5EMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks },   // block report in issue #345
         new() { Name = "MSI PS63 MODERN 8RD", FirmwarePrefixes = new[] { "16S1EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Prestige 15 A10SC", FirmwarePrefixes = new[] { "16S3EMS1" }, Tier = Tier.Experimental,
