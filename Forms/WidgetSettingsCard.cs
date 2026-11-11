@@ -19,7 +19,7 @@ namespace GhostDeck;
 /// A value equal to its default is not stored, and an empty text or number field means the
 /// default, shown in grey. A setting switched off by another one is dimmed and keeps its value.
 /// Enter saves, Esc cancels, Tab moves between the text fields; "Defaults" puts every setting of
-/// the card back. Two links at the bottom write the settings to a file as the widget's style
+/// the card back. Two buttons under the settings write them to a file as the widget's style
 /// and load one (<see cref="DashFile"/>); a loaded style lands in the card, to be looked at and
 /// saved or cancelled like any other change.
 ///
@@ -251,8 +251,8 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         using var dimB = new SolidBrush(Dim);
         using var redB = new SolidBrush(SoftRed);
         bool tight = _tight;
-        int labelH = Ce(LabelFont.GetHeight(g)), gapLabel = Ce((tight ? 5 : 8) * k), fieldH = Ce((tight ? 32 : 36) * k),
-            gapField = Ce((tight ? 10 : 16) * k), hintGap = Ce((tight ? 4 : 6) * k);
+        int labelH = Ce(LabelFont.GetHeight(g)), gapLabel = Ce((tight ? 4 : 8) * k), fieldH = Ce((tight ? 30 : 36) * k),
+            gapField = Ce((tight ? 8 : 16) * k), hintGap = Ce((tight ? 4 : 6) * k);
         string defText = Lang.T("dash_opt_default");
 
         int HintH(string s, int w) => s.Length == 0 ? 0 : hintGap + Ce(g.MeasureString(s, hintF, w, fmt).Height);
@@ -267,33 +267,52 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             if (paint) g.DrawString(s, LabelFont, on ? whiteB : dimB, new RectangleF(lx, ly, w, h + 2 * k), fmt);
         }
 
-        // the style as a file: two links under everything and, after one was used, what it did
+        // the style as a file: under a line that sets them apart from the settings, two buttons in
+        // the look of the Layouts card's, and, after one was used, what it did
         int Links(int top)
         {
-            int ly = top + Ce(16 * k), lh = Ce(CellFont.GetHeight(g)) + Ce(6 * k), lx = x;
+            int btnH = Ce((tight ? 28 : 32) * k), padX = Ce(14 * k), bgap = Ce(8 * k);
+            int ly = top + Ce((tight ? 8 : 18) * k);
+            if (paint)
+            {
+                using var line = new Pen(Color.FromArgb(30, 243, 247, 255), 1f);
+                g.DrawLine(line, x, ly, x + width, ly);
+            }
+            ly += Ce((tight ? 8 : 14) * k);
+            int bx = x, by = ly;
             foreach (var (text, idx) in new[] { (Lang.T("dash_style_export"), 0), (Lang.T("dash_style_import"), 1) })
             {
-                int w = Ce(g.MeasureString(text, CellFont).Width);
+                int w = Ce(g.MeasureString(text, CellFont).Width) + padX * 2;
+                if (bx > x && bx + w > x + width) { bx = x; by += btnH + bgap; }   // a long language: the second button goes under the first, never over the edge
+                var br = new Rectangle(bx, by, w, btnH);
                 if (paint)
                 {
-                    using var lb = new SolidBrush(HotZone == _zones.Count ? White : Ink);
-                    g.DrawString(text, CellFont, lb, new RectangleF(lx, ly, w + 2, lh), LeftText);
-                    _zones.Add(new Zone(Win(new Rectangle(lx, ly, w, lh)), ZoneKind.Link, 0, idx));
+                    bool hot = HotZone == _zones.Count;
+                    using (var path = RoundPath(br, Ce(8 * k)))
+                    {
+                        using var fill = new SolidBrush(Color.FromArgb(hot ? 34 : 13, 255, 255, 255));
+                        g.FillPath(fill, path);
+                        using var edge = new Pen(Color.FromArgb(hot ? 90 : 40, 243, 247, 255), 1f);
+                        g.DrawPath(edge, path);
+                    }
+                    using var tb = new SolidBrush(hot ? White : Ink);
+                    g.DrawString(text, CellFont, tb, br, CenterText);
+                    _zones.Add(new Zone(Win(br), ZoneKind.Link, 0, idx));
                 }
-                lx += w + Ce(18 * k);
+                bx += w + bgap;
             }
-            int used = Ce(16 * k) + lh;
+            int bottom = by + btnH;
             if (_status.Length > 0)
             {
                 int sh = Ce(g.MeasureString(_status, hintF, width, fmt).Height);
                 if (paint)
                 {
                     using var sb = new SolidBrush(_statusBad ? SoftRed : Ink);
-                    g.DrawString(_status, hintF, sb, new RectangleF(x, ly + lh + Ce(4 * k), width, sh + 2 * k), fmt);
+                    g.DrawString(_status, hintF, sb, new RectangleF(x, bottom + Ce(8 * k), width, sh + 2 * k), fmt);
                 }
-                used += Ce(4 * k) + sh;
+                bottom += Ce(8 * k) + sh;
             }
-            return used;
+            return bottom - top;
         }
 
         // ---- the picture: beside the first settings when the widget is narrow and has such settings, across the card otherwise ----
@@ -301,7 +320,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         bool side = cellsW <= 2 && _defs.Any(Wide);
         int pad = Ce((tight ? 10 : 14) * k), cellGap = _ctx.S(16);
         int cell = side ? Ce((cellsW == 1 && cellsH == 1 ? (tight ? 136 : 150) : (tight ? 92 : 104)) * k)
-                        : Math.Min(Ce((tight ? 100 : 120) * k), (width - pad * 2 - cellGap * (cellsW - 1)) / Math.Max(1, cellsW));
+                        : Math.Min(Ce((tight ? (cellsH >= 2 ? 64 : 100) : 120) * k), (width - pad * 2 - cellGap * (cellsW - 1)) / Math.Max(1, cellsW));   // a two-row widget across the card is the tallest thing on it
         var pv = new Size(cellsW * cell + (cellsW - 1) * cellGap, cellsH * cell + (cellsH - 1) * cellGap);
         var field = side ? new Rectangle(x, y0, pv.Width + pad * 2, pv.Height + pad * 2) : new Rectangle(x, y0, width, pv.Height + pad * 2);
         if (paint)
@@ -400,7 +419,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         var narrow = new List<int>();
         for (int i = 0; i < _defs.Count; i++) if (!Wide(_defs[i])) narrow.Add(i);
         if (narrow.Count == 0) return y + Links(y) - y0;
-        y += Ce((tight ? 12 : 20) * k);
+        y += Ce((tight ? 8 : 20) * k);
         int colGap = Ce(20 * k), half = (width - colGap) / 2;
         int chipW = Ce(68 * k), chipGap = Ce(8 * k), tgW = Ce(40 * k), tgH = Ce(22 * k);
 

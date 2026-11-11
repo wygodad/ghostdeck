@@ -65,11 +65,18 @@ internal sealed class ChargeLimitWidget : DashWidget
         int top;
         if (_view == "bat")
         {
-            // the charge now beside the title, the bar with the limit's mark, the segments under it
+            // The charge now right after the title, the bar with the limit's mark, the segments under
+            // it. After the title, not at the card's right edge: that corner is where the tile's menu
+            // button comes up on hover, and it would cover the number.
             int pct = Battery(c.Sample), barH = c.S(12), gap = Math.Max(c.S(8), (inner.Height - titleH - barH - segH) / 3);
             var vf = c.Font(9.5f);
-            TextRenderer.DrawText(g, pct >= 0 ? pct + "%" : "-", vf, new Rectangle(inner.Left, inner.Top, inner.Width, titleH), Theme.Muted,
-                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            string now = pct >= 0 ? pct + "%" : "-";
+            int titleW = TextRenderer.MeasureText(Caption, c.Font(11f, FontStyle.Bold), Size.Empty, TextFormatFlags.NoPadding).Width;
+            int nowW = TextRenderer.MeasureText(now, vf, Size.Empty, TextFormatFlags.NoPadding).Width;
+            int nowX = inner.Left + titleW + c.S(10);
+            if (nowX + nowW <= inner.Right - c.S(22))   // a title so long that the number would reach the corner: the bar says it anyway
+                TextRenderer.DrawText(g, now, vf, new Rectangle(nowX, inner.Top, nowW + c.S(2), titleH), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             var bar = new RectangleF(inner.Left, inner.Top + titleH + gap, inner.Width, barH);
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             DashPaint.Bar(g, bar, Math.Max(0, pct) / 100f, Tint(KBar, Theme.Green));
