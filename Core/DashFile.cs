@@ -1,6 +1,6 @@
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace GhostDeck;
 
@@ -42,14 +42,20 @@ public sealed class DashSavedLayout
 /// - it is read whole or not at all: one thing out of place rejects the file and the Dashboard
 ///   stays as it was;
 /// - it is small (<see cref="MaxBytes"/>), shallow (the parser stops at <see cref="MaxDepth"/>
-///   levels) and short (<see cref="DashItem.MaxItems"/> widgets);
+///   levels), short (<see cref="DashItem.MaxItems"/> widgets) and of a bounded area
+///   (<see cref="DashItem.MaxCells"/> grid cells in all), so no file makes a Dashboard taller
+///   than the app is built for;
 /// - only the fields named above are read. Nothing else in the file reaches the settings: every
-///   item is built anew from checked values, and nothing of the file is carried over as it stands;
+///   item is built anew from checked values, and nothing of the file is carried over as it
+///   stands. The "no name twice" rule covers the objects that are read (the file, an item, its
+///   settings); a field that is ignored is ignored with whatever is in it;
 /// - a widget type is an id of a fixed shape, looked up in the app's own list (an unknown one
 ///   shows as a grey field, as an unknown type in settings.json does); sizes are whole numbers
 ///   in the grid's range;
 /// - a setting is a short text, a whole number, yes/no or a short list of short texts, under a
-///   plain key. Texts carry no control characters and no characters that reorder what is shown;
+///   plain key, and the settings of one widget take at most <see cref="DashItem.MaxOptChars"/>
+///   characters. A text is exactly what <see cref="DashOptions.Clean"/> would leave of it: no
+///   control characters, no direction characters, no invisible ones, composed;
 /// - the file holds data only. No text in it is ever used as a path, a command, an address or
 ///   code: a text is painted as a label or compared with what the app already knows.
 ///
@@ -71,7 +77,7 @@ public static class DashFile
         None,
         /// <summary>The file could not be read or written.</summary>
         Io,
-        /// <summary>Larger than <see cref="MaxBytes"/>.</summary>
+        /// <summary>Larger than <see cref="MaxBytes"/> (a file to read, or what a layout would take written out).</summary>
         TooLarge,
         /// <summary>Not JSON, or nested deeper than a Dashboard file ever is.</summary>
         NotJson,
@@ -81,16 +87,13 @@ public static class DashFile
         Newer,
         /// <summary>A Dashboard file with something out of place.</summary>
         Damaged,
-        /// <summary>More widgets than a Dashboard holds.</summary>
+        /// <summary>More widgets, or a larger area, than a Dashboard holds.</summary>
         TooMany,
         /// <summary>A sound file of the other kind: a widget's style where a layout was asked for, or the other way round.</summary>
         WrongKind,
+        /// <summary>Nothing to write: a Dashboard without widgets.</summary>
+        Empty,
     }
-
-    private static readonly Regex TypeId = new("^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}\\z", RegexOptions.CultureInvariant);
-    private static readonly Regex OptKey = new("^[A-Za-z][A-Za-z0-9_]{0,23}\\z", RegexOptions.CultureInvariant);
-    // \z, not $: in .NET "$" also matches just before a line break that ends the text, so an id
-    // with a line break at its end would pass (the hostile-file tests caught exactly that)
 
     // ------------------------------------------------------------------ reading
 
@@ -100,12 +103,11 @@ public static class DashFile
         byte[] bytes;
         try
         {
-            var info = new FileInfo(path);
-            if (!info.Exists) { error = Error.Io; return null; }
-            if (info.Length > MaxBytes) { error = Error.TooLarge; return null; }
-            // read no more than the limit even if the file grows under us
+            // The size is the open file's own, and the read goes to the end of that same file: a
+            // size asked of the path and a read from it could be two different files.
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            bytes = new byte[(int)Math.Min(info.Length, MaxBytes) + 1];
+            if (fs.Length > MaxBytes) { error = Error.TooLarge; return null; }
+            bytes = new byte[MaxBytes + 1];
             int n = 0, got;
             while (n < bytes.Length && (got = fs.Read(bytes, n, bytes.Length - n)) > 0) n += got;
             if (n > MaxBytes) { error = Error.TooLarge; return null; }
@@ -161,6 +163,7 @@ public static class DashFile
                 if (item == null) { error = Error.Damaged; return null; }
                 items.Add(item);
             }
+            if (DashItem.Cells(items) > DashItem.MaxCells) { error = Error.TooMany; return null; }
             return new Content(kind, items, kind == Layout ? cols : 0);
         }
     }
@@ -178,7 +181,7 @@ public static class DashFile
     private static DashItem? Item(JsonElement e)
     {
         if (e.ValueKind != JsonValueKind.Object || !Fields(e, out var f)) return null;
-        if (!f.TryGetValue("Type", out var t) || t.ValueKind != JsonValueKind.String || t.GetString() is not { } type || !TypeId.IsMatch(type)) return null;
+        if (!f.TryGetValue("Type", out var t) || t.ValueKind != JsonValueKind.String || t.GetString() is not { } type || !DashItem.TypeOk(type)) return null;
         if (!f.TryGetValue("W", out var we) || we.ValueKind != JsonValueKind.Number || !we.TryGetInt32(out int w) || w < 1 || w > DashItem.MaxW) return null;
         if (!f.TryGetValue("H", out var he) || he.ValueKind != JsonValueKind.Number || !he.TryGetInt32(out int h) || h < 1 || h > DashItem.MaxH) return null;
         var item = new DashItem(type, w, h);
@@ -190,7 +193,7 @@ public static class DashFile
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (var p in o.EnumerateObject())
         {
-            if (++keys > DashItem.MaxOptKeys || !OptKey.IsMatch(p.Name) || !names.Add(p.Name)) return null;
+            if (++keys > DashItem.MaxOptKeys || !DashOptions.KeyOk(p.Name) || !names.Add(p.Name)) return null;
             switch (p.Value.ValueKind)
             {
                 case JsonValueKind.String:
@@ -225,76 +228,98 @@ public static class DashFile
     }
 
     /// <summary>
-    /// A text a file may carry: not empty, at most <see cref="DashOptions.MaxText"/> characters,
-    /// no spaces at its ends, no control characters, no half of a surrogate pair, and none of
-    /// the characters that change the direction text is shown in (they make a label read as
-    /// something it is not).
+    /// A text a file may carry: not empty and exactly what <see cref="DashOptions.Clean"/> leaves
+    /// of it, so it has nothing that the app would take out anyway (control characters, halves of
+    /// pairs, direction characters, invisible ones, an uncomposed form, spaces at the ends, more
+    /// than <see cref="DashOptions.MaxText"/> characters). One rule for what is typed, stored,
+    /// written and read.
     /// </summary>
-    internal static bool CleanText(string s)
-    {
-        if (s.Length == 0 || s.Length > DashOptions.MaxText || s != s.Trim()) return false;
-        for (int i = 0; i < s.Length; i++)
-        {
-            char ch = s[i];
-            if (char.IsControl(ch)) return false;
-            if (ch is (>= '‪' and <= '‮') or (>= '⁦' and <= '⁩') or '‎' or '‏' or '؜' or '﻿' or '￾' or '￿') return false;
-            if (char.IsHighSurrogate(ch)) { if (i + 1 >= s.Length || !char.IsLowSurrogate(s[i + 1])) return false; i++; }
-            else if (char.IsLowSurrogate(ch)) return false;
-        }
-        return true;
-    }
+    internal static bool CleanText(string s) => s.Length > 0 && s.Length <= DashOptions.MaxText && DashOptions.Clean(s, DashOptions.MaxText) == s;
 
     // ------------------------------------------------------------------ writing
 
     /// <summary>
-    /// The file for these items. Only what <see cref="Parse"/> accepts is written (a setting of a
-    /// shape this version does not know is left out), so a file GhostDeck wrote always loads.
-    /// Null when there is nothing a file could hold.
+    /// The file for these items, or null and why. Everything a widget keeps is written (the
+    /// settings are cleaned the way settings.json's are, so nothing a user set is left out), in
+    /// plain UTF-8, indented while that fits the size limit and compact when it does not; a
+    /// layout that does not fit even then is too large for a file. What comes out always loads:
+    /// it is read back before it is handed over. Never throws.
     /// </summary>
-    public static byte[]? Write(string kind, IReadOnlyList<DashItem> items, int cols)
+    public static byte[]? Write(string kind, IReadOnlyList<DashItem> items, int cols, out Error error)
     {
-        if (kind is not (Widget or Layout) || items.Count == 0 || items.Count > DashItem.MaxItems || (kind == Widget && items.Count != 1)) return null;
+        error = Error.None;
+        try
+        {
+            if (kind is not (Widget or Layout) || (kind == Widget && items.Count != 1)) { error = Error.Damaged; return null; }
+            if (items.Count == 0) { error = Error.Empty; return null; }
+            if (items.Count > DashItem.MaxItems || DashItem.Cells(items) > DashItem.MaxCells) { error = Error.TooMany; return null; }
+            foreach (var it in items) if (!DashItem.TypeOk(it.Type)) { error = Error.Damaged; return null; }
+            byte[] bytes = Bytes(kind, items, cols, indented: true);
+            if (bytes.Length > MaxBytes) bytes = Bytes(kind, items, cols, indented: false);
+            if (bytes.Length > MaxBytes) { error = Error.TooLarge; return null; }
+            if (Parse(bytes, out _) == null) { error = Error.Damaged; return null; }   // a file this version cannot read back is not handed out
+            return bytes;
+        }
+        catch { error = Error.Damaged; return null; }
+    }
+
+    public static byte[]? Write(string kind, IReadOnlyList<DashItem> items, int cols) => Write(kind, items, cols, out _);
+
+    /// <summary>
+    /// A text as a JSON string in the shortest form there is: the letters of every script and
+    /// emoji as they are, only the quote, the backslash and control characters escaped. The
+    /// library's writers turn letters outside ASCII (the default one) or at least every emoji
+    /// (the relaxed one) into escapes of six or twelve bytes, and a layout written that way can
+    /// come out larger than the file it was read from, past the size limit. Written this way the
+    /// compact form is never larger than a file that loaded, so whatever loads can be written.
+    /// </summary>
+    private static string Quoted(string s)
+    {
+        var sb = new StringBuilder(s.Length + 2).Append('"');
+        foreach (char ch in s)
+        {
+            if (ch == '"') sb.Append("\\\"");
+            else if (ch == '\\') sb.Append("\\\\");
+            else if (ch < ' ') sb.Append("\\u").Append(((int)ch).ToString("x4"));
+            else sb.Append(ch);
+        }
+        return sb.Append('"').ToString();
+    }
+
+    private static byte[] Bytes(string kind, IReadOnlyList<DashItem> items, int cols, bool indented)
+    {
         using var ms = new MemoryStream();
-        using (var w = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
+        using (var w = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = indented, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
         {
             w.WriteStartObject();
             w.WriteString("ghostdeck", "dashboard");
             w.WriteNumber("v", Version);
             w.WriteString("kind", kind);
-            if (kind == Layout) w.WriteNumber("cols", cols is 0 or 4 or 5 or 6 or 8 ? cols : 0);
+            if (kind == Layout && cols is 4 or 5 or 6 or 8) w.WriteNumber("cols", cols);   // absent: the window decides
             w.WriteStartArray("items");
             foreach (var it in items)
             {
-                if (!TypeId.IsMatch(it.Type ?? "")) return null;
                 w.WriteStartObject();
                 w.WriteString("Type", it.Type);
                 w.WriteNumber("W", Math.Clamp(it.W, 1, DashItem.MaxW));
                 w.WriteNumber("H", Math.Clamp(it.H, 1, DashItem.MaxH));
-                if (it.Opt is { Count: > 0 } opt)
+                // the settings as settings.json would keep them after a restart: cleaned, within the limits
+                if (DashOptions.Sanitized(it.Opt, DashItem.MaxOptKeys, DashItem.MaxOptChars) is { Count: > 0 } opt)
                 {
                     w.WriteStartObject("Opt");
-                    int keys = 0;
                     foreach (var kv in opt)
                     {
-                        if (keys >= DashItem.MaxOptKeys || !OptKey.IsMatch(kv.Key)) continue;
-                        var val = kv.Value;
-                        switch (val.ValueKind)
+                        switch (kv.Value.ValueKind)
                         {
-                            case JsonValueKind.String when val.GetString() is { } s && CleanText(s): w.WriteString(kv.Key, s); keys++; break;
-                            case JsonValueKind.Number when val.TryGetInt32(out int n): w.WriteNumber(kv.Key, n); keys++; break;
-                            case JsonValueKind.True: w.WriteBoolean(kv.Key, true); keys++; break;
-                            case JsonValueKind.False: w.WriteBoolean(kv.Key, false); keys++; break;
+                            case JsonValueKind.String: w.WritePropertyName(kv.Key); w.WriteRawValue(Quoted(kv.Value.GetString()!)); break;
+                            case JsonValueKind.Number: w.WriteNumber(kv.Key, kv.Value.GetInt32()); break;
+                            case JsonValueKind.True: w.WriteBoolean(kv.Key, true); break;
+                            case JsonValueKind.False: w.WriteBoolean(kv.Key, false); break;
                             case JsonValueKind.Array:
-                            {
-                                var list = val.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? "")
-                                              .Where(CleanText).Distinct().Take(DashOptions.MaxList).ToList();
-                                if (list.Count == 0) break;
                                 w.WriteStartArray(kv.Key);
-                                foreach (var x in list) w.WriteStringValue(x);
+                                foreach (var x in kv.Value.EnumerateArray()) w.WriteRawValue(Quoted(x.GetString()!));
                                 w.WriteEndArray();
-                                keys++;
                                 break;
-                            }
                         }
                     }
                     w.WriteEndObject();
@@ -304,18 +329,32 @@ public static class DashFile
             w.WriteEndArray();
             w.WriteEndObject();
         }
-        var bytes = ms.ToArray();
-        // what was written must load: a file this version cannot read back is not handed out
-        return bytes.Length <= MaxBytes && Parse(bytes, out _) != null ? bytes : null;
+        return ms.ToArray();
     }
 
-    /// <summary>Writes the file; <see cref="Error.Damaged"/> when the items cannot make one, <see cref="Error.Io"/> when the disk says no.</summary>
+    /// <summary>
+    /// Writes the file. It goes to a temporary file beside the target first and takes the target's
+    /// place only when it is whole, so a full disk or a crash never leaves half a file where a good
+    /// one was. Never throws.
+    /// </summary>
     public static Error Save(string path, string kind, IReadOnlyList<DashItem> items, int cols)
     {
-        var bytes = Write(kind, items, cols);
-        if (bytes == null) return Error.Damaged;
-        try { File.WriteAllBytes(path, bytes); return Error.None; }
-        catch { return Error.Io; }
+        var bytes = Write(kind, items, cols, out var error);
+        if (bytes == null) return error;
+        string? temp = null;
+        try
+        {
+            string dir = Path.GetDirectoryName(Path.GetFullPath(path)) ?? "";
+            temp = Path.Combine(dir, ".ghostdeck-" + Guid.NewGuid().ToString("N")[..8] + ".tmp");
+            File.WriteAllBytes(temp, bytes);
+            File.Move(temp, path, overwrite: true);
+            return Error.None;
+        }
+        catch
+        {
+            try { if (temp != null && File.Exists(temp)) File.Delete(temp); } catch { }
+            return Error.Io;
+        }
     }
 
     /// <summary>A file name from a user's text: letters, digits, spaces, dashes and underscores only, never empty.</summary>

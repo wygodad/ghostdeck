@@ -178,8 +178,12 @@ internal sealed class CurveWidget : DashWidget
             string live = $"{liveTemp} °C · {Lang.T("fc_live_fan")} {liveFan} %";
             int titleW = TextRenderer.MeasureText(Caption, c.Font(11f, FontStyle.Bold), Size.Empty, TextFormatFlags.NoPadding).Width;
             int titleH = c.Font(11f, FontStyle.Bold).Height;
-            TextRenderer.DrawText(g, live, f, new Rectangle(inner.Left + titleW + c.S(10), inner.Top, Math.Max(10, inner.Width - titleW - c.S(10)), titleH), Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            // only when all of it fits between the title and the corner where the tile's menu button
+            // comes up: a long title of the user's must not push it out of the widget
+            int liveW = TextRenderer.MeasureText(live, f, Size.Empty, TextFormatFlags.NoPadding).Width, liveX = inner.Left + titleW + c.S(10);
+            if (liveX + liveW <= inner.Right - c.S(22))
+                TextRenderer.DrawText(g, live, f, new Rectangle(liveX, inner.Top, liveW + c.S(2), titleH), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
         bool trailOn = Opt.Flag(KTrail, true);
         var trailColor = Tint(KTrailColor, Theme.Amber);

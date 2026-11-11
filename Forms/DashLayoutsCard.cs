@@ -17,6 +17,14 @@ internal static class DashFileText
         _ => "dash_file_err_damaged",
     });
 
+    /// <summary>What to tell the user when a file could not be written: nothing here speaks of loading.</summary>
+    public static string OfExport(DashFile.Error e) => Lang.T(e switch
+    {
+        DashFile.Error.Empty => "dash_lay_empty",
+        DashFile.Error.TooLarge or DashFile.Error.TooMany => "dash_file_err_export_large",
+        _ => "dash_file_err_io",
+    });
+
     public const string Filter = "GhostDeck Dashboard (*.json)|*.json";
 }
 
@@ -26,10 +34,14 @@ internal static class DashFileText
 /// a file, and undo the last load. Loading replaces the layout on the Dashboard, so the one
 /// before stays at hand for one undo. A file is checked whole before anything of it is used
 /// (<see cref="DashFile"/>), and what went wrong is said here, in the card.
+///
+/// A card has no scroll bar. When the list of saved layouts would make the card taller than the
+/// screen's working area, the list goes on pages, so the file buttons and the card's own
+/// buttons are always on the screen.
 /// </summary>
 internal sealed class DashLayoutsCard : GhostCardForm
 {
-    private enum Act { Save, Load, Delete, Export, Import, Undo, Field }
+    private enum Act { Save, Load, Delete, Export, Import, Undo, Field, Page }
     private readonly record struct Zone(Rectangle R, Act Kind, int Idx);
 
     private readonly DashCanvas _canvas;
@@ -40,6 +52,9 @@ internal sealed class DashLayoutsCard : GhostCardForm
     private int _armed = -1;            // the saved layout whose Delete was clicked once and waits for the second click
     private string _status = "";
     private bool _statusBad;
+    private int _perPage = int.MaxValue;   // saved layouts shown at once; all of them when the card fits the screen
+    private int _page;
+    private int _reveal = -1;              // the saved layout whose page to show at the next paint (the one just saved)
 
     public DashLayoutsCard(DashCanvas canvas)
         : base("//DASHBOARD", Lang.T("dash_layouts_title"), Lang.T("dash_lay_hint"), Lang.T("dash_done"), "", () => { })
@@ -75,9 +90,24 @@ internal sealed class DashLayoutsCard : GhostCardForm
         {
             case Act.Field: FocusField(_name); return;
             case Act.Save:
-                if (DashOptions.Clean(_nameText, DashSavedLayout.MaxName).Length == 0) { FocusField(_name); return; }
-                if (_canvas.SaveLayoutAs(_nameText)) { Say(Lang.T("dash_lay_ok_saved")); if (_name != null) _name.Box.Text = ""; }
-                else Say(Lang.T("dash_lay_full"), bad: true);
+            {
+                string name = DashOptions.Clean(_nameText, DashSavedLayout.MaxName);
+                switch (name.Length == 0 ? DashCanvas.SaveAs.NoName : _canvas.SaveLayoutAs(name))
+                {
+                    case DashCanvas.SaveAs.Done:
+                        Say(Lang.T("dash_lay_ok_saved"));
+                        for (int i = 0; i < _canvas.SavedLayouts.Count; i++)
+                            if (string.Equals(_canvas.SavedLayouts[i].Name, name, StringComparison.OrdinalIgnoreCase)) _reveal = i;
+                        if (_name != null) _name.Box.Text = "";
+                        break;
+                    case DashCanvas.SaveAs.Empty: Say(Lang.T("dash_lay_empty"), bad: true); break;
+                    case DashCanvas.SaveAs.Full: Say(Lang.T("dash_lay_full"), bad: true); break;
+                    default: FocusField(_name); return;
+                }
+                break;
+            }
+            case Act.Page:
+                _page += idx;
                 break;
             case Act.Load:
                 _canvas.LoadSavedLayout(idx);
@@ -92,10 +122,12 @@ internal sealed class DashLayoutsCard : GhostCardForm
                 break;
             case Act.Export:
             {
+                // nothing to write: said before a file name is asked for
+                if (!_canvas.HasWidgets) { Say(DashFileText.OfExport(DashFile.Error.Empty), bad: true); break; }
                 using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, FileName = "ghostdeck-dashboard.json", OverwritePrompt = true };
                 if (dlg.ShowDialog(this) != DialogResult.OK) return;
                 var err = _canvas.ExportLayout(dlg.FileName);
-                Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.Of(err, wantLayout: true), err != DashFile.Error.None);
+                Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.OfExport(err), err != DashFile.Error.None);
                 break;
             }
             case Act.Import:
@@ -116,7 +148,18 @@ internal sealed class DashLayoutsCard : GhostCardForm
 
     // ---------------- layout and painting ----------------
 
-    protected override int MeasureContent(Graphics g, float k, int width) => Flow(g, k, width, null);
+    protected override int MeasureContent(Graphics g, float k, int width)
+    {
+        _perPage = int.MaxValue;
+        int h = Flow(g, k, width, null);
+        // too tall for the screen: fewer saved layouts at once, the rest on further pages
+        for (int per = _canvas.SavedLayouts.Count - 1; per >= 1 && h > ContentRoom; per--)
+        {
+            _perPage = per;
+            h = Flow(g, k, width, null);
+        }
+        return h;
+    }
 
     protected override void PaintContent(Graphics g, float k, Rectangle area, Point origin)
     {
@@ -191,13 +234,19 @@ internal sealed class DashLayoutsCard : GhostCardForm
         {
             string loadText = Lang.T("dash_lay_load"), delText = Lang.T("scene_delete"), sureText = Lang.T("dash_lay_sure");
             int loadW = BtnW(loadText), delW = Math.Max(BtnW(delText), BtnW(sureText)), rowH = Ce(40 * k);
-            for (int i = 0; i < saved.Count; i++)
+            int per = Math.Clamp(_perPage, 1, saved.Count), pages = (saved.Count + per - 1) / per;
+            // the page is settled when the card is painted: a measuring pass tries other page sizes,
+            // and must not move the page the user is on
+            int page = Math.Clamp(_reveal >= 0 ? _reveal / per : _page, 0, pages - 1);
+            if (paint) _page = page;
+            int first = page * per, last = Math.Min(saved.Count, first + per);
+            for (int i = first; i < last; i++)
             {
                 var row = new Rectangle(x, y, width, rowH);
                 if (paint)
                 {
                     using var line = new Pen(Color.FromArgb(22, 243, 247, 255), 1f);
-                    if (i > 0) g.DrawLine(line, row.Left, row.Top, row.Right, row.Top);
+                    if (i > first) g.DrawLine(line, row.Left, row.Top, row.Right, row.Top);
                 }
                 int right = row.Right;
                 var del = new Rectangle(right - delW, y + (rowH - btnH) / 2, delW, btnH);
@@ -214,7 +263,22 @@ internal sealed class DashLayoutsCard : GhostCardForm
                 }
                 y += rowH;
             }
+            if (pages > 1)
+            {
+                // every page is as tall as a full one, so what is below the list stays in place;
+                // then the page and the two arrows, on the right
+                y += (per - (last - first)) * rowH + gap;
+                int numW = Ce(g.MeasureString("00 / 00", smallF).Width) + gap;
+                var next = new Rectangle(x + width - btnH, y, btnH, btnH);
+                var num = new Rectangle(next.Left - numW, y, numW, btnH);
+                var prev = new Rectangle(num.Left - btnH, y, btnH, btnH);
+                Button(prev, "‹", Act.Page, -1, on: page > 0);
+                if (paint) g.DrawString((page + 1) + " / " + pages, smallF, mutedB, num, CenterText);
+                Button(next, "›", Act.Page, +1, on: page < pages - 1);
+                y += btnH;
+            }
         }
+        if (paint) _reveal = -1;
         y += Ce(18 * k);
 
         // ---- files, and the way back ----
@@ -269,8 +333,11 @@ internal sealed class DashLayoutsCard : GhostCardForm
     }
 
     /// <summary>Preview tool only: the card as it stands after an action, without its dialogs.</summary>
-    internal void PreviewState(string name, int armed, string status, bool bad)
+    internal void PreviewState(string name, int armed, string status, bool bad, int page = 0)
     {
-        _nameText = name; _armed = armed; _status = status; _statusBad = bad;
+        _nameText = name; _armed = armed; _status = status; _statusBad = bad; _page = page;
     }
+
+    /// <summary>Preview tool only: the page shown and how many saved layouts one page holds (all of them when the card fits).</summary>
+    internal (int page, int perPage) PreviewPaging => (_page, _perPage);
 }

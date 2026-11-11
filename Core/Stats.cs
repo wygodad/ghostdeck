@@ -80,7 +80,7 @@ public static class Stats
     /// <summary>One error of a kind (a short camelCase key, never a message): "profileApply", "statsSend", ...</summary>
     public static void CountError(AppSettings s, string kind)
     {
-        if (!s.StatsEnabled || !Regex.IsMatch(kind, "^[A-Za-z0-9_]{1,24}$")) return;
+        if (!s.StatsEnabled || !Regex.IsMatch(kind, "^[A-Za-z0-9_]{1,24}\\z")) return;
         RollWeek(s);
         s.StatsErrors[kind] = Math.Min(99999, s.StatsErrors.GetValueOrDefault(kind) + 1);
     }
@@ -88,7 +88,7 @@ public static class Stats
     /// <summary>A feature used this week (Fan Boost switched on, a scene run, ...).</summary>
     public static void CountUse(AppSettings s, string feature)
     {
-        if (!s.StatsEnabled || !Regex.IsMatch(feature, "^[A-Za-z0-9_]{1,24}$")) return;
+        if (!s.StatsEnabled || !Regex.IsMatch(feature, "^[A-Za-z0-9_]{1,24}\\z")) return;
         RollWeek(s);
         if (!s.StatsUsed.Contains(feature)) s.StatsUsed.Add(feature);
     }
@@ -145,19 +145,22 @@ public static class Stats
         };
 
         // A type is listed once, however many copies stand on the Dashboard (1.45): the first copy
-        // and its size. The list answers "who has this widget", and it is cut at 40 types.
+        // and its size. The list answers "who has this widget", and it is cut at 40 types. Only
+        // types this version knows are listed: a layout file can carry any id of the right shape
+        // (it shows as a grey field), and such an id must not travel on in a report, nor take a
+        // real widget's place among the 40.
         var widgets = new JsonArray();
         var listed = new HashSet<string>();
         foreach (var it in s.Dashboard)
         {
             if (widgets.Count >= 40) break;
-            if (Regex.IsMatch(it.Type, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}\\z") && listed.Add(it.Type))
+            if (DashItem.TypeOk(it.Type) && DashRegistry.Find(it.Type) != null && listed.Add(it.Type))
                 widgets.Add(new JsonObject { ["t"] = it.Type, ["s"] = $"{Math.Clamp(it.W, 1, 6)}x{Math.Clamp(it.H, 1, 4)}" });
         }
 
         var ratings = new JsonObject();
-        foreach (var kv in s.WidgetRatings.Take(40))
-            if (kv.Value >= 1 && kv.Value <= 5 && Regex.IsMatch(kv.Key, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}\\z")) ratings[kv.Key] = kv.Value;
+        foreach (var kv in s.WidgetRatings.Where(r => DashItem.TypeOk(r.Key) && DashRegistry.Find(r.Key) != null).Take(40))
+            if (kv.Value >= 1 && kv.Value <= 5) ratings[kv.Key] = kv.Value;
 
         var errors = new JsonObject();
         foreach (var kv in s.StatsErrors.Take(20)) errors[kv.Key] = Math.Clamp(kv.Value, 0, 99999);
@@ -169,7 +172,7 @@ public static class Stats
         {
             usage = new JsonObject();
             foreach (var kv in s.StatsUsage.OrderByDescending(k => k.Value).Take(8))
-                if (Regex.IsMatch(kv.Key, "^[a-z]{1,16}$")) usage[kv.Key] = (int)Math.Round(100.0 * kv.Value / total);
+                if (Regex.IsMatch(kv.Key, "^[a-z]{1,16}\\z")) usage[kv.Key] = (int)Math.Round(100.0 * kv.Value / total);
         }
 
         var report = new JsonObject

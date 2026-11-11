@@ -59,8 +59,24 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     {
         _def = def; _item = item; _defs = defs; _ctx = ctx; _save = onSave;
         _work = DashOptions.Of(item);
+        KeepOneOn();
         foreach (var o in defs)
             if (o.Kind is DashOptKind.Text or DashOptKind.Number) _text[o.Key] = TextOf(o);
+    }
+
+    /// <summary>
+    /// Switches of a group that keeps one on cannot all be switched off in the card, but settings
+    /// from a file edited by hand can say so. A widget draws every element of such a group then,
+    /// so the card shows them all on: what the switches say is what the picture shows.
+    /// </summary>
+    private void KeepOneOn()
+    {
+        foreach (var grp in _defs.Where(d => d.Kind == DashOptKind.Toggle && d.KeepOne.Length > 0).GroupBy(d => d.KeepOne))
+        {
+            if (grp.Any(d => _work.Flag(d.Key, d.DefaultOn))) continue;
+            foreach (var d in grp)
+                if (d.DefaultOn) _work.Remove(d.Key); else _work.Set(d.Key, true);
+        }
     }
 
     /// <summary>What a field shows for the setting's current value; nothing for the default (the grey text says what that is).</summary>
@@ -626,7 +642,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
         var (w, h) = Cells();
         var err = DashFile.Save(dlg.FileName, DashFile.Widget, new[] { new DashItem(_item.Type, w, h) { Opt = _work.ToMap() } }, 0);
-        Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.Of(err, wantLayout: false), err != DashFile.Error.None);
+        Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.OfExport(err), err != DashFile.Error.None);
     }
 
     /// <summary>
@@ -647,7 +663,9 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             Say(string.Format(Lang.T("dash_file_err_type_fmt"), other), true);
             return;
         }
+        ScenesWidget.DropForeignPick(c.Items[0], _ctx.D.Settings);   // a pick of scenes that are all another machine's: every scene of this one
         _work = DashOptions.Of(c.Items[0]);
+        KeepOneOn();
         ReloadTexts();
         Say(Lang.T("dash_style_loaded"), false);
     }

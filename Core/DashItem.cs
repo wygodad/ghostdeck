@@ -41,11 +41,33 @@ public sealed class DashItem
 
     /// <summary>
     /// The most widgets one Dashboard holds. A type may stand any number of times (1.45), so this
-    /// is no limit on copies; it is the far end that keeps a damaged file from freezing the tab
-    /// (the static layer costs about 1.4 ms a widget: 60 widgets 85 ms, 200 under a third of a
-    /// second, thousands would be seconds).
+    /// is no limit on copies; it is the far end that keeps a damaged file from freezing the tab:
+    /// every widget is laid out and asked on each tick whether its live part changed, on screen
+    /// or not (the picture itself is kept for the visible band only, see DashCanvas), and
+    /// thousands of them would take seconds.
     /// </summary>
     public const int MaxItems = 200;
+
+    /// <summary>
+    /// The most grid cells the widgets of one Dashboard cover together (width times height,
+    /// summed): 80 rows of a six-column grid. With <see cref="MaxItems"/> it bounds how tall the
+    /// Dashboard can get, whatever a layout file or a settings file says.
+    /// </summary>
+    public const int MaxCells = 480;
+
+    /// <summary>The cells a list of items covers.</summary>
+    public static int Cells(IEnumerable<DashItem> items) => items.Sum(i => Math.Clamp(i.W, 1, MaxW) * Math.Clamp(i.H, 1, MaxH));
+
+    /// <summary>A widget type's id: lower-case letters, a dot, then letters, digits and underscores; a fixed length at most.</summary>
+    public static bool TypeOk(string? type)
+    {
+        if (string.IsNullOrEmpty(type) || type.Length > 57) return false;
+        int dot = type.IndexOf('.');
+        if (dot < 1 || dot > 16 || dot == type.Length - 1 || type.Length - dot - 1 > 40) return false;
+        for (int i = 0; i < dot; i++) if (type[i] is < 'a' or > 'z') return false;
+        for (int i = dot + 1; i < type.Length; i++) if (!char.IsAsciiLetterOrDigit(type[i]) && type[i] != '_') return false;
+        return true;
+    }
 
     /// <summary>Version of the layout format; 0 in a settings file from before the Dashboard (1.44).</summary>
     public const int FormatVersion = 1;
@@ -88,15 +110,20 @@ public sealed class DashItem
     public static void Sanitize(List<DashItem> items)
     {
         items.RemoveAll(i => i == null || string.IsNullOrWhiteSpace(i.Type));
+        foreach (var i in items) i.Type = i.Type.Trim();
+        items.RemoveAll(i => !TypeOk(i.Type));   // an id of the fixed shape, known or not; anything else is not a widget
         if (items.Count > MaxItems) items.RemoveRange(MaxItems, items.Count - MaxItems);
-        foreach (var i in items)
+        int cells = 0;
+        for (int n = 0; n < items.Count; n++)
         {
-            i.Type = i.Type.Trim();
+            var i = items[n];
             i.W = Math.Clamp(i.W, 1, MaxW);
             i.H = Math.Clamp(i.H, 1, MaxH);
-            // the settings: an empty map is no map; an oversized one falls back to the defaults (the
-            // values themselves are checked where they are read, DashOptions)
-            if (i.Opt is { } o && (o.Count == 0 || o.Count > MaxOptKeys || DashOptions.SizeOf(o) > MaxOptChars)) i.Opt = null;
+            cells += i.W * i.H;
+            if (cells > MaxCells) { items.RemoveRange(n, items.Count - n); break; }   // the area's bound: what is over it goes from the end
+            // the settings, value by value: what cannot be read or does not fit goes, the rest
+            // stays (never the whole map for one bad value or one key too many)
+            i.Opt = DashOptions.Sanitized(i.Opt, MaxOptKeys, MaxOptChars);
         }
     }
 }

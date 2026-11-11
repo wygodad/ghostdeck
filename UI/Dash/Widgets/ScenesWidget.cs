@@ -22,6 +22,22 @@ internal sealed class ScenesWidget : DashWidget
     /// <summary>The scenes to show, in the order of the Scenarios tab; all of them unless some were picked.</summary>
     private IReadOnlyList<SceneDef> Shown(DashContext c) => Picked(KShow, c.D.Settings.Scenes, s => s.Id);
 
+    /// <summary>
+    /// Scenes are picked by the id they have on the machine they were made on, so a pick that
+    /// came in a file from another machine names scenes that are not here. Such a pick is taken
+    /// off and the widget shows every scene. A pick with at least one scene of this machine
+    /// stays (the file is the user's own), and so does one whose scenes were deleted later: that
+    /// widget says there is nothing to show.
+    /// </summary>
+    internal static void DropForeignPick(DashItem it, AppSettings s)
+    {
+        if (it.Type != "core.scenes" || it.Opt == null) return;
+        var o = DashOptions.Of(it);
+        if (o.List(KShow) is not { } pick || pick.Any(id => s.Scenes.Any(sc => sc.Id == id))) return;
+        o.Remove(KShow);
+        it.Opt = o.ToMap();
+    }
+
     /// <summary>No room for the title and a row with its chip and button: the single-cell size.</summary>
     private static bool Button(Rectangle r, DashContext c) => r.Width < c.S(230);
 

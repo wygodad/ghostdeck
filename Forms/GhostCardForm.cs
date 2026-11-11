@@ -518,7 +518,8 @@ public class GhostCardForm : Form
         int hBtnPad = Ce((ButtonFontPx - 13f) * k);   // a larger button font gets a taller button
         int yTitle = yHdr + hHdr + Ce(8 * k);
         int hTitle, hBody, hContent, hBtn = Ce(34 * k) + hBtnPad;
-        using (var probe = Graphics.FromImage(new Bitmap(1, 1)))
+        using (var probeBmp = new Bitmap(1, 1))
+        using (var probe = Graphics.FromImage(probeBmp))
         {
             probe.TextRenderingHint = TextRenderingHint.AntiAlias;
             hTitle = Ce(titleF.GetHeight(probe));
@@ -555,7 +556,7 @@ public class GhostCardForm : Form
         for (int i = 4; i >= 1; i--)
         {
             using var sp = new Pen(Color.FromArgb(7 * i, 0, 0, 0), i * 2.6f * k) { LineJoin = LineJoin.Round };
-            var m = new Matrix(); m.Translate(0, 1.5f * k);
+            using var m = new Matrix(); m.Translate(0, 1.5f * k);
             using var sh = (GraphicsPath)path.Clone();
             sh.Transform(m);
             g.DrawPath(sp, sh);

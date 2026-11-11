@@ -778,7 +778,8 @@ internal sealed partial class DashCanvas : Control
     private void OpenInfo(string type, DashItem? of = null)
     {
         if (DashRegistry.Find(type) == null) return;
-        InfoCardFor(type, of).ShowOver(FindForm());
+        using var card = InfoCardFor(type, of);
+        card.ShowOver(FindForm());
     }
 
     // One widget of every type with nothing set, for the catalogue's pictures and the widget
@@ -802,7 +803,11 @@ internal sealed partial class DashCanvas : Control
         return defs.Count == 0 ? null : new WidgetSettingsCard(def, it, defs, _ctx, opt => ApplyOptions(it, opt));
     }
 
-    private void OpenSettings(DashItem it) => SettingsCardFor(it)?.ShowOver(FindForm());
+    private void OpenSettings(DashItem it)
+    {
+        using var card = SettingsCardFor(it);   // disposed on the way out: a modal form is not, by itself, and the card holds the widget's picture
+        card?.ShowOver(FindForm());
+    }
 
     /// <summary>
     /// Save on the settings card: the settings go into the layout item, the item gets a new
@@ -811,6 +816,11 @@ internal sealed partial class DashCanvas : Control
     internal void ApplyOptions(DashItem it, DashOptions opt)
     {
         if (!_items.Any(i => ReferenceEquals(i, it)) || opt.SameAs(DashOptions.Of(it))) return;
+        // What is stored fits what one widget keeps, so the next start never has to cut it. When a
+        // style from a file brought many keys this version does not use, those go first.
+        int at = IndexOf(it);
+        var own = at < 0 ? new HashSet<string>() : _widgets[at].OptionDefs(_ctx).SelectMany(d => new[] { d.Key, d.ColorKey }).Where(k => k.Length > 0).ToHashSet();
+        opt.FitTo(DashItem.MaxOptKeys, DashItem.MaxOptChars, own);
         it.Opt = opt.ToMap();
         _byItem.Remove(it);
         Sync();   // a new instance, and with it the size: kept when the new settings still allow it, else the nearest allowed (one profile instead of four)
@@ -844,11 +854,14 @@ internal sealed partial class DashCanvas : Control
     /// </summary>
     private int IndexOf(DashItem it) => _items.FindIndex(i => ReferenceEquals(i, it));
 
+    /// <summary>Whether one more widget of this many cells still fits the Dashboard's bounds (the count and the area).</summary>
+    private bool Room(int cells) => _items.Count < DashItem.MaxItems && DashItem.Cells(_items) + cells <= DashItem.MaxCells;
+
     /// <summary>A copy of a widget, with its size and its settings, right after the original; from there it goes its own way.</summary>
     internal void Duplicate(DashItem it)
     {
         int index = IndexOf(it);
-        if (index < 0 || _items.Count >= DashItem.MaxItems) return;
+        if (index < 0 || !Room(it.W * it.H)) return;
         _items.Insert(index + 1, it.Clone());
         Sync();
         Save();
@@ -903,6 +916,7 @@ internal sealed partial class DashCanvas : Control
         int k = -1;
         for (int i = 0; i < sizes.Count; i++) if (sizes[i].Width == it.W && sizes[i].Height == it.H) { k = i; break; }
         var next = sizes[(k + 1) % sizes.Count];
+        if (next.Width * next.Height > it.W * it.H && DashItem.Cells(_items) - it.W * it.H + next.Width * next.Height > DashItem.MaxCells) return;   // the larger size would pass the area's bound
         it.W = next.Width; it.H = next.Height;
         Save();
     }
@@ -910,8 +924,8 @@ internal sealed partial class DashCanvas : Control
     internal void AddType(string typeId)
     {
         var def = DashRegistry.Find(typeId);
-        if (def == null || _items.Count >= DashItem.MaxItems) return;
-        var size = def.Sizes.Length > 0 ? def.Sizes[0] : new Size(1, 1);
+        var size = def == null ? new Size(1, 1) : def.Sizes.Length > 0 ? def.Sizes[0] : new Size(1, 1);
+        if (def == null || !Room(size.Width * size.Height)) return;
         _items.Add(new DashItem(typeId, size.Width, size.Height));
         Sync();
         Save();
@@ -963,19 +977,25 @@ internal sealed partial class DashCanvas : Control
         _undo = null;
     }
 
-    /// <summary>Keeps the current layout under a name (a name already there is replaced). False: no name, nothing to keep, or the list is full.</summary>
-    internal bool SaveLayoutAs(string name)
+    internal enum SaveAs { Done, NoName, Empty, Full }
+
+    /// <summary>Whether the Dashboard has anything to keep or to write to a file.</summary>
+    internal bool HasWidgets => _items.Count > 0;
+
+    /// <summary>Keeps the current layout under a name (a name already there is replaced), or says why not.</summary>
+    internal SaveAs SaveLayoutAs(string name)
     {
         name = DashOptions.Clean(name ?? "", DashSavedLayout.MaxName);
-        if (name.Length == 0 || _items.Count == 0) return false;
+        if (name.Length == 0) return SaveAs.NoName;
+        if (_items.Count == 0) return SaveAs.Empty;
         var list = _d.Settings.DashboardSaved;
         var entry = new DashSavedLayout { Name = name, Cols = _d.Settings.DashColumns, Items = _items.Select(i => i.Clone()).ToList() };
         int at = list.FindIndex(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
         if (at >= 0) list[at] = entry;
-        else if (list.Count >= DashSavedLayout.MaxLayouts) return false;
+        else if (list.Count >= DashSavedLayout.MaxLayouts) return SaveAs.Full;
         else list.Add(entry);
         try { _d.SaveSettings(); } catch { }
-        return true;
+        return SaveAs.Done;
     }
 
     internal void LoadSavedLayout(int index)
@@ -1000,6 +1020,7 @@ internal sealed partial class DashCanvas : Control
         var c = DashFile.Read(path, out var err);
         if (c == null) return err;
         if (c.Kind != DashFile.Layout) return DashFile.Error.WrongKind;
+        foreach (var it in c.Items) ScenesWidget.DropForeignPick(it, _d.Settings);
         ReplaceLayout(c.Items, c.Cols);
         return DashFile.Error.None;
     }
@@ -1090,8 +1111,20 @@ internal sealed partial class DashCanvas : Control
         if (_view == View.Stats && (IsSpotZone(old) || IsSpotZone(h))) { _mapHit = null; InvalidateSpot(); }   // the spotlight moves between the pointer's country and the walk's
     }
 
+    /// <summary>
+    /// A mouse message carries the position in 16 bits, so on a canvas taller than 32 767 px the
+    /// position it gives wraps around. Such a canvas takes the cursor's position from the screen.
+    /// </summary>
+    private MouseEventArgs At(MouseEventArgs e)
+    {
+        if (Height < 32000) return e;
+        var p = PointToClient(Cursor.Position);
+        return new MouseEventArgs(e.Button, e.Clicks, p.X, p.Y, e.Delta);
+    }
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
+        e = At(e);
         base.OnMouseMove(e);
         if (_dragIndex >= 0) { DragTo(e.Location); return; }
         if (_pressIndex >= 0 && e.Button == MouseButtons.Left)
@@ -1127,6 +1160,7 @@ internal sealed partial class DashCanvas : Control
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
+        e = At(e);
         base.OnMouseDown(e);
         if (e.Button != MouseButtons.Left) return;
         _downAt = e.Location;
@@ -1137,7 +1171,7 @@ internal sealed partial class DashCanvas : Control
             case Zone.Done: EditMode = false; return;
             case Zone.Add: CatalogOpen = !_catalog; return;
             case Zone.Reset: AskReset(); return;
-            case Zone.Layouts: LayoutsCard().ShowOver(FindForm()); return;
+            case Zone.Layouts: { using var card = LayoutsCard(); card.ShowOver(FindForm()); return; }
             case Zone.Refresh: SetRefresh(h.Index); return;
             case Zone.Remove: RemoveAt(h.Index); return;
             case Zone.Size: CycleSize(h.Index); return;
@@ -1160,6 +1194,7 @@ internal sealed partial class DashCanvas : Control
 
     protected override void OnMouseUp(MouseEventArgs e)
     {
+        e = At(e);
         base.OnMouseUp(e);
         _pressIndex = -1;
         if (_dragIndex >= 0)

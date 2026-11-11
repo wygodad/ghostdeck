@@ -35,8 +35,19 @@ public sealed class DashOptions
 
     public string Text(string key, string def = "")
     {
-        if (!_map.TryGetValue(key, out var v) || v.ValueKind != JsonValueKind.String) return def;
-        return Clean(v.GetString() ?? "", MaxText);
+        if (!_map.TryGetValue(key, out var v) || Str(v) is not { } s) return def;
+        return Clean(s, MaxText);
+    }
+
+    /// <summary>
+    /// A JSON string's text, or null when it is not a string or cannot be read. A settings file
+    /// edited by hand can hold a string that is no text at all (half of a surrogate pair written
+    /// as an escape): reading it throws, and a setting must never take the Dashboard down.
+    /// </summary>
+    internal static string? Str(JsonElement v)
+    {
+        if (v.ValueKind != JsonValueKind.String) return null;
+        try { return v.GetString(); } catch { return null; }
     }
 
     /// <summary>A whole number within [min, max]; a number written as text is accepted too.</summary>
@@ -45,7 +56,7 @@ public sealed class DashOptions
         if (!_map.TryGetValue(key, out var v)) return def;
         if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out double d) && !double.IsNaN(d) && !double.IsInfinity(d))
             return (int)Math.Clamp(Math.Round(d), min, max);
-        if (v.ValueKind == JsonValueKind.String && int.TryParse(v.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n))
+        if (Str(v) is { } text && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n))
             return Math.Clamp(n, min, max);
         return def;
     }
@@ -59,8 +70,7 @@ public sealed class DashOptions
     /// <summary>One of <paramref name="allowed"/> (exact match), else the default.</summary>
     public string Choice(string key, string def, IReadOnlyList<string> allowed)
     {
-        if (!_map.TryGetValue(key, out var v) || v.ValueKind != JsonValueKind.String) return def;
-        string t = v.GetString() ?? "";
+        if (!_map.TryGetValue(key, out var v) || Str(v) is not { } t) return def;
         foreach (var a in allowed) if (a == t) return a;
         return def;
     }
@@ -75,8 +85,8 @@ public sealed class DashOptions
         var list = new List<string>();
         foreach (var e in v.EnumerateArray())
         {
-            if (e.ValueKind != JsonValueKind.String) continue;
-            string t = Clean(e.GetString() ?? "", MaxText);
+            if (Str(e) is not { } raw) continue;
+            string t = Clean(raw, MaxText);
             if (t.Length > 0 && !list.Contains(t)) list.Add(t);
             if (list.Count >= MaxList) break;
         }
@@ -109,15 +119,126 @@ public sealed class DashOptions
         return n;
     }
 
-    /// <summary>Control characters out, outer spaces off, cut at <paramref name="max"/> without splitting a surrogate pair.</summary>
+    /// <summary>
+    /// The one rule for a text a widget keeps (a label, an id in a list, a layout's name), applied
+    /// where it is typed, where settings are read and where a file is checked, so what is stored
+    /// can always be written to a file and read back the same. Out go control characters, halves
+    /// of surrogate pairs, the characters that change the direction text is shown in, and the
+    /// invisible ones a name could hide a difference in (zero-width space, word joiner, byte order
+    /// mark). The rest is composed (NFC), so one name typed two ways is one name, trimmed, and cut
+    /// at <paramref name="max"/> without splitting a pair. The zero-width joiner stays: emoji are
+    /// built with it.
+    /// </summary>
     public static string Clean(string s, int max)
     {
-        if (s.Length == 0) return s;
+        if (string.IsNullOrEmpty(s)) return "";
         var sb = new StringBuilder(Math.Min(s.Length, max + 8));
-        foreach (char ch in s)
-            if (!char.IsControl(ch)) sb.Append(ch);
-        string t = sb.ToString().Trim();
-        if (t.Length > max) t = char.IsHighSurrogate(t[max - 1]) ? t[..(max - 1)] : t[..max];
+        for (int i = 0; i < s.Length; i++)
+        {
+            char ch = s[i];
+            if (char.IsControl(ch) || Hidden(ch)) continue;
+            if (char.IsHighSurrogate(ch))
+            {
+                if (i + 1 < s.Length && char.IsLowSurrogate(s[i + 1])) { sb.Append(ch).Append(s[++i]); }
+                continue;
+            }
+            if (char.IsLowSurrogate(ch)) continue;
+            sb.Append(ch);
+        }
+        string t = sb.ToString();
+        try { t = t.Normalize(NormalizationForm.FormC); } catch { }
+        t = t.Trim();
+        if (t.Length > max) t = (char.IsHighSurrogate(t[max - 1]) ? t[..(max - 1)] : t[..max]).TrimEnd();
         return t;
+    }
+
+    /// <summary>Direction marks, overrides and isolates, and the invisible characters that carry no text.</summary>
+    private static bool Hidden(char ch) =>
+        ch is (>= '\u202A' and <= '\u202E') or (>= '\u2066' and <= '\u2069') or '\u200E' or '\u200F' or '\u061C'
+           or '\u200B' or '\u2060' or '\uFEFF' or '\uFFFE' or '\uFFFF';
+
+    /// <summary>A key a setting may have: a letter, then letters, digits and underscores, 24 characters at most.</summary>
+    public static bool KeyOk(string key)
+    {
+        if (string.IsNullOrEmpty(key) || key.Length > 24 || !char.IsAsciiLetter(key[0])) return false;
+        foreach (char ch in key) if (!char.IsAsciiLetterOrDigit(ch) && ch != '_') return false;
+        return true;
+    }
+
+    /// <summary>
+    /// What may stay of a settings map read from settings.json, value by value: a clean text, a
+    /// whole number, yes/no, a list of clean texts. A value of another shape, a text that cannot
+    /// be read, a bad key go; the rest stays. Then the limits (<paramref name="maxKeys"/>,
+    /// <paramref name="maxChars"/>): what does not fit is left out from the end, never the whole
+    /// map. Null when nothing is left. Never throws.
+    /// </summary>
+    public static Dictionary<string, JsonElement>? Sanitized(Dictionary<string, JsonElement>? map, int maxKeys, int maxChars)
+    {
+        if (map == null || map.Count == 0) return null;
+        var o = new DashOptions();
+        int chars = 0;
+        foreach (var kv in map)
+        {
+            if (o._map.Count >= maxKeys) break;
+            if (!KeyOk(kv.Key)) continue;
+            JsonElement? keep = null;
+            try
+            {
+                switch (kv.Value.ValueKind)
+                {
+                    case JsonValueKind.String:
+                        if (Str(kv.Value) is { } s && Clean(s, MaxText) is { Length: > 0 } t) keep = JsonSerializer.SerializeToElement(t);
+                        break;
+                    case JsonValueKind.Number:
+                        if (kv.Value.TryGetInt32(out int n)) keep = JsonSerializer.SerializeToElement(n);
+                        else if (kv.Value.TryGetDouble(out double d) && !double.IsNaN(d) && !double.IsInfinity(d))
+                            keep = JsonSerializer.SerializeToElement((int)Math.Clamp(Math.Round(d), int.MinValue, int.MaxValue));
+                        break;
+                    case JsonValueKind.True: keep = JsonSerializer.SerializeToElement(true); break;
+                    case JsonValueKind.False: keep = JsonSerializer.SerializeToElement(false); break;
+                    case JsonValueKind.Array:
+                    {
+                        var list = new List<string>();
+                        foreach (var e in kv.Value.EnumerateArray())
+                        {
+                            if (Str(e) is not { } es || Clean(es, MaxText) is not { Length: > 0 } et || list.Contains(et)) continue;
+                            list.Add(et);
+                            if (list.Count >= MaxList) break;
+                        }
+                        if (list.Count > 0) keep = JsonSerializer.SerializeToElement(list);
+                        break;
+                    }
+                }
+            }
+            catch { keep = null; }
+            if (keep is not { } value) continue;
+            int cost = kv.Key.Length + value.GetRawText().Length;
+            if (chars + cost > maxChars) continue;
+            chars += cost;
+            o._map[kv.Key] = value;
+        }
+        return o.ToMap();
+    }
+
+    /// <summary>
+    /// Makes the settings fit what one widget keeps before they are saved. A key the widget does
+    /// not declare (<paramref name="own"/>: one that came with a style file or from a newer
+    /// version) is dropped first, the widget's own settings last, so the user's own choice is
+    /// never what a limit takes away.
+    /// </summary>
+    public void FitTo(int maxKeys, int maxChars, IReadOnlyCollection<string> own)
+    {
+        bool Fits() => _map.Count <= maxKeys && SizeOf(_map) <= maxChars;
+        if (Fits()) return;
+        foreach (string key in _map.Keys.Where(k => !own.Contains(k)).Reverse().ToList())
+        {
+            _map.Remove(key);
+            if (Fits()) return;
+        }
+        foreach (string key in _map.Keys.Reverse().ToList())
+        {
+            _map.Remove(key);
+            if (Fits()) return;
+        }
     }
 }
