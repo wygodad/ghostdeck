@@ -31,6 +31,16 @@ internal interface IDashWidget
     void Click(Point p, Rectangle r, DashContext c);
 
     /// <summary>
+    /// Whether the widget shows something at the cursor while it is over it (a chart: the reading
+    /// at that moment). The canvas then repaints the widget as the cursor moves in it and calls
+    /// <see cref="PaintPointer"/> after the live layer. Never in edit mode.
+    /// </summary>
+    bool FollowsPointer { get; }
+
+    /// <summary>What the widget shows at <paramref name="p"/> (canvas coordinates, inside <paramref name="r"/>); nothing when the point is not over what it tells about.</summary>
+    void PaintPointer(Graphics g, Rectangle r, Point p, DashContext c);
+
+    /// <summary>
     /// What the user can set on this widget (1.45), in the order the settings card shows it;
     /// empty = nothing to set, and the tile's menu offers no settings. The context is there
     /// because a list can depend on the machine (which switches this laptop has).
@@ -84,6 +94,8 @@ internal abstract class DashWidget : IDashWidget
     public virtual void PaintLive(Graphics g, Rectangle r, DashContext c) { }
     public virtual bool LiveChanged(DashContext c) => false;
     public virtual void Click(Point p, Rectangle r, DashContext c) { }
+    public virtual bool FollowsPointer => false;
+    public virtual void PaintPointer(Graphics g, Rectangle r, Point p, DashContext c) { }
     public virtual IReadOnlyList<DashOptionDef> OptionDefs(DashContext c) => Array.Empty<DashOptionDef>();
 
     /// <summary>The card every widget sits on (same look as the cards on the other tabs).</summary>

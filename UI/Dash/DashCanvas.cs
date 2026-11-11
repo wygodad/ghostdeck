@@ -458,6 +458,8 @@ internal sealed partial class DashCanvas : Control
             for (int i = 0; i < _placed.Count; i++)
                 if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(target, rects[i], _ctx);
             if (_edit) PaintEditChrome(target, rects, clip);
+            else if (PointerWidget() is { } pw && pw < rects.Length && rects[pw].IntersectsWith(clip))
+                _placed[pw].Widget.PaintPointer(target, rects[pw], _mouse, _ctx);   // a chart's reading at the cursor
         }
         else if (_view == View.Stats) PaintStatsLive(target);
         PaintHot(target);
@@ -660,6 +662,21 @@ internal sealed partial class DashCanvas : Control
         foreach (var (r, zone) in _zones)
             if (zone == _hot)
             {
+                if (zone.Kind == Zone.CatalogAdd)
+                {
+                    // the button itself answers the cursor: filled in a lighter accent with white text, whether
+                    // it was the filled one or the outline of a type that is already on the Dashboard
+                    var old = g.SmoothingMode;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    using (var bp = Theme.RoundRect(r, Sf(6)))
+                    {
+                        using var fill = new SolidBrush(ControlPaint.Light(Theme.AccentFill, 0.35f));
+                        g.FillPath(fill, bp);
+                    }
+                    g.SmoothingMode = old;
+                    TextRenderer.DrawText(g, Lang.T("dash_add_short"), _ctx.Font(9f, FontStyle.Bold), r, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                    return;
+                }
                 using var path = Theme.RoundRect(r, Sf(zone.Kind == Zone.CatalogAdd ? 6 : 8));
                 using var pen = new Pen(Theme.Accent, 1.4f);
                 g.DrawPath(pen, path);
@@ -769,7 +786,7 @@ internal sealed partial class DashCanvas : Control
         available && onBoard > 0 ? CatBadgeH : CatDescH(CatDesc(def, available, onBoard), w);
 
     /// <summary>Name line, the line under it, the stars line; with air above and below, so the frame of a row under the cursor stands clear of the texts.</summary>
-    private int CatalogRowH(int descH) => S(9) + CatNameF.Height + S(4) + descH + S(6) + StarSize + S(10);
+    private int CatalogRowH(int descH) => S(12) + Math.Max(CatNameF.Height, CatBtnH) + S(4) + descH + S(6) + StarSize + S(11);
 
     private int CatalogHeight(int width)
     {
@@ -852,8 +869,10 @@ internal sealed partial class DashCanvas : Control
             // name line: the name, the POPULAR badge, the Add button at the right
             string btn = Lang.T("dash_add_short");
             int bw = TextRenderer.MeasureText(btn, btnF, Size.Empty, TextFormatFlags.NoPadding).Width + S(20), bh = Math.Max(S(26), btnF.Height + S(8));
-            int nameTop = row.Top + S(9);
-            var br = new Rectangle(row.Right - bw, nameTop + (nameF.Height - bh) / 2, bw, bh);
+            // the name and the button share a line as tall as the button, which starts well under the row's frame
+            int lineTop = row.Top + S(12), nameLineH = Math.Max(nameF.Height, bh);
+            int nameTop = lineTop + (nameLineH - nameF.Height) / 2;
+            var br = new Rectangle(row.Right - bw, lineTop + (nameLineH - bh) / 2, bw, bh);
             int textW = w - bw - S(10);
             string name = Lang.T(def.NameKey);
             int nameW = Math.Min(textW, TextRenderer.MeasureText(name, nameF, Size.Empty, TextFormatFlags.NoPadding).Width);
@@ -874,7 +893,7 @@ internal sealed partial class DashCanvas : Control
 
             // under the name: the badge of a type that is on the Dashboard, else the description, up
             // to two lines across the whole width (the button sits on the name line)
-            int descTop = nameTop + nameF.Height + S(4);
+            int descTop = lineTop + nameLineH + S(4);
             if (onBoard && available) PaintPlaced(g, x, descTop, placed.GetValueOrDefault(def.TypeId), w);
             else
                 TextRenderer.DrawText(g, desc, descF, new Rectangle(x, descTop, w, descH), Theme.Muted,
@@ -909,7 +928,7 @@ internal sealed partial class DashCanvas : Control
             // the rest of the row opens the widget card (added last: the stars and the button win where
             // they overlap). The zone, and with it the frame under the cursor, reaches half-way into
             // the panel's padding on both sides: the frame stands clear of the texts and the button.
-            _zones.Add((new Rectangle(row.Left - S(8), row.Top + S(2), row.Width + S(16), row.Height - S(5)), new Hot(Zone.Info, -1, def.TypeId)));
+            _zones.Add((new Rectangle(row.Left - S(10), row.Top + S(2), row.Width + S(20), row.Height - S(5)), new Hot(Zone.Info, -1, def.TypeId)));
             y += rowH;
             if (n < order.Count - 1 && n != freshCount - 1)   // no line under the last row of a group: the next caption has its own
                 using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, x, y - 1, x + w, y - 1);
@@ -1270,6 +1289,11 @@ internal sealed partial class DashCanvas : Control
         return -1;
     }
 
+    /// <summary>The widget under the cursor when it is one that shows something there (a chart's reading), else null. Never in edit mode.</summary>
+    private int? PointerWidget() =>
+        !_edit && _view == View.Dashboard && _hot.Kind is Zone.Widget or Zone.More && _hot.Index >= 0 && _hot.Index < _placed.Count
+        && _placed[_hot.Index].Widget.FollowsPointer ? _hot.Index : null;
+
     private void SetHot(Hot h)
     {
         if (h == _hot) return;
@@ -1326,6 +1350,7 @@ internal sealed partial class DashCanvas : Control
         var h = HitZone(e.Location);
         if (h.Kind == Zone.Map && _hot.Kind == Zone.Map) { Invalidate(Rectangle.Inflate(_mapRect, S(220), S(60))); MapPointerMoved(); }   // the label follows the cursor
         SetHot(h);
+        if (PointerWidget() is { } pw && pw < _rects.Length) Invalidate(_rects[pw]);   // what the widget shows at the cursor follows it
         var want = h.Kind switch
         {
             Zone.None => Cursors.Default,

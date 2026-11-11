@@ -35,6 +35,11 @@ internal sealed class HistoryWidget : DashWidget
     private readonly Kind _kind;
     private readonly int _minutes;
     private long _painted = -1;
+    // what the last paint drew, for the reading at the cursor: the same samples, scale and place
+    private Rectangle _plot, _plotOf;
+    private List<HwSample> _drawn = new();
+    private int _drawnMax;
+    private DateTime _drawnStart;
     private DeviceProfile? _dev;
     private bool _devResolved;
 
@@ -128,6 +133,7 @@ internal sealed class HistoryWidget : DashWidget
     public override void PaintLive(Graphics g, Rectangle r, DashContext c)
     {
         _painted = HwHistory.Version;
+        _plot = Rectangle.Empty;
         var inner = Inner(r, c);
         var titleF = c.Font(11f, FontStyle.Bold);
         var valF = c.Font(9f, FontStyle.Bold);
@@ -206,6 +212,7 @@ internal sealed class HistoryWidget : DashWidget
         g.SmoothingMode = SmoothingMode.AntiAlias;
         double span = _minutes * 60.0;
         var start = now - TimeSpan.FromMinutes(_minutes);
+        _plot = plot; _plotOf = r; _drawn = data; _drawnMax = max; _drawnStart = start;
         for (int line = 1; line >= 0; line--)
         {
             if (!show[line]) continue;
@@ -235,6 +242,84 @@ internal sealed class HistoryWidget : DashWidget
     }
 
     public override bool LiveChanged(DashContext c) => HwHistory.Version != _painted;
+
+    public override bool FollowsPointer => true;
+
+    /// <summary>
+    /// The reading at the cursor, as on the Status charts: a dashed line at the sample nearest to
+    /// the cursor's moment, a dot on each line there, and a bubble with the time and the values
+    /// ("--" for a reading that is missing). Only while the cursor is over the plot.
+    /// </summary>
+    public override void PaintPointer(Graphics g, Rectangle r, Point p, DashContext c)
+    {
+        if (_plot.IsEmpty || _plotOf != r || _drawn.Count == 0) return;
+        if (p.X < _plot.Left || p.X > _plot.Right || p.Y < _plot.Top - c.S(4) || p.Y > _plot.Bottom + c.S(4)) return;
+        double span = _minutes * 60.0;
+        var at = _drawnStart + TimeSpan.FromSeconds((p.X - _plot.Left) / (double)Math.Max(1, _plot.Width) * span);
+        // the sample nearest in time (the samples are in the order they came)
+        int best = 0;
+        double bestGap = double.MaxValue;
+        for (int i = 0; i < _drawn.Count; i++)
+        {
+            double gap = Math.Abs((_drawn[i].Time - at).TotalSeconds);
+            if (gap < bestGap) { bestGap = gap; best = i; }
+        }
+        var s = _drawn[best];
+        float x = _plot.Left + (float)(Math.Clamp((s.Time - _drawnStart).TotalSeconds / span, 0, 1) * _plot.Width);
+        var show = Lines(c);
+        var cols = LineColors();
+        var old = g.SmoothingMode;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        using (var pen = new Pen(Color.FromArgb(150, Theme.Muted), 1f) { DashStyle = DashStyle.Dash })
+            g.DrawLine(pen, x, _plot.Top, x, _plot.Bottom);
+
+        // the bubble's lines: the time, then a value for every line that is drawn
+        var timeF = c.Font(8.5f, FontStyle.Bold);
+        var valF = c.Font(9f, FontStyle.Bold);
+        const TextFormatFlags Plain = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
+        var rows = new List<(string text, Font f, Color color)> { (s.Time.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture), timeF, Theme.Muted) };
+        string[] names = { "CPU", "GPU" };
+        for (int line = 0; line < 2; line++)
+        {
+            if (!show[line]) continue;
+            int v = Value(s, line);
+            bool ok = Valid(v, _drawnMax);
+            rows.Add((names[line] + ": " + (ok ? v + Unit : "--"), valF, cols[line]));
+            if (!ok) continue;
+            float y = _plot.Bottom - Math.Clamp(v, 0, _drawnMax) / (float)_drawnMax * _plot.Height;
+            using var ring = new SolidBrush(Theme.Card);
+            using var dot = new SolidBrush(cols[line]);
+            g.FillEllipse(ring, x - c.Sf(5), y - c.Sf(5), c.Sf(10), c.Sf(10));
+            g.FillEllipse(dot, x - c.Sf(3.5f), y - c.Sf(3.5f), c.Sf(7), c.Sf(7));
+        }
+        int padX = c.S(9), padY = c.S(7), rowGap = c.S(2), bw = 0, bh = padY * 2 - rowGap;
+        foreach (var (text, f, _) in rows)
+        {
+            bw = Math.Max(bw, TextRenderer.MeasureText(text, f, Size.Empty, Plain).Width);
+            bh += f.Height + rowGap;
+        }
+        bw += padX * 2;
+        // right of the line, left of it when there is no room; kept inside the widget
+        int bx = (int)x + c.S(12);
+        if (bx + bw > r.Right - c.S(6)) bx = (int)x - c.S(12) - bw;
+        bx = Math.Max(r.Left + c.S(6), bx);
+        int by = Math.Clamp(p.Y - bh / 2, r.Top + c.S(6), Math.Max(r.Top + c.S(6), r.Bottom - c.S(6) - bh));
+        var box = new Rectangle(bx, by, bw, bh);
+        using (var path = Theme.RoundRect(box, c.Sf(7)))
+        {
+            using var fill = new SolidBrush(Color.FromArgb(Theme.Dark ? 235 : 245, Theme.Card));
+            g.FillPath(fill, path);
+            using var edge = new Pen(Theme.Border);
+            g.DrawPath(edge, path);
+        }
+        g.SmoothingMode = old;
+        int ty = box.Top + padY;
+        foreach (var (text, f, color) in rows)
+        {
+            TextRenderer.DrawText(g, text, f, new Point(box.Left + padX, ty), color, Plain);
+            ty += f.Height + rowGap;
+        }
+    }
 
     public override void Click(Point p, Rectangle r, DashContext c) => c.OpenTab(MainTab.Status);
 
