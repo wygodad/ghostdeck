@@ -123,16 +123,30 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         Changed();
     }
 
-    protected override bool Acknowledge()
+    /// <summary>A field that cannot be saved (not a number in range, a rule between fields): the caret goes into it. False when every field is fine.</summary>
+    private bool StopAtBadField()
     {
         foreach (var o in _defs)
         {
             if (!Bad(o)) continue;
-            // a field that cannot be saved keeps the card open, with the caret in it
             Rerender();
             if (_hosts.TryGetValue(o.Key, out var h)) FocusField(h, selectAll: true);
-            return false;
+            return true;
         }
+        return false;
+    }
+
+    /// <summary>The settings as they would be stored: within what one widget keeps, the widget's own keys kept before any it does not declare.</summary>
+    private DashOptions Stored()
+    {
+        var fit = _work.Clone();
+        fit.FitTo(DashItem.MaxOptKeys, DashItem.MaxOptChars, _defs.SelectMany(d => new[] { d.Key, d.ColorKey }).Where(k => k.Length > 0).ToHashSet());
+        return fit;
+    }
+
+    protected override bool Acknowledge()
+    {
+        if (StopAtBadField()) return false;   // the card stays open
         // settings that need a larger size than the full Dashboard has room for: the card stays open and says so
         if (_fits != null && !_fits(_work)) { Say(Lang.T("dash_set_no_room"), true); return false; }
         _save(_work);
@@ -641,10 +655,13 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     /// <summary>The settings being edited, as a widget style file.</summary>
     private void ExportStyle()
     {
+        // what is written is what Save would store: no field with a value that cannot be saved, and
+        // the same fit to the limits (the user's own settings before keys the widget does not know)
+        if (StopAtBadField()) return;
         using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, OverwritePrompt = true, FileName = DashFile.ExportName(_item.Type, DateTime.Now) };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
         var (w, h) = Cells();
-        var err = DashFile.Save(dlg.FileName, DashFile.Widget, new[] { new DashItem(_item.Type, w, h) { Opt = _work.ToMap() } }, 0);
+        var err = DashFile.Save(dlg.FileName, DashFile.Widget, new[] { new DashItem(_item.Type, w, h) { Opt = Stored().ToMap() } }, 0);
         Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.OfExport(err), err != DashFile.Error.None);
     }
 

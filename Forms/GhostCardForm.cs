@@ -473,7 +473,20 @@ public class GhostCardForm : Form
         bool wasDrag = _drag && _dragMoved;
         _drag = false;
         if (wasDrag) return;
-        if (_hotZone >= 0) { ContentClick(_hotZone); return; }
+        // The zone by the point of this click, not the number remembered from the last mouse move:
+        // a card that re-lays itself out after a click (the next page of a list) gives the same
+        // number to another zone, and a second click without a move would act on that one.
+        int zone = _hotBtn >= 0 ? -1 : ContentHit(e.Location);
+        if (zone >= 0)
+        {
+            ContentClick(zone);
+            if (!IsDisposed && IsHandleCreated)
+            {
+                int now = ContentHit(e.Location);
+                if (now != _hotZone) { _hotZone = now; Render(); }
+            }
+            return;
+        }
         switch (_hotBtn)
         {
             case 0: Ack(); return;
@@ -493,10 +506,18 @@ public class GhostCardForm : Form
         OnRendered();
     }
 
+    // The last resort for a card taller than the working area of its screen (a very low screen at
+    // a large scale, a long language, a status line on top): a card has no scroll bar, so it is
+    // drawn smaller, down to a little over half, until it fits. Every card tries its full size
+    // first, each time it is composed.
+    private float _fit = 1f;
+    private int _fitPass;
+
     private Bitmap Compose()
     {
+        if (_fitPass == 0) _fit = 1f;
         float dpi; dpi = Dpi.Of(this);
-        float k = dpi / 96f;
+        float k = dpi / 96f * _fit;
         _k = k;
         int Ce(float v) => (int)Math.Ceiling(v);
 
@@ -533,6 +554,15 @@ public class GhostCardForm : Form
         int yContent = yBody + hBody + (hContent > 0 ? Ce(14 * k) : 0);
         int yBtns = yContent + hContent + Ce(14 * k);
         int H = yBtns + hBtn + Ce(14 * k);
+
+        long room = WorkAreaHeight();
+        if (H + pad * 2 > room && room > 0 && _fit > 0.56f && _fitPass < 3)
+        {
+            _fit = Math.Max(0.55f, _fit * room / (H + pad * 2) * 0.98f);
+            _fitPass++;
+            try { return Compose(); }
+            finally { _fitPass--; }
+        }
 
         var bmp = new Bitmap(W + pad * 2, H + pad * 2, PixelFormat.Format32bppArgb);
         bmp.SetResolution(dpi, dpi);

@@ -34,7 +34,7 @@ public sealed class DashItem
 
     public DashItem Clone() => new() { Type = Type, W = W, H = H, Opt = Opt == null ? null : new(Opt), Extra = Extra == null ? null : new(Extra) };
 
-    /// <summary>Most settings one widget keeps, and the most characters they take in the file; a larger map is a damaged file and is dropped.</summary>
+    /// <summary>Most settings one widget keeps, and the most characters they take in the file; what is over goes from the end (<see cref="DashOptions.Sanitized"/>), in a layout file a larger map refuses the file.</summary>
     public const int MaxOptKeys = 24, MaxOptChars = 2048;
 
     public const int MaxW = 6, MaxH = 4;
@@ -50,8 +50,10 @@ public sealed class DashItem
 
     /// <summary>
     /// The most grid cells the widgets of one Dashboard cover together (width times height,
-    /// summed): 80 rows of a six-column grid. With <see cref="MaxItems"/> it bounds how tall the
-    /// Dashboard can get, whatever a layout file or a settings file says.
+    /// summed). With <see cref="MaxItems"/> it bounds how much there is to lay out and draw,
+    /// whatever a layout file or a settings file says: 80 full rows of a six-column grid, up to
+    /// 120 rows of four-wide widgets on four columns. Memory does not hang on it: the canvas keeps
+    /// pictures only as large as what the page shows (DashCanvas).
     /// </summary>
     public const int MaxCells = 480;
 

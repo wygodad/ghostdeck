@@ -342,17 +342,22 @@ public static class DashFile
         var bytes = Write(kind, items, cols, out var error);
         if (bytes == null) return error;
         string? temp = null;
+        bool made = false;   // the temporary file is this call's own: only then is it removed after a failure
         try
         {
             string dir = Path.GetDirectoryName(Path.GetFullPath(path)) ?? "";
-            temp = Path.Combine(dir, ".ghostdeck-" + Guid.NewGuid().ToString("N")[..8] + ".tmp");
-            File.WriteAllBytes(temp, bytes);
+            temp = Path.Combine(dir, ".ghostdeck-" + Guid.NewGuid().ToString("N") + ".tmp");
+            using (var fs = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))   // never over a file that is already there
+            {
+                made = true;
+                fs.Write(bytes, 0, bytes.Length);
+            }
             File.Move(temp, path, overwrite: true);
             return Error.None;
         }
         catch
         {
-            try { if (temp != null && File.Exists(temp)) File.Delete(temp); } catch { }
+            try { if (made && temp != null && File.Exists(temp)) File.Delete(temp); } catch { }
             return Error.Io;
         }
     }

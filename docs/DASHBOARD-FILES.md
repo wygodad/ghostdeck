@@ -33,7 +33,7 @@ The format is a promise: a file written by GhostDeck 1.45 loads in every later v
 
 A setting has a plain key (a letter, then letters, digits and underscores, at most 24 characters) and one of four kinds of value:
 
-- a text of at most 64 characters,
+- a text of at most 64 characters (UTF-16 units: an emoji counts as two or more),
 - a whole number,
 - `true` or `false`,
 - a list of 1 to 16 such texts, none of them twice.
@@ -45,7 +45,7 @@ The settings of one widget take at most 2048 characters together. They are count
 A file can come from anywhere, so GhostDeck trusts nothing in it.
 
 - **All or nothing.** One thing out of place and the file is refused whole; the Dashboard stays exactly as it was.
-- **Small, shallow, short, of a bounded area.** At most 256 KB, at most six levels of nesting, at most 200 widgets, and at most 480 grid cells covered by all widgets together (width times height, summed: 80 rows of a six-column grid). The area is counted twice: on the sizes the file states, and on the sizes the widgets would take on the Dashboard, because a known widget takes the nearest size it allows (a fan curve written as 1x1 stands as 2x2). A file over the bound either way is refused. The area bound keeps a file from making the Dashboard taller than the app is built for. The same two bounds hold for widgets added by hand, for a change of a widget's settings that needs a larger size, and for `settings.json`.
+- **Small, shallow, short, of a bounded area.** At most 256 KB, at most six levels of nesting, at most 200 widgets, and at most 480 grid cells covered by all widgets together (width times height, summed). The area is counted twice: on the sizes the file states, and on the sizes the widgets would take on the Dashboard, because a known widget takes the nearest size it allows (a fan curve written as 1x1 stands as 2x2). A file over the bound either way is refused. The two bounds limit how much there is to lay out and draw; they do not fix the Dashboard's height (480 cells are 80 full rows of a six-column grid, and up to 120 rows when every widget is four cells wide on four columns). The app's memory does not depend on that height: the picture it keeps is never larger than the part of the Dashboard the window shows. The same two bounds hold for widgets added by hand, for a change of a widget's settings that needs a larger size, and for `settings.json`.
 - **Only the fields above are read.** Anything else in the file is ignored and never reaches `settings.json`. Every widget is built anew from checked values; nothing of the file is carried over as it stands.
 - **No name twice.** A field that appears twice in an object that is read (the file itself, an item, its settings) refuses the file. A field that is ignored is ignored with whatever it holds.
 - **Texts are plain.** A text is refused when it is empty, has a space at either end, or holds a control character, half of a surrogate pair, a character that changes the direction text is shown in (U+202A to U+202E, U+2066 to U+2069, U+200E, U+200F, U+061C), an invisible character that carries no text (zero-width space U+200B, word joiner U+2060, byte order mark U+FEFF, U+FFFE, U+FFFF), or a letter that is not in its composed form (NFC). The zero-width joiner U+200D is allowed, because emoji are built with it. It is the same rule GhostDeck applies to a text typed in the app and to texts in `settings.json`, so what the app stores can always be written to a file and read back the same.
@@ -57,7 +57,7 @@ Loading a layout replaces the layout on the Dashboard, and the one before can be
 
 - The file name offered is English, without spaces, with the date and time, in every language of the app: `ghostdeck-widget-cpu-temp_2026-11-11_14-05-09.json` for a widget's style, `ghostdeck-dashboard_2026-11-11_14-05-09.json` for a layout.
 - Plain UTF-8. Letters of every script and emoji are written as they are; only the quote, the backslash and control characters are escaped. The file is indented while that fits 256 KB and compact when it does not.
-- Whatever loaded from a file can be written to a file again. A layout built in the app can be larger than a file holds (many widgets with many long texts); it is then not written, and the card says the layout is too large for a file. An empty Dashboard is not written either.
+- Whatever the reader accepts can be written again with the same content. On the Dashboard a widget may then take a larger size than the file stated (the nearest it allows); the layout is checked for that before it is loaded, so what stands on the Dashboard can be exported too. A layout built in the app can be larger than a file holds (many widgets with many long texts); it is then not written, and the card says the layout is too large for a file. An empty Dashboard is not written either.
 - The file is checked by reading it back before it is handed over, written to a temporary file beside the target, and put in the target's place only when it is whole. A full disk or a file that cannot be replaced leaves the old file as it was.
 
 ## What a file does not hold

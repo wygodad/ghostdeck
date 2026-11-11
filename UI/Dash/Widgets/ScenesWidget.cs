@@ -9,15 +9,26 @@ namespace GhostDeck;
 /// lasting id, so renaming a scene changes nothing here. In a single cell there is no room for
 /// rows: the widget is one button that runs the first of its scenes, which with one scene picked
 /// makes a "run this scene" button.
+///
+/// Looks (1.45, "view"): the list (as in 1.44, the default), tiles (a large glyph over the name,
+/// the scene's profile as a coloured line at the bottom) and buttons (compact pills with the
+/// glyph and the name, the profile as a dot; twice as many scenes fit as in the list). In every
+/// look a click on a scene runs it. Tiles and buttons also allow the wide 4x1 size.
 /// </summary>
 internal sealed class ScenesWidget : DashWidget
 {
-    private const string KShow = "show";
+    private const string KShow = "show", KView = "view";
+    private static readonly string[] Views = { "list", "tiles", "buttons" };
 
+    private readonly string _view;
     private string _painted = "";
     private readonly List<(Rectangle r, SceneDef scene)> _rows = new();
 
-    public ScenesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt) { }
+    public ScenesWidget(DashWidgetDef def, DashOptions opt) : base(def, opt)
+    {
+        _view = opt.Choice(KView, "list", Views);
+        if (_view != "list") Sizes = Sz((2, 1), (2, 2), (4, 1), (1, 1));
+    }
 
     /// <summary>The scenes to show, in the order of the Scenarios tab; all of them unless some were picked.</summary>
     private IReadOnlyList<SceneDef> Shown(DashContext c) => Picked(KShow, c.D.Settings.Scenes, s => s.Id);
@@ -64,6 +75,8 @@ internal sealed class ScenesWidget : DashWidget
         }
         var nameF = c.Font(10.5f, FontStyle.Bold);
         if (button) { PaintButton(g, inner, scenes[0], nameF, c); return; }
+        if (_view == "tiles") { PaintTiles(g, area, scenes, nameF, c); return; }
+        if (_view == "buttons") { PaintPills(g, area, scenes, nameF, c); return; }
         var chipF = c.Font(8.5f);
         using var glyphF = Dpi.Font("Segoe UI Emoji", 12f);   // scene glyphs are emoji, as on the scene cards
         int rowH = Math.Max(c.S(34), nameF.Height + c.S(12));
@@ -132,6 +145,120 @@ internal sealed class ScenesWidget : DashWidget
         _rows.Add((inner, s));
     }
 
+    /// <summary>The colour of a scene's profile, or null when the scene sets none.</summary>
+    private static Color? ProfileColor(SceneDef s, DashContext c) =>
+        !string.IsNullOrEmpty(s.Profile) && Enum.TryParse<ProfileId>(s.Profile, out var pid) ? Theme.Profile(c.D.ColorOf(pid)) : null;
+
+    private static void Cell(Graphics g, Rectangle r, float radius)
+    {
+        using var path = Theme.RoundRect(r, radius);
+        using var b = new SolidBrush(Theme.Surface);
+        g.FillPath(b, path);
+        using var pen = new Pen(Theme.Border);
+        g.DrawPath(pen, path);
+    }
+
+    /// <summary>
+    /// Tiles: as many as fit at a size a glyph and a name need, in rows that share the width, so
+    /// three scenes are three wide tiles and six are two rows of three. The profile is a thin
+    /// coloured line at the tile's bottom.
+    /// </summary>
+    private void PaintTiles(Graphics g, Rectangle area, IReadOnlyList<SceneDef> scenes, Font nameF, DashContext c)
+    {
+        using var glyphF = Dpi.Font("Segoe UI Emoji", 17f);
+        int gap = c.S(8), minW = c.S(74), minH = Math.Max(c.S(74), glyphF.Height + nameF.Height + c.S(26));
+        int perMax = Math.Max(1, (area.Width + gap) / (minW + gap)), rowsMax = Math.Max(1, (area.Height + gap) / (minH + gap));
+        int n = Math.Min(scenes.Count, perMax * rowsMax);
+        // the number of rows that makes the tiles nearest to a little wider than tall: four scenes
+        // in a square widget are two rows of two, not four tall slivers
+        int rows = 1, per = n;
+        double best = double.MaxValue;
+        for (int r = Math.Max(1, (n + perMax - 1) / perMax); r <= Math.Min(rowsMax, n); r++)
+        {
+            int p = (n + r - 1) / r;
+            double w = (area.Width - gap * (p - 1)) / (double)p, h = (area.Height - gap * (r - 1)) / (double)r;
+            double off = Math.Abs(Math.Log(w / Math.Max(1, h) / 1.25));
+            if (off < best - 0.001) { best = off; rows = r; per = p; }
+        }
+        int th = (area.Height - gap * (rows - 1)) / rows;
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        for (int i = 0; i < n; i++)
+        {
+            int row = i / per, col = i % per, inRow = Math.Min(per, n - row * per);
+            int tw = (area.Width - gap * (inRow - 1)) / inRow;
+            var t = new Rectangle(area.Left + col * (tw + gap), area.Top + row * (th + gap), tw, th);
+            var s = scenes[i];
+            Cell(g, t, c.Sf(9));
+            if (ProfileColor(s, c) is { } pc)
+            {
+                using var lb = new SolidBrush(pc);
+                using var lp = Theme.RoundRect(new RectangleF(t.Left + c.Sf(10), t.Bottom - c.Sf(7), Math.Max(c.Sf(6), t.Width - c.Sf(20)), c.Sf(3)), c.Sf(1.5f));
+                g.FillPath(lb, lp);
+            }
+            var body = new Rectangle(t.Left + c.S(5), t.Top + c.S(6), t.Width - c.S(10), t.Height - c.S(6) - c.S(11));
+            int glyphH = string.IsNullOrEmpty(s.Glyph) ? 0 : glyphF.Height, g1 = glyphH > 0 ? c.S(4) : 0;
+            int nameH = Math.Min(nameF.Height * 2, TextRenderer.MeasureText(s.Name, nameF, new Size(body.Width, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
+            if (glyphH + g1 + nameH > body.Height) nameH = nameF.Height;   // a low tile: one line of the name
+            int top = body.Top + Math.Max(0, (body.Height - (glyphH + g1 + nameH)) / 2);
+            if (glyphH > 0)
+                TextRenderer.DrawText(g, s.Glyph, glyphF, new Rectangle(body.Left, top, body.Width, glyphH), Theme.Accent,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, s.Name, nameF, new Rectangle(body.Left, top + glyphH + g1, body.Width, nameH), Theme.Text,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            _rows.Add((t, s));
+        }
+    }
+
+    /// <summary>
+    /// Buttons: compact pills with the glyph and the name, the profile as a dot at the right end.
+    /// One column while the scenes fit under one another, else as many columns as the width
+    /// allows; a name too long for its pill takes a second line (every pill is then that tall).
+    /// </summary>
+    private void PaintPills(Graphics g, Rectangle area, IReadOnlyList<SceneDef> scenes, Font nameF, DashContext c)
+    {
+        using var glyphF = Dpi.Font("Segoe UI Emoji", 11f);
+        int gap = c.S(8), glyphW = c.S(26), dotW = c.S(18), padL = c.S(8);
+        int oneH = Math.Max(c.S(30), nameF.Height + c.S(12));
+        int colsMax = Math.Max(1, (area.Width + gap) / (c.S(140) + gap));
+        int rowsOne = Math.Max(1, (area.Height + gap) / (oneH + gap));
+        int cols = Math.Min(colsMax, Math.Max(1, (scenes.Count + rowsOne - 1) / rowsOne));
+        int pw = (area.Width - gap * (cols - 1)) / cols;
+        int n = Math.Min(scenes.Count, cols * rowsOne);
+        int TextW(SceneDef s) => pw - padL - (string.IsNullOrEmpty(s.Glyph) ? 0 : glyphW) - dotW;
+        bool two = false;
+        for (int i = 0; i < n && !two; i++)
+            two = TextRenderer.MeasureText(scenes[i].Name, nameF, Size.Empty, TextFormatFlags.NoPadding).Width > TextW(scenes[i]);
+        int ph = two ? Math.Max(oneH, nameF.Height * 2 + c.S(8)) : oneH;
+        int rows = Math.Max(1, (area.Height + gap) / (ph + gap));
+        n = Math.Min(n, cols * rows);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        for (int i = 0; i < n; i++)
+        {
+            int row = i / cols, col = i % cols;
+            var p = new Rectangle(area.Left + col * (pw + gap), area.Top + row * (ph + gap), pw, ph);
+            var s = scenes[i];
+            Cell(g, p, Math.Min(c.Sf(15), ph / 2f));
+            int x = p.Left + padL;
+            if (!string.IsNullOrEmpty(s.Glyph))
+            {
+                TextRenderer.DrawText(g, s.Glyph, glyphF, new Rectangle(x, p.Top, glyphW, ph), Theme.Accent,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                x += glyphW;
+            }
+            int nameH = Math.Min(two ? nameF.Height * 2 : nameF.Height,
+                TextRenderer.MeasureText(s.Name, nameF, new Size(Math.Max(10, TextW(s)), int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
+            TextRenderer.DrawText(g, s.Name, nameF, new Rectangle(x + c.S(2), p.Top + (ph - nameH) / 2, Math.Max(10, TextW(s) - c.S(2)), nameH), Theme.Text,
+                TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
+            if (ProfileColor(s, c) is { } pc)
+            {
+                using var db = new SolidBrush(pc);
+                float d = c.Sf(8);
+                g.FillEllipse(db, p.Right - c.Sf(10) - d, p.Top + (ph - d) / 2f, d, d);
+            }
+            _rows.Add((p, s));
+        }
+    }
+
     private string Signature(DashContext c)
     {
         var sb = new System.Text.StringBuilder();
@@ -150,7 +277,14 @@ internal sealed class ScenesWidget : DashWidget
 
     public override IReadOnlyList<DashOptionDef> OptionDefs(DashContext c)
     {
-        var list = new List<DashOptionDef>();
+        var list = new List<DashOptionDef>
+        {
+            new(KView, DashOptKind.Choice, Lang.T("dash_opt_view"))
+            {
+                Default = "list",
+                Items = new[] { ("list", Lang.T("dash_opt_view_list")), ("tiles", Lang.T("dash_opt_view_tiles")), ("buttons", Lang.T("dash_opt_view_buttons")) },
+            },
+        };
         var scenes = c.D.Settings.Scenes;
         if (scenes.Count > 1)
             list.Add(new(KShow, DashOptKind.Checks, Lang.T("dash_opt_show")) { Items = scenes.Select(s => (s.Id, s.Name)).ToArray() });   // names alone: the card's font has no emoji for the glyphs

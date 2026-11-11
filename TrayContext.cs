@@ -221,6 +221,7 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
+        AppSettings.SaveFailed += why => (_ui ?? SynchronizationContext.Current)?.Post(_ => TellSettingsNotSaved(why), null);
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
         // MSI True Color (roadmap #119): a profile recorded by True Color itself (its window, Fn+A)
         // refreshes the tray dots and the Settings card; the watcher only exists when it is installed
@@ -332,6 +333,21 @@ public sealed class TrayContext : ApplicationContext
             Lang.T("gen_ok"), "", () => { });
         dlg.Show();
         dlg.Activate();
+    }
+
+    private GhostCardForm? _saveCard;
+
+    /// <summary>
+    /// The settings file could not be written: said in a card, once per run of failures
+    /// (AppSettings.SaveFailed). The change the user just made works until the app closes and is
+    /// not on disk; before 1.45 only the log knew.
+    /// </summary>
+    private void TellSettingsNotSaved(string why)
+    {
+        if (_saveCard is { IsDisposed: false }) return;
+        _saveCard = new GhostCardForm("//SETTINGS", Lang.T("set_not_saved_title"), string.Format(Lang.T("set_not_saved_text"), why), Lang.T("gen_ok"), "", () => { });
+        _saveCard.Show();
+        _saveCard.Activate();
     }
 
     private string ExecuteCliCore(string raw)

@@ -68,9 +68,13 @@ internal sealed partial class DashCanvas : Control
         _ctx = new DashContext(d, this) { RequestRebuild = Rebuild, CellPx = () => Width > 0 ? Cell(Width) : 0 };
         BackColor = Theme.Surface;
         ResizeRedraw = true;
-        // OptimizedDoubleBuffer: OnPaint composes the static blit and the live layer offscreen
-        // and presents once, so a tick never shows the static layer without its needles.
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        // No OptimizedDoubleBuffer: WinForms' own double buffer is allocated for the whole control
+        // on every paint, whatever part is being painted, and this control is as tall as its
+        // content (a layout within every limit came to 1.75 GB at 3840 px). OnPaint composes the
+        // static blit and the live layer in a frame buffer of its own, no larger than what the
+        // page shows, and presents once, so a tick never shows the static layer without its needles.
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
+        SetStyle(ControlStyles.OptimizedDoubleBuffer, false);
         Stats.SummaryChanged += OnSummaryChanged;   // a fresh weekly summary: the catalogue's badges and order change
     }
 
@@ -285,11 +289,16 @@ internal sealed partial class DashCanvas : Control
         finally { g.ReleaseHdc(hdc); }
     }
 
-    /// <summary>The part of the canvas the page shows now.</summary>
+    /// <summary>
+    /// The part of the canvas the page shows now. Never taller than the screens together, so the
+    /// buffers that follow it stay bounded also where there is no page around the canvas (a tool,
+    /// a page as tall as its content).
+    /// </summary>
     private Rectangle VisibleRect()
     {
         int top = Math.Clamp(-Top, 0, Math.Max(0, Height - 1));
         int shown = Parent is { } p ? p.ClientSize.Height : Height;
+        shown = Math.Min(shown, Math.Max(S(600), SystemInformation.VirtualScreen.Height));
         return new Rectangle(0, top, Width, Math.Max(1, Math.Min(Height - top, Math.Max(1, shown))));
     }
 
@@ -369,7 +378,57 @@ internal sealed partial class DashCanvas : Control
 
     protected override void OnPaintBackground(PaintEventArgs e) { }   // the static layer covers the whole surface
 
-    protected override void OnPaint(PaintEventArgs e) => PaintAll(e.Graphics, e.ClipRectangle);
+    // The frame buffer: one paint is composed here (static blit, live layer, edit chrome) and
+    // goes to the screen in one copy. As wide as the canvas and as tall as what the page shows,
+    // kept between paints; a paint taller than that (the whole control asked for at once) goes in
+    // slices of that height.
+    private BufferedGraphicsContext? _frameCtx;
+    private BufferedGraphics? _frame;
+    private Size _frameSize;
+
+    private Graphics? Frame(int height)
+    {
+        var want = new Size(Width, height);
+        if (_frame == null || _frameSize != want)
+        {
+            _frame?.Dispose();
+            _frame = null;
+            if (want.Width <= 0 || want.Height <= 0) return null;
+            _frameCtx ??= new BufferedGraphicsContext();
+            using var cg = CreateGraphics();
+            _frame = _frameCtx.Allocate(cg, new Rectangle(Point.Empty, want));
+            _frameSize = want;
+        }
+        return _frame.Graphics;
+    }
+
+    /// <summary>What the frame buffer takes now, in bytes (the preview tool reports it).</summary>
+    internal long FrameBytes => _frame == null ? 0 : (long)_frameSize.Width * _frameSize.Height * 4;
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var clip = Rectangle.Intersect(e.ClipRectangle, ClientRectangle);
+        if (clip.Width <= 0 || clip.Height <= 0) return;
+        int frameH = Math.Max(1, VisibleRect().Height);
+        for (int y = clip.Top; y < clip.Bottom; y += frameH)
+        {
+            var part = new Rectangle(clip.Left, y, clip.Width, Math.Min(frameH, clip.Bottom - y));
+            if (Frame(frameH) is not { } g) return;
+            g.ResetTransform();
+            g.TranslateTransform(-part.X, -part.Y);
+            SetTextOrigin(g, -part.X, -part.Y);
+            try { PaintAll(g, part); }
+            finally { SetTextOrigin(g, 0, 0); g.ResetTransform(); }
+            IntPtr src = g.GetHdc();
+            try
+            {
+                IntPtr dst = e.Graphics.GetHdc();
+                try { BitBlt(dst, part.X, part.Y, part.Width, part.Height, src, 0, 0, 0x00CC0020 /* SRCCOPY */); }
+                finally { e.Graphics.ReleaseHdc(dst); }
+            }
+            finally { g.ReleaseHdc(src); }
+        }
+    }
 
     /// <summary>The static layer of <paramref name="clip"/> from the band buffer, then the live layer over it.</summary>
     private void PaintAll(Graphics target, Rectangle clip)
@@ -432,6 +491,8 @@ internal sealed partial class DashCanvas : Control
     /// <summary>Free the static buffer (the page is hidden); OnPaint renders it again on demand.</summary>
     internal void ReleaseBuffer()
     {
+        _frame?.Dispose();
+        _frame = null;
         _static?.Dispose();
         _static = null;
         _sW = _sH = 0;
@@ -441,7 +502,7 @@ internal sealed partial class DashCanvas : Control
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _statsTimer?.Dispose(); _spotTimer?.Dispose(); _static?.Dispose(); }
+        if (disposing) { Stats.SummaryChanged -= OnSummaryChanged; _statsTimer?.Dispose(); _spotTimer?.Dispose(); _static?.Dispose(); _frame?.Dispose(); _frameCtx?.Dispose(); }
         base.Dispose(disposing);
     }
 
@@ -1137,13 +1198,22 @@ internal sealed partial class DashCanvas : Control
 
     /// <summary>
     /// A mouse message carries the position in 16 bits, so on a canvas taller than 32 767 px the
-    /// position it gives wraps around. Such a canvas takes the cursor's position from the screen.
+    /// Y it gives has wrapped around: it is right only up to a multiple of 65 536. The mouse is
+    /// where the page shows the canvas (or, during a drag, near it), so the multiple that puts the
+    /// point nearest the middle of the visible part is the one. The position stays the event's
+    /// own: where the cursor was when the button went down, not where it is by now.
     /// </summary>
     private MouseEventArgs At(MouseEventArgs e)
     {
         if (Height < 32000) return e;
-        var p = PointToClient(Cursor.Position);
-        return new MouseEventArgs(e.Button, e.Clicks, p.X, p.Y, e.Delta);
+        return new MouseEventArgs(e.Button, e.Clicks, e.X, Unwrap(e.Y, VisibleRect()), e.Delta);
+    }
+
+    internal static int Unwrap(int y16, Rectangle visible)
+    {
+        long mid = visible.Top + visible.Height / 2;
+        long turns = (long)Math.Round((mid - y16) / 65536.0);
+        return (int)(y16 + turns * 65536);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)

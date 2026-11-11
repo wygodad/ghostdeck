@@ -74,7 +74,7 @@ public sealed class AppSettings
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
     // (1.44) Dashboard columns chosen in edit mode: 0 = as many as the width allows at 150 px
     // cells (auto), else 4, 5, 6 or 8 (a denser grid, cells down to 110 px when the window allows)
-    public int DashColumns { get; set; }
+    public int DashColumns { get; set; } = 8;   // a new installation starts with 8 columns (1.45); a settings file that has the field keeps what it says, 0 = automatic
     // (1.45) How often the Dashboard reads its data, in milliseconds: 1500 (as 1.44 did, and the
     // fastest there is), 3000 or 5000. One setting for the whole tab: the widgets share one read.
     public int DashRefreshMs { get; set; } = 1500;
@@ -479,6 +479,15 @@ public sealed class AppSettings
     }
 
     private static bool _saveFailureNoted;
+    private static bool _saveFailing;   // the last save failed: the next failure in a row is not announced again
+
+    /// <summary>
+    /// The settings file could not be written (the system's reason is the argument). Raised once
+    /// when saving starts to fail, and again only after a save worked in between; on whatever
+    /// thread saved. The app keeps running on what it has in memory, so without a word the user
+    /// would learn of it at the next start, with the changes gone.
+    /// </summary>
+    public static event Action<string>? SaveFailed;
 
     /// <summary>
     /// Writes the file through a temporary one and a swap, so a crash, a full disk or a
@@ -508,10 +517,16 @@ public sealed class AppSettings
             File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
             if (File.Exists(FilePath)) File.Replace(tmp, FilePath, FilePath + ".bak", ignoreMetadataErrors: true);
             else File.Move(tmp, FilePath);
+            _saveFailing = false;
         }
         catch (Exception ex)
         {
             if (!_saveFailureNoted) { _saveFailureNoted = true; AppLifecycle.Note("settings could not be saved: " + ex.Message); }
+            if (!_saveFailing)
+            {
+                _saveFailing = true;
+                try { SaveFailed?.Invoke(ex.Message); } catch { }
+            }
         }
     }
 
