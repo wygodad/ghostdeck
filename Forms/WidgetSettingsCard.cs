@@ -40,6 +40,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private readonly IReadOnlyList<DashOptionDef> _defs;
     private readonly DashContext _ctx;
     private readonly Action<DashOptions> _save;
+    private readonly Func<DashOptions, bool>? _fits;                      // whether the widget with these settings has room on the Dashboard
     private DashOptions _work;                                            // the settings being edited
     private string _status = "";                                          // what exporting or loading a style did
     private bool _statusBad;
@@ -54,10 +55,10 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private bool _loading;                                                // the card is filling the boxes itself
     private bool _tight;                                                  // the screen is too low for the roomy layout
 
-    public WidgetSettingsCard(DashWidgetDef def, DashItem item, IReadOnlyList<DashOptionDef> defs, DashContext ctx, Action<DashOptions> onSave)
+    public WidgetSettingsCard(DashWidgetDef def, DashItem item, IReadOnlyList<DashOptionDef> defs, DashContext ctx, Action<DashOptions> onSave, Func<DashOptions, bool>? fits = null)
         : base("//WIDGET", Lang.T(def.NameKey), Lang.T("dash_set_hint"), Lang.T("set_save"), Lang.T("gen_cancel"), () => { })
     {
-        _def = def; _item = item; _defs = defs; _ctx = ctx; _save = onSave;
+        _def = def; _item = item; _defs = defs; _ctx = ctx; _save = onSave; _fits = fits;
         _work = DashOptions.Of(item);
         KeepOneOn();
         foreach (var o in defs)
@@ -132,6 +133,8 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             if (_hosts.TryGetValue(o.Key, out var h)) FocusField(h, selectAll: true);
             return false;
         }
+        // settings that need a larger size than the full Dashboard has room for: the card stays open and says so
+        if (_fits != null && !_fits(_work)) { Say(Lang.T("dash_set_no_room"), true); return false; }
         _save(_work);
         DialogResult = DialogResult.OK;
         return true;
@@ -638,7 +641,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     /// <summary>The settings being edited, as a widget style file.</summary>
     private void ExportStyle()
     {
-        using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, OverwritePrompt = true, FileName = "ghostdeck-" + DashFile.SafeFileName(Lang.T(_def.NameKey), "widget") + ".json" };
+        using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, OverwritePrompt = true, FileName = DashFile.ExportName(_item.Type, DateTime.Now) };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
         var (w, h) = Cells();
         var err = DashFile.Save(dlg.FileName, DashFile.Widget, new[] { new DashItem(_item.Type, w, h) { Opt = _work.ToMap() } }, 0);

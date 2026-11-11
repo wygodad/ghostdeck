@@ -357,6 +357,33 @@ public static class DashFile
         }
     }
 
+    /// <summary>
+    /// The name an export is offered under: English, without spaces, with the local date and time,
+    /// the same in every language of the app, e.g. "ghostdeck-widget-cpu-temp_2026-11-11_14-05-09.json"
+    /// for a widget's style and "ghostdeck-dashboard_2026-11-11_14-05-09.json" for a layout
+    /// (<paramref name="type"/> null). The widget's part is its type id after the dot, split at
+    /// capitals: only ASCII letters and digits of it are used.
+    /// </summary>
+    public static string ExportName(string? type, DateTime now)
+    {
+        var sb = new StringBuilder("ghostdeck-");
+        if (type == null) sb.Append("dashboard");
+        else
+        {
+            sb.Append("widget");
+            string id = type[(type.IndexOf('.') + 1)..];
+            bool dash = true;   // a dash is due before the next letter or digit
+            foreach (char ch in id.Length > 40 ? id[..40] : id)
+            {
+                if (!char.IsAsciiLetterOrDigit(ch)) { dash = true; continue; }
+                if (dash || char.IsAsciiLetterUpper(ch)) sb.Append('-');
+                sb.Append(char.ToLowerInvariant(ch));
+                dash = false;
+            }
+        }
+        return sb.Append('_').Append(now.ToString("yyyy-MM-dd_HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture)).Append(".json").ToString();
+    }
+
     /// <summary>A file name from a user's text: letters, digits, spaces, dashes and underscores only, never empty.</summary>
     public static string SafeFileName(string text, string fallback)
     {

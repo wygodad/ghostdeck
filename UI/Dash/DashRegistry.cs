@@ -48,6 +48,27 @@ internal static class DashRegistry
         return null;
     }
 
+    /// <summary>
+    /// The size an item takes once it stands on the Dashboard: a known widget takes the nearest
+    /// size it allows for its settings (<see cref="DashItem.Fit"/>), so a 1x1 written for a widget
+    /// whose smallest size is 2x2 is four cells, not one. A type this version does not know keeps
+    /// the size it came with.
+    /// </summary>
+    public static (int w, int h) FittedSize(DashItem item, DashOptions? with = null) =>
+        Find(item.Type) is { } def ? DashItem.Fit(def.New(with ?? DashOptions.Of(item)).Sizes, item.W, item.H) : (item.W, item.H);
+
+    /// <summary>The cells a layout covers on the Dashboard, by the sizes its widgets really take.</summary>
+    public static int FittedCells(IEnumerable<DashItem> items)
+    {
+        int cells = 0;
+        foreach (var it in items)
+        {
+            var (w, h) = FittedSize(it);
+            cells += Math.Clamp(w, 1, DashItem.MaxW) * Math.Clamp(h, 1, DashItem.MaxH);
+        }
+        return cells;
+    }
+
     /// <summary>The widget for a layout item: the registered type, or the grey unknown card.</summary>
     public static IDashWidget Make(DashItem item) => Find(item.Type)?.New(DashOptions.Of(item)) ?? new UnknownWidget(item.Type);
 }

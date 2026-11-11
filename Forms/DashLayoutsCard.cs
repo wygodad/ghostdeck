@@ -124,7 +124,7 @@ internal sealed class DashLayoutsCard : GhostCardForm
             {
                 // nothing to write: said before a file name is asked for
                 if (!_canvas.HasWidgets) { Say(DashFileText.OfExport(DashFile.Error.Empty), bad: true); break; }
-                using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, FileName = "ghostdeck-dashboard.json", OverwritePrompt = true };
+                using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, FileName = DashFile.ExportName(null, DateTime.Now), OverwritePrompt = true };
                 if (dlg.ShowDialog(this) != DialogResult.OK) return;
                 var err = _canvas.ExportLayout(dlg.FileName);
                 Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.OfExport(err), err != DashFile.Error.None);

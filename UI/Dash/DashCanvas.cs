@@ -155,8 +155,10 @@ internal sealed partial class DashCanvas : Control
         if (same) return;
         _widgets.Clear();
         var kept = new Dictionary<DashItem, IDashWidget>(ReferenceEqualityComparer.Instance);
-        foreach (var it in items)
+        int cells = 0, keep = items.Count;
+        for (int n = 0; n < items.Count; n++)
         {
+            var it = items[n];
             if (!_byItem.TryGetValue(it, out var w) || w.TypeId != it.Type)
             {
                 w = DashRegistry.Make(it);
@@ -166,9 +168,17 @@ internal sealed partial class DashCanvas : Control
                 // not know keeps its size untouched.
                 if (w is not UnknownWidget) (it.W, it.H) = DashItem.Fit(w.Sizes, it.W, it.H);
             }
+            // The area's bound counts the sizes the widgets take here, after the fit: settings.json
+            // is checked on the sizes it states, and a widget written smaller than it can be would
+            // slip under the bound and then grow. What is over the bound goes from the end. A layout
+            // file never gets this far (ImportLayout refuses it whole), and every action in the app
+            // checks for room first, so this is for a settings file changed by hand.
+            cells += it.W * it.H;
+            if (cells > DashItem.MaxCells) { keep = n; break; }
             kept[it] = w;
             _widgets.Add(w);
         }
+        if (keep < items.Count) items.RemoveRange(keep, items.Count - keep);
         _byItem = kept;
         _items = items;
         _placedCols = -1;
@@ -800,7 +810,7 @@ internal sealed partial class DashCanvas : Control
         int index = _items.FindIndex(i => ReferenceEquals(i, it));   // the layout may have changed while a menu was open
         if (index < 0 || DashRegistry.Find(it.Type) is not { } def) return null;
         var defs = _widgets[index].OptionDefs(_ctx);
-        return defs.Count == 0 ? null : new WidgetSettingsCard(def, it, defs, _ctx, opt => ApplyOptions(it, opt));
+        return defs.Count == 0 ? null : new WidgetSettingsCard(def, it, defs, _ctx, opt => ApplyOptions(it, opt), opt => FitsWith(it, opt));
     }
 
     private void OpenSettings(DashItem it)
@@ -810,12 +820,23 @@ internal sealed partial class DashCanvas : Control
     }
 
     /// <summary>
+    /// Whether a widget with these settings still fits the Dashboard's area. Settings can change
+    /// the sizes a widget allows (all profiles instead of one), and on a Dashboard that is full
+    /// the larger size has no room: the card says so and stays open, nothing is cut.
+    /// </summary>
+    internal bool FitsWith(DashItem it, DashOptions opt)
+    {
+        var (w, h) = DashRegistry.FittedSize(it, opt);
+        return w * h <= it.W * it.H || DashItem.Cells(_items) - it.W * it.H + w * h <= DashItem.MaxCells;
+    }
+
+    /// <summary>
     /// Save on the settings card: the settings go into the layout item, the item gets a new
     /// widget instance (an instance keeps its settings for life) and the Dashboard repaints once.
     /// </summary>
     internal void ApplyOptions(DashItem it, DashOptions opt)
     {
-        if (!_items.Any(i => ReferenceEquals(i, it)) || opt.SameAs(DashOptions.Of(it))) return;
+        if (!_items.Any(i => ReferenceEquals(i, it)) || opt.SameAs(DashOptions.Of(it)) || !FitsWith(it, opt)) return;
         // What is stored fits what one widget keeps, so the next start never has to cut it. When a
         // style from a file brought many keys this version does not use, those go first.
         int at = IndexOf(it);
@@ -1021,6 +1042,9 @@ internal sealed partial class DashCanvas : Control
         if (c == null) return err;
         if (c.Kind != DashFile.Layout) return DashFile.Error.WrongKind;
         foreach (var it in c.Items) ScenesWidget.DropForeignPick(it, _d.Settings);
+        // the area by the sizes the widgets would take here, not the ones the file states: a file
+        // cannot write a widget smaller than it can be and get under the bound that way
+        if (DashRegistry.FittedCells(c.Items) > DashItem.MaxCells) return DashFile.Error.TooMany;
         ReplaceLayout(c.Items, c.Cols);
         return DashFile.Error.None;
     }
