@@ -13,7 +13,8 @@ namespace GhostDeck;
 /// the card says so.
 ///
 /// Settings (1.45): the title and its colour, which of the two lines to draw (never neither)
-/// and the colour of each. A single-fan model has one line and one colour to set.
+/// and the colour of each, and the trail of past temperatures: on or off, and its colour. A
+/// single-fan model has one line and one colour to set.
 /// </summary>
 internal sealed class CurveWidget : DashWidget
 {
@@ -47,7 +48,7 @@ internal sealed class CurveWidget : DashWidget
     private int MaxPct => _dev?.FanCurve?.MaxFanPct ?? 150;
     private bool SingleFan => _dev?.FanCurve?.SingleFan ?? false;
 
-    private const string KCpu = "cpu", KGpu = "gpu", KCpuColor = "cpuc", KGpuColor = "gpuc";
+    private const string KCpu = "cpu", KGpu = "gpu", KCpuColor = "cpuc", KGpuColor = "gpuc", KTrail = "trail", KTrailColor = "trailc";
 
     /// <summary>The colours of the CPU and the GPU line: accent and violet unless picked.</summary>
     private Color[] LineColors() => new[] { Tint(KCpuColor, Theme.Accent), Tint(KGpuColor, Theme.Violet) };
@@ -180,6 +181,8 @@ internal sealed class CurveWidget : DashWidget
             TextRenderer.DrawText(g, live, f, new Rectangle(inner.Left + titleW + c.S(10), inner.Top, Math.Max(10, inner.Width - titleW - c.S(10)), titleH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
+        bool trailOn = Opt.Flag(KTrail, true);
+        var trailColor = Tint(KTrailColor, Theme.Amber);
         var bubbles = new List<Rectangle>();   // placed bubbles, so the GPU's never covers the CPU's
         for (int fan = 0; fan < 2; fan++)
         {
@@ -188,8 +191,8 @@ internal sealed class CurveWidget : DashWidget
             if (!show[fan] || !s.TempsKnown || t <= 0 || temps.Length < 2 || sp.Length != temps.Length) continue;
             PointF OnCurve(int temp) => new(plot.Left + CurveModel.OrdinalX(temps, temp) * plot.Width / (temps.Length - 1),
                                             plot.Bottom - Math.Clamp(CurveModel.SpeedAt(temps, sp, temp), 0, max) / (float)max * plot.Height);
-            // the amber trail: where this fan's temperature has been, older = fainter and smaller
-            int cnt = _trail.Count;
+            // the trail (amber unless picked, and it can be switched off): where this fan's temperature has been, older = fainter and smaller
+            int cnt = trailOn ? _trail.Count : 0;
             for (int i = 0; i < cnt - 1; i++)
             {
                 int qt = fan == 0 ? _trail[i].cpu : _trail[i].gpu;
@@ -197,7 +200,7 @@ internal sealed class CurveWidget : DashWidget
                 float age = i / (float)Math.Max(1, cnt - 1);   // 0 = oldest, 1 = newest
                 float rr = c.Sf(1.6f + 1.4f * age);
                 var q = OnCurve(qt);
-                using var tb = new SolidBrush(Color.FromArgb(40 + (int)(150 * age), Theme.Amber));
+                using var tb = new SolidBrush(Color.FromArgb(40 + (int)(150 * age), trailColor));
                 g.FillEllipse(tb, q.X - rr, q.Y - rr, rr * 2, rr * 2);
             }
             var dot = OnCurve(t);
@@ -248,6 +251,8 @@ internal sealed class CurveWidget : DashWidget
             list.Add(new(KCpu, DashOptKind.Toggle, Lang.T("fc_fan_cpu")) { DefaultOn = true, KeepOne = "lines", Row = "lines", ColorKey = KCpuColor, Auto = _ => Theme.Accent });
             list.Add(new(KGpu, DashOptKind.Toggle, Lang.T("fc_fan_gpu")) { DefaultOn = true, KeepOne = "lines", Row = "lines", ColorKey = KGpuColor, Auto = _ => Theme.Violet });
         }
+        // the dots that show where the temperature has been over the last minutes
+        list.Add(new(KTrail, DashOptKind.Toggle, Lang.T("dash_opt_trail")) { DefaultOn = true, ColorKey = KTrailColor, Auto = _ => Theme.Amber });
         return list;
     }
 }

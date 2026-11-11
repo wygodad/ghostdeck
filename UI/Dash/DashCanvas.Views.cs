@@ -49,7 +49,7 @@ internal sealed partial class DashCanvas
         int One(string key) => S(12) + S(16) + S(8) + TextRenderer.MeasureText(Lang.T(key), f, Size.Empty, TextFormatFlags.NoPadding).Width + S(14);
         if (_view == View.Catalog) return Summary == null ? 0 : TextRenderer.MeasureText(Lang.T("dash_sort_popular") + Lang.T("dash_sort_az"), CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22) * 2 + S(8);
         if (_view == View.Stats) return StatsRefreshShown ? One("dash_st_refresh") : 0;
-        return _edit ? One("dash_done") + One("dash_reset") + One("dash_add") + S(8) * 2 : One("dash_edit");
+        return _edit ? One("dash_done") + One("dash_reset") + One("dash_add") + One("dash_layouts") + S(8) * 3 : One("dash_edit");
     }
 
     /// <summary>The Statistics view's Refresh button shows once statistics are on (or a summary is at hand, as in the demo).</summary>
@@ -155,6 +155,33 @@ internal sealed partial class DashCanvas
             }
             TextRenderer.DrawText(g, text, CatSmallF, pr, on ? Theme.Accent : Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             _zones.Add((pr, new Hot(Zone.Cols, v, null)));
+            x += pw + S(6);
+        }
+
+        // "Refresh: 1.5 s 3 s 5 s" on the same line: how often the whole Dashboard reads its data.
+        // One setting for all widgets, because they all draw from the one shared read; nothing
+        // faster than the 1.5 s of 1.44.
+        x += S(18);
+        string rl = Lang.Upper(Lang.T("dash_refresh"));
+        int rw = TextRenderer.MeasureText(rl, lf, Size.Empty, TextFormatFlags.NoPadding).Width;
+        TextRenderer.DrawText(g, rl, lf, new Rectangle(x, y, rw, ColsRowH), Theme.Faint, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        x += rw + S(12);
+        int every = Array.IndexOf(RefreshChoices, _d.Settings.DashRefreshMs) >= 0 ? _d.Settings.DashRefreshMs : RefreshChoices[0];
+        foreach (int ms in RefreshChoices)
+        {
+            string text = (ms / 1000.0).ToString("0.#", Lang.Culture) + " s";
+            int pw = TextRenderer.MeasureText(text, CatSmallF, Size.Empty, TextFormatFlags.NoPadding).Width + S(22);
+            var pr = new Rectangle(x, y, pw, ColsRowH);
+            bool on = ms == every;
+            using (var path = Theme.RoundRect(pr, ColsRowH / 2f))
+            {
+                using var b = new SolidBrush(on ? Theme.AccentSoft : Theme.Surface);
+                g.FillPath(b, path);
+                using var pen = new Pen(on ? Theme.Accent : Theme.Border);
+                g.DrawPath(pen, path);
+            }
+            TextRenderer.DrawText(g, text, CatSmallF, pr, on ? Theme.Accent : Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            _zones.Add((pr, new Hot(Zone.Refresh, ms, null)));
             x += pw + S(6);
         }
     }

@@ -151,13 +151,13 @@ public static class Stats
         foreach (var it in s.Dashboard)
         {
             if (widgets.Count >= 40) break;
-            if (Regex.IsMatch(it.Type, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}$") && listed.Add(it.Type))
+            if (Regex.IsMatch(it.Type, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}\\z") && listed.Add(it.Type))
                 widgets.Add(new JsonObject { ["t"] = it.Type, ["s"] = $"{Math.Clamp(it.W, 1, 6)}x{Math.Clamp(it.H, 1, 4)}" });
         }
 
         var ratings = new JsonObject();
         foreach (var kv in s.WidgetRatings.Take(40))
-            if (kv.Value >= 1 && kv.Value <= 5 && Regex.IsMatch(kv.Key, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}$")) ratings[kv.Key] = kv.Value;
+            if (kv.Value >= 1 && kv.Value <= 5 && Regex.IsMatch(kv.Key, "^[a-z]{1,16}\\.[A-Za-z0-9_]{1,40}\\z")) ratings[kv.Key] = kv.Value;
 
         var errors = new JsonObject();
         foreach (var kv in s.StatsErrors.Take(20)) errors[kv.Key] = Math.Clamp(kv.Value, 0, 99999);

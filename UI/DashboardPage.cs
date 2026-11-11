@@ -8,7 +8,8 @@ namespace GhostDeck;
 /// page scrolls the canvas natively like the Status page does. Nothing else lives here: the
 /// widgets, the edit mode and the catalogue are all zones on the canvas. The page owns the
 /// tick: one shared sample every 1.5 s (the Status interval; one EC read per tick, and the two
-/// pages are never visible at once), read off the window thread, and no tick while hidden.
+/// pages are never visible at once), or every 3 or 5 s when the user chose so in edit mode
+/// (1.45), read off the window thread, and no tick while hidden.
 /// </summary>
 public sealed class DashboardPage : ThemedPage
 {
@@ -22,7 +23,9 @@ public sealed class DashboardPage : ThemedPage
         Controls.Add(_canvas);
 
         _timer.Tick += (_, _) => RefreshAsync();
+        _timer.Interval = Every();
         _canvas.ContentChanged += Relayout;   // edit mode, the catalogue and layout edits change the content height
+        _canvas.ContentChanged += () => { if (_timer.Interval != Every()) _timer.Interval = Every(); };   // the refresh setting is changed on the canvas
         ClientSizeChanged += (_, _) => Relayout();
         // Hidden page: no tick, and the static buffer is dropped (pages are never disposed, so
         // it would stay allocated for the whole session). OnPaint renders it again on return.
@@ -32,6 +35,9 @@ public sealed class DashboardPage : ThemedPage
             else { _timer.Stop(); _canvas.ReleaseBuffer(); }
         };
     }
+
+    /// <summary>The tick: the user's choice (1.45), never faster than the 1.5 s every reading was measured at.</summary>
+    private int Every() => D.Settings.DashRefreshMs is 3000 or 5000 ? D.Settings.DashRefreshMs : 1500;
 
     // Wrapped so the scroll extent is recomputed after the canvas is resized
     // (ThemedPage.LayoutAndSyncScroll: a resized child does not refresh the bars by itself).

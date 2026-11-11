@@ -15,6 +15,8 @@ internal enum DashOptKind
     Toggle,
     /// <summary>Which of a few to show: a box to tick for each, always at least one ticked. Stored as the list of ticked ids; nothing stored = all.</summary>
     Checks,
+    /// <summary>A colour on its own, as the small colour button (a widget's second and third colour): "auto" or one of the palette, like Color.</summary>
+    Tint,
 }
 
 /// <summary>

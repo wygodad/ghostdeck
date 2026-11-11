@@ -23,7 +23,8 @@ internal sealed record DashSample(
     int Webcam, int Mic, int Touchpad,   // 1 = on, 0 = off, -1 = not available
     bool WinLock,
     int ChargeLimit,
-    DateTime At)
+    DateTime At,
+    int BatteryPercent = -1)             // the charge Windows reports, -1 = no battery or unknown (1.45)
 {
     public static readonly DashSample Empty = new(
         default, false, false, 0, 0, 0, 0, 0, 0, 0, Array.Empty<Perf.DiskInfo>(), -1,
@@ -75,7 +76,11 @@ internal sealed record DashSample(
         try { touchpad = d.TouchpadState(); } catch { }
         try { winLock = d.WinLockOn(); } catch { }
 
+        // the charge now, as Windows knows it: a system call, not a hardware read
+        int charge = -1;
+        try { float life = SystemInformation.PowerStatus.BatteryLifePercent; if (life is >= 0f and <= 1f) charge = (int)Math.Round(life * 100); } catch { }
+
         return new DashSample(hw, temps, fans, cpu, clock, ramPct, ramTotal, ramUsed, vramUsed, vramTotal, disks, battery,
-            profile, boost, overlay, webcam, mic, touchpad, winLock, d.Settings.ChargeLimit, DateTime.UtcNow);
+            profile, boost, overlay, webcam, mic, touchpad, winLock, d.Settings.ChargeLimit, DateTime.UtcNow, charge);
     }
 }

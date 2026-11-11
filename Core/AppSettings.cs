@@ -75,12 +75,18 @@ public sealed class AppSettings
     // (1.44) Dashboard columns chosen in edit mode: 0 = as many as the width allows at 150 px
     // cells (auto), else 4, 5, 6 or 8 (a denser grid, cells down to 110 px when the window allows)
     public int DashColumns { get; set; }
+    // (1.45) How often the Dashboard reads its data, in milliseconds: 1500 (as 1.44 did, and the
+    // fastest there is), 3000 or 5000. One setting for the whole tab: the widgets share one read.
+    public int DashRefreshMs { get; set; } = 1500;
     // Dashboard (1.44): the widgets in their order, each with its size in grid cells; the
     // position is computed (UI/Dash/DashLayout), never stored. DashboardVersion 0 = a file from
     // before the Dashboard: EnsureDefaults fills the default layout once. A layout the user
     // emptied keeps its version, so it stays empty.
     public List<DashItem> Dashboard { get; set; } = new();
     public int DashboardVersion { get; set; } = 0;
+    // (1.45) Whole layouts the user saved under a name, to bring back from a list (at most
+    // DashSavedLayout.MaxLayouts). 1.44 does not know the field and keeps it (Extra).
+    public List<DashSavedLayout> DashboardSaved { get; set; } = new();
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
     /// <summary>ghostdeck:// links registered for this user (roadmap #89); off removes the registration.</summary>
@@ -578,6 +584,8 @@ public sealed class AppSettings
         _initialised = true;   // from here on this instance may be saved (see Save)
         DashItem.Sanitize(Dashboard);
         if (DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }
+        DashboardSaved ??= new();
+        DashSavedLayout.Sanitize(DashboardSaved);
         const uint CA = Hk.MOD_CONTROL | Hk.MOD_ALT;
         void Def(string k, uint vk, string disp)
         {
@@ -647,6 +655,7 @@ public sealed class AppSettings
         if (LowFpsAlert is < 0 or > 1000) LowFpsAlert = 0;
         if (StartTab is not (0 or 1)) StartTab = 1;
         if (DashColumns is not (0 or 4 or 5 or 6 or 8)) DashColumns = 0;
+        if (DashRefreshMs is not (1500 or 3000 or 5000)) DashRefreshMs = 1500;
         foreach (var k in WidgetRatings.Where(kv => kv.Value < 1 || kv.Value > 5).Select(kv => kv.Key).ToList()) WidgetRatings.Remove(k);
         if (StatsSwitches < 0) StatsSwitches = 0;
         if (!Enum.IsDefined(typeof(TrayAction), TrayClickLeft)) TrayClickLeft = (int)TrayAction.CycleProfile;
@@ -746,9 +755,12 @@ public sealed class AppSettings
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
         DashColumns = src.DashColumns;
+        DashRefreshMs = src.DashRefreshMs is 1500 or 3000 or 5000 ? src.DashRefreshMs : 1500;
         // a file from before the Dashboard brings no layout: the default one, as at first start
         if (src.DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }
         else { Dashboard = src.Dashboard.Select(i => i.Clone()).ToList(); DashboardVersion = src.DashboardVersion; DashItem.Sanitize(Dashboard); }
+        DashboardSaved = (src.DashboardSaved ?? new()).Select(l => l.Clone()).ToList();
+        DashSavedLayout.Sanitize(DashboardSaved);
         Autostart = src.Autostart;
         ProtocolLinks = src.ProtocolLinks;
         AutoSwitchEnabled = src.AutoSwitchEnabled;
@@ -895,8 +907,10 @@ public sealed class AppSettings
             IconTabs = new List<string>(IconTabs),
             ShowGrid = ShowGrid,
             DashColumns = DashColumns,
+            DashRefreshMs = DashRefreshMs,
             Dashboard = Dashboard.Select(i => i.Clone()).ToList(),
             DashboardVersion = DashboardVersion,
+            DashboardSaved = DashboardSaved.Select(l => l.Clone()).ToList(),
             StatsEnabled = StatsEnabled, StatsAsked = StatsAsked, StatsLastWeek = StatsLastWeek, StatsLastFetchUtc = StatsLastFetchUtc,
             WidgetRatings = new Dictionary<string, int>(WidgetRatings), StatsCountersWeek = StatsCountersWeek, StatsSwitches = StatsSwitches,
             StatsUsage = new Dictionary<string, long>(StatsUsage), StatsErrors = new Dictionary<string, int>(StatsErrors), StatsUsed = new List<string>(StatsUsed),

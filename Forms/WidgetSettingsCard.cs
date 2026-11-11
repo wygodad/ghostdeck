@@ -19,7 +19,9 @@ namespace GhostDeck;
 /// A value equal to its default is not stored, and an empty text or number field means the
 /// default, shown in grey. A setting switched off by another one is dimmed and keeps its value.
 /// Enter saves, Esc cancels, Tab moves between the text fields; "Defaults" puts every setting of
-/// the card back.
+/// the card back. Two links at the bottom write the settings to a file as the widget's style
+/// and load one (<see cref="DashFile"/>); a loaded style lands in the card, to be looked at and
+/// saved or cancelled like any other change.
 ///
 /// The card is a layered window: everything is painted and hit-tested here, and the texts are
 /// typed into real text boxes riding over the painted fields (<see cref="CardTextHost"/>). The
@@ -28,7 +30,7 @@ namespace GhostDeck;
 /// </summary>
 internal sealed class WidgetSettingsCard : GhostCardForm
 {
-    private enum ZoneKind { Swatch, Cell, Select, Toggle, Field, Chip, Check }
+    private enum ZoneKind { Swatch, Cell, Select, Toggle, Field, Chip, Check, Link }
     private readonly record struct Zone(Rectangle R, ZoneKind Kind, int Def, int Idx);
 
     private static readonly Color Dim = Color.FromArgb(0x5E, 0x66, 0x75);   // a switched-off field's texts
@@ -38,7 +40,9 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private readonly IReadOnlyList<DashOptionDef> _defs;
     private readonly DashContext _ctx;
     private readonly Action<DashOptions> _save;
-    private readonly DashOptions _work;                                   // the settings being edited
+    private DashOptions _work;                                            // the settings being edited
+    private string _status = "";                                          // what exporting or loading a style did
+    private bool _statusBad;
     private readonly List<Zone> _zones = new();
     private readonly Dictionary<string, string> _text = new();            // what every text and number field holds now
     private readonly Dictionary<string, CardTextHost> _hosts = new();
@@ -77,6 +81,9 @@ internal sealed class WidgetSettingsCard : GhostCardForm
 
     private Color AutoOf(DashOptionDef o) => o.Auto?.Invoke(_work) ?? Cyan;
 
+    /// <summary>The key a field's colour button edits: the field's own for a colour on its own, else the colour that goes with the field.</summary>
+    private static string ColorKeyOf(DashOptionDef o) => o.Kind == DashOptKind.Tint ? o.Key : o.ColorKey;
+
     // ---------------- card hooks ----------------
 
     protected override int CardWidth => 640;
@@ -94,15 +101,8 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             _work.Remove(o.Key);
             if (o.ColorKey.Length > 0) _work.Remove(o.ColorKey);
         }
-        _badText.Clear();
-        _loading = true;
-        foreach (var o in _defs)
-        {
-            if (!_text.ContainsKey(o.Key)) continue;
-            _text[o.Key] = TextOf(o);
-            if (_hosts.TryGetValue(o.Key, out var h)) h.Box.Text = _text[o.Key];
-        }
-        _loading = false;
+        ReloadTexts();
+        _status = "";
         Changed();
     }
 
@@ -267,6 +267,35 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             if (paint) g.DrawString(s, LabelFont, on ? whiteB : dimB, new RectangleF(lx, ly, w, h + 2 * k), fmt);
         }
 
+        // the style as a file: two links under everything and, after one was used, what it did
+        int Links(int top)
+        {
+            int ly = top + Ce(16 * k), lh = Ce(CellFont.GetHeight(g)) + Ce(6 * k), lx = x;
+            foreach (var (text, idx) in new[] { (Lang.T("dash_style_export"), 0), (Lang.T("dash_style_import"), 1) })
+            {
+                int w = Ce(g.MeasureString(text, CellFont).Width);
+                if (paint)
+                {
+                    using var lb = new SolidBrush(HotZone == _zones.Count ? White : Ink);
+                    g.DrawString(text, CellFont, lb, new RectangleF(lx, ly, w + 2, lh), LeftText);
+                    _zones.Add(new Zone(Win(new Rectangle(lx, ly, w, lh)), ZoneKind.Link, 0, idx));
+                }
+                lx += w + Ce(18 * k);
+            }
+            int used = Ce(16 * k) + lh;
+            if (_status.Length > 0)
+            {
+                int sh = Ce(g.MeasureString(_status, hintF, width, fmt).Height);
+                if (paint)
+                {
+                    using var sb = new SolidBrush(_statusBad ? SoftRed : Ink);
+                    g.DrawString(_status, hintF, sb, new RectangleF(x, ly + lh + Ce(4 * k), width, sh + 2 * k), fmt);
+                }
+                used += Ce(4 * k) + sh;
+            }
+            return used;
+        }
+
         // ---- the picture: beside the first settings when the widget is narrow and has such settings, across the card otherwise ----
         var (cellsW, cellsH) = Cells();
         bool side = cellsW <= 2 && _defs.Any(Wide);
@@ -370,7 +399,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         // ---- texts, numbers and switches: two columns, every cell a label over its control ----
         var narrow = new List<int>();
         for (int i = 0; i < _defs.Count; i++) if (!Wide(_defs[i])) narrow.Add(i);
-        if (narrow.Count == 0) return y - y0;
+        if (narrow.Count == 0) return y + Links(y) - y0;
         y += Ce((tight ? 12 : 20) * k);
         int colGap = Ce(20 * k), half = (width - colGap) / 2;
         int chipW = Ce(68 * k), chipGap = Ce(8 * k), tgW = Ce(40 * k), tgH = Ce(22 * k);
@@ -399,7 +428,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         void Chip(Rectangle r, int i, bool on)
         {
             var o = _defs[i];
-            var c = DashPaint.Pick(_work.Choice(o.ColorKey, "auto", DashPaint.PaletteChoices), AutoOf(o));
+            var c = DashPaint.Pick(_work.Choice(ColorKeyOf(o), "auto", DashPaint.PaletteChoices), AutoOf(o));
             PaintSelect(g, r, "", on, on && HotZone == _zones.Count, false, (gg, box, _) => CardPalette.Disc(gg, box, on ? c : Color.FromArgb(90, c)));
             if (on) _zones.Add(new Zone(Win(r), ZoneKind.Chip, i, 0));
         }
@@ -423,6 +452,11 @@ internal sealed class WidgetSettingsCard : GhostCardForm
                 fx += (c > 0 ? widths[c - 1] : 0) + colGap;
                 bool on = Live(o), chip = o.ColorKey.Length > 0;
                 PutLabel(o.Label, fx, y, colW, rowLabel, on);
+                if (o.Kind == DashOptKind.Tint)
+                {
+                    if (paint) Chip(new Rectangle(fx, rowY, chipW, fieldH), i, on);
+                    continue;
+                }
                 if (o.Kind == DashOptKind.Toggle)
                 {
                     bool set = _work.Flag(o.Key, o.DefaultOn);
@@ -460,7 +494,8 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             }
             y = rowY + fieldH + rowHint + gapField;
         }
-        return y - gapField - y0;
+        y -= gapField;
+        return y + Links(y) - y0;
     }
 
     /// <summary>One element of a "which to show" list: a tick box and its name in a rounded cell.</summary>
@@ -525,7 +560,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             }
             case ZoneKind.Chip:
                 CardPopupPalette.Open(this, new Rectangle(Left + z.R.X, Top + z.R.Y, z.R.Width, z.R.Height), AutoOf(o), Lang.T("dash_opt_default"),
-                    _work.Choice(o.ColorKey, "auto", DashPaint.PaletteChoices), UiScale, o, id => Pick(o.ColorKey, id, "auto"));
+                    _work.Choice(ColorKeyOf(o), "auto", DashPaint.PaletteChoices), UiScale, o, id => Pick(ColorKeyOf(o), id, "auto"));
                 break;
             case ZoneKind.Toggle:
             {
@@ -551,7 +586,65 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             case ZoneKind.Field:
                 if (_hosts.TryGetValue(o.Key, out var h)) FocusField(h);
                 break;
+            case ZoneKind.Link:
+                if (z.Idx == 0) ExportStyle(); else ImportStyle();
+                break;
         }
+    }
+
+    // ---------------- the style as a file ----------------
+
+    private void Say(string text, bool bad)
+    {
+        _status = text; _statusBad = bad;
+        Changed();
+    }
+
+    /// <summary>The settings being edited, as a widget style file.</summary>
+    private void ExportStyle()
+    {
+        using var dlg = new SaveFileDialog { Filter = DashFileText.Filter, OverwritePrompt = true, FileName = "ghostdeck-" + DashFile.SafeFileName(Lang.T(_def.NameKey), "widget") + ".json" };
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+        var (w, h) = Cells();
+        var err = DashFile.Save(dlg.FileName, DashFile.Widget, new[] { new DashItem(_item.Type, w, h) { Opt = _work.ToMap() } }, 0);
+        Say(err == DashFile.Error.None ? Lang.T("dash_lay_ok_exported") : DashFileText.Of(err, wantLayout: false), err != DashFile.Error.None);
+    }
+
+    /// <summary>
+    /// A style from a file into the card. The file is checked whole first, it must be a style
+    /// (not a layout) and of this widget's type; then its settings take the place of the ones
+    /// being edited. Nothing reaches the Dashboard until Save, and Cancel drops it.
+    /// </summary>
+    private void ImportStyle()
+    {
+        using var dlg = new OpenFileDialog { Filter = DashFileText.Filter, CheckFileExists = true };
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+        var c = DashFile.Read(dlg.FileName, out var err);
+        if (c == null) { Say(DashFileText.Of(err, wantLayout: false), true); return; }
+        if (c.Kind != DashFile.Widget) { Say(DashFileText.Of(DashFile.Error.WrongKind, wantLayout: false), true); return; }
+        if (c.Items[0].Type != _item.Type)
+        {
+            string other = DashRegistry.Find(c.Items[0].Type) is { } d ? Lang.T(d.NameKey) : c.Items[0].Type;
+            Say(string.Format(Lang.T("dash_file_err_type_fmt"), other), true);
+            return;
+        }
+        _work = DashOptions.Of(c.Items[0]);
+        ReloadTexts();
+        Say(Lang.T("dash_style_loaded"), false);
+    }
+
+    /// <summary>The text boxes follow the settings (after Defaults, after a loaded style).</summary>
+    private void ReloadTexts()
+    {
+        _badText.Clear();
+        _loading = true;
+        foreach (var o in _defs)
+        {
+            if (!_text.ContainsKey(o.Key)) continue;
+            _text[o.Key] = TextOf(o);
+            if (_hosts.TryGetValue(o.Key, out var h)) h.Box.Text = _text[o.Key];
+        }
+        _loading = false;
     }
 
     private void Pick(string key, string id, string def)

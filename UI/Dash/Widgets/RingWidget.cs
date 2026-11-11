@@ -95,7 +95,7 @@ internal sealed class RingWidget : DashWidget
         _             => (s.CpuUsage, ColorFor(s.CpuUsage), s.CpuUsage >= 0, "%", 0),
     };
 
-    private string Label => _label.Length > 0 ? _label : Lang.T(NameKey);
+    private string Label => _label.Length > 0 ? _label.Replace("&", "&&") : Lang.T(NameKey);   // "&&": see DashWidget.Caption
 
     private (RectangleF box, Rectangle label, Rectangle sub) Layout(Rectangle r, DashContext c)
     {

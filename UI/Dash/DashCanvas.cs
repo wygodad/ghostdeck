@@ -51,7 +51,7 @@ internal sealed partial class DashCanvas : Control
     private bool _edit, _catalog;
     private bool _sortPopular = true;                                   // catalogue order while a summary is in: by share, else by name
     private readonly Dictionary<string, Rectangle> _starRows = new();   // the five stars of a catalogue row, by type (hover repaint)
-    private enum Zone { None, Edit, Done, Add, Reset, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar, Cols, Row, Tile, StatsRefresh }
+    private enum Zone { None, Edit, Done, Add, Reset, Layouts, Refresh, Remove, Size, CatalogAdd, Widget, Sort, Star, More, Info, View, Map, StatsOn, StatsInfo, Bar, Cols, Row, Tile, StatsRefresh }
     private readonly record struct Hot(Zone Kind, int Index, string? Type);
     private Hot _hot = new(Zone.None, -1, null);
     private readonly List<(Rectangle r, Hot zone)> _zones = new();
@@ -356,7 +356,8 @@ internal sealed partial class DashCanvas : Control
         {
             x = HeaderButton(g, x, by, bandB, "", Lang.T("dash_done"), new Hot(Zone.Done, -1, null), primary: true);
             x = HeaderButton(g, x - S(8), by, bandB, "", Lang.T("dash_reset"), new Hot(Zone.Reset, -1, null), primary: false);
-            HeaderButton(g, x - S(8), by, bandB, "", Lang.T("dash_add"), new Hot(Zone.Add, -1, null), primary: false, active: _catalog);
+            x = HeaderButton(g, x - S(8), by, bandB, "", Lang.T("dash_add"), new Hot(Zone.Add, -1, null), primary: false, active: _catalog);
+            HeaderButton(g, x - S(8), by, bandB, "", Lang.T("dash_layouts"), new Hot(Zone.Layouts, -1, null), primary: false);
         }
         else HeaderButton(g, x, by, bandB, "", Lang.T("dash_edit"), new Hot(Zone.Edit, -1, null), primary: false);
         if (_edit && _view == View.Dashboard) PaintColsRow(g, by + bandB + S(12));
@@ -473,7 +474,7 @@ internal sealed partial class DashCanvas : Control
                 PaintStars(g, row, _hot.Index, Theme.Accent, Theme.Faint, clear: true);
             return;
         }
-        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.CatalogAdd or Zone.Sort or Zone.Info or Zone.Cols or Zone.Tile)) return;
+        if (_hot.Kind is not (Zone.Edit or Zone.Done or Zone.Add or Zone.Reset or Zone.Layouts or Zone.Refresh or Zone.CatalogAdd or Zone.Sort or Zone.Info or Zone.Cols or Zone.Tile)) return;
         foreach (var (r, zone) in _zones)
             if (zone == _hot)
             {
@@ -768,6 +769,7 @@ internal sealed partial class DashCanvas : Control
 
     private void Save()
     {
+        if (!_replacing) _undo = null;   // the layout changed by hand: the one before a load is no longer "the one before"
         try { _d.SaveSettings(); } catch { }
         Replace();
         ContentChanged?.Invoke();
@@ -814,12 +816,96 @@ internal sealed partial class DashCanvas : Control
         Replace();
     }
 
-    internal void ResetLayout()
+    internal void ResetLayout() => ReplaceLayout(DashItem.DefaultLayout(), null);
+
+    // ---- whole layouts: kept under a name, written to a file, read from one (1.45) -----------
+    private (List<DashItem> items, int cols)? _undo;   // the layout before the last load, until the layout changes again
+    private bool _replacing;
+
+    /// <summary>
+    /// Puts another layout in place of the current one (a saved one, one from a file, the default)
+    /// and keeps the current one for one "undo". The items are copies: what comes in stays the
+    /// caller's, what stands on the Dashboard is the Dashboard's.
+    /// </summary>
+    private void ReplaceLayout(IEnumerable<DashItem> items, int? cols)
     {
+        var before = (_items.Select(i => i.Clone()).ToList(), _d.Settings.DashColumns);
+        var incoming = items.Select(i => i.Clone()).ToList();
+        DashItem.Sanitize(incoming);
         _items.Clear();
-        _items.AddRange(DashItem.DefaultLayout());
+        _items.AddRange(incoming);
+        if (cols is 0 or 4 or 5 or 6 or 8) _d.Settings.DashColumns = cols.Value;
         Sync();
-        Save();
+        _replacing = true;
+        try { Save(); } finally { _replacing = false; }
+        _undo = before;
+    }
+
+    internal IReadOnlyList<DashSavedLayout> SavedLayouts => _d.Settings.DashboardSaved;
+    internal bool CanUndoLayout => _undo != null;
+
+    /// <summary>The layout from before the last load comes back; after that there is nothing to undo.</summary>
+    internal void UndoLayout()
+    {
+        if (_undo is not { } u) return;
+        ReplaceLayout(u.items, u.cols);
+        _undo = null;
+    }
+
+    /// <summary>Keeps the current layout under a name (a name already there is replaced). False: no name, nothing to keep, or the list is full.</summary>
+    internal bool SaveLayoutAs(string name)
+    {
+        name = DashOptions.Clean(name ?? "", DashSavedLayout.MaxName);
+        if (name.Length == 0 || _items.Count == 0) return false;
+        var list = _d.Settings.DashboardSaved;
+        var entry = new DashSavedLayout { Name = name, Cols = _d.Settings.DashColumns, Items = _items.Select(i => i.Clone()).ToList() };
+        int at = list.FindIndex(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (at >= 0) list[at] = entry;
+        else if (list.Count >= DashSavedLayout.MaxLayouts) return false;
+        else list.Add(entry);
+        try { _d.SaveSettings(); } catch { }
+        return true;
+    }
+
+    internal void LoadSavedLayout(int index)
+    {
+        var list = _d.Settings.DashboardSaved;
+        if (index >= 0 && index < list.Count) ReplaceLayout(list[index].Items, list[index].Cols);
+    }
+
+    internal void DeleteSavedLayout(int index)
+    {
+        var list = _d.Settings.DashboardSaved;
+        if (index < 0 || index >= list.Count) return;
+        list.RemoveAt(index);
+        try { _d.SaveSettings(); } catch { }
+    }
+
+    internal DashFile.Error ExportLayout(string path) => DashFile.Save(path, DashFile.Layout, _items, _d.Settings.DashColumns);
+
+    /// <summary>Reads a layout file and, only when all of it checks out, puts it in place of the current layout.</summary>
+    internal DashFile.Error ImportLayout(string path)
+    {
+        var c = DashFile.Read(path, out var err);
+        if (c == null) return err;
+        if (c.Kind != DashFile.Layout) return DashFile.Error.WrongKind;
+        ReplaceLayout(c.Items, c.Cols);
+        return DashFile.Error.None;
+    }
+
+    /// <summary>The Layouts card (also what the preview tool renders).</summary>
+    internal GhostCardForm LayoutsCard() => new DashLayoutsCard(this);
+
+    // ---- how often the Dashboard reads its data (1.45) ---------------------------------------
+    internal static readonly int[] RefreshChoices = { 1500, 3000, 5000 };
+
+    private void SetRefresh(int ms)
+    {
+        if (Array.IndexOf(RefreshChoices, ms) < 0 || _d.Settings.DashRefreshMs == ms) return;
+        _d.Settings.DashRefreshMs = ms;
+        try { _d.SaveSettings(); } catch { }
+        Rebuild();
+        ContentChanged?.Invoke();   // the page owns the timer and reads the setting from here
     }
 
     private void AskReset()
@@ -940,6 +1026,8 @@ internal sealed partial class DashCanvas : Control
             case Zone.Done: EditMode = false; return;
             case Zone.Add: CatalogOpen = !_catalog; return;
             case Zone.Reset: AskReset(); return;
+            case Zone.Layouts: LayoutsCard().ShowOver(FindForm()); return;
+            case Zone.Refresh: SetRefresh(h.Index); return;
             case Zone.Remove: RemoveAt(h.Index); return;
             case Zone.Size: CycleSize(h.Index); return;
             case Zone.CatalogAdd: if (h.Type != null) AddType(h.Type); return;
@@ -1008,6 +1096,7 @@ internal sealed partial class DashCanvas : Control
             "done" => new Hot(Zone.Done, -1, null),
             "add" => new Hot(Zone.Add, -1, null),
             "reset" => new Hot(Zone.Reset, -1, null),
+            "layouts" => new Hot(Zone.Layouts, -1, null),
             "catalog" => new Hot(Zone.CatalogAdd, -1, arg),
             "sort" => new Hot(Zone.Sort, int.TryParse(arg, out int si) ? si : 0, null),
             "view" => new Hot(Zone.View, int.TryParse(arg, out int vi) ? vi : 0, null),

@@ -62,7 +62,7 @@ internal abstract class DashWidget : IDashWidget
     protected Color Tint(string key, Color own) => DashPaint.Pick(Opt.Choice(key, "auto", DashPaint.PaletteChoices), own);
 
     /// <summary>The widget's title: the label the user gave it, or its name in the app's language.</summary>
-    protected string Caption => Opt.Text("label") is { Length: > 0 } t ? t : Lang.T(NameKey);
+    protected string Caption => Opt.Text("label") is { Length: > 0 } t ? t.Replace("&", "&&") : Lang.T(NameKey);   // "&&": a label is text, the drawing would take a lone "&" for a shortcut mark
 
     /// <summary>The "Label" field with its colour button, the same in every widget that has a title.</summary>
     protected DashOptionDef LabelDef(Color own) =>
