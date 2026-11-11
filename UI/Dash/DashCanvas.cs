@@ -1151,6 +1151,7 @@ internal sealed partial class DashCanvas : Control
         _items.Clear();
         _items.AddRange(incoming);
         if (cols is 0 or 4 or 5 or 6 or 8) _d.Settings.DashColumns = cols.Value;
+        CatRegroup();   // a whole new layout (a load, the default, an undo): the catalogue's groups follow it; Save below reports the new height
         Sync();
         _replacing = true;
         try { Save(); } finally { _replacing = false; }
@@ -1385,7 +1386,10 @@ internal sealed partial class DashCanvas : Control
             case Zone.Remove: RemoveAt(h.Index); return;
             case Zone.Size: CycleSize(h.Index); return;
             case Zone.CatalogAdd: if (h.Type != null) AddType(h.Type); return;
-            case Zone.Sort: _sortPopular = h.Index == 0; CatRegroup(); Rebuild(); return;
+            case Zone.Sort:
+                // the groups are settled anew, and with them how many rows each takes: the page has to
+                // hear that the content may be taller now, or its last row cannot be scrolled to
+                _sortPopular = h.Index == 0; CatRegroup(); Replace(); ContentChanged?.Invoke(); return;
             case Zone.Star: if (h.Type != null) Rate(h.Type, h.Index); return;
             case Zone.More: ShowTileMenu(h.Index, new Point(MoreRect(_rects[h.Index]).Left, MoreRect(_rects[h.Index]).Bottom + S(4))); return;
             case Zone.Info: if (h.Type != null) OpenInfo(h.Type); return;

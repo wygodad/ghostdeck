@@ -27,13 +27,15 @@ public static class HwHistory
     private static long _version;
 
     /// <summary>Goes up with every sample: who draws the history (the Dashboard's history widgets) repaints when it changed, without copying the buffer to find out.</summary>
-    public static long Version => Interlocked.Read(ref _version);
+    public static long Version { get { lock (_lock) return _version; } }
 
     public static void Add(HwSample s)
     {
-        Interlocked.Increment(ref _version);
         lock (_lock)
         {
+            // under the lock and after nothing a reader could see before the sample is in: a reader
+            // that saw the new number with the old samples would not repaint for the new one
+            _version++;
             _buf[_head] = s;
             _head = (_head + 1) % Cap;
             if (_count < Cap) _count++;
@@ -43,12 +45,16 @@ public static class HwHistory
     }
 
     /// <summary>Samples from the last <paramref name="span"/>, oldest first.</summary>
-    public static List<HwSample> Window(TimeSpan span)
+    public static List<HwSample> Window(TimeSpan span) => Window(span, out _);
+
+    /// <summary>The same, with the version those samples are: both from one look at the buffer, so who remembers the version has drawn exactly these samples.</summary>
+    public static List<HwSample> Window(TimeSpan span, out long version)
     {
         var cut = DateTime.Now - span;
         var list = new List<HwSample>();
         lock (_lock)
         {
+            version = _version;
             int start = (_head - _count + Cap) % Cap;
             for (int i = 0; i < _count; i++)
             {

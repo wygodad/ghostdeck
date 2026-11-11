@@ -213,9 +213,33 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         }
     }
 
+    /// <summary>
+    /// A pick the card keeps because it did not fit is tried again whenever anything changed: the
+    /// label that took its room was shortened, another setting went back to its default. Once it
+    /// fits it moves into the settings, and the card no longer refuses to save.
+    /// </summary>
+    private void SettleOver()
+    {
+        if (_over.Count == 0) return;
+        foreach (string key in _over.Keys.ToList())
+        {
+            var o = _defs.FirstOrDefault(d => d.Kind == DashOptKind.Checks && d.Key == key);
+            if (o == null) { _over.Remove(key); continue; }
+            var ticked = o.Items.Select(i => i.Id).Where(_over[key].Contains).ToList();   // in the list's order
+            if (ticked.Count == 0 || ticked.Count > DashOptions.MaxList) continue;
+            var next = _work.Clone();
+            if (ticked.Count == o.Items.Count) next.Remove(key); else next.Set(key, ticked);
+            if (!Storable(next)) continue;
+            _work = next;
+            _over.Remove(key);
+        }
+        if (_over.Count == 0 && _statusOver) { _status = ""; _statusOver = false; }
+    }
+
     /// <summary>A setting changed: the picture, the boxes that depend on it, and the card.</summary>
     private void Changed()
     {
+        SettleOver();
         _previewStale = true;
         _widget = null;
         SyncBoxes();
@@ -244,6 +268,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             }
             else _badText.Add(o.Key);
         }
+        SettleOver();
         _previewStale = true;
         _widget = null;
         Rerender();

@@ -48,7 +48,9 @@ internal sealed class ScenesWidget : DashWidget
     {
         int W(string s) => TextRenderer.MeasureText(s, f, Size.Empty, TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
         if (W(name) <= width) return name;
-        // the longest head of a text that fits with the dots after it; never half of a surrogate pair
+        // the longest head of a text that fits with the dots after it, cut between whole characters as
+        // a reader sees them: never inside a surrogate pair, a letter with its accents or an emoji
+        // built of several (the text elements of the string)
         int Head(string s, string tail)
         {
             int lo = 0, hi = s.Length;
@@ -57,7 +59,14 @@ internal sealed class ScenesWidget : DashWidget
                 int mid = (lo + hi + 1) / 2;
                 if (W(s[..mid].TrimEnd() + tail) <= width) lo = mid; else hi = mid - 1;
             }
-            return lo > 0 && char.IsHighSurrogate(s[lo - 1]) ? lo - 1 : lo;
+            if (lo <= 0 || lo >= s.Length) return lo;
+            int cut = 0;
+            foreach (int at in System.Globalization.StringInfo.ParseCombiningCharacters(s))
+            {
+                if (at > lo) break;
+                cut = at;
+            }
+            return cut;
         }
         string Cut(string s) => W(s) <= width ? s : s[..Head(s, Dots)].TrimEnd() + Dots;
         if (lines <= 1) return Cut(name);
@@ -74,7 +83,14 @@ internal sealed class ScenesWidget : DashWidget
         }
         string first, rest;
         if (brk > 0) { first = name[..brk]; rest = name[(brk + 1)..].TrimStart(); }
-        else { int n = Math.Max(1, Head(name, "")); first = name[..n]; rest = name[n..].TrimStart(); }
+        else
+        {
+            // not even one word fits the line: as many whole characters as do; when not even one does
+            // (a line a few pixels wide), the first whole character, never half of one
+            int n = Head(name, "");
+            if (n <= 0) n = Math.Max(1, System.Globalization.StringInfo.GetNextTextElementLength(name));
+            first = name[..n]; rest = name[n..].TrimStart();
+        }
         return rest.Length == 0 ? first : first + "\n" + Cut(rest);
     }
 

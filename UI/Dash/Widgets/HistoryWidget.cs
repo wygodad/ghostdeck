@@ -87,21 +87,27 @@ internal sealed class HistoryWidget : DashWidget
         if (_kind == Kind.FanTarget) return 150;
         int peak = 0;
         foreach (var s in data) peak = Math.Max(peak, Math.Max(s.CpuRpm, s.GpuRpm));
+        peak = Math.Min(peak, 30000);   // a reading far beyond any fan is no reading (the scale would overflow), the line is clamped to the top
         return Math.Max(2000, (peak + 500 + 499) / 500 * 500);
     }
 
     /// <summary>The samples in view, oldest first, and the moment the right edge stands for.</summary>
-    private List<HwSample> Data(out DateTime now)
+    private List<HwSample> Data(out DateTime now, out long version)
     {
         var span = TimeSpan.FromMinutes(_minutes);
         if (PreviewData is { Count: > 0 } pv)
         {
+            version = HwHistory.Version;
             now = pv[^1].Time;
             var cut = now - span;
-            return pv.Where(s => s.Time >= cut).ToList();
+            var at = now;
+            return pv.Where(s => s.Time >= cut && s.Time <= at).ToList();
         }
-        now = DateTime.Now;
-        return HwHistory.Window(span);
+        var data = HwHistory.Window(span, out version);
+        var until = now = DateTime.Now;
+        // a sample later than now (the clock was set back since) has no place on a chart that ends at now
+        data.RemoveAll(s => s.Time > until);
+        return data;
     }
 
     private const TextFormatFlags Wrapped = TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
@@ -132,14 +138,14 @@ internal sealed class HistoryWidget : DashWidget
 
     public override void PaintLive(Graphics g, Rectangle r, DashContext c)
     {
-        _painted = HwHistory.Version;
         _plot = Rectangle.Empty;
         var inner = Inner(r, c);
         var titleF = c.Font(11f, FontStyle.Bold);
         var valF = c.Font(9f, FontStyle.Bold);
         var axisF = c.Font(8.5f);
         const TextFormatFlags Plain = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
-        var data = Data(out DateTime now);
+        var data = Data(out DateTime now, out long version);
+        _painted = version;   // the version of the samples drawn here, taken with them: a sample added since repaints
         int max = Ceiling(data);
         var show = Lines(c);
         var cols = LineColors();
@@ -230,7 +236,7 @@ internal sealed class HistoryWidget : DashWidget
             {
                 int v = Value(s, line);
                 if (!Valid(v, max)) { Flush(); prev = DateTime.MinValue; continue; }
-                if (prev != DateTime.MinValue && s.Time - prev > Pause) Flush();
+                if (prev != DateTime.MinValue && (s.Time - prev > Pause || s.Time < prev)) Flush();   // a pause, or the clock went back: no line across
                 prev = s.Time;
                 float x = plot.Left + (float)(Math.Clamp((s.Time - start).TotalSeconds / span, 0, 1) * plot.Width);
                 float y = plot.Bottom - Math.Clamp(v, 0, max) / (float)max * plot.Height;
