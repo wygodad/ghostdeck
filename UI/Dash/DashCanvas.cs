@@ -34,6 +34,7 @@ internal sealed partial class DashCanvas : Control
     // the static layer and the key it was rendered for
     private BufferedGraphics? _static;
     private int _sW, _sH, _sDpi;
+    private int _bandTop, _bandH;   // the rows of the canvas the static buffer holds (never the whole of a tall canvas)
     private bool _sDark, _sGrid, _sStats, _staticDirty = true;
     private string _sLang = "";
     private object? _sSummary;   // the summary the static layer was painted with (reference)
@@ -252,37 +253,104 @@ internal sealed partial class DashCanvas : Control
     /// <summary>Marks the static layer stale and repaints (theme, language, layout edits).</summary>
     public void Rebuild() { _staticDirty = true; Invalidate(); }
 
-    private void EnsureStatic()
+    // The static layer is a buffer for a BAND of the canvas, not for all of it (1.45). The canvas
+    // is as tall as its content and the page scrolls it, so a buffer for the whole canvas grew
+    // with the layout: 200 widgets of the 2x2 size were 300 MB, and a layout file could ask for
+    // gigabytes. The band is what is on screen and half of that again above and below, so its
+    // size follows the window, never the layout; scrolling out of it renders the next band (only
+    // the widgets in it, a few milliseconds).
+    //
+    // The painting code keeps using canvas coordinates. Shapes get there through the Graphics'
+    // transform. Texts are GDI (TextRenderer), which ignores that transform, so for the time of
+    // the static pass the buffer's device context gets a viewport origin: GDI honours it and GDI+
+    // does not, which is exactly the split needed (measured outside the app before this was built).
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")] private static extern bool SetViewportOrgEx(IntPtr hdc, int x, int y, IntPtr prev);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")] private static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, int rop);
+
+    /// <summary>Where GDI text lands on a buffer's graphics: (0, 0) of the painting code's coordinates at (x, y) of the buffer.</summary>
+    private static void SetTextOrigin(Graphics g, int x, int y)
+    {
+        IntPtr hdc = g.GetHdc();
+        try { SetViewportOrgEx(hdc, x, y, IntPtr.Zero); }
+        finally { g.ReleaseHdc(hdc); }
+    }
+
+    /// <summary>The part of the canvas the page shows now.</summary>
+    private Rectangle VisibleRect()
+    {
+        int top = Math.Clamp(-Top, 0, Math.Max(0, Height - 1));
+        int shown = Parent is { } p ? p.ClientSize.Height : Height;
+        return new Rectangle(0, top, Width, Math.Max(1, Math.Min(Height - top, Math.Max(1, shown))));
+    }
+
+    /// <summary>The tallest band a buffer is made for: twice what the page shows, and room for a small window's worth at least.</summary>
+    private int MaxBandH => Math.Max(S(1600), VisibleRect().Height * 2);
+
+    /// <summary>The band for a paint of <paramref name="need"/>: it, with what is on screen when the two touch, and half of that again on both sides.</summary>
+    private (int top, int h) Band(Rectangle need)
+    {
+        var vis = VisibleRect();
+        var core = vis.IntersectsWith(need) ? Rectangle.Union(vis, need) : need;
+        int margin = Math.Max(0, Math.Min(core.Height / 2, (MaxBandH - core.Height) / 2));
+        int top = Math.Max(0, core.Top - margin), bottom = Math.Min(Height, core.Bottom + margin);
+        return (top, Math.Max(1, bottom - top));
+    }
+
+    /// <summary>Makes sure the static buffer holds the rows of <paramref name="need"/>, rendering a band around them when it does not or when it is stale.</summary>
+    private void EnsureStatic(Rectangle need)
     {
         if (Width <= 0 || Height <= 0) return;
-        if (!_staticDirty && !StaticKeyChanged()) return;
+        need = Rectangle.Intersect(need, ClientRectangle);
+        if (need.Height <= 0) need = VisibleRect();
+        bool holds = _static != null && need.Top >= _bandTop && need.Bottom <= _bandTop + _bandH;
+        if (holds && !_staticDirty && !StaticKeyChanged()) return;
+        Sync();
+        var rects = Rects();
+        var (top, h) = Band(need);
         using var cg = CreateGraphics();   // DPI-aware DC of this control
-        if (_static == null || _sW != Width || _sH != Height)
+        if (_static == null || _sW != Width || _bandH != h)
         {
             _static?.Dispose();
             var ctx = BufferedGraphicsManager.Current;
-            ctx.MaximumBuffer = new Size(Width + 1, Height + 1);
-            _static = ctx.Allocate(cg, new Rectangle(0, 0, Width, Height));
+            ctx.MaximumBuffer = new Size(Width + 1, h + 1);
+            _static = ctx.Allocate(cg, new Rectangle(0, 0, Width, h));
         }
+        _bandTop = top; _bandH = h;
         var g = _static!.Graphics;
+        g.ResetTransform();
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Theme.Surface);
-        if (_d.Settings.ShowGrid) Ui.DrawGrid(g, new Rectangle(0, 0, Width, Height));
-        Sync();
-        var rects = Rects();
-        _zones.Clear();
-        PaintHeader(g);
-        if (_view == View.Catalog) PaintCatalogView(g);
-        else if (_view == View.Stats) PaintStatsView(g);
-        else
+        g.TranslateTransform(0, -top);
+        SetTextOrigin(g, 0, -top);
+        try
         {
-            for (int i = 0; i < _placed.Count; i++) _placed[i].Widget.PaintStatic(g, rects[i], _ctx);
-            if (_placed.Count == 0)
+            // the grid's lines are counted from the canvas's top, whatever band is drawn
+            if (_d.Settings.ShowGrid)
             {
-                int gw = GridWidth(Width);
-                DashPaint.Note(g, new Rectangle(Pad, GridTop(), gw - Pad * 2, Math.Max(S(40), Cell(Width))), _ctx, Lang.T("dash_empty"));
+                const int pitch = 48;
+                int gridTop = Math.Max(0, top / pitch * pitch - pitch);
+                Ui.DrawGrid(g, new Rectangle(0, gridTop, Width, Math.Min(Height, top + h) - gridTop));
             }
-            if (_catalog) PaintCatalog(g);
+            _zones.Clear();
+            PaintHeader(g);
+            if (_view == View.Catalog) PaintCatalogView(g);
+            else if (_view == View.Stats) PaintStatsView(g);
+            else
+            {
+                for (int i = 0; i < _placed.Count; i++)
+                    if (rects[i].Bottom > top && rects[i].Top < top + h) _placed[i].Widget.PaintStatic(g, rects[i], _ctx);
+                if (_placed.Count == 0)
+                {
+                    int gw = GridWidth(Width);
+                    DashPaint.Note(g, new Rectangle(Pad, GridTop(), gw - Pad * 2, Math.Max(S(40), Cell(Width))), _ctx, Lang.T("dash_empty"));
+                }
+                if (_catalog) PaintCatalog(g);
+            }
+        }
+        finally
+        {
+            SetTextOrigin(g, 0, 0);
+            g.ResetTransform();
         }
         _sW = Width; _sH = Height; _sDpi = Dpi.Of(this); _sDark = Theme.Dark; _sGrid = _d.Settings.ShowGrid; _sLang = Lang.CurrentCode;
         _sStats = _d.Settings.StatsEnabled; _sSummary = Stats.Current;
@@ -291,23 +359,65 @@ internal sealed partial class DashCanvas : Control
 
     protected override void OnPaintBackground(PaintEventArgs e) { }   // the static layer covers the whole surface
 
-    protected override void OnPaint(PaintEventArgs e)
+    protected override void OnPaint(PaintEventArgs e) => PaintAll(e.Graphics, e.ClipRectangle);
+
+    /// <summary>The static layer of <paramref name="clip"/> from the band buffer, then the live layer over it.</summary>
+    private void PaintAll(Graphics target, Rectangle clip)
     {
-        EnsureStatic();
-        if (_static == null) return;
-        _static.Render(e.Graphics);   // the whole buffer; the target's clip limits what reaches the screen
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        clip = Rectangle.Intersect(clip, ClientRectangle);
+        if (clip.Width <= 0 || clip.Height <= 0) return;
+        // a paint taller than a band holds (the whole of a tall canvas asked for at once) goes in slices
+        int slice = Math.Max(1, MaxBandH / 2);
+        for (int y = clip.Top; y < clip.Bottom; y += slice)
+        {
+            var part = new Rectangle(clip.Left, y, clip.Width, Math.Min(slice, clip.Bottom - y));
+            EnsureStatic(part);
+            if (_static == null) return;
+            IntPtr src = _static.Graphics.GetHdc();
+            try
+            {
+                IntPtr dst = target.GetHdc();
+                try { BitBlt(dst, part.X, part.Y, part.Width, part.Height, src, part.X, part.Y - _bandTop, 0x00CC0020 /* SRCCOPY */); }
+                finally { target.ReleaseHdc(dst); }
+            }
+            finally { _static.Graphics.ReleaseHdc(src); }
+        }
+        target.SmoothingMode = SmoothingMode.AntiAlias;
         if (_view == View.Dashboard)
         {
             var rects = Rects();
-            var clip = e.ClipRectangle;
             for (int i = 0; i < _placed.Count; i++)
-                if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(e.Graphics, rects[i], _ctx);
-            if (_edit) PaintEditChrome(e.Graphics, rects, clip);
+                if (rects[i].IntersectsWith(clip)) _placed[i].Widget.PaintLive(target, rects[i], _ctx);
+            if (_edit) PaintEditChrome(target, rects, clip);
         }
-        else if (_view == View.Stats) PaintStatsLive(e.Graphics);
-        PaintHot(e.Graphics);
+        else if (_view == View.Stats) PaintStatsLive(target);
+        PaintHot(target);
     }
+
+    /// <summary>
+    /// Preview tool only: a rectangle of the canvas as a picture, painted by the same code as the
+    /// screen. Any rectangle, at any height of the canvas, so the tool can check that a band far
+    /// down paints what the band at the top would.
+    /// </summary>
+    internal Bitmap RenderRegion(Rectangle r)
+    {
+        using var cg = CreateGraphics();
+        using var ctx = new BufferedGraphicsContext();
+        using var buf = ctx.Allocate(cg, new Rectangle(0, 0, r.Width, r.Height));
+        var g = buf.Graphics;
+        g.Clear(Theme.Surface);
+        g.TranslateTransform(-r.X, -r.Y);
+        SetTextOrigin(g, -r.X, -r.Y);
+        try { PaintAll(g, r); }
+        finally { SetTextOrigin(g, 0, 0); g.ResetTransform(); }
+        var bmp = new Bitmap(r.Width, r.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+        using var bg = Graphics.FromImage(bmp);
+        buf.Render(bg);
+        return bmp;
+    }
+
+    /// <summary>Preview tool only: the band the static buffer holds now and its size in bytes.</summary>
+    internal (int top, int height, long bytes) BandInfo => (_bandTop, _bandH, _static == null ? 0 : (long)_sW * _bandH * 4);
 
     /// <summary>Free the static buffer (the page is hidden); OnPaint renders it again on demand.</summary>
     internal void ReleaseBuffer()
@@ -315,6 +425,7 @@ internal sealed partial class DashCanvas : Control
         _static?.Dispose();
         _static = null;
         _sW = _sH = 0;
+        _bandTop = _bandH = 0;
         _staticDirty = true;
     }
 
@@ -1087,7 +1198,7 @@ internal sealed partial class DashCanvas : Control
     /// <summary>Preview tool only: the rectangle of a zone so a bench can click it. kind: edit, done, add, reset, remove:i, size:i, catalog:typeId, widget:i.</summary>
     internal Rectangle ZoneRect(string spec)
     {
-        EnsureStatic();
+        EnsureStatic(VisibleRect());
         var rects = Rects();
         string kind = spec.Split(':')[0], arg = spec.Contains(':') ? spec[(spec.IndexOf(':') + 1)..] : "";
         Hot want = kind switch
