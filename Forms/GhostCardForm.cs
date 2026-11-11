@@ -500,11 +500,34 @@ public class GhostCardForm : Form
     {
         if (!IsHandleCreated) return;
         using var bmp = Compose();
-        if (Width != bmp.Width || Height != bmp.Height) Size = new Size(bmp.Width, bmp.Height);
+        if (Width != bmp.Width || Height != bmp.Height)
+        {
+            Size = new Size(bmp.Width, bmp.Height);
+            KeepOnScreen();
+        }
         Push(bmp);
         PlaceFields();
         OnRendered();
     }
+
+    /// <summary>
+    /// A card that changed its size (a status line appeared, a list turned a page) after it was
+    /// dragged near an edge is moved back inside the working area of its screen, so its buttons
+    /// stay in reach. A card that stands on no screen at all is left where it is: the preview
+    /// tool keeps its cards far off screen on purpose, and nothing may bring them onto it.
+    /// </summary>
+    private void KeepOnScreen()
+    {
+        if (!Visible) return;
+        var wa = Screen.FromControl(this).WorkingArea;
+        if (!wa.IntersectsWith(Bounds)) return;
+        var at = PlaceWithin(Bounds, wa);
+        if (at != Location) Location = at;
+    }
+
+    /// <summary>Where a window of these bounds stands so that it is inside the area; its top-left corner wins when it is larger than the area.</summary>
+    internal static Point PlaceWithin(Rectangle bounds, Rectangle area) =>
+        new(Math.Max(area.Left, Math.Min(bounds.Left, area.Right - bounds.Width)), Math.Max(area.Top, Math.Min(bounds.Top, area.Bottom - bounds.Height)));
 
     // The last resort for a card taller than the working area of its screen (a very low screen at
     // a large scale, a long language, a status line on top): a card has no scroll bar, so it is

@@ -30,7 +30,7 @@ namespace GhostDeck;
 /// </summary>
 internal sealed class WidgetSettingsCard : GhostCardForm
 {
-    private enum ZoneKind { Swatch, Cell, Select, Toggle, Field, Chip, Check, Link }
+    private enum ZoneKind { Swatch, Cell, Select, Toggle, Field, Chip, Check, Link, Page }
     private readonly record struct Zone(Rectangle R, ZoneKind Kind, int Def, int Idx);
 
     private static readonly Color Dim = Color.FromArgb(0x5E, 0x66, 0x75);   // a switched-off field's texts
@@ -54,6 +54,15 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private IDashWidget? _widget;                                         // the widget with the settings being edited
     private bool _loading;                                                // the card is filling the boxes itself
     private bool _tight;                                                  // the screen is too low for the roomy layout
+    // A "which to show" list ticked beyond what a widget stores (DashOptions.MaxList, and not all
+    // of them): the pick lives here until fewer are ticked, the settings keep the last pick that
+    // fits, and the card says so and does not save. Never a longer pick stored cut short.
+    private readonly Dictionary<string, HashSet<string>> _over = new();
+    private bool _statusOver;                                             // the status line is the "too many ticked" one
+    // A list too long for the screen shows so many lines of boxes at once, the rest on further pages.
+    private int _checkLines = int.MaxValue;
+    private readonly Dictionary<int, int> _checkPage = new();             // the page each list is on, by the setting's index
+    private int _linesSeen, _linePitch, _pagerH;                          // what the last pass found, for the next page size
 
     public WidgetSettingsCard(DashWidgetDef def, DashItem item, IReadOnlyList<DashOptionDef> defs, DashContext ctx, Action<DashOptions> onSave, Func<DashOptions, bool>? fits = null)
         : base("//WIDGET", Lang.T(def.NameKey), Lang.T("dash_set_hint"), Lang.T("set_save"), Lang.T("gen_cancel"), () => { })
@@ -118,14 +127,17 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             _work.Remove(o.Key);
             if (o.ColorKey.Length > 0) _work.Remove(o.ColorKey);
         }
+        _over.Clear();
         ReloadTexts();
-        _status = "";
+        _status = ""; _statusOver = false;
         Changed();
     }
 
     /// <summary>A field that cannot be saved (not a number in range, a rule between fields): the caret goes into it. False when every field is fine.</summary>
     private bool StopAtBadField()
     {
+        // a list with more ticked than a widget stores: what the card shows is not what would be saved
+        if (_over.Count > 0) { SayOver(); return true; }
         foreach (var o in _defs)
         {
             if (!Bad(o)) continue;
@@ -245,11 +257,26 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     /// </summary>
     protected override int MeasureContent(Graphics g, float k, int width)
     {
-        _tight = false;
+        _tight = false; _checkLines = int.MaxValue; _linesSeen = 0;
         int h = Flow(g, k, width, null);
         if (h <= ContentRoom) return h;
-        _tight = true;
-        return Flow(g, k, width, null);
+        _tight = true; _linesSeen = 0;
+        h = Flow(g, k, width, null);
+        // Still too tall, and a "which to show" list has lines to spare: it shows fewer of them at
+        // once (never under three) and the rest on further pages, so Save and Cancel stay in reach.
+        const int least = 3;
+        int all = _linesSeen;
+        if (h > ContentRoom && all > least && _linePitch > 0)
+        {
+            int per = Math.Clamp(all - (h - ContentRoom + _pagerH + _linePitch - 1) / _linePitch, least, all - 1);
+            for (; ; per--)
+            {
+                _checkLines = per;
+                h = Flow(g, k, width, null);
+                if (h <= ContentRoom || per <= least) break;
+            }
+        }
+        return h;
     }
 
     protected override void PaintContent(Graphics g, float k, Rectangle area, Point origin)
@@ -262,9 +289,16 @@ internal sealed class WidgetSettingsCard : GhostCardForm
 
     private static bool Wide(DashOptionDef o) => o.Kind is DashOptKind.Color or DashOptKind.Choice or DashOptKind.Checks;
 
-    /// <summary>Whether a box of a "which to show" list is ticked: nothing stored = all are.</summary>
+    /// <summary>Whether a box of a "which to show" list is ticked: nothing stored = all are; a pick too long to store is the card's own.</summary>
     private bool Ticked(DashOptionDef o, int j) =>
-        _work.List(o.Key) is not { } sel || sel.Contains(DashOptions.Clean(o.Items[j].Id, DashOptions.MaxText));
+        _over.TryGetValue(o.Key, out var own) ? own.Contains(o.Items[j].Id)
+        : _work.List(o.Key) is not { } sel || sel.Contains(DashOptions.Clean(o.Items[j].Id, DashOptions.MaxText));
+
+    private void SayOver()
+    {
+        _statusOver = true;
+        Say(string.Format(Lang.T("dash_set_list_max"), DashOptions.MaxList), true);
+    }
 
     /// <summary>One pass for both measuring and painting, so the two can never disagree. Returns the height used.</summary>
     private int Flow(Graphics g, float k, int width, (Point at, Point origin)? paintAt)
@@ -398,24 +432,67 @@ internal sealed class WidgetSettingsCard : GhostCardForm
             }
             else if (o.Kind == DashOptKind.Checks)
             {
-                // a box to tick for every element, as many on a line as fit
-                int chipH = Ce(32 * k), chipGap2 = Ce(8 * k), box = Ce(16 * k), padX = Ce(10 * k);
-                int px = cx, py = cy;
+                // a box to tick for every element, as many on a line as fit; a list with more lines
+                // than the screen has room for (dozens of scenes) shows a page of them at a time
+                int chipH = Ce(32 * k), chipGap2 = Ce(8 * k), box = Ce(16 * k), padX = Ce(10 * k), pitch = chipH + chipGap2;
+                var cells = new (int x, int w, int line)[o.Items.Count];
+                int px = cx, line = 0;
                 for (int j = 0; j < o.Items.Count; j++)
                 {
                     // measured the way it is drawn, so a name is cut only when it is wider than the whole column
                     int tw = Ce(g.MeasureString(o.Items[j].Caption, CellFont, 100000, LeftText).Width);
                     int wChip = Math.Min(cw, padX + box + Ce(8 * k) + tw + padX);
-                    if (px > cx && px + wChip > cx + cw) { px = cx; py += chipH + chipGap2; }
-                    var rc = new Rectangle(px, py, wChip, chipH);
-                    if (paint)
+                    if (px > cx && px + wChip > cx + cw) { px = cx; line++; }
+                    cells[j] = (px, wChip, line);
+                    px += wChip + chipGap2;
+                }
+                int lines = o.Items.Count == 0 ? 0 : line + 1, pagerH = Ce(28 * k);
+                _linesSeen = Math.Max(_linesSeen, lines); _linePitch = pitch; _pagerH = pagerH + chipGap2;
+                int per = Math.Clamp(_checkLines, 1, Math.Max(1, lines)), pages = Math.Max(1, (lines + per - 1) / per);
+                // the page is settled when the card is painted: a measuring pass tries other page sizes
+                int page = Math.Clamp(_checkPage.GetValueOrDefault(i), 0, pages - 1);
+                if (paint) _checkPage[i] = page;
+                int firstLine = page * per;
+                if (paint)
+                    for (int j = 0; j < cells.Length; j++)
                     {
+                        if (cells[j].line < firstLine || cells[j].line >= firstLine + per) continue;
+                        var rc = new Rectangle(cells[j].x, cy + (cells[j].line - firstLine) * pitch, cells[j].w, chipH);
                         PaintCheck(g, rc, o.Items[j].Caption, Ticked(o, j), HotZone == _zones.Count, k, box, padX);
                         _zones.Add(new Zone(Win(rc), ZoneKind.Check, i, j));
                     }
-                    px += wChip + chipGap2;
+                // every page is as tall as a full one, so what is under the list stays in place
+                cy += Math.Min(per, Math.Max(1, lines)) * pitch - chipGap2;
+                if (pages > 1)
+                {
+                    // the page and the two arrows, on the right of the list
+                    cy += chipGap2;
+                    int numW = Ce(g.MeasureString("00 / 00", hintF).Width) + chipGap2;
+                    var next = new Rectangle(cx + cw - pagerH, cy, pagerH, pagerH);
+                    var num = new Rectangle(next.Left - numW, cy, numW, pagerH);
+                    var prev = new Rectangle(num.Left - pagerH, cy, pagerH, pagerH);
+                    if (paint)
+                    {
+                        void Arrow(Rectangle r, string text, int dir, bool on)
+                        {
+                            bool hot = on && HotZone == _zones.Count;
+                            using (var path = RoundPath(r, Ce(8 * k)))
+                            {
+                                using var fill = new SolidBrush(Color.FromArgb(hot ? 34 : 13, 255, 255, 255));
+                                g.FillPath(fill, path);
+                                using var edge = new Pen(Color.FromArgb(hot ? 90 : on ? 40 : 20, 243, 247, 255), 1f);
+                                g.DrawPath(edge, path);
+                            }
+                            using var tb = new SolidBrush(!on ? Color.FromArgb(110, Muted) : hot ? White : Ink);
+                            g.DrawString(text, CellFont, tb, r, CenterText);
+                            if (on) _zones.Add(new Zone(Win(r), ZoneKind.Page, i, dir));
+                        }
+                        Arrow(prev, "‹", -1, page > 0);
+                        g.DrawString((page + 1) + " / " + pages, hintF, mutedB, num, CenterText);
+                        Arrow(next, "›", +1, page < pages - 1);
+                    }
+                    cy += pagerH;
                 }
-                cy = py + chipH;
             }
             else
             {
@@ -631,10 +708,23 @@ internal sealed class WidgetSettingsCard : GhostCardForm
                 for (int j = 0; j < o.Items.Count; j++)
                     if (Ticked(o, j) != (j == z.Idx)) ticked.Add(o.Items[j].Id);
                 if (ticked.Count == 0) break;
+                if (ticked.Count < o.Items.Count && ticked.Count > DashOptions.MaxList)
+                {
+                    // more than a widget stores: the pick stays in the card, and the card says what to do
+                    _over[o.Key] = new HashSet<string>(ticked);
+                    SayOver();
+                    break;
+                }
+                _over.Remove(o.Key);
+                if (_statusOver && _over.Count == 0) { _status = ""; _statusOver = false; }
                 if (ticked.Count == o.Items.Count) _work.Remove(o.Key); else _work.Set(o.Key, ticked);
                 Changed();
                 break;
             }
+            case ZoneKind.Page:
+                _checkPage[z.Def] = _checkPage.GetValueOrDefault(z.Def) + z.Idx;
+                Rerender();
+                break;
             case ZoneKind.Field:
                 if (_hosts.TryGetValue(o.Key, out var h)) FocusField(h);
                 break;
@@ -649,6 +739,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
     private void Say(string text, bool bad)
     {
         _status = text; _statusBad = bad;
+        if (text != string.Format(Lang.T("dash_set_list_max"), DashOptions.MaxList)) _statusOver = false;
         Changed();
     }
 
@@ -685,6 +776,7 @@ internal sealed class WidgetSettingsCard : GhostCardForm
         }
         ScenesWidget.DropForeignPick(c.Items[0], _ctx.D.Settings);   // a pick of scenes that are all another machine's: every scene of this one
         _work = DashOptions.Of(c.Items[0]);
+        _over.Clear();
         KeepOneOn();
         ReloadTexts();
         Say(Lang.T("dash_style_loaded"), false);

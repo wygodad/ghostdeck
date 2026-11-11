@@ -74,7 +74,13 @@ public sealed class AppSettings
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
     // (1.44) Dashboard columns chosen in edit mode: 0 = as many as the width allows at 150 px
     // cells (auto), else 4, 5, 6 or 8 (a denser grid, cells down to 110 px when the window allows)
-    public int DashColumns { get; set; } = 8;   // a new installation starts with 8 columns (1.45); a settings file that has the field keeps what it says, 0 = automatic
+    // A new installation starts with 8 columns (1.45); a settings file that has the field keeps
+    // what it says, 0 = automatic. Whether a file had the field is remembered, so a full copy of
+    // the settings from before the Dashboard, which has none, leaves the choice alone when it is
+    // imported (ImportFrom): the reader calls the setter only for a field that is in the file.
+    private int _dashColumns = 8;
+    public int DashColumns { get => _dashColumns; set { _dashColumns = value; DashColumnsStated = true; } }
+    [JsonIgnore] public bool DashColumnsStated { get; private set; }
     // (1.45) How often the Dashboard reads its data, in milliseconds: 1500 (as 1.44 did, and the
     // fastest there is), 3000 or 5000. One setting for the whole tab: the widgets share one read.
     public int DashRefreshMs { get; set; } = 1500;
@@ -479,15 +485,35 @@ public sealed class AppSettings
     }
 
     private static bool _saveFailureNoted;
-    private static bool _saveFailing;   // the last save failed: the next failure in a row is not announced again
+    private static readonly object _saveLock = new();
+    private static bool _saveSaid;        // this run of failures has reached a listener: the next failure in a row is not announced again
+    private static string? _saveUnsaid;   // a failure nobody listened to yet (the app saves while it starts, before it can show a card)
 
     /// <summary>
     /// The settings file could not be written (the system's reason is the argument). Raised once
-    /// when saving starts to fail, and again only after a save worked in between; on whatever
-    /// thread saved. The app keeps running on what it has in memory, so without a word the user
-    /// would learn of it at the next start, with the changes gone.
+    /// per run of failures, and again only after a save worked in between; on whatever thread
+    /// saved. "Once" counts from the moment a listener heard it: a failure before anyone listens
+    /// is kept (<see cref="TellPendingSaveFailure"/>) and never uses the run up. The app keeps
+    /// running on what it has in memory, so without a word the user would learn of it at the next
+    /// start, with the changes gone.
     /// </summary>
     public static event Action<string>? SaveFailed;
+
+    /// <summary>
+    /// Raises <see cref="SaveFailed"/> for a failure that happened before anyone listened, if the
+    /// file still has not been written since. The app calls it once its window thread can show a card.
+    /// </summary>
+    public static void TellPendingSaveFailure()
+    {
+        string? why; Action<string>? heard;
+        lock (_saveLock)
+        {
+            why = _saveUnsaid; heard = SaveFailed;
+            if (why == null || heard == null) return;
+            _saveUnsaid = null; _saveSaid = true;
+        }
+        try { heard(why); } catch { }
+    }
 
     /// <summary>
     /// Writes the file through a temporary one and a swap, so a crash, a full disk or a
@@ -517,16 +543,20 @@ public sealed class AppSettings
             File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
             if (File.Exists(FilePath)) File.Replace(tmp, FilePath, FilePath + ".bak", ignoreMetadataErrors: true);
             else File.Move(tmp, FilePath);
-            _saveFailing = false;
+            lock (_saveLock) { _saveSaid = false; _saveUnsaid = null; }   // the file is written: nothing left to say, and the next failure starts a new run
         }
         catch (Exception ex)
         {
             if (!_saveFailureNoted) { _saveFailureNoted = true; AppLifecycle.Note("settings could not be saved: " + ex.Message); }
-            if (!_saveFailing)
+            Action<string>? heard;
+            lock (_saveLock)
             {
-                _saveFailing = true;
-                try { SaveFailed?.Invoke(ex.Message); } catch { }
+                heard = SaveFailed;
+                if (heard == null) { _saveUnsaid = ex.Message; return; }   // nobody listens yet: kept, and the run is not used up
+                if (_saveSaid) return;
+                _saveSaid = true; _saveUnsaid = null;
             }
+            try { heard(ex.Message); } catch { }
         }
     }
 
@@ -769,7 +799,8 @@ public sealed class AppSettings
         IconStyle = src.IconStyle;
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
-        DashColumns = src.DashColumns;
+        // a copy that says nothing about the columns (from before 1.44) leaves the choice made here
+        if (src.DashColumnsStated) DashColumns = src.DashColumns is 0 or 4 or 5 or 6 or 8 ? src.DashColumns : 0;
         DashRefreshMs = src.DashRefreshMs is 1500 or 3000 or 5000 ? src.DashRefreshMs : 1500;
         // a file from before the Dashboard brings no layout: the default one, as at first start
         if (src.DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }

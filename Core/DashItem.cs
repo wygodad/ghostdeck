@@ -52,8 +52,9 @@ public sealed class DashItem
     /// The most grid cells the widgets of one Dashboard cover together (width times height,
     /// summed). With <see cref="MaxItems"/> it bounds how much there is to lay out and draw,
     /// whatever a layout file or a settings file says: 80 full rows of a six-column grid, up to
-    /// 120 rows of four-wide widgets on four columns. Memory does not hang on it: the canvas keeps
-    /// pictures only as large as what the page shows (DashCanvas).
+    /// 120 rows of four-wide widgets on four columns. Memory does not hang on it: the pictures the
+    /// canvas keeps are sized by what the page shows (the frame is that part, the static layer a
+    /// band of at most twice its height), not by the length of the layout (DashCanvas).
     /// </summary>
     public const int MaxCells = 480;
 

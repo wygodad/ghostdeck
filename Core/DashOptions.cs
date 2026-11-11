@@ -17,8 +17,13 @@ public sealed class DashOptions
 {
     /// <summary>Longest text a getter returns (a label), in UTF-16 units.</summary>
     public const int MaxText = 64;
-    /// <summary>Most entries a list getter returns (which profiles, which switches).</summary>
-    public const int MaxList = 16;
+    /// <summary>
+    /// Most entries a list holds (which profiles, which switches, which scenes). A list of what
+    /// to show cannot say "all but one" in fewer entries than there are elements, so the bound is
+    /// far above what a widget usually offers; the settings card never stores a longer pick cut
+    /// short, it keeps it in the card and says so (WidgetSettingsCard).
+    /// </summary>
+    public const int MaxList = 64;
 
     private readonly Dictionary<string, JsonElement> _map;
 

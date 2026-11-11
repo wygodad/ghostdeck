@@ -221,7 +221,11 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
-        AppSettings.SaveFailed += why => (_ui ?? SynchronizationContext.Current)?.Post(_ => TellSettingsNotSaved(why), null);
+        // A settings file that cannot be written is said in a card. The start-up above saves too,
+        // before a card can be shown: such a failure is kept by AppSettings and said now.
+        _onSaveFailed = why => (_ui ?? SynchronizationContext.Current)?.Post(_ => TellSettingsNotSaved(why), null);
+        AppSettings.SaveFailed += _onSaveFailed;
+        AppSettings.TellPendingSaveFailure();
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
         // MSI True Color (roadmap #119): a profile recorded by True Color itself (its window, Fn+A)
         // refreshes the tray dots and the Settings card; the watcher only exists when it is installed
@@ -336,15 +340,20 @@ public sealed class TrayContext : ApplicationContext
     }
 
     private GhostCardForm? _saveCard;
+    private Action<string>? _onSaveFailed;
+    private bool _closing;   // the app is on its way out: no card is opened any more
 
     /// <summary>
     /// The settings file could not be written: said in a card, once per run of failures
     /// (AppSettings.SaveFailed). The change the user just made works until the app closes and is
-    /// not on disk; before 1.45 only the log knew.
+    /// not on disk; before 1.45 only the log knew. A card still open from an earlier run of
+    /// failures gives way to the new one, which carries the reason of now. Nothing is shown once
+    /// the app is closing (the message is posted, and may arrive after the windows are gone).
     /// </summary>
     private void TellSettingsNotSaved(string why)
     {
-        if (_saveCard is { IsDisposed: false }) return;
+        if (_closing) return;
+        if (_saveCard is { IsDisposed: false } old) { _saveCard = null; old.Close(); }
         _saveCard = new GhostCardForm("//SETTINGS", Lang.T("set_not_saved_title"), string.Format(Lang.T("set_not_saved_text"), why), Lang.T("gen_ok"), "", () => { });
         _saveCard.Show();
         _saveCard.Activate();
@@ -3512,6 +3521,10 @@ public sealed class TrayContext : ApplicationContext
 
     private void ExitApp()
     {
+        // from here on a failed save opens no card: the listener is gone and a message already posted is dropped
+        _closing = true;
+        if (_onSaveFailed != null) { AppSettings.SaveFailed -= _onSaveFailed; _onSaveFailed = null; }
+        if (_saveCard is { IsDisposed: false } saveCard) { _saveCard = null; saveCard.Close(); }
         _poll.Stop();
         DisarmProbeRetry();
         _wheelTimer?.Stop();
