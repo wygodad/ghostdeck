@@ -9,7 +9,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   says two more things about each widget type on the Dashboard: the main colour of its first copy (one of the twelve
   palette colours, or the default) and, for a ring, whether its dial is segmented or continuous. Nothing else of a
   widget's settings is sent: no label, scale, threshold, or picked profile, switch, scene or disk. The consent card
-  names the two fields, and *Show what will be sent* shows them beside each widget's size
+  names the two fields, and *Show what will be sent* shows them beside each widget's size, the colour as a disc and the dial in words
   ([TECHNICAL.md §87](docs/TECHNICAL.md)).
 
 ## [1.45.0] - 2026-11-11

@@ -224,27 +224,45 @@ public sealed class StatsReportCard : GhostCardForm
     private static bool IsList(System.Text.Json.Nodes.JsonNode? n) =>
         n is System.Text.Json.Nodes.JsonObject { Count: > 0 } || n is System.Text.Json.Nodes.JsonArray { Count: > 0 };
 
-    /// <summary>The labels of a list: (name, value, value is "set").</summary>
-    private static List<(string Name, string Value, bool On)> Chips(System.Text.Json.Nodes.JsonNode n)
+    /// <summary>
+    /// The labels of a list: (name, value, value is "set", a colour disc after the value, the text
+    /// after the disc). A widget shows its size and, where the report names them (1.46), its colour
+    /// and its dial in words: "1x1 · Colour: (disc) · Dial: Segmented". A palette colour is the
+    /// disc itself, the default colour is the word; the raw ids stay on the JSON tab.
+    /// </summary>
+    private static List<(string Name, string Value, bool On, Color? Dot, string Tail)> Chips(System.Text.Json.Nodes.JsonNode n)
     {
-        var list = new List<(string, string, bool)>();
+        var list = new List<(string, string, bool, Color?, string)>();
         if (n is System.Text.Json.Nodes.JsonObject o)
             foreach (var kv in o)
             {
                 string v = ValueText(kv.Value);
-                list.Add((kv.Key, v, v != "0"));
+                list.Add((kv.Key, v, v != "0", null, ""));
             }
         else if (n is System.Text.Json.Nodes.JsonArray a)
             foreach (var it in a)
             {
                 if (it is System.Text.Json.Nodes.JsonObject w && w["t"] != null)
                 {
-                    // the size, then the colour and the dial where the report names them (1.46)
-                    string v = ValueText(w["s"]);
-                    foreach (var key in new[] { "c", "d" }) if (w[key] != null) v += " · " + ValueText(w[key]);
-                    list.Add((ValueText(w["t"]), v, false));
+                    string v = ValueText(w["s"]), tail = "";
+                    Color? dot = null;
+                    if (w["c"] != null)
+                    {
+                        string c = ValueText(w["c"]);
+                        v += " · " + Lang.T("stats_w_color") + ":";
+                        if (c != "auto" && Array.IndexOf(DashPaint.PaletteIds, c) >= 0) dot = DashPaint.PaletteColor(c);
+                        else v += " " + Lang.T("dash_opt_default");
+                    }
+                    if (w["d"] != null)
+                    {
+                        string d = ValueText(w["d"]);
+                        string word = d == "arc" ? Lang.T("dash_opt_dial_arc") : d == "seg" ? Lang.T("dash_opt_dial_seg") : d;
+                        string part = " · " + Lang.T("stats_w_dial") + ": " + word;
+                        if (dot != null) tail = part; else v += part;
+                    }
+                    list.Add((ValueText(w["t"]), v, false, dot, tail));
                 }
-                else list.Add((ValueText(it), "", false));
+                else list.Add((ValueText(it), "", false, null, ""));
             }
         return list;
     }
@@ -461,7 +479,8 @@ public sealed class StatsReportCard : GhostCardForm
         int chipPadX = Ce(10 * k), chipPadY = Ce(4 * k), chipGap = Ce(8 * k), nameGap = Ce(6 * k);
         int chipH = Ce(chipF.GetHeight(g)) + chipPadY * 2;
         int hHead = Ce(headF.GetHeight(g)), headGap = Ce(10 * k), listGap = Ce(18 * k);
-        var laid = new List<(string Head, List<(string Name, string Value, bool On)> Chips, List<(int X, int Row, int W)> Place, int Rows)>();
+        int dotD = Math.Max(Ce(6 * k), (int)(chipF.GetHeight(g) * 0.55f)), dotGap = Ce(6 * k);   // the colour disc of a widget (1.46)
+        var laid = new List<(string Head, List<(string Name, string Value, bool On, Color? Dot, string Tail)> Chips, List<(int X, int Row, int W)> Place, int Rows)>();
         foreach (var kv in lists)
         {
             var chips = Chips(kv.Value!);
@@ -469,7 +488,8 @@ public sealed class StatsReportCard : GhostCardForm
             int cxp = 0, row = 0;
             foreach (var c in chips)
             {
-                int w = chipPadX * 2 + Ce(W(c.Name, chipF)) + (c.Value.Length > 0 ? nameGap + Ce(W(c.Value, chipB)) : 0);
+                int w = chipPadX * 2 + Ce(W(c.Name, chipF)) + (c.Value.Length > 0 ? nameGap + Ce(W(c.Value, chipB)) : 0)
+                    + (c.Dot != null ? dotGap + dotD : 0) + (c.Tail.Length > 0 ? Ce(W(c.Tail, chipB)) : 0);
                 if (cxp > 0 && cxp + w > inner) { cxp = 0; row++; }
                 place.Add((cxp, row, w));
                 cxp += w + chipGap;
@@ -500,6 +520,16 @@ public sealed class StatsReportCard : GhostCardForm
                         {
                             float vx = rc.X + chipPadX + W(l.Chips[i].Name, chipF) + nameGap;
                             Text(l.Chips[i].Value, chipB, l.Chips[i].On ? Cyan : Muted, vx, ty, pw, chipH);
+                            vx += W(l.Chips[i].Value, chipB);
+                            if (l.Chips[i].Dot is { } dot)
+                            {
+                                var sm = g.SmoothingMode;
+                                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                                using (var db = new SolidBrush(dot)) g.FillEllipse(db, vx + dotGap, rc.Y + (chipH - dotD) / 2f, dotD, dotD);
+                                g.SmoothingMode = sm;
+                                vx += dotGap + dotD;
+                            }
+                            if (l.Chips[i].Tail.Length > 0) Text(l.Chips[i].Tail, chipB, Muted, vx, ty, pw, chipH);
                         }
                     }
                     ly = top + l.Rows * chipH + (l.Rows - 1) * chipGap + listGap;
