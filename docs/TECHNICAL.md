@@ -342,17 +342,19 @@ The main window has a hidden developer dialog for probing the EC on new hardware
 
 It provides, all gated on the normal write-safety rules (Tested / opted-in Experimental):
 
-- **RPM finder** — two read-only EC scans at different fan speeds. The fan tachometer is the address whose value changes between scans; `RPM = 478000 / value`. Verified on the Raider GE78HX 13V (`17S1IMS1`): **`0xC9` = CPU fan (Fan 1)**, **`0xCB` = GPU fan (Fan 2)**, within ~1% of MSI Center.
+- **RPM finder** — two read-only EC scans at different fan speeds. The fan tachometer is the byte pair whose value changes between scans; `RPM = 480000 / value` (the vendor's formula, below; 478000 up to 1.45.0). First found on the Raider GE78HX 13V (`17S1IMS1`) as **`0xC9` = CPU fan (Fan 1)**, **`0xCB` = GPU fan (Fan 2)**, within ~1% of MSI Center; since 1.46.0 the finder and the live readout work on the pairs `0xC8:0xC9` / `0xCA:0xCB`.
 
-  **Plausibility ceiling (v1.34.0, issue #92).** Because the divisor is one byte, the register
-  cannot express anything below `478000/255` = **1874 RPM**: once a fan slows past that, the value
-  left in it is not a reading, and dividing it anyway produced ~9958 RPM in Status and in reports.
-  Readings above **8000 RPM** are therefore dropped (shown as "--"); the fastest fan ever logged on
-  any model is 7206 RPM, on a GE66 under load with Fan Boost.
+  **Plausibility ceiling (v1.34.0, issue #92).** Read as a single byte, as every tachometer was
+  read then, the register cannot express anything below `478000/255` = **1874 RPM**: once a fan
+  slowed past that, the value left in the low byte was not a reading, and dividing it anyway
+  produced ~9958 RPM in Status and in reports. Readings above **8000 RPM** are therefore dropped
+  (shown as "--"); the fastest fan ever logged on any model is 7206 RPM, on a GE66 under load
+  with Fan Boost. With the pairs the floor is gone; the ceiling still catches a value torn
+  between EC updates.
 
-  **Wide (16-bit) tachometers.** Some boards hold the divisor as a big-endian byte pair instead of
-  a single byte - `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, still with
-  `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
+  **Wide (16-bit) tachometers.** The EC holds the divisor as a big-endian byte pair -
+  `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, with
+  `RPM = 480000 / value`. A single-byte read of such a pair is exactly what produced the
   ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
   issue #76; the 1.37.0 readout matches HWiNFO64 to the rpm on both fans under load,
   5901 / 5690 RPM), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145; confirmed against HWiNFO64 on 1.37.0), `15T1EMS1`
@@ -413,10 +415,13 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   C12M in #60 and `03:ED` = ~480 rpm on a Thin 15 B12 at 0 % duty in #162, the other 22 always
   `00` next to a live low byte, and none held anything else in `0xC8`), keeping the single-byte
   field so that an app older than 1.37.0 reads what it read before; the Katana GF76 11UC / 11UD
-  gained its GPU pair from the second owner's live `0xCB` (#325); GhostDeck's divisor is still 478000 (HWiNFO64's figure to the rpm on the GE78HX, 0.4 % below MSI
-  Center's) and the backup path still reads the single `MSI_AP` instance - both change with the
-  next app version, which adopts 480000 and the `MSI_AP` pair.
-- **Live RPM** — continuous read of `0xC9` / `0xCB` for comparing against MSI Center.
+  gained its GPU pair from the second owner's live `0xCB` (#325); GhostDeck's divisor was 478000
+  up to 1.45.0 (HWiNFO64's figure to the rpm on the GE78HX, 0.4 % below MSI Center's) and the
+  backup path read the single `MSI_AP` instance - since 1.46.0 the divisor is 480000 on every
+  path (`DeviceProfile.DefaultRpmConst`), so a readout is about 0.4 % higher than before and than
+  HWiNFO64's, and the backup path reads the `MSI_AP` pair (`EcBlocks.ReadPair`; replayed against
+  the Delta 15 dump, `AP[3]:[2]` = `0:132` gives 3636 rpm, a synthetic `1:64` gives 1500).
+- **Live RPM** — continuous read of the pairs `0xC8:0xC9` / `0xCA:0xCB` for comparing against MSI Center.
 - **Save EC dump to file** — read-only 256-byte dump, used to locate fan-curve table addresses.
 - **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.
 
@@ -4217,7 +4222,7 @@ A plain-language guide for owners, with the same material condensed and three di
 | `MSI_CPU[3]` | critical-temperature limit, never written | 120 | 100 |
 | `MSI_CPU[4]`, `[5..10]` | curve: 0-degree anchor, six thresholds | 0, 55 60 70 78 85 90 | 0, 55 64 73 76 82 88 |
 | `MSI_CPU[11..17]` | curve: seven speeds | 0 45 60 81 96 113 80 | 38 43 48 54 60 70 85 |
-| `MSI_AP[2]`, `MSI_AP[4]` | CPU / GPU tachometer, RPM = 478000 / raw, 0 = stopped | 132, 0 | 207, 0 |
+| `MSI_AP[3]:[2]`, `MSI_AP[5]:[4]` | CPU / GPU tachometer: a byte pair with the high byte in the higher instance, the vendor's own read (§16); RPM = 480000 / pair, 0 = stopped | 0:132, 0:0 | 0:207, 0:0 |
 
 The curve table has the shape of the §17.3 tables: an anchor, six thresholds and seven speeds. `MSI_VGA` holds the GPU fan's table at the same indices.
 

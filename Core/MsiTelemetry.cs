@@ -46,7 +46,8 @@ public static class MsiTelemetry
             try
             {
                 cf = Slot(l.CpuDuty); gf = Slot(l.GpuDuty);
-                cr = Ec.RpmFromRaw(Slot(l.CpuRpm), 478000); gr = Ec.RpmFromRaw(Slot(l.GpuRpm), 478000);
+                cr = Ec.RpmFromRaw(Pair(l.CpuRpm), DeviceProfile.DefaultRpmConst);
+                gr = Ec.RpmFromRaw(Pair(l.GpuRpm), DeviceProfile.DefaultRpmConst);
             }
             catch { }
         }
@@ -61,6 +62,8 @@ public static class MsiTelemetry
     public static string Dump() => EcBlocks.Dump();
 
     private static int Slot(BlockRef? r) => r == null ? 0 : EcBlocks.Read(r);
+    // The tachometers are byte pairs, the high byte in the next instance (EcBlocks.ReadPair).
+    private static int Pair(BlockRef? r) => r == null ? 0 : EcBlocks.ReadPair(r);
 
     // One query per block, shared with everything else that reads the blocks (EcBlocks caches
     // it for a second). Absent class, access denied, WMI hiccup - all mean "no telemetry".

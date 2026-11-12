@@ -15,6 +15,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   tachometer as a single byte now carry the pair as well, so a fan slowed below ~1880 rpm by a flat curve shows its
   real speed instead of an impossible number; the Katana GF76 11UC / 11UD gains its GPU fan ([#325](../../issues/325)).
   The single-byte field stays beside the pair for apps older than 1.37.0 ([TECHNICAL.md §16](docs/TECHNICAL.md)).
+- **Fan speed uses MSI Center's own formula**: 480000 / register value instead of 478000, on every path. Each readout is
+  about 0.4 % higher than before (3380 instead of 3366 rpm at the same value); HWiNFO64 keeps showing the lower figure.
+  On the backup WMI path the tachometer is now read as the byte pair `MSI_AP[3]:[2]` / `[5]:[4]`, as the vendor's app
+  reads it, so a slow fan shows its real speed there too, and the hidden test dialog's RPM finder looks for byte pairs
+  ([#347](../../issues/347), thanks @bengervais; [TECHNICAL.md §16](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
 
 ## [1.45.0] - 2026-11-11
 ### Added
