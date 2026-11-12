@@ -5,12 +5,22 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Fan RPM on the Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261208, [#347](../../issues/347), thanks
+  @bengervais) - read as a 16-bit pair at `0xC8:C9` / `0xCA:CB`, the registers the firmware's own `Get_Fan` method reads
+  on this board, as the owner's DSDT excerpt and load test showed. MSI Center's fan routine reads every board's
+  tachometers as such pairs ([TECHNICAL.md §16](docs/TECHNICAL.md)).
 - **Statistics: which colours and dial styles people pick.** With the anonymous statistics on, the weekly report now
   says two more things about each widget type on the Dashboard: the main colour of its first copy (one of the twelve
   palette colours, or the default) and, for a ring, whether its dial is segmented or continuous. Nothing else of a
   widget's settings is sent: no label, scale, threshold, or picked profile, switch, scene or disk. The consent card
   names the two fields, and *Show what will be sent* shows them beside each widget's size, the colour as a disc and the dial in words
   ([TECHNICAL.md §87](docs/TECHNICAL.md)).
+
+### Changed
+- **Fan RPM is read as a 16-bit pair on every model** (model database 20261209). The 33 models that read the
+  tachometer as a single byte now carry the pair as well, so a fan slowed below ~1880 rpm by a flat curve shows its
+  real speed instead of an impossible number; the Katana GF76 11UC / 11UD gains its GPU fan ([#325](../../issues/325)).
+  The single-byte field stays beside the pair for apps older than 1.37.0 ([TECHNICAL.md §16](docs/TECHNICAL.md)).
 
 ## [1.45.0] - 2026-11-11
 ### Added

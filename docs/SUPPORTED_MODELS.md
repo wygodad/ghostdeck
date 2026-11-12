@@ -16,64 +16,64 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 
 | Model | EC firmware | Family | Status | Fan curve | Super Battery | RPM |
 |---|---|---|---|---|---|---|
-| MSI Alpha 17 C7VF / C7VG | `17KKIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
+| MSI Alpha 17 C7VF / C7VG | `17KKIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Bravo 15 B7ED | `158PIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
-| MSI Bravo 15 C7V, Katana A15 AI B8VG | `158NIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
+| MSI Bravo 15 C7V, Katana A15 AI B8VG | `158NIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Bravo 17 C7VE / D7VF / D7VFK | `17LNIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Creator 16 AI Studio A1VHG | `15F3EMS3` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
-| MSI Creator M14 A13VE | `14P1IWS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9 |
+| MSI Creator 16 AI Studio A1VHG | `15F3EMS3` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Creator M14 A13VE | `14P1IWS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI Creator M16 B13VF, Pulse 15 B13VGK, Katana 15 B13UDXK / B13VFK / B13VGK, Crosshair 16 A13V | `1585EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Crosshair 15 B12UEZ / B12UGSZ | `1583EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Crosshair 15 B12UEZ / B12UGSZ | `1583EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Crosshair 16 HX AI D2XW | `15P4EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
-| MSI Crosshair 17 HX AI D2XW | `17T4EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Crosshair 17 HX AI D2XW | `17T4EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Crosshair 18 HX AI A2XW | `1841EMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Crosshair A16 HX (D7W/D8W) | `15PLIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
+| MSI Crosshair A16 HX (D7W/D8W) | `15PLIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Cyborg 15 A12VF / A13VF / A13VE | `15K1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI Cyborg 15 AI A1VFK / A1VEK | `15K2EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI Cyborg 15 B13WFKG / B2RWFKG / B2RWEKG | `15Q3EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI Cyborg 15 C13WEO / C2WF | `15T1EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI Cyborg A15 AI B2HWGKG / B2HWEKG | `15QLIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
-| MSI GE66 Raider, GP66 Leopard | `1543EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI GE76 Raider 11U / 11UH, GP76 Leopard 11UG | `17K3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI GF63 Thin 11UC / 11SC | `16R6EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9 |
+| MSI GE66 Raider, GP66 Leopard | `1543EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI GE76 Raider 11U / 11UH, GP76 Leopard 11UG | `17K3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI GF63 Thin 11UC / 11SC | `16R6EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9 (16-bit) |
 | MSI GF65 Thin 10UE | `16W2EMS1` | G1 | &#9989; tested | &#9989; editable | &mdash; | &mdash; |
-| MSI Katana 15 HX B14WEK / B14WFK / B14WGK | `1587EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Katana GF66 11UE / 11UG | `1581EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Katana GF66 12U, Sword 15 A12UC | `1584EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Modern 14 C12M | `14J1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
-| MSI Prestige 14 AI Studio C1UDXG | `14N2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Prestige 16 AI Studio B1VFG / B1VGG | `15A2EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Prestige 16 Studio A13VE, Summit E16 Flip A13VFT | `1594EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Katana 15 HX B14WEK / B14WFK / B14WGK | `1587EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Katana GF66 11UE / 11UG | `1581EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Katana GF66 12U, Sword 15 A12UC | `1584EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Modern 14 C12M | `14J1IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
+| MSI Prestige 14 AI Studio C1UDXG | `14N2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Prestige 16 AI Studio B1VFG / B1VGG | `15A2EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Prestige 16 Studio A13VE, Summit E16 Flip A13VFT | `1594EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Pulse 16 AI C1VGKG/C1VFKG | `15P3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Pulse 17 AI C1VGKG / C1VFKG | `17T3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Pulse A16 AI+ C3HWFKG | `15PKIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Pulse/Katana 17 B13V/GK | `17L5EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider 16 Max HX B2WJ | `2651EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
+| MSI Raider A18 HX A7VIG | `182KIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider GE67 HX 12U | `1545IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Raider GE68 HX 14VGG | `15M2IMS2` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Raider GE68 HX 14VIG, Vector 16 HX A13V | `15M1IMS2` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
+| MSI Raider GE68 HX 14VGG | `15M2IMS2` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Raider GE68 HX 14VIG, Vector 16 HX A13V | `15M1IMS2` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider GE68HX 13V | `15M2IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Raider GE76 12UE / 12UGS | `17K4EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
-| MSI Raider GE78 HX 14VHG | `17S1IMS2` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Raider GE76 12UE / 12UGS | `17K4EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Raider GE78 HX 14VHG | `17S1IMS2` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Raider GE78HX 13V, Vector 17 HX A14V | `17S1IMS1`, `17S2IMS2` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Stealth 14 Studio A13VF / A13VE | `14K1EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Stealth 14 Studio A13VF / A13VE | `14K1EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Stealth 16 AI+ B3WI / B3WH | `2631EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Stealth 16 Studio A13VG | `15F2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
 | MSI Stealth 18 HX AI A2XW | `1833EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Stealth A16 AI+ A3XWHG | `15FLIMS1` | G2 | &#9989; tested | &#9673; unverified | &mdash; | &mdash; |
-| MSI Summit E14 Flip Evo A12MT, Prestige 14 H B13U | `14F1EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
-| MSI Sword 16 HX B13V / B14V | `15P2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Summit E14 Flip Evo A12MT, Prestige 14 H B13U | `14F1EMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
+| MSI Sword 16 HX B13V / B14V | `15P2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Sword 17 HX B14VGKG | `17T2EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &mdash; |
-| MSI Thin 15 B12UCX / B12VE | `16R8IMS2` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9 |
-| MSI Thin GF63 12VE | `16R8IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Thin 15 B12UCX / B12VE | `16R8IMS2` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9 (16-bit) |
+| MSI Thin GF63 12VE | `16R8IMS1` | G2 | &#9989; tested | &#9989; editable (single fan) | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Titan 18 HX A14V, Raider 18 HX A14V | `1822EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Titan 18 HX Dragon Edition | `1824EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
-| MSI Vector 16 HX AI, Raider 16 HX AI A2XWHG / A2XWIG | `15M3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Vector 16 HX AI, Raider 16 HX AI A2XWHG / A2XWIG | `15M3EMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Vector 17 HX AI A2XWHG | `17S3EMS1` | G2 | &#9989; tested | &#9673; unverified | &#10003; | &mdash; |
-| MSI Vector A16 HX A8WIG / A8WHG | `15MMIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
-| MSI Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG | `182LIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC9/0xCB |
-| MSI Vector GP68 HX 13V | `15M1IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Vector A16 HX A8WIG / A8WHG | `15MMIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Vector A18 HX A9WHG, Raider A18 HX A9WIG / A9WJG | `182LIMS1` | G2 | &#9989; tested | &#9989; editable | &mdash; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
+| MSI Vector GP68 HX 13V | `15M1IMS1` | G2 | &#9989; tested | &#9989; editable | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | Monster Tulpar T7 V25.1 (MSI MS-17K3 board) | `17K3EF81` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator 15 A11UE | `16V4EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Creator 17 B11UE | `17M1EMS2` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
@@ -90,7 +90,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Katana GF66 | `1582EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Katana GF66 12UDO | `1584IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Katana GF76 | `17L1EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Katana GF76 11UC / 11UD | `17L2EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC9 |
+| MSI Katana GF76 11UC / 11UD | `17L2EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Katana GF76 12UC | `17L4EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Modern 14 B11M | `14D2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Modern 14 B11MOU | `14D3EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
@@ -138,7 +138,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI Thin GF63 12HW | `16R7IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Titan GT77 12UHS | `17Q1IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Titan GT77HX 13VH | `17Q2IMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
-| MSI Vector GP66 12UGS, Raider GE66 12UGS | `1544EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC9/0xCB |
+| MSI Vector GP66 12UGS, Raider GE66 12UGS | `1544EMS1` | G2 | &#9887;&#65039; experimental | &#9989; verified (opt-in) | &#10003; | &#10003; 0xC8:C9/0xCA:CB (16-bit) |
 | MSI Venture 14 AI A2HMG | `14Q2EMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Venture A14 AI+ A3HMG | `14QKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |
 | MSI Venture A15 AI A2HMG / A2HMTG | `15QKIMS1` | G2 | &#9887;&#65039; experimental | &#9673; unverified | &#10003; | &mdash; |

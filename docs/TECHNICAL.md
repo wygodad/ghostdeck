@@ -380,14 +380,42 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   first time: `0xCA:0xCB` = `01:4D` / `01:40` = 1435 / 1493 rpm, HWiNFO64's exact figures, while
   the single-byte read showed "6207" and "7468"; the CPU fan at 1435 rpm read `0x4D` in `0xC9`,
   which only `0x014D` explains. The single-byte scheme had matched MSI Center for a year because
-  the factory curves never let these fans drop that low). Detection caveat: above ~1870 RPM the
+  the factory curves never let these fans drop that low), `15F3EMS3` (#347 - the owner's DSDT
+  excerpt: the firmware's `Get_Fan` method reads `0xC8`/`0xC9` and `0xCA`/`0xCB` as the two fans,
+  and his load test tracks both, 2743 -> 4364 rpm). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
-  with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
-  (raw > 255), where the pair and the single byte diverge. In the signed
+  with Fan Boost cannot tell the two formats apart; the carriers above were classified from idle
+  readings (raw > 255), where the pair and the single byte diverge, until the vendor's own code
+  settled the question for every board (next paragraph). In the signed
   database the pair ships as `cpuRpmAddr16` / `gpuRpmAddr16` (the high-byte address; the low byte
-  sits at address+1); the single-byte fields stay unset on these models, so an older app keeps
-  showing no RPM there instead of misreading one byte of the pair. The two reads are not atomic;
+  sits at address+1). Since database 20261209 every model with an RPM readout carries the pair:
+  the models that had shipped with `cpuRpmAddr` / `gpuRpmAddr` keep those beside it, so an app
+  older than 1.37.0, which knows only the single-byte fields, reads what it read before, while a
+  current app prefers the pair; models enabled since then carry the pair alone, so such an older
+  app shows no RPM there instead of misreading one byte of the pair. The two reads are not atomic;
   a value torn between EC updates lands outside the plausibility window above and is dropped.
+
+  **The vendor's formula (issue #347, 2026-11-12).** MSI Center's own fan routine (2.0.75)
+  computes the speed as `60000000 / ((hi << 8 | lo) * 2 * 62.5)`: the controller counts the time
+  between two tacho pulses in 62.5 µs ticks, two pulses per revolution, so **RPM = 480000 / pair**,
+  the reading the kernel's `msi-wmi-platform` documentation also gives (up to four big-endian
+  16-bit values, 480000 / value). The routine reads a pair on both vendor interfaces: on the
+  method interface the `Get_Fan` reply, after its status byte, carries the CPU pair in bytes 0-1
+  and the GPU pair in bytes 2-3 (the Creator 16's DSDT maps them to `0xC8`..`0xCB`); on the
+  legacy `MSI_AP` class of the backup path the CPU pair is instance 3 (high) with instance 2
+  (low) and the GPU pair instance 5 with instance 4 - the high byte sits in the higher instance,
+  the reverse of the EC order. So every board reports pairs; the single-byte scheme only ever worked
+  because the factory curves keep the fans above ~1880 RPM, where the high byte is `00`.
+  Consequences: a new model gets the pair fields without waiting for an idle reading; the 33
+  entries that had been read as a single byte moved to pairs in database 20261209 after a check
+  of their owners' captures (a few hundred full dumps from 130 issues: eleven of the boards had
+  already shown a high byte of `01` at low speed, for example `01:40` = 1500 rpm on a Modern 14
+  C12M in #60 and `03:ED` = ~480 rpm on a Thin 15 B12 at 0 % duty in #162, the other 22 always
+  `00` next to a live low byte, and none held anything else in `0xC8`), keeping the single-byte
+  field so that an app older than 1.37.0 reads what it read before; the Katana GF76 11UC / 11UD
+  gained its GPU pair from the second owner's live `0xCB` (#325); GhostDeck's divisor is still 478000 (HWiNFO64's figure to the rpm on the GE78HX, 0.4 % below MSI
+  Center's) and the backup path still reads the single `MSI_AP` instance - both change with the
+  next app version, which adopts 480000 and the `MSI_AP` pair.
 - **Live RPM** — continuous read of `0xC9` / `0xCB` for comparing against MSI Center.
 - **Save EC dump to file** — read-only 256-byte dump, used to locate fan-curve table addresses.
 - **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.
