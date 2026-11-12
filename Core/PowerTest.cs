@@ -75,7 +75,8 @@ public static class PowerTest
         // clock, so a slow controller yields fewer samples across the same minute, and the steady
         // window has to be carved out of TIME or it swallows the ramp.
         int Sec, int Ms, int Own, int CpuTemp, int GpuTemp, int CpuFan, int GpuFan,
-        int CpuRpm, int GpuRpm, int ClockMhz, int GpuUsage, long Work);
+        int CpuRpm, int GpuRpm, int ClockMhz, int GpuUsage, long Work,
+        double CpuW = -1);   // processor package power (W) from the Energy Meter counters, -1 = none (1.46)
 
     public sealed record Phase(
         string Name,
@@ -416,7 +417,7 @@ public static class PowerTest
             var sample = new Sample((int)(nowMs / 1000), ms, Math.Clamp(own, 0, 999),
                 hw.CpuTemp, hw.GpuTemp, hw.CpuFan, hw.GpuFan,
                 hw.CpuRpm, hw.GpuRpm, Perf.CpuClockMhz(), Perf.GpuUsage(),
-                (work - lastWork) * 1000 / ms);
+                (work - lastWork) * 1000 / ms, Perf.CpuWatts());
             lastWork = work; lastMs = nowMs; lastCpu = cpu;
             samples.Add(sample);
 
@@ -617,7 +618,7 @@ public static class PowerTest
 
         // ---- the comparison this whole thing exists for ----
         sb.AppendLine("--- Steady state ---");
-        sb.AppendLine("Profile        shift fan  CPU C  GPU C  CPU%  GPU%  CPU rpm  GPU rpm  CPU MHz  MHz range    work  own    n  gpu");
+        sb.AppendLine("Profile        shift fan  CPU C  GPU C  CPU%  GPU%  CPU rpm  GPU rpm  CPU MHz  MHz range  CPU W    work  own    n  gpu");
         double baseWork = 0;
         foreach (var p in r.Phases)
             if (p.Name == ProfileId.Balanced.ToString()) baseWork = AvgRate(Steady(p.Samples), s => s.Work);
@@ -644,11 +645,14 @@ public static class PowerTest
             double work = AvgRate(st, s => s.Work);
             string idx = baseWork > 0 ? (work / baseWork * 100).ToString("F0") : "--";
             string range = $"{st.Min(x => x.ClockMhz)}-{st.Max(x => x.ClockMhz)}";
+            // package power: the samples that carried it (none on a processor without the counters)
+            var pw = st.Where(x => x.CpuW >= 0).Select(x => x.CpuW).ToArray();
+            string watts = pw.Length == 0 ? "--" : pw.Average().ToString("F0");
             sb.AppendLine($"{name,-14} {shift,-5} {fan,-4} " +
                           $"{Avg(st.Select(s => s.CpuTemp)),5:F0}  {G(s => s.GpuTemp),5}  " +
                           $"{Avg(st.Select(s => s.CpuFan)),4:F0}  {G(s => s.GpuFan),4}  " +
                           $"{R(st, s => s.CpuRpm),7}  {R(gpu, s => s.GpuRpm),7}  " +
-                          $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {range,-11}  {idx,4}  {AvgRate(st, s => s.Own),3:F0}  {st.Length,3}  {gpu.Length,3}");
+                          $"{Avg(st.Select(s => s.ClockMhz)),7:F0}  {range,-11}  {watts,5}  {idx,4}  {AvgRate(st, s => s.Own),3:F0}  {st.Length,3}  {gpu.Length,3}");
         }
 
         // The repeated baseline belongs at the bottom, after the probe: it is the last thing measured
@@ -825,7 +829,7 @@ public static class PowerTest
 
         // ---- raw material ----
         sb.AppendLine("--- Per-second samples (sec, ms since the previous one, own% of the machine,");
-        sb.AppendLine("    CPU C, GPU C, CPU fan%, GPU fan%, CPU rpm, GPU rpm, MHz, GPU load%, work per second) ---");
+        sb.AppendLine("    CPU C, GPU C, CPU fan%, GPU fan%, CPU rpm, GPU rpm, MHz, GPU load%, work per second, CPU W) ---");
         foreach (var p in r.Phases) Samples(p.Name, p.Samples);
         if (r.Fourth is { } fs && fs.Samples.Length > 0) Samples(fs.Name, fs.Samples);
 
@@ -835,7 +839,7 @@ public static class PowerTest
             sb.AppendLine($"[{name}]");
             foreach (var s in samples)
                 sb.AppendLine($"{s.Sec,3}  {s.Ms,5}  {s.Own,3}  {s.CpuTemp,3}  {s.GpuTemp,3}  {s.CpuFan,3}  {s.GpuFan,3}  " +
-                              $"{s.CpuRpm,5}  {s.GpuRpm,5}  {s.ClockMhz,5}  {s.GpuUsage,3}  {s.Work,12}");
+                              $"{s.CpuRpm,5}  {s.GpuRpm,5}  {s.ClockMhz,5}  {s.GpuUsage,3}  {s.Work,12}  {(s.CpuW >= 0 ? s.CpuW.ToString("F0") : "--"),5}");
         }
 
         sb.AppendLine();

@@ -24,7 +24,8 @@ internal sealed record DashSample(
     bool WinLock,
     int ChargeLimit,
     DateTime At,
-    int BatteryPercent = -1)             // the charge Windows reports, -1 = no battery or unknown (1.45)
+    int BatteryPercent = -1,             // the charge Windows reports, -1 = no battery or unknown (1.45)
+    double CpuWatts = -1)                // processor package power from the Energy Meter counters, -1 = none (1.46)
 {
     public static readonly DashSample Empty = new(
         default, false, false, 0, 0, 0, 0, 0, 0, 0, Array.Empty<Perf.DiskInfo>(), -1,
@@ -60,6 +61,8 @@ internal sealed record DashSample(
         IReadOnlyList<Perf.DiskInfo> disks = Array.Empty<Perf.DiskInfo>();
         try { cpu = SysInfo.CpuUsage(); } catch { }
         try { clock = Perf.CpuClockMhz(); } catch { }
+        double watts = -1;
+        try { watts = Perf.CpuWatts(); } catch { }
         try { (ramPct, ramTotal, ramUsed) = SysInfo.Ram(); } catch { }
         try { vramUsed = Perf.VramUsedMb(); vramTotal = Perf.VramTotalMb(); } catch { }
         try { disks = Perf.DisksCached(); } catch { }
@@ -81,6 +84,6 @@ internal sealed record DashSample(
         try { float life = SystemInformation.PowerStatus.BatteryLifePercent; if (life is >= 0f and <= 1f) charge = (int)Math.Round(life * 100); } catch { }
 
         return new DashSample(hw, temps, fans, cpu, clock, ramPct, ramTotal, ramUsed, vramUsed, vramTotal, disks, battery,
-            profile, boost, overlay, webcam, mic, touchpad, winLock, d.Settings.ChargeLimit, DateTime.UtcNow, charge);
+            profile, boost, overlay, webcam, mic, touchpad, winLock, d.Settings.ChargeLimit, DateTime.UtcNow, charge, watts);
     }
 }

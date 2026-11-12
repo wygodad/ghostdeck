@@ -9,6 +9,15 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   @bengervais) - read as a 16-bit pair at `0xC8:C9` / `0xCA:CB`, the registers the firmware's own `Get_Fan` method reads
   on this board, as the owner's DSDT excerpt and load test showed. MSI Center's fan routine reads every board's
   tachometers as such pairs ([TECHNICAL.md §16](docs/TECHNICAL.md)).
+- **Processor power in watts** (roadmap #116, asked for in discussion #150). Windows publishes the processor's own
+  energy accounting as the Energy Meter performance counters; GhostDeck reads the package domain, the whole chip,
+  the way it already reads the CPU clock, with no driver. It shows on Status (a box under the battery time, with a
+  ? bubble), in the overlay (*CPU power*, off until you pick it), as a Dashboard widget (*CPU power*, in the
+  catalogue, with three looks: a number, a dial lit to a scale you pick or an automatic one, or a trail of the last
+  2 to 30 minutes with a scale, grid lines and the reading at the cursor, as on the history widgets), in `--status`
+  (`cpuWatts`) and as a new **CPU W** column of the power test, so a run shows in
+  watts what each profile lets the processor draw. On a processor without these counters nothing appears
+  ([TECHNICAL.md §89](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
 - **GF63 Thin 9SC is a tested model** (`16R3EMS1`, model database 20261211, [#344](../../issues/344), thanks
   @Heroofdarkness7788): its path test passed on the backup WMI path, and the owner confirmed Silent audibly quiet and
   switching stable. The fan-curve editor stays off for this model ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).

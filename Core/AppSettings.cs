@@ -18,6 +18,7 @@ public enum OverlayMetric
     Fps = 16384, FrameTime = 32768,
     SsdTemp = 65536, BatteryTime = 131072,
     IgpuUsage = 262144, CpuName = 524288,
+    CpuWatts = 1048576,                      // processor package power (W), roadmap #116 (1.46)
 }
 
 public sealed class HotkeyDef

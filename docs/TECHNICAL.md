@@ -4792,3 +4792,69 @@ which may throw or break a limit). On the real canvas, in the preview tool: `-15
 card), `-16` (layouts, files, bounds, cards on low screens, the history widgets, the catalogue),
 `-17` (the band, the frame and the mouse on a tall canvas); the default layout is compared pixel
 for pixel with 1.44.
+
+## 89. Processor package power from the Energy Meter counters (1.46, roadmap #116)
+
+**Source.** Modern processors account for their own energy (Intel RAPL, AMD's equivalent) and
+Windows publishes that accounting as the **Energy Meter** performance counter set: one instance
+per domain, with `Power`, `Energy` and `Time` counters. `Perf` adds `\Energy Meter(*)\Power`
+through the English-name PDH API like its other counters (§21: PDH is Task Manager's source, no
+kernel driver, nothing an anti-cheat objects to) and reads it in the same throttled `Tick`.
+The instance names come from the firmware: on the GE78HX (i9-13950HX) `RAPL_Package0_PKG`,
+`RAPL_Package0_PP0` (the cores), `RAPL_Package0_PP1` (the integrated graphics) and
+`RAPL_Package0_DRAM`. The `Power` counter is in **milliwatts**: the package instance read
+22 842 at a light load on 12 November 2026 (22.8 W), PP0 18 806, PP1 7, DRAM 0. On a Polish
+Windows the set is listed as "Miernik energii", which is why the English-name API matters.
+
+**What is shown.** `Perf.CpuWatts()` is the sum of the package domains (`PKG` / `Package` in the
+instance name, so a two-socket machine adds up), in watts to one decimal, and -1 when the
+counter set is absent or holds no package instance. The core, graphics and memory domains are
+parts of the package and are left out, so nothing counts twice; `_Total` and `PSYS` (the
+platform domain, where a firmware exposes it) are skipped too. A value outside 0.5-1000 W is not
+a processor and is dropped. The package is the whole chip and is exactly what a power profile
+caps, which makes the figure the direct reading the power test lacked: its steady-state table
+has a **CPU W** column (and the per-second samples a last column) since 1.46, "--" on a
+processor without the counters.
+
+**Where.** Status: a third wide box under the graphics clock and the battery time, with a help
+dot (`st_cpu_power_tip`); the box exists only while the reading does, so Status never shows
+"CPU power: -", and the right column's height follows the number of boxes. The overlay: the
+*CPU power* row (`OverlayMetric.CpuWatts`, bit 20), listed in Settings → Gaming only on
+processors with the counters and off by default. The Dashboard: the `core.cpuPower` widget
+(1x1 and 2x1, the CPU clock widget's layout with "W" as the unit), available on the same
+condition; the panel's `WIDGET_NAMES` carries the key. `--status` and the running app's status
+JSON: `cpuWatts` (number, one decimal) or `null`.
+
+**Not done, deliberately.** No history widget or Status chart yet (a column in `HwHistory`
+would be the step). No graphics-card power: NVIDIA's `nvml.dll` offers it on their cards and is
+present on the GE78HX, but it is vendor-specific and needs its own entry point handling; it is
+the natural follow-up once owners report the processor figure as sound. The reading has not yet
+been compared with a monitoring tool on the same machine at the same moment; the FAQ says the
+figures should agree within a watt or two, which is what the shared source implies, not what
+was measured. What was checked on the GE78HX: 21-23 W at a light load and 249 W while a build
+ran every core, which is where this processor's limits lie.
+
+**The widget's three looks.** `core.cpuPower` has a *Look* setting (`look`): **Number** (the CPU
+clock widget's layout, the value large with "W" under it), **Dial** (the Status ring, segmented or
+continuous by the `dial` setting, lit to the value's share of a scale, the value and "W" inside)
+and **Trail**, the history widgets' chart (§88) for the watts: the title with the value of now
+beside it, a scale in watts on the left with grid lines (4, 5, 3 or 2 steps, whichever divides the
+scale into whole watts), the time under the plot, the trail as a filled line, and **the reading at
+the cursor** - a dashed line at the point nearest to the cursor's moment, a dot, and a bubble with
+the time and the watts (`FollowsPointer` / `PaintPointer`, as the history widgets). A *Range*
+setting (`range`) picks **2, 5, 15 or 30 minutes** in view. In a 1x1 cell the trail is compact:
+the value and the line alone, no scale. The dial and the trail share a *Scale* setting (`scale`):
+45 / 65 / 100 / 150 / 200 / 250 W, or **Auto**, the highest value in the window in view (two
+minutes for the dial) rounded up to the next 25 W, so an idle laptop is not a sliver on a 250 W
+dial and a load does not run off the top. The trail is `Perf.CpuWattsTrail()`: `Tick` keeps every
+reading of the last half hour in a list behind the counter lock (one point per tick that had a
+value, up to ~2500 points, in memory only), the widget takes the window it shows, scales it into
+its chart and repaints when a point was added. The dial style rides in the weekly statistics like
+the rings' (`StyleDial`), the colour as `color`. Sizes 1x1, 2x1 and 2x2; the preview tool renders
+the looks with `DASHLAYOUT="core.cpuPower{look=trail;scale=100;range=5}:2x1,..."` and
+`WATTSTRAIL=<minutes>` for a made-up trail.
+
+| | |
+|:---:|:---:|
+| ![The CPU power widget in its three looks](images/cpu_power_widgets.png) | ![The CPU power box on Status](images/status_cpu_power.png) |
+| The widget: number, dial and trail in 1x1, then the arc dial at 150 W in 2x2, the trail at 100 W and the number in 2x1 (the trail is the preview tool's made-up two minutes) | Status: the box under the battery time, with the help dot |

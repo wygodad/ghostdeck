@@ -21,7 +21,8 @@ public readonly record struct OverlaySample(
     int SsdTemp = -1, int BattMinutes = -1,    // NVMe S.M.A.R.T. temp (disk 0); Windows' battery-time estimate
     int SsdTemp2 = -1,                         // second disk's temp (dual-SSD laptops), -1 = none
     int IgpuUsage = -1, string CpuName = "",   // integrated card's load (-1 = no such card); processor model
-    bool HwLost = false);                       // hardware readings unavailable (Ec.ReadsLost): EC values show "--"
+    bool HwLost = false,                        // hardware readings unavailable (Ec.ReadsLost): EC values show "--"
+    double CpuWatts = -1);                      // processor package power from the Energy Meter counters, -1 = none (1.46)
 
 /// <summary>
 /// Detachable, always-on-top mini status panel for gaming: temps / fan RPM / profile / load, in a
@@ -183,6 +184,7 @@ public sealed class OverlayForm : Form
         Add(OverlayMetric.GpuUsage, IconKind.Gpu, "GPU%", _s.GpuUsage >= 0 ? $"{_s.GpuUsage}%" : "--");
         Add(OverlayMetric.IgpuUsage, IconKind.Gpu, "iGPU%", _s.IgpuUsage >= 0 ? $"{_s.IgpuUsage}%" : "--");
         Add(OverlayMetric.CpuClock, IconKind.Cpu, "CPU clock", _s.CpuClock > 0 ? $"{_s.CpuClock} MHz" : "--");
+        Add(OverlayMetric.CpuWatts, IconKind.Cpu, "CPU power", _s.CpuWatts >= 0 ? $"{_s.CpuWatts:0} W" : "--");
         Add(OverlayMetric.Ram, IconKind.Ram, "RAM", $"{_s.RamUsedGb:0.0} GB");
         Add(OverlayMetric.Vram, IconKind.Ram, "VRAM", _s.VramMb >= 0 ? $"{_s.VramMb} MB" : "--");
         Add(OverlayMetric.Battery, IconKind.Charge, _s.Charging ? "Battery ⚡" : "Battery", _s.BatteryPct >= 0 ? $"{_s.BatteryPct}%" : "--");

@@ -59,6 +59,7 @@ public sealed class OverlaySettingsPanel : Panel
         AddMetric("ov_m_gpuusage", OverlayMetric.GpuUsage);
         if (Perf.HasIgpu) AddMetric("ov_m_igpu", OverlayMetric.IgpuUsage);   // two-card laptops only
         AddMetric("ov_m_cpuclock", OverlayMetric.CpuClock);
+        if (Perf.HasCpuWatts) AddMetric("ov_m_cpuwatts", OverlayMetric.CpuWatts);   // processors with energy counters only
         AddMetric("ov_m_cpuname", OverlayMetric.CpuName);
         AddMetric("ov_m_ram", OverlayMetric.Ram);
         AddMetric("ov_m_vram", OverlayMetric.Vram);

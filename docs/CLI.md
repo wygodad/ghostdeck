@@ -95,6 +95,7 @@ directory and it works even when the app can't start.
   "cpuTemp": 52, "gpuTemp": 46,
   "cpuFan": 34,  "gpuFan": 0,
   "cpuRpm": 2450, "gpuRpm": 0,
+  "cpuWatts": 22.8,
   "refreshHz": 240,
   "chargeLimit": 80,
   "kbdLight": null,
@@ -123,6 +124,7 @@ directory and it works even when the app can't start.
 | `cpuTemp`, `gpuTemp` | int | °C, `0` = unknown |
 | `cpuFan`, `gpuFan` | int | fan duty %, `0` = unknown/stopped |
 | `cpuRpm`, `gpuRpm` | int | real RPM, `0` = unknown or no tach registers on this model |
+| `cpuWatts` | number? | processor package power in watts from Windows' Energy Meter counters (one decimal); `null` = the processor exposes no such counters |
 | `refreshHz` | int | current refresh rate of the built-in panel (primary display when no internal panel is active), `0` = unknown |
 | `chargeLimit` | int | the app's configured charge limit; `0` = not managed |
 | `kbdLight` | int? | backlight level 0-3; `null` = no EC brightness register on this model |

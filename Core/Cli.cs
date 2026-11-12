@@ -495,6 +495,7 @@ public static class Cli
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
+                        cpuWatts = Perf.CpuWatts() is >= 0 and var cw ? cw : (double?)null,
                         refreshHz = Display.Current(),
                         chargeLimit = settings.ChargeLimit,
                         kbdLight = kbd,

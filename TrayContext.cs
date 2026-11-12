@@ -396,6 +396,7 @@ public sealed class TrayContext : ApplicationContext
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
                         cpuRpm = hw.CpuRpm, gpuRpm = hw.GpuRpm,
+                        cpuWatts = Perf.CpuWatts() is >= 0 and var cw ? cw : (double?)null,
                         refreshHz = Display.Current(),
                         chargeLimit = _settings.ChargeLimit,
                         kbdLight = kbdLvl >= 0 ? kbdLvl : (int?)null,
@@ -2379,7 +2380,7 @@ public sealed class TrayContext : ApplicationContext
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
             Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second,
-            Perf.IgpuUsage(), SysInfo.CpuShortName(), lost);
+            Perf.IgpuUsage(), SysInfo.CpuShortName(), lost, Perf.CpuWatts());
     }
 
     private void ShowOsd(ProfileId id)

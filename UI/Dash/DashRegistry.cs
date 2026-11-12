@@ -41,6 +41,8 @@ internal static class DashRegistry
         new DashWidgetDef("core.gpuFan",      "dash_w_gpu_fan",   Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.GpuFan)) { StyleColorKey = "color", StyleDial = true },
         new DashWidgetDef("core.cpuUsage",    "dash_w_cpu_usage", Sz((1, 1), (2, 2)), Always, (d, o) => new RingWidget(d, o, RingWidget.Kind.CpuUsage)) { StyleColorKey = "color", StyleDial = true },
         new DashWidgetDef("core.cpuClock",    "dash_w_cpu_clock", Sz((1, 1), (2, 1)), Always, (d, o) => new CpuClockWidget(d, o)) { StyleColorKey = "color" },
+        // (1.46) processor package power from Windows' Energy Meter counters; only processors that expose them
+        new DashWidgetDef("core.cpuPower",    "dash_w_cpu_power", Sz((1, 1), (2, 1), (2, 2)), _ => Perf.HasCpuWatts, (d, o) => new CpuPowerWidget(d, o)) { StyleColorKey = "color", StyleDial = true },
         new DashWidgetDef("core.profiles",    "dash_w_profiles",  Sz((4, 1), (2, 2)), Always, (d, o) => new ProfilesWidget(d, o)),
         new DashWidgetDef("core.curve",       "dash_w_curve",     Sz((2, 2), (4, 2)), d => d.HasFanCurve(), (d, o) => new CurveWidget(d, o)) { StyleColorKey = "cpuc" },
         // (1.45) 1x1: one button that runs the first of the widget's scenes

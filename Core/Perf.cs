@@ -34,12 +34,28 @@ internal static class Perf
 
     private static readonly object _lock = new();
     private static bool _init, _ok;
-    private static IntPtr _query, _cpuPerf, _gpu3d, _vram, _shared;
+    private static IntPtr _query, _cpuPerf, _gpu3d, _vram, _shared, _energy;
     private static int _baseMhz;
     private static DateTime _lastTick = DateTime.MinValue;
 
     // last sampled values (-1 = unavailable)
     private static int _gpuUsage = -1, _vramMb = -1, _cpuClock = -1, _igpuUsage = -1, _igpuSharedMb = -1;
+    // Processor package power in watts (-1 = the processor exposes no energy counters). Windows'
+    // "Energy Meter" counters publish the processor's own energy accounting (RAPL on Intel) as
+    // Power per domain, in milliwatts: on the GE78HX the RAPL_Package0_PKG instance reads ~22 800
+    // at a light load (22.8 W), PP0 (the cores) a little less, PP1 (the integrated graphics) ~7,
+    // DRAM 0. The package domain is the whole chip, which is what a power profile caps. Roadmap
+    // #116; TECHNICAL 89.
+    private static double _cpuWatts = -1;
+    // The counter set has a package instance on this machine. Sticky once seen: the first sample
+    // after start carries no value yet (a rate counter needs two collections), and the Status box
+    // must not come and go with that - it shows "-" for that second instead.
+    private static bool _energyPresent;
+    // The last half hour of package power, one point per tick that had a value (up to ~2500
+    // points): the "trail" look of the Dashboard's CPU power widget draws 2 to 30 minutes of it,
+    // and its "auto" scale is the peak of the window in view. In memory only, never on disk.
+    private static readonly List<(DateTime At, double W)> _wattsTrail = new();
+    private static readonly TimeSpan TrailKeep = TimeSpan.FromSeconds(30 * 60 + 5);
 
     // Counter instance names carry the adapter as "luid_0x<high>_0x<low>" (the same identifier
     // DXGI reports), so each card's readings are picked out by that prefix. Null keys = the
@@ -61,6 +77,8 @@ internal static class Perf
             PdhAddEnglishCounter(_query, @"\GPU Engine(*engtype_3D)\Utilization Percentage", IntPtr.Zero, out _gpu3d);
             PdhAddEnglishCounter(_query, @"\GPU Adapter Memory(*)\Dedicated Usage", IntPtr.Zero, out _vram);
             PdhAddEnglishCounter(_query, @"\GPU Adapter Memory(*)\Shared Usage", IntPtr.Zero, out _shared);
+            // absent on processors without the counters (the add fails and the handle stays zero)
+            PdhAddEnglishCounter(_query, @"\Energy Meter(*)\Power", IntPtr.Zero, out _energy);
             LoadRoles();
             PdhCollectQueryData(_query);   // prime (rate counters need two samples)
             _ok = true;
@@ -93,6 +111,17 @@ internal static class Perf
                 _igpuUsage = load == null || _igpuKey == null ? -1 : Pct(load.GetValueOrDefault(_igpuKey));
                 _vramMb = dedicated == null ? -1 : Mb(_mainKey == null ? dedicated.Values.Sum() : dedicated.GetValueOrDefault(_mainKey));
                 _igpuSharedMb = shared == null || _igpuKey == null ? -1 : Mb(shared.GetValueOrDefault(_igpuKey));
+                var (present, watts) = ReadPackagePower();
+                if (present) _energyPresent = true;
+                _cpuWatts = watts;
+                if (watts >= 0)
+                {
+                    var now = DateTime.UtcNow;
+                    _wattsTrail.Add((now, watts));
+                    int drop = 0;
+                    while (drop < _wattsTrail.Count && now - _wattsTrail[drop].At > TrailKeep) drop++;
+                    if (drop > 0) _wattsTrail.RemoveRange(0, drop);
+                }
 
                 // An identifier we have not seen means the adapters changed under us (driver
                 // update, a card disabled and enabled); read the roles again, at most every 30 s.
@@ -104,6 +133,42 @@ internal static class Perf
             }
             catch { }
         }
+    }
+
+    /// <summary>
+    /// The package domains of the Energy Meter counters: whether the set has one at all, and their
+    /// sum in watts (-1 while no value is ready, or when the sum is not a processor's). The
+    /// instance names are the firmware's ("RAPL_Package0_PKG"), compared ordinally - no interface
+    /// language involved; the core, graphics and memory domains (PP0, PP1, DRAM) are parts of the
+    /// package and are left out so nothing counts twice, as are _Total and PSYS (the platform
+    /// domain, where a firmware exposes it). A reading outside 0.5-1000 W is dropped.
+    /// </summary>
+    private static (bool Present, double Watts) ReadPackagePower()
+    {
+        if (_energy == IntPtr.Zero) return (false, -1);
+        uint size = 0, count = 0;
+        uint first = PdhGetFormattedCounterArray(_energy, PDH_FMT_DOUBLE, ref size, out count, IntPtr.Zero);
+        if (first != PDH_MORE_DATA || size == 0) return (false, -1);
+        IntPtr buf = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            if (PdhGetFormattedCounterArray(_energy, PDH_FMT_DOUBLE, ref size, out count, buf) != 0) return (false, -1);
+            int stride = Marshal.SizeOf<FmtItem>();
+            bool present = false, any = false; double mw = 0;
+            for (int i = 0; i < count; i++)
+            {
+                var it = Marshal.PtrToStructure<FmtItem>(buf + i * stride);
+                string name = Marshal.PtrToStringUni(it.szName) ?? "";
+                bool Has(string part) => name.Contains(part, StringComparison.OrdinalIgnoreCase);
+                if (name.Equals("_Total", StringComparison.OrdinalIgnoreCase) || Has("DRAM") || Has("PP0") || Has("PP1") || Has("PSYS")) continue;
+                if (!(Has("PKG") || Has("Package"))) continue;
+                present = true;
+                if (it.value.CStatus == 0) { mw += it.value.doubleValue; any = true; }
+            }
+            double w = mw / 1000.0;
+            return (present, any && w is >= 0.5 and <= 1000 ? Math.Round(w, 1) : -1);
+        }
+        finally { Marshal.FreeHGlobal(buf); }
     }
 
     private static int Pct(double v) => (int)Math.Clamp(Math.Round(v), 0, 100);
@@ -195,6 +260,12 @@ internal static class Perf
     /// <summary>Memory in use on that card, in MB.</summary>
     public static int VramUsedMb() { Tick(); return _vramMb; }
     public static int CpuClockMhz() { Tick(); return _cpuClock; }
+    /// <summary>Processor package power in watts from Windows' Energy Meter counters; -1 = none, or no value yet.</summary>
+    public static double CpuWatts() { Tick(); return _cpuWatts; }
+    /// <summary>The processor exposes the package energy counter: the places that show it exist, even while the value is still "-".</summary>
+    public static bool HasCpuWatts { get { Tick(); return _energyPresent; } }
+    /// <summary>The last half hour of package power, oldest first (a copy; empty without the counter).</summary>
+    public static IReadOnlyList<(DateTime At, double W)> CpuWattsTrail() { Tick(); lock (_lock) return _wattsTrail.ToArray(); }
     /// <summary>Load % of the integrated card; -1 when the laptop has none (or it cannot be read).</summary>
     public static int IgpuUsage() { Tick(); return _igpuUsage; }
     /// <summary>System memory the integrated card is using, in MB (it has no memory of its own); -1 = none.</summary>

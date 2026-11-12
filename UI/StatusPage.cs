@@ -624,6 +624,21 @@ public sealed class StatusPage : ThemedPage
         int bm = Perf.BatteryMinutesLeftCached();
         MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),
             $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "-"));
+        int rightRows = gt.Ok ? 2 : 1;
+
+        // Processor package power (roadmap #116): Windows' Energy Meter counters, the processor's
+        // own energy accounting, read like the clock with no driver. A third wide box under the
+        // battery time, only on processors that expose the counters (the box never shows "-").
+        double cw = Perf.CpuWatts();
+        _cpuPowerHelpBtn = RectangleF.Empty;
+        if (Perf.HasCpuWatts)
+        {
+            var pbox = new RectangleF(X(2) + 14, subY3 + rightRows * (subH + 14), wideW, subH);
+            MetricBox(pbox, $"{Lang.T("st_cpu_power")}: " + (cw >= 0 ? $"{cw:0} W" : "-"), hd + S(10));
+            _cpuPowerHelpBtn = new RectangleF(pbox.Right - S(10) - hd, pbox.Y + (subH - hd) / 2f, hd, hd);
+            HelpDot.Render(g, _cpuPowerHelpBtn);
+            rightRows++;
+        }
 
         // the metric texts, all in one size (see MetricBox)
         float metricPt = 11.5f;
@@ -639,7 +654,7 @@ public sealed class StatusPage : ThemedPage
             TextRenderer.DrawText(g, text, metricF, r, Theme.Text, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         metricF.Dispose();
 
-        int rightH = gt.Ok ? subH * 2 + 14 : subH;
+        int rightH = rightRows * subH + (rightRows - 1) * 14;
         int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
         // hardware readings unavailable for a while (Ec.ReadsLost): the rings show "--"; say why
         if (info.Known && Ec.ReadsLost)
@@ -697,7 +712,7 @@ public sealed class StatusPage : ThemedPage
     // The help dot on this page is painted rather than laid out, because the whole sub-tab is one
     // buffered canvas. It draws and behaves exactly like the ones on the Scenarios page: the same
     // circle, and the same bubble.
-    private RectangleF _gpuHelpBtn;
+    private RectangleF _gpuHelpBtn, _cpuPowerHelpBtn;
     private string _gpuHelpText = "";
     private readonly RectangleF[] _fanHelpBtns = new RectangleF[2];
 
@@ -707,6 +722,7 @@ public sealed class StatusPage : ThemedPage
         if (_statusSub != 0) return;
         foreach (var b in _fanHelpBtns)
             if (!b.IsEmpty && b.Contains(p)) { HelpPopup.Toggle(_canvas, Rectangle.Round(b), Lang.T("st_fan_target_tip"), this); return; }
+        if (!_cpuPowerHelpBtn.IsEmpty && _cpuPowerHelpBtn.Contains(p)) { HelpPopup.Toggle(_canvas, Rectangle.Round(_cpuPowerHelpBtn), Lang.T("st_cpu_power_tip"), this); return; }
         if (_gpuHelpBtn.IsEmpty || !_gpuHelpBtn.Contains(p)) return;
         HelpPopup.Toggle(_canvas, Rectangle.Round(_gpuHelpBtn), _gpuHelpText, this);
     }
