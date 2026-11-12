@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **Fan RPM on the Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261208, [#347](../../issues/347), thanks
+  @bengervais) - read as a 16-bit pair at `0xC8:C9` / `0xCA:CB`, the registers the firmware's own `Get_Fan` method reads
+  on this board, as the owner's DSDT excerpt and load test showed. MSI Center's fan routine reads every board's
+  tachometers as such pairs ([TECHNICAL.md §16](docs/TECHNICAL.md)).
+
 ## [1.45.0] - 2026-11-11
 ### Added
 - **Dashboard: widgets have their own settings** (all but the Community tile). *Settings…* in a tile's ⋯ menu opens a card with the widget's
