@@ -21,6 +21,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   reads it, so a slow fan shows its real speed there too, and the hidden test dialog's RPM finder looks for byte pairs
   ([#347](../../issues/347), thanks @bengervais; [TECHNICAL.md §16](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
 
+### Fixed
+- **Fan sweep, two-table test and the "In action" view see the tachometers on the backup WMI path.** They asked only
+  for the EC register addresses, which play no part on that path, so a Delta 15 or GF65 Thin was judged by its duty
+  readback alone, as a laptop without tachometers; now they ask for the path in use and read the `MSI_AP` pairs, and the
+  reports name them (`MSI_AP[3]:[2]` / `[5]:[4]`).
+
 ## [1.45.0] - 2026-11-11
 ### Added
 - **Dashboard: widgets have their own settings** (all but the Community tile). *Settings…* in a tile's ⋯ menu opens a card with the widget's

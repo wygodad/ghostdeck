@@ -670,6 +670,27 @@ public static class Ec
 
     private static int RpmFrom(byte addr, int rpmConst) => addr == 0 ? 0 : RpmFromRaw(ReadRaw(addr), rpmConst);
 
+    /// <summary>
+    /// A fan tachometer is on record for the path in use: the EC registers on the method
+    /// interface, the MSI_AP slots on the backup path, where EC addresses play no part. The fan
+    /// sweep and the two-table test ask this before they judge a fan by its speed.
+    /// </summary>
+    public static bool HasTach(DeviceProfile dev) => _backup is { } b
+        ? b.Spec.CpuRpm != null || b.Spec.GpuRpm != null
+        : dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0;
+
+    /// <summary>The tachometer as a report names it: "0xC8:C9 (16-bit)", "0xC9", "MSI_AP[3]:[2]" or "-".</summary>
+    public static string TachName(DeviceProfile dev, bool gpuFan)
+    {
+        if (_backup is { } b)
+        {
+            var r = gpuFan ? b.Spec.GpuRpm : b.Spec.CpuRpm;
+            return r == null ? "-" : $"{r.Class}[{r.Index + 1}]:[{r.Index}]";
+        }
+        byte wide = gpuFan ? dev.GpuRpmAddr16 : dev.CpuRpmAddr16, single = gpuFan ? dev.GpuRpmAddr : dev.CpuRpmAddr;
+        return wide != 0 ? $"0x{wide:X2}:{wide + 1:X2} (16-bit)" : single != 0 ? $"0x{single:X2}" : "-";
+    }
+
     internal static int RpmFromRaw(int raw, int rpmConst)
     {
         if (raw == 0) return 0;
