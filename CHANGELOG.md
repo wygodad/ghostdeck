@@ -10,6 +10,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   on this board, as the owner's DSDT excerpt and load test showed. MSI Center's fan routine reads every board's
   tachometers as such pairs ([TECHNICAL.md §16](docs/TECHNICAL.md)).
 
+### Changed
+- **Fan RPM is read as a 16-bit pair on every model** (model database 20261209). The 33 models that read the
+  tachometer as a single byte now carry the pair as well, so a fan slowed below ~1880 rpm by a flat curve shows its
+  real speed instead of an impossible number; the Katana GF76 11UC / 11UD gains its GPU fan ([#325](../../issues/325)).
+  The single-byte field stays beside the pair for apps older than 1.37.0 ([TECHNICAL.md §16](docs/TECHNICAL.md)).
+
 ## [1.45.0] - 2026-11-11
 ### Added
 - **Dashboard: widgets have their own settings** (all but the Community tile). *Settings…* in a tile's ⋯ menu opens a card with the widget's

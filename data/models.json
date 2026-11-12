@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261208,
+  "dataVersion": 20261209,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -72,6 +72,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -131,6 +133,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -243,6 +247,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -356,6 +362,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -509,6 +517,7 @@
       ],
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -562,6 +571,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -770,6 +781,7 @@
       ],
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -821,6 +833,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1066,6 +1080,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1227,6 +1243,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1282,6 +1300,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1337,6 +1357,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "shiftEcoValue": "0xC6",
       "fanCurve": {
         "advancedModeValue": "0x8D",
@@ -1390,6 +1412,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1493,6 +1517,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -1586,6 +1612,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2045,6 +2073,7 @@
       ],
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2096,6 +2125,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2272,6 +2303,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2363,6 +2396,7 @@
       ],
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2533,6 +2567,8 @@
       "tier": "Experimental",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2787,6 +2823,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2841,6 +2879,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -2977,6 +3017,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3048,6 +3090,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3185,6 +3229,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -3357,6 +3403,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -4451,6 +4499,7 @@
       ],
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -4868,6 +4917,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -5006,6 +5057,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -5054,6 +5107,8 @@
       ],
       "tier": "Experimental",
       "cpuRpmAddr": "0xC9",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -5682,6 +5737,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -5783,6 +5840,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
@@ -5830,6 +5889,8 @@
       "tier": "Tested",
       "cpuRpmAddr": "0xC9",
       "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
       "fanCurve": {
         "advancedModeValue": "0x8D",
         "cpuTempBase": "0x69",
