@@ -21,6 +21,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   reads it, so a slow fan shows its real speed there too, and the hidden test dialog's RPM finder looks for byte pairs
   ([#347](../../issues/347), thanks @bengervais; [TECHNICAL.md §16](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
 
+- **Message cards are easier to read**: the body text of every GhostDeck card (the firmware guard, the Apex and
+  statistics consents, the test consents, the settings-copy questions, alerts) is 15 px semibold instead of 13.5 px
+  regular. A card is a translucent layered window, which only allows grey-scale anti-aliasing, and the thin strokes of
+  the regular face read as shimmering at 125-150 %. The card grows with the text, about 6 % taller
+  ([RENDERING.md §11](docs/RENDERING.md)).
+
 ### Fixed
 - **Fan sweep, two-table test and the "In action" view see the tachometers on the backup WMI path.** They asked only
   for the EC register addresses, which play no part on that path, so a Delta 15 or GF65 Thin was judged by its duty

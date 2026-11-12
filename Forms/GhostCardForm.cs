@@ -554,7 +554,11 @@ public class GhostCardForm : Form
         using var wordF = Dpi.Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var scanF = Dpi.Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var titleF = Dpi.Font("Segoe UI", 17f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-        using var bodyF = Dpi.Font("Segoe UI", 13.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+        // 15 px Semibold, not 13.5 px Regular: the card is a per-pixel layered window, so its text
+        // gets grey-scale anti-aliasing only (no ClearType on a transparent bitmap), and the thin
+        // strokes of a Regular face read as shimmering at 125-150 % (owner, 2026-10-29). The heavier
+        // face stays crisp; the card grows with the text as before (RENDERING 11).
+        using var bodyF = Dpi.Font("Segoe UI Semibold", 15f * k, FontStyle.Regular, GraphicsUnit.Pixel);
         using var btnF = Dpi.Font("Segoe UI", ButtonFontPx * k, FontStyle.Bold, GraphicsUnit.Pixel);
 
         // measure the body first - the card grows with the text (and with the language)

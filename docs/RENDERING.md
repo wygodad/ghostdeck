@@ -547,6 +547,16 @@ soft shadow from a few expanded low-alpha strokes (GDI+ has no blur), fonts size
 scaled by `dpi / 96`. Buttons are drawn, not controls: rounded rects hit-tested in `OnMouseMove`,
 with a hover repaint.
 
+**Text on a layered window gets grey-scale anti-aliasing only.** ClearType needs an opaque
+background behind every glyph, and a per-pixel ARGB bitmap has none, so `GhostCardForm` draws
+with `TextRenderingHint.AntiAlias`. Thin strokes suffer from that: the body text at 13.5 px
+Segoe UI Regular read as shimmering and hard to focus at 125-150 % (the owner, 2026-10-29), while
+the bold heading and buttons on the same card read fine. Since 1.46.0 the body text is therefore
+**15 px Segoe UI Semibold** (`bodyF` in `Compose`); the card measures the text first and grows with
+it, so the only visible cost is a card about 6 % taller. `AntiAliasGridFit` for the body was
+rendered side by side and changed nothing worth a second rendering mode; ClearType on an opaque
+patch pasted into the bitmap was not needed.
+
 **Rule: user-facing messages and decisions use these cards, not `MessageBox` / `TaskDialog`.**
 The system dialogs ignore the app theme entirely (see #212 - the guard originally spoke through
 a tray balloon, then briefly a `TaskDialog`, both visually foreign). `MessageBox` remains
