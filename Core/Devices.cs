@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261210;
+    public const int DataVersion = 20261211;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -2097,8 +2097,9 @@ public static class Devices
         //   profile read back as written (shift C1/C1/C4/C2, fan 1D/0D/0D/0D), the original state
         //   confirmed, Super Battery 42 % of Extreme's work (1196 vs 2901 MHz). Curve step
         //   inconclusive: duty already 85 (the table's top value) at 95 C before the raise, so no
-        //   FanCurve. Tested once the owner confirms the two checks the test cannot make.
-        new() { Name = "MSI GF63 Thin 9SC", FirmwarePrefixes = new[] { "16R3EMS1" }, Tier = Tier.Experimental,
+        //   FanCurve. Tested on 12 Nov 2026: the owner confirmed Silent audibly quiet and switching
+        //   stable (no crashes, no stuck fans) - the two checks the test cannot make.
+        new() { Name = "MSI GF63 Thin 9SC", FirmwarePrefixes = new[] { "16R3EMS1" }, Tier = Tier.Tested,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
                 BlockPath = DragonEraBlocks,   // block report in issue #344
                 Credit = "Heroofdarkness7788", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/344",

@@ -9,6 +9,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   @bengervais) - read as a 16-bit pair at `0xC8:C9` / `0xCA:CB`, the registers the firmware's own `Get_Fan` method reads
   on this board, as the owner's DSDT excerpt and load test showed. MSI Center's fan routine reads every board's
   tachometers as such pairs ([TECHNICAL.md §16](docs/TECHNICAL.md)).
+- **GF63 Thin 9SC is a tested model** (`16R3EMS1`, model database 20261211, [#344](../../issues/344), thanks
+  @Heroofdarkness7788): its path test passed on the backup WMI path, and the owner confirmed Silent audibly quiet and
+  switching stable. The fan-curve editor stays off for this model ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 - **Statistics: which colours and dial styles people pick.** With the anonymous statistics on, the weekly report now
   says two more things about each widget type on the Dashboard: the main colour of its first copy (one of the twelve
   palette colours, or the default) and, for a ring, whether its dial is segmented or continuous. Nothing else of a
@@ -38,6 +41,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   on this board Silent keeps the processor's speed and runs the fans far slower.
 
 ### Fixed
+- **A long card title no longer runs past the card's edge** ([#348](../../issues/348), thanks @M-Essa11). The heading of a
+  GhostDeck card was drawn on one line; the title of the 1.45.0 announcement did not fit, so it was cut at the right
+  edge. The heading now wraps like the body and the card grows with it.
 - **Fan sweep, two-table test and the "In action" view see the tachometers on the backup WMI path.** They asked only
   for the EC register addresses, which play no part on that path, so a Delta 15 or GF65 Thin was judged by its duty
   readback alone, as a laptop without tachometers; now they ask for the path in use and read the `MSI_AP` pairs, and the

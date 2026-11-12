@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261210,
+  "dataVersion": 20261211,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -6742,7 +6742,7 @@
       "prefixes": [
         "16R3EMS1"
       ],
-      "tier": "Experimental",
+      "tier": "Tested",
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
@@ -6776,6 +6776,7 @@
         ]
       },
       "added": "2026-06-29",
+      "tested": "2026-11-12",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
