@@ -570,7 +570,9 @@ public class GhostCardForm : Form
         using (var probe = Graphics.FromImage(probeBmp))
         {
             probe.TextRenderingHint = TextRenderingHint.AntiAlias;
-            hTitle = Ce(titleF.GetHeight(probe));
+            // the heading wraps like the body: an announcement title of a hundred characters ran
+            // past the card's right edge when it was drawn as one line (issue #348)
+            hTitle = Ce(probe.MeasureString(_heading, titleF, cw + Ce(2 * k)).Height);
             hBody = Ce(probe.MeasureString(_body, bodyF, cw).Height);
             // everything of the card but the content block, with the gap above it and the shadow margins
             long rest = yTitle + hTitle + Ce(8 * k) + hBody + Ce(14 * k) + Ce(14 * k) + hBtn + Ce(14 * k) + pad * 2;
@@ -644,7 +646,7 @@ public class GhostCardForm : Form
         }
 
         // ---- heading + body ----
-        g.DrawString(_heading, titleF, whiteB, cx - 2 * k, yTitle);
+        g.DrawString(_heading, titleF, whiteB, new RectangleF(cx - 2 * k, yTitle, cw + 2 * k, hTitle + 2 * k));
         using (var ib = new SolidBrush(Ink))
             g.DrawString(_body, bodyF, ib, new RectangleF(cx, yBody, cw, hBody + 4 * k));
 
