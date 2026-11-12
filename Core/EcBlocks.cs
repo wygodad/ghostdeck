@@ -105,6 +105,13 @@ public static class EcBlocks
             : throw new EcPathException($"{r} is not served by this firmware");
 
     /// <summary>
+    /// A tachometer on the blocks: a byte pair whose low byte is the slot itself and whose high
+    /// byte is the next instance (MSI_AP[3]:[2] for the CPU fan, [5]:[4] for the GPU fan), the way
+    /// the vendor's own fan routine reads it (TECHNICAL 16). RPM = RpmConst / the value.
+    /// </summary>
+    public static int ReadPair(BlockRef r) => (Read(r with { Index = r.Index + 1 }) << 8) | Read(r);
+
+    /// <summary>
     /// The EC firmware version from the MSI_Software block ("17G1EMS1.102"), or "" when the
     /// block is absent or holds no version. One character per slot, in the layout the EC keeps
     /// at 0xA0 on newer boards: version, date, time (measured on a GS75 Stealth 8SE, slots

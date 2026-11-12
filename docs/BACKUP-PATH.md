@@ -122,7 +122,7 @@ Three machines of three generations returned the same instance counts and the sa
 | `MSI_CPU[1]`, `MSI_VGA[1]` | temperature, °C |
 | `MSI_CPU[2]`, `MSI_VGA[2]` | fan duty, % |
 | `MSI_CPU[4]`, `[5..10]`, `[11..17]` | fan-curve table: a 0-degree anchor, six thresholds, seven speeds (`MSI_VGA` the same for the GPU fan) |
-| `MSI_AP[2]`, `MSI_AP[4]` | CPU / GPU tachometer; RPM = 478000 / value, 0 = stopped |
+| `MSI_AP[3]:[2]`, `MSI_AP[5]:[4]` | CPU / GPU tachometer: a byte pair, the high byte in the higher instance; RPM = 480000 / pair, 0 = stopped |
 
 The layout fingerprint GhostDeck uses to recognise this layout on a machine without an entry: 19 instances in `MSI_CPU`, 18 in `MSI_VGA`, 21 in `MSI_System`, 8 in `MSI_AP`, and four constant markers (`MSI_CPU[0]` = 13, `MSI_System[1]` = 2, `MSI_System[19]` = 226, `MSI_AP[1]` = 20). `MSI_System[11]` is not one of them: on the GS66 Stealth of #268 it follows the scenario (Silent 5, Balanced 3, Extreme 2, Super Battery 5). The fingerprint only ever enables reading.
 

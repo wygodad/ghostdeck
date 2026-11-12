@@ -622,13 +622,16 @@ public static class Ec
         if (_backup is { } b)
         {
             int Slot(BlockRef? r) => r != null ? EcBlocks.Read(r) : 0;
+            // The tachometers are byte pairs on this path too, the high byte in the next instance
+            // (MSI_AP[3]:[2], [5]:[4]) - the vendor's own read (EcBlocks.ReadPair).
+            int Tach(BlockRef? r) => r != null ? EcBlocks.ReadPair(r) : 0;
             int dutyCap = dev.FanCurve?.MaxFanPct ?? 100;
             int cpuT = Slot(b.Spec.CpuTemp), gpuT = Slot(b.Spec.GpuTemp);
             return new HwSnapshot(
                 cpuT is > 0 and < 120 ? cpuT : 0, gpuT is > 0 and < 120 ? gpuT : 0,
                 Math.Min(dutyCap, Slot(b.Spec.CpuDuty)), Math.Min(dutyCap, Slot(b.Spec.GpuDuty)),
                 0, _firmwareCache ?? "",
-                RpmFromRaw(Slot(b.Spec.CpuRpm), dev.RpmConst), RpmFromRaw(Slot(b.Spec.GpuRpm), dev.RpmConst));
+                RpmFromRaw(Tach(b.Spec.CpuRpm), dev.RpmConst), RpmFromRaw(Tach(b.Spec.GpuRpm), dev.RpmConst));
         }
         // One lock for the whole sample: these reads belong to the same tick, and holding it keeps
         // a scene/profile write from landing in the middle of them.
@@ -657,14 +660,36 @@ public static class Ec
     // something. Past what a laptop fan can physically do we report nothing instead.
     //
     // The ceiling is 8000, not the arbitrary 12000 it started as (issue #92). Two measurements
-    // set it: the divisor is a single byte, so the LOWEST speed this register can express at all
-    // is 478000/255 = 1874 RPM - once a fan slows past that, whatever stays in the register is
-    // not a reading; and the fastest fan we have ever logged on any model is 7206 RPM (GE66 under
-    // load with Fan Boost). A slow fan was therefore reported as ~9958 RPM, which passed 12000
-    // and reached Status as a number. No reading beats a wrong one.
+    // set it: read as a single byte - how every tachometer was read before the pairs - the LOWEST
+    // speed the register could express was 478000/255 = 1874 RPM, so a slower fan came out as
+    // ~9958 RPM, which passed 12000 and reached Status as a number; and the fastest fan we have
+    // ever logged on any model is 7206 RPM (GE66 under load with Fan Boost). With the pair that
+    // floor is gone; the ceiling still catches a value torn between EC updates. No reading beats
+    // a wrong one.
     private const int MaxPlausibleRpm = 8000;
 
     private static int RpmFrom(byte addr, int rpmConst) => addr == 0 ? 0 : RpmFromRaw(ReadRaw(addr), rpmConst);
+
+    /// <summary>
+    /// A fan tachometer is on record for the path in use: the EC registers on the method
+    /// interface, the MSI_AP slots on the backup path, where EC addresses play no part. The fan
+    /// sweep and the two-table test ask this before they judge a fan by its speed.
+    /// </summary>
+    public static bool HasTach(DeviceProfile dev) => _backup is { } b
+        ? b.Spec.CpuRpm != null || b.Spec.GpuRpm != null
+        : dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0;
+
+    /// <summary>The tachometer as a report names it: "0xC8:C9 (16-bit)", "0xC9", "MSI_AP[3]:[2]" or "-".</summary>
+    public static string TachName(DeviceProfile dev, bool gpuFan)
+    {
+        if (_backup is { } b)
+        {
+            var r = gpuFan ? b.Spec.GpuRpm : b.Spec.CpuRpm;
+            return r == null ? "-" : $"{r.Class}[{r.Index + 1}]:[{r.Index}]";
+        }
+        byte wide = gpuFan ? dev.GpuRpmAddr16 : dev.CpuRpmAddr16, single = gpuFan ? dev.GpuRpmAddr : dev.CpuRpmAddr;
+        return wide != 0 ? $"0x{wide:X2}:{wide + 1:X2} (16-bit)" : single != 0 ? $"0x{single:X2}" : "-";
+    }
 
     internal static int RpmFromRaw(int raw, int rpmConst)
     {
@@ -686,17 +711,18 @@ public static class Ec
     }
 
     /// <summary>
-    /// READ-ONLY scan to locate the fan tach registers: returns every address whose
-    /// (const / raw) falls in a plausible fan range, so it can be matched against the
-    /// RPM that MSI Center shows. Used by the test/discovery dialog.
+    /// READ-ONLY scan to locate the fan tach registers: returns every address whose byte PAIR
+    /// (addr = high byte, addr+1 = low byte) gives a plausible fan speed, so it can be matched
+    /// against the RPM that MSI Center shows. A pair that starts on the low byte of a real pair
+    /// reads as a huge divisor and drops out by itself. Used by the test/discovery dialog.
     /// </summary>
-    public static List<(byte addr, int rpm)> RpmScan(int rpmConst = 478000)
+    public static List<(byte addr, int rpm)> RpmScan(int rpmConst = DeviceProfile.DefaultRpmConst)
     {
         var dump = DumpAll();
         var hits = new List<(byte, int)>();
-        for (int a = 0; a < 256; a++)
+        for (int a = 0; a < 255; a++)
         {
-            int raw = dump[a];
+            int raw = (dump[a] << 8) | dump[a + 1];
             if (raw == 0) continue;
             int rpm = rpmConst / raw;
             if (rpm is >= 1500 and <= 6500) hits.Add(((byte)a, rpm));

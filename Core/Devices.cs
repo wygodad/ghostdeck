@@ -122,7 +122,11 @@ public sealed class DeviceProfile
     public byte CpuRpmAddr16 { get; init; }
     public byte GpuRpmAddr16 { get; init; }
     public FanCurveSpec? FanCurve { get; init; }
-    public int RpmConst { get; init; } = 478000;
+    // 480000 is MSI Center's own formula, 60000000 / (raw * 2 * 62.5): the EC counts 62.5 µs ticks
+    // between two tacho pulses, two pulses per revolution (TECHNICAL 16, issue #347). 478000 up to
+    // 1.45.0 - HWiNFO64's figure, 0.4 % lower.
+    public const int DefaultRpmConst = 480000;
+    public int RpmConst { get; init; } = DefaultRpmConst;
 
     public byte FanSilentValue { get; init; } = 0x1D;
     public byte ShiftTurboValue { get; init; } = 0xC4;
@@ -172,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261209;
+    public const int DataVersion = 20261210;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -259,7 +263,8 @@ public static class Devices
     // and a GF65 Thin 10UE (issue #117): the same instance count in every block and the same
     // slots. Shift mode and fan mode sit in MSI_System (196 / 13 / 141 = C4 / 0D / 8D in the
     // dumps), live temperature and fan duty in MSI_CPU / MSI_VGA, the fan tachometers in MSI_AP
-    // (0 while a fan stands still, 478000 / raw otherwise). Each fan's curve table is seven
+    // (a byte pair: the low byte at [2] / [4], the high byte in the next instance, as the vendor's
+    // own fan routine reads it; 480000 / pair, 0 while a fan stands still). Each fan's curve table is seven
     // temperature slots from index 4 (the 0-degree anchor, then six thresholds: 55 64 73 76 82 88
     // on the GF65, 55 60 70 78 85 90 on the Delta) and seven speed slots from index 11; index 3
     // is the critical-temperature limit and belongs to no table. A model gets this layout only
@@ -404,7 +409,7 @@ public static class Devices
             // fan-curve wizard found the test curve at the shipped 0x72/0x8A — independent 14V confirmation.
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
-            // Tachometers are 16-bit pairs (RPM = 478000 / raw). The single-byte 0xC9/0xCB read
+            // Tachometers are 16-bit pairs (RPM = 480000 / raw). The single-byte 0xC9/0xCB read
             // matched MSI Center for a year because the factory curves never let the fans drop
             // below ~1870 rpm, where both formats coincide. A flat 25 % curve on the reference
             // GE78HX (17S1IMS1.114, 2026-10-29) took them lower: 0xCA:0xCB = 01:4D / 01:40 =
@@ -468,7 +473,7 @@ public static class Devices
         // write-tested by the owner (issue #6): Cinebench 2026 + HWiNFO64 confirm each profile hits the intended
         // package-power limit, and the fan curve behaves on par with MSI Center. Promoted to Tested.
         // Fan RPM at 0xC9/0xCB (same as the tested G2 GE78HX): the #6 dump shows 0xC9 = C6/C0/C4/C0 across
-        // scenarios → 478000/raw ≈ 2400-2490 RPM (plausible, load-varying); 0xCB = 00 (dGPU fan idle at capture).
+        // scenarios → 480000/raw ≈ 2420-2500 RPM (plausible, load-varying); 0xCB = 00 (dGPU fan idle at capture).
         // Enabled so CPU fan RPM shows (issue #7); owner-confirm the value against HWiNFO.
         // Silent on THIS board measured as fan-only (owner power test, issue #93): over 60 s phases
         // Silent and Balanced completed the same work (within 0.04 %, against ~2 % second-to-second
@@ -1850,10 +1855,16 @@ public static class Devices
         // (C8/C8 → 96/7D ≈ 2400-3800 RPM), the usual G2 layout. Fan curve VERIFIED (issue #55): the
         // owner's wizard capture shows the MSI Center test curve exactly at 0x72 (CPU: 19 23 2D 37 41
         // 4B) and 0x8A (GPU: 14 1E 28 32 3C 46), with 0xD4=8D — the shipped ModernCurve addresses.
+        //   Second owner (issues #349 + #350, Shadeqrn, firmware .113, MSI Center 2.0.48): the capture
+        //   matches byte for byte (0xEB 00 in every column again; tachs 0xC9/0xCB live with the high
+        //   bytes 00), and his power test is clean (3 % drift, bytes read back intact): Silent does
+        //   Balanced's work (103 %, 4375 vs 4259 MHz) on far slower fans (2352 vs 3546 rpm, 80 vs 88 C)
+        //   - the "quieter, not slower" trait; Extreme under the combined CPU+GPU load equals Balanced
+        //   with the fans at 4469 rpm (the shared-budget pattern).
         new() { Name = "MSI Raider A18 HX A7VIG", FirmwarePrefixes = new[] { "182KIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "afk789", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50",
-                CreditIssues = Issues("afk789:50,55") },
+                Credit = "afk789, Shadeqrn", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50",
+                CreditIssues = Issues("afk789:50,55; Shadeqrn:349,350") },
 
         // Vector A18 HX A9WHG (182LIMS1) — owner dump (issue #54) shows the same picture as its Raider
         // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. All three hardware

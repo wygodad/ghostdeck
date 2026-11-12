@@ -21,6 +21,27 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   tachometer as a single byte now carry the pair as well, so a fan slowed below ~1880 rpm by a flat curve shows its
   real speed instead of an impossible number; the Katana GF76 11UC / 11UD gains its GPU fan ([#325](../../issues/325)).
   The single-byte field stays beside the pair for apps older than 1.37.0 ([TECHNICAL.md §16](docs/TECHNICAL.md)).
+- **Fan speed uses MSI Center's own formula**: 480000 / register value instead of 478000, on every path. Each readout is
+  about 0.4 % higher than before (3380 instead of 3366 rpm at the same value); HWiNFO64 keeps showing the lower figure.
+  On the backup WMI path the tachometer is now read as the byte pair `MSI_AP[3]:[2]` / `[5]:[4]`, as the vendor's app
+  reads it, so a slow fan shows its real speed there too, and the hidden test dialog's RPM finder looks for byte pairs
+  ([#347](../../issues/347), thanks @bengervais; [TECHNICAL.md §16](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
+
+- **Message cards are easier to read**: the body text of every GhostDeck card (the firmware guard, the Apex and
+  statistics consents, the test consents, the settings-copy questions, alerts) is 15 px semibold instead of 13.5 px
+  regular. A card is a translucent layered window, which only allows grey-scale anti-aliasing, and the thin strokes of
+  the regular face read as shimmering at 125-150 %. The card grows with the text, about 6 % taller
+  ([RENDERING.md §11](docs/RENDERING.md)).
+
+- **Raider A18 HX A7VIG confirmed by a second owner** (`182KIMS1`, model database 20261210, [#349](../../issues/349),
+  [#350](../../issues/350), thanks @Shadeqrn): the capture matches the entry byte for byte and the power test is clean;
+  on this board Silent keeps the processor's speed and runs the fans far slower.
+
+### Fixed
+- **Fan sweep, two-table test and the "In action" view see the tachometers on the backup WMI path.** They asked only
+  for the EC register addresses, which play no part on that path, so a Delta 15 or GF65 Thin was judged by its duty
+  readback alone, as a laptop without tachometers; now they ask for the path in use and read the `MSI_AP` pairs, and the
+  reports name them (`MSI_AP[3]:[2]` / `[5]:[4]`).
 
 ## [1.45.0] - 2026-11-11
 ### Added

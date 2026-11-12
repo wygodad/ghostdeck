@@ -19,7 +19,8 @@ public sealed class TestDialog : Form
     private byte[]? _dumpA;
     private byte[]? _cbA;
 
-    private static string Rpm(byte raw) => raw == 0 ? "-" : $"{478000 / raw} RPM";
+    // raw = the byte pair (high << 8 | low), as every tachometer is read since 1.46.0.
+    private static string Rpm(int raw) => raw == 0 ? "-" : $"{DeviceProfile.DefaultRpmConst / raw} RPM";
 
     public TestDialog(MainDeps d)
     {
@@ -61,7 +62,7 @@ public sealed class TestDialog : Form
 
         _live.SetBounds(20, 392, 540, 56);
         _live.Font = Dpi.Font("Consolas", 11.5f, FontStyle.Bold);
-        _live.Text = "Fan 1 / CPU (0xC9): -\r\nFan 2 / GPU (0xCB): -";
+        _live.Text = "Fan 1 / CPU (0xC8:C9): -\r\nFan 2 / GPU (0xCA:CB): -";
 
         var dumpBtn = new Button { Text = Lang.T("test_dump_btn"), Width = 250, Height = 34 };
         dumpBtn.SetBounds(20, 456, 250, 34);
@@ -101,7 +102,11 @@ public sealed class TestDialog : Form
 
         _liveTimer.Tick += (_, _) =>
         {
-            try { _live.Text = $"Fan 1 / CPU (0xC9): {Rpm(Ec.ReadByte(0xC9))}\r\nFan 2 / GPU (0xCB): {Rpm(Ec.ReadByte(0xCB))}"; }
+            try
+            {
+                int cpu = (Ec.ReadByte(0xC8) << 8) | Ec.ReadByte(0xC9), gpu = (Ec.ReadByte(0xCA) << 8) | Ec.ReadByte(0xCB);
+                _live.Text = $"Fan 1 / CPU (0xC8:C9): {Rpm(cpu)}\r\nFan 2 / GPU (0xCA:CB): {Rpm(gpu)}";
+            }
             catch { }
         };
         Load += (_, _) => _liveTimer.Start();
@@ -112,7 +117,9 @@ public sealed class TestDialog : Form
 
     private byte[]? SafeDump() { try { return Ec.DumpAll(); } catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("err")); return null; } }
 
-    // Tach register = address whose raw value changed between the two speeds AND yields a plausible RPM.
+    // Tach register = the byte PAIR (addr = high, addr+1 = low) whose value changed between the two
+    // speeds AND yields a plausible RPM at both; a pair starting on a real pair's low byte reads as a
+    // huge divisor and never qualifies.
     private void CompareRpm()
     {
         _rpm.Items.Clear();
@@ -120,14 +127,14 @@ public sealed class TestDialog : Form
         var b = SafeDump();
         if (b == null) return;
         int shown = 0;
-        for (int a = 0; a < 256; a++)
+        for (int a = 0; a < 255; a++)
         {
-            int ra = _dumpA[a], rb = b[a];
+            int ra = (_dumpA[a] << 8) | _dumpA[a + 1], rb = (b[a] << 8) | b[a + 1];
             if (ra == rb || ra == 0 || rb == 0) continue;
-            int rpmA = 478000 / ra, rpmB = 478000 / rb;
+            int rpmA = DeviceProfile.DefaultRpmConst / ra, rpmB = DeviceProfile.DefaultRpmConst / rb;
             if (rpmA is >= 1200 and <= 7000 && rpmB is >= 1200 and <= 7000)
             {
-                _rpm.Items.Add($"0x{a:X2}   {rpmA} → {rpmB} RPM");
+                _rpm.Items.Add($"0x{a:X2}:{a + 1:X2}   {rpmA} → {rpmB} RPM");
                 shown++;
             }
         }

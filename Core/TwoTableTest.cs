@@ -80,7 +80,7 @@ public static class TwoTableTest
         var fc = dev.FanCurve ?? throw new InvalidOperationException("no fan-curve tables on this model");
         var res = new Result
         {
-            HasTach = dev.CpuRpmAddr != 0 || dev.GpuRpmAddr != 0 || dev.CpuRpmAddr16 != 0 || dev.GpuRpmAddr16 != 0,
+            HasTach = Ec.HasTach(dev),
             SingleFan = fc.SingleFan,
             AdvancedMode = fc.AdvancedModeValue,
         };
@@ -210,8 +210,7 @@ public static class TwoTableTest
         sb.AppendLine($"Model: {dev.Name}  ({dev.Tier}){(r.SingleFan ? "  - single-fan entry: the app normally writes table 1 only" : "")}");
         if (fc != null)
             sb.AppendLine($"Tables: table 1 (CPU) speeds 0x{fc.CpuSpeedBase:X2}-0x{fc.CpuSpeedBase + fc.Points - 1:X2}, table 2 (GPU) speeds 0x{fc.GpuSpeedBase:X2}-0x{fc.GpuSpeedBase + fc.Points - 1:X2}, fan mode 0x{dev.FanMode:X2} (custom-curve value 0x{fc.AdvancedModeValue:X2})");
-        string cpuTach = dev.CpuRpmAddr16 != 0 ? $"0x{dev.CpuRpmAddr16:X2}:{dev.CpuRpmAddr16 + 1:X2} (16-bit)" : $"0x{dev.CpuRpmAddr:X2}";
-        string gpuTach = dev.GpuRpmAddr16 != 0 ? $"0x{dev.GpuRpmAddr16:X2}:{dev.GpuRpmAddr16 + 1:X2} (16-bit)" : $"0x{dev.GpuRpmAddr:X2}";
+        string cpuTach = Ec.TachName(dev, false), gpuTach = Ec.TachName(dev, true);
         sb.AppendLine($"Tachometers: {(r.HasTach ? $"CPU {cpuTach} / GPU {gpuTach}" : "none on this model - duty readback only, so no verdict")}");
         sb.AppendLine($"Duration: {r.Duration.TotalSeconds:0} s{(r.Aborted ? "  (STOPPED" + (r.AbortReason != null ? ": " + r.AbortReason : "") + ")" : "")}{(r.Error != null ? "  ERROR: " + r.Error : "")}");
         sb.AppendLine();
