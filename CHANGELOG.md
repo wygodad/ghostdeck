@@ -27,6 +27,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the regular face read as shimmering at 125-150 %. The card grows with the text, about 6 % taller
   ([RENDERING.md §11](docs/RENDERING.md)).
 
+- **Raider A18 HX A7VIG confirmed by a second owner** (`182KIMS1`, model database 20261210, [#349](../../issues/349),
+  [#350](../../issues/350), thanks @Shadeqrn): the capture matches the entry byte for byte and the power test is clean;
+  on this board Silent keeps the processor's speed and runs the fans far slower.
+
 ### Fixed
 - **Fan sweep, two-table test and the "In action" view see the tachometers on the backup WMI path.** They asked only
   for the EC register addresses, which play no part on that path, so a Delta 15 or GF65 Thin was judged by its duty

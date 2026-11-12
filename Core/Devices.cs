@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261209;
+    public const int DataVersion = 20261210;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1855,10 +1855,16 @@ public static class Devices
         // (C8/C8 → 96/7D ≈ 2400-3800 RPM), the usual G2 layout. Fan curve VERIFIED (issue #55): the
         // owner's wizard capture shows the MSI Center test curve exactly at 0x72 (CPU: 19 23 2D 37 41
         // 4B) and 0x8A (GPU: 14 1E 28 32 3C 46), with 0xD4=8D — the shipped ModernCurve addresses.
+        //   Second owner (issues #349 + #350, Shadeqrn, firmware .113, MSI Center 2.0.48): the capture
+        //   matches byte for byte (0xEB 00 in every column again; tachs 0xC9/0xCB live with the high
+        //   bytes 00), and his power test is clean (3 % drift, bytes read back intact): Silent does
+        //   Balanced's work (103 %, 4375 vs 4259 MHz) on far slower fans (2352 vs 3546 rpm, 80 vs 88 C)
+        //   - the "quieter, not slower" trait; Extreme under the combined CPU+GPU load equals Balanced
+        //   with the fans at 4469 rpm (the shared-budget pattern).
         new() { Name = "MSI Raider A18 HX A7VIG", FirmwarePrefixes = new[] { "182KIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "afk789", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50",
-                CreditIssues = Issues("afk789:50,55") },
+                Credit = "afk789, Shadeqrn", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50",
+                CreditIssues = Issues("afk789:50,55; Shadeqrn:349,350") },
 
         // Vector A18 HX A9WHG (182LIMS1) — owner dump (issue #54) shows the same picture as its Raider
         // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. All three hardware
