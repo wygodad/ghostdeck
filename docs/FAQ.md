@@ -417,7 +417,10 @@ Nothing, unless you turn it on. Since 1.44.0 the app can send **one small anonym
 week**, and in return it shows what other people use: which widgets are popular and how they are
 rated (in the Dashboard's catalogue), a Statistics view with a world map of where GhostDeck runs,
 and a Community tile. A card asks once, about half a minute after a start; closing it is a "no"
-and it never comes back. The switch is in **Settings → System**, next to two buttons: *What we
+and it never comes back. If the report later starts carrying something the card did not name (as
+in 1.46.0, the colour and dial style of your widgets), the card comes back once more and says what
+changed, with *Keep sharing* and *Stop sharing*; until you answer, nothing is sent and the
+community numbers wait with it. The switch is in **Settings → System**, next to two buttons: *What we
 collect* (the same card again) and *Show what will be sent* (the report exactly as it would go
 out now, also as the raw JSON).
 

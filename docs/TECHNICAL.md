@@ -4639,6 +4639,8 @@ sharing* button, the catalogue has no Popular sort or badges, the Community tile
 rating a widget offers the consent first): the numbers come with the report, not without it.
 Raising the constant is the whole procedure for the next change of the report.
 
+![The consent card asked again: what the report gained, Keep sharing / Stop sharing](images/stats_reconsent_card.png)
+
 **What the report holds** (`Core/Stats.cs`, `BuildReport`): the app version (three numbers), the
 language, the board family (the first four characters of the firmware id, the same key the model
 database uses), the Windows version and build, the screen scale, whether the app runs on the EC
