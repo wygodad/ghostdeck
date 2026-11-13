@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261211;
+    public const int DataVersion = 20261212;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -463,10 +463,12 @@ public static class Devices
         //   reaches ~7000 rpm and ignores the curve while on. MaxFanPct left at 150 (no harm).
         //   Third owner (dennyblr1-hash, issue #341, .106, MSI Center 2.0.75): capture matches in
         //   Balanced, Extreme and Super Battery; the "Silent" tile writes the Super Battery set.
+        //   Fourth owner (PaulRohan63, issue #351, .106, MSI Center 2.0.52): the same picture, byte
+        //   for byte (C1/0D, C4/0D, C2/0D, 0xEB 00 throughout; "Silent" = the Super Battery set).
         new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
-                Credit = "cesarcamps, maestory, dennyblr1-hash", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
-                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298,299; dennyblr1-hash:341") },
+                Credit = "cesarcamps, maestory, dennyblr1-hash, PaulRohan63", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/5",
+                CreditIssues = Issues("cesarcamps:3,4,5,11,99,100; maestory:297,298,299; dennyblr1-hash:341; PaulRohan63:351") },
 
         // Sword 16 HX B13V / B14V (15P2EMS1) — owner per-scenario dump (issue #6) matches StdRecipes 1:1:
         // shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, super-batt 0xEB=0F only in Super Battery. Real-hardware

@@ -3,6 +3,11 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- **Crosshair A16 HX (D7W/D8W) confirmed by a fourth owner** (`15PLIMS1`, model database 20261212, [#351](../../issues/351),
+  thanks @PaulRohan63): the capture matches the entry byte for byte on MSI Center 2.0.52.
+
 ## [1.46.0] - 2026-11-13
 ### Added
 - **Fan RPM on the Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261208, [#347](../../issues/347), thanks
