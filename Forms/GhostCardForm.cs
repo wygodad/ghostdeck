@@ -363,6 +363,15 @@ public class GhostCardForm : Form
         if (close) Close();
     }
 
+    /// <summary>The second button. The ✕ and Escape only close; a card whose second button is an answer of its own (1.46: "Stop sharing") overrides <see cref="OnLater"/>.</summary>
+    private void Later()
+    {
+        try { OnLater(); } catch { }
+        Close();
+    }
+
+    protected virtual void OnLater() { }
+
     /// <summary>
     /// The window this card belongs to; the card centres over it. Set it before the card is
     /// shown - ShowDialog(owner) does not make the owner known by the time the handle exists.
@@ -490,7 +499,8 @@ public class GhostCardForm : Form
         switch (_hotBtn)
         {
             case 0: Ack(); return;
-            case 1: case 2: Close(); return;
+            case 1: Later(); return;
+            case 2: Close(); return;
             case 3: AuxClick(); return;
         }
     }

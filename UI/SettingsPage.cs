@@ -1145,9 +1145,10 @@ public sealed partial class SettingsPage : ThemedPage
         });
         stats.AddRow(Lang.T("set_stats_share"), Toggle(D.Settings.StatsEnabled, v =>
         {
-            D.Settings.StatsEnabled = v;
-            D.Settings.StatsAsked = true;
+            // The switch is a consent to the current text (the card next to it says what is sent).
+            if (v) Stats.Consent(D.Settings); else { D.Settings.StatsEnabled = false; D.Settings.StatsAsked = true; }
             D.SaveSettings();
+            Stats.RaiseSummaryChanged();   // the Dashboard's Statistics view and catalogue follow the switch at once
             if (v) D.StatsChanged?.Invoke();
         }));
         var statsShow = new Button { Text = Lang.T("set_stats_show"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };

@@ -18,12 +18,11 @@ internal static class DashRatings
     public static void Rate(MainDeps d, string type, int stars, Form? owner, Action onDone)
     {
         var s = d.Settings;
-        if (!s.StatsEnabled)
+        if (!Stats.Active(s))
         {
             var dlg = new GhostCardForm("//STATS", Lang.T("dash_rate_title"), Lang.T("dash_rate_body"), Lang.T("dash_rate_on"), Lang.T("gen_cancel"), () =>
             {
-                s.StatsEnabled = true;
-                s.StatsAsked = true;
+                Stats.Consent(s);
                 s.WidgetRatings[type] = stars;
                 try { d.SaveSettings(); } catch { }
                 d.StatsChanged?.Invoke();

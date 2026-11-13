@@ -54,7 +54,7 @@ internal sealed partial class DashCanvas
     }
 
     /// <summary>The Statistics view's Refresh button shows once statistics are on (or a summary is at hand, as in the demo).</summary>
-    private bool StatsRefreshShown => _d.Settings.StatsEnabled || Summary != null;
+    private bool StatsRefreshShown => Stats.Active(_d.Settings) || Summary != null;
     private DateTime? _statsAskedAt;   // the last click on Refresh in this window
 
     /// <summary>"Data from 9.11 10:42 · asked 11:05:03": when the summary at hand was generated (local time) and when Refresh was last clicked.</summary>

@@ -284,9 +284,26 @@ internal sealed partial class DashCanvas
         return new StatsLayout(tiles, chart, map, countries, langs, models, models.Bottom);
     }
 
+    /// <summary>
+    /// The off state's words. Statistics off: the explanation and "Turn on statistics". A consent
+    /// pending (1.46: the report gained fields since this user said yes): the re-consent card's
+    /// own lead and "Keep sharing", because the numbers come with the report, not without it.
+    /// </summary>
+    private (string Title, string Body, string Button) StatsOffWords() => Stats.NeedsReconsent(_d.Settings)
+        ? (Lang.T("stats_reconsent_title"), Lang.T("stats_reconsent_lead"), Lang.T("stats_reconsent_yes"))
+        : (Lang.T("dash_st_off_title"), Lang.T("dash_st_off_body"), Lang.T("dash_st_on_btn"));
+
+    /// <summary>Height of the off card's body text at this width (the card grows with it; #172).</summary>
+    private int StatsOffBodyH(int width)
+    {
+        var tf = _ctx.Font(10f);
+        int textW = Math.Max(40, width - S(32));
+        return Math.Max(tf.Height * 3, TextRenderer.MeasureText(StatsOffWords().Body, tf, new Size(textW, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
+    }
+
     private int StatsViewHeight(int width)
     {
-        if (!_d.Settings.StatsEnabled) return S(230);
+        if (!Stats.Active(_d.Settings)) return S(230) + StatsOffBodyH(width) - _ctx.Font(10f).Height * 3;
         if (Summary == null) return S(170);
         return LayoutStats(width).Bottom - GridTop();
     }
@@ -307,21 +324,24 @@ internal sealed partial class DashCanvas
         int w = Width - Pad * 2;
         _countryList = -1;
         _countries = new();
-        if (!_d.Settings.StatsEnabled)
+        if (!Stats.Active(_d.Settings))
         {
-            // the explanation and the switch: the same words as the consent card's gain line
-            var card = new Rectangle(Pad, GridTop(), w, S(200));
-            var body = StatsCard(g, card, Lang.T("dash_st_off_title"));
+            // the explanation and the switch: the same words as the consent card's gain line, or
+            // the re-consent card's lead while that answer is pending
+            var (title, text, button) = StatsOffWords();
             var tf = _ctx.Font(10f);
-            TextRenderer.DrawText(g, Lang.T("dash_st_off_body"), tf, new Rectangle(body.Left, body.Top, body.Width, tf.Height * 3), Theme.Muted,
+            int bodyH = StatsOffBodyH(w);
+            var card = new Rectangle(Pad, GridTop(), w, S(200) + bodyH - tf.Height * 3);
+            var body = StatsCard(g, card, title);
+            TextRenderer.DrawText(g, text, tf, new Rectangle(body.Left, body.Top, body.Width, bodyH), Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
-            int by = body.Top + tf.Height * 3 + S(14);
+            int by = body.Top + bodyH + S(14);
             var bf = ButtonFont();
             int bh = ButtonH;
             int chrome = S(12) + S(16) + S(8) + S(14);   // PaintButton's glyph slot and paddings
-            int w1 = TextRenderer.MeasureText(Lang.T("dash_st_on_btn"), bf, Size.Empty, TextFormatFlags.NoPadding).Width + chrome;
+            int w1 = TextRenderer.MeasureText(button, bf, Size.Empty, TextFormatFlags.NoPadding).Width + chrome;
             var b1 = new Rectangle(body.Left, by, w1, bh);
-            PaintButton(g, b1, "", Lang.T("dash_st_on_btn"), primary: true, active: false, hot: false);   // the chart glyph of the Settings statistics card
+            PaintButton(g, b1, "", button, primary: true, active: false, hot: false);   // the chart glyph of the Settings statistics card
             _zones.Add((b1, new Hot(Zone.StatsOn, -1, null)));
             int w2 = TextRenderer.MeasureText(Lang.T("set_stats_info"), bf, Size.Empty, TextFormatFlags.NoPadding).Width + chrome;
             var b2 = new Rectangle(b1.Right + S(10), by, w2, bh);
@@ -422,8 +442,7 @@ internal sealed partial class DashCanvas
     private void TurnStatsOn()
     {
         var s = _d.Settings;
-        s.StatsEnabled = true;
-        s.StatsAsked = true;
+        Stats.Consent(s);
         try { _d.SaveSettings(); } catch { }
         _d.StatsChanged?.Invoke();
         Replace();

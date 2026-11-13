@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.46.0] - 2026-11-13
 ### Added
 - **Fan RPM on the Creator 16 AI Studio A1VHG** (`15F3EMS3`, model database 20261208, [#347](../../issues/347), thanks
   @bengervais) - read as a 16-bit pair at `0xC8:C9` / `0xCA:CB`, the registers the firmware's own `Get_Fan` method reads
@@ -35,7 +35,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   says two more things about each widget type on the Dashboard: the main colour of its first copy (one of the twelve
   palette colours, or the default) and, for a ring, whether its dial is segmented or continuous. Nothing else of a
   widget's settings is sent: no label, scale, threshold, or picked profile, switch, scene or disk. The consent card
-  names the two fields, and *Show what will be sent* shows them beside each widget's size, the colour as a disc and the dial in words
+  names the two fields, and *Show what will be sent* shows them beside each widget's size, the colour as a disc and the dial in words.
+  **If you turned the statistics on before this version, you are asked again**: a card after the first start says what
+  the report gained, with *Keep sharing* and *Stop sharing*; no report goes out until you answer, and the community
+  numbers (the Statistics view, the catalogue's badges, the Community tile) wait with it
   ([TECHNICAL.md §87](docs/TECHNICAL.md)).
 
 ### Changed

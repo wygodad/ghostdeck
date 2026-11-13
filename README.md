@@ -143,7 +143,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | `ghostdeck://` links for Stream Deck, AutoHotkey, browsers | ❌ | ✅ *(no plugin)* |
 | Hardware monitoring | ✅ | Limited³ *(temps, fans, disks, battery health)* |
 | One-click diagnostic package for bug reports | ❌ | ✅ |
-| Measured comparison of the power profiles under load | ❌ | ✅ *(Power test: same CPU + GPU load in each profile, sampled every second, baseline measured twice)* |
+| Measured comparison of the power profiles under load | ❌ | ✅ *(Power test: same CPU + GPU load in each profile, sampled every second, baseline measured twice; an extended run with Balanced around every profile for laptops that heat up, and processor-only)* |
 | Works with any / no MSI Center version | ❌ | ✅ |
 | Older firmware without the EC control interface (Dragon Center generation) | ✅ *(Dragon Center only)* | ✅ *(backup WMI path on models with a block layout on record; path test unlocks writes)* |
 | Installed size | ~950 MB⁴ + background services | ~2.5 MB⁵ *(single portable .exe, no services)* |

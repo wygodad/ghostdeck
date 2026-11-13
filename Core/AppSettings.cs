@@ -382,6 +382,10 @@ public sealed class AppSettings
     // the week's report went out. WidgetRatings is a state (the user's current stars), not an event.
     public bool StatsEnabled { get; set; }
     public bool StatsAsked { get; set; }
+    // (1.46) Which consent text the user said yes to (Stats.ConsentVersion). The report gained two
+    // fields in 1.46 (a widget's colour and dial style); someone who agreed to the 1.44 text has
+    // 0 here, is asked again at the next start and sends nothing until they answer.
+    public int StatsConsentVersion { get; set; }
     public string StatsLastWeek { get; set; } = "";                        // ISO week of the last report that went out
     public DateTime StatsLastFetchUtc { get; set; } = DateTime.MinValue;   // the signed summary is fetched once a day
     public Dictionary<string, int> WidgetRatings { get; set; } = new();    // "core.cpuTemp" -> 1..5
@@ -895,7 +899,7 @@ public sealed class AppSettings
         SettingsAlwaysStart = src.SettingsAlwaysStart;
         StartTab = src.StartTab;
         // statistics: the choice and the ratings travel with the file; the week's counters belong to the machine they were counted on
-        StatsEnabled = src.StatsEnabled; StatsAsked = src.StatsAsked;
+        StatsEnabled = src.StatsEnabled; StatsAsked = src.StatsAsked; StatsConsentVersion = src.StatsConsentVersion;
         WidgetRatings = new Dictionary<string, int>(src.WidgetRatings);
         TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu; TempTraySsd = src.TempTraySsd;
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
@@ -964,7 +968,7 @@ public sealed class AppSettings
             Dashboard = Dashboard.Select(i => i.Clone()).ToList(),
             DashboardVersion = DashboardVersion,
             DashboardSaved = DashboardSaved.Select(l => l.Clone()).ToList(),
-            StatsEnabled = StatsEnabled, StatsAsked = StatsAsked, StatsLastWeek = StatsLastWeek, StatsLastFetchUtc = StatsLastFetchUtc,
+            StatsEnabled = StatsEnabled, StatsAsked = StatsAsked, StatsConsentVersion = StatsConsentVersion, StatsLastWeek = StatsLastWeek, StatsLastFetchUtc = StatsLastFetchUtc,
             WidgetRatings = new Dictionary<string, int>(WidgetRatings), StatsCountersWeek = StatsCountersWeek, StatsSwitches = StatsSwitches,
             StatsUsage = new Dictionary<string, long>(StatsUsage), StatsErrors = new Dictionary<string, int>(StatsErrors), StatsUsed = new List<string>(StatsUsed),
             LastUpdateCheckUtc = LastUpdateCheckUtc,

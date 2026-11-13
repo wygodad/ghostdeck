@@ -174,7 +174,7 @@ internal sealed class CommunityWidget : DashWidget
         var inner = Inner(r, c);
         int th = DashPaint.Title(g, inner, c, Lang.T(NameKey));
         var body = new Rectangle(inner.Left, inner.Top + th + c.S(8), inner.Width, inner.Height - th - c.S(8));
-        if (!c.D.Settings.StatsEnabled) { DashPaint.Note(g, body, c, Lang.T("dash_st_off_short")); return; }
+        if (!Stats.Active(c.D.Settings)) { DashPaint.Note(g, body, c, Lang.T("dash_st_off_short")); return; }
         var sum = Stats.Current;
         if (sum == null) { DashPaint.Note(g, body, c, Lang.T("dash_st_waiting")); return; }
         // four columns: label (up to two lines), value, one sub line; the block takes only the

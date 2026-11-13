@@ -261,7 +261,7 @@ internal sealed partial class DashCanvas : Control
     private bool StaticKeyChanged() =>
         _static == null || _sW != Width || _sH != Height || _sDpi != Dpi.Of(this) || _sDark != Theme.Dark
         || _sGrid != _d.Settings.ShowGrid || _sLang != Lang.CurrentCode
-        || (_catalog && (_sStats != _d.Settings.StatsEnabled || !ReferenceEquals(_sSummary, Stats.Current)));
+        || (_catalog && (_sStats != Stats.Active(_d.Settings) || !ReferenceEquals(_sSummary, Stats.Current)));
 
     // ---- static layer -----------------------------------------------------------------
     /// <summary>Marks the static layer stale and repaints (theme, language, layout edits).</summary>
@@ -394,7 +394,7 @@ internal sealed partial class DashCanvas : Control
             g.ResetTransform();
         }
         _sW = Width; _sH = Height; _sDpi = Dpi.Of(this); _sDark = Theme.Dark; _sGrid = _d.Settings.ShowGrid; _sLang = Lang.CurrentCode;
-        _sStats = _d.Settings.StatsEnabled; _sSummary = Stats.Current;
+        _sStats = Stats.Active(_d.Settings); _sSummary = Stats.Current;
         _staticDirty = false;
     }
 
@@ -707,8 +707,8 @@ internal sealed partial class DashCanvas : Control
     }
 
     // ---- catalogue ------------------------------------------------------------------------
-    /// <summary>The verified weekly summary, only while statistics are on (the badges are the return for sharing).</summary>
-    private Stats.Summary? Summary => _d.Settings.StatsEnabled ? Stats.Current : null;
+    /// <summary>The verified weekly summary, only while statistics are on under the current consent (the badges are the return for sharing).</summary>
+    private Stats.Summary? Summary => Stats.Active(_d.Settings) ? Stats.Current : null;
 
     private Font CatNameF => _ctx.Font(10f, FontStyle.Bold);
     private Font CatDescF => _ctx.Font(8.5f);

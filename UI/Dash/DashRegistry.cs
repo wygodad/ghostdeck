@@ -55,7 +55,7 @@ internal static class DashRegistry
         new DashWidgetDef("core.histFans",    "dash_w_hist_fans",  Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.FanTarget)) { StyleColorKey = "cpuc" },
         new DashWidgetDef("core.histRpm",     "dash_w_hist_rpm",   Sz((4, 2), (2, 2)), Always, (d, o) => new HistoryWidget(d, o, HistoryWidget.Kind.Rpm)) { StyleColorKey = "cpuc" },
         // (1.44) the community numbers; listed only while statistics are on (the view is the return for sharing)
-        new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, (d, o) => new CommunityWidget(d, o)) { Listed = d => d.Settings.StatsEnabled },
+        new DashWidgetDef("core.community",   "dash_w_community", Sz((4, 1), (4, 2)), Always, (d, o) => new CommunityWidget(d, o)) { Listed = d => Stats.Active(d.Settings) },
     };
 
     public static DashWidgetDef? Find(string typeId)

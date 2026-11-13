@@ -4622,6 +4622,23 @@ out. Closing the card counts as an answer, it is never shown again. The switch a
 the same switch when it is off. No name, e-mail address or anything a fork would want to copy is
 in the consent text.
 
+**Asked again when the report changes (1.46).** A consent is to a text, and the text names what is
+sent, so a report that starts carrying something new is not covered by an old yes. The settings
+keep `StatsConsentVersion`, the version of the text the user agreed to (`Stats.ConsentVersion`:
+1 = 1.44, 2 = 1.46 with a widget's colour and dial style); every path that turns the statistics
+on (the card, the switch in Settings, the rating card, the Statistics view) goes through
+`Stats.Consent`, which records the current version. Someone who agreed before the field existed
+has 0 there: `Stats.NeedsReconsent` is then true, the weekly report is held back (the signed
+summary is still fetched, it is read-only), and about 25 s after the next start the card comes up
+again with a lead that says what is new and the buttons *Keep sharing* / *Stop sharing*. Keep
+records the new version and lets the week's report go; Stop turns the statistics off and records
+the version too, so the question is not repeated; the ✕ decides nothing, and the card returns at
+the next start. While the answer is pending the community numbers are withheld as well
+(`Stats.Active`: the Statistics view shows the off card with the re-consent words and a *Keep
+sharing* button, the catalogue has no Popular sort or badges, the Community tile is unlisted,
+rating a widget offers the consent first): the numbers come with the report, not without it.
+Raising the constant is the whole procedure for the next change of the report.
+
 **What the report holds** (`Core/Stats.cs`, `BuildReport`): the app version (three numbers), the
 language, the board family (the first four characters of the firmware id, the same key the model
 database uses), the Windows version and build, the screen scale, whether the app runs on the EC
@@ -4644,12 +4661,14 @@ colours, or `auto` for the colour the widget paints by itself; for the fan curve
 charts it is the colour of the CPU line), and `d`, the id of a ring's dial (`seg` or `arc`).
 Which setting is the main colour and whether there is a dial is declared per type
 (`DashWidgetDef.StyleColorKey`, `StyleDial`); Profiles, Scenes and the Community tile have
-neither. Both values are read through `DashOptions.Choice` against the app's own lists, so a
+neither (the *Show what will be sent* card below lists them beside each widget's size). Both values are read through `DashOptions.Choice` against the app's own lists, so a
 value that is not one of those ids goes out as the default, and the server accepts a widget entry
 with the fields `t`, `s`, `c`, `d` only, each of a fixed shape. Nothing else of a widget's
 settings is sent: no label, scale, threshold, unit, range, second colour, and no picked profile,
 switch, scene or disk. The sums answer which colours and which dial people choose, per widget;
 they are kept on the server and are not part of the published summary.
+
+![What will be sent: each widget type with its size, colour and dial](images/stats_report_styles.png)
 
 **When.** Once per ISO week, at the first start of a new week (`StatsLastWeek`), on a worker.
 A 204 means counted (or a repeat of the same body, which the server drops); a 400 means the server

@@ -2752,7 +2752,9 @@ public sealed class TrayContext : ApplicationContext
         if (!_settings.StatsEnabled) return;
         if (_statsTask is { IsCompleted: false }) return;   // one run at a time; the next check picks up what is still due
         string week = Stats.CurrentWeek();
-        bool sendDue = _settings.StatsLastWeek != week;
+        // A consent given to an older text holds the report back (the card asks again at start);
+        // the signed summary is still fetched, it is read-only and the Dashboard shows it.
+        bool sendDue = _settings.StatsLastWeek != week && !Stats.NeedsReconsent(_settings);
         bool fetchDue = DateTime.UtcNow - _settings.StatsLastFetchUtc >= fetchAfter;
         if (!sendDue && !fetchDue) return;
         var cts = _statsCts ??= new CancellationTokenSource();
@@ -2792,19 +2794,48 @@ public sealed class TrayContext : ApplicationContext
     /// <summary>The consent card: once, a while after start, so it does not land on top of the firmware or notice cards.</summary>
     private void MaybeAskStats()
     {
-        if (_settings.StatsAsked || _settings.StatsEnabled) return;
+        bool first = !_settings.StatsAsked && !_settings.StatsEnabled;
+        if (!first && !Stats.NeedsReconsent(_settings)) return;
         var t = new System.Windows.Forms.Timer { Interval = 25000 };
-        t.Tick += (_, _) => { t.Stop(); t.Dispose(); if (!_settings.StatsAsked && !_settings.StatsEnabled) ShowStatsConsent(); };
+        t.Tick += (_, _) =>
+        {
+            t.Stop(); t.Dispose();
+            if (Stats.NeedsReconsent(_settings)) ShowStatsReconsent();
+            else if (!_settings.StatsAsked && !_settings.StatsEnabled) ShowStatsConsent();
+        };
         t.Start();
     }
 
     private void ShowStatsConsent()
     {
         var card = new StatsConsentCard(
-            () => { _settings.StatsEnabled = true; _settings.StatsAsked = true; _settings.Save(); MaybeSendStats(); },
+            () => { Stats.Consent(_settings); _settings.Save(); Stats.RaiseSummaryChanged(); MaybeSendStats(); },
             ShowStatsReport) { Quiet = true };
         // "No, thanks" and the ✕ both close the card: asked and answered, never nagged again
         card.FormClosed += (_, _) => { if (!_settings.StatsAsked) { _settings.StatsAsked = true; _settings.Save(); } };
+        card.Show();
+    }
+
+    /// <summary>
+    /// (1.46) The report gained fields since this user said yes (Stats.ConsentVersion): the same
+    /// card with a lead that names what is new. "Keep sharing" records the new consent and lets the
+    /// week's report go; "Stop sharing" turns the statistics off; the ✕ decides nothing, the card
+    /// comes back at the next start and no report goes out meanwhile.
+    /// </summary>
+    private void ShowStatsReconsent()
+    {
+        // RaiseSummaryChanged after either answer: the Dashboard rebuilds on it, so a Statistics
+        // view open behind the card fills in (or empties) at once instead of at the next tab switch.
+        var card = new StatsConsentCard(
+            () => { Stats.Consent(_settings); _settings.Save(); Stats.RaiseSummaryChanged(); MaybeSendStats(); },
+            ShowStatsReport, again: true,
+            onStop: () =>
+            {
+                _settings.StatsEnabled = false; _settings.StatsAsked = true;
+                _settings.StatsConsentVersion = Stats.ConsentVersion;   // answered: not asked again
+                _settings.Save();
+                Stats.RaiseSummaryChanged();
+            }) { Quiet = true };
         card.Show();
     }
 

@@ -23,7 +23,7 @@ namespace GhostDeck;
 /// </summary>
 public static class Stats
 {
-    /// <summary>A newer verified summary arrived (the catalogue repaints its badges).</summary>
+    /// <summary>A newer verified summary arrived, or the consent changed (1.46): the Dashboard rebuilds, so the catalogue's badges and the Statistics view follow.</summary>
     public static event Action? SummaryChanged;
     public static void RaiseSummaryChanged() => SummaryChanged?.Invoke();
 
@@ -33,6 +33,32 @@ public static class Stats
     private const string PublicKeySpki = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEcnhSwX5TcTLFwSe2+Bbbw+AQQJtHeHvjCkem72+LCp4hqR3hbFyTXIgJTaXURA8RIvUa993ohH5X30vG96plGw==";
     public const int DefaultPowBits = 20;
     public const int ReportVersion = 1;
+    /// <summary>
+    /// The consent text the user has to have agreed to before a report goes out. 1 = the 1.44
+    /// text; 2 = 1.46, when the report gained a widget's colour and dial style. Raise it whenever
+    /// the report starts carrying something the card did not name: everyone who agreed before is
+    /// then asked again (<see cref="NeedsReconsent"/>) and sends nothing until they answer.
+    /// </summary>
+    public const int ConsentVersion = 2;
+
+    /// <summary>Statistics on, and the consent given to a text older than the current report: ask again, send nothing meanwhile.</summary>
+    public static bool NeedsReconsent(AppSettings s) => s.StatsEnabled && s.StatsConsentVersion < ConsentVersion;
+
+    /// <summary>
+    /// Statistics on under the current consent: what the community numbers are shown for. While a
+    /// re-consent is pending nothing is sent, and the Statistics view, the catalogue's community
+    /// figures, the Community tile and the ratings behave as if the statistics were off: the
+    /// numbers come with the report, not without it (owner's rule, 1.46).
+    /// </summary>
+    public static bool Active(AppSettings s) => s.StatsEnabled && !NeedsReconsent(s);
+
+    /// <summary>The user said yes to the current consent text (the card, the Settings switch, the rating card, the Statistics view).</summary>
+    public static void Consent(AppSettings s)
+    {
+        s.StatsEnabled = true;
+        s.StatsAsked = true;
+        s.StatsConsentVersion = ConsentVersion;
+    }
 
     public static string SummaryPath => Path.Combine(AppSettings.Dir, "stats.signed.json");
 

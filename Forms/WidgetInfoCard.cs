@@ -113,7 +113,7 @@ internal sealed class WidgetInfoCard : GhostCardForm
         y += ss + Ce(16 * k);
 
         // ---- the community: three small tiles (average with a star, votes, share of dashboards) ----
-        var sum = _d.Settings.StatsEnabled ? Stats.Current : null;
+        var sum = Stats.Active(_d.Settings) ? Stats.Current : null;
         var st = sum != null && sum.Widgets.TryGetValue(_def.TypeId, out var w) ? w : null;
         if (st == null)
         {

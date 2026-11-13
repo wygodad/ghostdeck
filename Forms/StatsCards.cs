@@ -15,19 +15,24 @@ namespace GhostDeck;
 public sealed class StatsConsentCard : GhostCardForm
 {
     private readonly Action _sample;
+    private readonly Action? _stop;
     private readonly string _lead, _gain, _sentH, _neverH, _note;
     private readonly string[] _sent, _never;
 
     /// <param name="infoOnly">Opened from Settings to read what is collected: one OK button and the
     /// sample report, no choice on the card (the switch next to it in Settings is the choice).</param>
-    public StatsConsentCard(Action onShare, Action onShowSample, bool infoOnly = false)
-        : base("//STATS", Lang.T("stats_consent_title"), "",
-               infoOnly ? Lang.T("gen_ok") : Lang.T("stats_consent_yes"),
-               infoOnly ? "" : Lang.T("stats_consent_no"),
+    /// <param name="again">(1.46) Asked again because the report gained fields since this user said
+    /// yes: the lead names what is new, the buttons are "Keep sharing" / "Stop sharing", and
+    /// <paramref name="onStop"/> runs for the second one; the ✕ is "not now" (asked again next start).</param>
+    public StatsConsentCard(Action onShare, Action onShowSample, bool infoOnly = false, bool again = false, Action? onStop = null)
+        : base("//STATS", Lang.T(again ? "stats_reconsent_title" : "stats_consent_title"), "",
+               infoOnly ? Lang.T("gen_ok") : Lang.T(again ? "stats_reconsent_yes" : "stats_consent_yes"),
+               infoOnly ? "" : Lang.T(again ? "stats_reconsent_no" : "stats_consent_no"),
                infoOnly ? () => { } : onShare)
     {
         _sample = onShowSample;
-        _lead = Lang.T("stats_consent_lead");
+        _stop = again ? onStop : null;
+        _lead = Lang.T(again ? "stats_reconsent_lead" : "stats_consent_lead");
         _gain = Lang.T("stats_consent_gain");
         _sentH = Lang.Upper(Lang.T("stats_consent_sent_h"));
         _neverH = Lang.Upper(Lang.T("stats_consent_never_h"));
@@ -45,6 +50,7 @@ public sealed class StatsConsentCard : GhostCardForm
     // the brand violet (the rail's lower end), lightened for text: not the cyan of "Share", not the red of "never sent"
     protected override Color AuxColor => Color.FromArgb(0xB0, 0x96, 0xFF);
     protected override void AuxClick() => _sample();
+    protected override void OnLater() => _stop?.Invoke();
 
     protected override int MeasureContent(Graphics g, float k, int width) => Flow(g, k, width, null);
 
