@@ -18,6 +18,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   (`cpuWatts`) and as a new **CPU W** column of the power test, so a run shows in
   watts what each profile lets the processor draw. On a processor without these counters nothing appears
   ([TECHNICAL.md §89](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
+- **Power test: the extended run, and processor only.** Some laptops heat up or change state during any
+  five-minute run, and the standard test then reports drift and no readable comparison, however often it is
+  repeated ([#210](../../issues/210) twice). *Run length → Extended* (about twelve minutes) warms the machine up
+  for two minutes on a phase nobody scores, then measures Balanced **before and after every profile** (Warm-up,
+  Balanced, Silent, Balanced, Extreme, Balanced, the fourth mode and Balanced again where the board has one),
+  90 s per phase, so each profile is read against its own two neighbours and the report says per profile whether
+  its figure is readable. A **processor only** box leaves the graphics chip idle, to tell a limit that comes with
+  the graphics load from one that does not. A standard run that drifted now says so in its verdict and pre-selects
+  the extended run for *Start over*. The step list on the page shows every phase, the repeated Balanced included
+  ([TECHNICAL.md §60.12](docs/TECHNICAL.md), [FAQ](docs/FAQ.md)).
 - **GF63 Thin 9SC is a tested model** (`16R3EMS1`, model database 20261211, [#344](../../issues/344), thanks
   @Heroofdarkness7788): its path test passed on the backup WMI path, and the owner confirmed Silent audibly quiet and
   switching stable. The fan-curve editor stays off for this model ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).

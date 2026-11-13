@@ -3095,6 +3095,13 @@ public sealed class TrayContext : ApplicationContext
         var ui = _ui;
         Task.Run(() =>
         {
+            // The processor-power trail (the CPU power widget's "trail" look) lives in Perf and
+            // only grows when Perf is read. The Status page, the overlay and the Dashboard read it
+            // while they are on screen; nothing did while the window was hidden, so the trail
+            // started at the moment the Dashboard opened while the history widgets, fed from this
+            // loop, already had their five minutes. One tick here, every poll, keeps the trail
+            // filling the whole time the app runs, the way HwHistory does below.
+            try { Perf.Tick(); } catch { }
             try
             {
                 if (!Ec.TryReadHw(dev, out var hw))

@@ -26,6 +26,18 @@ public static class PowerTest
     public const int SettleSeconds = 15;
     public const int LoadSeconds = 60;
     public const int SteadySeconds = 25;
+    // The extended run (v1.46): the same measurement with a reference next to every phase. The
+    // standard run came back unreadable on some machines twice over (#210: 19 % and 17 % drift,
+    // the same picture both times), and a repeat cannot help there, because the design itself is
+    // what they trip over: Silent runs first on a cold heatsink and every later phase inherits the
+    // heat; one repeat of Balanced says "something moved" but not when; 60 s is shorter than some
+    // firmware's power windows, so a phase can change state inside its own window; and the
+    // graphics load is a second variable the test does not control. The extended run warms the
+    // machine up first on a phase nobody scores, measures Balanced before AND after every profile
+    // so that each profile is read against its own two neighbours, holds every phase longer, and
+    // can leave the graphics chip idle. About twelve minutes instead of seven.
+    public const int ExtendedLoadSeconds = 90;
+    public const int WarmUpSeconds = 120;
     // The fourth-mode probe compares two idle dumps taken this far apart BEFORE writing anything:
     // whatever moves on its own in that gap is drift, and is subtracted from what the write moved.
     private const int ProbeSettleSeconds = 10;
@@ -118,7 +130,59 @@ public static class PowerTest
         // The run's own restore of the starting profile threw: what it said. The caller still
         // re-applies the profile through the normal path, and the report says the restore
         // inside the run did not go through instead of hiding it.
-        string? RestoreError = null);
+        string? RestoreError = null,
+        // The kind of run and its steps in order (v1.46). The report walks the steps to find the
+        // Balanced phases either side of a profile. Null steps = a result from before the field,
+        // read as a standard run.
+        Options Options = default, Step[]? Steps = null);
+
+    /// <summary>What kind of run, chosen on the page before the start.</summary>
+    public readonly record struct Options(bool Extended = false, bool CpuOnly = false);
+
+    public enum StepKind { WarmUp, Baseline, Profile, Fourth, Restore }
+
+    /// <summary>One step of a run, in order: what the page lists and what <see cref="Run"/> executes.</summary>
+    public readonly record struct Step(StepKind Kind, string Name, ProfileId Profile);
+
+    /// <summary>The phase every other work figure is a percentage of: the first Balanced.</summary>
+    public static string BaselineName(bool extended) => extended ? ProfileId.Balanced + " (1)" : ProfileId.Balanced.ToString();
+    public const string WarmUpName = "Warm-up";
+
+    /// <summary>
+    /// The steps of a run, in order. Standard: Silent, Balanced, Extreme, the fourth mode where the
+    /// board has one, Balanced again, the restore. Extended: a warm-up on Balanced, then Balanced
+    /// numbered (1), (2), ... before and after every measured profile, the fourth mode included.
+    /// Names are invariant English: the report is read on GitHub, not in the reporter's language.
+    /// </summary>
+    public static Step[] Plan(DeviceProfile dev, Options o) => Plan(dev.FourthMode, o);
+
+    /// <summary>The same, from the one thing about the board the plan depends on (the page lists rows before a model is known).</summary>
+    public static Step[] Plan(FourthModeSpec? fourthMode, Options o)
+    {
+        var steps = new List<Step>();
+        bool fourth = fourthMode != null;
+        if (!o.Extended)
+        {
+            foreach (var id in Order)
+                steps.Add(new(id == ProfileId.Balanced ? StepKind.Baseline : StepKind.Profile, id.ToString(), id));
+            if (fourth) steps.Add(new(StepKind.Fourth, fourthMode!.Name, ProfileId.Extreme));
+            steps.Add(new(StepKind.Baseline, ProfileId.Balanced + RepeatSuffix, ProfileId.Balanced));
+        }
+        else
+        {
+            int b = 0;
+            void Baseline() => steps.Add(new(StepKind.Baseline, $"{ProfileId.Balanced} ({++b})", ProfileId.Balanced));
+            steps.Add(new(StepKind.WarmUp, WarmUpName, ProfileId.Balanced));
+            Baseline();
+            steps.Add(new(StepKind.Profile, ProfileId.Silent.ToString(), ProfileId.Silent));
+            Baseline();
+            steps.Add(new(StepKind.Profile, ProfileId.Extreme.ToString(), ProfileId.Extreme));
+            Baseline();
+            if (fourth) { steps.Add(new(StepKind.Fourth, fourthMode!.Name, ProfileId.Extreme)); Baseline(); }
+        }
+        steps.Add(new(StepKind.Restore, "", ProfileId.Balanced));
+        return steps.ToArray();
+    }
 
     /// <summary>Where the run is, for the page's progress bar and live line.</summary>
     public readonly record struct Progress(
@@ -188,20 +252,22 @@ public static class PowerTest
 
     private static bool Uneven(Sample[] s) => Shape("", s) is { } sh && (sh.Step || sh.Burst);
 
-    /// <summary>Steps in the page's checklist: one per profile, the probe, the repeated baseline, the restore.</summary>
-    public static int StepCount(DeviceProfile dev) => Order.Length + (dev.FourthMode != null ? 1 : 0) + 2;
+    /// <summary>Steps in the page's checklist: one per entry of <see cref="Plan"/>, the restore included.</summary>
+    public static int StepCount(DeviceProfile dev, Options o) => Plan(dev, o).Length;
 
     public static Task<Result> RunAsync(
-        DeviceProfile dev, string appVersion, string firmware,
+        DeviceProfile dev, string appVersion, string firmware, Options o,
         IProgress<Progress> progress, CancellationToken ct) =>
-        Task.Run(() => Run(dev, appVersion, firmware, progress, ct), ct);
+        Task.Run(() => Run(dev, appVersion, firmware, o, progress, ct), ct);
 
     private static Result Run(
-        DeviceProfile dev, string appVersion, string firmware,
+        DeviceProfile dev, string appVersion, string firmware, Options o,
         IProgress<Progress> pr, CancellationToken ct)
     {
         int threads = Environment.ProcessorCount;
-        int steps = StepCount(dev);
+        var plan = Plan(dev, o);
+        int steps = plan.Length;
+        int loadSeconds = o.Extended ? ExtendedLoadSeconds : LoadSeconds;
         var phases = new List<Phase>();
         FourthProbe? fourth = null;
         string? aborted = null;
@@ -214,7 +280,8 @@ public static class PowerTest
         Report(pr, 0, steps, "", "check", 0, "");
         Result Nothing(string? why, int busy) => new(
             started, appVersion, firmware, dev.Name, dev.Tier.ToString(), onAc, false, threads,
-            ProfileId.Balanced, 0, Array.Empty<byte>(), Array.Empty<Phase>(), null, why, busy, WinPower: winPower);
+            ProfileId.Balanced, 0, Array.Empty<byte>(), Array.Empty<Phase>(), null, why, busy, WinPower: winPower,
+            Options: o, Steps: plan);
 
         int preBusy;
         // Cancel is live from the moment the page shows its Cancel button, which is before this
@@ -249,44 +316,34 @@ public static class PowerTest
         // already going. A processor-only load can miss a profile that raises a budget the two chips
         // share, and it must be identical in every phase or the comparison between them means
         // nothing. If it cannot come up, the run continues and the report says so.
-        using var gpu = new GpuLoad();
+        // Left idle on request (the extended run's "processor only"): the one way to tell a cap
+        // that comes with the graphics load from one that does not.
+        using var gpu = o.CpuOnly ? null : new GpuLoad();
 
         try
         {
-            for (int i = 0; i < Order.Length && aborted == null; i++)
+            // The plan in order. The standard run ends with Balanced again so that the drift it
+            // reports covers everything the table compares; the extended run has Balanced on both
+            // sides of every profile, and a warm-up first that the report shows but never scores.
+            for (int i = 0; i < plan.Length && aborted == null; i++)
             {
-                var id = Order[i];
-                // Invariant name: the report is read on GitHub, not in the reporter's language.
-                string name = id.ToString();
-                var recipe = dev.Recipes[id];
-
-                wrote = true;
-                try { Ec.Apply(recipe); }
-                catch (Exception ex) { aborted = $"could not apply the {name} recipe: {ex.Message} (the write may have gone through partly; see the restore line)"; break; }
-                Settle(pr, i, steps, name, SettleSeconds, ct);
-
-                var samples = Loaded(dev, pr, i, steps, name, threads, ct, ref aborted);
-                phases.Add(new Phase(name, recipe, samples, SafeDump()));
-            }
-
-            if (aborted == null && dev.FourthMode is { } fm)
-                fourth = Probe(dev, fm, pr, Order.Length, steps, threads, ct, ref aborted);
-
-            // Last, so the drift it reports covers everything the table above compares.
-            if (aborted == null)
-            {
-                int step = Order.Length + (dev.FourthMode != null ? 1 : 0);
-                string name = ProfileId.Balanced + RepeatSuffix;
-                var recipe = dev.Recipes[ProfileId.Balanced];
-                wrote = true;
-                try { Ec.Apply(recipe); }
-                catch (Exception ex) { aborted = $"could not re-apply the {ProfileId.Balanced} recipe: {ex.Message}"; }
-                if (aborted == null)
+                var step = plan[i];
+                if (step.Kind == StepKind.Restore) break;
+                if (step.Kind == StepKind.Fourth)
                 {
-                    Settle(pr, step, steps, name, SettleSeconds, ct);
-                    var samples = Loaded(dev, pr, step, steps, name, threads, ct, ref aborted);
-                    phases.Add(new Phase(name, recipe, samples, SafeDump()));
+                    fourth = Probe(dev, dev.FourthMode!, pr, i, steps, threads, loadSeconds, ct, ref aborted);
+                    continue;
                 }
+                var recipe = dev.Recipes[step.Profile];
+
+                wrote = true;
+                try { Ec.Apply(recipe); }
+                catch (Exception ex) { aborted = $"could not apply the {step.Name} recipe: {ex.Message} (the write may have gone through partly; see the restore line)"; break; }
+                Settle(pr, i, steps, step.Name, SettleSeconds, ct);
+
+                var samples = Loaded(dev, pr, i, steps, step.Name, threads,
+                    step.Kind == StepKind.WarmUp ? WarmUpSeconds : loadSeconds, ct, ref aborted);
+                phases.Add(new Phase(step.Name, recipe, samples, SafeDump()));
             }
         }
         catch (OperationCanceledException)
@@ -315,14 +372,14 @@ public static class PowerTest
 
         return new Result(started, appVersion, firmware, dev.Name, dev.Tier.ToString(),
             onAc, boost, threads, startProfile, startShift, before, phases.ToArray(), fourth, aborted,
-            0, wrote, gpu.Active, gpu.Adapter, winPower, restoreError);
+            0, wrote, gpu?.Active ?? false, gpu?.Adapter ?? "", winPower, restoreError, o, plan);
     }
 
     // ---------------- fourth-mode probe ----------------
 
     private static FourthProbe Probe(
         DeviceProfile dev, FourthModeSpec fm, IProgress<Progress> pr,
-        int step, int steps, int threads, CancellationToken ct, ref string? aborted)
+        int step, int steps, int threads, int loadSeconds, CancellationToken ct, ref string? aborted)
     {
         Ec.Apply(dev.Recipes[ProfileId.Extreme]);
         Settle(pr, step, steps, fm.Name, ProbeSettleSeconds, ct);
@@ -351,7 +408,7 @@ public static class PowerTest
 
         // A value the register refused is not worth a minute of load - the answer is already in.
         var samples = accepted
-            ? Loaded(dev, pr, step, steps, fm.Name, threads, ct, ref aborted)
+            ? Loaded(dev, pr, step, steps, fm.Name, threads, loadSeconds, ct, ref aborted)
             : Array.Empty<Sample>();
         byte[] loaded = accepted ? SafeDump() : Array.Empty<byte>();
 
@@ -388,9 +445,9 @@ public static class PowerTest
 
     private static Sample[] Loaded(
         DeviceProfile dev, IProgress<Progress> pr, int step, int steps, string name,
-        int threads, CancellationToken ct, ref string? aborted)
+        int threads, int loadSeconds, CancellationToken ct, ref string? aborted)
     {
-        var samples = new List<Sample>(LoadSeconds);
+        var samples = new List<Sample>(loadSeconds);
         int hot = 0;
         long lastWork = 0, lastMs = 0;
         var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -398,7 +455,7 @@ public static class PowerTest
         var lastCpu = self.TotalProcessorTime;
         using var load = new CpuLoad(Math.Max(1, threads - LoadThreadHeadroom));
 
-        for (int s = 1; clock.ElapsedMilliseconds < LoadSeconds * 1000; s++)
+        for (int s = 1; clock.ElapsedMilliseconds < loadSeconds * 1000; s++)
         {
             // Cancel ends the phase rather than unwinding it: the seconds already measured are
             // worth keeping, and the caller promises the report holds whatever was measured.
@@ -421,7 +478,7 @@ public static class PowerTest
             lastWork = work; lastMs = nowMs; lastCpu = cpu;
             samples.Add(sample);
 
-            Report(pr, step, steps, name, "load", clock.ElapsedMilliseconds / (LoadSeconds * 1000.0),
+            Report(pr, step, steps, name, "load", clock.ElapsedMilliseconds / (loadSeconds * 1000.0),
                 $"{hw.CpuTemp} °C  ·  {hw.CpuFan} %  ·  {sample.ClockMhz} MHz");
 
             // Losing mains mid-run does not spoil one number, it spoils every number after it:
@@ -602,10 +659,17 @@ public static class PowerTest
         string startExtra = dev.FourthMode is { } sfm && r.StartShift == sfm.ShiftValue ? $" + {sfm.Name}" : "";
         sb.AppendLine($"State when the run started (restored afterwards): {r.StartProfile}{startExtra}" +
                       $"  (0x{dev.ShiftMode:X2} = 0x{r.StartShift:X2})");
+        bool ext = r.Options.Extended;
+        int loadSecs = ext ? ExtendedLoadSeconds : LoadSeconds;
+        sb.AppendLine(ext
+            ? $"Run: EXTENDED - {WarmUpSeconds} s of warm-up on Balanced first (shown, not scored), then Balanced measured before and after every profile"
+            : "Run: standard - Silent, Balanced, Extreme, then Balanced again");
         sb.AppendLine($"Load: {Math.Max(1, r.Threads - LoadThreadHeadroom)} threads on {r.Threads} logical processors " +
-                      $"({LoadThreadHeadroom} left free so the controller can still be read), {LoadSeconds} s per profile " +
+                      $"({LoadThreadHeadroom} left free so the controller can still be read), {loadSecs} s per phase " +
                       $"after {SettleSeconds} s of settling; the figures below average the last {SteadySeconds} s");
-        sb.AppendLine($"Graphics load: {(r.GpuLoaded ? $"ON, {r.GpuAdapter}" : "OFF - processor only, so a profile that only lifts a graphics or shared budget would not show here")}");
+        sb.AppendLine("Graphics load: " + (r.GpuLoaded ? $"ON, {r.GpuAdapter}"
+            : r.Options.CpuOnly ? "OFF, processor only by choice - a profile that only lifts a graphics or shared budget would not show here"
+            : "OFF - the graphics load could not be started, so processor only: a profile that only lifts a graphics or shared budget would not show here"));
         if (r.Aborted != null) sb.AppendLine($"RUN DID NOT COMPLETE: {r.Aborted}");
         // What the run itself did about the starting profile. No readback: "written back without
         // error" is what is known, and the app re-applies the profile through its normal path
@@ -619,9 +683,22 @@ public static class PowerTest
         // ---- the comparison this whole thing exists for ----
         sb.AppendLine("--- Steady state ---");
         sb.AppendLine("Profile        shift fan  CPU C  GPU C  CPU%  GPU%  CPU rpm  GPU rpm  CPU MHz  MHz range  CPU W    work  own    n  gpu");
-        double baseWork = 0;
-        foreach (var p in r.Phases)
-            if (p.Name == ProfileId.Balanced.ToString()) baseWork = AvgRate(Steady(p.Samples), s => s.Work);
+        string baseName = BaselineName(ext);
+        double baseWork = PhaseWork(r, baseName);
+
+        // What a row's work column is a percentage of. Standard: the first Balanced, always.
+        // Extended: a profile is read against the average of the Balanced phases either side of
+        // it, so a machine that changed speed smoothly over the run cancels out of its figure; the
+        // Balanced phases and the warm-up are read against the first Balanced, which shows that
+        // trend itself.
+        double Reference(string name)
+        {
+            if (!ext || r.Steps == null) return baseWork;
+            int k = Array.FindIndex(r.Steps, s => s.Name == name);
+            if (k < 0 || r.Steps[k].Kind is StepKind.Baseline or StepKind.WarmUp) return baseWork;
+            var around = Neighbours(r, k).Where(w => w > 0).ToArray();
+            return around.Length == 0 ? baseWork : around.Average();
+        }
 
         void Row(string name, Sample[] samples, byte[] dump)
         {
@@ -642,8 +719,8 @@ public static class PowerTest
 
             string shift = dump.Length == 256 ? dump[dev.ShiftMode].ToString("X2") : "--";
             string fan = dump.Length == 256 ? dump[dev.FanMode].ToString("X2") : "--";
-            double work = AvgRate(st, s => s.Work);
-            string idx = baseWork > 0 ? (work / baseWork * 100).ToString("F0") : "--";
+            double work = AvgRate(st, s => s.Work), refWork = Reference(name);
+            string idx = refWork > 0 ? (work / refWork * 100).ToString("F0") : "--";
             string range = $"{st.Min(x => x.ClockMhz)}-{st.Max(x => x.ClockMhz)}";
             // package power: the samples that carried it (none on a processor without the counters)
             var pw = st.Where(x => x.CpuW >= 0).Select(x => x.CpuW).ToArray();
@@ -658,11 +735,31 @@ public static class PowerTest
         // The repeated baseline belongs at the bottom, after the probe: it is the last thing measured
         // and it describes the whole run above it, not the profile next to it.
         var repeat = r.Phases.FirstOrDefault(p => p.Name.EndsWith(RepeatSuffix));
-        foreach (var p in r.Phases.Where(p => !p.Name.EndsWith(RepeatSuffix))) Row(p.Name, p.Samples, p.Dump);
-        if (r.Fourth is { Accepted: true } f4) Row(f4.Name, f4.Samples, f4.DumpLoaded);
-        if (repeat != null) Row(repeat.Name, repeat.Samples, repeat.Dump);
+        if (r.Steps is { } order)
+        {
+            // In the order they ran, the fourth-mode probe in its place among them.
+            foreach (var st in order)
+            {
+                if (st.Kind == StepKind.Restore) continue;
+                if (st.Kind == StepKind.Fourth) { if (r.Fourth is { Accepted: true } fp) Row(fp.Name, fp.Samples, fp.DumpLoaded); continue; }
+                if (r.Phases.FirstOrDefault(p => p.Name == st.Name) is { } ph) Row(ph.Name, ph.Samples, ph.Dump);
+            }
+        }
+        else
+        {
+            foreach (var p in r.Phases.Where(p => !p.Name.EndsWith(RepeatSuffix))) Row(p.Name, p.Samples, p.Dump);
+            if (r.Fourth is { Accepted: true } f4) Row(f4.Name, f4.Samples, f4.DumpLoaded);
+            if (repeat != null) Row(repeat.Name, repeat.Samples, repeat.Dump);
+        }
         sb.AppendLine();
-        sb.AppendLine("work = CPU work completed per second in the steady window, Balanced = 100.");
+        if (ext)
+        {
+            sb.AppendLine("work = CPU work completed per second in the steady window. A profile's figure is relative to");
+            sb.AppendLine("the average of the Balanced phases before and after it (= 100); the Balanced phases and the");
+            sb.AppendLine("warm-up are relative to Balanced (1), so they show how the machine itself ran over the run.");
+        }
+        else
+            sb.AppendLine("work = CPU work completed per second in the steady window, Balanced = 100.");
         sb.AppendLine($"n = samples inside that {SteadySeconds} s window. Fewer than {SteadySeconds} of them means the");
         sb.AppendLine("controller was answering slowly or the phase was cut short (cancelled, unplugged, too hot);");
         sb.AppendLine("a handful of samples still describes the window, a couple of them does not.");
@@ -702,7 +799,7 @@ public static class PowerTest
                 if (size >= DriftWarnPct)
                 {
                     sb.AppendLine($"That is {DriftWarnPct} % or more, so differences between profiles smaller than {size} % are NOT");
-                    var firstBase = r.Phases.FirstOrDefault(p => p.Name == ProfileId.Balanced.ToString());
+                    var firstBase = r.Phases.FirstOrDefault(p => p.Name == baseName);
                     bool uneven = (firstBase != null && Uneven(firstBase.Samples)) || Uneven(repeat.Samples);
                     if (uneven)
                     {
@@ -719,11 +816,46 @@ public static class PowerTest
                         sb.AppendLine("slower as the run goes on, and every phase pays for the ones before it. Ordering here");
                         sb.AppendLine("(Silent, Balanced, Extreme) can then look like a ranking when it is only a running order.");
                     }
+                    sb.AppendLine("The EXTENDED run (Report tab -> Power test -> Run length) is built for a machine like this:");
+                    sb.AppendLine("it warms the machine up first and measures Balanced before and after every profile, so each");
+                    sb.AppendLine("profile is read against its own two neighbours.");
                 }
                 else
                 {
                     sb.AppendLine("That is small, so the comparison above is not being carried by the running order.");
                 }
+            }
+        }
+
+        // ---- the extended run: every profile has a Balanced phase on each side ----
+        if (ext && r.Steps is { } plan && baseWork > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("--- Baseline check ---");
+            sb.AppendLine("BALANCED was measured before and after every profile, so each profile above is read against");
+            sb.AppendLine("its own two neighbours, and a machine that got slower or faster smoothly over the run cancels");
+            sb.AppendLine("out of its figure. What does not cancel out is a change of state between those two");
+            sb.AppendLine("neighbours. The Balanced phases themselves, relative to the first:");
+            var bases = plan.Where(s => s.Kind == StepKind.Baseline)
+                            .Select(s => (s.Name, W: PhaseWork(r, s.Name))).Where(x => x.W > 0).ToArray();
+            sb.AppendLine("   " + string.Join("   ", bases.Select(b => $"{b.Name} {b.W / baseWork * 100:F0}")));
+            double warm = PhaseWork(r, WarmUpName);
+            if (warm > 0)
+                sb.AppendLine($"   The warm-up ran at {warm / baseWork * 100:F0} and is not scored: the machine was still cold.");
+            for (int k = 0; k < plan.Length; k++)
+            {
+                if (plan[k].Kind is not (StepKind.Profile or StepKind.Fourth)) continue;
+                if (plan[k].Kind == StepKind.Fourth && r.Fourth is not { Accepted: true }) continue;
+                var n = Neighbours(r, k);
+                if (n[0] <= 0 || n[1] <= 0)
+                {
+                    sb.AppendLine($"{plan[k].Name,-14} has only one measured Balanced neighbour, so its figure is approximate.");
+                    continue;
+                }
+                int gap = (int)Math.Round(Math.Abs(n[1] - n[0]) / n[0] * 100);
+                sb.AppendLine(gap >= DriftWarnPct
+                    ? $"{plan[k].Name,-14} sits between two Balanced phases that differ by {gap} %: the machine changed state while it ran, so a difference smaller than {gap} % is NOT safe to read."
+                    : $"{plan[k].Name,-14} sits between two Balanced phases that differ by {gap} %: readable to within that.");
             }
         }
 
@@ -736,7 +868,7 @@ public static class PowerTest
         {
             sb.AppendLine();
             sb.AppendLine("--- Inside the phases ---");
-            sb.AppendLine($"Each phase runs for {LoadSeconds} s and the table above averages its last {SteadySeconds} s. These");
+            sb.AppendLine($"Each phase runs for {loadSecs} s and the table above averages its last {SteadySeconds} s. These");
             sb.AppendLine("phases did not run evenly, so their averages depend on where that window fell:");
             foreach (var sh in shapes)
             {
@@ -776,19 +908,19 @@ public static class PowerTest
             // rather than quietly "correcting" a number nobody could then check.
             foreach (var l in loads)
             {
-                if (l.Name == ProfileId.Balanced.ToString()) continue;
-                double skew = Skew(loads, l);
+                if (l.Name == baseName) continue;
+                double skew = Skew(loads, l, baseName);
                 if (Math.Abs(skew - 1) <= MaxShareSkew) continue;
                 int off = (int)Math.Round(Math.Abs(1 - skew) * 100);
-                sb.AppendLine($"   {l.Name} did not get the same share as Balanced ({l.Own:F1} % against " +
-                              $"{loads.First(x => x.Name == ProfileId.Balanced.ToString()).Own:F1} %), so its work column reads about " +
+                sb.AppendLine($"   {l.Name} did not get the same share as {baseName} ({l.Own:F1} % against " +
+                              $"{loads.First(x => x.Name == baseName).Own:F1} %), so its work column reads about " +
                               $"{off} % {(skew < 1 ? "LOWER" : "HIGHER")} than an even run would give.");
             }
 
             sb.AppendLine("   Something outside GhostDeck was using the processor. Working on the machine while");
             sb.AppendLine("   the test runs is the usual cause and a browser is enough on its own; a virus scan of");
             sb.AppendLine("   a freshly downloaded file is the other, and it keeps going for minutes afterwards.");
-            sb.AppendLine("   Leave the machine alone for the five minutes and run it again.");
+            sb.AppendLine($"   Run it again and do not touch the machine while it runs, about {(ext ? "twelve" : "five")} minutes.");
         }
 
         // Separate from the block above on purpose. A slow controller answer is not other software
@@ -879,8 +1011,41 @@ public static class PowerTest
     {
         var loads = Loads(r);
         double floor = ExpectedOwn(r) - OwnShareSlack;
-        return loads.Any(l => l.Own < floor || Math.Abs(Skew(loads, l) - 1) > MaxShareSkew);
+        string baseName = BaselineName(r.Options.Extended);
+        return loads.Any(l => l.Own < floor || Math.Abs(Skew(loads, l, baseName) - 1) > MaxShareSkew);
     }
+
+    /// <summary>Steady-window work of the named phase, 0 when it was not measured.</summary>
+    private static double PhaseWork(Result r, string name) =>
+        r.Phases.FirstOrDefault(p => p.Name == name) is { } p ? AvgRate(Steady(p.Samples), s => s.Work) : 0;
+
+    /// <summary>
+    /// Steady work of the Balanced phases just before and just after step k of the plan
+    /// (0 = not measured). The extended run reads every profile against these two.
+    /// </summary>
+    private static double[] Neighbours(Result r, int k)
+    {
+        var steps = r.Steps!;
+        int before = k > 0 ? Array.FindLastIndex(steps, k - 1, s => s.Kind == StepKind.Baseline) : -1;
+        int after = Array.FindIndex(steps, k + 1, s => s.Kind == StepKind.Baseline);
+        return new[] { before < 0 ? 0 : PhaseWork(r, steps[before].Name), after < 0 ? 0 : PhaseWork(r, steps[after].Name) };
+    }
+
+    /// <summary>
+    /// The standard run's drift in percent: the repeated Balanced against the first, signed
+    /// (negative = the run ended slower). Null when either was not measured.
+    /// </summary>
+    public static int? Drift(Result r)
+    {
+        if (r.Options.Extended) return null;
+        double a = PhaseWork(r, BaselineName(false));
+        var repeat = r.Phases.FirstOrDefault(p => p.Name.EndsWith(RepeatSuffix));
+        double b = repeat == null ? 0 : AvgRate(Steady(repeat.Samples), s => s.Work);
+        return a <= 0 || b <= 0 ? null : (int)Math.Round((b - a) / a * 100);
+    }
+
+    /// <summary>A standard run whose drift is past the warning bar: the extended run is the answer, not a repeat.</summary>
+    public static bool Drifted(Result r) => Drift(r) is { } d && Math.Abs(d) >= DriftWarnPct;
 
     /// <summary>The share of the machine a clean run's load gets: every logical processor
     /// except the reserved headroom. The busy bar is this minus <see cref="OwnShareSlack"/>.</summary>
@@ -900,9 +1065,9 @@ public static class PowerTest
                 .ToArray();
 
     /// <summary>A phase's share against the baseline phase's: 1 = they competed on equal terms.</summary>
-    private static double Skew(PhaseLoad[] loads, PhaseLoad p)
+    private static double Skew(PhaseLoad[] loads, PhaseLoad p, string baseName)
     {
-        var baseline = loads.FirstOrDefault(x => x.Name == ProfileId.Balanced.ToString());
+        var baseline = loads.FirstOrDefault(x => x.Name == baseName);
         return baseline == null || baseline.Own <= 0 ? 1 : p.Own / baseline.Own;
     }
 
@@ -912,8 +1077,11 @@ public static class PowerTest
         if (r.PreBusyPct > 0) return string.Format(Lang.T("pt_res_prebusy"), r.PreBusyPct);
         if (r.Aborted != null) return string.Format(Lang.T("pt_res_aborted"), r.Aborted);
         string busy = WasBusy(r) ? Lang.T("pt_res_busy") + "  " : "";
-        if (r.Fourth is not { } f) return busy + Lang.T("pt_res_done");
-        if (!f.Accepted) return busy + string.Format(Lang.T("pt_res_refused"), f.Name);
-        return busy + string.Format(Lang.T(f.Cleared ? "pt_res_accepted" : "pt_res_stuck"), f.Name);
+        // A standard run that drifted past the bar: say so here, where the reader is, and point at
+        // the run that is built for it. The page pre-selects it for the next start.
+        string drift = Drifted(r) ? "  " + string.Format(Lang.T("pt_res_drift"), Math.Abs(Drift(r)!.Value)) : "";
+        if (r.Fourth is not { } f) return busy + Lang.T("pt_res_done") + drift;
+        if (!f.Accepted) return busy + string.Format(Lang.T("pt_res_refused"), f.Name) + drift;
+        return busy + string.Format(Lang.T(f.Cleared ? "pt_res_accepted" : "pt_res_stuck"), f.Name) + drift;
     }
 }

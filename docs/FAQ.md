@@ -134,6 +134,16 @@ Silent row does the same work as Balanced, your board is the fan-only kind. The 
 many words, and it measures Balanced twice so you can see whether the machine simply got hot during
 the run.
 
+**If the report says the run drifted** (the two Balanced phases came out 5 % or more apart), the
+numbers between the profiles are not safe to read, and running the same test again rarely helps:
+some laptops heat up or change state during any five-minute run. For those there is the **extended
+run** (*Run length* on the same sub-tab, about twelve minutes): it warms the machine up for two
+minutes first and measures Balanced before *and* after every profile, so each profile is compared
+with its own two neighbours and a machine that slows down over the run cancels out. The report then
+says per profile whether its figure is readable. The same sub-tab has a **processor only** box,
+which leaves the graphics chip idle: useful when you want to know whether a limit you saw comes
+with the graphics load or is there regardless.
+
 ## What is the APEX switch on my Extreme tile? Why don't I see it?
 
 Some newer boards have one more power state **above** Extreme's normal turbo - the one some MSI Center

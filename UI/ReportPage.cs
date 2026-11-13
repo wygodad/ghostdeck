@@ -82,6 +82,13 @@ public sealed class ReportPage : ThemedPage
     private float _ptBar;
     private int _ptTop, _ptRowsTop, _ptBtnY, _ptBarY, _ptWritesY, _ptWritesH, _ptConsentY;
     private static readonly Font WritesFont = Dpi.Font("Consolas", 11f, FontStyle.Bold);
+    // Run length and the processor-only switch (v1.46), chosen before the start. While a run is
+    // in flight the rows follow the options it started with; after one, the options of its result.
+    private readonly SegControl _ptLength = new(new[] { Lang.T("pt_len_standard"), Lang.T("pt_len_extended") }, 0);
+    private readonly CheckItem _ptCpuOnly = new(Lang.T("pt_cpu_only"), false);
+    private PowerTest.Options _ptOptions;
+    private int _ptLenY, _ptLenHintY, _ptLenHintH, _ptStepsY;
+    private static readonly Font HintFont = Dpi.Font("Segoe UI", 9.75f);
 
     // ---- two-table test (#293): the measurement is Core/TwoTableTest.cs, the same one the Fan curve
     // page's diagnostics run; this sub-tab wraps it the way the power test is wrapped - explanation,
@@ -213,14 +220,25 @@ public sealed class ReportPage : ThemedPage
         _ptCard = new InfoCardT("", PtCardItems(), _leftW);
         Controls.Add(_ptCard);
 
-        // Silent / Balanced / Extreme, then the board's fourth mode (hidden when it has none),
-        // then the restore. Labels are filled in by RefreshPowerRows, which follows the model.
+        // One row per step of the plan (PowerTest.Plan): the profiles, the board's fourth mode
+        // where it has one, the Balanced phases, the restore. Labels and the number of rows shown
+        // are filled in by RefreshPowerRows, which follows the model and the run length.
         _ptRows = new StepRowT[PtRowCount];
         for (int i = 0; i < _ptRows.Length; i++)
         {
             _ptRows[i] = new StepRowT(i + 1, "", Theme.Accent);
             Controls.Add(_ptRows[i]);
         }
+        _ptLength.SelectedChanged += _ =>
+        {
+            // The plan is fixed once a run has started; a click then snaps the segment back.
+            if (_ptRunning) { _ptLength.Selected = _ptOptions.Extended ? 1 : 0; return; }
+            // SyncSub, not only a refresh: the extended plan has rows the standard one keeps hidden.
+            SyncSub(); Relayout(); Invalidate();
+        };
+        Controls.Add(_ptLength);
+        _ptCpuOnly.Toggled += _ => { if (_ptRunning) _ptCpuOnly.Checked = _ptOptions.CpuOnly; };
+        Controls.Add(_ptCpuOnly);
 
         Ui.StylePrimary(_ptStart);
         _ptStart.UseMnemonic = false;   // "Finish & open GitHub" carries a literal &
@@ -260,10 +278,17 @@ public sealed class ReportPage : ThemedPage
         SyncSub();
     }
 
-    // Silent + Balanced + Extreme + fourth mode + restore. The fourth row is hidden on boards
-    // whose database entry records no fourth shift value.
-    private const int PtRowCount = 5;
-    private const int PtRestoreRow = 4;
+    // As many rows as the longest plan: the extended run on a board with a fourth mode (warm-up,
+    // four Balanced phases, two profiles, the probe, the restore). Rows past the plan are hidden.
+    private const int PtRowCount = 9;
+
+    /// <summary>The options the rows describe: the run in flight, else the finished run's, else the controls'.</summary>
+    private PowerTest.Options PtOptions =>
+        _ptRunning ? _ptOptions
+        : _ptResult is { } r && PtHasReport ? r.Options
+        : new PowerTest.Options(_ptLength.Selected == 1, _ptCpuOnly.Checked);
+
+    private PowerTest.Step[] PtPlan => PowerTest.Plan(Dev?.FourthMode, PtOptions);
 
     /// <summary>Open a specific sub-tab (0 = profiles, 1 = fan curve, 2 = power test, 3 = two-table test). Used by deep links.</summary>
     public void SetSubTab(int sub)
@@ -293,6 +318,7 @@ public sealed class ReportPage : ThemedPage
         _ptCard.Visible = power;
         _ptStart.Visible = power;
         _ptConsent.Visible = power && !_ptRunning;
+        _ptLength.Visible = _ptCpuOnly.Visible = power;
         for (int i = 0; i < _ptRows.Length; i++) _ptRows[i].Visible = power && PtRowShown(i);
         if (curve) RefreshCurve();
         if (power) { RefreshPowerRows(); SyncPower(); } else _ptSecondary.Visible = false;
@@ -350,6 +376,8 @@ public sealed class ReportPage : ThemedPage
         _card.SetItems(CardItems()); _curveCard.SetItems(CurveCardItems()); _ptCard.SetItems(PtCardItems()); _ttCard.SetItems(TtCardItems());
         _restart.Text = _curveRestart.Text = Lang.T("rep_restart");
         _ptConsent.Text = Lang.T("pt_consent");
+        _ptLength.SetItems(new[] { Lang.T("pt_len_standard"), Lang.T("pt_len_extended") }, _ptLength.Selected);
+        _ptCpuOnly.Text = Lang.T("pt_cpu_only");
         _ttConsent.Text = Lang.T("tt_consent_box");
         for (int i = 0; i < _rows.Length; i++)
             if (Steps[i].altKey is { } ak) { _rows[i].Alt = Lang.T(ak); _tip.SetToolTip(_rows[i], Lang.T(ak)); }
@@ -1198,50 +1226,44 @@ public sealed class ReportPage : ThemedPage
     // database rather than the code, and the profile that was live when the run began is restored
     // through the normal path afterwards. Measurement and report live in Core/PowerTest.cs.
 
-    private bool PtRowShown(int i) => i != 3 || Dev?.FourthMode != null;
+    private bool PtRowShown(int i) => i < PtPlan.Length;
 
     private void RefreshPowerRows()
     {
-        var dev = Dev;
-        string[] labels =
-        {
-            Profiles.Get(ProfileId.Silent).Label,
-            Profiles.Get(ProfileId.Balanced).Label,
-            Profiles.Get(ProfileId.Extreme).Label,
-            dev?.FourthMode?.Name ?? "",
-            Lang.T("pt_row_restore"),
-        };
-        Color[] tints =
-        {
-            Theme.Profile(D.ColorOf(ProfileId.Silent)),
-            Theme.Profile(D.ColorOf(ProfileId.Balanced)),
-            Theme.Profile(D.ColorOf(ProfileId.Extreme)),
-            Theme.Accent, Theme.Accent,
-        };
+        var plan = PtPlan;
+        int restore = plan.Length - 1;
         // How far the run actually got. A cancelled or aborted run must not tick steps that never
-        // ran, which is the difference between "we measured this" and "we did not".
+        // ran, which is the difference between "we measured this" and "we did not". Each phase
+        // and the probe is one step of the plan, in order, so their count is the index reached.
         int reached = _ptResult switch
         {
             null => 0,
-            { Aborted: null } => _ptRows.Length,
+            { Aborted: null } => plan.Length,
             { } r => r.Phases.Length + (r.Fourth != null ? 1 : 0),
         };
 
-        // PowerTest counts steps over the rows that are SHOWN, so a board without a fourth mode
-        // maps its restore step onto row 4 even though row 3 is hidden. The visible numbering
-        // follows the same counter, otherwise such a board would show 1, 2, 3, 5.
-        int shown = -1;
+        // Rows are the plan one to one: the progress callback's step index is a row index.
+        string balanced = Profiles.Get(ProfileId.Balanced).Label;
+        int baselines = 0;
         for (int i = 0; i < _ptRows.Length; i++)
         {
-            _ptRows[i].Label = labels[i];
-            _ptRows[i].Tint = tints[i];
-            if (!PtRowShown(i)) { _ptRows[i].SetState(false, false); continue; }
-            shown++;
-            _ptRows[i].Number = shown + 1;
+            if (i >= plan.Length) { _ptRows[i].SetState(false, false); continue; }
+            var st = plan[i];
+            _ptRows[i].Label = st.Kind switch
+            {
+                PowerTest.StepKind.WarmUp => Lang.T("pt_row_warmup"),
+                PowerTest.StepKind.Restore => Lang.T("pt_row_restore"),
+                PowerTest.StepKind.Fourth => st.Name,
+                PowerTest.StepKind.Baseline when PtOptions.Extended => $"{balanced} ({++baselines})",
+                PowerTest.StepKind.Baseline when st.Name.EndsWith(PowerTest.RepeatSuffix) => $"{balanced} ({Lang.T("pt_row_again")})",
+                _ => Profiles.Get(st.Profile).Label,
+            };
+            _ptRows[i].Tint = st.Kind is PowerTest.StepKind.Fourth or PowerTest.StepKind.Restore
+                ? Theme.Accent : Theme.Profile(D.ColorOf(st.Profile));
+            _ptRows[i].Number = i + 1;
             // The restore is the one step that runs even on the paths that skipped everything else.
-            bool done = _ptRunning ? shown < _ptStep
-                                   : PtHasReport && (i == PtRestoreRow || shown < reached);
-            _ptRows[i].SetState(done, _ptRunning && shown == _ptStep);
+            bool done = _ptRunning ? i < _ptStep : PtHasReport && (i == restore || i < reached);
+            _ptRows[i].SetState(done, _ptRunning && i == _ptStep);
         }
         EnsureAnim();
     }
@@ -1316,7 +1338,8 @@ public sealed class ReportPage : ThemedPage
         _ptRunning = true;
         _ptResult = null;   // only a refusal can survive to here, and it must not stack with what follows
         _ptMsg = null; _ptSavedPath = null; _ptCopied = true; _ptBar = 0; _ptStep = 0; _ptStage = ""; _ptLive = "";
-        _ptSteps = PowerTest.StepCount(dev!);
+        _ptOptions = new PowerTest.Options(_ptLength.Selected == 1, _ptCpuOnly.Checked);
+        _ptSteps = PowerTest.StepCount(dev!, _ptOptions);
         _ptCts = new CancellationTokenSource();
         RefreshPowerRows(); SyncPower(); Relayout(); Invalidate();
 
@@ -1327,7 +1350,7 @@ public sealed class ReportPage : ThemedPage
         try
         {
             var sink = new Progress<PowerTest.Progress>(OnPowerProgress);
-            _ptTask = PowerTest.RunAsync(dev!, D.AppVersion(), D.Firmware(), sink, _ptCts.Token);
+            _ptTask = PowerTest.RunAsync(dev!, D.AppVersion(), D.Firmware(), _ptOptions, sink, _ptCts.Token);
             _ptResult = await _ptTask;
             if (PtHasReport) PreparePowerReport(dev!);
         }
@@ -1389,6 +1412,9 @@ public sealed class ReportPage : ThemedPage
         if (_ptResult is not { } r) return;
         string report = PowerTest.BuildReport(r, dev);
         _ptCopied = Ui.CopyText(report);
+        // A standard run that drifted past the bar: the verdict says the extended run is built
+        // for this machine, and Start over then finds it already selected.
+        if (PowerTest.Drifted(r)) _ptLength.Selected = 1;
         try
         {
             string dir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -1435,7 +1461,24 @@ public sealed class ReportPage : ThemedPage
         _ptWritesH = TextRenderer.MeasureText(PtWriteList(Dev), WritesFont,
             new Size(_leftW, 0), TextFormatFlags.WordBreak).Height;
 
-        _ptRowsTop = _contentTop + secH + 14;
+        // Run length (label, segment, a hint line) and the processor-only box come first: they
+        // decide what the rows below them list. Everything follows measured heights (#172).
+        _ptLenY = _contentTop;
+        int segY = _ptLenY + secH + 10;
+        int segH = Math.Max(_ptLength.MinimumSize.Height, secH + 14);
+        _ptLength.SetBounds(_rightX + ox, segY + oy, Math.Min(rightW, Math.Max(_ptLength.MinimumSize.Width, rightW * 3 / 4)), segH);
+        _ptLenHintY = segY + segH + 8;
+        _ptLenHintH = TextRenderer.MeasureText(Lang.T("pt_len_hint"), HintFont, new Size(rightW, 0), TextFormatFlags.WordBreak).Height;
+        int boxW0 = (int)Math.Ceiling(18 * Dpi.Of(this) / 96f) + 10;
+        int cpuY = _ptLenHintY + _ptLenHintH + 10;
+        int cpuH = Math.Max((int)Math.Ceiling(26 * Dpi.Of(this) / 96f),
+            TextRenderer.MeasureText(_ptCpuOnly.Text, Dpi.Font("Segoe UI", 10.5f),
+                new Size(Math.Max(40, rightW - boxW0 - 6), 0), TextFormatFlags.WordBreak).Height + 8);
+        _ptCpuOnly.Wrap = true;
+        _ptCpuOnly.SetBounds(_rightX + ox, cpuY + oy, rightW, cpuH);
+
+        _ptStepsY = cpuY + cpuH + 18;
+        _ptRowsTop = _ptStepsY + secH + 14;
         int ry = _ptRowsTop;
         for (int i = 0; i < _ptRows.Length; i++)
         {
@@ -1484,8 +1527,11 @@ public sealed class ReportPage : ThemedPage
             TextFormatFlags.Left | TextFormatFlags.WordBreak);
         PaintFirmwarePill(g, _ptWritesY + SecH + _ptWritesH + 14);
 
-        // ---- right column: checklist label ----
-        Ui.DrawText(g, Lang.T("pt_steps"), secFont, new Point(_rightX, _contentTop), Theme.Muted);
+        // ---- right column: run length, its hint, the processor-only box (children), the checklist label ----
+        Ui.DrawText(g, Lang.T("pt_length"), secFont, new Point(_rightX, _ptLenY), Theme.Muted);
+        Ui.DrawText(g, Lang.T("pt_len_hint"), HintFont, new Rectangle(_rightX, _ptLenHintY, rightW, _ptLenHintH + 4),
+            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+        Ui.DrawText(g, Lang.T("pt_steps"), secFont, new Point(_rightX, _ptStepsY), Theme.Muted);
 
         int y = _ptBarY;
         if (_ptRunning)
@@ -1515,7 +1561,7 @@ public sealed class ReportPage : ThemedPage
             // Green only for a clean run: a probe that was accepted but did NOT clear is the one
             // outcome that leaves a value set, and a run the machine was busy during produced
             // numbers about the wrong thing. Neither may read as success.
-            var col = r.Aborted != null || PowerTest.WasBusy(r) ? Theme.Amber
+            var col = r.Aborted != null || PowerTest.WasBusy(r) || PowerTest.Drifted(r) ? Theme.Amber
                     : r.Fourth is null or { Accepted: true, Cleared: true } ? Theme.Green
                     : Theme.Amber;
             string verdict = PowerTest.Summary(r);

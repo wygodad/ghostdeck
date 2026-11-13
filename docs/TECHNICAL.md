@@ -2948,6 +2948,52 @@ temperature falling is not throttling, and the test cannot see what else moved. 
 reports, replayed through `BuildReport` from their own samples, print the step at second 35 and
 the burst at second 41.
 
+### 60.12 The extended run: a Balanced phase on each side of every profile (1.46)
+
+The standard run has a shape some machines cannot be measured with, and a repeat does not help
+them: a GS66 Stealth 12UGS (#210) came back unreadable twice, 19 % and then 17 % drift, with the
+same picture both times. Four things in the design are what such a machine trips over. Silent runs
+first, on a cold heatsink, and every later phase inherits the heat of the ones before it. Balanced
+is repeated once, at the end, so the drift figure says that *something* moved but not when: a
+slow trend and one jump between two phases print the same number. Sixty seconds is shorter than
+some firmware's power windows, so a phase can change state inside its own steady window (the
+#210 run stepped from 2990 to 2350 MHz in the 48th second of Balanced, and the window averaged
+half of each). And the graphics load is a second variable the test does not control.
+
+The **extended run** (Report tab → Power test → *Run length*) keeps the measurement and changes
+the plan around it:
+
+- a **warm-up** first: 120 s of load on Balanced that the report shows but never scores, so the
+  first scored phase starts on a machine that is already at its working temperature;
+- **Balanced before and after every profile**: Warm-up, Balanced (1), Silent, Balanced (2),
+  Extreme, Balanced (3), and on a board with a fourth mode the probe and Balanced (4);
+- **90 s per phase** instead of 60 (the steady window stays the last 25 s);
+- an optional **processor-only** run (`Options.CpuOnly`): `GpuLoad` is not started, and the report
+  header says the graphics chip was left idle by choice rather than because the load failed. It is
+  the one way to tell a cap that comes with the graphics load from one that does not.
+
+The scoring follows the plan. In the extended report a profile's `work` column is relative to the
+**average of the two Balanced phases around it** (`Reference` in `BuildReportCore`), so a machine
+that slowed down smoothly over the run cancels out of the figure; the Balanced phases and the
+warm-up are relative to Balanced (1), which shows that trend itself. The "Baseline check" section
+lists the Balanced phases (100, 96, 93, ...) and then, for every profile, how far its two
+neighbours differ: under 5 % is "readable to within that", 5 % or more is "the machine changed
+state while it ran", per profile rather than for the whole run. That is the property the standard
+run lacks: a state change between Balanced (2) and (3) spoils the Extreme figure and nothing else.
+
+In code the plan is data: `PowerTest.Plan(dev, options)` returns the `Step[]` (kind, invariant
+name, profile) that `Run` executes and the page lists one row per step, including the Balanced
+repeats and the restore, so the progress callback's step index is a row index. `Result` carries
+the `Options` and the `Steps`, and the report walks them to find a profile's neighbours
+(`Neighbours`). A standard run whose drift reaches the 5 % bar gets one more sentence in its
+verdict (`pt_res_drift`) and in the Baseline check pointing at the extended run, and the page
+pre-selects *Extended* for *Start over*. The run length and the processor-only switch are not
+persisted; they are a choice for one run. The preview tool renders the sub-tab with `PTLEN=1` /
+`PTCPU=1` and prints synthetic standard, extended and processor-only reports through the real
+builder in its `powerreport` mode, which is how the wording above was checked.
+
+![The power test sub-tab with the extended run selected](images/power_test_extended.png)
+
 ### 60.5 Where it lives
 
 `Core/PowerTest.cs` holds the measurement, the processor load and the report builder, with no UI
@@ -4849,7 +4895,11 @@ minutes for the dial) rounded up to the next 25 W, so an idle laptop is not a sl
 dial and a load does not run off the top. The trail is `Perf.CpuWattsTrail()`: `Tick` keeps every
 reading of the last half hour in a list behind the counter lock (one point per tick that had a
 value, up to ~2500 points, in memory only), the widget takes the window it shows, scales it into
-its chart and repaints when a point was added. The dial style rides in the weekly statistics like
+its chart and repaints when a point was added. `Tick` only runs when Perf is read, and the Status
+page, the overlay and the Dashboard read it only while they are on screen, so the tray's 3-second
+hardware poll (`TrayContext.SampleHw`, the loop that feeds `HwHistory`) ticks Perf once per poll as
+well: the trail then fills for as long as the app runs, like the history widgets' data, and opening
+the Dashboard after half an hour shows the half hour rather than a line that starts at that moment. The dial style rides in the weekly statistics like
 the rings' (`StyleDial`), the colour as `color`. Sizes 1x1, 2x1 and 2x2; the preview tool renders
 the looks with `DASHLAYOUT="core.cpuPower{look=trail;scale=100;range=5}:2x1,..."` and
 `WATTSTRAIL=<minutes>` for a made-up trail.
