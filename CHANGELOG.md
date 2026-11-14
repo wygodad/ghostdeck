@@ -5,6 +5,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **Delta 15 A5EFK: the two-table test and the fan sweep on the backup path** (`15CKEMS1`, model database 20261213,
+  [#352](../../issues/352), thanks @stilnovina30): fan 1 follows table 1 alone, fan 2 follows table 2 with table 1
+  adding to it, a table 2 of all zeros sends fan 2 to full speed; 100 % is about 3930 / 3800 rpm and nothing above
+  100 % adds speed ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
+
+### Fixed
+- **Two-table test: the "0 % in table N" finding said "lowered" whatever the direction.** On the Delta 15 a table 2
+  of all zeros raised fan 2 from 2175 to 3834 rpm and the report still said "lowered"; the sentence now says "changed"
+  ([#352](../../issues/352)).
+
 - **Crosshair A16 HX (D7W/D8W) confirmed by a fourth owner** (`15PLIMS1`, model database 20261212, [#351](../../issues/351),
   thanks @PaulRohan63): the capture matches the entry byte for byte on MSI Center 2.0.52.
 

@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261212;
+    public const int DataVersion = 20261213;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -2079,9 +2079,16 @@ public static class Devices
                 // rpm rose 3366 -> 4192 and 4748. That fits the owner's measurement in #48 (the
                 // table is followed outside the two power-saving shift modes). Addressed by block
                 // slot as on the GF65 Thin 10UE.
+                //   Two-table test and fan sweep (issue #352, stilnovina30 = the #48 owner's second
+                //   account, app 1.46.0, two fans): fan 1 follows table 1 alone (25/25 and 25/45 ->
+                //   2287 rpm, 45/25 and 45/45 -> 2711); fan 2 follows table 2 (25/25 -> 2171,
+                //   25/45 -> 2705) but 45/45 gave 3162, so table 1 adds to it; a table 2 of all
+                //   zeros sent fan 2 to full speed (45/0 -> 3834 rpm), a table 1 of all zeros stopped
+                //   fan 1. Sweep: 30/45/60/80/100/150 % = 2628/2706/3077/3504/3934/3913 rpm (CPU)
+                //   and 2408/2618/3031/3404/3769/3809 (GPU): nothing above 100 %, reaction 1-2 s.
                 FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
-                Credit = "FabioBros28, SavAlexander", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/48",
-                CreditIssues = Issues("FabioBros28:48; SavAlexander:48") },
+                Credit = "FabioBros28, SavAlexander, stilnovina30", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/48",
+                CreditIssues = Issues("FabioBros28:48; SavAlexander:48; stilnovina30:352") },
         new() { Name = "MSI Modern 15 B7M", FirmwarePrefixes = new[] { "15HKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GS65 Stealth Thin 8RE / 8RF", FirmwarePrefixes = new[] { "16Q2EMS1" }, Tier = Tier.Experimental,

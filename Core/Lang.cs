@@ -2205,21 +2205,21 @@ public static class Lang
         };
         m["tt_find_zero1_drops"] = new[]
         {
-            "{0}: 0 % in table 1 lowered the fan from {1} to {2} rpm while table 2 stood at 45 %.",
-            "{0}: 0 % w tablicy 1 obniżyło wentylator z {1} do {2} obr., gdy tablica 2 stała na 45 %.",
-            "{0}: 0 % in Tabelle 1 senkte den Lüfter von {1} auf {2} U/min, während Tabelle 2 auf 45 % stand.",
+            "{0}: 0 % in table 1 changed the fan from {1} to {2} rpm while table 2 stood at 45 %.",
+            "{0}: 0 % w tablicy 1 zmieniło wentylator z {1} na {2} obr., gdy tablica 2 stała na 45 %.",
+            "{0}: 0 % in Tabelle 1 änderte den Lüfter von {1} auf {2} U/min, während Tabelle 2 auf 45 % stand.",
             "{0} : 0 % dans la table 1 a fait passer le ventilateur de {1} à {2} tr/min pendant que la table 2 était à 45 %.",
-            "{0}: 0 % en la tabla 1 bajó el ventilador de {1} a {2} rpm mientras la tabla 2 estaba al 45 %.",
-            "{0}：表 2 保持 45 % 时，表 1 的 0 % 使风扇从 {1} 降到 {2} rpm。",
-            "{0}: 0 % na tabela 1 baixou a ventoinha de {1} para {2} rpm com a tabela 2 a 45 %.",
-            "{0}: 0 % в таблице 1 снизил вентилятор с {1} до {2} об/мин, пока таблица 2 стояла на 45 %.",
-            "{0}：テーブル 2 が 45 % の間、テーブル 1 の 0 % でファンが {1} から {2} rpm に下がりました。",
-            "{0}: 테이블 2가 45 %일 때 테이블 1의 0 %로 팬이 {1}에서 {2} rpm으로 낮아졌습니다.",
-            "{0}：表 2 保持 45 % 時，表 1 的 0 % 使風扇從 {1} 降到 {2} rpm。",
-            "{0}: tablo 2 45 %'teyken tablo 1'deki 0 % fanı {1}'den {2} rpm'e düşürdü.",
-            "{0}: 0 % ở bảng 1 hạ quạt từ {1} xuống {2} vòng/phút khi bảng 2 ở 45 %.",
-            "{0}: 0 % di tabel 1 menurunkan kipas dari {1} ke {2} rpm saat tabel 2 di 45 %.",
-            "{0}: 0 % nella tabella 1 ha abbassato la ventola da {1} a {2} giri/min con la tabella 2 al 45 %."
+            "{0}: 0 % en la tabla 1 cambió el ventilador de {1} a {2} rpm mientras la tabla 2 estaba al 45 %.",
+            "{0}：表 2 保持 45 % 时，表 1 的 0 % 使风扇从 {1} 变为 {2} rpm。",
+            "{0}: 0 % na tabela 1 mudou a ventoinha de {1} para {2} rpm com a tabela 2 a 45 %.",
+            "{0}: 0 % в таблице 1 изменил вентилятор с {1} на {2} об/мин, пока таблица 2 стояла на 45 %.",
+            "{0}：テーブル 2 が 45 % の間、テーブル 1 の 0 % でファンが {1} から {2} rpm に変わりました。",
+            "{0}: 테이블 2가 45 %일 때 테이블 1의 0 %로 팬이 {1}에서 {2} rpm으로 바뀌었습니다.",
+            "{0}：表 2 保持 45 % 時，表 1 的 0 % 使風扇從 {1} 變為 {2} rpm。",
+            "{0}: tablo 2 45 %'teyken tablo 1'deki 0 % fanı {1}'den {2} rpm'e değiştirdi.",
+            "{0}: 0 % ở bảng 1 đổi quạt từ {1} sang {2} vòng/phút khi bảng 2 ở 45 %.",
+            "{0}: 0 % di tabel 1 mengubah kipas dari {1} ke {2} rpm saat tabel 2 di 45 %.",
+            "{0}: 0 % nella tabella 1 ha cambiato la ventola da {1} a {2} giri/min con la tabella 2 al 45 %."
         };
         m["tt_find_zero2_holds"] = new[]
         {
@@ -2241,21 +2241,21 @@ public static class Lang
         };
         m["tt_find_zero2_drops"] = new[]
         {
-            "{0}: 0 % in table 2 lowered the fan from {1} to {2} rpm while table 1 stood at 45 %.",
-            "{0}: 0 % w tablicy 2 obniżyło wentylator z {1} do {2} obr., gdy tablica 1 stała na 45 %.",
-            "{0}: 0 % in Tabelle 2 senkte den Lüfter von {1} auf {2} U/min, während Tabelle 1 auf 45 % stand.",
+            "{0}: 0 % in table 2 changed the fan from {1} to {2} rpm while table 1 stood at 45 %.",
+            "{0}: 0 % w tablicy 2 zmieniło wentylator z {1} na {2} obr., gdy tablica 1 stała na 45 %.",
+            "{0}: 0 % in Tabelle 2 änderte den Lüfter von {1} auf {2} U/min, während Tabelle 1 auf 45 % stand.",
             "{0} : 0 % dans la table 2 a fait passer le ventilateur de {1} à {2} tr/min pendant que la table 1 était à 45 %.",
-            "{0}: 0 % en la tabla 2 bajó el ventilador de {1} a {2} rpm mientras la tabla 1 estaba al 45 %.",
-            "{0}：表 1 保持 45 % 时，表 2 的 0 % 使风扇从 {1} 降到 {2} rpm。",
-            "{0}: 0 % na tabela 2 baixou a ventoinha de {1} para {2} rpm com a tabela 1 a 45 %.",
-            "{0}: 0 % в таблице 2 снизил вентилятор с {1} до {2} об/мин, пока таблица 1 стояла на 45 %.",
-            "{0}：テーブル 1 が 45 % の間、テーブル 2 の 0 % でファンが {1} から {2} rpm に下がりました。",
-            "{0}: 테이블 1이 45 %일 때 테이블 2의 0 %로 팬이 {1}에서 {2} rpm으로 낮아졌습니다.",
-            "{0}：表 1 保持 45 % 時，表 2 的 0 % 使風扇從 {1} 降到 {2} rpm。",
-            "{0}: tablo 1 45 %'teyken tablo 2'deki 0 % fanı {1}'den {2} rpm'e düşürdü.",
-            "{0}: 0 % ở bảng 2 hạ quạt từ {1} xuống {2} vòng/phút khi bảng 1 ở 45 %.",
-            "{0}: 0 % di tabel 2 menurunkan kipas dari {1} ke {2} rpm saat tabel 1 di 45 %.",
-            "{0}: 0 % nella tabella 2 ha abbassato la ventola da {1} a {2} giri/min con la tabella 1 al 45 %."
+            "{0}: 0 % en la tabla 2 cambió el ventilador de {1} a {2} rpm mientras la tabla 1 estaba al 45 %.",
+            "{0}：表 1 保持 45 % 时，表 2 的 0 % 使风扇从 {1} 变为 {2} rpm。",
+            "{0}: 0 % na tabela 2 mudou a ventoinha de {1} para {2} rpm com a tabela 1 a 45 %.",
+            "{0}: 0 % в таблице 2 изменил вентилятор с {1} на {2} об/мин, пока таблица 1 стояла на 45 %.",
+            "{0}：テーブル 1 が 45 % の間、テーブル 2 の 0 % でファンが {1} から {2} rpm に変わりました。",
+            "{0}: 테이블 1이 45 %일 때 테이블 2의 0 %로 팬이 {1}에서 {2} rpm으로 바뀌었습니다.",
+            "{0}：表 1 保持 45 % 時，表 2 的 0 % 使風扇從 {1} 變為 {2} rpm。",
+            "{0}: tablo 1 45 %'teyken tablo 2'deki 0 % fanı {1}'den {2} rpm'e değiştirdi.",
+            "{0}: 0 % ở bảng 2 đổi quạt từ {1} sang {2} vòng/phút khi bảng 1 ở 45 %.",
+            "{0}: 0 % di tabel 2 mengubah kipas dari {1} ke {2} rpm saat tabel 1 di 45 %.",
+            "{0}: 0 % nella tabella 2 ha cambiato la ventola da {1} a {2} giri/min con la tabella 1 al 45 %."
         };
         m["tt_find_notach"] = new[]
         {
