@@ -255,10 +255,18 @@ public static class Ec
 
         try
         {
+            // The model is settled by three independent things above (BIOS version, the EC
+            // version in MSI_Software, the Windows model name); the blocks only have to prove
+            // that they answer and that the temperature slot reads like a temperature. The shift
+            // and fan slots are read but not judged: after a cold boot with no vendor software
+            // started they hold whatever the firmware boots with, not the C?/?D pair Dragon
+            // Center leaves behind, and judging them made such a laptop "unsupported" until
+            // Dragon Center had run once (#230). Nothing is written here; the path test keeps
+            // its own gate and puts the values it found back, whatever they were.
             int shift = EcBlocks.Read(spec.ShiftMode), fan = EcBlocks.Read(spec.FanMode), temp = EcBlocks.Read(spec.CpuTemp);
-            if ((shift & 0xF0) != 0xC0 || (fan & 0x0F) != 0x0D || temp is <= 0 or >= 120)
+            if (temp is <= 0 or >= 120)
                 return Done(false, "", null, bios,
-                    $"{prefix}: values do not match the layout ({spec.ShiftMode}=0x{shift:X2}, {spec.FanMode}=0x{fan:X2}, {spec.CpuTemp}={temp})");
+                    $"{prefix}: the temperature slot does not read like a temperature ({spec.ShiftMode}=0x{shift:X2}, {spec.FanMode}=0x{fan:X2}, {spec.CpuTemp}={temp})");
         }
         catch (Exception ex)
         {

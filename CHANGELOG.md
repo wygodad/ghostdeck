@@ -11,6 +11,12 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   100 % adds speed ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 
 ### Fixed
+- **Backup WMI path: a cold boot without Dragon Center no longer shows the laptop as unsupported**
+  ([#230](../../issues/230), thanks @scorvus99). The model is settled by the BIOS version, the EC version in the
+  `MSI_Software` block and the Windows model name; the controller's mode and fan values are no longer judged on top of
+  that, so the laptop is recognised with whatever the firmware boots with, and Dragon Center does not have to have run.
+  Nothing is written at start; the path test keeps its gate and puts the values it found back
+  ([BACKUP-PATH.md](docs/BACKUP-PATH.md), [TECHNICAL.md §81](docs/TECHNICAL.md)).
 - **Two-table test: the "0 % in table N" finding said "lowered" whatever the direction.** On the Delta 15 a table 2
   of all zeros raised fan 2 from 2175 to 3834 rpm and the report still said "lowered"; the sentence now says "changed"
   ([#352](../../issues/352)).

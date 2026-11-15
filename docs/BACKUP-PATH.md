@@ -30,7 +30,7 @@ Today that is the **GF65 Thin 10UE** (a tested model since 18 October 2026, the 
 
 ![Status on the backup path](images/backup_path_status.png)
 
-Temperatures, fan duty and fan RPM work right away. **Profile switching starts locked.** It unlocks after the **path test** (next section) has passed on your machine. Until then the profile tiles, hotkeys and the tray menu are there but refuse to switch, and the status badge says so.
+Temperatures, fan duty and fan RPM work right away, and the vendor's software does not have to be running, or to have run since the last boot: the laptop is recognised from its BIOS version, its EC version and its model name, not from the values Dragon Center leaves in the controller (until 1.46.0 a cold boot without Dragon Center showed the laptop as unsupported, [#230](../../../issues/230)). **Profile switching starts locked.** It unlocks after the **path test** (next section) has passed on your machine. Until then the profile tiles, hotkeys and the tray menu are there but refuse to switch, and the status badge says so.
 
 On this path a few things are not available, because they would need boxes nobody has mapped yet: **Fan Boost, the charge limit and the webcam switch**. The **keyboard backlight** works where the model's entry has its box on record, today the GF65 Thin 10UE (its owner found it, #230); like the profiles, it unlocks once the path test has passed. The fan-curve editor is available where the model's entry has a verified curve, today the GF65 Thin 10UE, the GE66 Raider 10SF and the Delta 15 A5EFK.
 
