@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261213;
+    public const int DataVersion = 20261214;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -2138,8 +2138,17 @@ public static class Devices
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Creator 15 A10SD", FirmwarePrefixes = new[] { "16V2EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, 0xD5) },
-        new() { Name = "MSI GS66 Stealth 10UE", FirmwarePrefixes = new[] { "16V3EMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+        // GS66 Stealth 10UH (issue #354, bankarbengt, EC 16V3EMS1.105, BIOS E16V3IMS.111, Dragon
+        // Center 2.0.157, app 1.46.0): no MSI_ACPI methods; the block report shows the Dragon
+        // Center-era layout with every fingerprint marker, and the scenarios moved System[7] /
+        // System[9] as C1/1D (Silent), C1/0D (Balanced), C4/0D (Extreme) - the recipes. The Super
+        // Battery column repeated Silent's values, so that tile was most likely not switched and
+        // Super Battery (C2/0D, msi-ec) stays unconfirmed. Layout added so the path test can run.
+        new() { Name = "MSI GS66 Stealth 10UE / 10UH", FirmwarePrefixes = new[] { "16V3EMS1" }, Tier = Tier.Experimental,
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block report in issue #354
+                Credit = "bankarbengt", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/354",
+                CreditIssues = Issues("bankarbengt:354") },
         new() { Name = "MSI GF65 Thin 9SE / 9SD", FirmwarePrefixes = new[] { "16W1EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         // GF65 Thin 10SDR (issue #339, thangktv2, BIOS E16W1IMS.50C, EC 16W1EMS2.103 as the owner

@@ -163,7 +163,7 @@ Own an experimental model and can confirm it works (or doesn't)? Use the in-app 
 | MSI GS65 Stealth | `16Q4EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GS65 Stealth Thin 8RE / 8RF | `16Q2EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GS66 Stealth | `16V1EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
-| MSI GS66 Stealth 10UE | `16V3EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
+| MSI GS66 Stealth 10UE / 10UH | `16V3EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI GV62 8RD | `16JFEMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI Modern 14 B10MW | `14D1EMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |
 | MSI Modern 14 B4MW | `14DKEMS1` | G1 | &#9887;&#65039; experimental | &mdash; | &mdash; | &mdash; |

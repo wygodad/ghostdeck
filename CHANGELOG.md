@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **GS66 Stealth 10UE / 10UH on the backup WMI path** (`16V3EMS1`, model database 20261214, [#354](../../issues/354),
+  thanks @bankarbengt): the owner's block report showed the Dragon Center-era layout and the scenarios matching the
+  entry for Silent, Balanced and Extreme; the laptop is no longer shown as unsupported, and profile switching unlocks
+  after the path test ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 - **Delta 15 A5EFK: the two-table test and the fan sweep on the backup path** (`15CKEMS1`, model database 20261213,
   [#352](../../issues/352), thanks @stilnovina30): fan 1 follows table 1 alone, fan 2 follows table 2 with table 1
   adding to it, a table 2 of all zeros sends fan 2 to full speed; 100 % is about 3930 / 3800 rpm and nothing above
