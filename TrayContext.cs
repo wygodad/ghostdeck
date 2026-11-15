@@ -2608,6 +2608,7 @@ public sealed class TrayContext : ApplicationContext
         Writable = () => Writable,
         ColorOf = id => _settings.ColorFor(id),
         ApexAvailable = () => _device?.FourthMode != null,
+        ShowBackupPathTest = ShowBackupTest,
         ApexOn = () => ApexOn,
         SetApex = SetApex,
         Firmware = () => _firmware,

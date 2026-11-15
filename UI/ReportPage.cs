@@ -773,6 +773,18 @@ public sealed class ReportPage : ThemedPage
     {
         if (_curveDump != null) { FinishCurve(); return; }
         if (_curveCapturing) return;
+        // (#354) On the backup WMI path this capture cannot work: it reads EC registers by address,
+        // and that firmware serves only its data blocks. The path test's fan-curve check is what
+        // answers the question there, so say so and offer it, instead of a bare read error.
+        if (Ec.OnBackupPath)
+        {
+            bool open = false;
+            using (var card = new GhostCardForm("//REPORT", Lang.T("rep_curve_backup_title"), Lang.T("rep_curve_backup_body"),
+                       Lang.T("rep_curve_backup_go"), Lang.T("set_close"), () => open = true))
+                card.ShowOver(FindForm());
+            if (open) D.ShowBackupPathTest?.Invoke();
+            return;
+        }
         _curveCapturing = true; _curveBtn.Enabled = false; _curvePct = 0; _curveBar = 0; _curveMsg = null; Invalidate();
         Task.Run(() =>
         {

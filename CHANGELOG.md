@@ -15,6 +15,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   100 % adds speed ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 
 ### Fixed
+- **Backup WMI path: the fan-curve report explains itself instead of failing** ([#354](../../issues/354), thanks
+  @bankarbengt). On the older laptops GhostDeck reaches through the firmware's data blocks, *Report my model → Fan
+  curve* ended in a bare "Couldn't read the EC" error, because it reads controller registers those laptops do not
+  expose. It now opens a card that says the curve is checked there by the backup path test (with *Also check the fan
+  curve* ticked) and opens that test with one click ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 - **Dashboard, Profiles widget: the SELECT / ACTIVE line no longer runs past the tile's bottom edge.** In a short
   widget at 150 % and up, a name on two lines ("SUPER BATTERY") left no room for it, and the line was cut. When one
   tile has no room, the line now goes from all the plain tiles together, so they stay alike; the active tile keeps

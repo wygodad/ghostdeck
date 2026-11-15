@@ -17,6 +17,7 @@ public sealed class MainDeps
     // Apex (fourth shift mode): available = the model's entry carries one; on = the per-model
     // opt-in is set; SetApex runs the one-time explainer card on the very first enable.
     public required Func<bool> ApexAvailable { get; init; }
+    public Action? ShowBackupPathTest { get; init; }   // (#354) the backup path test card, from the fan-curve report on that path
     public required Func<bool> ApexOn { get; init; }
     public required Action<bool> SetApex { get; init; }
     // A getter, not a captured string: the startup probe may fill the firmware in a few
