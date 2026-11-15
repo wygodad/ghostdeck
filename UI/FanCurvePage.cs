@@ -935,7 +935,7 @@ public sealed class FanCurvePage : ThemedPage
     private void ReApply()
     {
         if (_fc == null) return;
-        D.WithEcWrite(dev => { Ec.WriteFanCurve(dev, _cpuT, _cpuS, _gpuT, _gpuS); Ec.SetFanMode(dev, _fc.AdvancedModeValue); });
+        D.WithEcWrite(dev => { Ec.WriteFanCurve(dev, _cpuT, _cpuS, _gpuT, _gpuS); Ec.SetFanMode(dev, _fc.AdvancedModeValue); Ec.VerifyBackupCurveLater(dev); });
         if (D.Writable()) D.Settings.RecordActiveCurve(null, _cpuT, _cpuS, _gpuT, _gpuS);   // (#49) manual curve
         RefreshMode();
     }
@@ -2684,6 +2684,7 @@ public sealed class FanCurvePage : ThemedPage
         {
             Ec.WriteFanCurve(dev, _cpuT, _cpuS, _gpuT, _gpuS);    // our curve tables
             Ec.SetFanMode(dev, fc.AdvancedModeValue);             // advanced fan (0x8D)
+            Ec.VerifyBackupCurveLater(dev);                       // backup path only (#352)
         });
         if (D.Writable()) D.Settings.RecordActiveCurve(null, _cpuT, _cpuS, _gpuT, _gpuS);   // (#49) manual curve
         RefreshMode();

@@ -449,22 +449,20 @@ public static class Ec
         // Backup path: every value is range-checked and put on its slot's allow-list right
         // before the write; the gate in BackupWrite does the rest (locked until the path test
         // has passed on this machine).
+        Interlocked.Increment(ref _curveGen);
         if (_backup is { } bk && bk.Spec.CpuCurve is { } cc)
         {
-            void Table(BlockCurveSpec? c, int[] temps, int[] speeds)
-            {
-                if (c == null) return;
-                for (int i = 0; i < fc.Points && i < c.Count && i < temps.Length && i < speeds.Length; i++)
-                {
-                    byte t = (byte)Math.Clamp(temps[i], 0, 110), s = (byte)Math.Clamp(speeds[i], 0, fc.MaxFanPct);
-                    BackupAllow(c.Temp(i), t); BackupWrite(c.Temp(i), t);
-                    BackupAllow(c.Speed(i), s); BackupWrite(c.Speed(i), s);
-                }
-            }
+            byte[] T(int[] v, int n) => Enumerable.Range(0, n).Select(i => (byte)Math.Clamp(i < v.Length ? v[i] : 0, 0, 110)).ToArray();
+            byte[] S(int[] v, int n) => Enumerable.Range(0, n).Select(i => (byte)Math.Clamp(i < v.Length ? v[i] : 0, 0, fc.MaxFanPct)).ToArray();
+            int nc = Math.Min(fc.Points, cc.Count);
+            var gc = fan2 ? bk.Spec.GpuCurve : null;
+            int ng = gc == null ? 0 : Math.Min(fc.Points, gc.Count);
+            var want = new BackupCurveIntent(T(cpuTemp, nc), S(cpuSpeed, nc),
+                gc == null ? null : T(gpuTemp, ng), gc == null ? null : S(gpuSpeed, ng));
             lock (_wmiLock)
             {
-                Table(cc, cpuTemp, cpuSpeed);
-                if (fan2) Table(bk.Spec.GpuCurve, gpuTemp, gpuSpeed);
+                WriteBackupTables(bk, want);
+                _backupCurve = want;
             }
             return;
         }
@@ -480,7 +478,101 @@ public static class Ec
         }
     }
 
-    public static void SetFanMode(DeviceProfile dev, byte value) => WriteRaw(dev.FanMode, value);
+    public static void SetFanMode(DeviceProfile dev, byte value)
+    {
+        Interlocked.Increment(ref _curveGen);
+        WriteRaw(dev.FanMode, value);
+    }
+
+    // ---------------- backup path: is the curve still there? (#48, #352) ----------------
+    // On a Delta 15 the diagnostic package of #352 caught the controller holding its factory
+    // tables seconds after GhostDeck had written the owner's curve and the fan mode 0x8D, while
+    // the path test and the two-table test, which write the tables many seconds after the mode,
+    // saw their tables kept. So after a curve is applied on this path the tables are read back
+    // once, and written again if they differ: at 2 s, 2 s and 4 s, at most two more writes, on a
+    // worker. Anything else written in between (another curve, a fan mode, a profile) supersedes
+    // the check, and so does a fan mode that is no longer the curve mode. A curve that had to be
+    // written again, or that the controller would not keep, is noted in the change history.
+
+    private sealed record BackupCurveIntent(byte[] CpuT, byte[] CpuS, byte[]? GpuT, byte[]? GpuS);
+    private static BackupCurveIntent? _backupCurve;
+    private static int _curveGen;
+    public static int[] CurveCheckDelaysMs { get; set; } = { 2000, 2000, 4000 };
+
+    private static void WriteBackupTables(BackupState bk, BackupCurveIntent want)
+    {
+        void Table(BlockCurveSpec? c, byte[]? temps, byte[]? speeds)
+        {
+            if (c == null || temps == null || speeds == null) return;
+            for (int i = 0; i < temps.Length && i < speeds.Length && i < c.Count; i++)
+            {
+                BackupAllow(c.Temp(i), temps[i]); BackupWrite(c.Temp(i), temps[i]);
+                BackupAllow(c.Speed(i), speeds[i]); BackupWrite(c.Speed(i), speeds[i]);
+            }
+        }
+        Table(bk.Spec.CpuCurve, want.CpuT, want.CpuS);
+        Table(bk.Spec.GpuCurve, want.GpuT, want.GpuS);
+    }
+
+    /// <summary>Reads both tables fresh: whether they equal <paramref name="want"/>, and the speed slots held, for the history entry.</summary>
+    private static (bool Same, string Held) ReadBackBackupTables(BackupState bk, BackupCurveIntent want)
+    {
+        bool Same(BlockCurveSpec? c, byte[]? temps, byte[]? speeds, out int[] heldSpeeds)
+        {
+            heldSpeeds = Array.Empty<int>();
+            if (c == null || temps == null || speeds == null) return true;
+            EcBlocks.ReadFresh(c.Temp(0));   // the rest of the block comes from this fresh read
+            heldSpeeds = Enumerable.Range(0, speeds.Length).Select(i => EcBlocks.Read(c.Speed(i))).ToArray();
+            for (int i = 0; i < temps.Length; i++)
+                if (EcBlocks.Read(c.Temp(i)) != temps[i] || heldSpeeds[i] != speeds[i]) return false;
+            return true;
+        }
+        bool cpu = Same(bk.Spec.CpuCurve, want.CpuT, want.CpuS, out var cs);
+        bool gpu = Same(bk.Spec.GpuCurve, want.GpuT, want.GpuS, out var gs);
+        string held = "CPU " + string.Join("/", cs) + (gs.Length > 0 ? " · GPU " + string.Join("/", gs) : "");
+        return (cpu && gpu, held);
+    }
+
+    /// <summary>
+    /// After a curve was applied (tables + curve fan mode) on the backup path: check on a worker
+    /// that the controller kept it, and write it again when it did not. No-op on every other path.
+    /// </summary>
+    public static void VerifyBackupCurveLater(DeviceProfile dev)
+    {
+        if (_backup is not { } bk || bk.Spec.CpuCurve == null || dev.FanCurve is not { } fc || _backupCurve is not { } want) return;
+        int gen = Volatile.Read(ref _curveGen);
+        var delays = CurveCheckDelaysMs;
+        Task.Run(() =>
+        {
+            int rewrites = 0;
+            try
+            {
+                for (int attempt = 0; attempt < delays.Length; attempt++)
+                {
+                    Thread.Sleep(delays[attempt]);
+                    lock (_wmiLock)
+                    {
+                        if (Volatile.Read(ref _curveGen) != gen || !ReferenceEquals(_backup, bk)) return;   // superseded
+                        if (EcBlocks.ReadFresh(bk.Spec.FanMode) != fc.AdvancedModeValue) return;           // no longer the curve mode
+                        var (same, held) = ReadBackBackupTables(bk, want);
+                        if (same)
+                        {
+                            if (rewrites > 0) ChangeLog.Add(ChangeSource.FanCurve, string.Format(Lang.T("log_curve_rewritten"), rewrites), held);
+                            return;
+                        }
+                        if (attempt == delays.Length - 1)
+                        {
+                            ChangeLog.Add(ChangeSource.FanCurve, string.Format(Lang.T("log_curve_not_kept"), rewrites), held);
+                            return;
+                        }
+                        WriteBackupTables(bk, want);
+                        rewrites++;
+                    }
+                }
+            }
+            catch { }   // a refused read or write ends the check; the curve itself was applied by the caller
+        });
+    }
 
     // Super Battery limiter: msi-ec drives 0xEB with a 0x0F MASK - the kernel driver changes
     // only the low nibble and preserves the top bits. The Modern 14 B11MOU (issue #170) shows
@@ -492,6 +584,7 @@ public static class Ec
 
     public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
     {
+        Interlocked.Increment(ref _curveGen);
         lock (_wmiLock)
             foreach (var (addr, val) in recipe)
             {

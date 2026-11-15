@@ -11,6 +11,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   100 % adds speed ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 
 ### Fixed
+- **Backup WMI path: the fan curve is checked after it is applied, and written again if the controller replaced it**
+  ([#48](../../issues/48), [#352](../../issues/352)). On a Delta 15 the controller held its factory tables seconds
+  after GhostDeck had applied the owner's curve, so the fans ran on the factory curve with the curve mode on. After a
+  curve is applied on this path (a profile with a curve, a preset, the curve switch, the editor) the tables are read
+  back at 2, 4 and 8 s and written again when they differ, at most twice, in the background; a curve that had to be
+  written again, or that the controller would not keep, is named in the change history with the values it holds.
+  Other models are not affected ([TECHNICAL.md §81](docs/TECHNICAL.md)).
 - **Backup WMI path: a cold boot without Dragon Center no longer shows the laptop as unsupported**
   ([#230](../../issues/230), thanks @scorvus99). The model is settled by the BIOS version, the EC version in the
   `MSI_Software` block and the Windows model name; the controller's mode and fan values are no longer judged on top of

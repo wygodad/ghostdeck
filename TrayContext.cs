@@ -1521,6 +1521,7 @@ public sealed class TrayContext : ApplicationContext
         {
             Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
             Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+            Ec.VerifyBackupCurveLater(_device!);   // backup path only: was the table kept? (#352)
             _settings.RecordActiveCurve(name, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);   // (#49)
             ChangeLog.Add(ChangeSource.FanCurve,
                 string.Format(Lang.T("log_curve_preset"), name),
@@ -1569,6 +1570,7 @@ public sealed class TrayContext : ApplicationContext
             {
                 Ec.WriteFanCurve(_device!, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);
                 Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+                Ec.VerifyBackupCurveLater(_device!);
             }
             _settings.RecordActiveCurve(p.Name, p.CpuTemp, p.CpuSpeed, p.GpuTemp, p.GpuSpeed);   // (#49)
             ChangeLog.Add(ChangeSource.FanCurve,
@@ -2274,6 +2276,7 @@ public sealed class TrayContext : ApplicationContext
         {
             Ec.WriteFanCurve(_device!, s.CurveCpuTemp, s.CurveCpuSpeed, s.CurveGpuTemp, s.CurveGpuSpeed);
             Ec.SetFanMode(_device!, fc.AdvancedModeValue);
+            Ec.VerifyBackupCurveLater(_device!);
             ChangeLog.Add(ChangeSource.Restore,
                 string.Format(Lang.T("log_curve_restore"), s.CurveName.Length > 0 ? s.CurveName : Lang.T("fc_custom")),
                 $"{_device!.FanMode:X2}={fc.AdvancedModeValue:X2}");
