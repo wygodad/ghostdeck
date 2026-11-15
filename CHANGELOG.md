@@ -15,6 +15,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   100 % adds speed ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 
 ### Fixed
+- **Dashboard, Profiles widget: the SELECT / ACTIVE line no longer runs past the tile's bottom edge.** In a short
+  widget at 150 % and up, a name on two lines ("SUPER BATTERY") left no room for it, and the line was cut. When one
+  tile has no room, the line now goes from all the plain tiles together, so they stay alike; the active tile keeps
+  its highlighted border, and the Extreme tile with the APEX switch decides on its own.
 - **Backup WMI path: the fan curve is checked after it is applied, and written again if the controller replaced it**
   ([#48](../../issues/48), [#352](../../issues/352)). On a Delta 15 the controller held its factory tables seconds
   after GhostDeck had applied the owner's curve, so the fans ran on the factory curve with the curve mode on. After a
