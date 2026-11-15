@@ -47,15 +47,46 @@ internal sealed class ProfilesWidget : DashWidget
         bool writable = c.Writable;
         bool apexAvail = c.D.ApexAvailable();
         bool apexOn = apexAvail && c.D.ApexOn();
+        Rectangle TileAt(int i) => new(inner.Left + (i % cols) * (tileW + gap), inner.Top + (i / cols) * (tileH + gap), tileW, tileH);
+        // One decision for the plain tiles: when any of them has no room for its SELECT / ACTIVE
+        // footer, none shows it, so they stay alike (not SELECT on three and none on one). The
+        // tile with the Apex row is set apart by its switch and drops its own footer on its own.
+        bool noFoot = false;
+        for (int i = 0; i < ids.Count && !noFoot; i++)
+            if (!(apexAvail && ids[i] == ProfileId.Extreme)) noFoot = Layout(TileAt(i), ids[i], false, false, c).noFoot;
         for (int i = 0; i < ids.Count; i++)
         {
-            var tile = new Rectangle(inner.Left + (i % cols) * (tileW + gap), inner.Top + (i / cols) * (tileH + gap), tileW, tileH);
-            PaintTile(g, tile, ids[i], writable && c.Sample.Profile == ids[i], apexAvail && ids[i] == ProfileId.Extreme, apexOn, c);
+            var tile = TileAt(i);
+            PaintTile(g, tile, ids[i], writable && c.Sample.Profile == ids[i], apexAvail && ids[i] == ProfileId.Extreme, apexOn, noFoot, c);
             _tiles.Add((tile, ids[i]));
         }
     }
 
-    private void PaintTile(Graphics g, Rectangle t, ProfileId id, bool active, bool apexRow, bool apexOn, DashContext c)
+    /// <summary>
+    /// The vertical layout of a tile: icon size, name height, footer and Apex row. The icon shrinks
+    /// first; when even then the stack is taller than the tile (a name on two lines, "SUPER BATTERY",
+    /// in a short tile at 150 % and up, or the tile with the Apex row), the footer goes
+    /// (noFoot), so nothing runs past the tile's bottom edge. forceNoFoot drops it in any case.
+    /// </summary>
+    private static (int icon, int nameH, int footH, int total, bool noFoot) Layout(Rectangle t, ProfileId id, bool apexRow, bool forceNoFoot, DashContext c)
+    {
+        var nameF = c.Font(10f, FontStyle.Bold);
+        var pillF = c.Font(9.5f, FontStyle.Bold);
+        var apexF = c.Font(8.5f, FontStyle.Bold);
+        int w = t.Width - c.S(8) * 2;
+        int nameH = Math.Min(nameF.Height * 2, TextRenderer.MeasureText(Profiles.Get(id).Label, nameF, new Size(w, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
+        int footH = forceNoFoot ? 0 : pillF.Height + c.S(14);
+        int apexH = apexRow ? Math.Max(c.S(16), apexF.Height) + c.S(8) : 0;
+        int icon = Math.Max(c.S(24), Math.Min(c.S(56), (int)(t.Height * 0.32f)));
+        int g1 = c.S(8), g2 = c.S(6), room = t.Height - c.S(8);
+        int total = icon + g1 + nameH + g2 + footH + apexH;
+        if (total > room) { icon = Math.Max(c.S(20), icon - (total - room)); total = icon + g1 + nameH + g2 + footH + apexH; }
+        bool noFoot = forceNoFoot || total > room;
+        if (noFoot && footH > 0) { total -= footH; footH = 0; }
+        return (icon, nameH, footH, total, noFoot);
+    }
+
+    private void PaintTile(Graphics g, Rectangle t, ProfileId id, bool active, bool apexRow, bool apexOn, bool noFootAll, DashContext c)
     {
         var def = Profiles.Get(id);
         var col = Theme.Profile(c.D.ColorOf(id));
@@ -72,13 +103,9 @@ internal sealed class ProfilesWidget : DashWidget
         var pillF = c.Font(9.5f, FontStyle.Bold);
         var apexF = c.Font(8.5f, FontStyle.Bold);
         int padX = c.S(8), w = t.Width - padX * 2;
-        int nameH = Math.Min(nameF.Height * 2, TextRenderer.MeasureText(def.Label, nameF, new Size(w, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height);
-        int footH = pillF.Height + c.S(14);
-        int apexH = apexRow ? Math.Max(c.S(16), apexF.Height) + c.S(8) : 0;
-        int icon = Math.Max(c.S(24), Math.Min(c.S(56), (int)(t.Height * 0.32f)));
         int g1 = c.S(8), g2 = c.S(6);
-        int total = icon + g1 + nameH + g2 + footH + apexH;
-        if (total > t.Height - c.S(8)) { icon = Math.Max(c.S(20), icon - (total - (t.Height - c.S(8)))); total = icon + g1 + nameH + g2 + footH + apexH; }
+        // without the footer the active tile keeps its highlighted border and soft fill
+        var (icon, nameH, footH, total, noFoot) = Layout(t, id, apexRow, noFootAll, c);
         int top = t.Top + Math.Max(c.S(4), (t.Height - total) / 2);
 
         IconPainter.Scenario(g, id, new RectangleF(t.Left + (t.Width - icon) / 2f, top, icon, icon), col, Math.Max(2f, c.Sf(3f)));
@@ -86,7 +113,8 @@ internal sealed class ProfilesWidget : DashWidget
         TextRenderer.DrawText(g, def.Label, nameF, new Rectangle(t.Left + padX, y, w, nameH), Theme.Text,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
         y += nameH + g2;
-        if (active)
+        if (noFoot) { }
+        else if (active)
         {
             string a = Lang.T("scen_active");
             int tw = TextRenderer.MeasureText(a, pillF).Width;
