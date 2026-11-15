@@ -35,6 +35,7 @@ internal sealed class ProfilesWidget : DashWidget
         var ids = Ids();
         _tiles.Clear();
         _apexSwitch = Rectangle.Empty;
+        _sportSwitch = Rectangle.Empty;
         _painted = Signature(c);
         if (ids.Count == 0) { DashPaint.Note(g, Inner(r, c), c, Lang.T("dash_sel_none")); return; }
         // a lone tile gets more of the card: it is the whole widget
@@ -47,15 +48,21 @@ internal sealed class ProfilesWidget : DashWidget
         bool writable = c.Writable;
         bool apexAvail = c.D.ApexAvailable();
         bool apexOn = apexAvail && c.D.ApexOn();
+        bool sportAvail = c.D.SportAvailable();   // (#48 test build) Sport on the Balanced tile
+        bool sportOn = sportAvail && c.D.SportOn();
         for (int i = 0; i < ids.Count; i++)
         {
             var tile = new Rectangle(inner.Left + (i % cols) * (tileW + gap), inner.Top + (i / cols) * (tileH + gap), tileW, tileH);
-            PaintTile(g, tile, ids[i], writable && c.Sample.Profile == ids[i], apexAvail && ids[i] == ProfileId.Extreme, apexOn, c);
+            bool apexRow = apexAvail && ids[i] == ProfileId.Extreme, sportRow = sportAvail && ids[i] == ProfileId.Balanced;
+            PaintTile(g, tile, ids[i], writable && c.Sample.Profile == ids[i], apexRow || sportRow,
+                      apexRow ? apexOn : sportOn, apexRow ? "APEX" : "SPORT", c, sportRow);
             _tiles.Add((tile, ids[i]));
         }
     }
 
-    private void PaintTile(Graphics g, Rectangle t, ProfileId id, bool active, bool apexRow, bool apexOn, DashContext c)
+    private Rectangle _sportSwitch;
+
+    private void PaintTile(Graphics g, Rectangle t, ProfileId id, bool active, bool apexRow, bool apexOn, string rowLabel, DashContext c, bool sportRow = false)
     {
         var def = Profiles.Get(id);
         var col = Theme.Profile(c.D.ColorOf(id));
@@ -79,6 +86,10 @@ internal sealed class ProfilesWidget : DashWidget
         int g1 = c.S(8), g2 = c.S(6);
         int total = icon + g1 + nameH + g2 + footH + apexH;
         if (total > t.Height - c.S(8)) { icon = Math.Max(c.S(20), icon - (total - (t.Height - c.S(8)))); total = icon + g1 + nameH + g2 + footH + apexH; }
+        // A short tile with a switch row: the row takes the footer's place (the active tile keeps
+        // its highlighted border), so the switch never runs past the tile's bottom edge.
+        bool noFoot = apexRow && total > t.Height - c.S(8);
+        if (noFoot) { total -= footH; footH = 0; }
         int top = t.Top + Math.Max(c.S(4), (t.Height - total) / 2);
 
         IconPainter.Scenario(g, id, new RectangleF(t.Left + (t.Width - icon) / 2f, top, icon, icon), col, Math.Max(2f, c.Sf(3f)));
@@ -86,7 +97,8 @@ internal sealed class ProfilesWidget : DashWidget
         TextRenderer.DrawText(g, def.Label, nameF, new Rectangle(t.Left + padX, y, w, nameH), Theme.Text,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
         y += nameH + g2;
-        if (active)
+        if (noFoot) { }
+        else if (active)
         {
             string a = Lang.T("scen_active");
             int tw = TextRenderer.MeasureText(a, pillF).Width;
@@ -99,20 +111,21 @@ internal sealed class ProfilesWidget : DashWidget
         if (apexRow)
         {
             int swH = Math.Max(c.S(16), apexF.Height), swW = swH * 2;
-            int textW = TextRenderer.MeasureText("APEX", apexF, Size.Empty, TextFormatFlags.NoPadding).Width;
+            int textW = TextRenderer.MeasureText(rowLabel, apexF, Size.Empty, TextFormatFlags.NoPadding).Width;
             int totalW = swW + c.S(6) + textW;
             int x = t.Left + (t.Width - totalW) / 2;
-            _apexSwitch = new Rectangle(x, y, swW, swH);
-            DashPaint.Switch(g, _apexSwitch, apexOn);
-            TextRenderer.DrawText(g, "APEX", apexF, new Rectangle(x + swW + c.S(6), y, textW + c.S(2), swH), apexOn ? Theme.Amber : Theme.Muted,
+            var sw = new Rectangle(x, y, swW, swH);
+            if (sportRow) _sportSwitch = sw; else _apexSwitch = sw;
+            DashPaint.Switch(g, sw, apexOn);
+            TextRenderer.DrawText(g, rowLabel, apexF, new Rectangle(x + swW + c.S(6), y, textW + c.S(2), swH), apexOn ? Theme.Amber : Theme.Muted,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
     }
 
     private string Signature(DashContext c)
     {
-        bool apexAvail = c.D.ApexAvailable();
-        return $"{c.Sample.Profile}|{c.Writable}|{apexAvail}|{(apexAvail && c.D.ApexOn())}|{string.Join(",", Ids())}";
+        bool apexAvail = c.D.ApexAvailable(), sportAvail = c.D.SportAvailable();
+        return $"{c.Sample.Profile}|{c.Writable}|{apexAvail}|{(apexAvail && c.D.ApexOn())}|{sportAvail}|{(sportAvail && c.D.SportOn())}|{string.Join(",", Ids())}";
     }
 
     public override IReadOnlyList<DashOptionDef> OptionDefs(DashContext c) => new[]
@@ -126,6 +139,7 @@ internal sealed class ProfilesWidget : DashWidget
     {
         if (!c.Writable) return;
         if (_apexSwitch.Contains(p)) { c.D.SetApex(!c.D.ApexOn()); return; }
+        if (_sportSwitch.Contains(p)) { c.D.SetSport(!c.D.SportOn()); return; }
         foreach (var (tr, id) in _tiles)
             if (tr.Contains(p)) { c.D.SetProfile(id); return; }
     }

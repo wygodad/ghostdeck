@@ -159,6 +159,12 @@ public sealed class AppSettings
     public bool ApexEnabledFor(string? prefix) =>
         prefix != null && ApexFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
 
+    // (#48 test build) Sport on the Balanced tile: per-model opt-in, the Apex pattern (SportMode).
+    public List<string> SportFw { get; set; } = new();
+    public bool SportConfirmed { get; set; } = false;
+    public bool SportEnabledFor(string? prefix) =>
+        prefix != null && SportFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>One-time migration of the legacy global flag: consent narrows to the machine
     /// it was actually given on. Returns true when something changed and needs a save.</summary>
     public bool MigrateExperimentalFlag(string? matchedPrefix, bool deviceIsExperimental)
@@ -833,6 +839,8 @@ public sealed class AppSettings
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
         ApexFw = new List<string>(src.ApexFw ?? new());
         ApexConfirmed = src.ApexConfirmed;
+        SportFw = new List<string>(src.SportFw ?? new());
+        SportConfirmed = src.SportConfirmed;
         BothTablesFw = new List<string>(src.BothTablesFw ?? new());
         Fan2TableBackup = new Dictionary<string, string>(src.Fan2TableBackup ?? new());
         // True Color: the switch and the consent travel; the owner-verified version and the last
@@ -949,6 +957,8 @@ public sealed class AppSettings
             BackupPathPassed = new List<string>(BackupPathPassed),
             ApexFw = new List<string>(ApexFw),
             ApexConfirmed = ApexConfirmed,
+            SportFw = new List<string>(SportFw),
+            SportConfirmed = SportConfirmed,
             BothTablesFw = new List<string>(BothTablesFw),
             Fan2TableBackup = new Dictionary<string, string>(Fan2TableBackup),
             TrueColorEnabled = TrueColorEnabled,

@@ -19,6 +19,10 @@ public sealed class MainDeps
     public required Func<bool> ApexAvailable { get; init; }
     public required Func<bool> ApexOn { get; init; }
     public required Action<bool> SetApex { get; init; }
+    // (#48 test build) Sport on the Balanced tile, the Apex pattern; off everywhere but the Delta 15.
+    public Func<bool> SportAvailable { get; init; } = () => false;
+    public Func<bool> SportOn { get; init; } = () => false;
+    public Action<bool> SetSport { get; init; } = _ => { };
     // A getter, not a captured string: the startup probe may fill the firmware in a few
     // seconds late (transient-WMI retry), and pages re-detect via this on OnDeviceDbChanged.
     public required Func<string> Firmware { get; init; }

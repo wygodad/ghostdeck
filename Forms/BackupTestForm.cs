@@ -14,8 +14,10 @@ public sealed class BackupTestIntroForm : GhostCardForm
     private bool _curve;
     private Rectangle _row;   // window coordinates of the switch row
 
-    public BackupTestIntroForm(Action<bool> start)
-        : base("//PATH-TEST", Lang.T("bpt_title"), Lang.T("bpt_intro"), Lang.T("bpt_start"), Lang.T("fw_dlg_later"), () => { })
+    /// <param name="extra">(#48 test build) a paragraph added under the usual introduction.</param>
+    public BackupTestIntroForm(Action<bool> start, string? extra = null)
+        : base("//PATH-TEST", Lang.T("bpt_title"), Lang.T("bpt_intro") + (extra is { Length: > 0 } ? "\n\n" + extra : ""),
+               Lang.T("bpt_start"), Lang.T("fw_dlg_later"), () => { })
     {
         _start = start;
     }

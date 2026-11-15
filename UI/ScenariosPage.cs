@@ -546,6 +546,12 @@ public sealed class ScenariosPage : ThemedPage
         private Rectangle _apexSw = Rectangle.Empty;    // Apex toggle hit area (Extreme tile only)
         private Rectangle _apexDot = Rectangle.Empty;   // help dot beside it
         private bool ApexRow => _id == ProfileId.Extreme && _d.ApexAvailable();
+        // (#48 test build) the same row on the Balanced tile: the Sport switch (SportMode)
+        private bool SportRow => _id == ProfileId.Balanced && _d.SportAvailable();
+        private bool HasRow => ApexRow || SportRow;
+        private bool RowOn() => ApexRow ? _d.ApexOn() : SportRow && _d.SportOn();
+        private void SetRow(bool on) { if (ApexRow) _d.SetApex(on); else if (SportRow) _d.SetSport(on); }
+        private string RowLabel => ApexRow ? "APEX" : "SPORT";
         private int S(int v) => (int)Math.Ceiling(v * Dpi.Of(this) / 96f);
         private static readonly Font NameFont = Dpi.Font("Segoe UI", 15f, FontStyle.Bold);
         private static readonly Font SubFont = Dpi.Font("Segoe UI", 10.5f);
@@ -558,7 +564,7 @@ public sealed class ScenariosPage : ThemedPage
         // centred in the space above the row, so nothing collides at any scaling.
         internal int ApexRowH()
         {
-            if (!ApexRow) return 0;
+            if (!HasRow) return 0;
             using var lbl = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             using var sub = Dpi.Font("Segoe UI", 8.5f);
             return S(10) + lbl.Height + sub.Height + S(14);
@@ -571,14 +577,14 @@ public sealed class ScenariosPage : ThemedPage
         {
             base.OnMouseUp(e);
             if (e.Button != MouseButtons.Left) return;
-            if (ApexRow && _apexDot.Contains(e.Location))
+            if (HasRow && _apexDot.Contains(e.Location))
             {
-                HelpPopup.Toggle(this, _apexDot, Lang.T("apex_help"), this);
+                HelpPopup.Toggle(this, _apexDot, Lang.T(ApexRow ? "apex_help" : "sport_help"), this);
                 return;
             }
-            if (ApexRow && _apexSw.Contains(e.Location))
+            if (HasRow && _apexSw.Contains(e.Location))
             {
-                if (_d.Writable()) { _d.SetApex(!_d.ApexOn()); Parent?.Invalidate(true); Invalidate(); }
+                if (_d.Writable()) { SetRow(!RowOn()); Parent?.Invalidate(true); Invalidate(); }
                 return;
             }
             if (_d.Writable()) { _d.SetProfile(_id); Parent?.Invalidate(true); }
@@ -625,11 +631,11 @@ public sealed class ScenariosPage : ThemedPage
             Ui.DrawText(g, def.Label, nameFont,
                 new Rectangle(12, top + iconBox + g1, textW, nameH), Theme.Text,
                 TextFormatFlags.Top | TextFormatFlags.HorizontalCenter | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
-            if (ApexRow && _d.ApexOn())
+            if (HasRow && RowOn())
             {
-                // small amber badge right of the centred name: the tile says what Extreme writes
+                // small amber badge right of the centred name: the tile says what the profile writes
                 var bf = Dpi.Font("Segoe UI", 7.5f, FontStyle.Bold);
-                var bs = TextRenderer.MeasureText("APEX", bf);
+                var bs = TextRenderer.MeasureText(RowLabel, bf);
                 int nw = TextRenderer.MeasureText(def.Label, nameFont).Width;
                 var br = new RectangleF(Math.Min((Width + nw) / 2f + 6, Width - bs.Width - 14),
                                         top + iconBox + g1 + (nameH - bs.Height - 4) / 2f,
@@ -637,7 +643,7 @@ public sealed class ScenariosPage : ThemedPage
                 using var bp = Theme.RoundRect(br, (int)(br.Height / 2));
                 using var pen = new Pen(Theme.Amber, 1f);
                 g.DrawPath(pen, bp);
-                Ui.DrawText(g, "APEX", bf, Rectangle.Round(br), Theme.Amber,
+                Ui.DrawText(g, RowLabel, bf, Rectangle.Round(br), Theme.Amber,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
             Ui.DrawText(g, Lang.T(def.SubKey), subFont,
@@ -667,8 +673,8 @@ public sealed class ScenariosPage : ThemedPage
         private void DrawApexRow(Graphics g)
         {
             _apexSw = _apexDot = Rectangle.Empty;
-            if (!ApexRow) return;
-            bool on = _d.ApexOn();
+            if (!HasRow) return;
+            bool on = RowOn();
             var subFont = Dpi.Font("Segoe UI", 8.5f);
             var lblFont = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
             int y0 = Height - ApexRowH();
@@ -692,9 +698,9 @@ public sealed class ScenariosPage : ThemedPage
             _apexDot = new Rectangle(Width - dotSize - S(12), ty + (textH - dotSize) / 2, dotSize, dotSize);
             int tx = _apexSw.Right + S(10);
             int txW = _apexDot.X - tx - S(4);
-            Ui.DrawText(g, "APEX", lblFont, new Rectangle(tx, ty, txW, lblFont.Height),
+            Ui.DrawText(g, RowLabel, lblFont, new Rectangle(tx, ty, txW, lblFont.Height),
                 on ? Theme.Text : Theme.Muted, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
-            Ui.DrawText(g, Lang.T("apex_sub"), subFont,
+            Ui.DrawText(g, Lang.T(ApexRow ? "apex_sub" : "sport_sub"), subFont,
                 new Rectangle(tx, ty + lblFont.Height, txW, subFont.Height),
                 Theme.Amber, TextFormatFlags.Top | TextFormatFlags.EndEllipsis);   // dpi-ok: tile and scene names: user data or short labels in tiles sized with the page; last resort
             HelpDot.Render(g, _apexDot);

@@ -189,6 +189,8 @@ public static class Ec
         };
         // A model with a curve on record may also put the fan into Advanced mode.
         if (dev.FanCurve is { } fc) allowed[spec.FanMode].Add(fc.AdvancedModeValue);
+        // (#48 test build) the Sport switch writes the sport shift value on this one board
+        if (SportMode.AvailableFor(dev)) allowed[spec.ShiftMode].Add(SportMode.Shift);
         // Keyboard backlight (#230): only where the layout records the slot AND the model's
         // backlight register is the EC address that MSI_System slot stands for (0xEB + index),
         // with the four values the register takes (0x80 | level 0-3).
@@ -667,6 +669,8 @@ public static class Ec
             // it reports as Extreme. Without this the comfort branch below would claim it, and the
             // 3 s poll would log a profile change every time the vendor software set that mode.
             if (dev.FourthMode is { } fm && shift == fm.ShiftValue) return ProfileId.Extreme;
+            // (#48 test build) sport is what Balanced writes while its Sport switch is on
+            if (shift == SportMode.Shift && SportMode.AvailableFor(dev)) return ProfileId.Balanced;
             if (shift == dev.ShiftEcoValue) return ProfileId.SuperBattery;
             // comfort shift -> Silent vs Balanced is told apart ONLY by the fan byte (0x34 is the
             // same in both). 0x1D = Silent; anything else (0x0D auto, or 0x8D custom curve) = Balanced.

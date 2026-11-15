@@ -695,7 +695,7 @@ public sealed class TrayContext : ApplicationContext
         if (_bptCard is { IsDisposed: false }) { _bptCard.Activate(); return; }
         if (_bptTask is { IsCompleted: false }) return;
         GhostCardForm card = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online
-            ? new BackupTestIntroForm(RunBackupTest)
+            ? new BackupTestIntroForm(RunBackupTest, SportMode.AvailableFor(_device) ? Lang.T("bpt_sport_note") : null)
             : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), Lang.T("pt_block_battery"), Lang.T("set_close"), "", () => { });
         _bptCard = card;
         card.Show();
@@ -1447,8 +1447,43 @@ public sealed class TrayContext : ApplicationContext
     private (byte addr, byte val)[] EffectiveRecipe(ProfileId id)
     {
         var recipe = _device!.Recipes[id];
+        if (id == ProfileId.Balanced && SportOn)
+            return recipe.Select(r => r.addr == _device.ShiftMode ? (r.addr, SportMode.Shift) : r).ToArray();
         if (id != ProfileId.Extreme || _device.FourthMode is not { } fm || !ApexOn) return recipe;
         return recipe.Select(r => r.addr == _device.ShiftMode ? (r.addr, fm.ShiftValue) : r).ToArray();
+    }
+
+    // ---------------- Sport on the Balanced tile (#48 test build, SportMode) ----------------
+    private bool SportOn =>
+        SportMode.AvailableFor(_device) && _settings.SportEnabledFor(_device!.MatchedPrefix(_firmware));
+
+    private void SetSport(bool on)
+    {
+        if (!SportMode.AvailableFor(_device)) return;
+        string? fw = _device!.MatchedPrefix(_firmware);
+        if (fw == null) return;
+        if (on && !_settings.SportConfirmed)
+        {
+            var dlg = new GhostCardForm("//SPORT", Lang.T("sport_dlg_title"), Lang.T("sport_dlg_text"),
+                Lang.T("sport_dlg_on"), Lang.T("fw_dlg_later"),
+                () => { _settings.SportConfirmed = true; ApplySport(fw, true); });
+            dlg.Show();
+            dlg.Activate();
+            return;
+        }
+        ApplySport(fw, on);
+    }
+
+    private void ApplySport(string fw, bool on, bool reapply = true)
+    {
+        if (on) { if (!_settings.SportEnabledFor(fw)) _settings.SportFw.Add(fw); }
+        else _settings.SportFw.RemoveAll(x => string.Equals(x, fw, StringComparison.OrdinalIgnoreCase));
+        _settings.Save();
+        byte comfort = _device!.Recipes[ProfileId.Balanced].FirstOrDefault(r => r.addr == _device.ShiftMode).val;
+        ChangeLog.Add(ChangeSource.Tray, Lang.T(on ? "log_sport_on" : "log_sport_off"),
+            $"{_device.ShiftMode:X2}={(on ? SportMode.Shift : comfort):X2}");
+        if (reapply && Writable && _current == ProfileId.Balanced)
+            SetProfile(ProfileId.Balanced, osd: true, ChangeSource.Tray, count: false);
     }
 
     // The one-time explainer runs only on the very first enable anywhere; after that the
@@ -2389,7 +2424,8 @@ public sealed class TrayContext : ApplicationContext
     private void ShowOsd(ProfileId id)
     {
         var def = Profiles.Get(id);
-        string label = id == ProfileId.Extreme && ApexOn ? def.Label + " · APEX" : def.Label;
+        string label = id == ProfileId.Extreme && ApexOn ? def.Label + " · APEX"
+                     : id == ProfileId.Balanced && SportOn ? def.Label + " · SPORT" : def.Label;
         _osd.ShowProfile(OsdPrefix + label, Lang.T(def.SubKey), _settings.ColorFor(id));
     }
 
@@ -2557,6 +2593,8 @@ public sealed class TrayContext : ApplicationContext
         _coolerBoost = false;
         _fanBeforeBoost = null;
         UpdateCoolerBoostMenu();
+        // (#48 test build) panic means plain Balanced: the Sport switch goes off before the write
+        if (SportOn && _device!.MatchedPrefix(_firmware) is { } sfw) Step("sport", () => ApplySport(sfw, false, reapply: false));
         Step("profile", () => SetProfile(ProfileId.Balanced, osd: false, ChangeSource.Hotkey, applyCurve: false));   // panic = stock fans, no preset
         _settings.ClearActiveCurve();   // (#49) panic means "stock state" - don't restore the curve at next boot
         // (#27) stock state includes a working camera: lift the hard block and re-enable the switch
@@ -2610,6 +2648,9 @@ public sealed class TrayContext : ApplicationContext
         ApexAvailable = () => _device?.FourthMode != null,
         ApexOn = () => ApexOn,
         SetApex = SetApex,
+        SportAvailable = () => SportMode.AvailableFor(_device),
+        SportOn = () => SportOn,
+        SetSport = SetSport,
         Firmware = () => _firmware,
         AppVersion = AppVersion,
         SaveSettings = () => _settings.Save(),
@@ -2852,8 +2893,15 @@ public sealed class TrayContext : ApplicationContext
         new StatsReportCard(report, error).Show();
     }
 
+    /// <summary>
+    /// A test build made for one reporter (version x.y.90 and up, e.g. 1.46.98): it must not
+    /// offer a release, or the reporter installs it over the test and the test is gone (#48).
+    /// </summary>
+    internal static bool IsTestBuild => (typeof(TrayContext).Assembly.GetName().Version?.Build ?? 0) >= 90;
+
     private void MaybeCheckForUpdates()
     {
+        if (IsTestBuild) return;
         if (!_settings.UpdateCheckEnabled) return;
         if (DateTime.UtcNow - _settings.LastUpdateCheckUtc < TimeSpan.FromHours(24)) return;
 

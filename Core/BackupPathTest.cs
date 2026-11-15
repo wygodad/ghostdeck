@@ -49,6 +49,20 @@ public static class BackupPathTest
     private const int CurveRiseRpm = 500;
     private const byte FanAuto = 0x0D, FanSilent = 0x1D, FanAdvanced = 0x8D;
 
+    // TEST BUILD for issue #48 (Delta 15 A5EFK only, SportMode). The 1.44.99 build compared
+    // the sport shift mode with Balanced and Extreme in 20-second loads, and all three came out
+    // alike: for the first stretch of a load every mode runs on the processor's short-term
+    // allowance. On this AMD board the long-term limit works over minutes (TECHNICAL §60.6),
+    // so this build holds each mode for four minutes, in the order Balanced, Sport, Extreme,
+    // Balanced (sport has a Balanced and an Extreme run next to it, and the two Balanced runs
+    // show how far the machine itself drifted), and averages the last minute of each. With the
+    // firmware's automatic fan throughout. Measurement only: the verdict is unchanged, and a
+    // cancel ends this part and keeps what was measured.
+    public const int SustainedSeconds = 240, SustainedWindowSeconds = 60, SustainedSettleSeconds = 15;
+
+    public sealed record SustainedRun(string Name, int Shift, double WorkPerSec, int AvgMhz, int AvgTemp, int MaxTemp,
+                                      int AvgRpm, int AvgGpuRpm, double AvgWatts, (int Sec, int Mhz, int Temp, int Rpm, double W)[] Trace);
+
     public enum Verdict { Passed, NoEffect, WriteNotKept, RestoreUnconfirmed, Cancelled, Refused, Failed }
     public enum CurveVerdict { NotRun, Skipped, EveryProfile, ExtremeOnly, NoReaction }
 
@@ -83,7 +97,8 @@ public static class BackupPathTest
         string Survey, int ShiftOrig, int FanOrig,
         ProfileCheck[] Profiles, LoadRun[] Loads, CurveResult Curve,
         bool Wrote, bool Restored, string[] VendorProcesses, string[] Log,
-        string WinPower = "")   // Windows plan, turbo boost and power mode at the start (#230)
+        string WinPower = "",   // Windows plan, turbo boost and power mode at the start (#230)
+        SustainedRun[]? Sustained = null)   // the long comparison of the #48 test build, null when not run
     {
         public bool Passed => Verdict == Verdict.Passed;
     }
@@ -107,10 +122,13 @@ public static class BackupPathTest
         int shift0 = -1, fan0 = -1;
         string[] vendor = VendorProcesses();
         string winPower = PowerPlan.ReportLine();
+        bool sport = SportMode.AvailableFor(dev);   // #48 test build: the long comparison
+        var sustained = new List<SustainedRun>();
 
         Result End(Verdict v, string detail, bool wrote, bool restored) => new(
             started, appVersion, firmware, dev.Name, v, detail, survey, shift0, fan0,
-            profiles.ToArray(), loads.ToArray(), curve, wrote, restored, vendor, log.ToArray(), winPower);
+            profiles.ToArray(), loads.ToArray(), curve, wrote, restored, vendor, log.ToArray(), winPower,
+            sustained.Count > 0 ? sustained.ToArray() : null);
 
         if (Ec.BackupSpec is not { } spec) return End(Verdict.Refused, "the backup path is not active", false, true);
         if (SystemInformation.PowerStatus.PowerLineStatus != PowerLineStatus.Online)
@@ -213,7 +231,8 @@ public static class BackupPathTest
                     Wait(300, ct);
                     int sGot = EcBlocks.ReadFresh(spec.ShiftMode), fGot = EcBlocks.ReadFresh(spec.FanMode);
                     Log($"{name}: wrote shift 0x{sWant:X2} / fan 0x{fWant:X2} -> read 0x{sGot:X2} / 0x{fGot:X2}");
-                    double f0 = i / (double)plan.Length, f1 = (i + 1) / (double)plan.Length;
+                    double share = sport ? 0.12 : 1.0;   // the long comparison takes the rest of this step's bar
+                    double f0 = share * i / plan.Length, f1 = share * (i + 1) / plan.Length;
                     if (load) loads.Add(Loaded(dev, name, pr, f0, f1, ct));
                     else Hold(dev, name, HoldSeconds, pr, Step.Profiles, f0, f1, ct);
                     int sAfter = EcBlocks.ReadFresh(spec.ShiftMode), fAfter = EcBlocks.ReadFresh(spec.FanMode);
@@ -238,6 +257,42 @@ public static class BackupPathTest
                 {
                     verdict = Verdict.Passed;
                     detail = $"Super Battery delivered {Pct(sb.WorkPerSec, extreme)} % of the work of the slower Extreme run";
+                }
+
+                // ---------------- 3b. long comparison, #48 test build ----------------
+                if (sport && bad == null)
+                {
+                    Ec.BackupAllow(spec.ShiftMode, SportMode.Shift);
+                    (string Name, ProfileId Id, bool Sport)[] seq =
+                    {
+                        ("Balanced (1)", ProfileId.Balanced, false), ("Sport", ProfileId.Balanced, true),
+                        ("Extreme", ProfileId.Extreme, false), ("Balanced (2)", ProfileId.Balanced, false),
+                    };
+                    try
+                    {
+                        for (int j = 0; j < seq.Length; j++)
+                        {
+                            var (name, id, isSport) = seq[j];
+                            Ec.Apply(dev.Recipes[id]);
+                            Wait(300, ct);
+                            if (isSport && Put(spec.ShiftMode, SportMode.Shift) != SportMode.Shift)
+                            {
+                                Log($"{name}: {spec.ShiftMode} did not keep 0x{SportMode.Shift:X2}, long comparison stopped");
+                                break;
+                            }
+                            int s0 = EcBlocks.ReadFresh(spec.ShiftMode), fs0 = EcBlocks.ReadFresh(spec.FanMode);
+                            Log($"{name}: shift 0x{s0:X2} / fan 0x{fs0:X2} before the load");
+                            double h0 = 0.12 + 0.88 * j / seq.Length, h1 = 0.12 + 0.88 * (j + 1) / seq.Length;
+                            sustained.Add(Sustained(dev, name, s0, pr, h0, h1, ct));
+                            int s1 = EcBlocks.ReadFresh(spec.ShiftMode), fs1 = EcBlocks.ReadFresh(spec.FanMode);
+                            Log($"{name}: shift 0x{s1:X2} / fan 0x{fs1:X2} after the load{(s1 != s0 || fs1 != fs0 ? "   CHANGED" : "")}");
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Log("long comparison cancelled by the user");
+                    }
+                    try { Ec.Apply(dev.Recipes[ProfileId.Balanced]); } catch { }
                 }
 
                 // ---------------- 4. curve (optional) ----------------
@@ -341,6 +396,39 @@ public static class BackupPathTest
         }
         double work = win.Elapsed.TotalSeconds > 0 ? done / win.Elapsed.TotalSeconds : 0;
         return new LoadRun(name, work, mhz.Count > 0 ? (int)mhz.Average() : 0, last.CpuTemp, last.CpuRpm);
+    }
+
+    /// <summary>One mode of the long comparison: settle, then four minutes of all-core load sampled every 2 s.</summary>
+    private static SustainedRun Sustained(DeviceProfile dev, string name, int shift, IProgress<Progress> pr, double f0, double f1, CancellationToken ct)
+    {
+        int total = SustainedSettleSeconds + SustainedSeconds;
+        Hold(dev, name, SustainedSettleSeconds, pr, Step.Profiles, f0, f0 + (f1 - f0) * SustainedSettleSeconds / total, ct);
+        var win = new List<(Sample S, double W)>();
+        var trace = new List<(int Sec, int Mhz, int Temp, int Rpm, double W)>();
+        int maxTemp = 0, windowStart = SustainedSeconds - SustainedWindowSeconds;
+        long i0 = 0, done;
+        var sw = new Stopwatch();
+        using (var load = new PowerTest.CpuLoad(Environment.ProcessorCount))
+        {
+            for (int s = 2; s <= SustainedSeconds; s += 2)
+            {
+                Wait(2000, ct);
+                if (s == windowStart) { i0 = load.Iterations; sw.Restart(); }
+                var smp = Take(dev, s);
+                double w = Perf.CpuWatts();
+                maxTemp = Math.Max(maxTemp, smp.CpuTemp);
+                if (s > windowStart) win.Add((smp, w));
+                if (s % 30 == 0) trace.Add((s, smp.Mhz, smp.CpuTemp, smp.CpuRpm, w));
+                pr.Report(new Progress(Step.Profiles, f0 + (f1 - f0) * (SustainedSettleSeconds + s) / total, Live(name, smp)));
+            }
+            sw.Stop();
+            done = load.Iterations - i0;
+        }
+        double work = sw.Elapsed.TotalSeconds > 0 ? done / sw.Elapsed.TotalSeconds : 0;
+        int Avg(Func<Sample, int> pick) { var v = win.Select(x => pick(x.S)).Where(x => x > 0).ToArray(); return v.Length == 0 ? 0 : (int)v.Average(); }
+        var ws = win.Where(x => x.W >= 0).Select(x => x.W).ToArray();
+        return new SustainedRun(name, shift, work, Avg(x => x.Mhz), Avg(x => x.CpuTemp), maxTemp,
+                                Avg(x => x.CpuRpm), Avg(x => x.GpuRpm), ws.Length == 0 ? -1 : ws.Average(), trace.ToArray());
     }
 
     private static CurveResult RunCurve(DeviceProfile dev, BlockPathSpec spec, BlockCurveSpec cc, int[] temps, int[] speeds,
@@ -529,6 +617,36 @@ public static class BackupPathTest
             foreach (var l in r.Loads)
                 sb.AppendLine($"{l.Name,-18} work {Pct(l.WorkPerSec, top),3} %   {l.AvgMhz} MHz   {l.EndTemp} °C at the end   fan {l.EndRpm} RPM");
             sb.AppendLine("Work is completed iterations per second, as a share of the fastest run.");
+            sb.AppendLine();
+        }
+        if (r.Sustained is { Length: > 0 } su)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            string Wt(double w) => w < 0 ? "--" : w.ToString("0", inv);
+            double b1 = su.FirstOrDefault(x => x.Name == "Balanced (1)")?.WorkPerSec ?? 0;
+            sb.AppendLine($"--- Long comparison: Balanced, Sport, Extreme, Balanced (test build for issue #48) ---");
+            sb.AppendLine($"{SustainedSeconds} s of all-core load per mode, automatic fan; the figures average the last {SustainedWindowSeconds} s. work = share of Balanced (1).");
+            sb.AppendLine("Mode           shift  work   MHz  CPU C  max C  CPU W  CPU rpm  GPU rpm");
+            foreach (var x in su)
+                sb.AppendLine($"{x.Name,-14} {x.Shift:X2}     {Pct(x.WorkPerSec, b1),3}  {x.AvgMhz,5}  {x.AvgTemp,5}  {x.MaxTemp,5}  {Wt(x.AvgWatts),5}  {x.AvgRpm,7}  {x.AvgGpuRpm,7}");
+            sb.AppendLine();
+            sb.AppendLine("Every 30 s of each load (MHz / CPU C / CPU W / CPU rpm):");
+            foreach (var x in su)
+                sb.AppendLine($"{x.Name,-14} " + string.Join("  ", x.Trace.Select(t => $"{t.Sec}s {t.Mhz}/{t.Temp}/{Wt(t.W)}/{t.Rpm}")));
+            sb.AppendLine();
+            var sp = su.FirstOrDefault(x => x.Name == "Sport");
+            var ex = su.FirstOrDefault(x => x.Name == "Extreme");
+            var bal = su.Where(x => x.Name.StartsWith("Balanced")).ToArray();
+            if (sp != null && ex != null && bal.Length > 0)
+            {
+                double balWork = bal.Average(x => x.WorkPerSec);
+                sb.AppendLine($"Sport did {Pct(sp.WorkPerSec, balWork)} % of the Balanced runs' work and {Pct(sp.WorkPerSec, ex.WorkPerSec)} % of Extreme's, " +
+                              $"at {sp.AvgTemp} °C against {(int)bal.Average(x => x.AvgTemp)} °C (Balanced) and {ex.AvgTemp} °C (Extreme), " +
+                              $"fan {sp.AvgRpm} rpm against {(int)bal.Average(x => x.AvgRpm)} and {ex.AvgRpm}" +
+                              (sp.AvgWatts >= 0 && ex.AvgWatts >= 0 ? $", {Wt(sp.AvgWatts)} W against {Wt(bal.Where(x => x.AvgWatts >= 0).Select(x => x.AvgWatts).DefaultIfEmpty(-1).Average())} W and {Wt(ex.AvgWatts)} W." : "."));
+            }
+            if (bal.Length == 2 && bal[0].WorkPerSec > 0)
+                sb.AppendLine($"Balanced (2) did {Pct(bal[1].WorkPerSec, bal[0].WorkPerSec)} % of Balanced (1)'s work: that is how far the machine itself drifted over the comparison.");
             sb.AppendLine();
         }
         sb.AppendLine("--- Fan curve check ---");
