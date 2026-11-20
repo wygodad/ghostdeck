@@ -5,6 +5,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **New model from msi-ec: Prestige 16 AI+ MercedesAMG B2VMG** (`15A3EBA1`, model database 20261217,
+  [#359](../../issues/359)): msi-ec lists it next to the Prestige 16 AI+ Evo on the same board, so it is recognised
+  as an experimental model with the same profiles, curve layout, keyboard backlight and Fn/Win swap.
 - **New model: Raider A16 HX B8WH** (`265KIMS1`, model database 20261216, [#360](../../issues/360),
   [#361](../../issues/361), thanks @warenbe): the owner's capture matched the standard recipes in all four scenarios,
   real Silent included, with Super Battery leaving `0xEB` at 00 as on the Raider A18 HX; the fan curve is verified on

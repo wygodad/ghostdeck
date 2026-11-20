@@ -42,6 +42,7 @@ families rather than having individually documented layouts.
 | Initial seed, "Gaming Intel" models | 7 | `4599552` | v1.2.0 |
 | Bulk import | 127 | `e9336c3` | v1.8.0 |
 | From the first weekly upstream diff | 10 | `e546ec7` | v1.26.0 |
+| Weekly upstream diff of 16 November 2026 (#359) | 1 | this commit | model database 20261217 |
 
 Model designations for imported entries follow the naming used in msi-ec's firmware lists.
 
@@ -53,12 +54,12 @@ the opt-in gate for unverified machines, and the power-comparison test.
 
 **Keyboard backlight level (`KbdBacklightMap`)**
 
-82 firmware-prefix mappings, generated from msi-ec's per-configuration `kbd_bl` blocks.
+83 firmware-prefix mappings, generated from msi-ec's per-configuration `kbd_bl` blocks.
 Introduced in `236fd47`, first released in v1.25.0.
 
 **Fn / Windows key swap (`FnWinSwapMap`)**
 
-162 firmware-prefix mappings, generated from msi-ec's per-configuration `fn_win_swap` blocks.
+163 firmware-prefix mappings, generated from msi-ec's per-configuration `fn_win_swap` blocks.
 Introduced in `e546ec7`, first released in v1.26.0.
 
 **Webcam control exceptions (`NoWebcamCtrl`)**

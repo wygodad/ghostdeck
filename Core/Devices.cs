@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261216;
+    public const int DataVersion = 20261217;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -288,7 +288,7 @@ public static class Devices
         ["13P3EMS1"] = 0xD3, ["13P5EMS1"] = 0xD3, ["13Q2EMS1"] = 0xD3, ["13Q3EMS1"] = 0xD3, ["14C4EMS1"] = 0xD3, ["14C6EMS1"] = 0xD3, ["14D2EMS1"] = 0xD3, ["14D3EMS1"] = 0xD3,
         ["14F1EMS1"] = 0xD3, ["14J1IMS1"] = 0xD3, ["14L1EMS1"] = 0xD3, ["14N1EMS1"] = 0xD3, ["14N2EMS1"] = 0xD3, ["14P1IMS1"] = 0xD3, ["14P1IWS1"] = 0xD3, ["14QKIMS1"] = 0xD3, ["1552EMS1"] = 0xD3,
         ["1581EMS1"] = 0xD3, ["1582EMS1"] = 0xD3, ["1583EMS1"] = 0xD3, ["1584EMS1"] = 0xD3, ["1584IMS1"] = 0xD3, ["1585EMS1"] = 0xD3, ["1585EMS2"] = 0xD3, ["158PIMS1"] = 0xD3,
-        ["1591EMS1"] = 0xD3, ["1592EMS1"] = 0xD3, ["1594EMS1"] = 0xD3, ["1596EMS1"] = 0xD3, ["159KIMS1"] = 0xD3, ["15A1EMS1"] = 0xD3, ["15A2EMS1"] = 0xD3, ["15A3EMS1"] = 0xD3, ["15H1IMS1"] = 0xD3,
+        ["1591EMS1"] = 0xD3, ["1592EMS1"] = 0xD3, ["1594EMS1"] = 0xD3, ["1596EMS1"] = 0xD3, ["159KIMS1"] = 0xD3, ["15A1EMS1"] = 0xD3, ["15A2EMS1"] = 0xD3, ["15A3EMS1"] = 0xD3, ["15A3EBA1"] = 0xD3, ["15H1IMS1"] = 0xD3,
         ["15H2IMS1"] = 0xD3, ["15H5EMS1"] = 0xD3, ["15K1IMS1"] = 0xD3, ["16R6EMS1"] = 0xD3, ["16R7IMS1"] = 0xD3, ["16R8IMS1"] = 0xD3, ["16R8IMS2"] = 0xD3, ["16RKIMS1"] = 0xD3,
         ["16RKIMS2"] = 0xD3, ["16S6EMS1"] = 0xD3, ["16S8EMS1"] = 0xD3, ["16V6EMS1"] = 0xD3, ["17L1EMS1"] = 0xD3, ["17L2EMS1"] = 0xD3, ["17L3EMS1"] = 0xD3, ["17L4EMS1"] = 0xD3,
         ["17LNIMS1"] = 0xD3, ["17M1EMS2"] = 0xD3,
@@ -341,7 +341,7 @@ public static class Devices
         // address 0xE8, invert=false
         ["13P3EMS1"] = (0xE8, false), ["13P5EMS1"] = (0xE8, false), ["13Q2EMS1"] = (0xE8, false), ["13Q3EMS1"] = (0xE8, false), ["14F1EMS1"] = (0xE8, false), ["14J1IMS1"] = (0xE8, false),
         ["14K1EMS1"] = (0xE8, false), ["14K2EMS1"] = (0xE8, false), ["14L1EMS1"] = (0xE8, false), ["14N1EMS1"] = (0xE8, false), ["14N2EMS1"] = (0xE8, false), ["14P1IMS1"] = (0xE8, false), ["14P1IWS1"] = (0xE8, false),
-        ["14Q2EMS1"] = (0xE8, false), ["14QKIMS1"] = (0xE8, false), ["14T2EMS1"] = (0xE8, false), ["15A1EMS1"] = (0xE8, false), ["15A2EMS1"] = (0xE8, false), ["15A3EMS1"] = (0xE8, false), ["15Q3EMS1"] = (0xE8, false),
+        ["14Q2EMS1"] = (0xE8, false), ["14QKIMS1"] = (0xE8, false), ["14T2EMS1"] = (0xE8, false), ["15A1EMS1"] = (0xE8, false), ["15A2EMS1"] = (0xE8, false), ["15A3EMS1"] = (0xE8, false), ["15A3EBA1"] = (0xE8, false), ["15Q3EMS1"] = (0xE8, false),
         ["15QKIMS1"] = (0xE8, false),
         // address 0xE8, invert=true
         ["14C4EMS1"] = (0xE8, true), ["14C6EMS1"] = (0xE8, true), ["14D2EMS1"] = (0xE8, true), ["14D3EMS1"] = (0xE8, true), ["1543EMS1"] = (0xE8, true), ["1544EMS1"] = (0xE8, true),
@@ -1348,6 +1348,10 @@ public static class Devices
                 Credit = "halexys, u9328009", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/237",
                 CreditIssues = Issues("halexys:237; u9328009:289") },
         new() { Name = "MSI Prestige 16 AI+ Evo B2VMG",     FirmwarePrefixes = new[] { "15A3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Prestige 16 AI+ MercedesAMG B2VMG (15A3EBA1) - msi-ec import from the weekly diff (#359):
+        // upstream lists it in CONF_G2_3 next to the Evo above (same MS-15A3 board, its own EC
+        // line), so it takes the same recipes, curve layout and family maps.
+        new() { Name = "MSI Prestige 16 AI+ MercedesAMG B2VMG", FirmwarePrefixes = new[] { "15A3EBA1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M B12UE",             FirmwarePrefixes = new[] { "15B1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Stealth 16 Studio A13VG (15F2EMS1) - owner-verified via the form path (issue #206,
         // MSI Center 2.0.48, firmware .109): the capture matches StdRecipes 1:1 with a real

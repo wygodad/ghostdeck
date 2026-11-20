@@ -1857,6 +1857,9 @@ by `fw_key()` (prefix, dot, first version character), so the full and the shorte
 are one entry in either direction, and a later return to full ids stays quiet as well; the
 baseline holds the shortened form (182 ids on 2026-11-21). Only the script shortens: Devices.cs,
 the signed model database and the app keep full firmware ids and 8-character prefixes.
+From the same report: `15A3EBA1` (Prestige 16 AI+ MercedesAMG B2VMG, CONF_G2_3, the Evo's board)
+was imported as Experimental with the Evo's recipes and family maps (DataVersion 20261217), and
+`17G3EWS1` (WS75 10TK, CONF_G1_9, no Silent fan value) joined `NOSILENT_ACK`.
 
 ## 37. One-click diagnostic package (v1.24.x, roadmap #30)
 
