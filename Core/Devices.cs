@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261217;
+    public const int DataVersion = 20261218;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -2186,6 +2186,18 @@ public static class Devices
                 FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
                 Credit = "bankarbengt", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/354",
                 CreditIssues = Issues("bankarbengt:354") },
+        // GL65 Leopard 10SFK (issue #362, nogitjusthub, EC 16U7EMS1.106, Dragon Center 2.0.126,
+        // app 1.46.0): no MSI_ACPI methods; block report in the Dragon Center-era layout (System
+        // 21 / CPU 19 / VGA 18 / AP 8 instances). Switching Dragon Center scenarios moved
+        // System[7] C1/C1/C4/C2 and System[9] 1D/0D/0D/0D - the standard recipes, with a real
+        // Silent fan value. msi-ec files this prefix under CONF_G1_1, which lists no Silent fan
+        // mode, so the weekly sync had parked it; the owner's capture shows the Silent value on
+        // this board. Names from msi-ec's list for 16U7EMS1. Layout added so the path test can run.
+        new() { Name = "MSI GL65 / GP65 Leopard 10S, GL65 Leopard 9SD", FirmwarePrefixes = new[] { "16U7EMS1" }, Tier = Tier.Experimental,
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block report in issue #362
+                Credit = "nogitjusthub", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/362",
+                CreditIssues = Issues("nogitjusthub:362") },
         new() { Name = "MSI GF65 Thin 9SE / 9SD", FirmwarePrefixes = new[] { "16W1EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         // GF65 Thin 10SDR (issue #339, thangktv2, BIOS E16W1IMS.50C, EC 16W1EMS2.103 as the owner

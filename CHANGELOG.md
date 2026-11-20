@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **GL65 / GP65 Leopard 10S and GL65 Leopard 9SD on the backup WMI path** (`16U7EMS1`, model database 20261218,
+  [#362](../../issues/362), thanks @nogitjusthub): the owner's Dragon Center capture matched the standard recipes in all four
+  scenarios, real Silent included; the laptop is no longer shown as unsupported, and profile switching unlocks after
+  the path test ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 - **New model from msi-ec: Prestige 16 AI+ MercedesAMG B2VMG** (`15A3EBA1`, model database 20261217,
   [#359](../../issues/359)): msi-ec lists it next to the Prestige 16 AI+ Evo on the same board, so it is recognised
   as an experimental model with the same profiles, curve layout, keyboard backlight and Fn/Win swap.
