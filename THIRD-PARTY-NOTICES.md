@@ -42,7 +42,7 @@ families rather than having individually documented layouts.
 | Initial seed, "Gaming Intel" models | 7 | `4599552` | v1.2.0 |
 | Bulk import | 127 | `e9336c3` | v1.8.0 |
 | From the first weekly upstream diff | 10 | `e546ec7` | v1.26.0 |
-| Weekly upstream diff of 16 November 2026 (#359) | 1 | this commit | model database 20261217 |
+| Weekly upstream diff of 16 November 2026 (#359) | 1 | `d1792a8` | model database 20261217 |
 
 Model designations for imported entries follow the naming used in msi-ec's firmware lists.
 
