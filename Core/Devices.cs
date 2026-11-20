@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261215;
+    public const int DataVersion = 20261216;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1824,10 +1824,18 @@ public static class Devices
         //   Kbd backlight observation: 0xD3 read 83 in every column but 80 in the vendor's
         //   Super Battery (the 1583 pattern). Not wired up - 17T4EMS1 is absent from msi-ec,
         //   so the register stays observation-only until an owner write-check.
+        //   Second owner (issues #356-#358, juniorventer1200-byte, firmware .107, MSI Center
+        //   2.0.75, app 1.46.0): fan curve VERIFIED (#357) - his test curve sits byte-for-byte
+        //   at 0x72/0x8A on both fans. His power test (#358) is clean (4 % drift, bytes read
+        //   back intact): under the combined CPU+GPU load Silent does Balanced's work (104 %,
+        //   4960 vs 4786 MHz) on far slower fans (2449 vs 3608 rpm) - "quieter, not slower";
+        //   Extreme 105 % with the fans at ~4980 rpm. The tachs are 16-bit pairs: the high
+        //   bytes read 01 at the slower speeds (0xC8:C9 = 01:03 = ~1850 rpm), matching the
+        //   rpm the test reported. His snapshot (#356) held identical columns (C1/0D).
         new() { Name = "MSI Crosshair 17 HX AI D2XW",       FirmwarePrefixes = new[] { "17T4EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
-                Credit = "SpeedPlayzz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/148",
-                CreditIssues = Issues("SpeedPlayzz:148") },
+                CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "SpeedPlayzz, juniorventer1200-byte", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/148",
+                CreditIssues = Issues("SpeedPlayzz:148; juniorventer1200-byte:356,357,358") },
         // Titan 18 HX A14V / Raider 18 HX A14V (1822EMS1) - owner-verified (issue #239, MSI Center
         // 2.0.48 with the real Silent tile, firmware .312). Per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios (shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D,
@@ -1867,6 +1875,22 @@ public static class Devices
                 CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "afk789, Shadeqrn", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/50",
                 CreditIssues = Issues("afk789:50,55; Shadeqrn:349,350") },
+
+        // Raider A16 HX B8WH (265KIMS1) - NEW prefix, absent from msi-ec; added from one owner's
+        // paired reports (issues #360/#361, warenbe, firmware .305, MSI Center 2.0.48 with the
+        // real Silent tile, app 1.46.0). Name and board confirmed on msi.com (Ryzen 9 8940HX +
+        // RTX 5070 Ti, SKU 9S7-265K22). Per-scenario capture matches StdRecipes 1:1: shift 0xD2
+        // C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, and 0xEB=00 in every column, Super Battery included
+        // (the AMD Raider A18 pattern), so the 0xEB write is dropped. No hardware checks ticked
+        // - Experimental until a power test. Fan curve VERIFIED (#361): the test curve sits
+        // byte-for-byte at 0x72 (19 23 2D 37 41 4B) and 0x8A (14 1E 28 32 3C 46), 0xD4=8D.
+        // RPM: 16-bit pairs 0xC8:C9 / 0xCA:CB (Super Battery 01:38 = ~1540 rpm, high byte set).
+        // Observations only: 0xD3 82 -> 80 in Super Battery (the 1583 pattern), 0xF5/0xF7
+        // change with every scenario.
+        new() { Name = "MSI Raider A16 HX B8WH", FirmwarePrefixes = new[] { "265KIMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
+                Credit = "warenbe", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/360",
+                CreditIssues = Issues("warenbe:360,361") },
 
         // Vector A18 HX A9WHG (182LIMS1) — owner dump (issue #54) shows the same picture as its Raider
         // sibling: recipe matches, 0xEB stays 00 in Super Battery → dropped. All three hardware

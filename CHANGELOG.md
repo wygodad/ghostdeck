@@ -5,6 +5,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **New model: Raider A16 HX B8WH** (`265KIMS1`, model database 20261216, [#360](../../issues/360),
+  [#361](../../issues/361), thanks @warenbe): the owner's capture matched the standard recipes in all four scenarios,
+  real Silent included, with Super Battery leaving `0xEB` at 00 as on the Raider A18 HX; the fan curve is verified on
+  both fans. Experimental until a power test.
+- **Crosshair 17 HX AI D2XW: fan curve verified** (`17T4EMS1`, model database 20261216, [#356](../../issues/356),
+  [#357](../../issues/357), [#358](../../issues/358), thanks @juniorventer1200-byte): a second owner's test curve sits at
+  the shipped addresses on both fans, and his power test is clean (Silent does Balanced's work on far slower fans).
 - **GS66 Stealth 10UE / 10UH on the backup WMI path** (`16V3EMS1`, model database 20261214, [#354](../../issues/354),
   thanks @bankarbengt): the owner's block report showed the Dragon Center-era layout and the scenarios matching the
   entry for Silent, Balanced and Extreme; the laptop is no longer shown as unsupported, and profile switching unlocks
