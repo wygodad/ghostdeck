@@ -1845,6 +1845,19 @@ Experimental (recognition 145 models, 128 experimental), the four new no-Silent 
 prefixes (1799/17E9/17F4/17H1EMS1 - same CONF_G1_1/9/10 families) joined `NOSILENT_ACK`,
 and the baseline was refreshed to 372 ids. The report format worked as designed.
 
+**Upstream shortened its firmware lists (#359, 2026-11-16).** msi-ec's PR #773 ("Drop minor
+version", merged on 9 November 2026) replaced every full firmware id in the `ALLOWED_FW_*`
+lists with a shortened one, the 8-character prefix plus the first character of the version
+(`15M3EMS1.113` -> `15M3EMS1.1`), and the driver now cuts the last two characters off the id it
+reads before matching (`ver_truncated` in `load_configuration`). The reason given in the PR:
+the last two digits are the update number, so one entry covers every update of a firmware
+line and the lists shrink. The first weekly report after the merge listed all 178 upstream ids
+in section (d) as new, although no prefix was new. Since then the script compares section (d)
+by `fw_key()` (prefix, dot, first version character), so the full and the shortened spelling
+are one entry in either direction, and a later return to full ids stays quiet as well; the
+baseline holds the shortened form (182 ids on 2026-11-21). Only the script shortens: Devices.cs,
+the signed model database and the app keep full firmware ids and 8-character prefixes.
+
 ## 37. One-click diagnostic package (v1.24.x, roadmap #30)
 
 Settings → System → Diagnostics → "Save diagnostic package…" builds one zip

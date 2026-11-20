@@ -12,7 +12,8 @@ markdown report with four sections:
       decision (our profile detection keys off the Silent fan byte), never a blind import;
   (c) address mismatches between our entries and upstream (shift / fan / charge) -
       the early-warning system for upstream corrections;
-  (d) firmware version strings not yet in tools/msiec-fw-baseline.txt (informational).
+  (d) firmware version strings not yet in tools/msiec-fw-baseline.txt (informational),
+      compared by fw_key() so the full and the shortened spelling count as one entry.
 
 The script only REPORTS. It never edits Devices.cs; changes reach users exclusively
 through a normal reviewed commit + release. Run by .github/workflows/msiec-sync.yml
@@ -39,6 +40,21 @@ UPSTREAM_URL = "https://raw.githubusercontent.com/BeardOverflow/msi-ec/main/msi-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEVICES_CS = REPO_ROOT / "Core" / "Devices.cs"
 BASELINE = REPO_ROOT / "tools" / "msiec-fw-baseline.txt"
+
+
+def fw_key(fw: str) -> str:
+    """Comparison key of a firmware id: the 8-character prefix, the dot and the first
+    character of the version ("15M3EMS1.113" -> "15M3EMS1.1").
+
+    Upstream msi-ec listed full ids until its PR #773 ("Drop minor version", merged on
+    9 November 2026). Since then the lists hold the shortened form and the driver cuts the
+    last two characters off the id it reads before matching (msi-ec.c: "15M3EMS1.113 ->
+    15M3EMS1.1"). Our baseline was written in the full form, and the first weekly report
+    after the change (#359) listed every firmware as new. Comparing by this key makes both
+    spellings the same entry, in either direction, so a return to full ids stays quiet too.
+    Only this script shortens; Devices.cs and the app keep full ids and 8-character prefixes.
+    """
+    return fw[:10] if len(fw) >= 10 and fw[8] == "." else fw
 
 # Our DeviceProfile property defaults (Core/Devices.cs) - entries that do not set a
 # field explicitly use these.
@@ -227,9 +243,10 @@ def build_report(mec: dict, ours: dict, baseline: set[str], include_acked: bool 
             if diffs:
                 mismatches.append((prefix, o["name"], e["conf"], diffs))
 
+    known_keys = {fw_key(fw) for fw in baseline}
     for prefix, e in sorted(mec.items()):
         for fw in e["fws"]:
-            if fw not in baseline:
+            if fw_key(fw) not in known_keys:
                 new_fws.append((fw, e["conf"], prefix in ours))
 
     has_diff = bool(new_ok or new_nosilent or mismatches or new_fws)
