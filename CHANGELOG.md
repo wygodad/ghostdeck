@@ -5,6 +5,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **Raider A16 HX B8WH is a tested model** (`265KIMS1`, model database 20261219, [#360](../../issues/360), thanks
+  @warenbe): the owner's power test is clean (0 % drift, every profile read back as written), Silent caps the board
+  (84 W vs 105 W and half the fan speed of Balanced), Extreme adds 7 % at 136 W.
 - **GL65 / GP65 Leopard 10S and GL65 Leopard 9SD on the backup WMI path** (`16U7EMS1`, model database 20261218,
   [#362](../../issues/362), thanks @nogitjusthub): the owner's Dragon Center capture matched the standard recipes in all four
   scenarios, real Silent included; the laptop is no longer shown as unsupported, and profile switching unlocks after

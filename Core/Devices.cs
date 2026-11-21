@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261218;
+    public const int DataVersion = 20261219;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1891,7 +1891,11 @@ public static class Devices
         // RPM: 16-bit pairs 0xC8:C9 / 0xCA:CB (Super Battery 01:38 = ~1540 rpm, high byte set).
         // Observations only: 0xD3 82 -> 80 in Super Battery (the 1583 pattern), 0xF5/0xF7
         // change with every scenario.
-        new() { Name = "MSI Raider A16 HX B8WH", FirmwarePrefixes = new[] { "265KIMS1" }, Tier = Tier.Experimental,
+        //   TESTED (21 Nov 2026): the owner's power test (#360, app 1.46.0, CPU+GPU load, 0 %
+        //   drift, every phase's bytes read back intact) shows Silent capping the board: 84 W
+        //   vs 105 W, 3645 vs 4027 MHz, 90 % of Balanced's work on fans at 1680 vs 3370 rpm;
+        //   Extreme 107 % at 136 W with the fans at ~3985 rpm.
+        new() { Name = "MSI Raider A16 HX B8WH", FirmwarePrefixes = new[] { "265KIMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, null),
                 Credit = "warenbe", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/360",
                 CreditIssues = Issues("warenbe:360,361") },
