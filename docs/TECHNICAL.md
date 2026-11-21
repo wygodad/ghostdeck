@@ -2592,6 +2592,13 @@ the database gets `LastModelDbCheckUtc` with a 15-minute debounce. It is fetched
 Sharing one timestamp had a side effect worth recording: a manual release check wrote
 `LastUpdateCheckUtc` and thereby cancelled the next start's database fetch.
 
+Test builds skip the daily release check and the announcements altogether
+(`TrayContext.IsTestBuild`: the third version component is 90 or more, the numbering used for
+the signed dry-run builds made for one reporter, such as 1.46.97). Without it the test build saw
+the current release as newer and offered it, and a reporter who accepted would have replaced the
+test with the release in the middle of the test (#48). The signed model database is still
+fetched, since it is a separate check and changes no code.
+
 ### 59.2 Why a live swap needs a gate at all
 
 Nothing in this app owns "an EC transaction". A profile switch is five or more independent `Ec.*`

@@ -2853,8 +2853,15 @@ public sealed class TrayContext : ApplicationContext
         new StatsReportCard(report, error).Show();
     }
 
+    /// <summary>
+    /// A test build made for one reporter (version x.y.90 and up, e.g. 1.46.97): it must not
+    /// offer a release, or the reporter installs it over the test and the test is gone (#48).
+    /// </summary>
+    internal static bool IsTestBuild => (typeof(TrayContext).Assembly.GetName().Version?.Build ?? 0) >= 90;
+
     private void MaybeCheckForUpdates()
     {
+        if (IsTestBuild) return;
         if (!_settings.UpdateCheckEnabled) return;
         if (DateTime.UtcNow - _settings.LastUpdateCheckUtc < TimeSpan.FromHours(24)) return;
 
