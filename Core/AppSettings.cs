@@ -39,6 +39,7 @@ public sealed class HotkeyDef
 
 public sealed class AppSettings
 {
+    public CrossCoolingSettings CrossCooling { get; set; } = new();
     // Every property of settings.json this version does not know lands here and goes back into
     // the file on the next save, byte for byte. Without it an older version started after a
     // newer one rewrote the file with only the fields it knew, and the newer version's settings
@@ -637,6 +638,8 @@ public sealed class AppSettings
 
     public void EnsureDefaults()
     {
+        CrossCooling ??= new();
+        CrossCooling.Normalize();
         _initialised = true;   // from here on this instance may be saved (see Save)
         DashItem.Sanitize(Dashboard);
         if (DashboardVersion < 1) { Dashboard = DashItem.DefaultLayout(); DashboardVersion = DashItem.FormatVersion; }
@@ -796,6 +799,7 @@ public sealed class AppSettings
     /// </summary>
     public void ImportFrom(AppSettings src)
     {
+        CrossCooling = src.CrossCooling?.Clone() ?? new();
         Language = src.Language;
         HotkeysEnabled = src.HotkeysEnabled;
         Hotkeys.Clear();
@@ -943,6 +947,7 @@ public sealed class AppSettings
             ProfileOnAC = ProfileOnAC,
             ProfileOnBattery = ProfileOnBattery,
             ChargeLimit = ChargeLimit,
+            CrossCooling = CrossCooling.Clone(),
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
             ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),

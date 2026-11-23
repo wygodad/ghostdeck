@@ -28,8 +28,8 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1   # v5
         with:
           # Pinned so the same commit always builds with the same SDK. Raise deliberately when
-          # Microsoft ships a new .NET 8 servicing release.
-          dotnet-version: '8.0.424'
+          # Microsoft ships a new .NET 11 servicing release.
+          dotnet-version: '11.0.100'
 
       - name: Ustal wersje
         id: ver

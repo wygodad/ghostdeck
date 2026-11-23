@@ -16,9 +16,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09   # v5
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1   # v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '11.0.100'
       - name: Build
         run: dotnet build GhostDeck.csproj -c Release
+      - name: Cross-Cooling tests
+        run: dotnet run --project tests/GhostDeck.Tests.csproj -c Release
 
       # Every Lang.T key must ship in all 15 languages, with no duplicate keys (a duplicate is
       # accepted silently by the dictionary indexer and quietly kills the earlier translations).
@@ -42,7 +44,7 @@ jobs:
       - name: Model database consistency
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath "bin/Release/net8.0-windows/GhostDeck.exe" `
+          $p = Start-Process -FilePath "bin/Release/net11.0-windows7.0/GhostDeck.exe" `
                -ArgumentList "--verify-models","data/models.json" -Wait -PassThru -NoNewWindow
           if ($p.ExitCode -ne 0) { throw "data/models.json does not match the compiled tables - run --dump-models, re-sign (tools/sign-models.ps1) and commit" }
           "models.json consistent"
@@ -67,7 +69,7 @@ jobs:
       - name: Supported-models doc consistency
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath "bin/Release/net8.0-windows/GhostDeck.exe" `
+          $p = Start-Process -FilePath "bin/Release/net11.0-windows7.0/GhostDeck.exe" `
                -ArgumentList "--dump-supported-md","fresh-supported.md" -Wait -PassThru -NoNewWindow
           if ($p.ExitCode -ne 0) { throw "--dump-supported-md failed" }
           $fresh = ([IO.File]::ReadAllText("fresh-supported.md")) -replace "`r`n", "`n"

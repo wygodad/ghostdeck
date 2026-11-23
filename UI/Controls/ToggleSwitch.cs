@@ -11,6 +11,7 @@ public sealed class ToggleSwitch : Control
 {
     private bool _checked;
     public event Action<bool>? Toggled;
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Checked { get => _checked; set { _checked = value; Invalidate(); } }
 
     // 52 x 28 at 100 %. Above that it grows by a quarter of the display scale's growth (57 x 31 at

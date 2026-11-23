@@ -2038,12 +2038,15 @@ public sealed class ReportPage : ThemedPage
         { _num = num; _name = name; Tint = color; DoubleBuffered = true; ResizeRedraw = true; }
 
         /// <summary>The power test names its rows from the model database, which can change at runtime.</summary>
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string Label { set { if (_name == value) return; _name = value; Invalidate(); } }
 
         /// <summary>The same tile under another vendor app's name, drawn as a muted second line.</summary>
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string? Alt { set { if (_alt == value) return; _alt = value; Invalidate(); } }
 
         /// <summary>Numbering follows the rows actually shown, so a hidden row leaves no gap.</summary>
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int Number { set { if (_num == value) return; _num = value; Invalidate(); } }
 
         public void SetState(bool done, bool current) { _done = done; _current = current; Invalidate(); }

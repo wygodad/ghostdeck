@@ -133,8 +133,10 @@ internal sealed class HelpPopup : ToolStripDropDown
 internal sealed class HelpDot : Control
 {
     /// <summary>Supplies the text at click time, so a bubble about a live reading is never stale.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public Func<string>? TextProvider { get; set; }
     /// <summary>Set for a topic too big for a bubble: the dot opens this (a GhostDeck help card) instead.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public Action? OpenCard { get; set; }
 
     public HelpDot()

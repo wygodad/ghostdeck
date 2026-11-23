@@ -507,6 +507,9 @@ The fan byte is independent of the profile: you can pair any profile's power byt
 
 ### 17.3 The fan-curve tables
 
+Cross-Cooling uses these same six-point definitions through the existing EC table writer.
+Static curve compatibility does not validate continuous mixing. See [CROSS-COOLING.md](CROSS-COOLING.md).
+
 Advanced mode (`0xD4=0x8D`) makes the firmware follow a **single shared curve** stored in EC (NOT per-profile). Two fans, 6 points each, first point is `0°C→0%`:
 
 | Fan | Temp table | Speed table |

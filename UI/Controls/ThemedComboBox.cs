@@ -82,8 +82,10 @@ public sealed class ThemedComboBox : Control
     /// <summary>True while the list is open.</summary>
     public bool DroppedDown => _popup != null;
     /// <summary>Rows shown before the list scrolls.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int MaxDropDownItems { get; set; } = 8;
     /// <summary>Width of the open list; anything below the field's width means "as wide as the field".</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int DropDownWidth { get; set; }
 
     /// <summary>
@@ -91,8 +93,10 @@ public sealed class ThemedComboBox : Control
     /// text only, as in every list that does not set it. Drawn in the field for the selected item
     /// and on every row of the open list (#117: the turbo-mode group icons).
     /// </summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public Action<Graphics, int, Rectangle, bool>? ItemIcon { get; set; }
     /// <summary>Optional short note at the right end of a row of the open list (grey), e.g. the group of a mode.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public Func<int, string>? ItemNote { get; set; }
 
     /// <summary>
@@ -100,6 +104,7 @@ public sealed class ThemedComboBox : Control
     /// field grows to fit it, instead of ending in "..." (#117: Windows names of turbo modes such
     /// as "Wydajność: agresywnie - gwarantowane"). The owner reads Height after a change.
     /// </summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool WrapSelected
     {
         get => _wrap;
@@ -129,6 +134,7 @@ public sealed class ThemedComboBox : Control
     internal static int IconSide(int rowHeight) => Math.Max(10, (int)(rowHeight * 0.7f));
 
     /// <summary>Height of one row of the open list; the field is this plus 6.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int ItemHeight
     {
         get => _itemHeight;
@@ -170,6 +176,7 @@ public sealed class ThemedComboBox : Control
     }
     private int _prefW = -1;
 
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int SelectedIndex
     {
         get => _sel;
@@ -185,6 +192,7 @@ public sealed class ThemedComboBox : Control
         }
     }
 
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public object? SelectedItem
     {
         get => _sel >= 0 && _sel < _items.Count ? _items[_sel] : null;

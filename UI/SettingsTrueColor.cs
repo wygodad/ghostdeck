@@ -178,6 +178,7 @@ public sealed partial class SettingsPage
         private readonly Rectangle[] _rects = new Rectangle[TrueColor.Profiles.Length];
         private int _hover = -1;
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int? Recorded { get; set; }
         public event Action<int>? Pick;
 

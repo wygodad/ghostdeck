@@ -1,5 +1,7 @@
 # Fan curve page
 
+The optional **Cross-Cooling** sub-tab combines CPU/GPU curve demands and controls fan tables in Advanced mode, with four modes and four mixing algorithms. See [CROSS-COOLING.md](CROSS-COOLING.md) for ownership, restoration, tests and physical-validation limits.
+
 Everything the Fan curve tab does, why it does it that way, and where the numbers come from.
 [TECHNICAL.md](TECHNICAL.md) §65 is the short version and links here; §17 holds the register
 maps this page writes through, and [RENDERING.md](RENDERING.md) holds the drawing rules it obeys.

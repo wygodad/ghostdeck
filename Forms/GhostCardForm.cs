@@ -39,6 +39,7 @@ public class GhostCardForm : Form
     /// an update, a notice), which may land in the middle of a game. The card still sits on
     /// top; a click on it focuses it as usual.
     /// </summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Quiet { get; init; }
     protected override bool ShowWithoutActivation => Quiet;
 

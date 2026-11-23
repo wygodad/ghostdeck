@@ -24,6 +24,7 @@ public sealed class SubTabs : Control
     public event Action<int>? Changed;
     public int Active => _active;
     /// <summary>A strip nested under another one (Settings -> Gaming) fills a step lighter, so the two read as levels.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Nested { get; set; }
 
     public SubTabs(params string[] labels) : this(labels, null) { }

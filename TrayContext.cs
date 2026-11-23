@@ -28,6 +28,12 @@ public sealed class TrayContext : ApplicationContext
     // >0 while a composed EC operation is running. A model-database swap in the middle of one
     // would mix registers from two generations, so it waits.
     private int _ecBusy;
+    private CrossCoolingController? _cooling;
+    private DeviceProfile? _coolingDevice;
+    private CoolingStatus _coolingNotice = new(false, "cc_disabled");
+    private readonly System.Windows.Forms.Timer _coolingTimer = new() { Interval = 2000 };
+    private int _coolingBusy;
+    private bool _sleeping;
     private ModelDb.Parsed? _pendingDb;   // swap deferred until the gate opens
     private string _firmware;                       // startup probe result; a successful retry may fill it in
     private FirmwareProbeStatus _probeStatus;       // WHY there is no EC control (drives the unsupported subtitle)
@@ -212,6 +218,7 @@ public sealed class TrayContext : ApplicationContext
 
         _poll.Tick += (_, _) => Poll();
         _poll.Start();
+        _coolingTimer.Tick += (_, _) => TickCooling();
 
         ShowState();
         if (_firmwareChanged) ShowFirmwareDialog();
@@ -221,6 +228,8 @@ public sealed class TrayContext : ApplicationContext
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
+        // Restore only after startup profile/curve writes and the worker's UI context are ready.
+        if (_settings.CrossCooling.Enabled) ConfigureCooling(true);
         // A settings file that cannot be written is said in a card. The start-up above saves too,
         // before a card can be shown: such a failure is kept by AppSettings and said now.
         _onSaveFailed = why => (_ui ?? SynchronizationContext.Current)?.Post(_ => TellSettingsNotSaved(why), null);
@@ -639,6 +648,7 @@ public sealed class TrayContext : ApplicationContext
         if (AutoWritable) TryApplyChargeLimit();
         if (AutoWritable && _settings.AutoSwitchEnabled)
             ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
+        if (_ui != null && _settings.CrossCooling.Enabled) ConfigureCooling(true);
     }
 
     /// <summary>
@@ -900,6 +910,7 @@ public sealed class TrayContext : ApplicationContext
         BuildMenu();
         UpdateUi(_current);
         _main?.OnDeviceDbChanged();
+        if (_settings.CrossCooling.Enabled) ConfigureCooling(true);
     }
 
     // ---------------- menu ----------------
@@ -928,7 +939,7 @@ public sealed class TrayContext : ApplicationContext
         var oldSwatches = _menuSwatches.ToArray();
         _menuSwatches.Clear();
 
-        var menu = new ContextMenuStrip();
+        var menu = new ThemedContextMenu();
         menu.Items.Add(new ToolStripLabel("GhostDeck") { Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold) });
         menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = Dpi.Font("Segoe UI", 8) });
         menu.Items.Add(new ToolStripSeparator());
@@ -2215,10 +2226,13 @@ public sealed class TrayContext : ApplicationContext
     {
         if (e.Mode == PowerModes.Suspend)
         {
+            _sleeping = true;
+            _cooling?.Suspend("cc_session_paused");
             _profileBeforeSleep = Writable ? _current : null;
             return;
         }
         if (e.Mode != PowerModes.Resume) return;
+        _sleeping = false;
         Ec.DropSession();   // the WMI session from before sleep is gone; reconnect on the next read
         bool wantProfile = _settings.RestoreProfileOnResume && !_settings.AutoSwitchEnabled && _profileBeforeSleep is { };
         bool wantCurve = _settings.RestoreCurveOnResume && _settings.CurveActive;   // (#49)
@@ -2539,6 +2553,9 @@ public sealed class TrayContext : ApplicationContext
     // custom fan curve (0x8D) and the Silent cap (0x1D), so no separate fan write is needed.
     private void PanicReset()
     {
+        _settings.CrossCooling.Enabled = false;
+        _settings.Save();
+        ConfigureCooling(false);
         // Every step on its own: a step that fails is recorded by name and the rest still run,
         // because a panic reset must do as much as it can; the result (OSD, log, CLI exit code)
         // then says what did not happen instead of "done".
@@ -2621,6 +2638,7 @@ public sealed class TrayContext : ApplicationContext
         SettingsChanged = () =>
         {
             ApplyHotkeys(); BuildMenu(); UpdateUi(_current);
+            ConfigureCooling(_settings.CrossCooling.Enabled);
             ApplyTrayWheel();   // (#23) follow a just-edited wheel mode (install or remove the hook)
             SyncTempTrays();    // drop a temperature icon the user just switched off
             // apply a just-edited refresh preference right away (no-op when disabled)
@@ -2688,11 +2706,17 @@ public sealed class TrayContext : ApplicationContext
         {
             if (Writable && !_simulate && _device != null)
             {
+                using var session = EcBusy();
                 try { act(_device); } catch { }
             }
         },
         Simulating = () => _simulate,
         EcSession = () => EcBusy(),
+        EcBusy = () => _ecBusy > 0,
+        CoolingStatus = () => _cooling?.Status ?? _coolingNotice,
+        ConfigureCooling = ConfigureCooling,
+        SuspendCooling = () => _cooling?.Suspend("cc_editor_paused"),
+        CoolingBaseline = () => _cooling?.Baseline,
         RestoreActiveCurve = RestoreActiveCurve,
     };
 
@@ -2940,6 +2964,8 @@ public sealed class TrayContext : ApplicationContext
             _pendingDb = p;
             return false;
         }
+        ConfigureCooling(false);
+        if (_cooling?.Status.Key == "cc_restore_failed") { _pendingDb = p; return false; }
         if (!Devices.ApplyOverride(p)) return false;
 
         _device = Devices.Detect(_firmware);
@@ -2953,6 +2979,7 @@ public sealed class TrayContext : ApplicationContext
         BuildMenu();
         UpdateUi(_current);
         _main?.OnDeviceDbChanged();
+        if (_settings.CrossCooling.Enabled) ConfigureCooling(true);
         return true;
     }
 
@@ -2968,11 +2995,96 @@ public sealed class TrayContext : ApplicationContext
     private readonly struct EcScope : IDisposable
     {
         private readonly TrayContext _t;
-        public EcScope(TrayContext t) { _t = t; t._ecBusy++; }
+        public EcScope(TrayContext t, bool pauseCooling = true)
+        {
+            _t = t; t._ecBusy++;
+            try
+            {
+                if (pauseCooling)
+                {
+                    t._cooling?.Suspend();
+                    if (t._cooling?.Status.Key == "cc_restore_failed")
+                        throw new InvalidOperationException(t._cooling.Status.Error);
+                }
+            }
+            catch { t._ecBusy--; throw; }
+        }
         public void Dispose() { _t._ecBusy--; if (_t._ecBusy == 0) _t.DrainPendingDb(); }
     }
 
     private EcScope EcBusy() => new(this);
+
+    private string? CoolingBlocked()
+    {
+        if (_closing || _sleeping || AppLifecycle.ShuttingDown || _ecBusy > 0) return "cc_session_paused";
+        if (_simulate || _device?.FanCurve is not { SingleFan: false, Points: 6 } || Ec.OnBackupPath) return "cc_unsupported";
+        if (!AutoWritable) return "cc_write_blocked";
+        if (_current == ProfileId.Silent) return "cc_silent_paused";
+        if (_coolerBoost) return "cc_boost_paused";
+        if (_main is { IsDisposed: false, FanCurveEditing: true }) return "cc_editor_paused";
+        return null;
+    }
+
+    private void ConfigureCooling(bool enabled)
+    {
+        try
+        {
+            if (!enabled)
+            {
+                _cooling?.Configure(_settings.CrossCooling, false);
+                _coolingNotice = new(false, "cc_disabled");
+                if (_cooling?.Status.Key != "cc_restore_failed") _coolingTimer.Stop();
+                return;
+            }
+            if (_simulate || _device?.FanCurve is not { SingleFan: false, Points: 6 } || Ec.OnBackupPath)
+            { _cooling?.Configure(_settings.CrossCooling, false); _cooling?.Suspend("cc_unsupported"); _coolingNotice = new(false, "cc_unsupported"); return; }
+            if (!AutoWritable) { _cooling?.Configure(_settings.CrossCooling, false); _cooling?.Suspend("cc_write_blocked"); _coolingNotice = new(false, "cc_write_blocked"); return; }
+            if (_cooling == null || !ReferenceEquals(_coolingDevice, _device))
+            {
+                _cooling?.Dispose();
+                _coolingDevice = _device;
+                _cooling = new(new EcCrossCoolingHardware(_device), _device.FanCurve.MaxFanPct,
+                    (message, detail) => ChangeLog.Add(ChangeSource.FanCurve, message, detail));
+            }
+            _cooling.Configure(_settings.CrossCooling, true);
+            _coolingTimer.Interval = _settings.CrossCooling.SamplingSeconds * 1000;
+            _coolingTimer.Start();
+            TickCooling();
+        }
+        catch (Exception ex)
+        {
+            _coolingNotice = new(false, "cc_failed", ex.Message);
+            AppLifecycle.Report(ex, "cross-cooling configuration");
+        }
+    }
+
+    private void TickCooling()
+    {
+        if (_cooling == null || Volatile.Read(ref _coolingBusy) != 0) return;
+        if (!ReferenceEquals(_coolingDevice, _device)) { ConfigureCooling(false); return; }
+        if (CoolingBlocked() is { } blocked) { _cooling.Suspend(blocked); return; }
+        _cooling.Resume();
+        Interlocked.Exchange(ref _coolingBusy, 1);
+        // Held across the worker, just like diagnostics: model swaps and automatic writers wait.
+        // This scope is our own operation, so it must not suspend itself.
+        var session = new EcScope(this, pauseCooling: false);
+        var controller = _cooling;
+        Task.Run(() =>
+        {
+            try { controller.Tick(); }
+            catch (Exception ex) { AppLifecycle.Report(ex, "cross-cooling worker"); }
+            finally
+            {
+                _ui?.Post(_ =>
+                {
+                    session.Dispose();
+                    Interlocked.Exchange(ref _coolingBusy, 0);
+                    if (!controller.Status.Enabled && controller.Status.Key != "cc_restore_failed") _coolingTimer.Stop();
+                    if (_main is { IsDisposed: false }) _main.RefreshActive();
+                }, null);
+            }
+        });
+    }
 
     private void OnUpdateResult(Updater.Result? res)
     {
@@ -3576,6 +3688,9 @@ public sealed class TrayContext : ApplicationContext
         if (_onSaveFailed != null) { AppSettings.SaveFailed -= _onSaveFailed; _onSaveFailed = null; }
         if (_saveCard is { IsDisposed: false } saveCard) { _saveCard = null; saveCard.Close(); }
         _poll.Stop();
+        _coolingTimer.Stop();
+        _cooling?.Dispose();
+        _coolingTimer.Dispose();
         DisarmProbeRetry();
         _wheelTimer?.Stop();
         _wheel?.Dispose();

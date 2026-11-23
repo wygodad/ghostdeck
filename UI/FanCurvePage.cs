@@ -17,7 +17,8 @@ namespace GhostDeck;
 public sealed class FanCurvePage : ThemedPage
 {
     private const int Pad = 28;
-    private const int ViewChart = 0, ViewEq = 1, ViewDeck = 2, ViewPlay = 3, ViewCount = 4;
+    private const int ViewChart = 0, ViewEq = 1, ViewDeck = 2, ViewPlay = 3, ViewCross = 4, ViewCount = 5;
+    private readonly CrossCoolingPanel _cross;
 
     // DPI scale for every dimension the redesign added. The page predates per-monitor DPI
     // handling (the original two charts size themselves off Width/Height and use TextRenderer,
@@ -121,7 +122,7 @@ public sealed class FanCurvePage : ThemedPage
         // View strip (same control as Status/Report/Settings). Glyphs: chart, equalizer
         // (slider bars), deck (a mixer-ish dial glyph) and playground (a flask).
         _view = Math.Clamp(d.Settings.FanCurveView, 0, ViewCount - 1);
-        _views = new SubTabs(ViewLabels(), new[] { "", "", "", "" });
+        _views = new SubTabs(ViewLabels(), new[] { "", "", "", "", "" });
         _views.SetActive(_view);
         _views.Changed += i => SelectView(i, save: true);
         Controls.Add(_views);
@@ -129,6 +130,8 @@ public sealed class FanCurvePage : ThemedPage
         _live = new FanLiveFeed(this, () => _dev,
                                 () => _fc != null && D.Status().Known && !D.Simulating());
         _live.Updated += OnLiveSample;
+        _cross = new CrossCoolingPanel(d, () => _dev, () => _live.Sample) { Visible = false };
+        Controls.Add(_cross);
 
         // Chart-view options. Zones and intents are plain checkboxes; the table is a toggle
         // button (it changes the layout, so it reads as an action, not a preference); the
@@ -227,6 +230,7 @@ public sealed class FanCurvePage : ThemedPage
 
     public override void OnEnter()
     {
+        if (_view is ViewChart or ViewEq or ViewDeck) D.SuspendCooling();
         // First open used to read the whole curve (dozens of WMI calls) synchronously and froze
         // the tab switch; load it on a worker and repaint when it lands.
         if (!_loaded && !_loading && _fc != null)
@@ -234,10 +238,11 @@ public sealed class FanCurvePage : ThemedPage
             _loading = true;
             var dev = _dev!;
             int points = _fc.Points;
+            var baseline = D.CoolingBaseline();
             Task.Run(() =>
             {
                 (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? c = null;
-                try { c = Ec.ReadFanCurve(dev); } catch { }
+                try { c = baseline is { } b ? (b.CpuTemp, b.CpuSpeed, b.GpuTemp, b.GpuSpeed) : Ec.ReadFanCurve(dev); } catch { }
                 try
                 {
                     BeginInvoke(() =>
@@ -268,15 +273,16 @@ public sealed class FanCurvePage : ThemedPage
 
     // ---------------- views ----------------
     private static string[] ViewLabels() =>
-        new[] { Lang.T("fc_view_chart"), Lang.T("fc_view_eq"), Lang.T("fc_view_deck"), Lang.T("fc_view_play") };
+        new[] { Lang.T("fc_view_chart"), Lang.T("fc_view_eq"), Lang.T("fc_view_deck"), Lang.T("fc_view_play"), Lang.T("cc_title") };
 
     private void SelectView(int i, bool save)
     {
+        if (i is ViewChart or ViewEq or ViewDeck) D.SuspendCooling();
         CloseCellEditor(commit: true);   // an open inline editor belongs to the chart view
-        bool wasPlay = _view == ViewPlay;
+        bool wasPlay = _view is ViewPlay or ViewCross;
         _view = Math.Clamp(i, 0, ViewCount - 1);
         _views.SetActive(_view);
-        if (wasPlay && _view != ViewPlay && _fc != null) RestoreChrome();
+        if (wasPlay && _view is not (ViewPlay or ViewCross) && _fc != null) RestoreChrome();
         if (save && D.Settings.FanCurveView != _view) { D.Settings.FanCurveView = _view; D.SaveSettings(); }
         _dragFan = _dragIdx = -1;
         _hoverChip = _hoverIntent = _hoverRow = _eqHoverFan = _eqHoverIdx = _dialHoverFan = _dialHoverIdx = -1;
@@ -288,6 +294,7 @@ public sealed class FanCurvePage : ThemedPage
     public override void OnLanguageChanged()
     {
         _views.SetLabels(ViewLabels());
+        _cross.Rebuild();
         Restyle();
         RefreshPresetUi();
         LayoutButtons();
@@ -649,7 +656,7 @@ public sealed class FanCurvePage : ThemedPage
         base.Dispose(disposing);
     }
 
-    public override void ApplyTheme() { base.ApplyTheme(); Restyle(); }
+    public override void ApplyTheme() { base.ApplyTheme(); Restyle(); _cross.Rebuild(); }
 
     private void Restyle()
     {
@@ -761,6 +768,7 @@ public sealed class FanCurvePage : ThemedPage
             ViewEq => Lang.T("fc_hint_eq"),
             ViewDeck => Lang.T("fc_hint_deck"),
             ViewPlay => Lang.T("fc_hint_play"),
+            ViewCross => Lang.T("cc_control_help"),
             _ => !D.Writable() ? Lang.T("fc_locked")
                : _fc is { Verified: false } ? Lang.T("fc_preview")   // editable, but addresses unconfirmed
                : Lang.T("fc_hint"),
@@ -786,7 +794,7 @@ public sealed class FanCurvePage : ThemedPage
     private void LayoutButtons()
     {
         if (!(_view == ViewChart && _fc != null)) _optRow2 = false;   // only the chart view has the options row
-        _views.Visible = _fc != null;
+        _views.Visible = true;
         _views.SetBounds(Pad, ViewsY, _views.FitTo(Width - Pad * 2), _views.Height);
         LayoutDeck();
         LayoutPlayground();
@@ -893,7 +901,7 @@ public sealed class FanCurvePage : ThemedPage
         // The Playground neither edits nor applies the curve, so none of the editing chrome
         // belongs there: preset bar, assignment row, on/off switch, MSI default, Report. The
         // other views restore it through RefreshPresetUi/RefreshMode on their next layout.
-        if (_view == ViewPlay && _fc != null)
+        if (_view == ViewCross || (_view == ViewPlay && _fc != null))
         {
             foreach (var c in new Control[] { _presetLabel, _presetCombo, _psSave, _psSaveAs, _psRename, _psDelete, _psImport, _psExport, _psShare,
                                               _assignLabel, _enable, _enableLabel, _default, _report })
@@ -901,6 +909,9 @@ public sealed class FanCurvePage : ThemedPage
             foreach (var c in _assignNames) c.Visible = false;
             foreach (var c in _assignCombos) c.Visible = false;
         }
+        _cross.Visible = _view == ViewCross;
+        _cross.SetBounds(Pad, ViewsY + S(46), Math.Max(1, Width - Pad * 2), Math.Max(1, Height - ViewsY - S(46)));
+        if (_cross.Visible) { _both.Visible = _bothLabel.Visible = _bothHelp.Visible = false; _cross.BringToFront(); }
     }
 
     // Leaving the Playground: bring the editing chrome back (RefreshPresetUi decides which
@@ -1790,11 +1801,11 @@ public sealed class FanCurvePage : ThemedPage
         // what to put back: table 1 as the page has it (the editor's curve, or the profile's), and
         // table 2 exactly as the controller holds it NOW - on a single-fan entry the page never
         // reads or writes that table, so its own arrays would not describe it
+        var session = D.EcSession();
         bool wasOn = _enable.Checked;
         int[] ct = (int[])_cpuT.Clone(), cs = (int[])_cpuS.Clone(), gt = (int[])_gpuT.Clone(), gs = (int[])_gpuS.Clone();
         try { if (Ec.ReadFanCurve(dev) is { } cur) { gt = cur.gpuTemp; gs = cur.gpuSpeed; } } catch { }
         byte restoreMode = wasOn ? fc.AdvancedModeValue : ProfileFanByte();
-        var session = D.EcSession();
         _sweepCts = new CancellationTokenSource();
         var ctk = _sweepCts.Token;
         _running = 2; _shown = 2;
@@ -2697,6 +2708,8 @@ public sealed class FanCurvePage : ThemedPage
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
+        if (_view == ViewCross) { DrawPageHeader(g); return; }
+
         if (_fc == null)
         {
             DrawPageHeader(g);
@@ -3170,6 +3183,7 @@ public sealed class FanCurvePage : ThemedPage
     /// because the page holds its own copy of the register layout and the point values.
     /// </summary>
     public bool CurveHot => Visible && _enable.Checked;
+    public bool EditingCurve => Visible && _view is ViewChart or ViewEq or ViewDeck;
 
     public override void OnDeviceDbChanged()
     {

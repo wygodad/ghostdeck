@@ -734,7 +734,7 @@ public sealed class ScenariosPage : ThemedPage
             DoubleBuffered = true; ResizeRedraw = true; Cursor = Cursors.Hand;
             _armTimer.Tick += (_, _) => Disarm();
 
-            var menu = new ContextMenuStrip();
+            var menu = new ThemedContextMenu();
             var mRun = new ToolStripMenuItem(Lang.T("scene_run")); mRun.Click += (_, _) => run();
             var mEdit = new ToolStripMenuItem(Lang.T("scene_edit")); mEdit.Click += (_, _) => edit();
             var mUp = new ToolStripMenuItem(Lang.T("scene_up")); mUp.Click += (_, _) => move(-1);
@@ -837,7 +837,7 @@ public sealed class ScenariosPage : ThemedPage
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) _armTimer.Dispose();
+            if (disposing) { _armTimer.Dispose(); ContextMenuStrip?.Dispose(); }
             base.Dispose(disposing);
         }
 

@@ -32,6 +32,7 @@ public sealed class OsdForm : Form
     private int _holdMs = 3000;
 
     /// <summary>How long a toast stays fully visible (seconds); follows the OSD setting.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int HoldSeconds { get; set; } = 3;
 
     protected override bool ShowWithoutActivation => true;

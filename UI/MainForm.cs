@@ -477,6 +477,8 @@ public sealed class MainForm : Form
     /// <summary>True while the fan-curve editor is actively driving the EC (see FanCurvePage).</summary>
     public bool CurveEditorHot =>
         _pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fc && fc.CurveHot;
+    public bool FanCurveEditing =>
+        _pages.TryGetValue(MainTab.FanCurve, out var p) && p is FanCurvePage fc && fc.EditingCurve;
 
     /// <summary>(#100) A preset was applied from the tray; mirror it in the fan-curve editor.</summary>
     public void SyncFanCurvePreset(string name)

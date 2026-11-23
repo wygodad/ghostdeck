@@ -7,6 +7,11 @@ public enum MainTab { Scenarios, Status, Dashboard, FanCurve, Settings, Models, 
 /// <summary>Everything the tabbed UI needs from the tray context (data + actions).</summary>
 public sealed class MainDeps
 {
+    public Func<bool> EcBusy { get; init; } = () => false;
+    public Func<CoolingStatus> CoolingStatus { get; init; } = () => new(false, "cc_disabled");
+    public Action<bool> ConfigureCooling { get; init; } = _ => { };
+    public Action SuspendCooling { get; init; } = () => { };
+    public Func<FanCurvePreset?> CoolingBaseline { get; init; } = () => null;
     public required AppSettings Settings { get; init; }
     public required Func<StatusInfo> Status { get; init; }
     public required Func<HwSnapshot> Hw { get; init; }

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net11.0-windows7.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,14 +14,15 @@
     <AssemblyName>GhostDeck</AssemblyName>
     <RootNamespace>GhostDeck</RootNamespace>
     <Product>GhostDeck</Product>
-    <Version>1.0.0</Version>
+    <Version>1.46.0</Version>
     <Company>WYGODA DAWID FENIX INSPIRE</Company>
     <Copyright>Copyright (C) 2026 Dawid Wygoda</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="11.0.0" />
+    <Compile Remove="tests\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

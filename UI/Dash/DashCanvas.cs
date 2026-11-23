@@ -1081,6 +1081,7 @@ internal sealed partial class DashCanvas : Control
     }
 
     // ---- actions ----------------------------------------------------------------------------
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     internal bool EditMode
     {
         get => _edit;
@@ -1095,6 +1096,7 @@ internal sealed partial class DashCanvas : Control
         }
     }
 
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     internal bool CatalogOpen
     {
         get => _catalog;

@@ -12,6 +12,7 @@ public sealed class SegControl : Control
     private int _sel;
     private readonly Font _font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold);
     public event Action<int>? SelectedChanged;
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int Selected { get => _sel; set { _sel = value; Invalidate(); } }
 
     public SegControl(string[] items, int sel)

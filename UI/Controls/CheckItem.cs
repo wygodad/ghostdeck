@@ -18,8 +18,10 @@ public sealed class CheckItem : Control
         Height = Math.Max(26, F.Height + 6);   // the label's line plus air; layouts may set their own
         SetStyle(ControlStyles.Selectable, false);
     }
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Checked { get => _on; set { _on = value; Invalidate(); } }
     /// <summary>Let a long label wrap instead of being cut with an ellipsis (caller sizes the height).</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Wrap { get; set; }
     private static readonly Font F = Dpi.Font("Segoe UI", 10.5f);
     private int Box => (int)Math.Ceiling(18 * Dpi.Of(this) / 96f);   // DPI-aware box size

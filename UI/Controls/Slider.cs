@@ -15,10 +15,13 @@ public sealed class Slider : Control
     private int _val;
     private bool _drag;
     public event Action<int>? ValueChanged;
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool ShowValue { get; set; } = true;   // false = full-width track, caption drawn elsewhere
     /// <summary>A value the thumb snaps to when dragged close (0 for an offset); wheel and keys still reach every value.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int? SnapTo { get; set; }
     /// <summary>A double-click puts the slider back to this value.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int? DefaultValue { get; set; }
 
     public Slider(int min, int max, int val, int step = 1, string suffix = "")
@@ -44,8 +47,10 @@ public sealed class Slider : Control
     /// Width of the value column. Sliders stacked in one card share the widest one, so their
     /// tracks start and end at the same place whatever each can show.
     /// </summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int ValueWidth { get => _valueW; set { _valueW = Math.Max(NaturalValueWidth, value); Invalidate(); } }
 
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int Value { get => _val; set { _val = Clamp(value); Invalidate(); } }
     private int Clamp(int v) => Math.Clamp(v, _min, _max);
     private int ValueW => ShowValue ? _valueW : 0;

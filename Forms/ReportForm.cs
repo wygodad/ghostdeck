@@ -725,10 +725,12 @@ public sealed class ReportForm : Form
     private sealed class RoundedBar : Control
     {
         private float _value;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color Accent { get; set; } = Color.MediumPurple;
 
         public RoundedBar() { DoubleBuffered = true; }
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public float Value
         {
             get => _value;
