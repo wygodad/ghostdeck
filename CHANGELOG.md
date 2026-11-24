@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.47.0] - 2026-11-24
 ### Added
 - **An update that needs a newer .NET asks first.** When a GhostDeck release needs a newer version of Microsoft's .NET Desktop Runtime than the one on your computer, the update no longer goes ahead on its own. A card offers to install .NET together with the update, to open Microsoft's download page, or to cancel and keep the current version. This is the only case in which GhostDeck installs anything, and it only happens after that click. See the FAQ "Does GhostDeck install anything on my computer?".
 - **Fan Boost turns itself off once the laptop has cooled.** Settings → Power has a second rule next to the timer: *Turn Fan Boost off once cooled*, below 55 to 80 °C. Fan Boost then stays on until the hotter of the processor and the graphics card has held below that temperature for about ten seconds (and for at least half a minute in any case), and hands the fans back to the profile. The timer keeps working beside it and is the upper limit when both are set; the on-screen message and the change history say which of the two ended it. The "?" next to the setting explains that both the processor and the graphics card are watched, so Fan Boost does not stop while the graphics card is still hot.
@@ -49,6 +49,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   [#352](../../issues/352), thanks @stilnovina30): fan 1 follows table 1 alone, fan 2 follows table 2 with table 1
   adding to it, a table 2 of all zeros sends fan 2 to full speed; 100 % is about 3930 / 3800 rpm and nothing above
   100 % adds speed ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
+- **Crosshair A16 HX (D7W/D8W) confirmed by a fourth owner** (`15PLIMS1`, model database 20261212, [#351](../../issues/351),
+  thanks @PaulRohan63): the capture matches the entry byte for byte on MSI Center 2.0.52.
 
 ### Fixed
 - **Backup WMI path: the fan-curve report explains itself instead of failing** ([#354](../../issues/354), thanks
@@ -76,9 +78,6 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Two-table test: the "0 % in table N" finding said "lowered" whatever the direction.** On the Delta 15 a table 2
   of all zeros raised fan 2 from 2175 to 3834 rpm and the report still said "lowered"; the sentence now says "changed"
   ([#352](../../issues/352)).
-
-- **Crosshair A16 HX (D7W/D8W) confirmed by a fourth owner** (`15PLIMS1`, model database 20261212, [#351](../../issues/351),
-  thanks @PaulRohan63): the capture matches the entry byte for byte on MSI Center 2.0.52.
 
 ## [1.46.0] - 2026-11-13
 ### Added
