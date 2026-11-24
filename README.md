@@ -249,6 +249,10 @@ External monitors and HDR were not tested (the message carries no monitor parame
 | **Settings → Hotkeys** - every action rebindable, including one shortcut per scene | **Updates** - one-click install, 20 releases with download counts and inline notes |
 | ![An update that needs a newer .NET](docs/images/net_update_card.png) | ![.NET was not installed](docs/images/net_update_failed_card.png) |
 | **An update that needs a newer .NET asks first** - install .NET with the update, download it yourself, or cancel; nothing is installed without that click | **If installing .NET does not succeed** - the running version stays as it was, and Microsoft's page is one click away |
+| ![Right-click menus in the dark theme](docs/images/themed_menus.png) | ![The temperature card with its two buttons](docs/images/thermal_card_actions.png) |
+| **Right-click menus** - the tray menu, its submenus and the scene card's menu in the app's colours, dark or light | **Temperature alert** - the card offers Fan Boost and the Silent profile, one click each |
+| ![Automation pause](docs/images/automation_pause.png) | ![Scenes: Import and Export](docs/images/scenes_import_export.png) |
+| **Automation pause** - the scene schedule and the battery rules sleep for hours or days and come back on their own | **Scenes to a file** - *Import…* and *Export…* next to *Add scene*; one scene from its card's right-click menu |
 | ![Settings → System → Backup](docs/images/settings-backup-copies.png) | ![Restore a copy](docs/images/settings-backup-restore-card.png) |
 | **Backup** - export and import of the settings file, rotating copies in the app folder (at every start and on demand), *Restore*, *Delete*, how many copies to keep | **Restore** - one card says which copy comes back before anything is overwritten |
 | ![Tray menu settings](docs/images/tray_menu_settings.png) | ![Models - Start, light theme](docs/images/models_start_light.png) |

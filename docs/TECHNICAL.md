@@ -5011,6 +5011,8 @@ target, which is the intended use while a game is running. Nothing is checked du
 EC operation (`_ecBusy`), like the timer. No Fan Boost register exists on the backup WMI path,
 so the rule has nothing to act on there.
 
+![Settings, Power: the timer and the rule under it](images/fan_boost_cooled.png)
+
 ### 90.2 The temperature card's buttons (roadmap #50)
 
 The alert card (`ShowThermalCard`) is the plain `GhostCardForm` with its two buttons given a
@@ -5048,7 +5050,9 @@ card (Settings → Automation, `BuildPause`) offers 2 hours, until tomorrow 8:00
 days and a number of days of the user's own (1 to 365); while a pause runs it shows the end
 time and *Resume now*. `MainDeps.PauseAutomation` is the page's one call into the tray context.
 
-![The automation pause card above the scene schedule](images/automation_pause.png)
+| Before | While a pause runs |
+|---|---|
+| ![The automation pause card: a length and the Pause button](images/automation_pause.png) | ![The card while a pause runs: the end time and Resume now](images/automation_paused.png) |
 
 ### 90.4 Scenes as a file (roadmap #48)
 
@@ -5071,6 +5075,8 @@ A file holds at most 50 scenes and 512 KB. The Scenarios tab has *Import…* and
 scenes); a scene card's right-click menu exports that one scene. A file that holds no scenes is
 answered with a GhostDeck card.
 
+![The scene cards with Add scene, Import and Export under them](images/scenes_import_export.png)
+
 ### 90.5 The History charts as a PNG (roadmap #46)
 
 `StatusPage.ComposeHistoryPng` draws the chart cards with the very method the page uses
@@ -5081,7 +5087,13 @@ drawn through GDI (`TextRenderer`), which leaves the alpha channel of a 32-bit b
 and the saved picture would have holes where the text is. The page's hit-test list for the
 cursor readout (`_histPlots`) is put back after the drawing, because the drawing adds to it.
 
-![A saved History picture](images/history_png_export.png)
+| The button | The saved picture |
+|---|---|
+| ![Status, History: PNG next to Export](images/history_png_button.png) | ![A saved History picture](images/history_png_export.png) |
+
+All six changes of this release on one sheet:
+
+![The six small things of 1.47 on one sheet](images/v147_six_things_sheet.png)
 
 **Checking.** Preview tool, mode `novbatch`: both forms of the temperature card, the History
 picture in both themes from synthetic samples, and a console run of the scenes file (round trip,

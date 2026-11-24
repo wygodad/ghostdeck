@@ -758,6 +758,8 @@ covers the strip and every submenu.
 
 ![The tray menu, two submenus and the scene card's menu in the dark theme](images/themed_menus.png)
 
+![The same menus in the light theme](images/themed_menus_light.png)
+
 - **One strip, no extra windows.** The menu stays a `ContextMenuStrip`; nothing is hosted in it
   (§8.1: a window per line is what made the Settings page slow).
 - **Colours are read while painting.** The renderer derives from `ToolStripRenderer` and takes
