@@ -40,6 +40,12 @@ GhostDeck runs with administrator rights, so a few things it does are checked ra
   The swap itself is checked step by step; when it fails the app tries to put the previous program
   back, and when even that fails the previous program is left as `.bak` and the tab asks for a
   manual restore (a new program that starts and dies at once is not detected).
+- **The .NET installer** (from v1.47.0), the only thing GhostDeck ever installs, and only when an
+  update needs a newer .NET and you choose *Install with .NET* on the card: its address and SHA-512
+  come from Microsoft's own release metadata over https, the file must match that hash and carry a
+  valid Authenticode signature whose signer and issuer belong to Microsoft Corporation, and it is
+  held locked from the check until the installer has finished. Any failure leaves the running
+  version untouched ([TECHNICAL §19.10](../docs/TECHNICAL.md#1910-ghostdeck-installs-nothing-with-one-exception-a-newer-net-runtime-at-update-time)).
 - **The model database** fetched between releases must carry a valid signature (see above); an
   older or invalid file is refused.
 - **A settings backup you import** is checked and rehearsed on a copy before any live setting

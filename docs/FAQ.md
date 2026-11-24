@@ -373,6 +373,8 @@ GhostDeck runs on Microsoft's .NET Desktop Runtime, which most computers already
 - **Download .NET myself** opens Microsoft's download page. After you install it, press Install again and the update goes through.
 - **Cancel** keeps your current version exactly as it is.
 
+![The card an update shows when it needs a newer .NET, and the card shown if installing .NET did not succeed](images/net_update_cards_sheet.png)
+
 GhostDeck never installs .NET without that click, and never installs anything other than .NET. The details of what is checked before the installer runs are in [TECHNICAL.md §19.10](TECHNICAL.md#1910-ghostdeck-installs-nothing-with-one-exception-a-newer-net-runtime-at-update-time).
 
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused

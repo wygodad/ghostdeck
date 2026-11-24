@@ -730,6 +730,12 @@ The one exception is a release that targets a newer .NET major version than the 
 
 Why: most users never installed .NET themselves, so a bare "install this first" prompt loses them, while shipping the runtime inside every update would make each download about 60 times larger.
 
+| The .NET card | When installing .NET did not succeed |
+|---|---|
+| ![The .NET card: Download .NET myself, Install with .NET, Cancel](images/net_update_card.png) | ![.NET was not installed: Download .NET myself, Close](images/net_update_failed_card.png) |
+
+The card is as wide as its three buttons need in the current language (`NetRuntimeCard.WidthFor`), never narrower than a plain message card, so no label wraps or is cut; checked in all 15 languages at 100-240 % in the preview tool.
+
 How it works (v1.47.0, `Core/Updater.cs`, `Core/DotNetRuntime.cs`, `Forms/NetRuntimeCard.cs`):
 
 - **How a release says which .NET it needs.** The asset name. `GhostDeck-win-x64.exe` runs on the .NET this build runs on; `GhostDeck-win-x64-net{N}.exe` needs the .NET {N} Desktop Runtime. When a release carries both, the plain one wins. Versions up to 1.46 know only the plain name: for a release without it they find no asset, replace nothing and open the release page, as at the 1.35 migration.
