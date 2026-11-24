@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **New model: Vector GP77 13VG** (`17K7EMS1`, model database 20261220, [#372](../../issues/372),
+  [#373](../../issues/373), thanks @stimul14): a new board of the GE76 / GP76 line, added with that line's standard
+  recipes, since the owner's capture was taken without switching scenarios; the fan curve is verified on both fans.
+  Experimental until an owner check or a power test.
 - **Raider A16 HX B8WH is a tested model** (`265KIMS1`, model database 20261219, [#360](../../issues/360), thanks
   @warenbe): the owner's power test is clean (0 % drift, every profile read back as written), Silent caps the board
   (84 W vs 105 W and half the fan speed of Balanced), Extreme adds 7 % at 136 W.

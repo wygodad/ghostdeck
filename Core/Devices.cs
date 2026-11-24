@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261219;
+    public const int DataVersion = 20261220;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1678,6 +1678,23 @@ public static class Devices
                 CreditIssues = Issues("mrhozudogru:327") },
         // (Raider GE76 12UE moved to the Tested block above — issues #45 / #47.)
         new() { Name = "MSI Raider GE77 HX 12UGS",          FirmwarePrefixes = new[] { "17K5IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Vector GP77 13VG (17K7EMS1) - a new board code of the 17Kx line (17K3 / 17K4 / 17K5,
+        // all one msi-ec conf with StdRecipes); 17K7EMS1 itself is not in msi-ec (checked
+        // 2026-11-24). Experimental on family evidence: the owner's capture (issue #372,
+        // firmware .104, MSI Center 2.0.75) was taken without switching scenarios - every
+        // column reads shift 0xD2=C4, fan 0xD4=0D, 0xEB=00 and only temperatures drift - so
+        // the recipes are the family's, not measured on this board. What the capture does
+        // show matches the siblings: shift / fan at 0xD2 / 0xD4, charge limit 0xD7 (BC = 60 %),
+        // factory fan tables at 0x72-0x78 / 0x8A-0x90.
+        //   Curve VERIFIED (#373): the test curve (CPU 25/35/45/55/65/75, GPU 20/30/40/50/60/70)
+        //   sits byte-for-byte at the shipped 0x72/0x8A on both fans.
+        //   RPM: live single-byte divisors at 0xC9/0xCB with high bytes 00 in the curve dump
+        //   (E1/EA = ~2120/2040 rpm), the 17K3/17K4 format.
+        new() { Name = "MSI Vector GP77 13VG",              FirmwarePrefixes = new[] { "17K7EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr16 = 0xC8, CpuRpmAddr = 0xC9, GpuRpmAddr16 = 0xCA, GpuRpmAddr = 0xCB,
+                FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "stimul14", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/372",
+                CreditIssues = Issues("stimul14:372,373") },
         // Alpha 17 C7VF / C7VG (17KKIMS1) - owner-verified (issues #152/#153, MSI Center 2.0.48,
         // app 1.36.0, firmware .115), the first Alpha-line board confirmed on real hardware.
         // Curve VERIFIED (#152): the test curve sits byte-for-byte at the shipped 0x72/0x8A on

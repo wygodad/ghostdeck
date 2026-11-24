@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261219,
+  "dataVersion": 20261220,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V, Vector 17 HX A14V",
@@ -5069,6 +5069,58 @@
         "singleFan": false
       },
       "added": "2026-06-29",
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Vector GP77 13VG",
+      "prefixes": [
+        "17K7EMS1"
+      ],
+      "tier": "Experimental",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "cpuRpmAddr16": "0xC8",
+      "gpuRpmAddr16": "0xCA",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": true,
+        "singleFan": false
+      },
+      "credit": "stimul14",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/372",
+      "creditIssues": {
+        "stimul14": [
+          372,
+          373
+        ]
+      },
+      "added": "2026-11-24",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
