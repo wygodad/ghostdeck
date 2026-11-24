@@ -5011,6 +5011,10 @@ target, which is the intended use while a game is running. Nothing is checked du
 EC operation (`_ecBusy`), like the timer. No Fan Boost register exists on the backup WMI path,
 so the rule has nothing to act on there.
 
+The row's label carries a help dot (`CardSection.AddRow(label, control, help)`, the "?" right
+after the label, so the list keeps its column). Its bubble says what "cooled" means: both the
+processor and the graphics card are watched, the 30 s minimum, and the timer as the upper limit.
+
 ![Settings, Power: the timer and the rule under it](images/fan_boost_cooled.png)
 
 ### 90.2 The temperature card's buttons (roadmap #50)
@@ -5049,6 +5053,13 @@ The pause is machine state, like travel mode: a settings import does not carry i
 card (Settings → Automation, `BuildPause`) offers 2 hours, until tomorrow 8:00, 3 / 7 / 14 / 30
 days and a number of days of the user's own (1 to 365); while a pause runs it shows the end
 time and *Resume now*. `MainDeps.PauseAutomation` is the page's one call into the tray context.
+
+The card opens with an amber note, *What the pause does*, in three lines: what is paused, what
+keeps working (temperature alerts, the profile switch on AC / battery, travel mode, Fan Boost)
+and what happens when it ends. The note is `UI/Controls/NoteBox.cs`: one drawn control with the
+look of the *Restore Windows settings* block of the Windows power card (amber rail, tinted
+surface, title in the text colour, lines in amber), which takes the card's width and sets its own
+height from the wrapped text. Any card that has to say what its action does can use it.
 
 | Before | While a pause runs |
 |---|---|

@@ -727,7 +727,8 @@ public sealed partial class SettingsPage : ThemedPage
                 D.Settings.FanBoostUntilTemp = coolVals[cool.SelectedIndex];
                 D.SaveSettings();
             };
-            power.AddRow(Lang.T("set_fb_cool"), cool);
+            // the "?" after the label says what "cooled" means: both chips are watched, not the CPU alone
+            power.AddRow(Lang.T("set_fb_cool"), cool, new HelpDot { TextProvider = () => Lang.T("fb_cool_help") });
             return power;
         }
         _buildPower = BuildPower;
@@ -754,11 +755,9 @@ public sealed partial class SettingsPage : ThemedPage
         CardSection BuildPause()
         {
             var ap = new CardSection(Lang.T("ap_grp"), "");   // MDL2 Pause
-            ap.AddRow(null, new Label
-            {
-                Text = Lang.T("ap_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
-                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
-            });
+            // the amber note says what the pause does: what stops, what keeps working, what happens at its end
+            ap.AddRow(null, new NoteBox(Lang.T("ap_box_title"),
+                new[] { Lang.T("ap_box_paused"), Lang.T("ap_box_keeps"), Lang.T("ap_box_after") }) { Name = "wp-wide" });
             var until = D.Settings.AutomationPausedUntil;
             bool paused = until > DateTime.Now;
             _builtPaused = paused;
@@ -801,7 +800,7 @@ public sealed partial class SettingsPage : ThemedPage
                 ap.AddRow(null, new Label
                 {
                     Text = string.Format(Lang.T("ap_note"), until.ToShortDateString() + " " + until.ToShortTimeString()),
-                    AutoSize = true, MaximumSize = new Size(360, 0),
+                    AutoSize = true, MaximumSize = new Size((int)Math.Ceiling(520 * Dpi.Of(this) / 96f), 0),   // wraps only when the line is really long, at any scale
                     Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
                 });
                 btn.Click += (_, _) =>

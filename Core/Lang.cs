@@ -748,23 +748,80 @@ public static class Lang
         m["scene_file_bad"] = new[] { "This file holds no GhostDeck scenes.", "W tym pliku nie ma scen GhostDeck.", "Diese Datei enthält keine GhostDeck-Szenen.", "Ce fichier ne contient aucune scène GhostDeck.", "Este archivo no contiene escenas de GhostDeck.", "此文件中没有 GhostDeck 场景。", "Este arquivo não contém cenas do GhostDeck.", "В этом файле нет сцен GhostDeck.", "このファイルに GhostDeck のシーンはありません。", "이 파일에는 GhostDeck 장면이 없습니다.", "此檔案中沒有 GhostDeck 場景。", "Bu dosyada GhostDeck sahnesi yok.", "Tệp này không chứa cảnh GhostDeck nào.", "Berkas ini tidak berisi adegan GhostDeck.", "Questo file non contiene scene GhostDeck." };
         // (roadmap #75) automation pause
         m["ap_grp"]         = new[] { "Automation pause", "Pauza automatyki", "Automatik-Pause", "Pause de l'automatisation", "Pausa de la automatización", "自动化暂停", "Pausa da automação", "Пауза автоматики", "自動化の一時停止", "자동화 일시 중지", "自動化暫停", "Otomasyon duraklatma", "Tạm dừng tự động hóa", "Jeda otomatisasi", "Pausa dell'automazione" };
-        m["ap_desc"]        = new[]
+        // the amber note of the pause card: a title and three lines (what stops, what keeps working, what happens at the end)
+        m["ap_box_title"]   = new[] { "What the pause does", "Co robi pauza", "Was die Pause bewirkt", "Ce que fait la pause", "Qué hace la pausa", "暂停的作用", "O que a pausa faz", "Что делает пауза", "一時停止の内容", "일시 중지가 하는 일", "暫停的作用", "Duraklatma ne yapar", "Tạm dừng làm gì", "Apa yang dilakukan jeda", "Cosa fa la pausa" };
+        m["ap_box_paused"]  = new[]
         {
-            "The scene schedule and the battery rules do nothing until the chosen time, then come back on their own. Alerts and the profile switch on AC / battery keep working.",
-            "Harmonogram scen i reguły baterii nic nie robią do wybranej pory, potem same wracają. Alerty i przełączanie profilu przy zasilaczu / baterii działają dalej.",
-            "Szenen-Zeitplan und Akkuregeln tun bis zum gewählten Zeitpunkt nichts und kommen dann von selbst zurück. Warnungen und der Profilwechsel bei Netz / Akku arbeiten weiter.",
-            "La planification des scènes et les règles de batterie ne font rien jusqu'au moment choisi, puis reviennent d'elles-mêmes. Les alertes et le changement de profil secteur / batterie continuent.",
-            "La programación de escenas y las reglas de batería no hacen nada hasta el momento elegido y luego vuelven solas. Las alertas y el cambio de perfil con corriente / batería siguen funcionando.",
-            "场景计划和电池规则在所选时间之前不执行任何操作，之后自动恢复。警报以及电源 / 电池的配置文件切换照常工作。",
-            "O agendamento de cenas e as regras de bateria não fazem nada até a hora escolhida e depois voltam sozinhos. Os alertas e a troca de perfil na tomada / bateria continuam funcionando.",
-            "Расписание сцен и правила батареи ничего не делают до выбранного времени, а потом включаются сами. Оповещения и смена профиля при питании от сети / батареи работают как обычно.",
-            "シーンスケジュールとバッテリールールは選んだ時刻まで何もせず、その後は自動で再開します。アラートと AC / バッテリーでのプロファイル切り替えは動作を続けます。",
-            "장면 일정과 배터리 규칙은 선택한 시간까지 아무 동작도 하지 않고, 이후 자동으로 돌아옵니다. 알림과 전원 / 배터리 프로필 전환은 계속 작동합니다.",
-            "場景排程和電池規則在所選時間之前不執行任何動作，之後自動恢復。警示以及電源 / 電池的設定檔切換照常運作。",
-            "Sahne zamanlaması ve pil kuralları seçilen zamana kadar hiçbir şey yapmaz, sonra kendiliğinden geri döner. Uyarılar ve adaptör / pil profil geçişi çalışmaya devam eder.",
-            "Lịch trình cảnh và các quy tắc pin không làm gì cho đến thời điểm đã chọn, sau đó tự hoạt động lại. Cảnh báo và việc chuyển hồ sơ khi cắm sạc / dùng pin vẫn hoạt động.",
-            "Jadwal adegan dan aturan baterai tidak melakukan apa pun sampai waktu yang dipilih, lalu kembali dengan sendirinya. Peringatan dan peralihan profil saat AC / baterai tetap berjalan.",
-            "La pianificazione delle scene e le regole della batteria non fanno nulla fino al momento scelto, poi tornano da sole. Gli avvisi e il cambio profilo con alimentatore / batteria continuano a funzionare.",
+            "Paused: the scene schedule and the battery rules",
+            "Wstrzymane: harmonogram scen i reguły baterii",
+            "Pausiert: Szenen-Zeitplan und Akkuregeln",
+            "En pause : la planification des scènes et les règles de batterie",
+            "En pausa: la programación de escenas y las reglas de batería",
+            "已暂停：场景计划和电池规则",
+            "Em pausa: o agendamento de cenas e as regras de bateria",
+            "На паузе: расписание сцен и правила батареи",
+            "一時停止：シーンスケジュールとバッテリールール",
+            "일시 중지: 장면 일정과 배터리 규칙",
+            "已暫停：場景排程和電池規則",
+            "Duraklatılan: sahne zamanlaması ve pil kuralları",
+            "Tạm dừng: lịch trình cảnh và các quy tắc pin",
+            "Dijeda: jadwal adegan dan aturan baterai",
+            "In pausa: la pianificazione delle scene e le regole della batteria",
+        };
+        m["ap_box_keeps"]   = new[]
+        {
+            "Keeps working: temperature alerts, the profile switch on AC / battery, travel mode, Fan Boost",
+            "Działa dalej: alerty temperatur, przełączanie profilu zasilacz / bateria, tryb podróży, Fan Boost",
+            "Arbeitet weiter: Temperaturwarnungen, Profilwechsel bei Netz / Akku, Reisemodus, Fan Boost",
+            "Continue de fonctionner : alertes de température, changement de profil secteur / batterie, mode voyage, Fan Boost",
+            "Sigue funcionando: alertas de temperatura, cambio de perfil con corriente / batería, modo viaje, Fan Boost",
+            "照常工作：温度警报、电源 / 电池的配置文件切换、旅行模式、Fan Boost",
+            "Continua funcionando: alertas de temperatura, troca de perfil na tomada / bateria, modo viagem, Fan Boost",
+            "Работает как обычно: оповещения о температуре, смена профиля от сети / батареи, режим поездки, Fan Boost",
+            "動作を続けるもの：温度アラート、AC / バッテリーでのプロファイル切り替え、トラベルモード、Fan Boost",
+            "계속 작동: 온도 알림, 전원 / 배터리 프로필 전환, 여행 모드, Fan Boost",
+            "照常運作：溫度警示、電源 / 電池的設定檔切換、旅行模式、Fan Boost",
+            "Çalışmaya devam eder: sıcaklık uyarıları, adaptör / pil profil geçişi, seyahat modu, Fan Boost",
+            "Vẫn hoạt động: cảnh báo nhiệt độ, chuyển hồ sơ khi cắm sạc / dùng pin, chế độ du lịch, Fan Boost",
+            "Tetap berjalan: peringatan suhu, peralihan profil saat AC / baterai, mode perjalanan, Fan Boost",
+            "Continua a funzionare: avvisi di temperatura, cambio profilo con alimentatore / batteria, modalità viaggio, Fan Boost",
+        };
+        m["ap_box_after"]   = new[]
+        {
+            "When it ends: both come back on their own, and the schedule window running at that moment is applied",
+            "Po zakończeniu: oba wracają same i obowiązuje okno harmonogramu, które wtedy trwa",
+            "Am Ende: beide kommen von selbst zurück, und das dann laufende Zeitfenster wird angewendet",
+            "À la fin : les deux reviennent d'eux-mêmes, et la plage horaire en cours à ce moment est appliquée",
+            "Al terminar: ambas vuelven solas y se aplica la franja horaria que esté activa en ese momento",
+            "结束时：两者自动恢复，并应用当时正在进行的计划时段",
+            "Ao terminar: os dois voltam sozinhos e a janela do agendamento em curso nesse momento é aplicada",
+            "По окончании: оба включаются сами, и применяется окно расписания, идущее в этот момент",
+            "終了時：どちらも自動で再開し、その時点で進行中のスケジュール枠が適用されます",
+            "끝나면: 둘 다 자동으로 돌아오고, 그때 진행 중인 일정 구간이 적용됩니다",
+            "結束時：兩者自動恢復，並套用當時正在進行的排程時段",
+            "Bittiğinde: ikisi de kendiliğinden geri döner ve o anda süren zaman aralığı uygulanır",
+            "Khi kết thúc: cả hai tự hoạt động lại và khung giờ lịch trình đang diễn ra lúc đó được áp dụng",
+            "Saat berakhir: keduanya kembali dengan sendirinya, dan jendela jadwal yang sedang berjalan saat itu diterapkan",
+            "Al termine: entrambe tornano da sole e viene applicata la fascia oraria in corso in quel momento",
+        };
+        // (roadmap #37) the "?" next to "Turn Fan Boost off once cooled"
+        m["fb_cool_help"]   = new[]
+        {
+            "Fan Boost turns off when the hotter of the processor and the graphics card has stayed below this temperature for about 10 seconds.\n\nBoth are watched, not the processor alone: otherwise Fan Boost would turn off while the graphics card is still hot.\n\nFan Boost always runs for at least 30 seconds. The timer above keeps working and is the upper limit when both are set.",
+            "Fan Boost wyłącza się, gdy cieplejszy z pary procesor / karta graficzna utrzyma się poniżej tej temperatury przez około 10 sekund.\n\nLiczą się oba, nie sam procesor: inaczej Fan Boost wyłączałby się przy wciąż gorącej karcie graficznej.\n\nFan Boost działa zawsze co najmniej 30 sekund. Licznik czasu powyżej działa dalej i jest górnym limitem, gdy ustawione są oba.",
+            "Fan Boost schaltet sich aus, wenn der heißere von Prozessor und Grafikkarte etwa 10 Sekunden unter dieser Temperatur geblieben ist.\n\nBeide werden beobachtet, nicht nur der Prozessor: sonst würde Fan Boost ausgehen, während die Grafikkarte noch heiß ist.\n\nFan Boost läuft immer mindestens 30 Sekunden. Der Timer darüber arbeitet weiter und ist die Obergrenze, wenn beides eingestellt ist.",
+            "Fan Boost s'éteint quand le plus chaud du processeur et de la carte graphique est resté sous cette température pendant environ 10 secondes.\n\nLes deux sont surveillés, pas seulement le processeur : sinon Fan Boost s'éteindrait alors que la carte graphique est encore chaude.\n\nFan Boost fonctionne toujours au moins 30 secondes. Le minuteur ci-dessus continue et reste la limite haute quand les deux sont réglés.",
+            "Fan Boost se apaga cuando el más caliente entre el procesador y la tarjeta gráfica se ha mantenido por debajo de esta temperatura unos 10 segundos.\n\nSe vigilan los dos, no solo el procesador: de lo contrario Fan Boost se apagaría con la tarjeta gráfica aún caliente.\n\nFan Boost funciona siempre al menos 30 segundos. El temporizador de arriba sigue activo y es el límite máximo cuando ambos están configurados.",
+            "当处理器和显卡中较热的一个在此温度以下保持约 10 秒时，Fan Boost 关闭。\n\n两者都会被监测，而不只是处理器：否则显卡仍然很热时 Fan Boost 就会关闭。\n\nFan Boost 至少运行 30 秒。上方的计时器照常工作，两者都设置时它是时间上限。",
+            "O Fan Boost desliga quando o mais quente entre o processador e a placa de vídeo fica abaixo desta temperatura por cerca de 10 segundos.\n\nOs dois são observados, não só o processador: senão o Fan Boost desligaria com a placa de vídeo ainda quente.\n\nO Fan Boost funciona sempre por pelo menos 30 segundos. O temporizador acima continua ativo e é o limite máximo quando os dois estão definidos.",
+            "Fan Boost выключается, когда более горячий из процессора и видеокарты держится ниже этой температуры около 10 секунд.\n\nУчитываются оба, а не только процессор: иначе Fan Boost выключался бы при всё ещё горячей видеокарте.\n\nFan Boost всегда работает не меньше 30 секунд. Таймер выше продолжает действовать и остаётся верхним пределом, когда заданы оба.",
+            "プロセッサとグラフィックカードのうち熱い方が、この温度を約 10 秒間下回ると Fan Boost はオフになります。\n\nプロセッサだけでなく両方を監視します。そうしないと、グラフィックカードがまだ熱いうちに Fan Boost がオフになってしまいます。\n\nFan Boost は必ず 30 秒以上動作します。上のタイマーも引き続き働き、両方を設定した場合は上限になります。",
+            "프로세서와 그래픽 카드 중 더 뜨거운 쪽이 이 온도 아래로 약 10초 동안 유지되면 Fan Boost가 꺼집니다.\n\n프로세서만이 아니라 둘 다 확인합니다. 그렇지 않으면 그래픽 카드가 아직 뜨거운데 Fan Boost가 꺼지게 됩니다.\n\nFan Boost는 항상 최소 30초 동안 작동합니다. 위의 타이머도 계속 작동하며, 둘 다 설정된 경우 상한이 됩니다.",
+            "當處理器和顯示卡中較熱的一個在此溫度以下維持約 10 秒時，Fan Boost 關閉。\n\n兩者都會被監測，而不只是處理器：否則顯示卡仍然很熱時 Fan Boost 就會關閉。\n\nFan Boost 至少運作 30 秒。上方的計時器照常運作，兩者都設定時它是時間上限。",
+            "İşlemci ve ekran kartından daha sıcak olanı yaklaşık 10 saniye bu sıcaklığın altında kaldığında Fan Boost kapanır.\n\nYalnızca işlemci değil, ikisi de izlenir: aksi halde ekran kartı hâlâ sıcakken Fan Boost kapanırdı.\n\nFan Boost her zaman en az 30 saniye çalışır. Yukarıdaki zamanlayıcı çalışmaya devam eder ve ikisi de ayarlıysa üst sınırdır.",
+            "Fan Boost tắt khi linh kiện nóng hơn trong hai linh kiện, bộ xử lý và card đồ họa, giữ dưới nhiệt độ này khoảng 10 giây.\n\nCả hai đều được theo dõi, không chỉ bộ xử lý: nếu không, Fan Boost sẽ tắt khi card đồ họa vẫn còn nóng.\n\nFan Boost luôn chạy ít nhất 30 giây. Bộ hẹn giờ ở trên vẫn hoạt động và là giới hạn trên khi cả hai được đặt.",
+            "Fan Boost mati ketika yang lebih panas di antara prosesor dan kartu grafis bertahan di bawah suhu ini selama sekitar 10 detik.\n\nKeduanya dipantau, bukan hanya prosesor: jika tidak, Fan Boost akan mati saat kartu grafis masih panas.\n\nFan Boost selalu berjalan setidaknya 30 detik. Pengatur waktu di atas tetap bekerja dan menjadi batas atas jika keduanya diatur.",
+            "Fan Boost si spegne quando il più caldo tra processore e scheda grafica è rimasto sotto questa temperatura per circa 10 secondi.\n\nVengono controllati entrambi, non solo il processore: altrimenti Fan Boost si spegnerebbe con la scheda grafica ancora calda.\n\nFan Boost funziona sempre per almeno 30 secondi. Il timer qui sopra continua a funzionare ed è il limite massimo quando sono impostati entrambi.",
         };
         m["ap_for"]         = new[] { "Pause for", "Wstrzymaj na", "Pausieren für", "Mettre en pause pendant", "Pausar durante", "暂停时长", "Pausar por", "Приостановить на", "一時停止する期間", "일시 중지 기간", "暫停時長", "Şu süreyle duraklat", "Tạm dừng trong", "Jeda selama", "Metti in pausa per" };
         m["ap_start"]       = new[] { "Pause", "Wstrzymaj", "Pausieren", "Mettre en pause", "Pausar", "暂停", "Pausar", "Приостановить", "一時停止", "일시 중지", "暫停", "Duraklat", "Tạm dừng", "Jeda", "Metti in pausa" };
