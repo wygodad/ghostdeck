@@ -176,7 +176,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261220;
+    public const int DataVersion = 20261221;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -754,10 +754,14 @@ public static class Devices
         //   scenarios - the recipes 1:1 - and his path test (#291) PASSED: every profile read back
         //   as written, the original state restored, Super Battery 27 % of Extreme's work (1053 vs
         //   3567 MHz). Its curve step was inconclusive (the fan already at duty 100 at 95 C before
-        //   the table was raised), so the curve stays off. Tested after the owner's two checks.
-        new() { Name = "MSI GS66 Stealth", FirmwarePrefixes = new[] { "16V1EMS1" }, Tier = Tier.Experimental,
+        //   the table was raised), so the curve stays off. Tested on 23 Nov 2026 (#291): the owner
+        //   confirmed Silent quieter than Balanced under a light load and switching stable over
+        //   days - the two checks the test cannot make. Fan Boost stays unavailable on this path.
+        new() { Name = "MSI GS66 Stealth", FirmwarePrefixes = new[] { "16V1EMS1" }, Tier = Tier.Tested,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
-                BlockPath = DragonEraBlocks },   // block report in issue #258
+                BlockPath = DragonEraBlocks,   // block report in issue #258
+                Credit = "SFIsaksen, MyatThuyaAung", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/291",
+                CreditIssues = Issues("SFIsaksen:258,268; MyatThuyaAung:291,292") },
         new() { Name = "MSI Katana GF66",                FirmwarePrefixes = new[] { "1582EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76",                FirmwarePrefixes = new[] { "17L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // GE66 Raider / GP66 Leopard (1543EMS1) — owner dump from a GP66 Leopard 11UG (issue #52)

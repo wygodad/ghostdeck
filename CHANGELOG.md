@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Changed
+- **GS66 Stealth is a tested model** (`16V1EMS1`, model database 20261221, [#291](../../issues/291), thanks
+  @MyatThuyaAung and @SFIsaksen): its path test passed on the backup WMI path, and the owner confirmed Silent quieter than
+  Balanced under a light load and switching stable over days. The fan-curve editor stays off for this model
+  ([BACKUP-PATH.md](docs/BACKUP-PATH.md)).
 - **New model: Vector GP77 13VG** (`17K7EMS1`, model database 20261220, [#372](../../issues/372),
   [#373](../../issues/373), thanks @stimul14): a new board of the GE76 / GP76 line, added with that line's standard
   recipes, since the owner's capture was taken without switching scenarios; the fan curve is verified on both fans.
