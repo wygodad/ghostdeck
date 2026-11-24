@@ -136,7 +136,7 @@ public sealed partial class SettingsPage : ThemedPage
         // the sub-tab you left. FocusScenVisibility runs AFTER OnEnter, so the gear deep link
         // from the Scenarios tab still wins - do not reorder those two.
         if (D.Settings.SettingsAlwaysStart && _cur != SubHome) SelectSub(SubHome, save: false);
-        SyncTravelRow(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); SyncCrosshairCards(); RefreshTiles(); Layout2(); Invalidate();
+        SyncTravelRow(); SyncPauseCard(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); SyncCrosshairCards(); RefreshTiles(); Layout2(); Invalidate();
     }
 
     // Thin themed rule between unrelated option groups inside one card (the Notifications
@@ -161,6 +161,16 @@ public sealed partial class SettingsPage : ThemedPage
 
     // Travel mode and the charge limit can change outside this page (CLI, a scene, the expiry
     // itself) and the Power-card rows are a build-time snapshot - rebuild that card when it went stale.
+    // (roadmap #75) the pause card follows a pause that ended on its own while the page was open
+    private CardSection? _pauseCard;
+    private Func<CardSection>? _buildPause;
+    private bool _builtPaused;
+    private void SyncPauseCard()
+    {
+        if (_builtPaused == (D.Settings.AutomationPausedUntil > DateTime.Now)) return;
+        if (_pauseCard != null && _buildPause != null) _pauseCard = RebuildCard(_pauseCard, _buildPause);
+    }
+
     private void SyncTravelRow()
     {
         if (_builtTravelOn == (D.Settings.TravelUntil != DateTime.MinValue) &&
@@ -705,6 +715,19 @@ public sealed partial class SettingsPage : ThemedPage
                 if (fb.SelectedIndex < fbVals.Length) { D.Settings.FanBoostSeconds = fbVals[fb.SelectedIndex]; D.SaveSettings(); }
             };
             power.AddRow(Lang.T("set_fb_timer"), fb);
+
+            // (roadmap #37) ...or once the laptop has cooled: the hotter of CPU and GPU below the
+            // picked temperature. Works beside the timer, which stays the upper limit.
+            int[] coolVals = { 0, 55, 60, 65, 70, 75, 80 };
+            var cool = Combo(coolVals.Select(v => v == 0 ? Lang.T("fb_never") : string.Format(Lang.T("fb_cool_below"), v)).ToArray(),
+                Math.Max(0, Array.IndexOf(coolVals, D.Settings.FanBoostUntilTemp)));
+            cool.SelectedIndexChanged += (_, _) =>
+            {
+                if (cool.SelectedIndex < 0 || cool.SelectedIndex >= coolVals.Length) return;
+                D.Settings.FanBoostUntilTemp = coolVals[cool.SelectedIndex];
+                D.SaveSettings();
+            };
+            power.AddRow(Lang.T("set_fb_cool"), cool);
             return power;
         }
         _buildPower = BuildPower;
@@ -724,6 +747,74 @@ public sealed partial class SettingsPage : ThemedPage
         PowerPlan.EnsureEffectiveWatch();
         wpBody.Sync();
         _gLeft[SubPower].Add(wp);
+
+        // (roadmap #75) Automation pause: the scene schedule and the battery rules do nothing until
+        // the chosen moment, then come back on their own. Same one-shot shape as travel mode: a
+        // length to pick and a button, or - while it runs - the end time and "Resume now".
+        CardSection BuildPause()
+        {
+            var ap = new CardSection(Lang.T("ap_grp"), "");   // MDL2 Pause
+            ap.AddRow(null, new Label
+            {
+                Text = Lang.T("ap_desc"), AutoSize = true, MaximumSize = new Size(360, 0),
+                Font = Dpi.Font("Segoe UI", 9f), Tag = "muted",
+            });
+            var until = D.Settings.AutomationPausedUntil;
+            bool paused = until > DateTime.Now;
+            _builtPaused = paused;
+            var btn = new Button { Text = Lang.T(paused ? "ap_resume" : "ap_start"), AutoSize = true, Padding = new Padding(10, 2, 10, 2) };
+            Ui.StyleGhost(btn);
+            if (!paused)
+            {
+                // tomorrow morning = 8:00 on the next day; "Custom…" asks for a number of days
+                var tomorrow = DateTime.Today.AddDays(1).AddHours(8);
+                var opts = new List<(string Text, Func<DateTime> Until)>
+                {
+                    (string.Format(Lang.T("ap_hours"), 2), () => DateTime.Now.AddHours(2)),
+                    (string.Format(Lang.T("ap_tomorrow"), tomorrow.ToShortTimeString()), () => DateTime.Today.AddDays(1).AddHours(8)),
+                };
+                foreach (int d in new[] { 3, 7, 14, 30 })
+                {
+                    int days = d;
+                    opts.Add((string.Format(Lang.T("travel_days_fmt"), days), () => DateTime.Now.AddDays(days)));
+                }
+                var sel = Combo(opts.Select(o => o.Text).Append(Lang.T("fb_custom")).ToArray(), 1);
+                btn.Click += (_, _) =>
+                {
+                    DateTime to;
+                    if (sel.SelectedIndex >= opts.Count)   // Custom…
+                    {
+                        string? txt = InputDialog.Ask(FindForm(), Lang.T("ap_grp"), Lang.T("ap_custom_ask"), "7",
+                            validate: t => int.TryParse(t, out int n) && n is >= 1 and <= 365 ? null : "", tag: "//AUTOMATION");
+                        if (!int.TryParse(txt, out int daysIn) || daysIn is < 1 or > 365) return;
+                        to = DateTime.Now.AddDays(daysIn);
+                    }
+                    else to = opts[Math.Max(0, sel.SelectedIndex)].Until();
+                    D.PauseAutomation?.Invoke(to);
+                    if (_pauseCard != null) _pauseCard = RebuildCard(_pauseCard, BuildPause);
+                };
+                ap.AddRow(Lang.T("ap_for"), sel);
+                ap.AddRow("", btn);
+            }
+            else
+            {
+                ap.AddRow(null, new Label
+                {
+                    Text = string.Format(Lang.T("ap_note"), until.ToShortDateString() + " " + until.ToShortTimeString()),
+                    AutoSize = true, MaximumSize = new Size(360, 0),
+                    Font = Dpi.Font("Segoe UI", 9.5f, FontStyle.Bold),
+                });
+                btn.Click += (_, _) =>
+                {
+                    D.PauseAutomation?.Invoke(DateTime.MinValue);
+                    if (_pauseCard != null) _pauseCard = RebuildCard(_pauseCard, BuildPause);
+                };
+                ap.AddRow("", btn);
+            }
+            return ap;
+        }
+        _buildPause = BuildPause;
+        _gRight[SubNotif].Add(_pauseCard = BuildPause());
 
         // Scene schedule: different settings for work hours, nights and weekends. Rules are
         // edited in a small dialog; the card alone is rebuilt after a change.

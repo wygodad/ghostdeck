@@ -50,6 +50,7 @@ public sealed class StatusPage : ThemedPage
     private int _statusSub;
     private readonly SegControl _histRange = new(new[] { "5 min", "15 min", "30 min", "60 min" }, 1) { Size = new Size(300, 30), Visible = false };   // dpi-ok: SegControl's MinimumSize grows it to its labels
     private readonly Button _histExport = new() { Visible = false };
+    private readonly Button _histPng = new() { Visible = false, Text = "PNG" };   // (roadmap #46) the charts as a picture
     private readonly ThemedComboBox _sessPick = new() { Visible = false, Width = 280 };   // saved game sessions, newest first
     private readonly Button _sessExport = new() { Visible = false };
     private List<GameSession> _sessList = new();
@@ -65,7 +66,7 @@ public sealed class StatusPage : ThemedPage
         Controls.Add(_canvas);
 
         _statusTabs.Location = new Point(Pad, SubY);
-        _statusTabs.Changed += i => { _statusSub = i; _hist.Visible = i == 4; _histRange.Visible = _histExport.Visible = i == 1; _sessPick.Visible = _sessExport.Visible = i == 2; if (i == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); };
+        _statusTabs.Changed += i => { _statusSub = i; _hist.Visible = i == 4; _histRange.Visible = _histExport.Visible = _histPng.Visible = i == 1; _sessPick.Visible = _sessExport.Visible = i == 2; if (i == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); };
         _canvas.Controls.Add(_statusTabs);
 
         // History range picker (5-60 min) lives on the canvas, shown only on the History sub-tab.
@@ -77,6 +78,9 @@ public sealed class StatusPage : ThemedPage
         _histExport.Text = Lang.T("st_hist_export");
         _histExport.Click += (_, _) => ExportHistory();
         _canvas.Controls.Add(_histExport);
+        Ui.StyleGhost(_histPng);
+        _histPng.Click += (_, _) => ExportHistoryPng();
+        _canvas.Controls.Add(_histPng);
 
         // Gaming: saved-session picker + per-session export (JSON/CSV).
         _sessPick.SelectedIndexChanged += (_, _) => _canvas.Rebuild();
@@ -329,7 +333,7 @@ public sealed class StatusPage : ThemedPage
     /// <summary>Clicking the Status tab while already on it goes back to the first sub-tab.</summary>
     public override void OnReenter() => _statusTabs.SetActive(0, raise: true);
 
-    public override void OnEnter() { _hist.Visible = _statusSub == 4; _histRange.Visible = _histExport.Visible = _statusSub == 1; _sessPick.Visible = _sessExport.Visible = _statusSub == 2; if (_statusSub == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
+    public override void OnEnter() { _hist.Visible = _statusSub == 4; _histRange.Visible = _histExport.Visible = _histPng.Visible = _statusSub == 1; _sessPick.Visible = _sessExport.Visible = _statusSub == 2; if (_statusSub == 2) RefreshSessions(); UpdateFpsViewer(); Relayout(); _canvas.Rebuild(); RefreshAsync(); }
     public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; _hist.ApplyTheme(); _statusTabs.Invalidate(); _canvas.Rebuild(); } }
     public override void OnLanguageChanged()
     {
@@ -782,12 +786,27 @@ public sealed class StatusPage : ThemedPage
         if (_histExport.Bounds != eb) _histExport.Bounds = eb;
         _histExport.BringToFront();
 
+        // (roadmap #46) "PNG" sits left of Export: the charts below as a picture
+        var pngSz = TextRenderer.MeasureText(g, _histPng.Text, _histPng.Font);
+        int pwW = pngSz.Width + 28;
+        var pb = new Rectangle(eb.Left - pwW - 10, eb.Top, pwW, ewH);
+        if (_histPng.Bounds != pb) _histPng.Bounds = pb;
+        _histPng.BringToFront();
+
         var data = HwHistory.Window(TimeSpan.FromMinutes(_histMin));
         _histPlots.Clear();
         _histData = data;
         _histT0 = DateTime.Now - TimeSpan.FromMinutes(_histMin);
         _histSpanSec = _histMin * 60.0;
-        int top = SecTop + 44;
+        DrawHistoryCharts(g, avail, SecTop + 44, data);
+    }
+
+    private static int HistoryChartCount => HwHistory.HasRpm ? 4 : 3;
+
+    // The chart cards of the History view, top to bottom; returns the bottom edge of the last one.
+    // Shared by the page and by the PNG export, which draws the same cards onto a bitmap.
+    private int DrawHistoryCharts(Graphics g, int avail, int top, List<HwSample> data)
+    {
         top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_temps"), "°C", data,
             s => s.CpuTemp, s => s.GpuTemp, "CPU", "GPU") + 24;
         // the fan curve target on the same 0-150 scale as the Status rings, 0 included (TECHNICAL §76)
@@ -808,9 +827,58 @@ public sealed class StatusPage : ThemedPage
             int peak = 0;
             foreach (var s in data) peak = Math.Max(peak, (int)s.Fps);
             int maxFps = Math.Max(60, (peak + 15 + 29) / 30 * 30);
-            DrawHistoryChart(g, top, avail, Lang.T("st_hist_fps"), "", data,
+            return DrawHistoryChart(g, top, avail, Lang.T("st_hist_fps"), "", data,
                 s => s.Fps, _ => -1, "FPS", "", maxFps, hint: Lang.T("st_hist_fps_hint"));
         }
+    }
+
+    // (roadmap #46) The History charts as a PNG: the cards exactly as the page draws them, in the
+    // current theme and range, under one caption line that says what the picture shows - app
+    // version, model, firmware, time and range - so it stands on its own in a report or a post.
+    private void ExportHistoryPng()
+    {
+        using var bmp = ComposeHistoryPng();
+        using var dlg = new SaveFileDialog
+        {
+            Filter = "PNG (*.png)|*.png",
+            FileName = $"ghostdeck-history-{DateTime.Now:yyyyMMdd-HHmm}.png",
+        };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try { bmp.Save(dlg.FileName, System.Drawing.Imaging.ImageFormat.Png); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>The picture <see cref="ExportHistoryPng"/> saves; the caller disposes it.</summary>
+    internal Bitmap ComposeHistoryPng()
+    {
+        var data = HwHistory.Window(TimeSpan.FromMinutes(_histMin));
+        int width = Math.Max(_canvas.Width, 720), avail = width - Pad * 2;
+        string model = "";
+        try { model = _dev?.Name ?? ""; } catch { }
+        string caption = string.Join("  ·  ", new[] { "GhostDeck " + D.AppVersion(), model, D.Firmware(),
+            DateTime.Now.ToString("g"), string.Format(Lang.T("fb_mins"), _histMin) }.Where(t => !string.IsNullOrWhiteSpace(t)));
+        using var capF = Dpi.Font("Segoe UI", 9.5f);
+        // the caption wraps on a narrow window, so its height is measured, never cut
+        const TextFormatFlags capFlags = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix;
+        int capH = Math.Max(capF.Height, TextRenderer.MeasureText(caption, capF, new Size(avail, int.MaxValue), capFlags).Height);
+        int top = Pad / 2 + capH + Pad / 2;
+        int height = top + HistoryChartCount * HistChartH + (HistoryChartCount - 1) * 24 + Pad / 2;
+        // 24-bit: text is drawn through GDI, which leaves the alpha of a 32-bit bitmap at zero
+        var bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Theme.Surface);
+            TextRenderer.DrawText(g, caption, capF, new Rectangle(Pad, Pad / 2, avail, capH), Theme.Muted, capFlags);
+            // the page's hit-test list belongs to the charts on screen, not to this drawing
+            var onScreen = _histPlots.ToList();
+            try { DrawHistoryCharts(g, avail, top, data); }
+            finally { _histPlots.Clear(); _histPlots.AddRange(onScreen); }
+        }
+        return bmp;
     }
 
     // #172: chart geometry from the fonts. The header (46 px), the value-label column (62 px) and

@@ -40,7 +40,6 @@ public sealed class TrayContext : ApplicationContext
     private int _switches;
     private PowerLineStatus? _lastPower;
     private MainForm? _main;
-    private readonly List<Image> _menuSwatches = new();
     private SynchronizationContext? _ui;
     private string? _updateUrl;
     private Updater.Result? _updateAvail;      // newer release found by the daily check (Settings Start header chip)
@@ -267,7 +266,7 @@ public sealed class TrayContext : ApplicationContext
         // Scene schedule: the active window applies at startup too, AFTER the restore logic
         // above - so a boot inside "work hours" lands in the work scene, and the schedule
         // deliberately outranks the restored profile/curve.
-        CheckSchedule(applyNow: true);
+        if (!AutomationPaused) CheckSchedule(applyNow: true);
     }
 
     // ---------------- CLI pipe server ----------------
@@ -904,18 +903,9 @@ public sealed class TrayContext : ApplicationContext
 
     // ---------------- menu ----------------
     // Small state indicator for the toggle menu items: a filled accent dot when ON, a dim hollow ring
-    // when OFF — so an inactive toggle still shows a (greyed) marker instead of nothing (discussion #9).
-    private static Image StateDot(bool on)
-    {
-        var bmp = new Bitmap(16, 16);
-        using var g = Graphics.FromImage(bmp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        var r = new Rectangle(3, 3, 9, 9);
-        if (on) { using var b = new SolidBrush(Theme.Accent); g.FillEllipse(b, r); }
-        else { using var p = new Pen(Color.FromArgb(0x6A, 0x70, 0x7C), 1.6f); g.DrawEllipse(p, r); }
-        return bmp;
-    }
-    private static void SetDot(ToolStripMenuItem it, bool on) { var old = it.Image; it.Image = StateDot(on); old?.Dispose(); }
+    // when OFF - so an inactive toggle still shows a (greyed) marker instead of nothing (discussion #9).
+    // Drawn by ThemedMenu in the theme's colours, at the menu's scale.
+    private static void SetDot(ToolStripMenuItem it, bool on) => ThemedMenu.Dot(it, on);
 
     private void BuildMenu()
     {
@@ -925,22 +915,22 @@ public sealed class TrayContext : ApplicationContext
         // disposed strip - that was the "Cannot access a disposed object: ContextMenuStrip"
         // of issue #205.
         var oldMenu = _tray.ContextMenuStrip;
-        var oldSwatches = _menuSwatches.ToArray();
-        _menuSwatches.Clear();
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(new ToolStripLabel("GhostDeck") { Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold) });
-        menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = Dpi.Font("Segoe UI", 8) });
+        var deviceLine = new ToolStripLabel(DeviceDescriptor()) { Font = Dpi.Font("Segoe UI", 8) };
+        ThemedMenu.Tone(deviceLine, MenuTone.Muted);
+        menu.Items.Add(deviceLine);
         menu.Items.Add(new ToolStripSeparator());
 
         if (_firmwareChanged)
         {
             var fw = new ToolStripMenuItem(Lang.T("menu_fw_ack"))
             {
-                ForeColor = Color.FromArgb(0xB0, 0x4A, 0x3A),
                 Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold),
                 ToolTipText = Lang.T("fw_changed_text"),
             };
+            ThemedMenu.Tone(fw, MenuTone.Warn);
             fw.Click += (_, _) => AcknowledgeFirmware();
             menu.Items.Add(fw);
             menu.Items.Add(new ToolStripSeparator());
@@ -950,9 +940,9 @@ public sealed class TrayContext : ApplicationContext
         {
             var upd = new ToolStripMenuItem(Lang.T("menu_update"))
             {
-                ForeColor = Color.FromArgb(0x2E, 0xA0, 0x43),
                 Font = Dpi.Font("Segoe UI", 9, FontStyle.Bold),
             };
+            ThemedMenu.Tone(upd, MenuTone.Good);
             upd.Click += (_, _) => OpenUrl(url);
             menu.Items.Add(upd);
             menu.Items.Add(new ToolStripSeparator());
@@ -960,14 +950,12 @@ public sealed class TrayContext : ApplicationContext
 
         foreach (var id in Profiles.Shown)   // the order the user set (discussion #101)
         {
-            var swatch = MakeSwatch(_settings.ColorFor(id));
-            _menuSwatches.Add(swatch);
-            var item = new ToolStripMenuItem(Profiles.Get(id).Label, swatch)
+            var item = new ToolStripMenuItem(Profiles.Get(id).Label)
             {
                 Tag = id,
                 Enabled = Writable,
-                ImageScaling = ToolStripItemImageScaling.None,
             };
+            ThemedMenu.Swatch(item, _settings.ColorFor(id));
             item.Click += (_, _) => SetProfile((ProfileId)item.Tag!, osd: true, ChangeSource.Tray);
             menu.Items.Add(item);
         }
@@ -1182,6 +1170,7 @@ public sealed class TrayContext : ApplicationContext
         exit.Click += (_, _) => ExitApp();
         menu.Items.Add(exit);
 
+        ThemedMenu.Apply(menu);   // theme colours for the strip and every submenu
         _tray.ContextMenuStrip = menu;
         if (_cpuTray != null) _cpuTray.ContextMenuStrip = menu;
         if (_gpuTray != null) _gpuTray.ContextMenuStrip = menu;
@@ -1189,14 +1178,9 @@ public sealed class TrayContext : ApplicationContext
         _tray.MouseClick -= TrayClick;
         _tray.MouseClick += TrayClick;
 
-        void Retire()
-        {
-            oldMenu?.Dispose();
-            foreach (var im in oldSwatches) im.Dispose();
-        }
-        // a strip that is open right now keeps its images until it has closed
-        if (oldMenu is { IsDisposed: false, Visible: true }) oldMenu.Closed += (_, _) => SynchronizationContext.Current?.Post(_ => Retire(), null);
-        else Retire();
+        // a strip that is open right now is released only once it has closed
+        if (oldMenu is { IsDisposed: false, Visible: true }) oldMenu.Closed += (_, _) => SynchronizationContext.Current?.Post(_ => oldMenu.Dispose(), null);
+        else oldMenu?.Dispose();
 
         RebuildJumpList();   // the taskbar list mirrors the menu, so it follows every rebuild
     }
@@ -1357,26 +1341,6 @@ public sealed class TrayContext : ApplicationContext
         if (cur < 0) { ShowState(); return; }
         int next = Math.Clamp(cur + steps, 0, 3);
         if (next != cur) SetKbdLight(next, ChangeSource.Tray);
-    }
-
-    // maly kafelek w kolorze profilu (do menu)
-    private static Image MakeSwatch(Color c)
-    {
-        var bmp = new Bitmap(16, 16);
-        using var g = Graphics.FromImage(bmp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.Clear(Color.Transparent);
-        var rect = new Rectangle(2, 2, 11, 11);
-        const int d = 6;
-        using var path = new GraphicsPath();
-        path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-        path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-        path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-        path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-        path.CloseFigure();
-        using (var b = new SolidBrush(c)) g.FillPath(b, path);
-        using (var pen = new Pen(Color.FromArgb(45, 0, 0, 0))) g.DrawPath(pen, path);
-        return bmp;
     }
 
     // ---------------- profile ----------------
@@ -1892,8 +1856,17 @@ public sealed class TrayContext : ApplicationContext
     // (tray, hotkey, Scenarios brick, CLI) and cancelled on any OFF - including a panic reset.
     private System.Windows.Forms.Timer? _boostTimer;
 
+    // (roadmap #37) "off once cooled": when Fan Boost went on, and how many readings in a row
+    // have been below the target since.
+    private long _boostOnAt;
+    private int _boostCoolReads;
+    private const int BoostCoolMinMs = 30_000;   // a boost always runs at least this long
+    private const int BoostCoolReadsNeeded = 3;  // three polls in a row, about 10 s
+
     private void ArmBoostTimer(bool on, int? overrideSeconds = null)
     {
+        _boostOnAt = on ? Environment.TickCount64 : 0;
+        _boostCoolReads = 0;
         _boostTimer?.Stop();
         _boostTimer?.Dispose();
         _boostTimer = null;
@@ -1912,10 +1885,28 @@ public sealed class TrayContext : ApplicationContext
         _boostTimer.Start();
     }
 
-    // auto = the boost timer fired (#51); it only changes the on-screen wording.
-    // osd = false lets a scene (#21) flip boost silently under its own single toast.
-    private void SetCoolerBoostState(bool next, bool auto = false, bool osd = true)
+    // (roadmap #37) Fan Boost hands the fans back once the hotter of CPU and GPU has stayed below
+    // the chosen temperature. Called with every hardware reading while the option is on; the
+    // timer above keeps running beside it and stays the upper limit.
+    private void OnBoostCoolSample(HwSnapshot hw)
     {
+        int target = _settings.FanBoostUntilTemp;
+        if (target <= 0 || !_coolerBoost || !Writable || _ecBusy > 0) { _boostCoolReads = 0; return; }
+        int worst = Math.Max(hw.CpuTemp, hw.GpuTemp);
+        if (worst <= 0) return;                                   // no reading this time
+        if (worst >= target) { _boostCoolReads = 0; return; }
+        if (Environment.TickCount64 - _boostOnAt < BoostCoolMinMs) return;
+        if (++_boostCoolReads < BoostCoolReadsNeeded) return;
+        ArmBoostTimer(false);
+        SetCoolerBoostState(false, auto: true, autoText: string.Format(Lang.T("fb_cooled"), worst));
+    }
+
+    // auto = the boost timer fired (#51) or the laptop cooled down (#37); it only changes the
+    // on-screen wording (autoText replaces the timer's line).
+    // osd = false lets a scene (#21) flip boost silently under its own single toast.
+    private void SetCoolerBoostState(bool next, bool auto = false, bool osd = true, string? autoText = null)
+    {
+        autoText ??= Lang.T("fb_auto_off");
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
         if (next && !auto) Stats.CountUse(_settings, "fanBoost");
         if (Ec.OnBackupPath)   // the Fan Boost register has no slot there
@@ -1959,10 +1950,10 @@ public sealed class TrayContext : ApplicationContext
             ArmBoostTimer(next);   // (#51) start the auto-off countdown, or cancel it on OFF
             ChangeLog.Add(ChangeSource.CoolerBoost,
                 Lang.T("cooler_boost") + ": " + (next ? Lang.T("st_on") : Lang.T("st_off"))
-                    + (auto ? "  ·  " + Lang.T("fb_auto_off") : ""),
+                    + (auto ? "  ·  " + autoText : ""),
                 read);
             if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("cooler_boost"),
-                auto ? Lang.T("fb_auto_off") : Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
+                auto ? autoText : Lang.T(next ? "cooler_boost_on" : "cooler_boost_off"),
                 next ? Color.FromArgb(0x17, 0xC0, 0xEB) : Color.Gray);
             UpdateCoolerBoostMenu();
         }
@@ -2241,7 +2232,7 @@ public sealed class TrayContext : ApplicationContext
                     SetProfile(w, osd: true, ChangeSource.Restore, count: false);
                 TryRestoreCurve();   // after the profile, so its recipe can't overwrite the fan mode
                 if (wantCharge) TryApplyChargeLimit();   // hibernation can drop the EC threshold; same byte again is harmless
-                CheckSchedule();     // last, so a window crossed during sleep outranks the restore
+                if (!AutomationPaused) CheckSchedule();     // last, so a window crossed during sleep outranks the restore
             };
             t.Start();
         }, null);
@@ -2640,6 +2631,7 @@ public sealed class TrayContext : ApplicationContext
             if (days <= 0) EndTravel(notify: false);
             else StartTravel(days);
         },
+        PauseAutomation = SetAutomationPause,
         SetAutoSwitch = on =>
         {
             _settings.AutoSwitchEnabled = on;
@@ -3163,6 +3155,7 @@ public sealed class TrayContext : ApplicationContext
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
                     (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
+                if (_settings.FanBoostUntilTemp > 0 && _coolerBoost) ui?.Post(_ => OnBoostCoolSample(hw), null);
                 if (!Ec.OnBackupPath)   // the charge register has no slot on the backup path
                     ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
                 if (_settings.TempTrayCpu || _settings.TempTrayGpu || _settings.TempTraySsd)
@@ -3295,8 +3288,28 @@ public sealed class TrayContext : ApplicationContext
             hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
         // two channels, each the user's choice (Settings → Automation): the on-screen toast, the card
         if (_settings.TempAlertOsd) _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
-        if (_settings.TempAlertCard) ShowCard("//THERMAL", Lang.T("ta_alert_title"), text);
+        if (_settings.TempAlertCard) ShowThermalCard(text);
         ChangeLog.Add(ChangeSource.Thermal, text);
+    }
+
+    // (roadmap #50) The temperature card offers the two things that cool the laptop, each only
+    // where it applies: Fan Boost (not on the backup path, not already on) and the Silent
+    // profile (unless it is the active one). Both act as a click on the tray
+    // menu would; the corner cross only closes the card. Without either, the card is the plain
+    // acknowledge-only message.
+    private void ShowThermalCard(string text)
+    {
+        bool canBoost = Writable && !Ec.OnBackupPath && !_coolerBoost;
+        bool canSilent = Writable && _current != ProfileId.Silent;
+        void Boost() { if (!_coolerBoost) SetCoolerBoostState(true); }
+        void Silent() { if (_current != ProfileId.Silent) SetProfile(ProfileId.Silent, osd: true, ChangeSource.Thermal); }
+        string title = Lang.T("ta_alert_title");
+        GhostCardForm dlg =
+            canBoost && canSilent ? new GhostCardForm("//THERMAL", title, text, Lang.T("ta_btn_boost"), Lang.T("ta_btn_silent"), Boost) { Quiet = true, LaterAction = Silent }
+            : canBoost ? new GhostCardForm("//THERMAL", title, text, Lang.T("ta_btn_boost"), Lang.T("fw_dlg_later"), Boost) { Quiet = true }
+            : canSilent ? new GhostCardForm("//THERMAL", title, text, Lang.T("ta_btn_silent"), Lang.T("fw_dlg_later"), Silent) { Quiet = true }
+            : new GhostCardForm("//THERMAL", title, text, Lang.T("gen_ok"), "", () => { }) { Quiet = true };
+        dlg.Show();
     }
 
     // ---------------- SSD temperature alert ----------------
@@ -3471,6 +3484,42 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
+    // ---------------- automation pause (roadmap #75) ----------------
+    // The scene schedule and the battery rules do nothing until a chosen moment and come back on
+    // their own: "on holiday until the 24th" without switching every rule off and on again. The
+    // AC / battery profile switch, the alerts and travel mode are not part of it.
+    private bool AutomationPaused => _settings.AutomationPausedUntil > DateTime.Now;
+
+    private static string PauseStamp(DateTime t) => t.ToShortDateString() + " " + t.ToShortTimeString();
+
+    private void SetAutomationPause(DateTime until)
+    {
+        if (until > DateTime.Now)
+        {
+            _settings.AutomationPausedUntil = until;
+            _settings.Save();
+            ChangeLog.Add(ChangeSource.Schedule, string.Format(Lang.T("log_ap_on"), PauseStamp(until)));
+        }
+        else if (_settings.AutomationPausedUntil != DateTime.MinValue) EndAutomationPause(byUser: true);
+    }
+
+    private void EndAutomationPause(bool byUser)
+    {
+        _settings.AutomationPausedUntil = DateTime.MinValue;
+        _settings.Save();
+        _lastBattPct = -1;   // the battery rules take a fresh baseline: a threshold crossed during the pause does not fire late
+        ChangeLog.Add(ChangeSource.Schedule, Lang.T("log_ap_end"));
+        if (!byUser) ShowCard("//AUTOMATION", Lang.T("ap_grp"), Lang.T("log_ap_end"));
+        CheckSchedule(applyNow: true);   // the schedule window that is running now comes into force, as at startup
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+    }
+
+    private void CheckAutomationPause()
+    {
+        if (_settings.AutomationPausedUntil != DateTime.MinValue && DateTime.Now >= _settings.AutomationPausedUntil)
+            EndAutomationPause(byUser: false);
+    }
+
     private void RunBatteryAction(string action)
     {
         if (!AutoWritable) return;                      // automatic write - firmware guard applies
@@ -3514,8 +3563,12 @@ public sealed class TrayContext : ApplicationContext
         }
 
         CheckTravelMode();     // travel date passed -> previous charge limit comes back
-        CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
-        if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
+        CheckAutomationPause();   // pause time passed -> the two engines below act again
+        if (!AutomationPaused)
+        {
+            CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
+            if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
+        }
 
         if (Ec.OnBackupPath)
         {

@@ -78,3 +78,85 @@ public sealed class SceneDef
         return parts;
     }
 }
+
+/// <summary>
+/// (roadmap #48) Scenes as a file: one or more scenes written as JSON, read back on this or
+/// another computer. The file carries what a scene sets and nothing of the machine it came from:
+/// on the way in every scene gets a new id (hotkeys stay with the computer they were bound on),
+/// a free name, values in range, and it drops what this computer does not have - a fan-curve or
+/// crosshair preset by a name that is not here, the display its refresh rate was picked for.
+/// </summary>
+public static class SceneFile
+{
+    public const int MaxScenes = 50;
+    public const int MaxBytes = 512 * 1024;
+
+    private sealed class Envelope
+    {
+        public string App { get; set; } = "";
+        public string Kind { get; set; } = "";
+        public int Version { get; set; }
+        public List<SceneDef> Scenes { get; set; } = new();
+    }
+
+    private static readonly JsonSerializerOptions Json = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
+    public static string Export(IEnumerable<SceneDef> scenes) =>
+        JsonSerializer.Serialize(new Envelope { App = "GhostDeck", Kind = "scenes", Version = 1, Scenes = scenes.Select(s => s.Clone()).ToList() }, Json);
+
+    public static string FileName(IReadOnlyList<SceneDef> scenes)
+    {
+        if (scenes.Count != 1) return "ghostdeck-scenes.json";
+        string safe = string.Concat(scenes[0].Name.Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-')).Trim('-');
+        return safe.Length == 0 ? "ghostdeck-scene.json" : $"ghostdeck-scene-{safe}.json";
+    }
+
+    /// <summary>
+    /// Reads a scenes file against the settings it is going into. Returns the scenes ready to
+    /// add (possibly none); null when the text is not a GhostDeck scenes file at all.
+    /// </summary>
+    public static List<SceneDef>? Import(string text, AppSettings into)
+    {
+        if (text.Length > MaxBytes) return null;
+        Envelope? env;
+        try { env = JsonSerializer.Deserialize<Envelope>(text, Json); }
+        catch (JsonException) { return null; }
+        if (env == null || !string.Equals(env.Kind, "scenes", StringComparison.OrdinalIgnoreCase) || env.Scenes == null) return null;
+
+        var names = new HashSet<string>(into.Scenes.Select(s => s.Name), StringComparer.OrdinalIgnoreCase);
+        var result = new List<SceneDef>();
+        foreach (var src in env.Scenes.Take(MaxScenes))
+        {
+            if (src == null || string.IsNullOrWhiteSpace(src.Name)) continue;
+            var s = src.Clone();
+            s.Id = Guid.NewGuid().ToString("N")[..8];
+            s.Name = s.Name.Trim();
+            if (s.Name.Length > 60) s.Name = s.Name[..60];
+            if (s.Glyph.Length > 8) s.Glyph = "";
+            string name = s.Name;
+            for (int n = 2; !names.Add(name); n++) name = $"{s.Name} ({n})";
+            s.Name = name;
+
+            // the same ranges AppSettings keeps for its own scenes
+            if (s.KbdLight is { } kl && kl is < 0 or > 3) s.KbdLight = null;
+            if (s.ChargeLimit is { } cl && cl != 0 && !AppSettings.ChargeManaged(cl)) s.ChargeLimit = null;
+            if (s.RefreshHz is { } hz && hz is < 0 or > 1000) s.RefreshHz = null;
+            if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
+            if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
+            if (s.TrueColor is { } tc && !TrueColor.IsProfile(tc)) s.TrueColor = null;
+            // what belongs to the computer the file came from
+            s.RefreshTarget = null;
+            if (s.CurvePreset is { Length: > 0 } cp && into.FindPreset(cp) == null) s.CurvePreset = null;
+            if (s.Crosshair is null or false) s.CrosshairPreset = null;
+            else if (s.CrosshairPreset is { } chp && into.FindCrosshairPreset(chp) == null) s.CrosshairPreset = null;
+            result.Add(s);
+        }
+        return result;
+    }
+}

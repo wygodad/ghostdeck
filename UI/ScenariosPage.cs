@@ -22,6 +22,7 @@ public sealed class ScenariosPage : ThemedPage
     private readonly (string key, FeatureBrick b)[] _bricks;   // key -> Settings visibility (ScenHidden)
     private readonly List<SceneCard> _sceneCards = new();   // (#21)
     private readonly Button _addScene = new(), _addExamples = new();
+    private readonly Button _importScenes = new(), _exportScenes = new();   // (roadmap #48) scenes to and from a file
     private readonly Button _gear = new();                  // -> Settings visibility card (flashed)
     private readonly Button _orderBtn = new();              // -> profile order editor (discussion #101)
     private readonly ToolTip _gearTip = new();
@@ -201,6 +202,16 @@ public sealed class ScenariosPage : ThemedPage
         Ui.StyleGhost(_addExamples);
         _addExamples.Click += (_, _) => AddExampleScenes();
         Controls.Add(_addExamples);
+        foreach (var (b, key) in new[] { (_importScenes, "fc_ps_import"), (_exportScenes, "fc_ps_export") })
+        {
+            b.Text = Lang.T(key);
+            b.AutoSize = true;
+            b.Padding = new Padding(10, 4, 10, 4);
+            Ui.StyleGhost(b);
+            Controls.Add(b);
+        }
+        _importScenes.Click += (_, _) => ImportScenes();
+        _exportScenes.Click += (_, _) => ExportScenes(D.Settings.Scenes);
         RebuildScenes();
 
         Resize += (_, _) => Relayout();
@@ -237,6 +248,7 @@ public sealed class ScenariosPage : ThemedPage
                 edit: () => EditScene(scene),
                 del: () => DeleteScene(scene),
                 move: d2 => MoveScene(scene, d2),
+                export: () => ExportScenes(new[] { scene }),
                 profileColor: () => scene.Profile is { } p && Enum.TryParse<ProfileId>(p, out var pid)
                     ? D.ColorOf(pid) : null);
             _sceneCards.Add(card);
@@ -290,6 +302,41 @@ public sealed class ScenariosPage : ThemedPage
         D.SaveSettings();
         D.SettingsChanged();
         RebuildScenes();
+    }
+
+    // (roadmap #48) Scenes to a file and back, the way fan-curve presets travel. Export writes
+    // all scenes (the button) or one (the card's menu); import adds what the file holds next to
+    // the scenes already here - nothing is replaced. SceneFile does the checking.
+    private void ExportScenes(IReadOnlyList<SceneDef> scenes)
+    {
+        if (scenes.Count == 0) return;
+        using var dlg = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = SceneFile.FileName(scenes) };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try { File.WriteAllText(dlg.FileName, SceneFile.Export(scenes)); }
+        catch (Exception ex) { SceneFileCard(string.Format(Lang.T("bk_err"), ex.Message)); }
+    }
+
+    private void ImportScenes()
+    {
+        using var dlg = new OpenFileDialog { Filter = "JSON (*.json)|*.json", CheckFileExists = true };
+        if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            var info = new FileInfo(dlg.FileName);
+            var found = info.Length > SceneFile.MaxBytes ? null : SceneFile.Import(File.ReadAllText(dlg.FileName), D.Settings);
+            if (found == null || found.Count == 0) { SceneFileCard(Lang.T("scene_file_bad")); return; }
+            D.Settings.Scenes.AddRange(found);
+            D.SaveSettings();
+            D.SettingsChanged();   // the tray submenu lists the new scenes
+            RebuildScenes();
+        }
+        catch (Exception ex) { SceneFileCard(string.Format(Lang.T("bk_err"), ex.Message)); }
+    }
+
+    private void SceneFileCard(string text)
+    {
+        using var card = new GhostCardForm("//SCENES", Lang.T("scene_title"), text, Lang.T("gen_ok"), "", () => { });
+        card.ShowOver(FindForm());
     }
 
     // Localized starter set ("Current" / "Gaming" / "Work" / "Travel") so the feature explains
@@ -350,6 +397,8 @@ public sealed class ScenariosPage : ThemedPage
     {
         _addScene.Text = "+  " + Lang.T("scene_add");          // follow a language change
         _addExamples.Text = Lang.T("scene_add_examples");
+        _importScenes.Text = Lang.T("fc_ps_import");
+        _exportScenes.Text = Lang.T("fc_ps_export");
         SyncOrder();
         _gearTip.SetToolTip(_orderBtn, Lang.T("po_edit_tip"));
         SyncChargeBrick();
@@ -385,6 +434,8 @@ public sealed class ScenariosPage : ThemedPage
         if (_panicBtn != null) _panicBtn.Text = Lang.T("hk_panic");
         _addScene.Text = "+  " + Lang.T("scene_add");
         _addExamples.Text = Lang.T("scene_add_examples");
+        _importScenes.Text = Lang.T("fc_ps_import");
+        _exportScenes.Text = Lang.T("fc_ps_export");
         _gearTip.SetToolTip(_gear, Lang.T("scen_gear_tip"));
         _gearTip.SetToolTip(_orderBtn, Lang.T("po_edit_tip"));
         _kbd?.SetItems(new[] { Lang.T("kbd_off"), Lang.T("kbd_low"), Lang.T("kbd_mid"), Lang.T("kbd_high") }, _kbd.Selected);
@@ -412,6 +463,8 @@ public sealed class ScenariosPage : ThemedPage
         _orderBtn.FlatAppearance.MouseDownBackColor = Theme.Surface;
         Ui.StyleGhost(_addScene);       // ghost styling reads Theme at call time
         Ui.StyleGhost(_addExamples);
+        Ui.StyleGhost(_importScenes);
+        Ui.StyleGhost(_exportScenes);
         if (_panicBtn != null) { _panicBtn.BackColor = Theme.Red; _panicBtn.ForeColor = Color.White; }
     }
 
@@ -483,6 +536,8 @@ public sealed class ScenariosPage : ThemedPage
         foreach (var c in _sceneCards) if (c.Visible != scenes) c.Visible = scenes;
         if (_addScene.Visible != scenes) _addScene.Visible = scenes;
         _addExamples.Visible = scenes && D.Settings.Scenes.Count == 0;
+        if (_importScenes.Visible != scenes) _importScenes.Visible = scenes;
+        _exportScenes.Visible = scenes && D.Settings.Scenes.Count > 0;
         if (!scenes)
         {
             _scenesHeadY = bricksBottom + 10;
@@ -511,7 +566,19 @@ public sealed class ScenariosPage : ThemedPage
         if (_sceneCards.Count == 0) y += Dpi.Font("Segoe UI", 9.5f).Height + 14;   // room for the empty-state hint text
         _addScene.Location = new Point(Pad + ox, y + oy);
         _addExamples.Location = new Point(Pad + _addScene.PreferredSize.Width + 10 + ox, y + oy);
-        int bottom = y + _addScene.PreferredSize.Height + 8;
+        // the row: Add scene, Add examples (only while there are no scenes), Import…, Export…;
+        // a button that would run past the page's width starts a second line under Add scene
+        int btnH = _addScene.PreferredSize.Height, bx = Pad + _addScene.PreferredSize.Width + 10, byRow = y;
+        if (_addExamples.Visible) bx += _addExamples.PreferredSize.Width + 10;
+        foreach (var b in new[] { _importScenes, _exportScenes })
+        {
+            if (!b.Visible) continue;
+            int fileBtnW = b.PreferredSize.Width;
+            if (bx + fileBtnW > Pad + avail && bx > Pad) { bx = Pad; byRow += btnH + 8; }
+            b.Location = new Point(bx + ox, byRow + oy);
+            bx += fileBtnW + 10;
+        }
+        int bottom = byRow + btnH + 8;
         AutoScrollMinSize = new Size(0, bottom + 12);
     }
 
@@ -727,7 +794,7 @@ public sealed class ScenariosPage : ThemedPage
         private int HotGap => S(2);
 
         public SceneCard(SceneDef scene, Action run, Action edit, Action del, Action<int> move,
-                         Func<Color?> profileColor)
+                         Action export, Func<Color?> profileColor)
         {
             _scene = scene; _run = run; _edit = edit; _del = del; _move = move;
             _profileColor = profileColor;
@@ -740,7 +807,9 @@ public sealed class ScenariosPage : ThemedPage
             var mUp = new ToolStripMenuItem(Lang.T("scene_up")); mUp.Click += (_, _) => move(-1);
             var mDown = new ToolStripMenuItem(Lang.T("scene_down")); mDown.Click += (_, _) => move(1);
             var mDel = new ToolStripMenuItem(Lang.T("scene_delete")); mDel.Click += (_, _) => Arm();   // arms the same inline confirm
-            menu.Items.AddRange(new ToolStripItem[] { mRun, mEdit, new ToolStripSeparator(), mUp, mDown, new ToolStripSeparator(), mDel });
+            var mExport = new ToolStripMenuItem(Lang.T("fc_ps_export")); mExport.Click += (_, _) => export();   // (roadmap #48) this scene to a file
+            menu.Items.AddRange(new ToolStripItem[] { mRun, mEdit, mExport, new ToolStripSeparator(), mUp, mDown, new ToolStripSeparator(), mDel });
+            ThemedMenu.Apply(menu);
             ContextMenuStrip = menu;
 
             MouseUp += (_, e) =>

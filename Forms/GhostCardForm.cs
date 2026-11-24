@@ -370,7 +370,14 @@ public class GhostCardForm : Form
         Close();
     }
 
-    protected virtual void OnLater() { }
+    protected virtual void OnLater() => LaterAction?.Invoke();
+
+    /// <summary>
+    /// What the second button does before the card closes, for a plain message card whose
+    /// second button is an action of its own (the temperature alert: "Switch to Silent").
+    /// Unset = the button only closes the card.
+    /// </summary>
+    public Action? LaterAction { get; init; }
 
     /// <summary>
     /// The window this card belongs to; the card centres over it. Set it before the card is

@@ -124,6 +124,9 @@ public sealed class AppSettings
     // comes back on its own. MinValue = not active. Any explicit limit change cancels it.
     public DateTime TravelUntil { get; set; } = DateTime.MinValue;
     public int TravelPrevLimit { get; set; }
+    // ---- Automation pause (roadmap #75): the scene schedule and the battery rules do nothing
+    // until this moment, then come back on their own. MinValue = not paused.
+    public DateTime AutomationPausedUntil { get; set; } = DateTime.MinValue;
     public bool StatusOnTop { get; set; } = false;                     // okno Status "zawsze na wierzchu"
     public bool ExperimentalEnabled { get; set; } = false;             // LEGACY pre-1.36 global flag; migrated to ExperimentalWriteFw on startup, never written back as true
     public List<string> ExperimentalWriteFw { get; set; } = new();     // per-model consent: firmware prefixes the owner explicitly allowed writes for
@@ -271,6 +274,9 @@ public sealed class AppSettings
     // (#51) auto-wylaczenie Fan Boost po N SEKUNDACH (0 = bez limitu, jak dotad).
     // UI: presety 30 s / 1 / 2 / 3 / 5 / 10 / 15 min + wlasna wartosc w minutach (do 120).
     public int FanBoostSeconds { get; set; }
+    // (roadmap #37) Fan Boost off once the laptop has cooled: the hotter of CPU and GPU below this
+    // many °C (0 = off). The timer above stays the upper limit when both are set.
+    public int FanBoostUntilTemp { get; set; }
 
     // ---- karta "Zasilanie Windows" (#141; roadmapa #109 + #36) ----
     // (discussion #101) kolejnosc profili widziana przez uzytkownika: klucze profili; pusta = standardowa.
@@ -828,6 +834,7 @@ public sealed class AppSettings
         // charge limit, so a revert pending from before the import no longer applies.
         TravelUntil = DateTime.MinValue;
         TravelPrevLimit = 0;
+        AutomationPausedUntil = DateTime.MinValue;   // a pause belongs to the machine it was set on
         StatusOnTop = src.StatusOnTop;
         ExperimentalEnabled = src.ExperimentalEnabled;
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
@@ -875,6 +882,7 @@ public sealed class AppSettings
         StartupProfile = src.StartupProfile;
         RestoreCurveOnResume = src.RestoreCurveOnResume;   // preferencja tak; sama krzywa (Curve*) zostaje lokalna
         FanBoostSeconds = src.FanBoostSeconds;
+        FanBoostUntilTemp = src.FanBoostUntilTemp;
         PowerModeSync = src.PowerModeSync;
         PowerModePrev = src.PowerModePrev;
         PowerModeMap = new Dictionary<string, int>(src.PowerModeMap);
@@ -988,6 +996,7 @@ public sealed class AppSettings
             OsdSeconds = OsdSeconds,
             TravelUntil = TravelUntil,
             TravelPrevLimit = TravelPrevLimit,
+            AutomationPausedUntil = AutomationPausedUntil,
             RefreshSwitchEnabled = RefreshSwitchEnabled,
             RefreshOnAC = RefreshOnAC,
             RefreshOnBattery = RefreshOnBattery,
@@ -1011,6 +1020,7 @@ public sealed class AppSettings
             StartupProfile = StartupProfile,
             RestoreCurveOnResume = RestoreCurveOnResume,
             FanBoostSeconds = FanBoostSeconds,
+            FanBoostUntilTemp = FanBoostUntilTemp,
             PowerModeSync = PowerModeSync,
             PowerModePrev = PowerModePrev,
             BoostAttrOriginal = BoostAttrOriginal,

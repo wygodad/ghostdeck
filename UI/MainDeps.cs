@@ -39,6 +39,7 @@ public sealed class MainDeps
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100
     public required Action<int> SetTravelDays { get; init; }   // >0 = charge to 100% until today+N; 0 = end now (previous limit returns)
+    public Action<DateTime>? PauseAutomation { get; init; }    // (roadmap #75) schedule and battery rules sleep until this moment; MinValue = resume now
     public required Action<bool> SetAutoSwitch { get; init; }
     public required Func<bool> CoolerBoost { get; init; }          // current Cooler Boost (max fans) state
     public required Action<bool> SetCoolerBoost { get; init; }     // turn Cooler Boost on/off (gated on writable)
