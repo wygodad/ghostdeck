@@ -15,6 +15,10 @@ body:
         Status window). It captures everything below and pre-fills this form for you — paste the full
         report (Ctrl+V) into the "Full EC dump" field and submit. The manual steps below are the fallback.
 
+        **If the scripts stop at once with "not supported"** (the message may be in your Windows language),
+        your laptop's firmware does not answer the requests the scripts use. Skip them and use only the
+        app's **Report my model…**: it collects the data another way on these laptops.
+
   - type: input
     id: model
     attributes:
@@ -67,6 +71,9 @@ body:
         4. At each prompt, set the MSI Center scenario (Silent / Balanced / Extreme / Super Battery) and press Enter.
         5. Paste the result here (it is also saved as `msi_ec_snapshot_results.txt`).
 
+        If the script stops at once with "not supported", it cannot read your laptop: write "not supported"
+        here and use the app's **Report my model…** instead (see the top of this form).
+
         Names differ between apps and versions: Extreme is "High Performance" in MSI Center Pro, and
         Super Battery is "ECO-Silent" in newer MSI Center. If your app has only 3 scenarios (no classic
         Silent), capture what it offers and mention it.
@@ -85,6 +92,7 @@ body:
         Manual alternative: run `scripts/diagnostics/msi_ec_fulldump.ps1`. It dumps all 256 EC bytes per
         scenario, which lets us find the exact registers for your model. Paste or attach
         `msi_ec_fulldump_results.txt`. **This is the most useful file** — please include it if you can.
+        If it stops at once with "not supported", it cannot read your laptop: use the app's Report button instead.
       render: text
 
   - type: checkboxes
