@@ -748,3 +748,39 @@ against the real canvas, `-17` paints the same strips of a tall canvas from diff
 positions and through the screen path and compares them pixel for pixel. `DASHDEMO=1` gives the
 widgets live-looking values and a sample curve, `STATS=1` a sample weekly summary, `DASHLAYOUT=`
 a layout of your own.
+
+## 14. Right-click menus in the theme's colours (1.47)
+
+The tray menu and the scene card's menu are system `ContextMenuStrip`s. WinForms draws them in
+the light system style whatever the app theme, so both carry one renderer of our own:
+`UI/Controls/ThemedMenu.cs`. `ThemedMenu.Apply(menu)` is called once the items are in place and
+covers the strip and every submenu.
+
+![The tray menu, two submenus and the scene card's menu in the dark theme](images/themed_menus.png)
+
+- **One strip, no extra windows.** The menu stays a `ContextMenuStrip`; nothing is hosted in it
+  (§8.1: a window per line is what made the Settings page slow).
+- **Colours are read while painting.** The renderer derives from `ToolStripRenderer` and takes
+  every colour from `Theme` in its paint methods: background `Card`, border `BorderStrong`,
+  highlight `AccentSoft` in a rounded bar, separators `Border`, disabled text `Faint`. A theme
+  change therefore needs no rebuild and no `Theme.Changed` handler; the next time the menu
+  opens it is drawn in the new colours. Text is drawn with `TextRenderer` in the renderer,
+  because the base class replaces the colour of a disabled line with the system grey.
+- **A line's meaning, not its colour.** `ThemedMenu.Tone(item, MenuTone.Muted | Warn | Good)`
+  marks the model line, the firmware warning and the update line; the renderer maps the tone to
+  `Muted`, `Amber` and `Green`. No colour is stored on the item.
+- **Markers are drawn, not bitmaps.** `ThemedMenu.Dot(item, on)` is the on / off marker of a
+  switch line (a filled accent dot, or a dim ring), `ThemedMenu.Swatch(item, colour)` the colour
+  chip of a profile line; a checked profile gets a ring around its chip, any other checked line
+  a tick. They are painted into the image column from the menu font's height
+  (`ImageScalingSize` is set to it), so they follow the display scale. One shared 1 x 1 bitmap
+  keeps the column's slot for such a line and is never shown.
+- **Scale.** The menu font comes from `Dpi.Font`; the arrow, the tick, the dot and the chip are
+  sized from the line, nothing is a fixed pixel size.
+
+A new menu anywhere in the app gets the same look with the one `Apply` call.
+
+**Checking.** The preview tool draws the menus without showing a window: `menu dark` and
+`menu light` build a strip shaped like the tray menu (every kind of line, one hovered), two of
+its submenus and the scene card's menu, and save them side by side; run it at `DPIUNAWARE=1`,
+`FAKEDPI=144`, `192` and `240`.

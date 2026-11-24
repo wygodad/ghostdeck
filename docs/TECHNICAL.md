@@ -4985,3 +4985,104 @@ the looks with `DASHLAYOUT="core.cpuPower{look=trail;scale=100;range=5}:2x1,..."
 |:---:|:---:|
 | ![The CPU power widget in its three looks](images/cpu_power_widgets.png) | ![The CPU power box on Status](images/status_cpu_power.png) |
 | The widget: number, dial and trail in 1x1, then the arc dial at 150 W in 2x2, the trail at 100 W and the number in 2x1 (the trail is the preview tool's made-up two minutes) | Status: the box under the battery time, with the help dot |
+
+## 90. Fan Boost until cooled, actions on the temperature card, automation pause, scenes as a file, History as a picture (1.47)
+
+Five small features that share one property: none adds a hardware read or a new kind of write.
+Each uses a reading the app already takes or a write it already made.
+
+### 90.1 Fan Boost off once the laptop has cooled (roadmap #37)
+
+`AppSettings.FanBoostUntilTemp` (°C, 0 = off; Settings → Power, 55 to 80 °C). While Fan Boost is
+on, every hardware sample of the 3 s poll (`SampleHw`, the same sample the History and the
+temperature alert use) goes to `TrayContext.OnBoostCoolSample`:
+
+- the value judged is the hotter of CPU and GPU; a sample without a reading is skipped;
+- at or above the target the count starts again;
+- Fan Boost has to have run for 30 s (`BoostCoolMinMs`), so a boost switched on while the laptop
+  is already cool is not ended at once;
+- three samples in a row below the target (about 10 s) end it: `SetCoolerBoostState(false, auto: true)`,
+  the same call the timer makes, with its own line for the toast and the change history
+  ("Cooled to N °C - back to the profile's fans").
+
+The auto-off timer (`FanBoostSeconds`) runs beside it unchanged and is the upper limit when both
+are set; with the timer on *Never*, Fan Boost runs for as long as the laptop stays above the
+target, which is the intended use while a game is running. Nothing is checked during a composed
+EC operation (`_ecBusy`), like the timer. No Fan Boost register exists on the backup WMI path,
+so the rule has nothing to act on there.
+
+### 90.2 The temperature card's buttons (roadmap #50)
+
+The alert card (`ShowThermalCard`) is the plain `GhostCardForm` with its two buttons given a
+job. *Turn on Fan Boost* is offered when the model is writable, not on the backup path and Fan
+Boost is off; *Switch to Silent* when the model is writable and Silent is not the active
+profile. With both, the accent button is Fan Boost and the second button Silent; with one, the
+second button is *Later*; with neither, the card is the acknowledge-only message it was. The
+second button's action is `GhostCardForm.LaterAction`, a plain property, so a message card needs
+no subclass for it. Both actions run the same calls as a click in the tray menu
+(`SetCoolerBoostState(true)`, `SetProfile(Silent)`), are logged as such, and check the state
+again when clicked, since a card can stay on screen for a while. The card is shown without
+taking the focus, as before.
+
+![The temperature card with its two buttons](images/thermal_card_actions.png)
+
+### 90.3 Automation pause (roadmap #75)
+
+`AppSettings.AutomationPausedUntil` (`DateTime`, `MinValue` = not paused). While it lies in the
+future, `Poll` skips `CheckBatteryRules` and `CheckSchedule`, and the two other callers of
+`CheckSchedule` (startup, after wake) skip it too. Everything else keeps running: the AC /
+battery profile switch, the alerts, travel mode, Fan Boost's rules.
+
+When the time has passed (`CheckAutomationPause`, every poll, so also right after a start or a
+wake) or the user presses *Resume now*, `EndAutomationPause`:
+
+1. clears the date and saves;
+2. resets the battery rules' baseline (`_lastBattPct = -1`), so a threshold crossed during the
+   pause does not fire late; the rules are edge-triggered and act on the next crossing;
+3. calls `CheckSchedule(applyNow: true)`: the window that is running now is applied, exactly as
+   at startup;
+4. writes one line to the change history, and shows a card when the pause ended on its own.
+
+The pause is machine state, like travel mode: a settings import does not carry it over. The
+card (Settings → Automation, `BuildPause`) offers 2 hours, until tomorrow 8:00, 3 / 7 / 14 / 30
+days and a number of days of the user's own (1 to 365); while a pause runs it shows the end
+time and *Resume now*. `MainDeps.PauseAutomation` is the page's one call into the tray context.
+
+![The automation pause card above the scene schedule](images/automation_pause.png)
+
+### 90.4 Scenes as a file (roadmap #48)
+
+`SceneFile` (`Core/Scene.cs`). The file is JSON with an envelope, `{ "app": "GhostDeck",
+"kind": "scenes", "version": 1, "scenes": [ ... ] }`; unset scene fields are left out. A text
+without `kind: scenes` is not a scenes file and is refused, a settings export included.
+
+Import never replaces anything; it returns scenes to add. On the way in every scene:
+
+- gets a new id, so it cannot collide with a scene here and no hotkey follows it (hotkeys are
+  stored by scene id on the computer they were bound on);
+- gets a free name ("Gaming (2)"), trimmed and at most 60 characters; a nameless scene is dropped;
+- is held to the ranges `AppSettings` keeps for its own scenes (backlight 0-3, a managed charge
+  limit, refresh rate, brightness, a real profile name, a True Color profile id);
+- loses what belongs to the computer it came from: `RefreshTarget` (the display the rate was
+  picked for; without it the rate applies as on older scenes), a fan-curve preset or a crosshair
+  preset whose name does not exist here.
+
+A file holds at most 50 scenes and 512 KB. The Scenarios tab has *Import…* and *Export…* (all
+scenes); a scene card's right-click menu exports that one scene. A file that holds no scenes is
+answered with a GhostDeck card.
+
+### 90.5 The History charts as a PNG (roadmap #46)
+
+`StatusPage.ComposeHistoryPng` draws the chart cards with the very method the page uses
+(`DrawHistoryCharts`, shared with `RenderHistory`) onto a bitmap as wide as the page, in the
+current theme and time range, under one caption line: app version, model, firmware, date and
+time, range. The caption wraps on a narrow window. The bitmap is 24-bit: the charts' text is
+drawn through GDI (`TextRenderer`), which leaves the alpha channel of a 32-bit bitmap at zero,
+and the saved picture would have holes where the text is. The page's hit-test list for the
+cursor readout (`_histPlots`) is put back after the drawing, because the drawing adds to it.
+
+![A saved History picture](images/history_png_export.png)
+
+**Checking.** Preview tool, mode `novbatch`: both forms of the temperature card, the History
+picture in both themes from synthetic samples, and a console run of the scenes file (round trip,
+what import drops, three texts that must be refused).
