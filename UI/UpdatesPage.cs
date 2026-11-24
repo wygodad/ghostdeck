@@ -327,6 +327,28 @@ public sealed class UpdatesPage : ThemedPage
 
     private async Task InstallCore(Updater.Result r)
     {
+        // The release needs a newer .NET than this computer has: the update does not go ahead on
+        // its own. The .NET card asks first (TECHNICAL 19.10) - install .NET with the update,
+        // download it yourself, or cancel. Only "install" goes on, and only once .NET is there.
+        if (Updater.MissingNet(r))
+        {
+            NetRuntimeCard.Choice pick;
+            using (var card = new NetRuntimeCard(r.Tag, r.NeedsNet))
+            {
+                card.ShowOver(FindForm());
+                pick = card.Picked;
+            }
+            AppLifecycle.Note($"update {r.Tag} needs .NET {r.NeedsNet}, not installed; the user chose {pick}");
+            if (pick == NetRuntimeCard.Choice.Cancel) { ShowAvailable(r, null); return; }
+            if (pick == NetRuntimeCard.Choice.Self)
+            {
+                ModelsPage.OpenUrl(DotNetRuntime.DownloadPage(r.NeedsNet));
+                ShowAvailable(r, string.Format(Lang.T("net_self_hint"), r.NeedsNet));
+                return;
+            }
+            if (!await InstallNet(r)) return;
+        }
+
         // download mode: hide the buttons, show the stacked label + progress bar
         _install.Visible = _check.Visible = false;
         _status.ForeColor = Theme.Accent;
@@ -386,6 +408,63 @@ public sealed class UpdatesPage : ThemedPage
         _status.Text = Lang.T("upd_restarting");
         LayoutBits();
         Application.Exit();   // the hidden updater script waits for this process, swaps the exe and relaunches
+    }
+
+    /// <summary>The page as after a check that found <paramref name="r"/>: Install and Check, no bar; an optional line in place of "available".</summary>
+    private void ShowAvailable(Updater.Result r, string? line)
+    {
+        _bar.Visible = false;
+        _install.Text = string.Format(Lang.T("upd_install"), r.Tag);
+        _install.Visible = _check.Visible = true;
+        _status.ForeColor = Theme.Accent;
+        _status.Text = line ?? string.Format(Lang.T("upd_available"), r.Version);
+        LayoutBits();
+    }
+
+    /// <summary>
+    /// "Install with .NET" of the .NET card: Microsoft's installer, downloaded, checked and run
+    /// (<see cref="DotNetRuntime.InstallAsync"/>), with the page's bar and status line. True when
+    /// .NET is now there and the update may go on; false when it stopped - the page is back to
+    /// "available", a card says what happened and offers Microsoft's page, the running version
+    /// is untouched.
+    /// </summary>
+    private async Task<bool> InstallNet(Updater.Result r)
+    {
+        int major = r.NeedsNet;
+        _install.Visible = _check.Visible = false;
+        _status.ForeColor = Theme.Accent;
+        _bar.Visible = true;
+        _bar.Value = 0;
+        _status.Text = string.Format(Lang.T("upd_net_downloading"), major, 0);
+        LayoutBits();
+        long lastPaint = 0;
+        var progress = new Progress<int>(p =>
+        {
+            long now = Environment.TickCount64;
+            if (p < 100 && now - lastPaint < 80) return;
+            lastPaint = now;
+            _bar.Value = p / 100f;
+            _status.Text = string.Format(Lang.T("upd_net_downloading"), major, p);
+            LayoutBits();
+        });
+        var stage = new Progress<string>(s =>
+        {
+            _bar.Value = 1f;
+            _status.Text = s == "install" ? string.Format(Lang.T("upd_net_installing"), major) : Lang.T("upd_verifying");
+            LayoutBits();
+        });
+        var outcome = await DotNetRuntime.InstallAsync(major, progress, stage);
+        if (outcome.Ok) return true;
+
+        ShowAvailable(r, null);
+        _status.ForeColor = Theme.Red;
+        _status.Text = string.Format(Lang.T("net_fail_title"), major);
+        LayoutBits();
+        using var card = new GhostCardForm("//UPDATE", string.Format(Lang.T("net_fail_title"), major),
+            string.Format(Lang.T("net_fail_body"), major), string.Format(Lang.T("net_self"), major), Lang.T("set_close"),
+            () => ModelsPage.OpenUrl(DotNetRuntime.DownloadPage(major)));
+        card.ShowOver(FindForm());
+        return false;
     }
 
     private async Task LoadHistory()

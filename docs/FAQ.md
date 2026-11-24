@@ -363,6 +363,18 @@ dies at once is not detected. If you still run
 a version older than v1.42.0, install this one by hand from the releases page: the updater in older
 versions does not verify what it downloads.
 
+## Does GhostDeck install anything on my computer?
+
+No. GhostDeck is a single file. It does not install drivers, services or other programs, and it never asks you to. There is one exception, and it only happens when you press a button.
+
+GhostDeck runs on Microsoft's .NET Desktop Runtime, which most computers already have because other programs installed it. When a GhostDeck update needs a newer .NET version than the one on your computer, the update does not go ahead on its own. GhostDeck shows a card with three choices:
+
+- **Install with .NET** downloads Microsoft's own installer, checks that it is signed by Microsoft, installs .NET and then updates GhostDeck.
+- **Download .NET myself** opens Microsoft's download page. After you install it, press Install again and the update goes through.
+- **Cancel** keeps your current version exactly as it is.
+
+GhostDeck never installs .NET without that click, and never installs anything other than .NET. The details of what is checked before the installer runs are in [TECHNICAL.md §19.10](TECHNICAL.md#1910-ghostdeck-installs-nothing-with-one-exception-a-newer-net-runtime-at-update-time).
+
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
 
 A side effect of running with administrator rights (see the UAC question above). GhostDeck runs elevated, and Windows isolates elevated windows from normal-privilege programs: keys you press while an elevated window has focus are invisible to the helpers that make screenshots happen (the Print Screen → Snipping Tool trigger, clipboard managers, capture hotkeys of other tools). Click the desktop, the taskbar or any other window first and the same key works again - or run your screenshot tool as administrator. The window itself is perfectly capturable; only the key press is being isolated.

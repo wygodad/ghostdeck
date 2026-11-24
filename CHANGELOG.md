@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **An update that needs a newer .NET asks first.** When a GhostDeck release needs a newer version of Microsoft's .NET Desktop Runtime than the one on your computer, the update no longer goes ahead on its own. A card offers to install .NET together with the update, to open Microsoft's download page, or to cancel and keep the current version. This is the only case in which GhostDeck installs anything, and it only happens after that click. See the FAQ "Does GhostDeck install anything on my computer?".
+
 ### Changed
 - **GS66 Stealth is a tested model** (`16V1EMS1`, model database 20261221, [#291](../../issues/291), thanks
   @MyatThuyaAung and @SFIsaksen): its path test passed on the backup WMI path, and the owner confirmed Silent quieter than

@@ -20,6 +20,13 @@ namespace GhostDeck;
 /// runtime the machine may not have. Not finding its asset, the older version leaves the
 /// running exe alone and opens the release page instead, so the one-off migration is manual
 /// and visible rather than a silently broken install.
+///
+/// From v1.47.0 the updater also knows a second asset name, "GhostDeck-win-x64-net{N}.exe":
+/// a build that needs the .NET {N} Desktop Runtime (<see cref="Result.NeedsNet"/>). When the
+/// computer does not have it, the Updates page does not download the exe on its own; it shows
+/// the .NET card (install .NET with the update, download .NET yourself, cancel), the one
+/// exception to "GhostDeck installs nothing" (TECHNICAL 19.10, <see cref="DotNetRuntime"/>).
+/// Versions up to 1.46 do not know this name and fall back to the release page, as above.
 /// </summary>
 public static class Updater
 {
@@ -27,12 +34,30 @@ public static class Updater
     private const string ListApi     = "https://api.github.com/repos/wygodad/ghostdeck/releases?per_page=";
     public  const string ReleasesUrl = "https://github.com/wygodad/ghostdeck/releases/latest";
     private const string AssetName   = "GhostDeck-win-x64.exe";
+    // "GhostDeck-win-x64-net10.exe": the asset of a build that needs that .NET major
+    private const string NetAssetPrefix = "GhostDeck-win-x64-net";
     private const string UpdateFile  = "GhostDeck.update.exe";
     // Written by the swap script next to the exe when a step failed and the old version was
     // kept; read and removed by CleanupAfterUpdate on the next start.
     private const string ResultSuffix = ".update-result";
+    // A test build (x.y.90 and up) may read the release from a local file instead of GitHub,
+    // so the .NET card can be walked through without a real release. Release builds ignore it.
+    private const string FeedVariable = "GHOSTDECK_UPDATE_FEED";
 
-    public readonly record struct Result(Version Version, string Tag, string Url, string AssetUrl, long AssetSize);
+    /// <summary>
+    /// A newer release. <paramref name="NeedsNet"/> is the .NET major its exe needs when the
+    /// asset name says so ("-net10" = 10), 0 for the plain asset (the .NET this build runs on).
+    /// </summary>
+    public readonly record struct Result(Version Version, string Tag, string Url, string AssetUrl, long AssetSize, int NeedsNet = 0);
+
+    /// <summary>The .NET major an asset name asks for: 0 for the plain name, -1 for any other file.</summary>
+    public static int AssetNetMajor(string name)
+    {
+        if (name == AssetName) return 0;
+        if (!name.StartsWith(NetAssetPrefix, StringComparison.Ordinal) || !name.EndsWith(".exe", StringComparison.Ordinal)) return -1;
+        string mid = name[NetAssetPrefix.Length..^4];
+        return mid.Length is > 0 and <= 3 && mid.All(char.IsAsciiDigit) && int.TryParse(mid, out int n) && n >= 8 ? n : -1;
+    }
     public readonly record struct ReleaseInfo(string Tag, string Name, string Body, string Url, DateTime? Published, long Downloads);
 
     /// <summary>Why a download produced no file to install.</summary>
@@ -81,40 +106,79 @@ public static class Updater
     {
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("GhostDeck-UpdateCheck");
-            http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-
-            string json = await http.GetStringAsync(LatestApi).ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            if (root.TryGetProperty("draft", out var d) && d.GetBoolean()) return null;
-            if (root.TryGetProperty("prerelease", out var p) && p.GetBoolean()) return null;
-
-            string tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
-            string url = root.TryGetProperty("html_url", out var h) ? h.GetString() ?? ReleasesUrl : ReleasesUrl;
-
-            // exe asset for the in-app install (size catches a truncated download; the
-            // signature check after the download is what judges the content)
-            string assetUrl = ""; long assetSize = 0;
-            if (root.TryGetProperty("assets", out var assets))
-                foreach (var a in assets.EnumerateArray())
-                    if (a.TryGetProperty("name", out var an) && an.GetString() == AssetName)
-                    {
-                        assetUrl = a.TryGetProperty("browser_download_url", out var au) ? au.GetString() ?? "" : "";
-                        assetSize = a.TryGetProperty("size", out var asz) ? asz.GetInt64() : 0;
-                        break;
-                    }
-
-            var latest = ParseTag(tag);
-            if (latest == null || Normalize(latest) <= Normalize(current)) return null;
-            return new Result(latest, tag, url, assetUrl, assetSize);
+            string json;
+            if (TestFeed() is { } feed) json = await File.ReadAllTextAsync(feed).ConfigureAwait(false);
+            else
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("GhostDeck-UpdateCheck");
+                http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+                json = await http.GetStringAsync(LatestApi).ConfigureAwait(false);
+            }
+            return ParseLatest(json, current);
         }
         catch
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// The newer release in a GitHub "latest release" answer, null when there is none. The plain
+    /// asset wins over a "-netN" one when a release carries both (it runs on what this build
+    /// runs on); a release with neither still counts, and the page falls back to the browser.
+    /// </summary>
+    public static Result? ParseLatest(string json, Version current)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        if (root.TryGetProperty("draft", out var d) && d.GetBoolean()) return null;
+        if (root.TryGetProperty("prerelease", out var p) && p.GetBoolean()) return null;
+
+        string tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
+        string url = root.TryGetProperty("html_url", out var h) ? h.GetString() ?? ReleasesUrl : ReleasesUrl;
+
+        // exe asset for the in-app install (size catches a truncated download; the
+        // signature check after the download is what judges the content)
+        string assetUrl = ""; long assetSize = 0; int net = -1;
+        if (root.TryGetProperty("assets", out var assets))
+            foreach (var a in assets.EnumerateArray())
+            {
+                int m = a.TryGetProperty("name", out var an) ? AssetNetMajor(an.GetString() ?? "") : -1;
+                if (m < 0 || (net == 0)) continue;   // not an exe of ours, or the plain one is already taken
+                if (net > 0 && m > 0) continue;      // two "-netN" assets: keep the first
+                assetUrl = a.TryGetProperty("browser_download_url", out var au) ? au.GetString() ?? "" : "";
+                assetSize = a.TryGetProperty("size", out var asz) ? asz.GetInt64() : 0;
+                net = m;
+            }
+
+        var latest = ParseTag(tag);
+        if (latest == null || Normalize(latest) <= Normalize(current)) return null;
+        return new Result(latest, tag, url, assetUrl, assetSize, Math.Max(0, net));
+    }
+
+    private static bool TestBuild => (typeof(Updater).Assembly.GetName().Version?.Build ?? 0) >= 90;
+
+    /// <summary>The local release file a test build reads instead of GitHub, null otherwise.</summary>
+    private static string? TestFeed()
+    {
+        if (!TestBuild) return null;
+        string? f = Environment.GetEnvironmentVariable(FeedVariable);
+        return !string.IsNullOrWhiteSpace(f) && File.Exists(f) ? f : null;
+    }
+
+    // A test build may act as if one .NET major were missing, so the .NET card can be walked
+    // through on a computer that has it. Only this first question is bent: after "Install with
+    // .NET" the real check decides. Release builds ignore it.
+    private const string NetMissingVariable = "GHOSTDECK_NET_MISSING";
+
+    /// <summary>True when the release needs a .NET major this computer does not have.</summary>
+    public static bool MissingNet(Result r)
+    {
+        if (r.NeedsNet <= 0) return false;
+        if (TestBuild && Environment.GetEnvironmentVariable(NetMissingVariable) == r.NeedsNet.ToString()) return true;
+        return !DotNetRuntime.HasDesktop(r.NeedsNet);
     }
 
     // The verified file is held open (read, share-read) from the moment it is checked until this
@@ -402,8 +466,12 @@ public static class Updater
             try
             {
                 string exe = Environment.ProcessPath!;
-                foreach (var f in new[] { Path.Combine(Path.GetDirectoryName(exe)!, UpdateFile), exe + ".bak" })
+                string dir = Path.GetDirectoryName(exe)!;
+                foreach (var f in new[] { Path.Combine(dir, UpdateFile), exe + ".bak" })
                     try { if (File.Exists(f)) File.Delete(f); } catch { }
+                // a .NET installer left by an install that was cut short (DotNetRuntime)
+                foreach (var f in Directory.EnumerateFiles(dir, "dotnet-windowsdesktop-runtime-*-win-x64.exe"))
+                    try { File.Delete(f); } catch { }
             }
             catch { }
         });

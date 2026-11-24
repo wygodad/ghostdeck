@@ -722,6 +722,24 @@ read the code to know:
 Any further feature that writes something the vendor does not must be added to this list and to
 the two user-facing places above in the same change.
 
+### 19.10 GhostDeck installs nothing, with one exception: a newer .NET runtime at update time
+
+GhostDeck is a single executable. It installs no drivers, services, scheduled helpers or third-party software, and it does not ask the user to install anything. Since v1.35.0 it is built framework-dependent (about 2.5 MB instead of about 160 MB with the runtime inside), so it relies on the Microsoft .NET Desktop Runtime that is usually already present because other programs brought it.
+
+The one exception is a release that targets a newer .NET major version than the one installed. The updater then does not download and swap the executable. It shows a GhostDeck card with three choices: install the runtime together with the update, open Microsoft's download page, or cancel. "Install with .NET" downloads Microsoft's official Desktop Runtime installer, verifies its Authenticode signature (Microsoft Corporation), runs it, and only then continues with the normal signed self-update. Nothing happens without that click, nothing other than the .NET Desktop Runtime is ever installed, and the running version stays untouched on cancel or on any failure.
+
+Why: most users never installed .NET themselves, so a bare "install this first" prompt loses them, while shipping the runtime inside every update would make each download about 60 times larger.
+
+How it works (v1.47.0, `Core/Updater.cs`, `Core/DotNetRuntime.cs`, `Forms/NetRuntimeCard.cs`):
+
+- **How a release says which .NET it needs.** The asset name. `GhostDeck-win-x64.exe` runs on the .NET this build runs on; `GhostDeck-win-x64-net{N}.exe` needs the .NET {N} Desktop Runtime. When a release carries both, the plain one wins. Versions up to 1.46 know only the plain name: for a release without it they find no asset, replace nothing and open the release page, as at the 1.35 migration.
+- **Whether the computer has it.** A folder `shared\Microsoft.WindowsDesktop.App\{N}.*` under the x64 install location from `HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\x64` (`InstallLocation`), or under `Program Files\dotnet`: the place the runtime host itself looks in.
+- **Which installer.** Microsoft's release metadata of the channel, `https://builds.dotnet.microsoft.com/dotnet/release-metadata/{N}.0/releases.json`: the newest release's `windowsdesktop` file `windowsdesktop-runtime-win-x64.exe` (rid `win-x64`), with its URL and SHA-512. The channel in the file must be `{N}.0`, the URL must be https on a `microsoft.com` host. No version or address is compiled in, so a later patch is picked up as Microsoft publishes it.
+- **What is checked before it runs.** The file is downloaded next to the GhostDeck exe and held open for reading (writers locked out) from the check until the installer has finished, as the update file is. It runs only when its SHA-512 equals the metadata's and its Authenticode signature verifies (WinVerifyTrust, as for the update itself, §23) with `Microsoft Corporation` as the organization (`O=`) of both the signer certificate and its issuer. Not the signer's common name: the .NET installers are signed as `CN=.NET, O=Microsoft Corporation` by `Microsoft Code Signing PCA 2011` / `2024` (checked on the 6.0, 8.0, 9.0 and 10.0 desktop runtime installers); only old ones, such as 3.1, carried `CN=Microsoft Corporation`.
+- **How it runs.** `/install /quiet /norestart`, the installer's documented switches. GhostDeck runs elevated, so no second prompt appears. Exit codes 0, 3010 (restart suggested) and 1641 count as done; then the runtime must be found as above, or the step fails. The installer file is deleted afterwards, and a leftover from an install cut short is removed at the next start.
+- **When something fails.** The page returns to "update available", and a card says .NET was not installed, the running version is unchanged, and offers Microsoft's page. The log names the step and the reason.
+- **Testing without a release.** A test build (version x.y.90 and up) reads the release from the file named in `GHOSTDECK_UPDATE_FEED` instead of GitHub, and with `GHOSTDECK_NET_MISSING={N}` treats .NET {N} as missing for the first question only (the check after the install is the real one). Release builds ignore both.
+
 ---
 
 ## 20. Gaming overlay and extra hardware metrics
@@ -918,6 +936,11 @@ so the app can install the update itself instead of only opening the download pa
 running exe as `GhostDeck.update.exe` (progress bar; size is checked against the release asset
 size) → the file's **Authenticode signature** is verified (below) → `StartSelfUpdate` →
 `Application.Exit()`.
+
+**A release that needs a newer .NET (v1.47.0).** An asset named `GhostDeck-win-x64-net{N}.exe`
+needs the .NET {N} Desktop Runtime. When the computer does not have it, *Install* first shows the
+.NET card (install .NET with the update, download it yourself, cancel) and goes on only after
+.NET is in place. The asset naming, the installer checks and the test switches are in §19.10.
 
 **The downloaded file must be signed by the release identity (`Core/Authenticode.cs`).** A release
 asset is just a file attached to a GitHub release: anyone with write access to the repository can

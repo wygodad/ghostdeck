@@ -36,7 +36,73 @@ public static class Authenticode
     /// </summary>
     public static bool IsOurs(string path, out string why)
     {
+        if (!Verified(path, out why, out var cert)) return false;
+        using (cert)
+        {
+            string name = cert.GetNameInfo(X509NameType.SimpleName, false);
+            bool identity = cert.Extensions.OfType<X509EnhancedKeyUsageExtension>()
+                .Any(e => e.EnhancedKeyUsages.Cast<Oid>().Any(o => o.Value == IdentityEku));
+            if (!identity) { why = $"signed by another identity ({name})"; return false; }
+            if (!name.Contains(PublisherName, StringComparison.OrdinalIgnoreCase))
+            {
+                why = $"unexpected publisher name ({name})";
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>The organization in Microsoft's code-signing certificates and in the certificates that issue them.</summary>
+    public const string MicrosoftSigner = "Microsoft Corporation";
+
+    /// <summary>
+    /// True when <paramref name="path"/> carries a valid signature (judged exactly as in
+    /// <see cref="IsOurs"/>) from Microsoft: the organization (O=) of the signer certificate
+    /// and of its issuer is Microsoft Corporation. Not the signer's common name: the .NET
+    /// installers are signed as "CN=.NET, O=Microsoft Corporation" by "Microsoft Code Signing
+    /// PCA 2011 / 2024" (checked on 6.0, 8.0, 9.0 and 10.0 installers, 24.11.2026); only old
+    /// ones carried "CN=Microsoft Corporation". Used for the one file GhostDeck ever installs:
+    /// the .NET Desktop Runtime installer, when an update needs a newer .NET and the user chose
+    /// to install it with the update (TECHNICAL 19.10).
+    /// </summary>
+    public static bool IsMicrosoft(string path, out string why)
+    {
+        if (!Verified(path, out why, out var cert)) return false;
+        using (cert)
+        {
+            string? org = Organization(cert.SubjectName), issuerOrg = Organization(cert.IssuerName);
+            if (!string.Equals(org, MicrosoftSigner, StringComparison.Ordinal))
+            {
+                why = $"signed by {cert.Subject}, whose organization is not {MicrosoftSigner}";
+                return false;
+            }
+            if (!string.Equals(issuerOrg, MicrosoftSigner, StringComparison.Ordinal))
+            {
+                why = $"the signing certificate was issued by {cert.Issuer}, whose organization is not {MicrosoftSigner}";
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>The single O= value of a distinguished name; null when there is none or more than one.</summary>
+    internal static string? Organization(X500DistinguishedName dn)
+    {
+        string? found = null;
+        foreach (var rdn in dn.EnumerateRelativeDistinguishedNames())
+        {
+            if (rdn.HasMultipleElements || rdn.GetSingleElementType().Value != "2.5.4.10") continue;   // 2.5.4.10 = O
+            if (found != null) return null;
+            found = rdn.GetSingleElementValue();
+        }
+        return found;
+    }
+
+    /// <summary>The signature verifies; <paramref name="cert"/> is the signer, for the caller to judge and dispose.</summary>
+    private static bool Verified(string path, out string why, out X509Certificate2 cert)
+    {
         why = "";
+        cert = null!;
         int rc = VerifyTrust(path);
         if (rc != 0)
         {
@@ -50,8 +116,6 @@ public static class Authenticode
             };
             return false;
         }
-
-        X509Certificate2 cert;
         try
         {
             using var raw = X509Certificate.CreateFromSignedFile(path);
@@ -61,18 +125,6 @@ public static class Authenticode
         {
             why = "the signer certificate could not be read: " + ex.Message;
             return false;
-        }
-        using (cert)
-        {
-            string name = cert.GetNameInfo(X509NameType.SimpleName, false);
-            bool identity = cert.Extensions.OfType<X509EnhancedKeyUsageExtension>()
-                .Any(e => e.EnhancedKeyUsages.Cast<Oid>().Any(o => o.Value == IdentityEku));
-            if (!identity) { why = $"signed by another identity ({name})"; return false; }
-            if (!name.Contains(PublisherName, StringComparison.OrdinalIgnoreCase))
-            {
-                why = $"unexpected publisher name ({name})";
-                return false;
-            }
         }
         return true;
     }
